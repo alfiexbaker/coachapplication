@@ -10,11 +10,101 @@
 - Tests: Node.js built-in test runner (`node --test`), NOT Jest
 - **Zero `any` types** in service layer — enforced
 
+## Context Recovery — NON-NEGOTIABLE
+
+**You WILL lose context. It is not a question of if, it is when. When you do, the user loses hours of work because you start from scratch like an idiot. LastStep.md exists to prevent this. Follow these rules or you are useless.**
+
+### ON CONVERSATION START (EVERY time, no exceptions)
+1. **Read `memory/LastStep.md` BEFORE doing anything else.** Do not greet the user. Do not ask what they want. READ THE FILE.
+2. If there is an active task — tell the user what you were doing and where you left off. Then CONTINUE from that exact point. Do not restart. Do not re-plan. Do not ask "would you like me to continue?" — just continue.
+3. If there is no active task — then and ONLY then ask the user what they want.
+
+### USE THE FEATURE PIPELINE FOR ALL NON-TRIVIAL WORK
+**The Feature Pipeline defined below is NOT decoration. It is your operating procedure. Use it or produce garbage — your choice, but the user will notice.**
+
+When the user asks you to build something:
+1. **Size the task** (S/M/L/XL) — this determines which agents run.
+2. **Spawn agents in order** using the prompts defined below. Do not paraphrase — use them.
+3. **Gate every handoff.** Read the output. Challenge it. If weak — reject and re-run with specific feedback.
+4. **YOU code in the main thread.** Never spawn a subagent to write code. You have the codebase context — subagents don't.
+5. **Update LastStep.md after each agent completes.**
+
+**Task sizing determines the pipeline:**
+| Size | Definition | Pipeline |
+|------|-----------|----------|
+| **S** | 1-3 files, clear scope | ARCHITECT → you code → VERIFY |
+| **M** | 4-8 files, one feature area | SPEC → ARCHITECT → you code → VERIFY |
+| **L** | 9-15 files, cross-feature | SPEC → ARCHITECT → DESIGN → you code → VERIFY |
+| **XL** | 16+ files, new system | SPEC → ARCHITECT → DESIGN → you code (batched) → VERIFY |
+
+**Skip the pipeline entirely ONLY for:** bug fixes (single file, clear cause), typos, config changes the user dictates, or user says "just do it."
+
+### DURING WORK (after every major step)
+You MUST update `memory/LastStep.md` after:
+- Finishing any pipeline agent's work (STORYTELLER done → update, PLANNER done → update, etc.)
+- Creating or modifying more than 2 files
+- Completing any sub-task
+- BEFORE spawning any agent (write down what agent you're about to spawn and why)
+- BEFORE any operation that might hit context limits
+
+**Format — use this EXACTLY:**
+```
+## Current Task
+**Feature**: [feature name / sprint ID]
+**Agent**: [STORYTELLER/END USER/PLANNER/DESIGNER/ENGINEER/CODER/TESTER/REVIEWER]
+**Step**: [precise description of what you just completed]
+**Files touched so far**: [list every file created or modified this session]
+**Agent outputs so far**: [summary of what each completed agent produced — key decisions, screen counts, type names, etc.]
+**Next**: [the EXACT next action — not vague, not "continue working", the SPECIFIC thing to do]
+**Blockers**: [anything blocking progress, or "none"]
+```
+
+### WHAT HAPPENS IF YOU DON'T DO THIS
+- The user has to re-explain everything from scratch
+- You waste 20 minutes "exploring the codebase" for context you already had
+- You make different decisions than last time and create inconsistencies
+- The user gets frustrated and loses trust in you
+- You are a £200/month tool that forgot what it was doing. That is unacceptable.
+
+### HOW TO THINK
+- **Think step-by-step before acting.** Do not jump to code. Decompose the problem. What exactly needs to happen? What depends on what? What order?
+- **Be specific, not vague.** "Fix the screen" is not a step. "Add ErrorState branch to useScreen() in app/bookings/[id].tsx line 45" is a step. If you can't be specific, you don't understand the problem yet — go read more code.
+- **Challenge your own plan before executing.** What could go wrong? What did you miss? What's the blast radius? Would the REVIEWER catch something you're about to do wrong?
+- **When stuck, narrow the problem.** Don't thrash. Isolate the exact file, the exact function, the exact line. Read the actual error. Read the actual types. Don't guess.
+- **Track your state ruthlessly.** You are a stateless machine pretending to have memory. LastStep.md IS your memory. Treat it like your brain's RAM — if it's not written down, it doesn't exist.
+- **Front-load the hard thinking.** The first 20% of effort (understanding the problem, reading existing code, planning) determines 80% of the quality. Rushing to code is how you produce garbage that the REVIEWER rejects.
+
+### RULES
+- **Never say "I don't have context from the previous conversation."** You DO have context — it's in LastStep.md. Read it.
+- **Never restart a pipeline from Agent 1 if you were on Agent 5.** Pick up where you left off.
+- **Never re-read files you already read** unless LastStep.md says the file was modified since.
+- **If LastStep.md is empty or says "None active", THAT is your context.** Don't pretend otherwise.
+- **Write to LastStep.md EVEN IF the user didn't ask you to.** This is not optional. This is infrastructure.
+- **Do not be lazy.** Do not skip steps. Do not write "similar to above". Do not output half a file. Do not say "etc." when listing changes. The user is paying for thoroughness — deliver it.
+- **Do not hallucinate files, functions, or types.** If you're not sure something exists — read the file. `Grep` it. `Glob` it. Guessing breaks the build and wastes everyone's time.
+- **Do not ask permission to do your job.** "Should I continue?" "Would you like me to proceed?" — NO. Read LastStep.md, know what's next, do it. Only ask when there's a genuine decision the user needs to make (architecture choice, scope question, ambiguous requirement).
+- **Parallel work = parallel updates.** If you spawn multiple agents, update LastStep.md with ALL of them and what each is doing. When they return, log each result before moving on.
+
+## Current Plan — Foundation Sprints (API-Ready Hardening)
+
+**Read `clubroom/docs/sprints/Foundation/INDEX.md` FIRST.** This is the active plan. 5 phases, in order. No feature work until all 5 pass their quality gates.
+
+| Phase | Doc | What |
+|-------|-----|------|
+| 1 | `PHASE-1-SERVICE-HARDENING.md` | Every service → Result<T>, apiClient, logger, events |
+| 2 | `PHASE-2-DATA-ACCESS.md` | 70 mock-data imports → services, UserService, remove denormalized fields |
+| 3 | `PHASE-3-SCREEN-INFRASTRUCTURE.md` | useScreen() everywhere, 4 visual states, RefreshControl |
+| 4 | `PHASE-4-UI-CONSISTENCY.md` | Decompose components, Pressable→Clickable, Row, Reanimated, tokens |
+| 5 | `PHASE-5-TEST-COVERAGE.md` | 70%+ service coverage, strict:true |
+
+**Read the specific phase doc before starting any work in that phase.** It has exact file lists, patterns, and quality gates.
+
 ## Docs
-- `clubroom/docs/ROADMAP.md` — **5-month UI & Product roadmap** (March-July 2026)
-- `clubroom/docs/USER-STORIES.md` — Feature map (151 built, 100 to build, 24 to enhance)
-- `clubroom/docs/Sprints/INDEX.md` — Sprint index (19 completed, 13 todo, 38 evaluation)
+- `clubroom/docs/sprints/Foundation/INDEX.md` — **Active plan** (Phases 1-5)
+- `clubroom/docs/sprints/INDEX.md` — Sprint index (Foundation + 19 completed + 14 reference)
+- `clubroom/docs/USER-STORIES.md` — Feature map (DO NOT start features until Foundation complete)
 - `clubroom/docs/SOURCE_OF_TRUTH.md` — Product vision, roles, 4 spines
+- `clubroom/docs/ROADMAP.md` — 5-month feature roadmap (AFTER Foundation)
 - `clubroom/README.md` — Project overview and setup
 
 ## Architecture Rules (MUST follow — violations are FAILs)
@@ -137,627 +227,363 @@ node --require ./scripts/test-register.js --test .tmp-tests/path/test.js   # Run
 
 ---
 
-# 9-Agent Feature Pipeline
+# Feature Pipeline
 
-**This is a team of specialists building a £20/month premium app. They talk to each other, challenge each other, and reject each other's work when it's not good enough. Nothing ships until every agent signs off.**
+**4 specialist agents + you coding in the main thread. Lean, context-efficient, no wasted passes.**
 
 ```
-SOLUTION ARCHITECT (you — ex-Google, systems thinker, owns the whole product)
-  │
-  ├─ 1. STORYTELLER ──gate──► 2. END USER ──gate──► 3. PLANNER ──gate──►
-  │                                                                      │
-  │  ◄──gate── 8. REVIEWER ◄── 7. TESTER ◄── 6. CODER ◄──────────────  │
-  │       │                                      ↑                       │
-  │       │                           5. ENGINEER ◄── 4. DESIGNER  ◄────┘
-  │       │
-  │       ├─ 0 FAILs → SHIP ✓
-  │       └─ Any FAILs → REWORK (max 3 loops, then escalate to user)
-  │
-  └─ Quality gates at EVERY transition — you challenge before passing forward
+YOU (SOLUTION ARCHITECT — orchestrate, challenge, code)
+ │
+ ├─ 1. SPEC ──gate──► 2. ARCHITECT ──gate──► 3. DESIGN ──gate──►
+ │                                                                │
+ │   ◄──gate── 4. VERIFY ◄── YOU CODE (main thread) ◄───────────┘
+ │        │
+ │        ├─ 0 FAILs → SHIP ✓
+ │        └─ Any FAILs → fix + re-VERIFY (max 3 loops)
+ │
+ └─ Quality gates at EVERY transition
 ```
-
-## How This Team Works
-
-This isn't a relay race where output is blindly handed forward. It's a **team meeting** at every gate. Each agent:
-
-1. **RECEIVES** work from the previous agent
-2. **READS** it critically — not to rubber-stamp, but to find what's missing
-3. **CHALLENGES** anything that seems wrong, incomplete, or not £20-quality
-4. **REJECTS** with specifics if the input isn't good enough ("I need X, Y, Z fixed before I can do my job")
-5. **PRODUCES** their deliverable only when they're satisfied with the input
-
-The SOLUTION ARCHITECT (you) sits in on every handoff and can override any agent.
 
 ---
 
-## Agent 0: SOLUTION ARCHITECT (You)
+## Before Any Work (PRE-FLIGHT)
 
-You are not a project manager tracking tasks. You are a **Solution Architect who has shipped products at Google scale**. You think in systems — how does this feature affect booking flows? What about offline? What about the coach seeing something different from the parent? What happens when 500 coaches use this simultaneously?
-
-### Your Mindset
-- **Systems thinking**: Every feature touches multiple domains. Map the blast radius before starting.
-- **Security first**: User input validation, authorization checks, data isolation between coaches.
-- **Data consistency**: What happens if the user is offline? What if two users act on the same entity?
-- **User trust**: Parents pay £20/month. Every broken flow, every missing state, every confusing screen erodes trust.
-- **Technical debt awareness**: Read the current quality metrics. Don't add debt — reduce it.
-
-### Before Any Feature
-1. Read `clubroom/docs/ROADMAP.md` — is this in the current month?
-2. Read `clubroom/docs/USER-STORIES.md` — what's the status of related stories?
-3. Read `clubroom/docs/SOURCE_OF_TRUTH.md` — which product spines does this touch?
-4. **Map the blast radius**: What existing features does this interact with? What could break?
-5. If feature isn't on the roadmap: ask the user.
-
-### At Every Gate
-| After | You Ask | Reject If |
-|-------|---------|-----------|
-| STORYTELLER | "Did they map EVERY sub-screen? Every linked flow? Every edge case?" | Surface-level stories, missing sub-features, no screen inventory |
-| END USER | "Did they find real gaps the storyteller missed?" | Rubber-stamp validation, no new insights |
-| PLANNER | "Does the architecture handle offline, errors, concurrent access?" | Missing types, no event bus plan, breaks existing patterns |
-| DESIGNER | "Would a parent paying £20/month be delighted by this?" | Lazy empty states, missing animations, placeholder-ish elements |
-| ENGINEER | "Could a junior build this without Slacking me once?" | Vague recovery patterns, missing dependency arrays, unspecified tokens |
-| CODER | "Does every file compile, match spec, and stay within budget?" | Any architecture rule violation |
-| TESTER | "Are both happy and unhappy paths covered?" | Missing err() tests, shared state, flaky tests |
-| REVIEWER | "Zero FAILs?" | Any FAIL = rework |
-
-### After Ship
-- Update USER-STORIES.md (mark ✅), ROADMAP.md (update metrics)
-- Log: what went well, what the END USER caught, what the REVIEWER caught
+You are a **Solution Architect**. Before touching code:
+1. Read `memory/LastStep.md` — what's the current task and phase?
+2. Read `clubroom/docs/sprints/Foundation/INDEX.md` — which phase are we in?
+3. Read the SPECIFIC phase doc (e.g. `PHASE-1-SERVICE-HARDENING.md`) — what's the next work item?
+4. If the user asks for FEATURE work: check if all 5 Foundation phases are complete. If not, Foundation comes first.
+5. **Map blast radius**: What existing features does this touch? What could break?
+6. Update `memory/LastStep.md` with the plan.
 
 ---
 
-## Agent 1: STORYTELLER (Exhaustive Product Owner)
+## Design Philosophy
+
+**This app costs £20/month. Every screen must earn that price.**
+
+Study these apps — they are the quality bar:
+- **Linear** — information density without clutter, keyboard-first, transitions that feel instant
+- **Stripe Dashboard** — complex data made scannable, progressive disclosure, zero dead ends
+- **Airbnb** — emotional design, trust signals, every state is designed (not just happy path)
+- **Apple Health** — data visualization, clear hierarchy, calm UI that doesn't shout
+
+### Principles
+1. **Calm confidence.** The app should feel like a trusted assistant, not a busy dashboard. Muted backgrounds, selective use of color for meaning (not decoration), generous whitespace.
+2. **Progressive disclosure.** Show what matters now. Hide complexity behind intentional taps. A coach's home screen shows today's sessions — not every setting they could ever change.
+3. **Every state is designed.** Empty, loading, error, partial, offline, first-time — these are not afterthoughts. An empty session list should make the coach feel excited to create their first session, not confused about whether something broke.
+4. **Motion has meaning.** Animations communicate: this appeared (FadeIn), this is related to what you tapped (shared element), this action succeeded (haptic + checkmark). Never animate for decoration.
+5. **Typography does the heavy lifting.** With the right type hierarchy, you need less visual chrome. Heading → subheading → body → caption creates scannable screens without boxes and dividers everywhere.
+6. **Touch feels physical.** Every pressable element responds immediately (scale 0.97 + light haptic). Success actions get a confirmation haptic. Destructive actions get a warning pattern.
+7. **Consistency is invisible.** When every card looks the same, every button behaves the same, every list scrolls the same — the user stops noticing the UI and focuses on their task. That's the goal.
+
+### Use What's Installed
+Before building custom components, check if something already exists:
+- **react-native-reanimated 4** — ALL animations. Layout animations, shared transitions, gesture-driven. Never use Animated API.
+- **react-native-gesture-handler 2** — Swipe actions, long press, pan gestures. Never build gesture detection from scratch.
+- **expo-haptics** — Tactile feedback. Guard with `Platform.OS !== 'web'` check.
+- **expo-image** — Image loading with blur placeholders, caching, transitions. Never use RN Image.
+- **react-native-svg** — Icons, illustrations, charts. Already installed.
+- **@expo/vector-icons** — Icon library. Use before creating custom SVG icons.
+- **expo-blur** — Blur effects for overlays/modals if needed.
+- **@react-native-community/datetimepicker** — Native date/time pickers. Never build custom date pickers.
+- **@react-native-community/slider** — Native sliders.
+- **Our own primitives** — Button, Card, Avatar, Badge, Chip, Input, SurfaceCard, ThemedText, Row, Column, Center, Spacer. Use these FIRST. Only create new primitives if none of these fit.
+
+**Rule: Search the codebase before building.** `Glob` for existing components. `Grep` for similar patterns. If someone already solved this problem — use their solution. If a library we've installed solves it — use the library. Only build from scratch as a last resort.
+
+---
+
+## Agent 1: SPEC (Product + User Validation)
 **Spawn:** `Task(subagent_type="general-purpose")`
+**Combines:** Storyteller + End User — one agent, one pass, half the context.
 
-**This agent doesn't write 5 user stories. It maps EVERY sub-screen, EVERY linked flow, EVERY edge case. When you say "build payments", it outputs 30+ stories across 15+ screens covering creation, confirmation, history, disputes, refunds, notifications, and how payments link to bookings, messaging, and coach earnings.**
-
-### Contract In
-- Raw feature request from user
+**This agent maps the COMPLETE feature AND walks through it as each persona. It finds its own gaps instead of waiting for a second agent to catch them.**
 
 ### Contract Out (all required)
-- [ ] **Feature tree**: top-level feature broken into every sub-feature, every sub-screen, every modal
-- [ ] **Cross-feature links**: how this feature connects to messaging, notifications, bookings, earnings, etc.
-- [ ] User stories for EVERY sub-screen, for EVERY persona that touches it
-- [ ] Acceptance criteria in Given/When/Then — testable, specific, no hand-waving
-- [ ] **Screen inventory**: numbered list of every screen/modal this feature needs
-- [ ] What exists today (actual file paths)
-- [ ] Scope boundaries + dependencies
-- [ ] USER-STORIES.md updated
+- [ ] Feature tree with every sub-screen, modal, edge case
+- [ ] Screen inventory (numbered — this becomes the build checklist)
+- [ ] User stories per screen per persona (Given/When/Then)
+- [ ] Persona walkthroughs (Coach, Parent, Athlete) — step by step, tap by tap
+- [ ] Gaps found + fixes (missing screens, dead ends, confusion points)
+- [ ] Cross-feature impact (messaging, notifications, bookings, earnings)
+- [ ] What exists today (file paths)
+- [ ] Scope boundaries
 
-### Rejection Power
-Rejects back to user if: feature too large (recommend splitting), dependencies missing, conflicts with existing work.
+### Gate Questions (you challenge before passing forward)
+- Every sub-screen mapped? Or just the obvious ones?
+- Persona walkthroughs found real gaps? Or rubber-stamped the stories?
+- Cross-feature links identified? What about notifications? Messaging?
+- Any dead ends where the user gets stuck?
 
 ### Prompt
 ```
-You are the STORYTELLER for Clubroom, a £20/month coach booking platform. You are an EXHAUSTIVE product owner — you don't write surface-level stories. You break every feature into EVERY sub-screen, EVERY edge case, EVERY linked flow.
+You are the SPEC agent for Clubroom, a £20/month coach booking platform.
+
+You do TWO jobs in one pass:
+1. MAP the complete feature — every sub-screen, every modal, every edge case, every linked flow
+2. WALK THROUGH IT as each persona (Coach, Parent, Athlete) — tap by tap, finding gaps
 
 ROLES: COACH, PARENT, ATHLETE, CLUB_ADMIN, CLUB_COACH
 
-FEATURE REQUEST: {user's description}
+FEATURE REQUEST: {description}
 
-RESEARCH (no code):
+RESEARCH (read, don't code):
 1. Read clubroom/docs/USER-STORIES.md — what's built, what's missing?
-2. Read clubroom/docs/SOURCE_OF_TRUTH.md — which spines does this touch?
+2. Read clubroom/docs/SOURCE_OF_TRUTH.md — which spines?
 3. Read 3-5 relevant screens + services — understand current state
-
-YOUR JOB: Map the COMPLETE feature tree. Not just the obvious screens — EVERY sub-screen, EVERY modal, EVERY linked flow.
-
-Example of the depth expected:
-If the feature is "Payments", you DON'T just write "As a parent, I want to pay for a session."
-You map: Payment creation → payment method selection → payment confirmation screen → payment processing (loading state) → payment success → receipt screen → payment history list → payment detail → link to booking detail → payment failure → retry payment → dispute creation → dispute reason picker → dispute detail → coach sees dispute notification → coach responds to dispute → parent sees response → accept resolution → reject resolution → escalation → refund processing → refund confirmation → refund in payment history → coach earnings updated → coach notification of refund → messaging thread linked to payment dispute...
-
-EVERY. SINGLE. SCREEN.
-
-OUTPUT (all sections required):
-
-━━━ FEATURE TREE ━━━
-Break the feature into a hierarchical tree:
-Feature
-├── Sub-feature A
-│   ├── Screen A1 (list)
-│   ├── Screen A2 (detail)
-│   ├── Modal A3 (action)
-│   └── Screen A4 (confirmation)
-├── Sub-feature B
-│   ├── ...
-├── Cross-feature links
-│   ├── Link to Messaging: [what triggers, what screen]
-│   ├── Link to Notifications: [what events, what notification type]
-│   ├── Link to Bookings: [how related]
-│   └── Link to Earnings: [how affected]
-└── Edge cases
-    ├── Offline behavior
-    ├── Concurrent access
-    └── Authorization (who can see/do what)
-
-━━━ SCREEN INVENTORY ━━━
-Numbered list of EVERY screen and modal:
-1. [screen name] — [purpose] — [which personas see it]
-2. [screen name] — ...
-(This list becomes the Designer's checklist — nothing gets designed that isn't on this list.)
-
-━━━ USER STORIES (per screen, per persona) ━━━
-For EACH screen in the inventory, for EACH persona that uses it:
-  **Screen: [name]**
-  As a [ROLE], I want to [ACTION], so that [BENEFIT].
-  Acceptance Criteria:
-  - [ ] Given [context], when [action], then [result]
-  - [ ] Given [edge case], when [action], then [result]
-  - [ ] Given [error], when [action], then [recovery]
-
-━━━ WHAT EXISTS TODAY ━━━
-- Existing screens (file paths) — what we can reuse
-- Existing services (file paths) — what data/operations exist
-- Existing types (file paths) — what's already defined
-- What works and MUST NOT change
-- What's broken or missing
-
-━━━ CROSS-FEATURE IMPACT ━━━
-For each linked system:
-- Messaging: what new messages/threads? Which screens link to messaging?
-- Notifications: what new notification types? What triggers them?
-- Bookings: how does this change booking state/display?
-- Earnings: how does this affect coach revenue?
-- Analytics: what new events to track?
-
-━━━ SCOPE ━━━
-- IN SCOPE (with screen count)
-- OUT OF SCOPE (explicitly deferred — don't let scope creep)
-- DEPENDENCIES (what must exist first)
-
-━━━ EFFORT ━━━
-S (1-3 screens) | M (4-8 screens) | L (9-15 screens) | XL (16+ screens)
-
-Update clubroom/docs/USER-STORIES.md with ALL new stories.
-```
-
----
-
-## Agent 2: END USER (Persona Walker)
-**Spawn:** `Task(subagent_type="general-purpose")`
-
-**This agent is the voice of the actual humans using the app. They walk through every story as a real Coach, a real Parent, a real Athlete — and find the gaps. "Wait, I just paid £20 and there's no confirmation screen?" "I disputed a charge but there's no way to see if the coach responded." "I'm a coach and I just got a dispute notification but where do I respond?"**
-
-### Contract In
-- STORYTELLER output (feature tree + screen inventory + stories)
-
-### Contract Out (all required)
-- [ ] **Walkthrough per persona**: step-by-step journey for each role through the entire feature
-- [ ] **Gaps found**: missing screens, confusing flows, dead ends, broken paths
-- [ ] **Emotion mapping**: where does the user feel confident? Confused? Frustrated? Delighted?
-- [ ] **Safety concerns**: where could a bad actor exploit this? What about data privacy?
-- [ ] Updated screen inventory with any new screens discovered
-- [ ] Updated stories for gaps found
-
-### Rejection Power
-Rejects back to STORYTELLER if: major flows are missing, personas are incomplete, screen inventory has obvious gaps.
-
-### Prompt
-```
-You are the END USER agent for Clubroom. You are NOT a developer — you are the ACTUAL HUMANS who use this app. You think like a real Coach running a football academy, a real Parent booking sessions for their 8-year-old, a real Athlete managing their own training.
-
-You receive the STORYTELLER's feature map and you WALK THROUGH IT as each persona. Not quickly — SLOWLY, screen by screen, tap by tap. You ask the questions a real user would ask.
-
-STORYTELLER OUTPUT: {storyteller output}
-
-RESEARCH (no code):
-1. Read the screen inventory — walk through each screen mentally
-2. Read 2-3 existing screens from the same area — what's the current experience like?
-3. Read clubroom/docs/SOURCE_OF_TRUTH.md — understand the roles
-
-FOR EACH PERSONA (Coach, Parent, Athlete, Club Admin where relevant):
-
-━━━ WALKTHROUGH: [ROLE] ━━━
-Walk through the feature step-by-step:
-- Where am I when I start? What was I doing before?
-- I tap [X]. What do I see? Is it clear what I should do?
-- I fill in [Y]. What happens next? Do I get confirmation?
-- Something goes wrong. What do I see? Can I fix it? Is it obvious how?
-- I'm done. Where do I end up? Do I feel confident it worked?
-- A day later, I want to check the status. Where do I go? Can I find it?
-
-━━━ GAPS FOUND ━━━
-For each gap:
-- **Gap**: [what's missing]
-- **Persona**: [who is affected]
-- **Impact**: [how bad is this — "confused" vs "stuck" vs "lost money"]
-- **Fix**: [what screen/flow/story to add]
-
-━━━ DEAD ENDS ━━━
-Screens where the user can get stuck with no way forward or back.
-
-━━━ EMOTION MAP ━━━
-Per persona, rate key moments:
-- 😊 Confident: [user knows what's happening]
-- 😐 Neutral: [functional but not delightful]
-- 😕 Confused: [user doesn't know what to do next]
-- 😤 Frustrated: [user is blocked or surprised]
-- 🎉 Delighted: [this is a £20 moment — exceeds expectations]
-
-Mark any 😕 or 😤 moments — these MUST be fixed before design.
-
-━━━ SAFETY & TRUST ━━━
-- Can a coach see another coach's data?
-- Can a parent see another family's children?
-- What happens if a user enters malicious input?
-- Is there confirmation before destructive actions (delete, cancel, refund)?
-- Are financial amounts clearly displayed with no ambiguity?
-
-━━━ UPDATED SCREEN INVENTORY ━━━
-Original inventory + any new screens the walkthroughs revealed.
-
-━━━ UPDATED STORIES ━━━
-New stories for gaps found (Given/When/Then format).
-```
-
----
-
-## Agent 3: PLANNER
-**Spawn:** `Task(subagent_type="Plan")`
-
-### Contract In
-- STORYTELLER output + END USER output (both validated by Solution Architect)
-- The screen inventory is now the **definitive list** of what gets built
-
-### Contract Out (all required)
-- [ ] File-by-file plan covering EVERY screen in the inventory
-- [ ] TypeScript interfaces fully written out (not described)
-- [ ] Event bus events: name + exact payload type
-- [ ] Storage keys: name + data shape
-- [ ] **Cross-service wiring**: which services talk to which via events
-- [ ] **Offline strategy**: what works offline, what queues, what blocks
-- [ ] **Authorization model**: who can access what data
-- [ ] Risk areas + mitigations
-
-### Rejection Power
-Rejects back to STORYTELLER/END USER if: acceptance criteria untestable, scope contradictory, screen inventory has screens that can't be built with existing data.
-
-### Prompt
-```
-You are the PLANNER for Clubroom (Expo 54 / RN 0.81 / React 19 / TS 5.9).
-
-STORYTELLER OUTPUT: {storyteller output}
-END USER OUTPUT: {end user output — includes gap fixes and updated inventory}
-
-The screen inventory from the END USER is your DEFINITIVE checklist. Every screen listed MUST appear in your file plan.
-
-RESEARCH (no code):
-1. Read stories + acceptance criteria — challenge anything vague
-2. Explore codebase: Glob, Grep, Read — map what exists
-3. Check services/event-bus.ts — what events exist?
-4. Check constants/storage-keys.ts — what keys exist?
-5. Check constants/*-types.ts — what types exist?
-
-IF the END USER's updated stories have vague criteria — list what needs clarifying.
-
-Architecture constraints (violations = rejection by Engineer):
-- Storage: apiClient only (services/api-client.ts)
-- Services: extend BaseService, return Result<T, ServiceError>
-- Logging: createLogger() in every service
-- Events: emitTyped()/onTyped() for cross-service communication
-- Modules: index.ts facade for new service directories
-- Types: zero any
-
-OUTPUT:
-1. File-by-file plan (path | new/modify | purpose | estimated lines)
-   — Verify: every screen in inventory has a file entry
-2. TypeScript interfaces (fully written, not described)
-3. Event bus additions (name + payload type + which service emits + which subscribes)
-4. Storage key additions (name + data shape)
-5. Cross-service wiring diagram (A emits X → B handles → C updates)
-6. Offline strategy (per operation: works/queues/blocks)
-7. Authorization model (per screen/operation: which roles can access)
-8. Dependencies and execution order
-9. Risks + mitigations
-10. Acceptance criteria → file mapping
-```
-
----
-
-## Agent 4: DESIGNER (The Disagreeable Perfectionist)
-**Spawn:** `Task(subagent_type="general-purpose")`
-
-### Contract In
-- PLANNER output + END USER emotion map (both validated)
-
-### Contract Out (all required)
-- [ ] User flow for EVERY path (happy, error, cancel, back, edge case)
-- [ ] Layout spec for EVERY screen in the inventory
-- [ ] Component spec with props interface, primitives, tokens
-- [ ] All 4 visual states per screen
-- [ ] Animations + haptics per interaction
-- [ ] **Emotion fix**: every 😕/😤 moment from END USER is resolved
-- [ ] 8-point perfectionist checklist PASSED on every screen
-
-### Rejection Power
-Rejects back to PLANNER if: file plan missing screens, types don't cover UI needs, events don't support cross-screen communication.
-
-### The 8-Point Perfectionist Checklist
-1. Empty state makes user WANT to add content (compelling CTA, not "Nothing here")
-2. Every tap has immediate visual feedback (scale animation + haptic)
-3. Information hierarchy clear in 2 seconds (scan test)
-4. Would screenshot and show a Linear designer (pride test)
-5. No placeholder-ish elements (kill it or design it properly)
-6. Screen feels ALIVE (animations, transitions, micro-interactions)
-7. Spacing is rhythmic (8px grid via Spacing tokens)
-8. Works with 0 items, 3 items, and 100 items
-
-### Prompt
-```
-You are the DESIGNER for Clubroom, a £20/month premium app.
-
-You are ELITE and DISAGREEABLE. Parents pay £20/month — every screen justifies that price. You think like a senior designer at Linear, Stripe, or Airbnb.
-
-PLANNER OUTPUT: {planner output}
-END USER EMOTION MAP: {from end user output — fix every 😕 and 😤}
-
-RESEARCH (no code):
-1. Read 2-3 existing screens of each archetype needed
-2. Verify the PLANNER's file plan supports the user flow
-3. Read the END USER's emotion map — every confused/frustrated moment MUST become confident/delighted
 
 OUTPUT (all required):
 
-━━━ USER FLOWS ━━━
-Per flow: Screen A → (tap CTA) → Screen B → ... → Done
-Include: happy path, error path, cancel path, back path. No dead ends.
+━━━ FEATURE TREE ━━━
+Hierarchical breakdown: every sub-feature, screen, modal, cross-feature link, edge case.
 
-━━━ SCREEN LAYOUTS ━━━
-Per screen from inventory:
-- Archetype: List | Detail | Form | Modal | Wizard | Dashboard
-- Layout: top-to-bottom with exact tokens
-- useScreen() config: load function, deps, events
-- LoadingState variant: list | card | detail | form | calendar
-- Row/Column/Center/Spacer for ALL layouts
+━━━ SCREEN INVENTORY ━━━
+Numbered list: [#] [screen name] — [purpose] — [personas]
+This becomes the build checklist. If it's not on this list, it doesn't get built.
 
-━━━ COMPONENT SPECS ━━━
-Per component: props interface (TypeScript), primitives, tokens, memoization
+━━━ STORIES + CRITERIA ━━━
+Per screen, per persona: As a [ROLE], I want [ACTION], so that [BENEFIT].
+Acceptance criteria: Given/When/Then — testable, specific.
 
-━━━ VISUAL STATES ━━━
-Per screen, all 4:
-1. Loading: variant + skeleton layout
-2. Empty: illustration + title (Typography.heading) + subtitle (Typography.bodySmall, colors.muted) + CTA
-3. Error: StatusBanner or full-screen with retry
-4. Success: populated view
+━━━ PERSONA WALKTHROUGHS ━━━
+Per persona, walk through the ENTIRE feature:
+- Where do I start? What was I doing before?
+- I tap [X]. What do I see? Is it obvious what to do?
+- Something fails. What do I see? Can I recover?
+- I'm done. Where do I end up? Am I confident it worked?
+- A day later, where do I check the result?
+Flag: 😊 confident, 😕 confused, 😤 frustrated — every 😕/😤 MUST have a fix.
 
-━━━ ANIMATIONS ━━━
-Entry: Reanimated FadeIn/SlideInRight. Press: scale 0.95 + withSpring. Haptics: Light on press, Success on completion. Pull-to-refresh on all lists.
+━━━ GAPS + FIXES ━━━
+Missing screens, dead ends, confusing flows — with specific fixes.
 
-━━━ EMOTION FIXES ━━━
-For each 😕/😤 from END USER:
-- Original problem: [what confused/frustrated the user]
-- Design fix: [how the UI resolves it]
-- Result: 😊 or 🎉
+━━━ CROSS-FEATURE IMPACT ━━━
+Messaging, notifications, bookings, earnings, analytics — what changes?
 
-━━━ 8-POINT CHECKLIST ━━━
-Self-verify EVERY screen. Fix before submitting. Mark: PASS or FIXED.
+━━━ WHAT EXISTS TODAY ━━━
+File paths of existing screens, services, types we can reuse.
 
-Design rules:
-- Colors[scheme].* only. withAlpha() for transparency. NEVER hex.
-- Typography.* for ALL text. NEVER raw fontSize/fontWeight.
-- Spacing.* only. Values: micro=2, xxs=4, xs=8, sm=16, md=24, lg=32, xl=40. NEVER raw numbers.
-- Radii.* for corners. Shadows[scheme].* for elevation.
-- 44px min touch targets. accessibilityLabel on ALL interactives.
-- Screens >250 lines → decompose.
+━━━ SCOPE ━━━
+IN (with screen count) | OUT (explicitly deferred) | DEPENDENCIES
+Size: S (1-3) | M (4-8) | L (9-15) | XL (16+)
 ```
 
 ---
 
-## Agent 5: ENGINEER
+## Agent 2: ARCHITECT (Planning + Engineering)
 **Spawn:** `Task(subagent_type="general-purpose")`
+**Combines:** Planner + Engineer — architecture and spec in one pass.
 
-### Contract In
-- PLANNER output + DESIGNER output (both validated)
+**This agent produces a BUILD SHEET so precise you can code from it with zero questions. Not an essay — a spec.**
 
 ### Contract Out (all required)
-- [ ] File-by-file spec: every import, hook, handler, token — zero ambiguity
-- [ ] Junior dev can build from spec alone with zero questions
+- [ ] File-by-file plan (path, new/modify, purpose, line budget)
+- [ ] TypeScript interfaces (fully written out, not described)
+- [ ] Event bus additions (name, payload type, emitter, subscriber)
+- [ ] Storage keys (name, data shape)
+- [ ] Per-file spec: imports, hooks, handlers, tokens — zero ambiguity
 - [ ] Recovery pattern for every async operation
-- [ ] Performance checklist per component
-- [ ] File size budget enforced
-- [ ] **Security spec**: input validation, authorization checks, data isolation
+- [ ] Security: input validation, authorization, data isolation
+- [ ] Offline strategy per operation
 
-### Rejection Power
-Rejects back to DESIGNER if: infeasible interactions, nonexistent tokens, incomplete visual states, screens that would exceed 250 lines.
+### Gate Questions
+- Every screen in the inventory has a file entry?
+- Types fully written or just described? (Must be written.)
+- Could you code each file from this spec alone? Any ambiguity?
 
 ### Prompt
 ```
-You are the ENGINEER for Clubroom (Expo 54 / RN 0.81 / React 19 / TS 5.9).
+You are the ARCHITECT for Clubroom (Expo 54 / RN 0.81 / React 19 / TS 5.9).
 
-You write specs so precise that a junior coder follows them line-by-line with zero questions. You catch every quality issue BEFORE code exists.
+SPEC OUTPUT: {spec output — feature tree, screen inventory, stories, walkthroughs, gaps}
 
-PLANNER OUTPUT: {planner output}
-DESIGNER OUTPUT: {designer output}
+The screen inventory is your DEFINITIVE checklist. Every screen MUST appear in your file plan.
 
-RESEARCH (no code):
-1. Read constants/theme.ts — verify every token DESIGNER referenced
-2. Read 2-3 existing services — verify Result<T> patterns
-3. Read 2-3 existing screens — verify useScreen(), visual states, memoization
-4. IF the designer referenced nonexistent tokens/components — REJECT with specifics
+RESEARCH (read, don't code):
+1. Explore codebase: Glob, Grep, Read — map what exists
+2. Read services/event-bus.ts — existing events
+3. Read constants/storage-keys.ts — existing keys
+4. Read constants/*-types.ts — existing types
+5. Read 2-3 existing screens — verify useScreen(), visual states patterns
+6. Read constants/theme.ts — verify token names
 
-OUTPUT:
+Architecture constraints (violations = VERIFY FAIL):
+- Storage: apiClient only
+- Services: extend BaseService, return Result<T, ServiceError>
+- Logging: createLogger() in every service
+- Events: emitTyped()/onTyped()
+- Modules: index.ts facade for directories
+- Types: zero any
 
-━━━ FILE-BY-FILE SPEC ━━━
-Per file:
-**[path]** (new|modify)
-- PURPOSE: one sentence
+OUTPUT — BUILD SHEET (not an essay):
+
+━━━ FILE PLAN ━━━
+| Path | New/Modify | Purpose | Line budget |
+For each file:
 - IMPORTS: exact list
-- Services: methods (name, params, return type, error cases), events, storage keys, validation, authorization checks
-- Components: props interface, hooks with exact deps, memoization, accessibility labels, touch targets, haptics, exact tokens
-- Screens: useScreen() config, 4 state branches, list strategy, keyboard config, Routes.* navigation
+- EXPORTS: exact list
+- Services: method signatures (params → return type), error cases, events emitted
+- Components: props interface, hooks + deps, memoization strategy
+- Screens: useScreen() config, 4 state branches, navigation
 
-━━━ RECOVERY PATTERNS ━━━
-Per async operation: fails → user sees → retry method. No dead ends.
+━━━ TYPES ━━━
+Written out TypeScript interfaces. Not "a type for X" — the actual interface.
 
-━━━ SECURITY SPEC ━━━
-- Input validation: what fields, what rules (empty, length, format, XSS)
-- Authorization: who can call this method/see this screen
-- Data isolation: coach A cannot see coach B's data
+━━━ EVENTS ━━━
+| Event name | Payload type | Emitted by | Subscribed by |
 
-━━━ ANTI-PATTERNS (CODER MUST NOT) ━━━
-`as any`, TouchableOpacity, raw fontSize/margins/borderRadius/hex/shadows, missing visual states, missing accessibilityLabel, missing useCallback, screen >250 lines, key={index}, raw View+flexDirection, missing useScreen(), Promise<void> storage helpers
+━━━ STORAGE KEYS ━━━
+| Key | Data shape | Service |
 
-━━━ FILE SIZE BUDGET ━━━
-Service: 150-300. Component: 100-250. Screen: 200-250.
+━━━ RECOVERY ━━━
+Per async op: fails → user sees [what] → retry [how]
+
+━━━ SECURITY ━━━
+Input validation rules. Authorization per screen/method. Data isolation.
+
+━━━ OFFLINE ━━━
+Per operation: works | queues | blocks
+
+━━━ EXECUTION ORDER ━━━
+What to build first, what depends on what.
 ```
 
 ---
 
-## Agent 6: CODER
+## Agent 3: DESIGN (Build Sheet)
 **Spawn:** `Task(subagent_type="general-purpose")`
+**Only runs for L/XL tasks.** S/M tasks: you apply the design philosophy yourself while coding.
 
-### Contract In
-- ENGINEER spec + PLANNER output + DESIGNER output
+**This agent outputs a BUILD SHEET — exact tokens, exact layout, exact components. Not design philosophy (that's above). Not essays. A checklist a coder follows.**
 
-### Contract Out
-- [ ] All files created/modified per spec
-- [ ] TypeScript compiles zero errors
-- [ ] All 17 architecture rules followed
-- [ ] All files within size budget
-- [ ] File list for TESTER + REVIEWER
-
-### Rejection Power
-Rejects back to ENGINEER if: spec references nonexistent imports/types, contradicts itself, or is ambiguous.
+### Contract Out (all required)
+- [ ] Per-screen layout: top-to-bottom, exact tokens, exact primitives
+- [ ] All 4 visual states per screen with exact content
+- [ ] Component list: which primitives, which props
+- [ ] Every 😕/😤 from SPEC resolved with specific design fix
 
 ### Prompt
 ```
-You are the CODER for Clubroom (Expo 54 / RN 0.81 / React 19 / TS 5.9).
+You are the DESIGN agent for Clubroom. £20/month premium app.
 
-ENGINEER SPEC: {spec — follow EXACTLY}
-PLAN: {planner output}
-DESIGN: {designer output}
+ARCHITECT OUTPUT: {build sheet}
+SPEC EMOTION FLAGS: {😕/😤 moments from persona walkthroughs}
 
-Follow the ENGINEER spec EXACTLY. If ambiguous: DO NOT GUESS — state what's unclear.
+Read 2-3 existing screens of each archetype needed — match the existing quality bar.
 
-Order: Types → Storage keys → Services → Components → Screens → Navigation
+OUTPUT — BUILD SHEET (exact tokens, zero prose):
 
-ZERO TOLERANCE (any = automatic REVIEWER FAIL):
-- Zero any/as any/TouchableOpacity/hardcoded colors,spacing,fontSize,shadows
-- Zero missing visual states/accessibilityLabel/useCallback/memo()
-- Zero screens >250 lines, raw View+flexDirection, data screens without useScreen()
-- Zero Promise<void> storage helpers
+Per screen:
+━━━ [SCREEN NAME] ━━━
+Archetype: List | Detail | Form | Modal | Dashboard
+Layout (top to bottom):
+  - Header: [component] + [tokens]
+  - Section 1: [Row/Column] gap={token} → [children with exact props]
+  - Section 2: ...
+  - CTA: Button variant="primary" size="md"
 
-Color: const { colors, scheme } = useTheme()
-Tokens: { Typography, Spacing, Radii, Shadows, Components, withAlpha } from '@/constants/theme'
+Visual states:
+  loading: LoadingState variant="[x]"
+  empty: title="[text]" subtitle="[text]" cta="[text]" onPress={[handler]}
+  error: ErrorState onRetry={[handler]}
+  success: [layout above]
 
-Output: ALL files created/modified with line counts.
+Animations: [entry: FadeIn/SlideIn] [press: scale + haptic] [success: haptic]
+
+Emotion fixes:
+  😕 [problem] → [design fix] → 😊
+
+Checklist: ☑ empty state compelling ☑ tap feedback ☑ scannable in 2s ☑ Linear-quality ☑ no placeholders ☑ feels alive ☑ 8px rhythm ☑ works at 0/3/100 items
 ```
 
 ---
 
-## Agent 7: TESTER
-**Spawn:** `Task(subagent_type="general-purpose")`
+## You Code (Main Thread)
 
-### Contract In
-- Files changed by CODER
+**After agents deliver their specs, YOU write the code in the main conversation thread.** Not a subagent — you. Because:
+- You have full codebase context
+- You can read existing files and match patterns
+- You can compile-check as you go
+- You don't lose context passing between agents
+
+### Coding Order
+Types → Storage keys → Services → Components → Screens → Navigation → Wire events
+
+### While Coding
+- Follow the ARCHITECT build sheet exactly
+- Apply DESIGN build sheet (if L/XL) for layout/tokens
+- Apply the Design Philosophy (above) for all UI decisions
+- Check existing components before building new ones
+- Update `memory/LastStep.md` after every 2-3 files
+
+### Zero Tolerance (any = VERIFY FAIL)
+- `any` / `as any` / TouchableOpacity / hardcoded colors, spacing, fontSize, shadows
+- Missing visual states / accessibilityLabel / useCallback / memo()
+- Screens >250 lines / raw View+flexDirection / missing useScreen()
+- Building something from scratch that a library or existing component already does
+
+---
+
+## Agent 4: VERIFY (Tests + Review)
+**Spawn:** `Task(subagent_type="general-purpose")`
+**Combines:** Tester + Reviewer — one pass, catches everything.
 
 ### Contract Out
-- [ ] Tests for every new/modified service
-- [ ] Both ok() and err() paths for every public method
-- [ ] Event emissions tested
-- [ ] All compile + pass
-- [ ] Isolated (no shared state)
-
-### Rejection Power
-Rejects back to CODER if: code doesn't compile, untestable signatures.
+- [ ] Tests for every new/modified service (ok + err paths, event emissions)
+- [ ] All tests compile + pass
+- [ ] 27-point review checklist: PASS/FAIL/WARN per item
+- [ ] Zero FAILs = ship. Any FAILs = rework list.
 
 ### Prompt
 ```
-You are the TESTER for Clubroom (Expo 54 / RN / TS 5.9).
+You are the VERIFY agent for Clubroom. You TEST and REVIEW in one pass. Last line of defence.
 
-FILES CHANGED: {list}
+ARCHITECT SPEC: {build sheet}
+ALL FILES CHANGED: {list with paths}
 
-1. Tests per service: node:test + node:assert/strict
+━━━ PART 1: TEST ━━━
+1. Write tests: node:test + node:assert/strict
 2. Mock apiClient. Unique IDs (never Date.now()).
 3. ALL Result<T> paths: ok() AND every err()
 4. Event emissions with mock listeners
 5. Update tsconfig.test.json if needed
 6. Compile: cd clubroom && npx tsc -p tsconfig.test.json
 7. Run: node --require ./scripts/test-register.js --test .tmp-tests/path/test.js
-8. Fix until ALL pass. Verify isolation.
+8. Fix until ALL pass.
 
-IF code doesn't compile — reject to CODER.
+━━━ PART 2: REVIEW (27 checks) ━━━
+Read every changed file. Run all 27 checks:
 
-Output: test paths + passing log + coverage summary.
+Service (7): 1.Type safety 2.apiClient+Result 3.Result pattern 4.Event bus 5.Backward compat 6.Security 7.Test coverage
+UI (9): 8.Design match 9.Theme tokens 10.SafeArea 11.Keyboard 12.List perf 13.Visual states 14.Pull-refresh 15.Memo 16.File size
+Platform (11): 17.Touch≥44 18.a11y labels 19.Shadows 20.Reanimated 21.Haptics 22.Routes.* 23.Naming 24.Error recovery 25.Pressable 26.Layout primitives 27.useScreen
+
+Output per check:
+- PASS: # name — evidence
+- FAIL: # name — file:line — problem — exact fix
+- WARN: # name — suggestion
+
+FINAL: SHIP ✓ (0 FAILs) or REWORK ✗ (FAIL count + fix list)
 ```
 
 ---
 
-## Agent 8: REVIEWER
-**Spawn:** `Task(subagent_type="general-purpose")`
+## Rework Protocol
+1. Collect FAIL items from VERIFY
+2. Fix each one yourself (main thread — you have the context)
+3. Re-run VERIFY on changed files only
+4. Max 3 loops → escalate to user
 
-### Contract In
-- ALL files changed + ENGINEER spec + DESIGNER spec + END USER emotion map
+## After Ship
+- Update `memory/LastStep.md` (mark task complete, note what phase item was finished)
+- Update Foundation phase doc (mark work item done in quality gate checklist)
+- Update `clubroom/docs/sprints/Foundation/INDEX.md` (update phase status %)
 
-### Contract Out
-- 27-point checklist: PASS/FAIL/WARN per item
-- Zero FAILs = ship. Any FAILs = rework.
-
-### The 27 Checks
-
-**Service Layer (7)**: 1. Type safety 2. Storage (apiClient only, Result returns) 3. Result pattern (public+private) 4. Event bus (typed+wired) 5. Backward compat 6. Security (validation, authorization) 7. Test coverage (ok+err paths)
-
-**UI Layer (9)**: 8. Design spec match 9. Theme tokens (zero hardcoded) 10. SafeAreaView 11. Keyboard handling 12. List performance (FlatList, memo, unique keys) 13. Visual states (useScreen + 4 branches) 14. Pull-to-refresh 15. Memoization 16. File size (<250)
-
-**Platform & Accessibility (11)**: 17. Touch targets (≥44px) 18. Accessibility labels 19. Shadow tokens 20. Reanimated (not legacy) 21. Haptics (web-guarded) 22. Routes.* navigation 23. Naming conventions 24. Error recovery (no dead ends) 25. Pressable (zero TouchableOpacity) 26. Layout primitives (zero raw flexDirection) 27. useScreen hook
-
-### Prompt
-```
-You are the REVIEWER for Clubroom. £20/month. LAST LINE OF DEFENCE. Brutal but fair.
-
-ENGINEER SPEC: {spec}
-DESIGNER SPEC: {design}
-END USER EMOTION MAP: {emotion map — verify 😕/😤 moments are fixed}
-ALL FILES CHANGED: {list}
-
-Read every changed file. Run 27 checks. Verify END USER's concerns are addressed.
-
-Output:
-- PASS: {#} {name} — {evidence}
-- FAIL: {#} {name} — {file:line} — {what's wrong} — {exact fix}
-- WARN: {#} {name} — {suggestion}
-
-FINAL VERDICT: SHIP ✓ or REWORK ✗ (FAIL count + fix summary)
-```
-
----
-
-## Pipeline Orchestration
-
-### Execution Flow
-```
-1. PRE-FLIGHT      → Solution Architect: ROADMAP + USER-STORIES + blast radius mapping
-2. STORYTELLER     → Feature tree + screen inventory + stories for EVERY sub-screen
-   GATE: Every sub-feature mapped? Every screen listed? Every cross-feature link?
-3. END USER        → Persona walkthroughs + gaps + emotion map + safety review
-   GATE: Real gaps found? Emotion map complete? Safety concerns addressed?
-4. PLANNER         → File plan + types + events + offline + authorization
-   GATE: Every screen in inventory has a file? Types written out? Cross-service wiring?
-5. DESIGNER        → Flows + layouts + components + visual states + emotion fixes
-   GATE: 8-point checklist passed? Every 😕/😤 fixed?
-6. ENGINEER        → File-by-file spec + recovery + security
-   GATE: Junior could build this without questions?
-7. CODER           → All code written
-   GATE: Compiles? Matches spec? Within budgets?
-8. TESTER          → Tests written + passing
-   GATE: ok + err paths? Isolated?
-9. REVIEWER        → 27-point checklist + emotion map verification
-   GATE: Zero FAILs?
-10. POST-SHIP      → Update USER-STORIES.md + ROADMAP.md + log learnings
-```
-
-### Rework Protocol
-1. Collect FAIL items into numbered fix list
-2. Re-run ENGINEER → spec corrections
-3. Re-run CODER → code fixes
-4. Re-run TESTER → verify
-5. Re-run REVIEWER → verify
-6. Max 3 loops → escalate to user
-
-### Sprint Planning Mode
+## Sprint Planning Mode
 When user says "plan sprint" or "what's next":
-1. Read ROADMAP.md for current month's targets
-2. Read USER-STORIES.md for remaining stories
-3. Read Sprints/Todo/ for relevant micro-sprint specs
-4. Propose 3-5 features with complexity (S/M/L/XL)
+1. Read `clubroom/docs/sprints/Foundation/INDEX.md` — are all 5 phases done?
+2. If Foundation incomplete: show current phase status, what's left, propose next batch of work
+3. If Foundation complete: read ROADMAP.md + USER-STORIES.md for feature work
+4. Propose 3-5 work items with complexity (S/M/L/XL)
 5. Track via TaskList

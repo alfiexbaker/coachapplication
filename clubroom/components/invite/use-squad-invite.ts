@@ -24,7 +24,7 @@ const NAV_STEPS_TYPED: readonly Step[] = ['squad', 'details', 'members', 'slots'
 
 interface Params { squadId?: string; sessionId?: string }
 
-export function useSquadInvite(currentUser: SimplifiedUser | null, params: Params) {
+export function useSquadInvite(currentUser: Pick<SimplifiedUser, 'id' | 'name'> | null, params: Params) {
   const [step, setStep] = useState<Step>('squad');
   const [selectedSquadIds, setSelectedSquadIds] = useState<string[]>(
     params.squadId ? [params.squadId] : []

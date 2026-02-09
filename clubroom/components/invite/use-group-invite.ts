@@ -25,7 +25,7 @@ const ALL_STEPS: readonly Step[] = ['target', 'athletes', 'type', 'slots', 'prev
 
 export const VISIBLE_STEPS: readonly string[] = ['target', 'type', 'slots', 'preview', 'confirm'];
 
-export function useGroupInvite(currentUser: SimplifiedUser | null) {
+export function useGroupInvite(currentUser: Pick<SimplifiedUser, 'id' | 'name'> | null) {
   // Wizard step
   const [step, setStep] = useState<Step>('target');
 

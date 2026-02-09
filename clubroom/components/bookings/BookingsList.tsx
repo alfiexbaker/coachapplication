@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from 'react';
-import { FlatList, View, StyleSheet, Pressable } from 'react-native';
+import { FlatList, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { UnifiedBookingCard } from '@/components/bookings/UnifiedBookingCard';
 import { SeriesBookingGroup } from '@/components/bookings/series-booking-group';
@@ -129,7 +130,7 @@ export function BookingsList({
     <View style={styles.container}>
       {/* Time Filter - Simple pills */}
       <View style={styles.filterRow}>
-        <Pressable
+        <Clickable
           onPress={() => onTimeFilterChange('upcoming')}
           style={[
             styles.filterPill,
@@ -145,8 +146,8 @@ export function BookingsList({
           >
             Upcoming
           </ThemedText>
-        </Pressable>
-        <Pressable
+        </Clickable>
+        <Clickable
           onPress={() => onTimeFilterChange('past')}
           style={[
             styles.filterPill,
@@ -162,7 +163,7 @@ export function BookingsList({
           >
             Past
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
 
       {hasItems ? (

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -171,7 +172,8 @@ export default function TabLayout() {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,
     headerShown: false,
-    tabBarButton: (props: React.ComponentProps<typeof HapticTab>) => <HapticTab {...props} />,
+    // @ts-expect-error — Expo Router BottomTabBarButtonProps ref type mismatch with forwardRef
+    tabBarButton: (props: BottomTabBarButtonProps) => <HapticTab {...props} />,
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look

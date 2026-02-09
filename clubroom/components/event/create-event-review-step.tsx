@@ -20,8 +20,9 @@ interface CreateEventReviewStepProps {
   endTime: string;
   isVirtual: boolean;
   venue: string;
-  targetAudience: EventTargetAudience | 'SQUADS';
+  targetAudience: EventTargetAudience | 'SQUADS' | 'SPECIFIC_ATHLETES';
   selectedSquadIds: string[];
+  selectedAthleteIds: string[];
   price: string;
 }
 
@@ -36,6 +37,7 @@ function CreateEventReviewStepInner({
   venue,
   targetAudience,
   selectedSquadIds,
+  selectedAthleteIds,
   price,
 }: CreateEventReviewStepProps) {
   const { colors: palette } = useTheme();
@@ -86,7 +88,9 @@ function CreateEventReviewStepInner({
           <ThemedText>
             {targetAudience === 'SQUADS'
               ? `Specific Squads (${selectedSquadIds.length} selected)`
-              : eventService.formatAudience(targetAudience as EventTargetAudience)}
+              : targetAudience === 'SPECIFIC_ATHLETES'
+                ? `Specific Athletes (${selectedAthleteIds.length} selected)`
+                : eventService.formatAudience(targetAudience as EventTargetAudience)}
           </ThemedText>
         </View>
 

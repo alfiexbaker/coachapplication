@@ -13,7 +13,7 @@ interface ThreadSummaryProps {
 }
 
 export function ThreadSummary({ thread }: ThreadSummaryProps) {
-  const { colors: palette, scheme } = useTheme();
+  const { colors: palette } = useTheme();
   const displayName = thread.title || thread.coachName;
   const subtitle = thread.subtitle || thread.serviceName;
   const isGroup = thread.kind === 'group';
@@ -98,7 +98,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
       <View
         style={[
           styles.safetyBanner,
-          { backgroundColor: scheme === 'dark' ? 'rgba(251, 146, 60, 0.2)' : 'rgba(251, 146, 60, 0.15)' },
+          { backgroundColor: withAlpha(palette.warning, 0.15) },
         ]}
         accessibilityRole="text">
         <IconSymbol name="shield.checkerboard" size={18} color={palette.secondary} />

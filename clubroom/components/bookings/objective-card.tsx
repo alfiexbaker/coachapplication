@@ -6,11 +6,12 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -49,22 +50,20 @@ export const ObjectiveCard = memo(function ObjectiveCard({
           {item.note && <ThemedText style={styles.noteText}>{item.note}</ThemedText>}
         </Column>
         <Row gap="md" align="center">
-          <Pressable
+          <Clickable
             onPress={handleEdit}
             hitSlop={8}
             accessibilityLabel={`Edit ${item.label} goal`}
-            accessibilityRole="button"
           >
             <Ionicons name="create-outline" size={22} color={palette.tint} />
-          </Pressable>
-          <Pressable
+          </Clickable>
+          <Clickable
             onPress={handleDelete}
             hitSlop={8}
             accessibilityLabel={`Delete ${item.label} goal`}
-            accessibilityRole="button"
           >
             <Ionicons name="trash-outline" size={22} color={palette.error} />
-          </Pressable>
+          </Clickable>
         </Row>
       </Row>
 

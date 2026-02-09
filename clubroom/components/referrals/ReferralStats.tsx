@@ -5,37 +5,23 @@
  * number of successful referrals, and pending referrals.
  */
 
-import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import { referralService } from '@/services/referral-service';
-import { scaleFont } from '@/utils/scale';
 import type { ReferralStats as ReferralStatsType } from '@/constants/types';
-import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
+
+import { StatItem, CompactStatItem, StatCard, styles } from './referral-stats-sections';
 
 interface ReferralStatsProps {
-  /** Referral statistics to display */
   stats: ReferralStatsType;
-  /** Display variant */
   variant?: 'default' | 'compact' | 'horizontal';
-  /** Whether to show the card wrapper */
   showCard?: boolean;
 }
 
-/**
- * Component displaying referral statistics.
- *
- * @example
- * ```tsx
- * <ReferralStats stats={userStats} />
- * <ReferralStats stats={userStats} variant="horizontal" />
- * <ReferralStats stats={userStats} variant="compact" showCard={false} />
- * ```
- */
 export function ReferralStats({
   stats,
   variant = 'default',
@@ -149,172 +135,3 @@ export function ReferralStats({
     </SurfaceCard>
   );
 }
-
-// ============================================================================
-// INTERNAL COMPONENTS
-// ============================================================================
-
-interface StatItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  value: string;
-  label: string;
-  palette: ThemeColors;
-}
-
-function StatItem({ icon, iconColor, value, label, palette }: StatItemProps) {
-  return (
-    <View style={styles.statItem}>
-      <Ionicons name={icon} size={20} color={iconColor} />
-      <ThemedText type="title" style={styles.statValue}>
-        {value}
-      </ThemedText>
-      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
-    </View>
-  );
-}
-
-function CompactStatItem({ icon, iconColor, value, label, palette }: StatItemProps) {
-  return (
-    <View style={styles.compactStatItem}>
-      <Ionicons name={icon} size={16} color={iconColor} />
-      <ThemedText type="defaultSemiBold" style={styles.compactValue}>
-        {value}
-      </ThemedText>
-      <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
-    </View>
-  );
-}
-
-interface StatCardProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  iconBgColor: string;
-  value: string;
-  label: string;
-  description: string;
-  palette: ThemeColors;
-  flex?: boolean;
-}
-
-function StatCard({
-  icon,
-  iconColor,
-  iconBgColor,
-  value,
-  label,
-  description,
-  palette,
-  flex,
-}: StatCardProps) {
-  return (
-    <View style={[styles.statCard, { backgroundColor: palette.background }, flex ? styles.flexCard : undefined]}>
-      <View style={[styles.statCardIcon, { backgroundColor: iconBgColor }]}>
-        <Ionicons name={icon} size={20} color={iconColor} />
-      </View>
-      <View style={styles.statCardContent}>
-        <ThemedText type="title" style={styles.statCardValue}>
-          {value}
-        </ThemedText>
-        <ThemedText type="defaultSemiBold" style={styles.statCardLabel}>
-          {label}
-        </ThemedText>
-        <ThemedText style={[styles.statCardDescription, { color: palette.muted }]}>
-          {description}
-        </ThemedText>
-      </View>
-    </View>
-  );
-}
-
-// ============================================================================
-// STYLES
-// ============================================================================
-
-const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  horizontalCard: {
-    padding: Spacing.md,
-  },
-
-  // Horizontal variant
-  horizontalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    flex: 1,
-  },
-  statValue: {
-    fontSize: scaleFont(22),
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: scaleFont(12),
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  // Compact variant
-  compactRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
-  compactStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  compactValue: {
-    fontSize: scaleFont(15),
-  },
-  compactLabel: {
-    fontSize: scaleFont(13),
-  },
-
-  // Default variant
-  defaultGrid: {
-    gap: Spacing.sm,
-  },
-  defaultRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  statCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    gap: Spacing.sm,
-  },
-  flexCard: {
-    flex: 1,
-  },
-  statCardIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statCardContent: {
-    gap: Spacing.micro,
-  },
-  statCardValue: {
-    fontSize: scaleFont(28),
-    fontWeight: '700',
-  },
-  statCardLabel: {
-    fontSize: scaleFont(14),
-  },
-  statCardDescription: {
-    fontSize: scaleFont(12),
-  },
-});

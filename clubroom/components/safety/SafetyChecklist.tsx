@@ -6,20 +6,16 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ChecklistItem } from './safety-checklist-sections';
+
+// Re-export extracted components for backward compat
+export { SafetyStatusIndicator, SessionSafetySummary } from './safety-checklist-sections';
 
 interface SafetyChecklistProps {
   hasEmergencyContact: boolean;
   hasEmergencyConsent: boolean;
   hasMedicalInfo: boolean;
   onPressIncomplete?: () => void;
-}
-
-interface ChecklistItem {
-  key: string;
-  label: string;
-  description: string;
-  isComplete: boolean;
-  icon: keyof typeof Ionicons.glyphMap;
 }
 
 /**
@@ -171,145 +167,9 @@ export function SafetyChecklist({
   );
 }
 
-/**
- * Compact safety status indicator for lists
- */
-export function SafetyStatusIndicator({
-  hasEmergencyContact,
-  hasEmergencyConsent,
-  onPress,
-}: {
-  hasEmergencyContact: boolean;
-  hasEmergencyConsent: boolean;
-  onPress?: () => void;
-}) {
-  const { colors: palette } = useTheme();
-
-  const isComplete = hasEmergencyContact && hasEmergencyConsent;
-
-  const content = (
-    <View
-      style={[
-        styles.statusIndicator,
-        {
-          backgroundColor: isComplete
-            ? withAlpha(palette.success, 0.06)
-            : withAlpha(palette.warning, 0.06),
-        },
-      ]}
-    >
-      <Ionicons
-        name={isComplete ? 'shield-checkmark' : 'warning'}
-        size={14}
-        color={isComplete ? palette.success : palette.warning}
-      />
-      <ThemedText
-        style={[
-          styles.statusText,
-          { color: isComplete ? palette.success : palette.warning },
-        ]}
-      >
-        {isComplete ? 'Safety OK' : 'Incomplete'}
-      </ThemedText>
-    </View>
-  );
-
-  if (onPress) {
-    return <Clickable onPress={onPress}>{content}</Clickable>;
-  }
-
-  return content;
-}
-
-/**
- * Session safety summary for multiple athletes
- */
-export function SessionSafetySummary({
-  totalAthletes,
-  athletesWithAlerts,
-  missingInfoCount,
-  onPress,
-}: {
-  totalAthletes: number;
-  athletesWithAlerts: number;
-  missingInfoCount: number;
-  onPress?: () => void;
-}) {
-  const { colors: palette } = useTheme();
-
-  const hasMissingInfo = missingInfoCount > 0;
-
-  const content = (
-    <View style={[styles.summaryCard, { borderColor: palette.border }]}>
-      <View style={styles.summaryHeader}>
-        <Ionicons name="shield" size={18} color={palette.tint} />
-        <ThemedText type="defaultSemiBold">Session Safety</ThemedText>
-      </View>
-
-      <View style={styles.summaryStats}>
-        <View style={styles.summaryStat}>
-          <ThemedText style={styles.summaryStatValue}>{totalAthletes}</ThemedText>
-          <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
-            Athletes
-          </ThemedText>
-        </View>
-        <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
-        <View style={styles.summaryStat}>
-          <ThemedText
-            style={[
-              styles.summaryStatValue,
-              athletesWithAlerts > 0 && { color: palette.warning },
-            ]}
-          >
-            {athletesWithAlerts}
-          </ThemedText>
-          <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
-            With Alerts
-          </ThemedText>
-        </View>
-        <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
-        <View style={styles.summaryStat}>
-          <ThemedText
-            style={[
-              styles.summaryStatValue,
-              hasMissingInfo && { color: palette.error },
-            ]}
-          >
-            {missingInfoCount}
-          </ThemedText>
-          <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
-            Missing Info
-          </ThemedText>
-        </View>
-      </View>
-
-      {hasMissingInfo && (
-        <View style={[styles.summaryWarning, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
-          <Ionicons name="warning" size={14} color={palette.error} />
-          <ThemedText style={[styles.summaryWarningText, { color: palette.error }]}>
-            {missingInfoCount} athlete{missingInfoCount !== 1 ? 's' : ''} missing emergency contact
-          </ThemedText>
-        </View>
-      )}
-    </View>
-  );
-
-  if (onPress) {
-    return <Clickable onPress={onPress}>{content}</Clickable>;
-  }
-
-  return content;
-}
-
 const styles = StyleSheet.create({
-  card: {
-    gap: Spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+  card: { gap: Spacing.md },
+  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   headerIcon: {
     width: 36,
     height: 36,
@@ -324,9 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   progressText: { ...Typography.caption },
-  itemsList: {
-    gap: 0,
-  },
+  itemsList: { gap: 0 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -342,9 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  itemContent: {
-    flex: 1,
-  },
+  itemContent: { flex: 1 },
   itemLabel: { ...Typography.bodySmallSemiBold },
   itemDescription: { ...Typography.caption, marginTop: 1 },
   actionButton: {
@@ -358,48 +214,4 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   actionText: { ...Typography.bodySmallSemiBold },
-  // Status indicator
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-  },
-  statusText: { ...Typography.caption },
-  // Summary card
-  summaryCard: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  summaryStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryStatValue: { ...Typography.title },
-  summaryStatLabel: { ...Typography.caption, marginTop: Spacing.micro },
-  summaryDivider: {
-    width: 1,
-    height: 32,
-  },
-  summaryWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  summaryWarningText: { ...Typography.caption },
 });

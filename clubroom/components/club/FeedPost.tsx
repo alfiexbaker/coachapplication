@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Pressable, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -62,16 +63,16 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
           </ThemedText>
         </View>
         {canPin && (
-          <Pressable
+          <Clickable
             onPress={() => onPinToggle?.(post.id)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={10}
           >
             <Ionicons
               name={post.isPinned ? 'pin' : 'pin-outline'}
               size={18}
               color={post.isPinned ? palette.tint : palette.muted}
             />
-          </Pressable>
+          </Clickable>
         )}
       </View>
 
@@ -131,17 +132,17 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post actions */}
       <View style={styles.feedFooter}>
-        <Pressable style={styles.actionButton}>
+        <Clickable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.reactionCount ?? 0}</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionButton}>
+        </Clickable>
+        <Clickable style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.commentCount ?? 0}</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionButton}>
+        </Clickable>
+        <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
-        </Pressable>
+        </Clickable>
       </View>
     </SurfaceCard>
   );

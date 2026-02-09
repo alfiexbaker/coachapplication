@@ -1,307 +1,79 @@
-import { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  Modal,
-  Alert } from 'react-native';
+/**
+ * Manage Packages Screen
+ *
+ * Coach package management — create, edit, toggle, delete session bundles.
+ * All state/logic in usePackageManage hook.
+ */
+
+import { View, StyleSheet, ScrollView, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreatePackageForm } from '@/components/packages/CreatePackageForm';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/components/ui/toast';
+import { usePackageManage } from '@/hooks/use-package-manage';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
 
-const logger = createLogger('ManagePackagesScreen');
-
-/**
- * Coach package management screen - create, edit, and delete packages
- */
 export default function ManagePackagesScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-  const { showToast } = useToast();
-
-  const [packages, setPackages] = useState<SessionPackage[]>([]);
-  const [, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingPackage, setEditingPackage] = useState<SessionPackage | null>(null);
-  const [stats, setStats] = useState({
-    totalPackagesSold: 0,
-    totalRevenue: 0,
-    activePackages: 0,
-    sessionsRedeemed: 0 });
-
-  const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
-    setLoading(true);
-    try {
-      const [packagesData, statsData] = await Promise.all([
-        packageService.getCoachPackages(currentUser.id),
-        packageService.getCoachPackageStats(currentUser.id),
-      ]);
-      setPackages(packagesData);
-      setStats(statsData);
-    } catch (error) {
-      logger.error('Failed to load packages:', error);
-      showToast('Failed to load packages', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.id, showToast]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  const handleCreateSuccess = (pkg: SessionPackage) => {
-    setShowCreateModal(false);
-    setEditingPackage(null);
-    showToast(editingPackage ? 'Package updated successfully!' : 'Package created successfully!', 'success');
-    loadData();
-  };
-
-  const handleCreateError = (error: string) => {
-    showToast(error, 'error');
-  };
-
-  const handleEditPackage = (pkg: SessionPackage) => {
-    setEditingPackage(pkg);
-    setShowCreateModal(true);
-  };
-
-  const handleToggleActive = async (pkg: SessionPackage) => {
-    try {
-      const updated = await packageService.updatePackage(pkg.id, { isActive: !pkg.isActive });
-      if (updated) {
-        showToast(
-          pkg.isActive ? 'Package deactivated' : 'Package activated',
-          'success'
-        );
-        loadData();
-      }
-    } catch {
-      showToast('Failed to update package', 'error');
-    }
-  };
-
-  const handleDeletePackage = (pkg: SessionPackage) => {
-    Alert.alert(
-      'Delete Package',
-      `Are you sure you want to delete "${pkg.name}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const success = await packageService.deletePackage(pkg.id);
-              if (success) {
-                showToast('Package deleted', 'success');
-                loadData();
-              }
-            } catch {
-              showToast('Failed to delete package', 'error');
-            }
-          } },
-      ]
-    );
-  };
+  const c = usePackageManage();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
+        <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
         <View style={styles.headerTitle}>
           <ThemedText type="title">Manage Packages</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Create and manage session bundles
-          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Create and manage session bundles</ThemedText>
         </View>
-        <Clickable
-          onPress={() => {
-            setEditingPackage(null);
-            setShowCreateModal(true);
-          }}
-          style={[styles.addButton, { backgroundColor: palette.tint }]}
-        >
+        <Clickable accessibilityLabel="Create package" onPress={c.openCreateModal} style={[styles.addButton, { backgroundColor: palette.tint }]}>
           <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={palette.tint} />
-        }
-      >
-        {/* Stats Overview */}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} tintColor={palette.tint} />}>
+
+        {/* Stats */}
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <SurfaceCard style={styles.statsCard}>
-            <ThemedText type="defaultSemiBold" style={styles.statsTitle}>
-              Package Performance
-            </ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.statsTitle}>Package Performance</ThemedText>
             <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <ThemedText type="heading" style={[styles.statValue, { color: palette.tint }]}>
-                  {stats.totalPackagesSold}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                  Sold
-                </ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <ThemedText type="heading" style={[styles.statValue, { color: palette.success }]}>
-                  {packageService.formatPrice(stats.totalRevenue)}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                  Revenue
-                </ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <ThemedText type="heading" style={[styles.statValue, { color: palette.warning }]}>
-                  {stats.sessionsRedeemed}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                  Redeemed
-                </ThemedText>
-              </View>
+              {[
+                { value: c.stats.totalPackagesSold, label: 'Sold', color: palette.tint },
+                { value: packageService.formatPrice(c.stats.totalRevenue), label: 'Revenue', color: palette.success },
+                { value: c.stats.sessionsRedeemed, label: 'Redeemed', color: palette.warning },
+              ].map((s) => (
+                <View key={s.label} style={styles.statItem}>
+                  <ThemedText type="heading" style={[styles.statValue, { color: s.color }]}>{s.value}</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{s.label}</ThemedText>
+                </View>
+              ))}
             </View>
           </SurfaceCard>
         </Animated.View>
 
         {/* Package List */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Your Packages ({packages.length})
-          </ThemedText>
-
-          {packages.length === 0 ? (
-            <EmptyState
-              icon="pricetags-outline"
-              title="No Packages Yet"
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Your Packages ({c.packages.length})</ThemedText>
+          {c.packages.length === 0 ? (
+            <EmptyState icon="pricetags-outline" title="No Packages Yet"
               message="Create your first session package to offer discounted bundles to your clients"
-              actionLabel="Create Package"
-              onPressAction={() => {
-                setEditingPackage(null);
-                setShowCreateModal(true);
-              }}
-            />
+              actionLabel="Create Package" onPressAction={c.openCreateModal} />
           ) : (
             <View style={styles.packageList}>
-              {packages.map((pkg, index) => (
-                <Animated.View key={pkg.id} entering={FadeInDown.delay(index * 50 + 100).springify()}>
-                  <SurfaceCard style={styles.packageCard}>
-                    <View style={styles.packageHeader}>
-                      <View style={styles.packageInfo}>
-                        <ThemedText type="defaultSemiBold" style={styles.packageName}>
-                          {pkg.name}
-                        </ThemedText>
-                        <View style={styles.packageMeta}>
-                          <ThemedText style={[styles.packageMetaText, { color: palette.muted }]}>
-                            {pkg.sessionCount} sessions
-                          </ThemedText>
-                          <View style={[styles.dot, { backgroundColor: palette.muted }]} />
-                          <ThemedText style={[styles.packageMetaText, { color: palette.muted }]}>
-                            {packageService.formatPrice(pkg.price, pkg.currency)}
-                          </ThemedText>
-                          {pkg.discountPercent > 0 && (
-                            <>
-                              <View style={[styles.dot, { backgroundColor: palette.muted }]} />
-                              <ThemedText style={[styles.packageMetaText, { color: palette.success }]}>
-                                {pkg.discountPercent}% off
-                              </ThemedText>
-                            </>
-                          )}
-                        </View>
-                      </View>
-
-                      {/* Status Badge */}
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          {
-                            backgroundColor: pkg.isActive ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) },
-                        ]}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.statusText,
-                            { color: pkg.isActive ? palette.success : palette.error },
-                          ]}
-                        >
-                          {pkg.isActive ? 'Active' : 'Inactive'}
-                        </ThemedText>
-                      </View>
-                    </View>
-
-                    {/* Actions */}
-                    <View style={styles.packageActions}>
-                      <Pressable
-                        style={[styles.actionButton, { borderColor: palette.border }]}
-                        onPress={() => handleEditPackage(pkg)}
-                      >
-                        <Ionicons name="create-outline" size={18} color={palette.tint} />
-                        <ThemedText style={[styles.actionText, { color: palette.tint }]}>
-                          Edit
-                        </ThemedText>
-                      </Pressable>
-
-                      <Pressable
-                        style={[styles.actionButton, { borderColor: palette.border }]}
-                        onPress={() => handleToggleActive(pkg)}
-                      >
-                        <Ionicons
-                          name={pkg.isActive ? 'pause-outline' : 'play-outline'}
-                          size={18}
-                          color={pkg.isActive ? palette.warning : palette.success}
-                        />
-                        <ThemedText
-                          style={[
-                            styles.actionText,
-                            { color: pkg.isActive ? palette.warning : palette.success },
-                          ]}
-                        >
-                          {pkg.isActive ? 'Deactivate' : 'Activate'}
-                        </ThemedText>
-                      </Pressable>
-
-                      <Pressable
-                        style={[styles.actionButton, { borderColor: palette.border }]}
-                        onPress={() => handleDeletePackage(pkg)}
-                      >
-                        <Ionicons name="trash-outline" size={18} color={palette.error} />
-                      </Pressable>
-                    </View>
-                  </SurfaceCard>
-                </Animated.View>
+              {c.packages.map((pkg, index) => (
+                <PackageCard key={pkg.id} pkg={pkg} index={index}
+                  onEdit={c.handleEditPackage} onToggle={c.handleToggleActive} onDelete={c.handleDeletePackage} />
               ))}
             </View>
           )}
@@ -309,148 +81,93 @@ export default function ManagePackagesScreen() {
       </ScrollView>
 
       {/* Create/Edit Modal */}
-      <Modal
-        visible={showCreateModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          setShowCreateModal(false);
-          setEditingPackage(null);
-        }}
-      >
+      <Modal visible={c.showCreateModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={c.closeModal}>
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]} edges={['top']}>
           <View style={styles.modalHeader}>
-            <ThemedText type="title" style={styles.modalTitle}>
-              {editingPackage ? 'Edit Package' : 'Create Package'}
-            </ThemedText>
-            <Pressable
-              style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
-              onPress={() => {
-                setShowCreateModal(false);
-                setEditingPackage(null);
-              }}
-            >
+            <ThemedText type="title" style={styles.modalTitle}>{c.editingPackage ? 'Edit Package' : 'Create Package'}</ThemedText>
+            <Clickable accessibilityLabel="Close" style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]} onPress={c.closeModal}>
               <Ionicons name="close" size={24} color={palette.text} />
-            </Pressable>
+            </Clickable>
           </View>
-
-          <CreatePackageForm
-            editPackage={editingPackage || undefined}
-            onSuccess={handleCreateSuccess}
-            onError={handleCreateError}
-            onCancel={() => {
-              setShowCreateModal(false);
-              setEditingPackage(null);
-            }}
-          />
+          <CreatePackageForm editPackage={c.editingPackage || undefined}
+            onSuccess={c.handleCreateSuccess} onError={c.handleCreateError} onCancel={c.closeModal} />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
 }
 
+function PackageCard({ pkg, index, onEdit, onToggle, onDelete }: {
+  pkg: SessionPackage; index: number;
+  onEdit: (p: SessionPackage) => void; onToggle: (p: SessionPackage) => void; onDelete: (p: SessionPackage) => void;
+}) {
+  const { colors: palette } = useTheme();
+  return (
+    <Animated.View entering={FadeInDown.delay(index * 50 + 100).springify()}>
+      <SurfaceCard style={styles.packageCard}>
+        <View style={styles.packageHeader}>
+          <View style={styles.packageInfo}>
+            <ThemedText type="defaultSemiBold">{pkg.name}</ThemedText>
+            <View style={styles.packageMeta}>
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>{pkg.sessionCount} sessions</ThemedText>
+              <View style={[styles.dot, { backgroundColor: palette.muted }]} />
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>{packageService.formatPrice(pkg.price, pkg.currency)}</ThemedText>
+              {pkg.discountPercent > 0 && (<><View style={[styles.dot, { backgroundColor: palette.muted }]} />
+                <ThemedText style={[styles.metaText, { color: palette.success }]}>{pkg.discountPercent}% off</ThemedText></>)}
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: pkg.isActive ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }]}>
+            <ThemedText style={[styles.statusText, { color: pkg.isActive ? palette.success : palette.error }]}>
+              {pkg.isActive ? 'Active' : 'Inactive'}
+            </ThemedText>
+          </View>
+        </View>
+        <View style={styles.packageActions}>
+          <Clickable style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => onEdit(pkg)}>
+            <Ionicons name="create-outline" size={18} color={palette.tint} /><ThemedText style={[styles.actionText, { color: palette.tint }]}>Edit</ThemedText>
+          </Clickable>
+          <Clickable style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => onToggle(pkg)}>
+            <Ionicons name={pkg.isActive ? 'pause-outline' : 'play-outline'} size={18} color={pkg.isActive ? palette.warning : palette.success} />
+            <ThemedText style={[styles.actionText, { color: pkg.isActive ? palette.warning : palette.success }]}>{pkg.isActive ? 'Deactivate' : 'Activate'}</ThemedText>
+          </Clickable>
+          <Clickable accessibilityLabel="Delete package" style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => onDelete(pkg)}>
+            <Ionicons name="trash-outline" size={18} color={palette.error} />
+          </Clickable>
+        </View>
+      </SurfaceCard>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md },
-  headerTitle: {
-    flex: 1 },
-  subtitle: {
-    ...Typography.small,
-    marginTop: Spacing.micro },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  content: {
-    padding: Spacing.lg,
-    paddingTop: 0,
-    gap: Spacing.lg },
-  statsCard: {
-    padding: Spacing.md,
-    gap: Spacing.md },
-  statsTitle: {
-    ...Typography.body },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around' },
-  statItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs },
-  statValue: {
-    ...Typography.title },
-  statLabel: {
-    ...Typography.caption },
-  section: {
-    gap: Spacing.md },
-  sectionTitle: {
-    ...Typography.heading },
-  packageList: {
-    gap: Spacing.sm },
-  packageCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm },
-  packageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start' },
-  packageInfo: {
-    flex: 1,
-    gap: Spacing.xxs },
-  packageName: {
-    ...Typography.body },
-  packageMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs },
-  packageMetaText: {
-    ...Typography.caption },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5 },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm },
-  statusText: {
-    ...Typography.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5 },
-  packageActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    borderWidth: 1 },
-  actionText: {
-    ...Typography.caption },
-  modalContainer: {
-    flex: 1 },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
-    paddingTop: Spacing.lg },
-  modalTitle: {
-    ...Typography.title },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' } });
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  headerTitle: { flex: 1 },
+  subtitle: { ...Typography.small, marginTop: Spacing.micro },
+  addButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.lg },
+  statsCard: { padding: Spacing.md, gap: Spacing.md },
+  statsTitle: { ...Typography.body },
+  statsGrid: { flexDirection: 'row', justifyContent: 'space-around' },
+  statItem: { alignItems: 'center', gap: Spacing.xxs },
+  statValue: { ...Typography.title },
+  statLabel: { ...Typography.caption },
+  section: { gap: Spacing.md },
+  sectionTitle: { ...Typography.heading },
+  packageList: { gap: Spacing.sm },
+  packageCard: { padding: Spacing.md, gap: Spacing.sm },
+  packageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  packageInfo: { flex: 1, gap: Spacing.xxs },
+  packageMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  metaText: { ...Typography.caption },
+  dot: { width: 3, height: 3, borderRadius: 1.5 },
+  statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  statusText: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
+  packageActions: { flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.xs },
+  actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1 },
+  actionText: { ...Typography.caption },
+  modalContainer: { flex: 1 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, paddingTop: Spacing.lg },
+  modalTitle: { ...Typography.title },
+  closeButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+});

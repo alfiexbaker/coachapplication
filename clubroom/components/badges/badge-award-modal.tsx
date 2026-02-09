@@ -1,392 +1,75 @@
-import { useEffect, useState, useRef } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, View, Image, Pressable } from 'react-native';
+/**
+ * BadgeAwardModal — Composition root.
+ * Coach awards a badge to an athlete: badge picker, reason, note, preview, celebration.
+ */
+import { useRef } from 'react';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
-import { Clickable } from '@/components/primitives/clickable';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { badgeService } from '@/services/badge-service';
-import { BadgeAward, BadgeDefinition } from '@/constants/types';
-import { createLogger } from '@/utils/logger';
-import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
+import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useBadgeAward } from '@/hooks/use-badge-award';
+import type { BadgeAward } from '@/constants/types';
+import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
+import { BADGE_REASONS } from './badge-award-helpers';
+import { AthleteHeader, BadgeSelector, ReasonSelector, NoteInput, PreviewSection, ErrorBanner } from './badge-award-sections';
 
-export const BADGE_REASONS = ['Leadership', 'Consistency', 'Technique', 'Mindset', 'Teamwork', 'Resilience'];
-
-const QUICK_NOTES = [
-  'Great effort today!',
-  'Showed real improvement.',
-  'Fantastic attitude.',
-  'Keep it up!',
-];
-
-const logger = createLogger('BadgeAwardModal');
+export { BADGE_REASONS };
 
 interface BadgeAwardModalProps {
   visible: boolean;
-  athleteId: string;
-  athleteName: string;
-  athletePhotoUrl?: string;
-  coachId: string;
-  coachName?: string;
-  sessionId?: string;
-  sessionLabel?: string;
-  initialReason?: string;
-  initialNote?: string;
+  athleteId: string; athleteName: string; athletePhotoUrl?: string;
+  coachId: string; coachName?: string;
+  sessionId?: string; sessionLabel?: string;
+  initialReason?: string; initialNote?: string;
   onClose: () => void;
   onAwarded?: (award: BadgeAward) => void;
 }
 
-export function BadgeAwardModal({
-  visible,
-  onClose,
-  athleteId,
-  athleteName,
-  athletePhotoUrl,
-  coachId,
-  coachName,
-  sessionId,
-  sessionLabel,
-  initialReason,
-  initialNote,
-  onAwarded,
-}: BadgeAwardModalProps) {
+export function BadgeAwardModal({ visible, onClose, athletePhotoUrl, sessionLabel, coachName, ...rest }: BadgeAwardModalProps) {
   const { colors: palette } = useTheme();
   const insets = useSafeAreaInsets();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
-
-  const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
-  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
-  const [selectedReason, setSelectedReason] = useState<string>(initialReason ?? BADGE_REASONS[0]);
-  const [note, setNote] = useState(initialNote ?? '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const resolvedAthleteName = athleteName || 'Athlete';
-  const selectedBadge = definitions.find((d) => d.id === selectedBadgeId);
-
-  useEffect(() => {
-    if (!visible) return;
-    setError(null);
-    setNote(initialNote ?? '');
-    setSelectedReason(initialReason ?? BADGE_REASONS[0]);
-
-    badgeService.listDefinitions().then((defs) => {
-      setDefinitions(defs);
-      if (!selectedBadgeId && defs.length > 0) {
-        setSelectedBadgeId(defs[0].id);
-      }
-    });
-    logger.info('badge_award_opened', { athleteId, sessionId, coachId });
-  }, [visible, athleteId, coachId, sessionId, initialNote, initialReason, selectedBadgeId]);
-
-  const handleBadgeSelect = (badgeId: string) => {
-    Haptics.selectionAsync();
-    setSelectedBadgeId(badgeId);
-  };
-
-  const handleReasonSelect = (reason: string) => {
-    Haptics.selectionAsync();
-    setSelectedReason(reason);
-  };
-
-  const handleQuickNote = (quickNote: string) => {
-    Haptics.selectionAsync();
-    setNote((prev) => prev ? `${prev} ${quickNote}` : quickNote);
-  };
+  const award = useBadgeAward({ visible, coachName, ...rest });
 
   const handleSubmit = async () => {
-    if (!selectedBadgeId) {
-      setError('Please select a badge');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const result = await badgeService.awardBadge({
-        badgeId: selectedBadgeId,
-        athleteId,
-        athleteName: resolvedAthleteName,
-        coachId,
-        coachName,
-        sessionId,
-        reason: selectedReason,
-        note: note.trim(),
-        visibility: 'supporters',
-        context: sessionId ? 'session' : 'athlete_profile',
-      });
-
-      if (!result.success) {
-        setError(result.error.message);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
+    const result = await award.handleSubmit();
+    if (result?.data) {
       celebrationRef.current?.celebrate({
         title: 'Badge Awarded!',
-        subtitle: `${selectedBadge?.label} sent to ${resolvedAthleteName}`,
+        subtitle: `${award.selectedBadge?.label} sent to ${award.resolvedAthleteName}`,
         icon: 'ribbon',
-        iconColor: '#FFD700', // Decorative: gold celebration color
+        iconColor: '#FFD700',
         duration: 2500,
       });
-
-      onAwarded?.(result.data);
-      logger.info('badge_award_submitted', {
-        athleteId,
-        sessionId,
-        badgeId: selectedBadgeId,
-        reason: selectedReason,
-      });
-
       setTimeout(onClose, 2600);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to award badge');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsSubmitting(false);
     }
-  };
-
-  const getBadgeIcon = (badge: BadgeDefinition): string => {
-    const iconMap: Record<string, string> = {
-      'badge_best_training': 'trophy',
-      'badge_sharp_shooter_pro': 'flame',
-      'badge_master_passer': 'people',
-      'badge_iron_defender': 'shield',
-      'badge_playmaker': 'sparkles',
-    };
-    return iconMap[badge.id] || 'ribbon';
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: palette.overlay }]}>
-        <Animated.View
-          entering={FadeInDown.duration(300)}
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: palette.background,
-              paddingBottom: insets.bottom + Spacing.md,
-            }
-          ]}
-        >
-          {/* Handle bar */}
-          <View style={styles.handleContainer}>
-            <View style={[styles.handle, { backgroundColor: palette.border }]} />
-          </View>
+        <Animated.View entering={FadeInDown.duration(300)} style={[styles.sheet, { backgroundColor: palette.background, paddingBottom: insets.bottom + Spacing.md }]}>
+          <View style={styles.handleContainer}><View style={[styles.handle, { backgroundColor: palette.border }]} /></View>
 
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.athleteInfo}>
-              {athletePhotoUrl ? (
-                <Image source={{ uri: athletePhotoUrl }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                  <Ionicons name="person" size={24} color={palette.tint} />
-                </View>
-              )}
-              <View>
-                <ThemedText type="subtitle">{resolvedAthleteName}</ThemedText>
-                {sessionLabel && (
-                  <ThemedText style={[styles.sessionLabel, { color: palette.muted }]}>
-                    {sessionLabel}
-                  </ThemedText>
-                )}
-              </View>
-            </View>
-            <Clickable onPress={onClose} hitSlop={12}>
-              <View style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}>
-                <Ionicons name="close" size={20} color={palette.icon} />
-              </View>
-            </Clickable>
-          </View>
+          <AthleteHeader athleteName={award.resolvedAthleteName} athletePhotoUrl={athletePhotoUrl} sessionLabel={sessionLabel} onClose={onClose} />
 
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Badge Selection */}
-            <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Choose Badge
-              </ThemedText>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.badgeScroll}
-              >
-                {definitions.map((badge, index) => {
-                  const isSelected = selectedBadgeId === badge.id;
-                  return (
-                    <Animated.View key={badge.id} entering={FadeIn.delay(index * 50)}>
-                      <Pressable onPress={() => handleBadgeSelect(badge.id)}>
-                        <View
-                          style={[
-                            styles.badgeCard,
-                            {
-                              backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                              borderColor: isSelected ? palette.tint : palette.border,
-                            },
-                          ]}
-                        >
-                          <View style={[
-                            styles.badgeIconCircle,
-                            { backgroundColor: isSelected ? withAlpha(palette.tint, 0.12) : withAlpha(palette.muted, 0.09) }
-                          ]}>
-                            <Ionicons
-                              name={getBadgeIcon(badge) as keyof typeof Ionicons.glyphMap}
-                              size={24}
-                              color={isSelected ? palette.tint : palette.icon}
-                            />
-                          </View>
-                          <ThemedText
-                            style={[
-                              styles.badgeLabel,
-                              { color: isSelected ? palette.tint : palette.text }
-                            ]}
-                            numberOfLines={2}
-                          >
-                            {badge.label}
-                          </ThemedText>
-                          {isSelected && (
-                            <View style={[styles.selectedCheck, { backgroundColor: palette.tint }]}>
-                              <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
-                            </View>
-                          )}
-                        </View>
-                      </Pressable>
-                    </Animated.View>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {/* Reason Selection */}
-            <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                For
-              </ThemedText>
-              <View style={styles.reasonContainer}>
-                {BADGE_REASONS.map((reason) => {
-                  const isSelected = selectedReason === reason;
-                  return (
-                    <Pressable key={reason} onPress={() => handleReasonSelect(reason)}>
-                      <View
-                        style={[
-                          styles.reasonPill,
-                          {
-                            backgroundColor: isSelected ? palette.tint : palette.surface,
-                            borderColor: isSelected ? palette.tint : palette.border,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.reasonText,
-                            { color: isSelected ? palette.onPrimary : palette.text },
-                          ]}
-                        >
-                          {reason}
-                        </ThemedText>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Note Input */}
-            <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Add a note
-              </ThemedText>
-              <View style={[styles.noteInputContainer, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-                <TextInput
-                  style={[styles.noteInput, { color: palette.text }]}
-                  placeholder="Tell them why they earned this..."
-                  placeholderTextColor={palette.muted}
-                  value={note}
-                  onChangeText={setNote}
-                  multiline
-                  maxLength={280}
-                />
-                <View style={styles.quickNotes}>
-                  {QUICK_NOTES.map((quickNote) => (
-                    <Pressable key={quickNote} onPress={() => handleQuickNote(quickNote)}>
-                      <View style={[styles.quickNotePill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-                        <ThemedText style={[styles.quickNoteText, { color: palette.tint }]}>
-                          + {quickNote}
-                        </ThemedText>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <ThemedText style={[styles.charCount, { color: palette.muted }]}>
-                {note.length}/280
-              </ThemedText>
-            </View>
-
-            {/* Preview */}
-            {selectedBadge && (
-              <Animated.View entering={FadeIn} style={styles.section}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                  Preview
-                </ThemedText>
-                <SurfaceCard style={[styles.previewCard, { borderColor: palette.border }]}>
-                  <View style={styles.previewHeader}>
-                    <View style={[styles.previewBadgeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                      <Ionicons name="ribbon" size={20} color={palette.tint} />
-                    </View>
-                    <View style={styles.previewHeaderText}>
-                      <ThemedText type="defaultSemiBold">{selectedBadge.label}</ThemedText>
-                      <ThemedText style={[styles.previewReason, { color: palette.muted }]}>
-                        {selectedReason}
-                      </ThemedText>
-                    </View>
-                  </View>
-                  {note.trim() && (
-                    <ThemedText style={styles.previewNote}>{note}</ThemedText>
-                  )}
-                  <ThemedText style={[styles.previewFooter, { color: palette.muted }]}>
-                    From {coachName || 'Coach'} • Just now
-                  </ThemedText>
-                </SurfaceCard>
-              </Animated.View>
-            )}
-
-            {/* Error */}
-            {error && (
-              <View style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-                <Ionicons name="alert-circle" size={16} color={palette.error} />
-                <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
-              </View>
-            )}
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+            <BadgeSelector definitions={award.definitions} selectedBadgeId={award.selectedBadgeId} onSelect={award.handleBadgeSelect} />
+            <ReasonSelector selectedReason={award.selectedReason} onSelect={award.handleReasonSelect} />
+            <NoteInput note={award.note} onNoteChange={award.setNote} onQuickNote={award.handleQuickNote} />
+            {award.selectedBadge && <PreviewSection selectedBadge={award.selectedBadge} selectedReason={award.selectedReason} note={award.note} coachName={coachName} />}
+            {award.error && <ErrorBanner error={award.error} />}
           </ScrollView>
 
-          {/* Footer */}
           <View style={[styles.footer, { borderTopColor: palette.border }]}>
-            <Button
-              onPress={handleSubmit}
-              disabled={isSubmitting || !selectedBadgeId}
-              style={styles.submitButton}
-            >
-              {isSubmitting ? 'Sending...' : 'Award Badge'}
+            <Button onPress={handleSubmit} disabled={award.isSubmitting || !award.selectedBadgeId} style={styles.submitButton}>
+              {award.isSubmitting ? 'Sending...' : 'Award Badge'}
             </Button>
           </View>
         </Animated.View>
-
         <CelebrationOverlay ref={celebrationRef} />
       </View>
     </Modal>
@@ -394,167 +77,12 @@ export function BadgeAwardModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    borderTopLeftRadius: Radii.xl,
-    borderTopRightRadius: Radii.xl,
-    maxHeight: '90%',
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: Radii.xs,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  athleteInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-  },
-  avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sessionLabel: { ...Typography.small },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
-    gap: Spacing.lg,
-  },
-  section: {
-    gap: Spacing.sm,
-  },
-  sectionTitle: { ...Typography.body },
-  badgeScroll: {
-    gap: Spacing.sm,
-    paddingRight: Spacing.lg,
-  },
-  badgeCard: {
-    width: 100,
-    padding: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  badgeIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeLabel: { ...Typography.caption, textAlign: 'center' },
-  selectedCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reasonContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  reasonPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.rounded,
-    borderWidth: 1,
-  },
-  reasonText: { ...Typography.bodySmallSemiBold },
-  noteInputContainer: {
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  noteInput: { ...Typography.body, padding: Spacing.md,
-    minHeight: 80,
-    textAlignVertical: 'top' },
-  quickNotes: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    paddingTop: 0,
-  },
-  quickNotePill: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.rounded,
-  },
-  quickNoteText: { ...Typography.caption },
-  charCount: { ...Typography.caption, textAlign: 'right' },
-  previewCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  previewBadgeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewHeaderText: {
-    flex: 1,
-  },
-  previewReason: { ...Typography.small },
-  previewNote: { ...Typography.bodySmall, lineHeight: 20 },
-  previewFooter: { ...Typography.caption },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-  },
-  submitButton: {
-    width: '100%',
-  },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, maxHeight: '90%' },
+  handleContainer: { alignItems: 'center', paddingVertical: Spacing.sm },
+  handle: { width: 36, height: 4, borderRadius: Radii.xs },
+  content: { flex: 1 },
+  contentContainer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg, gap: Spacing.lg },
+  footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1 },
+  submitButton: { width: '100%' },
 });

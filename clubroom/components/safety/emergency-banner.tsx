@@ -7,6 +7,9 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { MedicalInfo, EmergencyContact } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+// Re-export extracted components for backward compat
+export { MedicalAlertPill, EmergencyCallButton } from './emergency-banner-sections';
+
 type EmergencyBannerProps = {
   medical: MedicalInfo;
   primaryContact?: EmergencyContact | null;
@@ -85,7 +88,7 @@ export function EmergencyBanner({
 
   return (
     <View style={[styles.banner, { borderColor: withAlpha(severityColor, 0.25) }]}>
-      <View style={styles.bannerHeader}>
+      <View style={[styles.bannerHeader, { borderBottomColor: palette.border }]}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(severityColor, 0.09) }]}>
           <Ionicons name="warning" size={20} color={severityColor} />
         </View>
@@ -155,81 +158,6 @@ export function EmergencyBanner({
   );
 }
 
-/**
- * Simple alert pill for showing in lists or headers
- */
-export function MedicalAlertPill({
-  allergiesCount,
-  conditionsCount,
-  onPress,
-}: {
-  allergiesCount: number;
-  conditionsCount: number;
-  onPress?: () => void;
-}) {
-  const { colors: palette } = useTheme();
-
-  if (allergiesCount === 0 && conditionsCount === 0) {
-    return null;
-  }
-
-  const color = allergiesCount > 0 ? palette.error : palette.warning;
-  const label = allergiesCount > 0 ? `${allergiesCount} allergy` : `${conditionsCount} condition`;
-
-  return (
-    <Clickable
-      onPress={onPress}
-      style={[styles.alertPill, { backgroundColor: withAlpha(color, 0.06) }]}
-    >
-      <Ionicons name="medical" size={12} color={color} />
-      <ThemedText style={[styles.alertPillText, { color }]}>{label}</ThemedText>
-    </Clickable>
-  );
-}
-
-/**
- * Quick call button for emergency contact
- */
-export function EmergencyCallButton({
-  contact,
-  onPress,
-  size = 'medium',
-}: {
-  contact: EmergencyContact;
-  onPress?: () => void;
-  size?: 'small' | 'medium' | 'large';
-}) {
-  const { colors: palette } = useTheme();
-
-  const sizeConfig = {
-    small: { icon: 16, padding: Spacing.xs },
-    medium: { icon: 20, padding: Spacing.sm },
-    large: { icon: 24, padding: Spacing.md },
-  };
-
-  const config = sizeConfig[size];
-
-  return (
-    <Clickable
-      onPress={onPress}
-      style={[
-        styles.callButton,
-        {
-          backgroundColor: palette.success,
-          padding: config.padding,
-        },
-      ]}
-    >
-      <Ionicons name="call" size={config.icon} color={palette.onSuccess} />
-      {size !== 'small' && (
-        <ThemedText style={[styles.callButtonText, { color: palette.onSuccess }]}>
-          Call {contact.name.split(' ')[0]}
-        </ThemedText>
-      )}
-    </Clickable>
-  );
-}
-
 const styles = StyleSheet.create({
   banner: {
     borderWidth: 1.5,
@@ -242,7 +170,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: 'transparent',
   },
   iconContainer: {
     width: 32,
@@ -285,20 +213,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   compactText: { ...Typography.caption },
-  alertPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill,
-  },
-  alertPillText: { ...Typography.caption },
-  callButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
-  callButtonText: { ...Typography.bodySmallSemiBold },
 });

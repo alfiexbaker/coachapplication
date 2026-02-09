@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, ActivityIndicator, TextInput, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, TextInput } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -156,9 +156,9 @@ export default function ReviewScreen() {
                   {promoCode.toUpperCase()} applied
                 </ThemedText>
               </View>
-              <Pressable onPress={handleRemovePromo}>
+              <Clickable onPress={handleRemovePromo}>
                 <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Remove</ThemedText>
-              </Pressable>
+              </Clickable>
             </View>
           ) : (
             <>
@@ -171,7 +171,7 @@ export default function ReviewScreen() {
                   autoCapitalize="characters"
                   style={[styles.promoInput, { borderColor: palette.border, backgroundColor: palette.card }]}
                 />
-                <Pressable
+                <Clickable
                   onPress={handleApplyPromo}
                   disabled={!promoCode.trim()}
                   style={[
@@ -180,7 +180,7 @@ export default function ReviewScreen() {
                   ]}
                 >
                   <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
-                </Pressable>
+                </Clickable>
               </View>
               {promoError && (
                 <ThemedText style={{ color: palette.error, ...Typography.small }}>{promoError}</ThemedText>

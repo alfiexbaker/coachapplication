@@ -208,7 +208,7 @@ export const sessionInviteService = {
     sessionDetails: Omit<CreateInviteInput, 'athleteIds' | 'athleteNames'> & {
       athleteNames?: string | string[];
     }
-  ): Promise<SessionInvite> {
+  ): Promise<Result<SessionInvite, ServiceError>> {
     const athleteIds = Array.isArray(athletes) ? athletes : [athletes];
     const athleteNames = Array.isArray(sessionDetails.athleteNames)
       ? sessionDetails.athleteNames
@@ -232,7 +232,7 @@ export const sessionInviteService = {
         logger.warn('Some proposed slots are no longer available', { takenDesc });
 
         if (validationResults.validSlots.length === 0) {
-          throw new Error('All proposed time slots are no longer available. Please select new times.');
+          return err(serviceError('VALIDATION', 'All proposed time slots are no longer available. Please select new times.'));
         }
 
         // Proceed with only valid slots
@@ -243,7 +243,8 @@ export const sessionInviteService = {
       }
     }
 
-    return this._createSingleInvite(input);
+    const invite = await this._createSingleInvite(input);
+    return ok(invite);
   },
 
   /**

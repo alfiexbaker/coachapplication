@@ -99,7 +99,7 @@ export function PurchaseButton({
 
   if (loading) {
     return (
-      <View style={[styles.button, styles.buttonLoading, { backgroundColor: palette.surface }]}>
+      <View style={[styles.button, styles.buttonLoading, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <ActivityIndicator size="small" color={palette.tint} />
         <ThemedText style={[styles.buttonText, { color: palette.muted }]}>
           Checking balance...
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   buttonLoading: {
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: 'transparent',
   },
   buttonDisabled: {
     opacity: 0.6,

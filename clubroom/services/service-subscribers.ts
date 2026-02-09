@@ -482,17 +482,9 @@ export function initializeSubscribers(): void {
         "can't make it to";
       const childDisplay = data.childName ? ` (${data.childName})` : '';
 
-      const feedType = 'PERSONAL' as const;
+      // TODO: Determine feed type from invite/squad context when club features are wired
+      const feedType = 'PERSONAL';
       const clubId = '';
-
-      if ((feedType === 'CLUB' || feedType === 'BOTH') && !clubId) {
-        logger.warn('Skipping feed post for INVITE_RSVP_RESPONDED: clubId is required for CLUB or BOTH feed type', {
-          inviteId: data.inviteId,
-          userId: data.userId,
-          feedType,
-        });
-        return;
-      }
 
       const postResult = feedService.createPost({
         clubId,

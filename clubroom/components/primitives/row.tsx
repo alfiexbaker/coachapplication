@@ -19,7 +19,9 @@ import { Spacing } from '@/constants/theme';
 type SpacingKey = keyof typeof Spacing;
 
 type AlignItems = ViewStyle['alignItems'];
-type JustifyContent = 'start' | 'end' | 'center' | 'between' | 'around' | 'evenly';
+type JustifyContent =
+  | 'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'
+  | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
 
 const justifyMap: Record<JustifyContent, ViewStyle['justifyContent']> = {
   start: 'flex-start',
@@ -28,6 +30,11 @@ const justifyMap: Record<JustifyContent, ViewStyle['justifyContent']> = {
   between: 'space-between',
   around: 'space-around',
   evenly: 'space-evenly',
+  'flex-start': 'flex-start',
+  'flex-end': 'flex-end',
+  'space-between': 'space-between',
+  'space-around': 'space-around',
+  'space-evenly': 'space-evenly',
 };
 
 export interface RowProps {

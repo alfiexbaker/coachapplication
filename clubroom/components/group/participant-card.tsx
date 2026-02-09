@@ -96,6 +96,7 @@ export function ParticipantCard({
 
         {onCancel && (
           <Clickable
+            accessibilityLabel="Close"
             onPress={onCancel}
             style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
           >

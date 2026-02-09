@@ -1,133 +1,36 @@
-/**
- * AssignmentCard Component
- *
- * Displays an assigned drill with due date, completion status, and progress.
- * Shows overdue state in red and due-soon state in amber.
- */
-
 import { Ionicons } from '@expo/vector-icons';
-import { Image, StyleSheet, View, ViewStyle } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { DifficultyBadge } from './DifficultyBadge';
+import { AssignmentCardCompact } from './assignment-card-compact';
+import { type AssignmentCardProps, getStatusColor, getDueDateText } from './assignment-card-helpers';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Components , withAlpha } from '@/constants/theme';
-import type { AssignedDrill } from '@/constants/types';
+import { Spacing, Radii, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 
-interface AssignmentCardProps {
-  /** The assignment to display */
-  assignment: AssignedDrill;
-  /** Callback when card is pressed */
-  onPress?: () => void;
-  /** Callback when complete button is pressed */
-  onComplete?: () => void;
-  /** Whether to show in compact mode */
-  compact?: boolean;
-}
+// ─── Re-export ──────────────────────────────────────────────────────────────
 
-/**
- * Card component for displaying an assigned drill with due date and status.
- */
-export function AssignmentCard({
-  assignment,
-  onPress,
-  onComplete,
-  compact = false,
-}: AssignmentCardProps) {
+export type { AssignmentCardProps };
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
+export function AssignmentCard({ assignment, onPress, onComplete, compact = false }: AssignmentCardProps) {
   const { colors: palette } = useTheme();
+
+  if (compact) {
+    return <AssignmentCardCompact assignment={assignment} onPress={onPress} onComplete={onComplete} />;
+  }
 
   const { drill } = assignment;
   const isOverdue = drillService.isOverdue(assignment);
   const isDueSoon = drillService.isDueSoon(assignment);
   const categoryInfo = drill ? drillService.getCategoryInfo(drill.category) : null;
   const hasVideo = Boolean(drill?.videoUrl);
-
-  // Determine status color
-  const getStatusColor = () => {
-    if (assignment.isCompleted) return palette.success;
-    if (isOverdue) return palette.error;
-    if (isDueSoon) return palette.warning;
-    return palette.muted;
-  };
-
-  const statusColor = getStatusColor();
-
-  // Format due date with status
-  const getDueDateText = () => {
-    if (assignment.isCompleted) {
-      return `Completed ${new Date(assignment.completedAt as string).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-      })}`;
-    }
-    const prefix = isOverdue ? 'Overdue: ' : isDueSoon ? 'Due soon: ' : 'Due ';
-    return prefix + drillService.formatDueDate(assignment.dueDate);
-  };
-
-  if (compact) {
-    return (
-      <SurfaceCard style={styles.compactCard} onPress={onPress}>
-        {/* Completion checkbox */}
-        <Clickable
-          onPress={onComplete}
-          style={[
-            styles.checkbox,
-            assignment.isCompleted ? [styles.checkboxCompleted, { backgroundColor: palette.success, borderColor: palette.success }] : undefined,
-            { borderColor: assignment.isCompleted ? palette.success : palette.border },
-          ].filter(Boolean) as ViewStyle[]}
-          hitSlop={8}
-        >
-          {assignment.isCompleted && (
-            <Ionicons name="checkmark" size={14} color={palette.onSuccess} />
-          )}
-        </Clickable>
-
-        {/* Content */}
-        <View style={styles.compactContent}>
-          <View style={styles.compactHeader}>
-            <ThemedText
-              type="defaultSemiBold"
-              style={[
-                styles.compactTitle,
-                assignment.isCompleted ? styles.completedText : undefined,
-              ]}
-              numberOfLines={1}
-            >
-              {drill?.title ?? 'Unknown Drill'}
-            </ThemedText>
-            {hasVideo && (
-              <Ionicons name="videocam" size={14} color={palette.muted} />
-            )}
-          </View>
-          <View style={styles.compactMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons
-                name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'}
-                size={12}
-                color={statusColor}
-              />
-              <ThemedText style={[styles.metaText, { color: statusColor }]}>
-                {getDueDateText()}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
-
-        {/* Priority indicator */}
-        {!assignment.isCompleted && assignment.priority === 1 && (
-          <View style={[styles.priorityBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-            <Ionicons name="alert-circle" size={12} color={palette.error} />
-          </View>
-        )}
-
-        <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-      </SurfaceCard>
-    );
-  }
+  const statusColor = getStatusColor(assignment, palette, isOverdue, isDueSoon);
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
@@ -159,22 +62,14 @@ export function AssignmentCard({
           <View style={styles.header}>
             {categoryInfo && (
               <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
-                <Ionicons
-                  name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
-                  size={12}
-                  color={categoryInfo.color}
-                />
-                <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>
-                  {categoryInfo.label}
-                </ThemedText>
+                <Ionicons name={categoryInfo.icon as keyof typeof Ionicons.glyphMap} size={12} color={categoryInfo.color} />
+                <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>{categoryInfo.label}</ThemedText>
               </View>
             )}
             {!assignment.isCompleted && assignment.priority === 1 && (
               <View style={[styles.priorityBadgeFull, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="alert-circle" size={12} color={palette.error} />
-                <ThemedText style={[styles.priorityText, { color: palette.error }]}>
-                  Priority
-                </ThemedText>
+                <ThemedText style={[styles.priorityText, { color: palette.error }]}>Priority</ThemedText>
               </View>
             )}
           </View>
@@ -201,16 +96,11 @@ export function AssignmentCard({
           {/* Footer with due date and actions */}
           <View style={[styles.footer, { borderTopColor: palette.border }]}>
             <View style={styles.dueDateContainer}>
-              <Ionicons
-                name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'}
-                size={16}
-                color={statusColor}
-              />
+              <Ionicons name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'} size={16} color={statusColor} />
               <ThemedText style={[styles.dueDateText, { color: statusColor }]}>
-                {getDueDateText()}
+                {getDueDateText(assignment, isOverdue, isDueSoon)}
               </ThemedText>
             </View>
-
             <View style={styles.footerRight}>
               {drill && <DifficultyBadge difficulty={drill.difficulty} size="small" />}
               {drill?.duration && (
@@ -236,10 +126,7 @@ export function AssignmentCard({
 
           {/* Complete button */}
           {!assignment.isCompleted && onComplete && (
-            <Clickable
-              onPress={onComplete}
-              style={[styles.completeButton, { backgroundColor: palette.tint }]}
-            >
+            <Clickable onPress={onComplete} style={[styles.completeButton, { backgroundColor: palette.tint }]}>
               <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
               <ThemedText style={[styles.completeButtonText, { color: palette.onPrimary }]}>Mark Complete</ThemedText>
             </Clickable>
@@ -250,214 +137,35 @@ export function AssignmentCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
-  },
-  statusBar: {
-    height: 4,
-    width: '100%',
-  },
-  cardContent: {
-    // Content wrapper
-  },
-  thumbnailContainer: {
-    position: 'relative',
-    width: '100%',
-    height: 140,
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  completedOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(16, 185, 129, 0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButton: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    padding: Components.card.padding,
-    gap: Spacing.xs,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  categoryText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
-  },
-  priorityBadgeFull: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  priorityText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: scaleFont(17),
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    lineHeight: scaleFont(24),
-  },
-  completedText: {
-    textDecorationLine: 'line-through',
-    opacity: 0.7,
-  },
-  notesContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    padding: Spacing.sm,
-    borderRadius: Radii.sm,
-    marginTop: Spacing.xxs,
-  },
-  notesText: {
-    flex: 1,
-    fontSize: scaleFont(13),
-    lineHeight: scaleFont(18),
-    fontStyle: 'italic',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    // borderTopColor set inline for dynamic theming
-  },
-  dueDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  dueDateText: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
-  },
-  footerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  durationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  durationText: {
-    fontSize: scaleFont(12),
-  },
-  repetitionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-    marginTop: Spacing.xxs,
-  },
-  repetitionsText: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
-  },
-  completeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: Spacing.xs + Spacing.xxs,
-    borderRadius: Radii.md,
-    marginTop: Spacing.sm,
-  },
-  completeButtonText: {
-    // color set inline for dynamic theming
-    fontSize: scaleFont(15),
-    fontWeight: '600',
-  },
+// ─── Styles ─────────────────────────────────────────────────────────────────
 
-  // Compact styles
-  compactCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxCompleted: {
-    // backgroundColor and borderColor set inline for dynamic theming
-  },
-  compactContent: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  compactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-  },
-  compactTitle: {
-    flex: 1,
-    fontSize: scaleFont(15),
-  },
-  compactMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  metaText: {
-    fontSize: scaleFont(12),
-  },
-  priorityBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+const styles = StyleSheet.create({
+  card: { marginBottom: Spacing.md, overflow: 'hidden' },
+  statusBar: { height: 4, width: '100%' },
+  cardContent: {},
+  thumbnailContainer: { position: 'relative', width: '100%', height: 140 },
+  thumbnail: { width: '100%', height: '100%' },
+  completedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16, 185, 129, 0.6)', alignItems: 'center', justifyContent: 'center' },
+  playOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.3)', alignItems: 'center', justifyContent: 'center' },
+  playButton: { width: 44, height: 44, borderRadius: Radii.xl, backgroundColor: 'rgba(0, 0, 0, 0.6)', alignItems: 'center', justifyContent: 'center' },
+  content: { padding: Components.card.padding, gap: Spacing.xs },
+  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  categoryText: { fontSize: scaleFont(11), fontWeight: '600' },
+  priorityBadgeFull: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  priorityText: { fontSize: scaleFont(11), fontWeight: '600' },
+  title: { fontSize: scaleFont(17), fontWeight: '700', letterSpacing: -0.3, lineHeight: scaleFont(24) },
+  completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
+  notesContainer: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: Spacing.sm, borderRadius: Radii.sm, marginTop: Spacing.xxs },
+  notesText: { flex: 1, fontSize: scaleFont(13), lineHeight: scaleFont(18), fontStyle: 'italic' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs, paddingTop: Spacing.sm, borderTopWidth: 1 },
+  dueDateContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  dueDateText: { fontSize: scaleFont(13), fontWeight: '600' },
+  footerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  durationBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  durationText: { fontSize: scaleFont(12) },
+  repetitionsContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, marginTop: Spacing.xxs },
+  repetitionsText: { fontSize: scaleFont(13), fontWeight: '600' },
+  completeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, marginTop: Spacing.sm },
+  completeButtonText: { fontSize: scaleFont(15), fontWeight: '600' },
 });

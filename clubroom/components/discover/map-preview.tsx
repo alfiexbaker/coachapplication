@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
@@ -44,16 +45,15 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
     <SurfaceCard style={styles.wrapper}>
       <View style={styles.mapHeader}>
         <ThemedText type="defaultSemiBold">Live map preview</ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          style={({ pressed }) => [
+        <Clickable
+          style={[
             styles.searchPill,
-            { backgroundColor: palette.tint, opacity: pressed ? 0.85 : 1 },
+            { backgroundColor: palette.tint },
           ]}>
           <ThemedText style={[Typography.sm, styles.searchLabel, { color: palette.onPrimary }]}>
             Search this area
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
       <View style={styles.mapContainer}>
         <View
@@ -66,7 +66,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
             const normalizedLat = 1 - (coach.location.lat - bounds.minLat) / latRange;
             const normalizedLng = (coach.location.lng - bounds.minLng) / lngRange;
             return (
-              <Pressable
+              <Clickable
                 key={coach.id}
                 accessibilityHint="Center map on coach"
                 style={[
@@ -75,7 +75,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
                     left: normalizedLng * size.width,
                     top: normalizedLat * size.height,
                     backgroundColor:
-                      coach.id === selectedCoachId ? palette.tint : 'rgba(255,255,255,0.95)',
+                      coach.id === selectedCoachId ? palette.tint : withAlpha(palette.surface, 0.95),
                   },
                 ]}
                 onPress={() => onCoachFocus?.(coach.id)}>
@@ -84,7 +84,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
                   size={coach.id === selectedCoachId ? 16 : 14}
                   color={coach.id === selectedCoachId ? palette.onPrimary : palette.tint}
                 />
-              </Pressable>
+              </Clickable>
             );
           })}
         </View>
@@ -94,8 +94,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
           style={[
             styles.detailTray,
             {
-              backgroundColor:
-                scheme === 'dark' ? 'rgba(15,23,42,0.7)' : 'rgba(241,245,249,0.9)',
+              backgroundColor: withAlpha(palette.surface, scheme === 'dark' ? 0.85 : 0.9),
             },
           ]}>
           <ThemedText type="defaultSemiBold">{selectedCoach.fullName}</ThemedText>

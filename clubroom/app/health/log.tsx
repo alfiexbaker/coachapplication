@@ -65,7 +65,7 @@ export default function LogInjuryScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Clickable onPress={handleCancel} hitSlop={8}>
+          <Clickable accessibilityLabel="Close" onPress={handleCancel} hitSlop={8}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>

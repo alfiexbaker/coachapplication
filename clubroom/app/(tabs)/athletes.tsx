@@ -1,4 +1,11 @@
-import { useCallback, useState } from 'react';
+/**
+ * Athletes Tab — Coach's command center for managing their roster.
+ *
+ * Features: needs attention section, stats bar, search + filters, athlete list.
+ * Uses useScreen() for proper loading/error/empty states.
+ */
+
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,7 +13,7 @@ import {
   TextInput,
   RefreshControl,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,174 +21,269 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clickable } from '@/components/primitives/clickable';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { AthleteCard } from '@/components/roster/athlete-card';
-import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { AthletesStatsBar } from '@/components/athlete/athletes-stats-bar';
+import { NeedsAttentionSection } from '@/components/athlete/needs-attention-section';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
-import { createLogger } from '@/utils/logger';
+import { ServiceEvents } from '@/services/event-bus';
+import { ok, err, storageError, type Result, type ServiceError } from '@/types/result';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 
-const logger = createLogger('AthletesScreen');
+// ============================================================================
+// TYPES
+// ============================================================================
 
 type FilterType = 'all' | 'active' | 'needs_attention';
 
-export default function AthletesScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+interface AthletesData {
+  roster: RosterEntry[];
+  upcomingSessions: Record<string, Booking>;
+}
 
-  const [roster, setRoster] = useState<RosterEntry[]>([]);
-  const [upcomingSessions, setUpcomingSessions] = useState<Record<string, Booking>>({});
-  const [, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+// ============================================================================
+// MAIN SCREEN
+// ============================================================================
+
+export default function AthletesScreen() {
+  const { currentUser } = useAuth();
+  const coachId = currentUser?.id || 'coach_1';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
 
-  const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const [rosterData, bookingsData] = await Promise.all([
-        rosterService.getRoster(currentUser.id),
-        bookingService.getUpcomingBookings(currentUser.id),
-      ]);
-      setRoster(rosterData);
-      const sessionsMap: Record<string, Booking> = {};
-      bookingsData.forEach((booking: Booking) => {
-        if (booking.athleteId && !sessionsMap[booking.athleteId]) {
-          sessionsMap[booking.athleteId] = booking;
+  // --- useScreen for data loading ---
+  const { data, status, error, refreshing, onRefresh, retry, colors } =
+    useScreen<AthletesData>({
+      load: async (): Promise<Result<AthletesData, ServiceError>> => {
+        try {
+          const [rosterData, bookingsData] = await Promise.all([
+            rosterService.getRoster(coachId),
+            bookingService.getUpcomingBookings(coachId),
+          ]);
+          const sessionsMap: Record<string, Booking> = {};
+          bookingsData.forEach((booking: Booking) => {
+            if (booking.athleteId && !sessionsMap[booking.athleteId]) {
+              sessionsMap[booking.athleteId] = booking;
+            }
+          });
+          return ok({ roster: rosterData, upcomingSessions: sessionsMap });
+        } catch (e) {
+          return err(storageError('Failed to load athletes'));
         }
-      });
-      setUpcomingSessions(sessionsMap);
-    } catch (error) {
-      logger.error('Failed to load athletes', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentUser?.id]);
+      },
+      deps: [coachId],
+      events: [
+        ServiceEvents.BOOKING_CREATED,
+        ServiceEvents.BOOKING_CANCELLED,
+        ServiceEvents.CONCERN_RAISED,
+      ],
+      isEmpty: (d) => d.roster.length === 0,
+    });
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  // --- Derived state ---
+  const roster = data?.roster || [];
+  const upcomingSessions = data?.upcomingSessions || {};
 
-  const onRefresh = () => { setRefreshing(true); loadData(); };
-
-  const filteredAthletes = roster.filter((athlete) => {
-    if (searchQuery) {
-      if (!athlete.athleteName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    }
-    if (filter === 'active') return athlete.status === 'ACTIVE';
-    if (filter === 'needs_attention') {
-      if (!athlete.lastSessionDate) return true;
-      return Math.floor((Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)) > 14;
-    }
-    return true;
-  });
-
-  const sortedAthletes = [...filteredAthletes].sort((a, b) => {
-    const aUp = !!upcomingSessions[a.athleteId];
-    const bUp = !!upcomingSessions[b.athleteId];
-    if (aUp && !bUp) return -1;
-    if (!aUp && bUp) return 1;
-    if (!a.lastSessionDate) return 1;
-    if (!b.lastSessionDate) return -1;
-    return new Date(b.lastSessionDate).getTime() - new Date(a.lastSessionDate).getTime();
-  });
-
-  const needsAttentionCount = roster.filter((a) => {
-    if (!a.lastSessionDate) return true;
-    return Math.floor((Date.now() - new Date(a.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)) > 14;
-  }).length;
-
-  const renderAthleteCard = ({ item: athlete }: { item: RosterEntry }) => (
-    <AthleteCard athlete={athlete} upcomingSession={upcomingSessions[athlete.athleteId]} />
+  const needsAttentionCount = useMemo(
+    () =>
+      roster.filter((a) => {
+        if (a.status !== 'ACTIVE') return false;
+        if (!a.lastSessionDate) return true;
+        return (
+          Math.floor(
+            (Date.now() - new Date(a.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)
+          ) > 14
+        );
+      }).length,
+    [roster]
   );
 
-  const renderHeader = () => (
-    <View style={styles.headerContent}>
-      <View style={[styles.searchContainer, { backgroundColor: palette.card, borderColor: palette.border }]}>
-        <Ionicons name="search" size={18} color={palette.muted} />
-        <TextInput
-          style={[styles.searchInput, { color: palette.text }]}
-          placeholder="Search athletes..."
-          placeholderTextColor={palette.muted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <Clickable onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={palette.muted} />
-          </Clickable>
-        )}
-      </View>
+  const filteredAthletes = useMemo(() => {
+    let filtered = roster;
 
-      <View style={styles.filterRow}>
-        {[
-          { id: 'all', label: 'All', count: roster.length },
-          { id: 'active', label: 'Active', count: roster.filter((a) => a.status === 'ACTIVE').length },
-          { id: 'needs_attention', label: 'Needs Attention', count: needsAttentionCount },
-        ].map((f) => (
-          <Clickable
-            key={f.id}
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: filter === f.id ? palette.tint : palette.card,
-                borderColor: filter === f.id ? palette.tint : palette.border,
-              },
-            ]}
-            onPress={() => setFilter(f.id as FilterType)}
-          >
-            <ThemedText
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (a) =>
+          a.athleteName.toLowerCase().includes(q) ||
+          a.parentName.toLowerCase().includes(q)
+      );
+    }
+
+    if (filter === 'active') {
+      filtered = filtered.filter((a) => a.status === 'ACTIVE');
+    } else if (filter === 'needs_attention') {
+      filtered = filtered.filter((a) => {
+        if (a.status !== 'ACTIVE') return false;
+        if (!a.lastSessionDate) return true;
+        return (
+          Math.floor(
+            (Date.now() - new Date(a.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)
+          ) > 14
+        );
+      });
+    }
+
+    return [...filtered].sort((a, b) => {
+      const aUp = !!upcomingSessions[a.athleteId];
+      const bUp = !!upcomingSessions[b.athleteId];
+      if (aUp && !bUp) return -1;
+      if (!aUp && bUp) return 1;
+      if (!a.lastSessionDate) return 1;
+      if (!b.lastSessionDate) return -1;
+      return new Date(b.lastSessionDate).getTime() - new Date(a.lastSessionDate).getTime();
+    });
+  }, [roster, searchQuery, filter, upcomingSessions]);
+
+  // --- Renderers ---
+  const renderAthleteCard = useCallback(
+    ({ item }: { item: RosterEntry }) => (
+      <AthleteCard athlete={item} upcomingSession={upcomingSessions[item.athleteId]} />
+    ),
+    [upcomingSessions]
+  );
+
+  const renderHeader = useCallback(
+    () => (
+      <View style={styles.headerContent}>
+        {/* Stats Bar */}
+        <AthletesStatsBar roster={roster} upcomingSessions={upcomingSessions} />
+
+        {/* Needs Attention */}
+        <NeedsAttentionSection roster={roster} />
+
+        {/* Search */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="search" size={18} color={colors.muted} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search athletes..."
+            placeholderTextColor={colors.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            accessibilityLabel="Search athletes"
+          />
+          {searchQuery.length > 0 && (
+            <Clickable accessibilityLabel="Clear search" onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </Clickable>
+          )}
+        </View>
+
+        {/* Filters */}
+        <Row gap="sm" style={styles.filterRow}>
+          {[
+            { id: 'all' as FilterType, label: 'All', count: roster.length },
+            { id: 'active' as FilterType, label: 'Active', count: roster.filter((a) => a.status === 'ACTIVE').length },
+            { id: 'needs_attention' as FilterType, label: 'Needs Attention', count: needsAttentionCount },
+          ].map((f) => (
+            <Clickable
+              key={f.id}
               style={[
-                styles.filterText,
-                { color: filter === f.id ? palette.onPrimary : palette.text },
+                styles.filterChip,
+                {
+                  backgroundColor: filter === f.id ? colors.tint : colors.card,
+                  borderColor: filter === f.id ? colors.tint : colors.border,
+                },
               ]}
+              onPress={() => setFilter(f.id)}
+              accessibilityLabel={`Filter: ${f.label}`}
             >
-              {f.label}
-            </ThemedText>
-            {f.count > 0 && (
-              <View
+              <ThemedText
                 style={[
-                  styles.filterCount,
-                  { backgroundColor: filter === f.id ? 'rgba(255,255,255,0.3)' : withAlpha(palette.muted, 0.19) },
+                  styles.filterText,
+                  { color: filter === f.id ? colors.onPrimary : colors.text },
                 ]}
               >
-                <ThemedText
+                {f.label}
+              </ThemedText>
+              {f.count > 0 && (
+                <View
                   style={[
-                    styles.filterCountText,
-                    { color: filter === f.id ? palette.onPrimary : palette.muted },
+                    styles.filterCount,
+                    {
+                      backgroundColor:
+                        filter === f.id
+                          ? withAlpha(colors.onPrimary, 0.3)
+                          : withAlpha(colors.muted, 0.19),
+                    },
                   ]}
                 >
-                  {f.count}
-                </ThemedText>
-              </View>
-            )}
-          </Clickable>
-        ))}
+                  <ThemedText
+                    style={[
+                      styles.filterCountText,
+                      { color: filter === f.id ? colors.onPrimary : colors.muted },
+                    ]}
+                  >
+                    {f.count}
+                  </ThemedText>
+                </View>
+              )}
+            </Clickable>
+          ))}
+        </Row>
       </View>
-    </View>
+    ),
+    [roster, upcomingSessions, searchQuery, filter, needsAttentionCount, colors]
   );
 
-  const renderEmpty = () => (
-    <View style={styles.emptyState}>
-      <Ionicons name="people-outline" size={48} color={palette.muted} />
-      <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
-        {searchQuery ? 'No athletes found' : 'No athletes yet'}
-      </ThemedText>
-      <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
-        {searchQuery
-          ? 'Try a different search term'
-          : 'Athletes will appear here once they book sessions with you'}
-      </ThemedText>
-    </View>
-  );
+  const keyExtractor = useCallback((item: RosterEntry) => item.id, []);
+
+  // --- 4 visual states ---
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
+        <ErrorState message={error?.message || 'Failed to load athletes'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ScreenHeader
+          title="Athletes"
+          subtitle="Manage your roster"
+          action={{
+            icon: 'add',
+            label: 'Invite',
+            onPress: () => router.push(Routes.SESSION_INVITES_CREATE),
+          }}
+          bordered
+        />
+        <EmptyState
+          icon="people-outline"
+          title="No athletes yet"
+          message="Athletes will appear here once they book sessions with you. Invite an athlete to get started."
+          actionLabel="Invite Athlete"
+          onPressAction={() => router.push(Routes.SESSION_INVITES_CREATE)}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScreenHeader
         title="Athletes"
-        subtitle="Manage your roster"
+        subtitle={`${roster.length} athletes`}
         action={{
           icon: 'add',
           label: 'Invite',
@@ -191,34 +293,49 @@ export default function AthletesScreen() {
       />
 
       <FlatList
-        data={sortedAthletes}
+        data={filteredAthletes}
         renderItem={renderAthleteCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
+        ListEmptyComponent={
+          <View style={styles.emptySearch}>
+            <Ionicons name="search-outline" size={40} color={colors.muted} />
+            <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>
+              No athletes found
+            </ThemedText>
+            <ThemedText style={[styles.emptySubtitle, { color: colors.muted }]}>
+              Try a different search or filter
+            </ThemedText>
+          </View>
+        }
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
       />
     </SafeAreaView>
   );
 }
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   headerContent: {
-    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     gap: Spacing.md,
+    paddingBottom: Spacing.xs,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
@@ -230,8 +347,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
   },
   filterRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
   },
   filterChip: {
     flexDirection: 'row',
@@ -241,6 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    minHeight: 36,
   },
   filterText: {
     ...Typography.smallSemiBold,
@@ -256,7 +373,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: Spacing.xl,
   },
-  emptyState: {
+  emptySearch: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xl * 2,
@@ -270,6 +387,5 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     ...Typography.bodySmall,
     textAlign: 'center',
-    lineHeight: 20,
   },
 });

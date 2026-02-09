@@ -7,7 +7,7 @@
 
 import { storageService } from '../storage-service';
 import { createLogger } from '@/utils/logger';
-import { eventBus, ServiceEvents } from '../event-bus';
+import { emitTyped, ServiceEvents } from '../event-bus';
 import type { NotificationItem } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -59,9 +59,9 @@ class NotificationStore {
     this.notifyListeners(fullNotification);
 
     // Emit event for other services
-    eventBus.emit(ServiceEvents.NOTIFICATION_CREATED, {
+    emitTyped(ServiceEvents.NOTIFICATION_CREATED, {
       notificationId: notification.id,
-      userId: notification.recipientId,
+      userId: notification.recipientId ?? '',
       type: notification.type,
     });
 
@@ -82,7 +82,7 @@ class NotificationStore {
     const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
     await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 
-    eventBus.emit(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
+    emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
 
     return updated;
   }
@@ -117,7 +117,7 @@ class NotificationStore {
     const updated = current.filter((n) => n.id !== id);
     await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 
-    eventBus.emit(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
+    emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
 
     return updated;
   }

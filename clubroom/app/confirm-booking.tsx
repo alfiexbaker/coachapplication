@@ -1,599 +1,76 @@
-import { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Alert,
-  TextInput,
-  ActivityIndicator,
-} from 'react-native';
+/**
+ * Confirm Booking Screen
+ *
+ * Booking summary + payment form + confirm CTA.
+ * All state/logic in useConfirmBooking hook. Summary + payment form extracted.
+ */
+
+import React from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { ConfirmBookingSummary } from '@/components/booking/confirm-booking-summary';
+import { ConfirmBookingPayment } from '@/components/booking/confirm-booking-payment';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
-import { bookingService } from '@/services/booking-service';
-import { notificationService } from '@/services/notification-service';
-import { hasChildren } from '@/utils/user-helpers';
+import { useConfirmBooking, formatGBP } from '@/hooks/use-confirm-booking';
 
 export default function ConfirmBookingScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-  const params = useLocalSearchParams();
-
-  const coachId = params.coachId as string;
-  const coachName = params.coachName as string;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _slotId = params.slotId as string;
-  const slotTitle = params.slotTitle as string;
-  const slotFocus = params.slotFocus as string;
-  const slotStart = params.slotStart as string;
-  const slotDuration = parseInt(params.slotDuration as string);
-  const price = parseFloat(params.price as string);
-  const serviceType = params.serviceType as string;
-  const objectivesParam = params.objectives as string;
-  const objectives = useMemo(() => objectivesParam ? JSON.parse(objectivesParam) : [], [objectivesParam]);
-  const athleteIdsParam = params.athleteIds as string;
-  const athleteIds = useMemo(() => athleteIdsParam ? JSON.parse(athleteIdsParam) : [], [athleteIdsParam]);
-
-  // Mock group participants for group sessions
-  const isGroupSession = serviceType === 'Small Group';
-  const groupParticipants = isGroupSession
-    ? [
-        { id: '1', name: 'Emma W.' },
-        { id: '2', name: 'Jack T.' },
-        { id: '3', name: 'Sarah M.' },
-        { id: '4', name: 'Liam P.' },
-        { id: '5', name: 'Olivia K.' },
-      ]
-    : [];
-
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Get athlete info from athleteIds
-  const [athletesInfo, setAthletesInfo] = useState<{ id: string; name: string; avatar?: string }[]>([]);
-
-  const slotDate = new Date(slotStart);
-  const formattedDate = slotDate.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-  const formattedTime = slotDate.toLocaleTimeString('en-GB', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  // Fetch athlete info based on athleteIds
-  useEffect(() => {
-    if (!currentUser || athleteIds.length === 0) return;
-
-    if (hasChildren(currentUser)) {
-      const userChildren = getChildrenForParent(currentUser.id);
-      const selectedChildren = userChildren.filter((child) => athleteIds.includes(child.id));
-      setAthletesInfo(selectedChildren.map((child) => ({
-        id: child.id,
-        name: child.name,
-        avatar: child.avatar,
-      })));
-    } else {
-      // User: they ARE the athlete
-      setAthletesInfo([{
-        id: currentUser.id,
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-      }]);
-    }
-  }, [currentUser, athleteIds]);
-
-  const handleCardNumberChange = (value: string) => {
-    // Remove non-digits
-    const cleaned = value.replace(/\D/g, '');
-    // Add spaces every 4 digits
-    const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
-    setCardNumber(formatted.substring(0, 19)); // Max 16 digits + 3 spaces
-  };
-
-  const handleExpiryChange = (value: string) => {
-    // Remove non-digits
-    const cleaned = value.replace(/\D/g, '');
-    // Add slash after 2 digits
-    if (cleaned.length >= 2) {
-      setExpiryDate(`${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}`);
-    } else {
-      setExpiryDate(cleaned);
-    }
-  };
-
-  const handleCvvChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    setCvv(cleaned.substring(0, 3));
-  };
-
-  const handleConfirmBooking = async () => {
-    if (athletesInfo.length === 0) {
-      Alert.alert('Error', 'Unable to determine athlete information. Please try again.');
-      return;
-    }
-
-    if (!cardNumber || !expiryDate || !cvv) {
-      Alert.alert('Error', 'Please fill in all payment details');
-      return;
-    }
-
-    if (cardNumber.replace(/\s/g, '').length !== 16) {
-      Alert.alert('Error', 'Please enter a valid card number');
-      return;
-    }
-
-    if (!expiryDate.match(/^\d{2}\/\d{2}$/)) {
-      Alert.alert('Error', 'Please enter a valid expiry date (MM/YY)');
-      return;
-    }
-
-    if (cvv.length !== 3) {
-      Alert.alert('Error', 'Please enter a valid CVV');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      // Create a single shared booking for all athletes
-      const result = await bookingService.createBooking({
-        coachId,
-        coachName,
-        athleteIds: athletesInfo.map((a) => a.id),
-        athleteNames: athletesInfo.map((a) => a.name),
-        bookedById: currentUser?.id || 'unknown',
-        bookedByName: currentUser?.name || currentUser?.fullName || 'Parent',
-        scheduledAt: slotStart,
-        duration: slotDuration,
-        location: 'Training Ground',
-        service: slotTitle,
-        serviceType,
-        objectives,
-        price, // Base price per athlete - service will multiply
-      });
-
-      if (!result.success) {
-        setIsProcessing(false);
-        Alert.alert(
-          'Booking Issue',
-          result.error?.message || 'Booking could not be completed. Please try again.'
-        );
-        return;
-      }
-
-      // Create notifications
-      const athleteNames = athletesInfo.map((a) => a.name).join(' & ');
-
-      // Notify coach of new booking
-      await notificationService.notifyCoachNewBooking({
-        coachId,
-        parentName: currentUser?.name || currentUser?.fullName || 'Parent',
-        childName: athleteNames,
-        date: formattedDate,
-        bookingId: result.data?.id || 'new',
-      });
-
-      // Notify parent of confirmed booking
-      await notificationService.notifyParentBookingConfirmed({
-        parentId: currentUser?.id || 'parent',
-        coachName,
-        date: `${formattedDate} at ${formattedTime}`,
-        bookingId: result.data?.id || 'new',
-      });
-
-      setIsProcessing(false);
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _totalPrice = price * athletesInfo.length;
-      const message = athletesInfo.length === 1
-        ? `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`
-        : `Shared session booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
-
-      Alert.alert(
-        'Booking Confirmed',
-        message,
-        [
-          {
-            text: 'View Bookings',
-            onPress: () => {
-              router.replace(Routes.BOOKINGS);
-            },
-          },
-          {
-            text: 'Find More Coaches',
-            onPress: () => {
-              router.replace(Routes.HOME);
-            },
-          },
-        ]
-      );
-    } catch {
-      setIsProcessing(false);
-      Alert.alert('Error', 'Failed to process booking. Please try again.');
-    }
-  };
+  const b = useConfirmBooking();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8} disabled={isProcessing}>
+          <Clickable onPress={() => router.back()} hitSlop={8} disabled={b.isProcessing}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Pressable>
+          </Clickable>
           <ThemedText type="subtitle">Confirm Booking</ThemedText>
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Booking Summary */}
-        <SurfaceCard style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Ionicons name="calendar" size={24} color={palette.tint} />
-            <ThemedText type="defaultSemiBold" style={styles.summaryTitle}>
-              Booking Summary
-            </ThemedText>
-          </View>
+        <ConfirmBookingSummary
+          coachName={b.coachName} athletesInfo={b.athletesInfo} slotTitle={b.slotTitle}
+          slotFocus={b.slotFocus} formattedDate={b.formattedDate} formattedTime={b.formattedTime}
+          slotDuration={b.slotDuration} objectives={b.objectives} isGroupSession={b.isGroupSession}
+          groupParticipantCount={b.groupParticipants.length} price={b.price} totalPrice={b.totalPrice}
+        />
 
-          <View style={styles.summaryRow}>
-            <ThemedText style={{ color: palette.muted }}>Coach</ThemedText>
-            <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
-          </View>
-
-          {athletesInfo.length > 0 && (
-            <View style={styles.summaryRow}>
-              <ThemedText style={{ color: palette.muted }}>
-                {athletesInfo.length === 1 ? 'Athlete' : 'Athletes'}
-              </ThemedText>
-              <ThemedText type="defaultSemiBold">
-                {athletesInfo.map((a) => a.name).join(', ')}
-              </ThemedText>
-            </View>
-          )}
-
-          <View style={styles.summaryRow}>
-            <ThemedText style={{ color: palette.muted }}>Session</ThemedText>
-            <ThemedText type="defaultSemiBold">{slotTitle}</ThemedText>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <ThemedText style={{ color: palette.muted }}>Focus</ThemedText>
-            <ThemedText type="defaultSemiBold">{slotFocus}</ThemedText>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <ThemedText style={{ color: palette.muted }}>Date</ThemedText>
-            <ThemedText type="defaultSemiBold">{formattedDate}</ThemedText>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <ThemedText style={{ color: palette.muted }}>Time</ThemedText>
-            <ThemedText type="defaultSemiBold">
-              {formattedTime} ({slotDuration} min)
-            </ThemedText>
-          </View>
-
-          {objectives.length > 0 && (
-            <View style={styles.objectivesSection}>
-              <ThemedText style={{ color: palette.muted }}>Focus Areas</ThemedText>
-              <View style={styles.objectivesChips}>
-                {objectives.map((objective: string, index: number) => (
-                  <View
-                    key={index}
-                    style={[styles.objectiveChip, { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint }]}
-                  >
-                    <Ionicons name="football" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.objectiveText, { color: palette.tint }]}>
-                      {objective}
-                    </ThemedText>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {isGroupSession && (
-            <View style={styles.participantsSection}>
-              <View style={styles.participantsHeader}>
-                <Ionicons name="people" size={16} color={palette.muted} />
-                <ThemedText style={{ color: palette.muted }}>
-                  Group Session: {groupParticipants.length + 1}/8 spots filled
-                </ThemedText>
-              </View>
-            </View>
-          )}
-
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-
-          <View style={styles.summaryRow}>
-            <ThemedText type="defaultSemiBold">
-              {athletesInfo.length > 1 ? `Total (${athletesInfo.length} × ${formatGBP(price)})` : 'Total'}
-            </ThemedText>
-            <ThemedText type="subtitle" style={[styles.totalPrice, { color: palette.tint }]}>
-              {formatGBP(price * athletesInfo.length)}
-            </ThemedText>
-          </View>
-        </SurfaceCard>
-
-        {/* Payment Form */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Payment Details
-          </ThemedText>
-
-          <SurfaceCard style={styles.paymentCard}>
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.inputLabel}>Card Number</ThemedText>
-              <View style={[styles.inputContainer, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                <Ionicons name="card-outline" size={20} color={palette.icon} />
-                <TextInput
-                  value={cardNumber}
-                  onChangeText={handleCardNumberChange}
-                  placeholder="1234 5678 9012 3456"
-                  placeholderTextColor={palette.muted}
-                  keyboardType="number-pad"
-                  editable={!isProcessing}
-                  style={[styles.input, { color: palette.text }]}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputRow}>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <ThemedText style={styles.inputLabel}>Expiry Date</ThemedText>
-                <View style={[styles.inputContainer, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                  <TextInput
-                    value={expiryDate}
-                    onChangeText={handleExpiryChange}
-                    placeholder="MM/YY"
-                    placeholderTextColor={palette.muted}
-                    keyboardType="number-pad"
-                    editable={!isProcessing}
-                    style={[styles.input, { color: palette.text }]}
-                  />
-                </View>
-              </View>
-
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <ThemedText style={styles.inputLabel}>CVV</ThemedText>
-                <View style={[styles.inputContainer, { backgroundColor: palette.background, borderColor: palette.border }]}>
-                  <TextInput
-                    value={cvv}
-                    onChangeText={handleCvvChange}
-                    placeholder="123"
-                    placeholderTextColor={palette.muted}
-                    keyboardType="number-pad"
-                    secureTextEntry
-                    editable={!isProcessing}
-                    style={[styles.input, { color: palette.text }]}
-                  />
-                </View>
-              </View>
-            </View>
-
-            <View style={[styles.securityNote, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-              <Ionicons name="lock-closed" size={16} color={palette.tint} />
-              <ThemedText style={[styles.securityText, { color: palette.tint }]}>
-                Your payment information is secure and encrypted
-              </ThemedText>
-            </View>
-          </SurfaceCard>
-
-          <View style={styles.testNotice}>
-            <Ionicons name="information-circle-outline" size={20} color={palette.muted} />
-            <ThemedText style={[styles.testNoticeText, { color: palette.muted }]}>
-              This is a demo. No actual payment will be processed. Booking will be stored in session cache.
-            </ThemedText>
-          </View>
-        </View>
+        <ConfirmBookingPayment
+          cardNumber={b.cardNumber} expiryDate={b.expiryDate} cvv={b.cvv} isProcessing={b.isProcessing}
+          onCardChange={b.handleCardNumberChange} onExpiryChange={b.handleExpiryChange} onCvvChange={b.handleCvvChange}
+        />
       </ScrollView>
 
-      {/* Confirm Button */}
+      {/* Confirm Footer */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Pressable
-          onPress={handleConfirmBooking}
-          disabled={isProcessing}
-          style={({ pressed }) => [
-            styles.confirmButton,
-            {
-              backgroundColor: isProcessing ? palette.border : palette.tint,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
+        <Clickable
+          onPress={b.handleConfirmBooking} disabled={b.isProcessing}
+          style={({ pressed }) => [styles.confirmButton, { backgroundColor: b.isProcessing ? palette.border : palette.tint, opacity: pressed ? 0.8 : 1 }]}
         >
-          {isProcessing ? (
-            <View style={styles.processingContainer}>
-              <ActivityIndicator color={palette.onPrimary} />
-              <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Processing...</ThemedText>
-            </View>
+          {b.isProcessing ? (
+            <View style={styles.processingRow}><ActivityIndicator color={palette.onPrimary} /><ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Processing...</ThemedText></View>
           ) : (
-            <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>
-              Confirm & Pay {formatGBP(price * athletesInfo.length)}
-            </ThemedText>
+            <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Confirm & Pay {formatGBP(b.totalPrice)}</ThemedText>
           )}
-        </Pressable>
+        </Clickable>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingBottom: Spacing['2xl'],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  summaryCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  childSelectorCard: {
-    padding: Spacing.lg,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  summaryTitle: {
-    ...Typography.heading,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  divider: {
-    height: 1,
-    marginVertical: Spacing.xs,
-  },
-  objectivesSection: {
-    gap: Spacing.sm,
-  },
-  objectivesChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  objectiveChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  objectiveText: {
-    ...Typography.smallSemiBold,
-  },
-  participantsSection: {
-    gap: Spacing.sm,
-  },
-  participantsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  participantsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  participantBubble: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  participantName: {
-    ...Typography.caption,
-  },
-  totalPrice: {
-    ...Typography.title,
-  },
-  section: {
-    paddingHorizontal: Spacing.lg,
-  },
-  sectionTitle: {
-    ...Typography.subheading,
-    marginBottom: Spacing.md,
-  },
-  paymentCard: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  inputGroup: {
-    gap: Spacing.xs,
-  },
-  inputLabel: {
-    ...Typography.bodySmallSemiBold,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 2,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-  },
-  input: {
-    flex: 1,
-    ...Typography.subheading,
-    paddingVertical: 0,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  securityNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.sm,
-    marginTop: Spacing.xs,
-  },
-  securityText: {
-    ...Typography.caption,
-    flex: 1,
-  },
-  testNotice: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-  },
-  testNoticeText: {
-    ...Typography.small,
-    flex: 1,
-    lineHeight: 18,
-  },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-  },
-  confirmButton: {
-    paddingVertical: Spacing.md + 4,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    ...Typography.subheading,
-  },
-  processingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+  container: { flex: 1 },
+  content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  footer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
+  confirmButton: { paddingVertical: Spacing.md + 4, borderRadius: Radii.md, alignItems: 'center' },
+  confirmText: { ...Typography.subheading },
+  processingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
 });

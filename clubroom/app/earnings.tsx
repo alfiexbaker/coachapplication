@@ -1,16 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+/**
+ * Earnings Screen
+ *
+ * Coach financial dashboard: balance, period stats, withdrawals, payout methods, transactions.
+ * All state/logic in useEarnings hook. Balance card and withdraw modal extracted.
+ */
+
+import React from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
 
 import { StatCard } from '@/components/primitives/stat-card';
 import { TransactionListItem } from '@/components/earnings/transaction-list-item';
@@ -18,182 +16,22 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { EarningsBalanceCard } from '@/components/earnings/earnings-balance-card';
+import { EarningsWithdrawModal } from '@/components/earnings/earnings-withdraw-modal';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { earningsService, type TransactionFilter } from '@/services/earnings';
-import type {
-  CoachEarnings,
-  EarningTransaction,
-  Withdrawal,
-  PayoutMethod,
-} from '@/constants/types';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('EarningsScreen');
-
-type FilterOption = { label: string; value: TransactionFilter };
-
-const FILTER_OPTIONS: FilterOption[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Payments', value: 'payments' },
-  { label: 'Refunds', value: 'refunds' },
-  { label: 'Withdrawals', value: 'withdrawals' },
-];
+import { useEarnings, FILTER_OPTIONS } from '@/hooks/use-earnings';
 
 export default function EarningsScreen() {
   const { colors: palette } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { currentUser } = useAuth();
+  const e = useEarnings();
 
-  // State
-  const [loading, setLoading] = useState(true);
-  const [earnings, setEarnings] = useState<CoachEarnings | null>(null);
-  const [transactions, setTransactions] = useState<EarningTransaction[]>([]);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState<Withdrawal[]>([]);
-  const [payoutMethods, setPayoutMethods] = useState<PayoutMethod[]>([]);
-  const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>('all');
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [selectedPayoutMethod, setSelectedPayoutMethod] = useState<string | null>(null);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [withdrawError, setWithdrawError] = useState<string | null>(null);
-
-  const coachId = currentUser?.id || 'coach1';
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [earningsData, transactionsData, withdrawalsData, methodsData] = await Promise.all([
-        earningsService.getEarnings(coachId),
-        earningsService.getTransactionHistory(coachId),
-        earningsService.getPendingWithdrawals(coachId),
-        earningsService.getPayoutMethods(coachId),
-      ]);
-
-      setEarnings(earningsData);
-      setTransactions(transactionsData);
-      setPendingWithdrawals(withdrawalsData);
-      setPayoutMethods(methodsData);
-
-      // Set default payout method if available
-      if (methodsData.length > 0 && !selectedPayoutMethod) {
-        const defaultMethod = methodsData.find((m) => m.isDefault) || methodsData[0];
-        setSelectedPayoutMethod(defaultMethod.id);
-      }
-    } catch (error) {
-      logger.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [coachId, selectedPayoutMethod]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Reload when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  // Reload transactions when filter changes
-  useEffect(() => {
-    earningsService.getTransactionHistory(coachId).then(setTransactions);
-  }, [coachId, transactionFilter]);
-
-  const handleWithdraw = async () => {
-    const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount <= 0) {
-      setWithdrawError('Please enter a valid amount');
-      return;
-    }
-
-    if (!selectedPayoutMethod) {
-      setWithdrawError('Please select a payout method');
-      return;
-    }
-
-    if (!earnings || amount > earnings.availableBalance) {
-      setWithdrawError('Insufficient available balance');
-      return;
-    }
-
-    setWithdrawing(true);
-    setWithdrawError(null);
-
-    try {
-      const result = await earningsService.requestWithdrawal(
-        coachId,
-        amount,
-        selectedPayoutMethod
-      );
-
-      if (result.success) {
-        setShowWithdrawModal(false);
-        setWithdrawAmount('');
-        await loadData();
-      } else {
-        setWithdrawError(result.error || 'Failed to request withdrawal');
-      }
-    } catch {
-      setWithdrawError('An error occurred. Please try again.');
-    } finally {
-      setWithdrawing(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return earningsService.formatCurrency(amount, earnings?.currency || 'GBP');
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _getTransactionStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return palette.success;
-      case 'PENDING':
-        return palette.warning;
-      case 'FAILED':
-        return palette.error;
-      default:
-        return palette.muted;
-    }
-  };
-
-  const getWithdrawalStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return 'Pending';
-      case 'PROCESSING':
-        return 'Processing';
-      case 'COMPLETED':
-        return 'Completed';
-      case 'FAILED':
-        return 'Failed';
-      case 'CANCELLED':
-        return 'Cancelled';
-      default:
-        return status;
-    }
-  };
-
-  // Calculate withdrawal fee and net amount
-  const withdrawalGross = parseFloat(withdrawAmount) || 0;
-  const feePercent = earnings?.platformFeePercent || earningsService.getPlatformFeePercent();
-  const fee = withdrawalGross * (feePercent / 100);
-  const netAmount = withdrawalGross - fee;
-
-  if (loading && !earnings) {
+  if (e.loading && !e.earnings) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>
-            Loading earnings...
-          </ThemedText>
+          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>Loading earnings...</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -202,123 +40,38 @@ export default function EarningsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader
-          title="Earnings"
-          subtitle="Track your income"
-        />
+        <ScreenHeader title="Earnings" subtitle="Track your income" />
 
-        {/* Balance Card */}
-        <SurfaceCard style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <View style={[styles.balanceIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-              <Ionicons name="wallet" size={24} color={palette.success} />
-            </View>
-            <View style={styles.balanceInfo}>
-              <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available Balance</ThemedText>
-              <ThemedText type="title" style={styles.balanceAmount}>
-                {formatCurrency(earnings?.availableBalance || 0).replace(/^[+-]/, '')}
-              </ThemedText>
-            </View>
-          </View>
-          <View style={[styles.balanceDivider, { backgroundColor: palette.border }]} />
-          <View style={styles.balanceDetails}>
-            <View style={styles.balanceRow}>
-              <View style={styles.balanceItem}>
-                <Ionicons name="time-outline" size={16} color={palette.warning} />
-                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Pending</ThemedText>
-              </View>
-              <ThemedText type="defaultSemiBold">
-                {formatCurrency(earnings?.pendingBalance || 0).replace(/^[+-]/, '')}
-              </ThemedText>
-            </View>
-            <View style={styles.balanceRow}>
-              <View style={styles.balanceItem}>
-                <Ionicons name="trending-up" size={16} color={palette.success} />
-                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Total Earned</ThemedText>
-              </View>
-              <ThemedText type="defaultSemiBold">
-                {formatCurrency(earnings?.totalEarned || 0).replace(/^[+-]/, '')}
-              </ThemedText>
-            </View>
-            <View style={styles.balanceRow}>
-              <View style={styles.balanceItem}>
-                <Ionicons name="arrow-down-circle-outline" size={16} color={palette.tint} />
-                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Total Withdrawn</ThemedText>
-              </View>
-              <ThemedText type="defaultSemiBold">
-                {formatCurrency(earnings?.totalWithdrawn || 0).replace(/^[+-]/, '')}
-              </ThemedText>
-            </View>
-          </View>
-          <Clickable onPress={() => setShowWithdrawModal(true)}>
-            <View style={[styles.withdrawButton, { backgroundColor: palette.tint }]}>
-              <Ionicons name="cash-outline" size={18} color={palette.background} />
-              <ThemedText style={{ color: palette.background, fontWeight: '700' }}>Withdraw</ThemedText>
-            </View>
-          </Clickable>
-        </SurfaceCard>
+        <EarningsBalanceCard earnings={e.earnings} formatCurrency={e.formatCurrency} onWithdraw={e.openWithdrawModal} />
 
         {/* Period Stats */}
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Period Stats</ThemedText>
         <View style={styles.statsRow}>
-          <View style={styles.statWrapper}>
-            <StatCard
-              label="This Week"
-              value={formatCurrency(earnings?.thisWeek || 0).replace(/^[+-]/, '')}
-              variant="compact"
-            />
-          </View>
-          <View style={styles.statWrapper}>
-            <StatCard
-              label="This Month"
-              value={formatCurrency(earnings?.thisMonth || 0).replace(/^[+-]/, '')}
-              variant="compact"
-            />
-          </View>
+          <View style={styles.statWrapper}><StatCard label="This Week" value={e.formatCurrency(e.earnings?.thisWeek || 0).replace(/^[+-]/, '')} variant="compact" /></View>
+          <View style={styles.statWrapper}><StatCard label="This Month" value={e.formatCurrency(e.earnings?.thisMonth || 0).replace(/^[+-]/, '')} variant="compact" /></View>
         </View>
         <View style={styles.statsRow}>
-          <View style={styles.statWrapper}>
-            <StatCard
-              label="Last Month"
-              value={formatCurrency(earnings?.lastMonth || 0).replace(/^[+-]/, '')}
-              variant="compact"
-            />
-          </View>
-          <View style={styles.statWrapper}>
-            <StatCard
-              label="Avg Session"
-              value={formatCurrency(earnings?.averageSessionValue || 0).replace(/^[+-]/, '')}
-              variant="compact"
-            />
-          </View>
+          <View style={styles.statWrapper}><StatCard label="Last Month" value={e.formatCurrency(e.earnings?.lastMonth || 0).replace(/^[+-]/, '')} variant="compact" /></View>
+          <View style={styles.statWrapper}><StatCard label="Avg Session" value={e.formatCurrency(e.earnings?.averageSessionValue || 0).replace(/^[+-]/, '')} variant="compact" /></View>
         </View>
 
         {/* Pending Withdrawals */}
-        {pendingWithdrawals.length > 0 && (
+        {e.pendingWithdrawals.length > 0 && (
           <>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              Pending Withdrawals
-            </ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Pending Withdrawals</ThemedText>
             <SurfaceCard style={styles.listCard}>
-              {pendingWithdrawals.map((withdrawal, index) => (
-                <View key={withdrawal.id}>
-                  {index > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
+              {e.pendingWithdrawals.map((w, i) => (
+                <View key={w.id}>
+                  {i > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
                   <View style={styles.withdrawalItem}>
                     <View style={styles.withdrawalInfo}>
-                      <ThemedText type="defaultSemiBold">
-                        {formatCurrency(withdrawal.amount).replace(/^[+-]/, '')}
-                      </ThemedText>
+                      <ThemedText type="defaultSemiBold">{e.formatCurrency(w.amount).replace(/^[+-]/, '')}</ThemedText>
                       <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                        {withdrawal.payoutMethod === 'BANK_ACCOUNT' ? 'Bank Transfer' : withdrawal.payoutMethod}
+                        {w.payoutMethod === 'BANK_ACCOUNT' ? 'Bank Transfer' : w.payoutMethod}
                       </ThemedText>
                     </View>
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: withAlpha(palette.warning, 0.09) }
-                    ]}>
-                      <ThemedText style={{ color: palette.warning, ...Typography.caption }}>
-                        {getWithdrawalStatusLabel(withdrawal.status)}
-                      </ThemedText>
+                    <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                      <ThemedText style={{ color: palette.warning, ...Typography.caption }}>{e.getWithdrawalStatusLabel(w.status)}</ThemedText>
                     </View>
                   </View>
                 </View>
@@ -328,576 +81,114 @@ export default function EarningsScreen() {
         )}
 
         {/* Payout Methods */}
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          Payout Methods
-        </ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Payout Methods</ThemedText>
         <SurfaceCard style={styles.listCard}>
-          {payoutMethods.length === 0 ? (
+          {e.payoutMethods.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="card-outline" size={32} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }}>
-                No payout methods added yet
-              </ThemedText>
+              <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }}>No payout methods added yet</ThemedText>
             </View>
           ) : (
-            payoutMethods.map((method, index) => (
+            e.payoutMethods.map((method, i) => (
               <View key={method.id}>
-                {index > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
-                <View style={styles.payoutMethodItem}>
-                  <View style={[styles.payoutMethodIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-                    <Ionicons
-                      name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'}
-                      size={20}
-                      color={palette.tint}
-                    />
+                {i > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
+                <View style={styles.payoutItem}>
+                  <View style={[styles.payoutIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                    <Ionicons name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'} size={20} color={palette.tint} />
                   </View>
-                  <View style={styles.payoutMethodInfo}>
-                    <View style={styles.payoutMethodHeader}>
-                      <ThemedText type="defaultSemiBold">
-                        {method.nickname || method.type}
-                      </ThemedText>
+                  <View style={styles.payoutInfo}>
+                    <View style={styles.payoutHeader}>
+                      <ThemedText type="defaultSemiBold">{method.nickname || method.type}</ThemedText>
                       {method.isDefault && (
                         <View style={[styles.defaultBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                          <ThemedText style={{ color: palette.success, ...Typography.micro }}>
-                            DEFAULT
-                          </ThemedText>
+                          <ThemedText style={{ color: palette.success, ...Typography.micro }}>DEFAULT</ThemedText>
                         </View>
                       )}
                     </View>
                     <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                      {method.type === 'BANK_ACCOUNT'
-                        ? `${method.bankName} ****${method.accountLastFour}`
-                        : method.type === 'PAYPAL'
-                        ? method.paypalEmail
-                        : 'Stripe Connect'}
+                      {method.type === 'BANK_ACCOUNT' ? `${method.bankName} ****${method.accountLastFour}` : method.type === 'PAYPAL' ? method.paypalEmail : 'Stripe Connect'}
                     </ThemedText>
                   </View>
                   {method.isVerified ? (
                     <Ionicons name="checkmark-circle" size={20} color={palette.success} />
                   ) : (
                     <View style={[styles.unverifiedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
-                      <ThemedText style={{ color: palette.warning, ...Typography.micro }}>
-                        UNVERIFIED
-                      </ThemedText>
+                      <ThemedText style={{ color: palette.warning, ...Typography.micro }}>UNVERIFIED</ThemedText>
                     </View>
                   )}
                 </View>
               </View>
             ))
           )}
-          <Clickable onPress={() => {
-            Alert.alert(
-              'Add Payout Method',
-              'Choose how you want to receive your earnings.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Bank Account', onPress: () => Alert.alert('Coming Soon', 'Bank account linking will be available soon.') },
-                { text: 'PayPal', onPress: () => Alert.alert('Coming Soon', 'PayPal integration will be available soon.') },
-              ]
-            );
-          }}>
-            <View style={[styles.addMethodButton, { borderColor: palette.border }]}>
+          <Clickable onPress={e.handleAddPayoutMethod}>
+            <View style={[styles.addMethodBtn, { borderColor: palette.border }]}>
               <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
-                Add Payout Method
-              </ThemedText>
+              <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Payout Method</ThemedText>
             </View>
           </Clickable>
         </SurfaceCard>
 
         {/* Transaction History */}
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          Transaction History
-        </ThemedText>
-
-        {/* Filter Tabs */}
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Transaction History</ThemedText>
         <View style={styles.filterRow}>
-          {FILTER_OPTIONS.map((option) => (
-            <Clickable key={option.value} onPress={() => setTransactionFilter(option.value)}>
-              <View
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: transactionFilter === option.value ? withAlpha(palette.tint, 0.09) : 'transparent',
-                    borderColor: transactionFilter === option.value ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={{
-                    color: transactionFilter === option.value ? palette.tint : palette.muted,
-                    ...Typography.small,
-                    fontWeight: transactionFilter === option.value ? '600' : '500',
-                  }}
-                >
-                  {option.label}
-                </ThemedText>
+          {FILTER_OPTIONS.map((opt) => (
+            <Clickable key={opt.value} onPress={() => e.setTransactionFilter(opt.value)}>
+              <View style={[styles.filterChip, { backgroundColor: e.transactionFilter === opt.value ? withAlpha(palette.tint, 0.09) : 'transparent', borderColor: e.transactionFilter === opt.value ? palette.tint : palette.border }]}>
+                <ThemedText style={{ color: e.transactionFilter === opt.value ? palette.tint : palette.muted, ...Typography.small, fontWeight: e.transactionFilter === opt.value ? '600' : '500' }}>{opt.label}</ThemedText>
               </View>
             </Clickable>
           ))}
         </View>
-
         <SurfaceCard style={styles.listCard}>
-          {transactions.length === 0 ? (
+          {e.transactions.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={32} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }}>
-                No transactions found
-              </ThemedText>
+              <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }}>No transactions found</ThemedText>
             </View>
           ) : (
-            transactions.map((txn, index) => {
+            e.transactions.map((txn) => {
               const date = new Date(txn.createdAt);
               const subtitle = txn.sessionDate
                 ? `${txn.athleteName || 'Session'} - ${new Date(txn.sessionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
                 : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
-              return (
-                <TransactionListItem
-                  key={txn.id}
-                  title={txn.description}
-                  subtitle={subtitle}
-                  amount={formatCurrency(txn.amount)}
-                  status={txn.status === 'COMPLETED' ? 'Paid' : txn.status === 'PENDING' ? 'Pending' : txn.status}
-                />
-              );
+              return <TransactionListItem key={txn.id} title={txn.description} subtitle={subtitle} amount={e.formatCurrency(txn.amount)} status={txn.status === 'COMPLETED' ? 'Paid' : txn.status === 'PENDING' ? 'Pending' : txn.status} />;
             })
           )}
         </SurfaceCard>
       </ScrollView>
 
-      {/* Withdrawal Modal */}
-      <Modal visible={showWithdrawModal} transparent animationType="fade" onRequestClose={() => setShowWithdrawModal(false)}>
-        <View style={[styles.modalBackdrop, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
-          <SurfaceCard style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.md }]}>
-            <View style={styles.modalHeader}>
-              <ThemedText type="subtitle">Withdraw Funds</ThemedText>
-              <Clickable onPress={() => setShowWithdrawModal(false)}>
-                <Ionicons name="close" size={24} color={palette.icon} />
-              </Clickable>
-            </View>
-
-            <View style={styles.modalContent}>
-              {/* Available Balance */}
-              <View style={[styles.availableBalanceCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
-                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available to withdraw</ThemedText>
-                <ThemedText type="title" style={{ color: palette.success }}>
-                  {formatCurrency(earnings?.availableBalance || 0).replace(/^[+-]/, '')}
-                </ThemedText>
-              </View>
-
-              {/* Amount Input */}
-              <View style={styles.inputGroup}>
-                <ThemedText type="defaultSemiBold">Amount</ThemedText>
-                <View style={[styles.amountInputContainer, { borderColor: palette.border }]}>
-                  <ThemedText style={styles.currencySymbol}>
-                    {earnings?.currency === 'GBP' ? '£' : earnings?.currency === 'USD' ? '$' : '€'}
-                  </ThemedText>
-                  <TextInput
-                    style={[styles.amountInput, { color: palette.text }]}
-                    placeholder="0.00"
-                    placeholderTextColor={palette.muted}
-                    keyboardType="decimal-pad"
-                    value={withdrawAmount}
-                    onChangeText={setWithdrawAmount}
-                  />
-                </View>
-              </View>
-
-              {/* Payout Method Selection */}
-              <View style={styles.inputGroup}>
-                <ThemedText type="defaultSemiBold">Payout Method</ThemedText>
-                {payoutMethods.length === 0 ? (
-                  <View style={[styles.noMethodsCard, { borderColor: palette.border }]}>
-                    <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
-                      Add a payout method to withdraw funds
-                    </ThemedText>
-                  </View>
-                ) : (
-                  <View style={styles.methodOptions}>
-                    {payoutMethods.filter((m) => m.isVerified).map((method) => (
-                      <Clickable key={method.id} onPress={() => setSelectedPayoutMethod(method.id)}>
-                        <View
-                          style={[
-                            styles.methodOption,
-                            {
-                              borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border,
-                              backgroundColor: selectedPayoutMethod === method.id ? withAlpha(palette.tint, 0.06) : 'transparent',
-                            },
-                          ]}
-                        >
-                          <View style={styles.methodOptionContent}>
-                            <Ionicons
-                              name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'}
-                              size={18}
-                              color={selectedPayoutMethod === method.id ? palette.tint : palette.icon}
-                            />
-                            <View>
-                              <ThemedText style={{ fontWeight: '500' }}>
-                                {method.nickname || method.type}
-                              </ThemedText>
-                              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                                {method.type === 'BANK_ACCOUNT'
-                                  ? `****${method.accountLastFour}`
-                                  : method.paypalEmail}
-                              </ThemedText>
-                            </View>
-                          </View>
-                          <View
-                            style={[
-                              styles.radioCircle,
-                              {
-                                borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border,
-                                backgroundColor: selectedPayoutMethod === method.id ? palette.tint : 'transparent',
-                              },
-                            ]}
-                          >
-                            {selectedPayoutMethod === method.id && (
-                              <View style={[styles.radioInner, { backgroundColor: palette.background }]} />
-                            )}
-                          </View>
-                        </View>
-                      </Clickable>
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              {/* Fee Calculation */}
-              {parseFloat(withdrawAmount) > 0 && (
-                <View style={[styles.feeCard, { borderColor: palette.border }]}>
-                  <View style={styles.feeRow}>
-                    <ThemedText style={{ color: palette.muted }}>Withdrawal amount</ThemedText>
-                    <ThemedText>
-                      {formatCurrency(parseFloat(withdrawAmount) || 0).replace(/^[+-]/, '')}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.feeRow}>
-                    <ThemedText style={{ color: palette.muted }}>
-                      Platform fee ({earnings?.platformFeePercent || 10}%)
-                    </ThemedText>
-                    <ThemedText style={{ color: palette.error }}>
-                      -{formatCurrency(fee).replace(/^[+-]/, '')}
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.feeDivider, { backgroundColor: palette.border }]} />
-                  <View style={styles.feeRow}>
-                    <ThemedText type="defaultSemiBold">You will receive</ThemedText>
-                    <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
-                      {formatCurrency(netAmount).replace(/^[+-]/, '')}
-                    </ThemedText>
-                  </View>
-                </View>
-              )}
-
-              {/* Error Message */}
-              {withdrawError && (
-                <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
-                  <Ionicons name="alert-circle" size={16} color={palette.error} />
-                  <ThemedText style={{ color: palette.error, flex: 1 }}>{withdrawError}</ThemedText>
-                </View>
-              )}
-
-              {/* Confirm Button */}
-              <Clickable
-                onPress={handleWithdraw}
-                disabled={withdrawing || !selectedPayoutMethod || !withdrawAmount}
-              >
-                <View
-                  style={[
-                    styles.confirmButton,
-                    {
-                      backgroundColor: withdrawing || !selectedPayoutMethod || !withdrawAmount
-                        ? palette.border
-                        : palette.tint,
-                    },
-                  ]}
-                >
-                  {withdrawing ? (
-                    <ActivityIndicator size="small" color={palette.background} />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={18} color={palette.background} />
-                      <ThemedText style={{ color: palette.background, fontWeight: '700' }}>
-                        Confirm Withdrawal
-                      </ThemedText>
-                    </>
-                  )}
-                </View>
-              </Clickable>
-            </View>
-          </SurfaceCard>
-        </View>
-      </Modal>
+      <EarningsWithdrawModal
+        visible={e.showWithdrawModal} earnings={e.earnings} payoutMethods={e.payoutMethods}
+        withdrawAmount={e.withdrawAmount} selectedPayoutMethod={e.selectedPayoutMethod}
+        withdrawing={e.withdrawing} withdrawError={e.withdrawError}
+        feePercent={e.feePercent} fee={e.fee} netAmount={e.netAmount}
+        formatCurrency={e.formatCurrency} onChangeAmount={e.setWithdrawAmount}
+        onSelectMethod={e.setSelectedPayoutMethod} onConfirm={e.handleWithdraw} onClose={e.closeWithdrawModal}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    paddingBottom: Spacing['2xl'],
-  },
-  sectionTitle: {
-    marginTop: Spacing.sm,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  statWrapper: {
-    flex: 1,
-  },
-  balanceCard: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  balanceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  balanceInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  balanceAmount: {
-    ...Typography.display,
-    letterSpacing: -0.5,
-  },
-  balanceDivider: {
-    height: 1,
-    marginVertical: Spacing.xs,
-  },
-  balanceDetails: {
-    gap: Spacing.sm,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  balanceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  withdrawButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
-  listCard: {
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  listDivider: {
-    height: 1,
-    marginVertical: Spacing.sm,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  withdrawalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  withdrawalInfo: {
-    gap: Spacing.micro,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  payoutMethodItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  payoutMethodIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payoutMethodInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  payoutMethodHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  defaultBadge: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  unverifiedBadge: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  addMethodButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    marginTop: Spacing.sm,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  filterChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  // Modal styles
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    borderTopLeftRadius: Radii.xl,
-    borderTopRightRadius: Radii.xl,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: Spacing.lg,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  modalContent: {
-    gap: Spacing.md,
-  },
-  availableBalanceCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  inputGroup: {
-    gap: Spacing.xs,
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    height: 52,
-  },
-  currencySymbol: {
-    ...Typography.title,
-    marginRight: Spacing.xs,
-  },
-  amountInput: {
-    flex: 1,
-    ...Typography.display,
-    height: '100%',
-  },
-  noMethodsCard: {
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    borderStyle: 'dashed',
-  },
-  methodOptions: {
-    gap: Spacing.sm,
-  },
-  methodOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-  },
-  methodOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.xs,
-  },
-  feeCard: {
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    gap: Spacing.sm,
-  },
-  feeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  feeDivider: {
-    height: 1,
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  confirmButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
+  safeArea: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing['2xl'] },
+  sectionTitle: { marginTop: Spacing.sm },
+  statsRow: { flexDirection: 'row', gap: Spacing.md },
+  statWrapper: { flex: 1 },
+  listCard: { padding: Spacing.md, gap: Spacing.xs },
+  listDivider: { height: 1, marginVertical: Spacing.sm },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.lg },
+  withdrawalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  withdrawalInfo: { gap: Spacing.micro },
+  statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  payoutItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  payoutIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  payoutInfo: { flex: 1, gap: Spacing.micro },
+  payoutHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  defaultBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  unverifiedBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  addMethodBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, borderStyle: 'dashed', marginTop: Spacing.sm },
+  filterRow: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap' },
+  filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
 });

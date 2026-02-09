@@ -1,18 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  Alert,
-  ActivityIndicator,
-  View,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  TextInput,
-  Modal,
-  Pressable,
-} from 'react-native';
+/**
+ * Negotiate Screen
+ *
+ * Displays negotiation history for a booking and handles accept/reject/counter-propose.
+ * All state/logic in useNegotiate hook. Reject modal extracted to component.
+ */
+
+import { View, ScrollView, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -20,234 +15,66 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { CounterOfferCard } from '@/components/negotiate/CounterOfferCard';
 import { NegotiationTimeline } from '@/components/negotiate/NegotiationTimeline';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { RejectModal } from '@/components/negotiate/reject-modal';
+import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { counterOfferService } from '@/services/counter-offer-service';
-import { createLogger } from '@/utils/logger';
-import type { NegotiationHistory, CounterOffer } from '@/constants/types';
+import { useNegotiate } from '@/hooks/use-negotiate';
 
-const logger = createLogger('NegotiateScreen');
+const HeaderBack = () => {
+  const { colors: palette } = useTheme();
+  return (
+    <Clickable onPress={() => router.back()} style={styles.headerButton}>
+      <Ionicons name="arrow-back" size={24} color={palette.text} />
+    </Clickable>
+  );
+};
 
 export default function NegotiateScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+  const n = useNegotiate();
 
-  const currentUserId = currentUser?.id || '';
-
-  const [negotiation, setNegotiation] = useState<NegotiationHistory | null>(null);
-  const [pendingOffer, setPendingOffer] = useState<CounterOffer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Reject modal state
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [offerToReject, setOfferToReject] = useState<string | null>(null);
-
-  const loadData = useCallback(async () => {
-    if (!id) {
-      setError('Booking ID not provided');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-
-      // Load negotiation history
-      const history = await counterOfferService.getNegotiationHistory(id);
-      setNegotiation(history);
-
-      // Find pending offer that requires action from current user
-      if (history) {
-        const pending = history.offers.find(
-          (offer) =>
-            offer.status === 'PENDING' &&
-            offer.proposerId !== currentUserId
-        );
-        setPendingOffer(pending || null);
-      }
-    } catch (err) {
-      logger.error('Failed to load data', err);
-      setError('Failed to load negotiation details');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [id, currentUserId]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await loadData();
-  };
-
-  const handleAccept = async (offerId: string) => {
-    try {
-      setIsProcessing(true);
-      await counterOfferService.acceptCounterOffer(offerId);
-
-      Alert.alert(
-        'Time Change Accepted',
-        'The booking has been updated with the new time. Both parties will be notified.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              loadData();
-            },
-          },
-        ]
-      );
-    } catch (err) {
-      logger.error('Failed to accept offer', err);
-      Alert.alert('Error', 'Failed to accept the proposal. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleRejectPress = (offerId: string) => {
-    setOfferToReject(offerId);
-    setRejectReason('');
-    setShowRejectModal(true);
-  };
-
-  const handleRejectConfirm = async () => {
-    if (!offerToReject) return;
-
-    try {
-      setIsProcessing(true);
-      setShowRejectModal(false);
-
-      await counterOfferService.rejectCounterOffer({
-        offerId: offerToReject,
-        reason: rejectReason.trim() || undefined,
-      });
-
-      Alert.alert(
-        'Proposal Declined',
-        'The other party has been notified. They may propose an alternative time.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              loadData();
-            },
-          },
-        ]
-      );
-    } catch (err) {
-      logger.error('Failed to reject offer', err);
-      Alert.alert('Error', 'Failed to decline the proposal. Please try again.');
-    } finally {
-      setIsProcessing(false);
-      setOfferToReject(null);
-    }
-  };
-
-  const handleCounterPropose = () => {
-    // Navigate to counter-offer screen
-    router.push(Routes.bookingsCounter(id!));
-  };
-
-  const handleNewProposal = () => {
-    router.push(Routes.bookingsCounter(id!));
-  };
-
-  if (isLoading) {
+  if (n.isLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: 'Negotiation',
-            headerLeft: () => (
-              <Clickable onPress={() => router.back()} style={styles.headerButton}>
-                <Ionicons name="arrow-back" size={24} color={palette.text} />
-              </Clickable>
-            ),
-          }}
-        />
-        <View style={styles.loadingContainer}>
+        <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
+        <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading negotiation...
-          </ThemedText>
+          <ThemedText style={[styles.subText, { color: palette.muted }]}>Loading negotiation...</ThemedText>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (error) {
+  if (n.error) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: 'Error',
-            headerLeft: () => (
-              <Clickable onPress={() => router.back()} style={styles.headerButton}>
-                <Ionicons name="arrow-back" size={24} color={palette.text} />
-              </Clickable>
-            ),
-          }}
-        />
-        <View style={styles.errorContainer}>
+        <Stack.Screen options={{ headerShown: true, headerTitle: 'Error', headerLeft: () => <HeaderBack /> }} />
+        <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
-          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
-            Unable to Load
-          </ThemedText>
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-            {error}
-          </ThemedText>
-          <Clickable
-            onPress={loadData}
-            style={[styles.retryButton, { backgroundColor: palette.tint }]}
-          >
-            <ThemedText style={[styles.retryText, { color: palette.onPrimary }]}>Try Again</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.subText}>Unable to Load</ThemedText>
+          <ThemedText style={[styles.centerText, { color: palette.muted }]}>{n.error}</ThemedText>
+          <Clickable onPress={n.loadData} style={[styles.retryButton, { backgroundColor: palette.tint }]}>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Try Again</ThemedText>
           </Clickable>
         </View>
       </SafeAreaView>
     );
   }
 
-  // No negotiation exists yet
-  if (!negotiation) {
+  if (!n.negotiation) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            headerTitle: 'Negotiation',
-            headerLeft: () => (
-              <Clickable onPress={() => router.back()} style={styles.headerButton}>
-                <Ionicons name="arrow-back" size={24} color={palette.text} />
-              </Clickable>
-            ),
-          }}
-        />
-        <View style={styles.emptyContainer}>
+        <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
+        <View style={styles.centerContainer}>
           <Ionicons name="swap-horizontal-outline" size={64} color={palette.muted} />
-          <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-            No Negotiation Yet
-          </ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+          <ThemedText type="defaultSemiBold" style={styles.subText}>No Negotiation Yet</ThemedText>
+          <ThemedText style={[styles.centerText, { color: palette.muted }]}>
             Need to change the booking time? Start a negotiation by proposing a new time.
           </ThemedText>
-          <Button onPress={handleNewProposal} style={styles.proposalButton}>
-            <View style={styles.proposalButtonContent}>
+          <Button onPress={n.handleNewProposal} style={styles.proposalButton}>
+            <View style={styles.proposalRow}>
               <Ionicons name="time-outline" size={18} color={palette.onPrimary} />
-              <ThemedText style={[styles.proposalButtonText, { color: palette.onPrimary }]}>
-                Propose New Time
-              </ThemedText>
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Propose New Time</ThemedText>
             </View>
           </Button>
         </View>
@@ -255,288 +82,69 @@ export default function NegotiateScreen() {
     );
   }
 
-  const isResolved = negotiation.status === 'RESOLVED';
-  const canPropose = !isResolved && negotiation.status !== 'CANCELLED';
-
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top']}
-    >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          headerTitle: 'Negotiation',
-          headerLeft: () => (
-            <Clickable onPress={() => router.back()} style={styles.headerButton}>
-              <Ionicons name="arrow-back" size={24} color={palette.text} />
-            </Clickable>
-          ),
-        }}
-      />
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={palette.tint}
-          />
-        }
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={n.isRefreshing} onRefresh={n.handleRefresh} tintColor={palette.tint} />}
       >
         {/* Booking summary */}
-        <View style={[styles.bookingSummary, { backgroundColor: palette.surface }]}>
-          <View style={styles.bookingHeader}>
+        <View style={[styles.summary, { backgroundColor: palette.surface }]}>
+          <View style={styles.summaryRow}>
             <Ionicons name="calendar-outline" size={20} color={palette.tint} />
-            <View style={styles.bookingInfo}>
-              <ThemedText type="defaultSemiBold">
-                Session with {negotiation.coachName}
-              </ThemedText>
-              <ThemedText style={{ color: palette.muted }}>
-                For {negotiation.athleteName}
-              </ThemedText>
+            <View style={styles.summaryInfo}>
+              <ThemedText type="defaultSemiBold">Session with {n.negotiation.coachName}</ThemedText>
+              <ThemedText style={{ color: palette.muted }}>For {n.negotiation.athleteName}</ThemedText>
             </View>
           </View>
         </View>
 
-        {/* Pending counter-offer (if any) */}
-        {pendingOffer && (
+        {n.pendingOffer && (
           <View style={styles.section}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              Action Required
-            </ThemedText>
-            <CounterOfferCard
-              offer={pendingOffer}
-              isActionable={true}
-              onAccept={handleAccept}
-              onReject={handleRejectPress}
-              onCounterPropose={handleCounterPropose}
-              isLoading={isProcessing}
-            />
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Action Required</ThemedText>
+            <CounterOfferCard offer={n.pendingOffer} isActionable onAccept={n.handleAccept} onReject={n.handleRejectPress} onCounterPropose={n.handleNewProposal} isLoading={n.isProcessing} />
           </View>
         )}
 
-        {/* Negotiation timeline */}
-        <View style={[styles.section, styles.timelineSection]}>
-          <NegotiationTimeline
-            negotiation={negotiation}
-            currentUserId={currentUserId}
-          />
+        <View style={[styles.section, { marginTop: Spacing.sm }]}>
+          <NegotiationTimeline negotiation={n.negotiation} currentUserId={n.currentUserId} />
         </View>
 
-        {/* Action button for new proposal */}
-        {canPropose && !pendingOffer && (
-          <View style={styles.actionSection}>
-            <Button onPress={handleNewProposal}>
-              <View style={styles.proposalButtonContent}>
+        {n.canPropose && !n.pendingOffer && (
+          <View style={{ marginTop: Spacing.md }}>
+            <Button onPress={n.handleNewProposal}>
+              <View style={styles.proposalRow}>
                 <Ionicons name="swap-horizontal" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.proposalButtonText, { color: palette.onPrimary }]}>
-                  Propose Different Time
-                </ThemedText>
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Propose Different Time</ThemedText>
               </View>
             </Button>
           </View>
         )}
       </ScrollView>
 
-      {/* Reject Modal */}
-      <Modal
-        visible={showRejectModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowRejectModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowRejectModal(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: palette.surface }]} onPress={(e) => e.stopPropagation()}>
-            <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
-              Decline Proposal
-            </ThemedText>
-            <ThemedText style={[styles.modalSubtitle, { color: palette.muted }]}>
-              Let them know why this time doesn&apos;t work (optional)
-            </ThemedText>
-            <TextInput
-              style={[
-                styles.modalInput,
-                {
-                  borderColor: palette.border,
-                  color: palette.text,
-                  backgroundColor: palette.background,
-                },
-              ]}
-              placeholder="e.g., I have another commitment at that time"
-              placeholderTextColor={palette.muted}
-              value={rejectReason}
-              onChangeText={setRejectReason}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-            <View style={styles.modalButtons}>
-              <Clickable
-                onPress={() => setShowRejectModal(false)}
-                style={[styles.modalCancelButton, { borderColor: palette.border }]}
-              >
-                <ThemedText>Cancel</ThemedText>
-              </Clickable>
-              <Clickable
-                onPress={handleRejectConfirm}
-                style={[styles.modalConfirmButton, { backgroundColor: palette.error }]}
-              >
-                <ThemedText style={[styles.modalConfirmText, { color: palette.onPrimary }]}>Decline</ThemedText>
-              </Clickable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <RejectModal
+        visible={n.showRejectModal} reason={n.rejectReason}
+        onReasonChange={n.setRejectReason} onConfirm={n.handleRejectConfirm} onCancel={n.handleRejectCancel}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-  },
-  loadingText: {
-    marginTop: Spacing.sm,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  errorTitle: {
-    marginTop: Spacing.sm,
-  },
-  errorText: {
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.sm,
-  },
-  retryText: {
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  emptyTitle: {
-    marginTop: Spacing.sm,
-  },
-  emptyText: {
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  proposalButton: {
-    marginTop: Spacing.md,
-  },
-  proposalButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  proposalButtonText: {
-    fontWeight: '600',
-  },
-  headerButton: {
-    padding: Spacing.xs,
-  },
-  bookingSummary: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  bookingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  bookingInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  section: {
-    gap: Spacing.sm,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.xs,
-  },
-  timelineSection: {
-    marginTop: Spacing.sm,
-  },
-  actionSection: {
-    marginTop: Spacing.md,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 400,
-    padding: Spacing.lg,
-    borderRadius: Radii.lg,
-    gap: Spacing.sm,
-  },
-  modalTitle: {
-    ...Typography.heading,
-  },
-  modalSubtitle: {
-    ...Typography.sm,
-  },
-  modalInput: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    ...Typography.body,
-    minHeight: 80,
-    marginTop: Spacing.xs,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  modalCancelButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  modalConfirmButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  modalConfirmText: {
-    fontWeight: '600',
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: Spacing.lg, gap: Spacing.md },
+  centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, gap: Spacing.sm },
+  subText: { marginTop: Spacing.sm },
+  centerText: { textAlign: 'center', maxWidth: 280 },
+  retryButton: { marginTop: Spacing.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.sm },
+  headerButton: { padding: Spacing.xs },
+  summary: { padding: Spacing.md, borderRadius: Radii.md },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  summaryInfo: { flex: 1, gap: Spacing.micro },
+  section: { gap: Spacing.sm },
+  sectionTitle: { marginBottom: Spacing.xs },
+  proposalButton: { marginTop: Spacing.md },
+  proposalRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 });

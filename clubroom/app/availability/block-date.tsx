@@ -13,7 +13,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Pressable,
   Alert,
   TextInput,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -123,7 +123,7 @@ export default function BlockDateScreen() {
                 const isSelected = isSameDay(date, selectedDate);
                 const isToday = isSameDay(date, new Date());
                 return (
-                  <Pressable
+                  <Clickable
                     key={index}
                     style={[
                       styles.dateCard,
@@ -149,7 +149,7 @@ export default function BlockDateScreen() {
                     {isToday && (
                       <View style={[styles.todayDot, { backgroundColor: palette.tint }]} />
                     )}
-                  </Pressable>
+                  </Clickable>
                 );
               })}
             </View>
@@ -163,7 +163,7 @@ export default function BlockDateScreen() {
             {REASON_OPTIONS.map((option) => {
               const isSelected = reason === option.key;
               return (
-                <Pressable
+                <Clickable
                   key={option.key}
                   style={[
                     styles.reasonCard,
@@ -184,7 +184,7 @@ export default function BlockDateScreen() {
                   >
                     {option.label}
                   </ThemedText>
-                </Pressable>
+                </Clickable>
               );
             })}
           </View>
@@ -217,7 +217,7 @@ export default function BlockDateScreen() {
 
       {/* Save Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Pressable
+        <Clickable
           style={[styles.saveButton, { backgroundColor: saving ? palette.muted : palette.error }]}
           onPress={handleSave}
           disabled={saving}
@@ -230,7 +230,7 @@ export default function BlockDateScreen() {
               <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Block This Date</ThemedText>
             </>
           )}
-        </Pressable>
+        </Clickable>
       </View>
     </SafeAreaView>
   );

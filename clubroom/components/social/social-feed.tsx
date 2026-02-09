@@ -1,4 +1,5 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -27,13 +28,13 @@ export function SocialFeed() {
         <ThemedText style={[styles.description, { color: palette.muted }]}>
           See updates from all your clubs in one place. Announcements, photos, and events from every club you are part of.
         </ThemedText>
-        <Pressable
+        <Clickable
           style={[styles.button, { backgroundColor: palette.tint }]}
           onPress={() => router.push(Routes.FEED)}
         >
           <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Go to Feed</ThemedText>
           <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-        </Pressable>
+        </Clickable>
       </SurfaceCard>
     </View>
   );

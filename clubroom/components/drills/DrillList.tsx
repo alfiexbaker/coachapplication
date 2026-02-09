@@ -14,40 +14,29 @@ import { DrillCard } from './DrillCard';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
-import type { Drill, AssignedDrill, DrillCategory } from '@/constants/types';
+import type { Drill, AssignedDrill } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
 
+// Re-export extracted components for backward compat
+export { DrillSectionHeader } from './drill-list-sections';
+export type { DrillSectionHeaderProps } from './drill-list-sections';
+
 interface DrillListProps {
-  /** List of drills to display (for library view) */
   drills?: Drill[];
-  /** List of assignments to display (for athlete view) */
   assignments?: AssignedDrill[];
-  /** Callback when a drill is pressed */
   onDrillPress?: (drill: Drill) => void;
-  /** Callback when an assignment is pressed */
   onAssignmentPress?: (assignment: AssignedDrill) => void;
-  /** Callback when assignment completion is toggled */
   onAssignmentComplete?: (assignment: AssignedDrill) => void;
-  /** Whether to show in compact mode */
   compact?: boolean;
-  /** Whether data is loading */
   loading?: boolean;
-  /** Empty state message */
   emptyMessage?: string;
-  /** Empty state description */
   emptyDescription?: string;
-  /** Empty state action */
   onEmptyAction?: () => void;
-  /** Empty state action label */
   emptyActionLabel?: string;
-  /** Whether to show assignment count on drill cards */
   showAssignmentCount?: boolean;
 }
 
-/**
- * List component for rendering drills or assignments.
- */
 export function DrillList({
   drills,
   assignments,
@@ -64,11 +53,9 @@ export function DrillList({
 }: DrillListProps) {
   const { colors: palette } = useTheme();
 
-  // Determine which list to render
   const isAssignmentMode = Boolean(assignments);
   const items = isAssignmentMode ? assignments : drills;
 
-  // Loading state
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -79,13 +66,9 @@ export function DrillList({
     );
   }
 
-  // Empty state
   if (!items || items.length === 0) {
     return (
-      <Animated.View
-        entering={FadeInDown.delay(100).springify()}
-        style={styles.emptyContainer}
-      >
+      <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.emptyContainer}>
         <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons
             name={isAssignmentMode ? 'clipboard-outline' : 'football-outline'}
@@ -93,31 +76,20 @@ export function DrillList({
             color={palette.tint}
           />
         </View>
-        <ThemedText type="subtitle" style={styles.emptyTitle}>
-          {emptyMessage}
-        </ThemedText>
-        <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
-          {emptyDescription}
-        </ThemedText>
+        <ThemedText type="subtitle" style={styles.emptyTitle}>{emptyMessage}</ThemedText>
+        <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>{emptyDescription}</ThemedText>
         {onEmptyAction && (
-          <Button onPress={onEmptyAction} style={styles.emptyButton}>
-            {emptyActionLabel}
-          </Button>
+          <Button onPress={onEmptyAction} style={styles.emptyButton}>{emptyActionLabel}</Button>
         )}
       </Animated.View>
     );
   }
 
-  // Render list
   return (
     <View style={styles.list}>
       {isAssignmentMode
-        ? // Render assignments
-          (assignments as AssignedDrill[]).map((assignment, index) => (
-            <Animated.View
-              key={assignment.id}
-              entering={FadeInDown.delay(index * 50).springify()}
-            >
+        ? (assignments as AssignedDrill[]).map((assignment, index) => (
+            <Animated.View key={assignment.id} entering={FadeInDown.delay(index * 50).springify()}>
               <AssignmentCard
                 assignment={assignment}
                 onPress={() => onAssignmentPress?.(assignment)}
@@ -126,12 +98,8 @@ export function DrillList({
               />
             </Animated.View>
           ))
-        : // Render drills
-          (drills as Drill[]).map((drill, index) => (
-            <Animated.View
-              key={drill.id}
-              entering={FadeInDown.delay(index * 50).springify()}
-            >
+        : (drills as Drill[]).map((drill, index) => (
+            <Animated.View key={drill.id} entering={FadeInDown.delay(index * 50).springify()}>
               <DrillCard
                 drill={drill}
                 onPress={() => onDrillPress?.(drill)}
@@ -144,113 +112,13 @@ export function DrillList({
   );
 }
 
-/**
- * Section header for grouping drills by category
- */
-interface DrillSectionHeaderProps {
-  /** Category to display */
-  category: DrillCategory;
-  /** Number of items in this section */
-  count: number;
-}
-
-export function DrillSectionHeader({ category, count }: DrillSectionHeaderProps) {
-  const { colors: palette } = useTheme();
-
-  // Decorative: drill category colors for distinct visual identification
-  const categoryInfo: Record<DrillCategory, { label: string; icon: string; color: string }> = {
-    WARMUP: { label: 'Warm-up', icon: 'flame', color: '#F59E0B' },    // Decorative: warmup category
-    TECHNIQUE: { label: 'Technique', icon: 'football', color: '#3B82F6' }, // Decorative: technique category
-    FITNESS: { label: 'Fitness', icon: 'fitness', color: '#10B981' },   // Decorative: fitness category
-    COOLDOWN: { label: 'Cool-down', icon: 'snow', color: '#6366F1' },  // Decorative: cooldown category
-    TACTICAL: { label: 'Tactical', icon: 'bulb', color: '#8B5CF6' },   // Decorative: tactical category
-  };
-
-  const info = categoryInfo[category];
-
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionHeaderLeft}>
-        <View style={[styles.sectionIcon, { backgroundColor: withAlpha(info.color, 0.12) }]}>
-          <Ionicons
-            name={info.icon as keyof typeof Ionicons.glyphMap}
-            size={16}
-            color={info.color}
-          />
-        </View>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          {info.label}
-        </ThemedText>
-      </View>
-      <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>
-        {count} {count === 1 ? 'drill' : 'drills'}
-      </ThemedText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-  },
-  loadingContainer: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    fontSize: scaleFont(15),
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
-  emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    textAlign: 'center',
-    fontSize: scaleFont(15),
-    lineHeight: scaleFont(22),
-    maxWidth: 280,
-  },
-  emptyButton: {
-    marginTop: Spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  sectionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitle: {
-    fontSize: scaleFont(16),
-  },
-  sectionCount: {
-    fontSize: scaleFont(13),
-  },
+  list: { flex: 1 },
+  loadingContainer: { padding: Spacing.xl, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { fontSize: scaleFont(15) },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  emptyIcon: { width: 96, height: 96, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyTitle: { textAlign: 'center' },
+  emptyDescription: { textAlign: 'center', fontSize: scaleFont(15), lineHeight: scaleFont(22), maxWidth: 280 },
+  emptyButton: { marginTop: Spacing.sm },
 });

@@ -10,49 +10,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Components, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Components, Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { TOTAL_SCREENS } from './parent-welcome-data';
+import { WelcomePage, ChildDetailsPage, CoachResultsPage } from './parent-welcome-screens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOTAL_SCREENS = 3;
 
-const AGE_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 4); // 4 to 16
-const SKILL_LEVELS = ['Beginner', 'Developing', 'Intermediate', 'Advanced'] as const;
-
-interface ImprovementArea {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-}
-
-const IMPROVEMENT_AREAS: ImprovementArea[] = [
-  { icon: 'football-outline', label: 'Ball Control' },
-  { icon: 'speedometer-outline', label: 'Speed & Agility' },
-  { icon: 'body-outline', label: 'Fitness' },
-  { icon: 'people-outline', label: 'Teamwork' },
-  { icon: 'trophy-outline', label: 'Competition Prep' },
-  { icon: 'happy-outline', label: 'Confidence' },
-];
-
-interface PlaceholderCoach {
-  name: string;
-  specialty: string;
-  rating: number;
-  distance: string;
-}
-
-const PLACEHOLDER_COACHES: PlaceholderCoach[] = [
-  { name: 'Coach Alex', specialty: 'Football', rating: 4.9, distance: '0.8 mi' },
-  { name: 'Coach Jamie', specialty: 'Tennis', rating: 4.8, distance: '1.2 mi' },
-  { name: 'Coach Sam', specialty: 'Swimming', rating: 5.0, distance: '2.1 mi' },
-];
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface ParentWelcomeProps {
   childName?: string;
   onComplete: () => void;
   onSkip?: () => void;
 }
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export function ParentWelcome({
   childName = 'your child',
@@ -103,196 +77,17 @@ export function ParentWelcome({
         onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Screen 1: Welcome */}
-        <View style={[styles.page, { width: SCREEN_WIDTH }]}>
-          <View style={styles.pageContent}>
-            <Ionicons name="happy-outline" size={64} color={palette.tint} />
-            <ThemedText style={[Typography.display, { color: palette.text, textAlign: 'center' }]}>
-              Welcome!
-            </ThemedText>
-            <ThemedText
-              style={[Typography.title, { color: palette.muted, textAlign: 'center' }]}
-            >
-              Let&apos;s set up for {childName}
-            </ThemedText>
-            <ThemedText
-              style={[Typography.body, { color: palette.muted, textAlign: 'center', marginTop: Spacing.sm }]}
-            >
-              We&apos;ll help you find the perfect coach based on your child&apos;s needs and goals.
-            </ThemedText>
-          </View>
-        </View>
-
-        {/* Screen 2: Child Details */}
-        <View style={[styles.page, { width: SCREEN_WIDTH }]}>
-          <ScrollView
-            style={styles.scrollInner}
-            contentContainerStyle={styles.pageContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <ThemedText style={[Typography.title, { color: palette.text }]}>
-              About {childName}
-            </ThemedText>
-
-            {/* Age picker */}
-            <View style={styles.sectionBlock}>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>AGE</ThemedText>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.agePicker}
-              >
-                {AGE_OPTIONS.map((age) => {
-                  const selected = selectedAge === age;
-                  return (
-                    <Clickable
-                      key={age}
-                      onPress={() => setSelectedAge(age)}
-                      style={[
-                        styles.ageChip,
-                        {
-                          backgroundColor: selected ? palette.tint : palette.surface,
-                          borderColor: selected ? palette.tint : palette.border,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[Typography.bodySemiBold, { color: selected ? palette.onPrimary : palette.text }]}
-                      >
-                        {age}
-                      </ThemedText>
-                    </Clickable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {/* Skill level */}
-            <View style={styles.sectionBlock}>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                SKILL LEVEL
-              </ThemedText>
-              <View style={styles.levelRow}>
-                {SKILL_LEVELS.map((level) => {
-                  const selected = selectedLevel === level;
-                  return (
-                    <Clickable
-                      key={level}
-                      onPress={() => setSelectedLevel(level)}
-                      style={[
-                        styles.levelChip,
-                        {
-                          backgroundColor: selected ? palette.tint : palette.surface,
-                          borderColor: selected ? palette.tint : palette.border,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[Typography.small, { color: selected ? palette.onPrimary : palette.text }]}
-                      >
-                        {level}
-                      </ThemedText>
-                    </Clickable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* What to improve */}
-            <View style={styles.sectionBlock}>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                WHAT TO IMPROVE
-              </ThemedText>
-              <View style={styles.areasGrid}>
-                {IMPROVEMENT_AREAS.map((area) => {
-                  const selected = selectedAreas.includes(area.label);
-                  return (
-                    <Clickable
-                      key={area.label}
-                      onPress={() => toggleArea(area.label)}
-                      style={[
-                        styles.areaCard,
-                        {
-                          backgroundColor: selected ? withAlpha(palette.tint, 0.06) : palette.surface,
-                          borderColor: selected ? palette.tint : palette.border,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={area.icon}
-                        size={Components.icon.lg}
-                        color={selected ? palette.tint : palette.muted}
-                      />
-                      <ThemedText
-                        style={[
-                          Typography.small,
-                          { color: selected ? palette.tint : palette.text, textAlign: 'center' },
-                        ]}
-                      >
-                        {area.label}
-                      </ThemedText>
-                      {selected && (
-                        <View style={[styles.checkBadge, { backgroundColor: palette.tint }]}>
-                          <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
-                        </View>
-                      )}
-                    </Clickable>
-                  );
-                })}
-              </View>
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* Screen 3: Coach Results */}
-        <View style={[styles.page, { width: SCREEN_WIDTH }]}>
-          <View style={styles.pageContent}>
-            <Ionicons name="search-outline" size={48} color={palette.tint} />
-            <ThemedText style={[Typography.title, { color: palette.text, textAlign: 'center' }]}>
-              Here are coaches near you!
-            </ThemedText>
-
-            <View style={styles.coachList}>
-              {PLACEHOLDER_COACHES.map((coach) => (
-                <SurfaceCard key={coach.name} style={styles.coachCard} tactile={false}>
-                  <View style={styles.coachRow}>
-                    <View
-                      style={[
-                        styles.coachAvatar,
-                        { backgroundColor: palette.surfaceSecondary },
-                      ]}
-                    >
-                      <Ionicons
-                        name="person-outline"
-                        size={Components.icon.lg}
-                        color={palette.muted}
-                      />
-                    </View>
-                    <View style={styles.coachInfo}>
-                      <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
-                        {coach.name}
-                      </ThemedText>
-                      <ThemedText style={[Typography.small, { color: palette.muted }]}>
-                        {coach.specialty}
-                      </ThemedText>
-                    </View>
-                    <View style={styles.coachMeta}>
-                      <View style={styles.ratingRow}>
-                        <Ionicons name="star" size={14} color={palette.warning} />
-                        <ThemedText style={[Typography.small, { color: palette.text }]}>
-                          {coach.rating}
-                        </ThemedText>
-                      </View>
-                      <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                        {coach.distance}
-                      </ThemedText>
-                    </View>
-                  </View>
-                </SurfaceCard>
-              ))}
-            </View>
-          </View>
-        </View>
+        <WelcomePage childName={childName} />
+        <ChildDetailsPage
+          childName={childName}
+          selectedAge={selectedAge}
+          onAgeSelect={setSelectedAge}
+          selectedLevel={selectedLevel}
+          onLevelSelect={setSelectedLevel}
+          selectedAreas={selectedAreas}
+          onToggleArea={toggleArea}
+        />
+        <CoachResultsPage />
       </ScrollView>
 
       {/* Bottom controls */}
@@ -340,107 +135,11 @@ export function ParentWelcome({
   );
 }
 
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  page: {
-    flex: 1,
-  },
-  scrollInner: {
-    flex: 1,
-  },
-  pageContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-    paddingVertical: Spacing.lg,
-  },
-  sectionBlock: {
-    width: '100%',
-    gap: Spacing.xs,
-  },
-  agePicker: {
-    gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
-  },
-  ageChip: {
-    width: 44,
-    height: Components.button.height,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  levelRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  levelChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  areasGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  areaCard: {
-    width: '48%',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    position: 'relative',
-  },
-  checkBadge: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 20,
-    height: 20,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coachList: {
-    width: '100%',
-    gap: Spacing.sm,
-  },
-  coachCard: {
-    width: '100%',
-  },
-  coachRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  coachAvatar: {
-    width: Components.avatar.md,
-    height: Components.avatar.md,
-    borderRadius: Components.avatar.md / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coachInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  coachMeta: {
-    alignItems: 'flex-end',
-    gap: Spacing.micro,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
   },
   bottomBar: {
     paddingHorizontal: Spacing.lg,

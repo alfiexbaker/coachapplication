@@ -1,7 +1,8 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { User } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
@@ -40,15 +41,14 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
         {children.map((child) => {
           const isSelected = child.id === selectedChildId;
           return (
-            <Pressable
+            <Clickable
               key={child.id}
               onPress={() => onSelectChild(child.id)}
-              style={({ pressed }) => [
+              style={[
                 styles.option,
                 {
                   backgroundColor: isSelected ? palette.tint : palette.surface,
                   borderColor: isSelected ? palette.tint : palette.border,
-                  opacity: pressed ? 0.7 : 1,
                 },
               ]}>
               <ThemedText
@@ -64,7 +64,7 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
               {isSelected && (
                 <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
               )}
-            </Pressable>
+            </Clickable>
           );
         })}
       </View>

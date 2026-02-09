@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -97,7 +98,7 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
       </View>
 
       {/* Book Now CTA */}
-      <Pressable
+      <Clickable
         style={[styles.bookNowButton, { backgroundColor: palette.tint }]}
         onPress={handleBookNow}
       >
@@ -105,7 +106,7 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
         <ThemedText style={[styles.bookNowText, { color: palette.onPrimary }]}>
           Book Now
         </ThemedText>
-      </Pressable>
+      </Clickable>
     </View>
   );
 }

@@ -1,5 +1,11 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+/**
+ * Appearance Settings Screen
+ *
+ * Theme selection, accessibility toggles, and preview.
+ * All state/logic in useAppearance hook.
+ */
+
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,40 +14,26 @@ import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/se
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useThemePreferences } from '@/hooks/theme-provider';
-import { createLogger } from '@/utils/logger';
+import { useAppearance, type ThemeOption } from '@/hooks/use-appearance';
 
-const logger = createLogger('AppearanceSettings');
+const THEME_OPTIONS: { value: ThemeOption; label: string; icon: string; description: string }[] = [
+  { value: 'light', label: 'Light', icon: 'sunny', description: 'Clean and bright' },
+  { value: 'dark', label: 'Dark', icon: 'moon', description: 'Easy on the eyes' },
+  { value: 'system', label: 'System', icon: 'phone-portrait', description: 'Match device settings' },
+];
 
-type ThemeOption = 'light' | 'dark' | 'system';
-
-interface ThemeCardProps {
-  label: string;
-  value: ThemeOption;
-  selected: boolean;
-  onSelect: () => void;
-  icon: string;
-  description: string;
-}
-
-function ThemeCard({ label, value, selected, onSelect, icon, description }: ThemeCardProps) {
+function ThemeCard({ option, selected, onSelect }: { option: typeof THEME_OPTIONS[0]; selected: boolean; onSelect: () => void }) {
   const { colors: palette } = useTheme();
-
   return (
     <Clickable onPress={onSelect}>
-      <SurfaceCard
-        style={[
-          styles.themeCard,
-          selected ? { borderColor: palette.accent, borderWidth: 2 } : undefined,
-        ]}
-      >
+      <SurfaceCard style={[styles.themeCard, selected ? { borderColor: palette.accent, borderWidth: 2 } : undefined]}>
         <View style={[styles.themeIconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
-          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={28} color={palette.accent} />
+          <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={28} color={palette.accent} />
         </View>
-        <ThemedText type="defaultSemiBold" style={styles.themeLabel}>{label}</ThemedText>
-        <ThemedText style={[styles.themeDescription, { color: palette.muted }]}>{description}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.themeLabel}>{option.label}</ThemedText>
+        <ThemedText style={[styles.themeDescription, { color: palette.muted }]}>{option.description}</ThemedText>
         {selected && (
           <View style={[styles.selectedBadge, { backgroundColor: palette.accent }]}>
             <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
@@ -54,130 +46,42 @@ function ThemeCard({ label, value, selected, onSelect, icon, description }: Them
 
 export default function AppearanceSettingsScreen() {
   const { colors: palette } = useTheme();
-  const { colorScheme, setColorScheme } = useThemePreferences();
-
-  // Theme selection
-  const [selectedTheme, setSelectedTheme] = useState<ThemeOption>(
-    colorScheme === 'dark' ? 'dark' : 'light'
-  );
-
-  // Display preferences
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [largeText, setLargeText] = useState(false);
-  const [highContrast, setHighContrast] = useState(false);
-
-  const handleThemeSelect = (theme: ThemeOption) => {
-    logger.press('ThemeSelect', { theme });
-    setSelectedTheme(theme);
-    if (theme === 'dark') {
-      setColorScheme('dark');
-    } else {
-      setColorScheme('light');
-    }
-  };
+  const c = useAppearance();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Appearance
-        </ThemedText>
+        <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+        <ThemedText type="title" style={styles.headerTitle}>Appearance</ThemedText>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Theme Selection */}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-            THEME
-          </ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>THEME</ThemedText>
           <View style={styles.themeGrid}>
-            <ThemeCard
-              label="Light"
-              value="light"
-              selected={selectedTheme === 'light'}
-              onSelect={() => handleThemeSelect('light')}
-              icon="sunny"
-              description="Clean and bright"
-            />
-            <ThemeCard
-              label="Dark"
-              value="dark"
-              selected={selectedTheme === 'dark'}
-              onSelect={() => handleThemeSelect('dark')}
-              icon="moon"
-              description="Easy on the eyes"
-            />
-            <ThemeCard
-              label="System"
-              value="system"
-              selected={selectedTheme === 'system'}
-              onSelect={() => handleThemeSelect('system')}
-              icon="phone-portrait"
-              description="Match device settings"
-            />
+            {THEME_OPTIONS.map((option) => (
+              <ThemeCard key={option.value} option={option} selected={c.selectedTheme === option.value}
+                onSelect={() => c.handleThemeSelect(option.value)} />
+            ))}
           </View>
         </View>
 
-        {/* App Icon */}
         <SettingsSection title="App Icon">
-          <SettingsRow
-            icon="apps"
-            title="App Icon"
-            value="Default"
-            onPress={() => {
-              logger.press('AppIcon');
-              // Could show icon picker in future
-            }}
-          />
+          <SettingsRow icon="apps" title="App Icon" value="Default" onPress={c.handleAppIconPress} />
         </SettingsSection>
 
-        {/* Accessibility */}
         <SettingsSection title="Accessibility">
-          <SettingsToggleRow
-            icon="hand-left"
-            title="Reduce Motion"
-            subtitle="Minimize animations throughout the app"
-            value={reducedMotion}
-            onValueChange={(v) => {
-              logger.debug('Toggle reducedMotion', { newValue: v });
-              setReducedMotion(v);
-            }}
-          />
-          <SettingsToggleRow
-            icon="text"
-            title="Large Text"
-            subtitle="Use larger text sizes"
-            value={largeText}
-            onValueChange={(v) => {
-              logger.debug('Toggle largeText', { newValue: v });
-              setLargeText(v);
-            }}
-          />
-          <SettingsToggleRow
-            icon="contrast"
-            title="High Contrast"
-            subtitle="Increase color contrast"
-            value={highContrast}
-            onValueChange={(v) => {
-              logger.debug('Toggle highContrast', { newValue: v });
-              setHighContrast(v);
-            }}
-          />
+          <SettingsToggleRow icon="hand-left" title="Reduce Motion" subtitle="Minimize animations throughout the app"
+            value={c.reducedMotion} onValueChange={c.handleReducedMotion} />
+          <SettingsToggleRow icon="text" title="Large Text" subtitle="Use larger text sizes"
+            value={c.largeText} onValueChange={c.handleLargeText} />
+          <SettingsToggleRow icon="contrast" title="High Contrast" subtitle="Increase color contrast"
+            value={c.highContrast} onValueChange={c.handleHighContrast} />
         </SettingsSection>
 
-        {/* Preview */}
         <View style={styles.previewSection}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-            PREVIEW
-          </ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>PREVIEW</ThemedText>
           <SurfaceCard style={styles.previewCard}>
             <View style={styles.previewHeader}>
               <View style={[styles.previewAvatar, { backgroundColor: palette.accent }]}>
@@ -191,14 +95,11 @@ export default function AppearanceSettingsScreen() {
               </View>
             </View>
             <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
-              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>
-                Sample Button
-              </ThemedText>
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Sample Button</ThemedText>
             </View>
           </SurfaceCard>
         </View>
 
-        {/* Info */}
         <View style={styles.infoContainer}>
           <ThemedText style={[styles.infoText, { color: palette.muted }]}>
             Some settings may require restarting the app to take full effect.
@@ -210,103 +111,24 @@ export default function AppearanceSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    ...Typography.heading,
-  },
-  content: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
-  },
-  section: {
-    gap: Spacing.sm,
-  },
-  sectionTitle: {
-    ...Typography.smallSemiBold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginLeft: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  themeGrid: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  themeCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.xs,
-    position: 'relative',
-  },
-  themeIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  themeLabel: {
-    ...Typography.bodySmall,
-  },
-  themeDescription: {
-    ...Typography.caption,
-    textAlign: 'center',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewSection: {
-    gap: Spacing.sm,
-  },
-  previewCard: {
-    gap: Spacing.md,
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    alignItems: 'flex-start',
-  },
-  previewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewText: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  previewButton: {
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-  },
-  infoContainer: {
-    paddingHorizontal: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  infoText: {
-    ...Typography.small,
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  headerTitle: { ...Typography.heading },
+  content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
+  section: { gap: Spacing.sm },
+  sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: Spacing.xs, marginBottom: Spacing.xs },
+  themeGrid: { flexDirection: 'row', gap: Spacing.sm },
+  themeCard: { flex: 1, alignItems: 'center', padding: Spacing.md, gap: Spacing.xs, position: 'relative' },
+  themeIconContainer: { width: 56, height: 56, borderRadius: Radii['2xl'], justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.xs },
+  themeLabel: { ...Typography.bodySmall },
+  themeDescription: { ...Typography.caption, textAlign: 'center' },
+  selectedBadge: { position: 'absolute', top: Spacing.xs, right: Spacing.xs, width: 22, height: 22, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
+  previewSection: { gap: Spacing.sm },
+  previewCard: { gap: Spacing.md },
+  previewHeader: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
+  previewAvatar: { width: 40, height: 40, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  previewText: { flex: 1, gap: Spacing.xxs },
+  previewButton: { paddingVertical: Spacing.sm, borderRadius: Radii.md, alignItems: 'center' },
+  infoContainer: { paddingHorizontal: Spacing.sm, marginTop: Spacing.sm },
+  infoText: { ...Typography.small, textAlign: 'center' },
 });

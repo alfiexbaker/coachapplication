@@ -1,657 +1,89 @@
 /**
  * Family Sharing Screen
  *
- * Allows parents to:
- * - View current guardians with access
- * - Invite new guardians (co-parents, grandparents, etc.)
- * - Manage permissions for each guardian
- * - Remove guardians
- *
- * USER STORY:
- * "As a parent, I want to share access to my children's sports schedule
- * with my partner so we can both manage bookings and stay informed."
+ * Allows parents to view/invite/manage guardians with access to
+ * their children's sports schedule.
  */
 
-import { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Alert,
-  ActivityIndicator,
-  TextInput,
-  Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { SharingGuardiansSection } from '@/components/family/sharing-guardians-section';
+import { SharingPendingInvites } from '@/components/family/sharing-pending-invites';
+import { SharingInviteModal } from '@/components/family/sharing-invite-modal';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import {
-  familyService,
-  RELATIONSHIP_OPTIONS } from '@/services/family';
-import type {
-  FamilyAccount,
-  FamilyGuardian,
-  GuardianPermission,
-  GuardianRole } from '@/constants/types';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('FamilySharing');
-
-const ROLE_INFO: Record<GuardianRole, { label: string; description: string }> = {
-  PRIMARY: {
-    label: 'Primary',
-    description: 'Full access with admin controls' },
-  GUARDIAN: {
-    label: 'Guardian',
-    description: 'Can view and book sessions' },
-  VIEWER: {
-    label: 'Viewer',
-    description: 'View-only access' } };
+import { useFamilySharing } from '@/hooks/use-family-sharing';
 
 export default function FamilySharingScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-
-  const [loading, setLoading] = useState(true);
-  const [family, setFamily] = useState<FamilyAccount | null>(null);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-
-  // Invite form state
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState<GuardianRole>('GUARDIAN');
-  const [inviteRelationship, setInviteRelationship] = useState('Co-parent');
-  const [inviteMessage, setInviteMessage] = useState('');
-  const [inviting, setInviting] = useState(false);
-
-  const loadFamilyData = useCallback(async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      const account = await familyService.getFamilyAccount(
-        currentUser.id,
-        currentUser.fullName || 'Parent'
-      );
-      setFamily(account);
-    } catch (error) {
-      logger.error('Failed to load family data', error);
-      Alert.alert('Error', 'Failed to load family sharing settings');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.id, currentUser?.fullName]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadFamilyData();
-    }, [loadFamilyData])
-  );
-
-  const handleInvite = async () => {
-    if (!family || !currentUser) return;
-
-    if (!inviteEmail.trim()) {
-      Alert.alert('Error', 'Please enter an email address');
-      return;
-    }
-
-    if (!inviteEmail.includes('@')) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    setInviting(true);
-    try {
-      await familyService.inviteGuardian(
-        family.id,
-        currentUser.id,
-        currentUser.fullName || 'Parent',
-        inviteEmail.trim(),
-        inviteName.trim() || 'Guardian',
-        inviteRole,
-        inviteRelationship,
-        [], // All children
-        inviteMessage.trim() || undefined
-      );
-
-      Alert.alert(
-        'Invitation Sent',
-        `An invitation has been sent to ${inviteEmail}. They'll receive instructions to join your family account.`
-      );
-
-      setShowInviteModal(false);
-      resetInviteForm();
-      loadFamilyData();
-
-      logger.success('InviteSent', { email: inviteEmail, role: inviteRole });
-    } catch (error: unknown) {
-      logger.error('Failed to send invite', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send invitation');
-    } finally {
-      setInviting(false);
-    }
-  };
-
-  const handleRemoveGuardian = (guardian: FamilyGuardian) => {
-    if (!family || !currentUser) return;
-
-    Alert.alert(
-      'Remove Guardian',
-      `Are you sure you want to remove ${guardian.userName} from your family account? They will no longer be able to access your children's information.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await familyService.removeGuardian(
-                family.id,
-                currentUser.id,
-                guardian.id
-              );
-              Alert.alert('Removed', `${guardian.userName} has been removed from your family account.`);
-              loadFamilyData();
-            } catch (error: unknown) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove guardian');
-            }
-          } },
-      ]
-    );
-  };
-
-  const handleCancelInvite = async (inviteId: string, email: string) => {
-    if (!family || !currentUser) return;
-
-    Alert.alert(
-      'Cancel Invitation',
-      `Cancel the invitation to ${email}?`,
-      [
-        { text: 'Keep', style: 'cancel' },
-        {
-          text: 'Cancel Invite',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await familyService.cancelInvite(family.id, currentUser.id, inviteId);
-              loadFamilyData();
-            } catch (error: unknown) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to cancel invitation');
-            }
-          } },
-      ]
-    );
-  };
-
-  const resetInviteForm = () => {
-    setInviteEmail('');
-    setInviteName('');
-    setInviteRole('GUARDIAN');
-    setInviteRelationship('Co-parent');
-    setInviteMessage('');
-  };
-
-  const getPermissionIcons = (permissions: GuardianPermission[]) => {
-    const icons: string[] = [];
-    if (permissions.includes('VIEW_SCHEDULE')) icons.push('calendar-outline');
-    if (permissions.includes('BOOK_SESSIONS')) icons.push('add-circle-outline');
-    if (permissions.includes('MANAGE_PAYMENTS')) icons.push('wallet-outline');
-    if (permissions.includes('ADMIN')) icons.push('shield-outline');
-    return icons.slice(0, 3);
-  };
+  const { colors } = useTheme();
+  const {
+    loading, family, showInviteModal, setShowInviteModal,
+    inviteEmail, setInviteEmail, inviteName, setInviteName,
+    inviteRole, setInviteRole, inviteRelationship, setInviteRelationship,
+    inviteMessage, setInviteMessage, inviting,
+    handleInvite, handleRemoveGuardian, handleCancelInvite,
+  } = useFamilySharing();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
 
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Intro Card */}
-        <SurfaceCard style={[styles.introCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
-          <View style={styles.introIcon}>
-            <Ionicons name="people-circle" size={40} color={palette.tint} />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <SurfaceCard style={[styles.introCard, { backgroundColor: withAlpha(colors.tint, 0.03) }]}>
+          <View style={{ marginBottom: Spacing.xs }}>
+            <Ionicons name="people-circle" size={40} color={colors.tint} />
           </View>
-          <ThemedText type="subtitle" style={styles.introTitle}>
-            Share access with family members
-          </ThemedText>
-          <ThemedText style={[styles.introText, { color: palette.muted }]}>
-            Invite your partner, grandparents, or caregivers to view schedules,
-            book sessions, and track your children&apos;s progress.
+          <ThemedText type="subtitle" style={{ textAlign: 'center' }}>Share access with family members</ThemedText>
+          <ThemedText style={[Typography.bodySmall, { color: colors.muted, textAlign: 'center' }]}>
+            Invite your partner, grandparents, or caregivers to view schedules, book sessions, and track your children&apos;s progress.
           </ThemedText>
         </SurfaceCard>
 
-        {/* Current Guardians */}
-        <SurfaceCard style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="people-outline" size={20} color={palette.tint} />
-            <ThemedText type="subtitle">Family Members</ThemedText>
-            <ThemedText style={[styles.count, { color: palette.muted }]}>
-              {family?.guardians.length || 0}
-            </ThemedText>
-          </View>
+        {family?.guardians && <SharingGuardiansSection guardians={family.guardians} onRemove={handleRemoveGuardian} />}
 
-          {family?.guardians.map((guardian) => (
-            <View
-              key={guardian.id}
-              style={[styles.guardianCard, { borderColor: palette.border }]}
-            >
-              <View style={styles.guardianHeader}>
-                <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                  <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                    {guardian.userName.charAt(0)}
-                  </ThemedText>
-                </View>
-                <View style={styles.guardianInfo}>
-                  <ThemedText type="defaultSemiBold">{guardian.userName}</ThemedText>
-                  <ThemedText style={[styles.guardianMeta, { color: palette.muted }]}>
-                    {guardian.relationship} • {ROLE_INFO[guardian.role].label}
-                  </ThemedText>
-                </View>
-                {guardian.isPrimary ? (
-                  <View style={[styles.primaryBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                    <ThemedText style={[styles.primaryBadgeText, { color: palette.success }]}>
-                      Primary
-                    </ThemedText>
-                  </View>
-                ) : (
-                  <Pressable
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveGuardian(guardian)}
-                  >
-                    <Ionicons name="close-circle" size={22} color={palette.error} />
-                  </Pressable>
-                )}
-              </View>
+        {family?.pendingInvites && <SharingPendingInvites invites={family.pendingInvites} onCancel={handleCancelInvite} />}
 
-              <View style={styles.permissionIcons}>
-                {getPermissionIcons(guardian.permissions).map((icon, index) => (
-                  <Ionicons key={index} name={icon as keyof typeof Ionicons.glyphMap} size={18} color={palette.muted} />
-                ))}
-                <ThemedText style={[styles.permissionCount, { color: palette.muted }]}>
-                  {guardian.permissions.length} permissions
-                </ThemedText>
-              </View>
-            </View>
-          ))}
-        </SurfaceCard>
-
-        {/* Pending Invites */}
-        {family?.pendingInvites && family.pendingInvites.length > 0 && (
-          <SurfaceCard style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="mail-outline" size={20} color={palette.warning} />
-              <ThemedText type="subtitle">Pending Invitations</ThemedText>
-            </View>
-
-            {family.pendingInvites.map((invite) => (
-              <View
-                key={invite.id}
-                style={[styles.inviteCard, { borderColor: palette.border }]}
-              >
-                <View style={styles.inviteInfo}>
-                  <ThemedText type="defaultSemiBold">
-                    {invite.inviteeName || invite.inviteeEmail}
-                  </ThemedText>
-                  <ThemedText style={[styles.inviteMeta, { color: palette.muted }]}>
-                    {invite.relationship} • Expires {new Date(invite.expiresAt).toLocaleDateString()}
-                  </ThemedText>
-                </View>
-                <Pressable
-                  style={[styles.cancelInviteButton, { borderColor: palette.error }]}
-                  onPress={() => handleCancelInvite(invite.id, invite.inviteeEmail)}
-                >
-                  <ThemedText style={[styles.cancelInviteText, { color: palette.error }]}>
-                    Cancel
-                  </ThemedText>
-                </Pressable>
-              </View>
-            ))}
-          </SurfaceCard>
-        )}
-
-        {/* Invite Button */}
-        <Pressable
-          style={[styles.inviteButton, { backgroundColor: palette.tint }]}
-          onPress={() => setShowInviteModal(true)}
-        >
-          <Ionicons name="person-add" size={22} color={palette.onPrimary} />
-          <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>Invite Family Member</ThemedText>
-        </Pressable>
+        <Clickable style={[styles.inviteButton, { backgroundColor: colors.tint }]} onPress={() => setShowInviteModal(true)}>
+          <Ionicons name="person-add" size={22} color={colors.onPrimary} />
+          <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Invite Family Member</ThemedText>
+        </Clickable>
       </ScrollView>
 
-      {/* Invite Modal */}
-      <Modal
-        visible={showInviteModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowInviteModal(false)}
-      >
-        <SafeAreaView style={[styles.modal, { backgroundColor: palette.background }]} edges={['top']}>
-          <View style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
-            <Pressable onPress={() => setShowInviteModal(false)} style={styles.modalClose}>
-              <Ionicons name="close" size={28} color={palette.text} />
-            </Pressable>
-            <ThemedText type="subtitle">Invite Guardian</ThemedText>
-            <View style={{ width: 28 }} />
-          </View>
-
-          <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalInner}>
-            {/* Email */}
-            <View style={styles.formGroup}>
-              <ThemedText type="defaultSemiBold">Email Address</ThemedText>
-              <TextInput
-                style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-                placeholder="Enter their email address"
-                placeholderTextColor={palette.muted}
-                value={inviteEmail}
-                onChangeText={setInviteEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Name */}
-            <View style={styles.formGroup}>
-              <ThemedText type="defaultSemiBold">Name (optional)</ThemedText>
-              <TextInput
-                style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-                placeholder="Their name for your reference"
-                placeholderTextColor={palette.muted}
-                value={inviteName}
-                onChangeText={setInviteName}
-              />
-            </View>
-
-            {/* Relationship */}
-            <View style={styles.formGroup}>
-              <ThemedText type="defaultSemiBold">Relationship</ThemedText>
-              <View style={styles.relationshipOptions}>
-                {RELATIONSHIP_OPTIONS.map((rel) => (
-                  <Pressable
-                    key={rel}
-                    style={[
-                      styles.relationshipOption,
-                      {
-                        borderColor: inviteRelationship === rel ? palette.tint : palette.border,
-                        backgroundColor: inviteRelationship === rel ? withAlpha(palette.tint, 0.06) : 'transparent' }
-                    ]}
-                    onPress={() => setInviteRelationship(rel)}
-                  >
-                    <ThemedText
-                      style={{ color: inviteRelationship === rel ? palette.tint : palette.text }}
-                    >
-                      {rel}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            {/* Role */}
-            <View style={styles.formGroup}>
-              <ThemedText type="defaultSemiBold">Access Level</ThemedText>
-              {(['GUARDIAN', 'VIEWER'] as GuardianRole[]).map((role) => (
-                <Pressable
-                  key={role}
-                  style={[
-                    styles.roleOption,
-                    {
-                      borderColor: inviteRole === role ? palette.tint : palette.border,
-                      backgroundColor: inviteRole === role ? withAlpha(palette.tint, 0.06) : 'transparent' }
-                  ]}
-                  onPress={() => setInviteRole(role)}
-                >
-                  <View style={[
-                    styles.radioOuter,
-                    { borderColor: inviteRole === role ? palette.tint : palette.border }
-                  ]}>
-                    {inviteRole === role && (
-                      <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />
-                    )}
-                  </View>
-                  <View style={styles.roleInfo}>
-                    <ThemedText type="defaultSemiBold">{ROLE_INFO[role].label}</ThemedText>
-                    <ThemedText style={[styles.roleDesc, { color: palette.muted }]}>
-                      {ROLE_INFO[role].description}
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Message */}
-            <View style={styles.formGroup}>
-              <ThemedText type="defaultSemiBold">Personal Message (optional)</ThemedText>
-              <TextInput
-                style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-                placeholder="Add a note to your invitation..."
-                placeholderTextColor={palette.muted}
-                value={inviteMessage}
-                onChangeText={setInviteMessage}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </ScrollView>
-
-          {/* Send Button */}
-          <View style={[styles.modalFooter, { borderTopColor: palette.border }]}>
-            <Pressable
-              style={[
-                styles.sendButton,
-                { backgroundColor: inviting ? palette.muted : palette.tint }
-              ]}
-              onPress={handleInvite}
-              disabled={inviting}
-            >
-              {inviting ? (
-                <ActivityIndicator size="small" color={palette.onPrimary} />
-              ) : (
-                <>
-                  <Ionicons name="send" size={20} color={palette.onPrimary} />
-                  <ThemedText style={[styles.sendButtonText, { color: palette.onPrimary }]}>Send Invitation</ThemedText>
-                </>
-              )}
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <SharingInviteModal
+        visible={showInviteModal} onClose={() => setShowInviteModal(false)}
+        inviteEmail={inviteEmail} onEmailChange={setInviteEmail}
+        inviteName={inviteName} onNameChange={setInviteName}
+        inviteRole={inviteRole} onRoleChange={setInviteRole}
+        inviteRelationship={inviteRelationship} onRelationshipChange={setInviteRelationship}
+        inviteMessage={inviteMessage} onMessageChange={setInviteMessage}
+        inviting={inviting} onSend={handleInvite}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1 },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  content: {
-    flex: 1 },
-  contentInner: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xl * 2,
-    gap: Spacing.md },
-  introCard: {
-    padding: Spacing.lg,
-    alignItems: 'center',
-    gap: Spacing.sm },
-  introIcon: {
-    marginBottom: Spacing.xs },
-  introTitle: {
-    textAlign: 'center' },
-  introText: {
-    textAlign: 'center',
-    ...Typography.bodySmall },
-  section: {
-    padding: Spacing.md,
-    gap: Spacing.md },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  count: {
-    marginLeft: 'auto',
-    ...Typography.bodySmall },
-  guardianCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.sm },
-  guardianHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  avatarText: {
-    ...Typography.heading },
-  guardianInfo: {
-    flex: 1 },
-  guardianMeta: {
-    ...Typography.small,
-    marginTop: Spacing.micro },
-  primaryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm },
-  primaryBadgeText: {
-    ...Typography.caption },
-  removeButton: {
-    padding: Spacing.xxs },
-  permissionIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginLeft: 56 },
-  permissionCount: {
-    ...Typography.caption,
-    marginLeft: Spacing.xs },
-  inviteCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    borderRadius: Radii.sm,
-    borderWidth: 1 },
-  inviteInfo: {
-    flex: 1 },
-  inviteMeta: {
-    ...Typography.caption,
-    marginTop: Spacing.micro },
-  cancelInviteButton: {
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-    borderWidth: 1 },
-  cancelInviteText: {
-    ...Typography.smallSemiBold },
-  inviteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    marginTop: Spacing.sm },
-  inviteButtonText: {
-    ...Typography.subheading },
-  // Modal styles
-  modal: {
-    flex: 1 },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderBottomWidth: 1 },
-  modalClose: {
-    padding: Spacing.xxs },
-  modalContent: {
-    flex: 1 },
-  modalInner: {
-    padding: Spacing.md,
-    gap: Spacing.lg },
-  formGroup: {
-    gap: Spacing.sm },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    ...Typography.subheading },
-  textArea: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    ...Typography.subheading,
-    minHeight: 80,
-    textAlignVertical: 'top' },
-  relationshipOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs },
-  relationshipOption: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1.5 },
-  roleOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5 },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: Radii.sm },
-  roleInfo: {
-    flex: 1 },
-  roleDesc: {
-    ...Typography.small,
-    marginTop: Spacing.micro },
-  modalFooter: {
-    padding: Spacing.md,
-    borderTopWidth: 1 },
-  sendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md },
-  sendButtonText: {
-    ...Typography.heading } });
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: Spacing.md, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
+  introCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
+  inviteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },
+});

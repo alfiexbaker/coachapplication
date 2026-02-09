@@ -1,4 +1,5 @@
-import { Platform, ActionSheetIOS, Alert, StyleSheet, Pressable, View } from 'react-native';
+import { Platform, ActionSheetIOS, Alert, StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -58,11 +59,10 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
   };
 
   return (
-    <Pressable
+    <Clickable
       onPress={onPress}
       onLongPress={handleLongPress}
       delayLongPress={500}
-      style={({pressed}) => [pressed && {opacity: 0.7}]}
     >
       <View style={[styles.memberRow, { borderColor: palette.border }]}>
         <View style={[styles.memberAvatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
@@ -79,7 +79,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
         )}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </View>
-    </Pressable>
+    </Clickable>
   );
 }
 

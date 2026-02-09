@@ -95,7 +95,7 @@ export default function CreateDrillScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Clickable onPress={handleCancel} hitSlop={8}>
+        <Clickable accessibilityLabel="Close" onPress={handleCancel} hitSlop={8}>
           <Ionicons name="close" size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="subtitle" style={styles.headerTitle}>

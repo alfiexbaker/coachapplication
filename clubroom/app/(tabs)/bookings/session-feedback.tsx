@@ -27,10 +27,15 @@ export default function SessionFeedbackScreen() {
 
   // Get athlete's objectives from params
   const athleteObjectivesParam = params.athleteObjectives as string;
-  const athleteObjectives: FootballObjective[] = useMemo(() =>
-    athleteObjectivesParam ? JSON.parse(athleteObjectivesParam) : [],
-    [athleteObjectivesParam]
-  );
+  const athleteObjectives: FootballObjective[] = useMemo(() => {
+    if (!athleteObjectivesParam) return [];
+    try {
+      return JSON.parse(athleteObjectivesParam) as FootballObjective[];
+    } catch {
+      logger.error('Failed to parse athleteObjectives param');
+      return [];
+    }
+  }, [athleteObjectivesParam]);
   const athleteName = (params.athleteName as string) || 'the athlete';
   const athleteId = params.athleteId as string;
   const bookingId = params.bookingId as string;

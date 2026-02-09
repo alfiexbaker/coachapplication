@@ -6,60 +6,31 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  FadeInLeft,
-  FadeOutRight,
-  useAnimatedStyle,
-  withSpring,
-  useSharedValue,
-  Layout,
-} from 'react-native-reanimated';
+import Animated, { FadeInLeft } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { Alert } from 'react-native';
+import { MilestoneItem, CompactMilestoneList } from './milestone-list-sections';
 
 interface MilestoneListProps {
-  /** Array of milestones to display */
   milestones: GoalMilestone[];
-  /** Callback when a milestone is toggled */
   onToggleMilestone?: (milestoneId: string, completed: boolean) => Promise<void> | void;
-  /** Callback when a milestone is deleted */
   onDeleteMilestone?: (milestoneId: string) => Promise<void> | void;
-  /** Callback when a new milestone is added */
   onAddMilestone?: (title: string) => Promise<void> | void;
-  /** Whether milestones can be edited */
   editable?: boolean;
-  /** Whether to show the add milestone input */
   showAddInput?: boolean;
-  /** Whether operations are in progress */
   loading?: boolean;
-  /** Compact mode for display only */
   compact?: boolean;
 }
 
-/**
- * A list of checkable milestones with support for adding, completing, and deleting.
- *
- * @example
- * ```tsx
- * <MilestoneList
- *   milestones={goal.milestones}
- *   onToggleMilestone={handleToggle}
- *   onAddMilestone={handleAdd}
- *   editable
- *   showAddInput
- * />
- * ```
- */
 export function MilestoneList({
   milestones,
   onToggleMilestone,
@@ -75,7 +46,6 @@ export function MilestoneList({
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
-  // Sort milestones by order
   const sortedMilestones = [...milestones].sort((a, b) => a.order - b.order);
 
   const handleToggle = useCallback(
@@ -130,34 +100,7 @@ export function MilestoneList({
   }, [newMilestoneTitle, isAdding, onAddMilestone]);
 
   if (compact) {
-    return (
-      <View style={styles.compactContainer}>
-        {sortedMilestones.slice(0, 3).map((milestone) => (
-          <View key={milestone.id} style={styles.compactItem}>
-            <Ionicons
-              name={milestone.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
-              size={14}
-              color={milestone.isCompleted ? palette.success : palette.muted}
-            />
-            <ThemedText
-              style={[
-                styles.compactText,
-                milestone.isCompleted ? styles.completedText : undefined,
-                { color: milestone.isCompleted ? palette.muted : palette.text },
-              ]}
-              numberOfLines={1}
-            >
-              {milestone.title}
-            </ThemedText>
-          </View>
-        ))}
-        {milestones.length > 3 && (
-          <ThemedText style={[styles.moreText, { color: palette.muted }]}>
-            +{milestones.length - 3} more
-          </ThemedText>
-        )}
-      </View>
-    );
+    return <CompactMilestoneList milestones={milestones} />;
   }
 
   return (
@@ -175,10 +118,7 @@ export function MilestoneList({
       ))}
 
       {showAddInput && editable && (
-        <Animated.View
-          entering={FadeInLeft.springify()}
-          style={styles.addInputContainer}
-        >
+        <Animated.View entering={FadeInLeft.springify()} style={styles.addInputContainer}>
           <TextInput
             style={[
               styles.addInput,
@@ -202,17 +142,11 @@ export function MilestoneList({
             style={[
               styles.addButton,
               {
-                backgroundColor: newMilestoneTitle.trim()
-                  ? palette.tint
-                  : palette.border,
+                backgroundColor: newMilestoneTitle.trim() ? palette.tint : palette.border,
               },
             ]}
           >
-            <Ionicons
-              name={isAdding ? 'hourglass' : 'add'}
-              size={20}
-              color={palette.onPrimary}
-            />
+            <Ionicons name={isAdding ? 'hourglass' : 'add'} size={20} color={palette.onPrimary} />
           </Clickable>
         </Animated.View>
       )}
@@ -229,145 +163,9 @@ export function MilestoneList({
   );
 }
 
-/**
- * Individual milestone item with checkbox and animations
- */
-function MilestoneItem({
-  milestone,
-  index,
-  onToggle,
-  onDelete,
-  editable,
-  loading,
-}: {
-  milestone: GoalMilestone;
-  index: number;
-  onToggle: () => void;
-  onDelete?: () => void;
-  editable: boolean;
-  loading: boolean;
-}) {
-  const { colors: palette } = useTheme();
-
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    if (editable && !loading) {
-      scale.value = withSpring(0.97, { damping: 15 });
-    }
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15 });
-  };
-
-  const formatCompletedDate = (date?: string) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  };
-
-  return (
-    <Animated.View
-      entering={FadeInLeft.delay(index * 50).springify()}
-      exiting={FadeOutRight.springify()}
-      layout={Layout.springify()}
-    >
-      <AnimatedPressable
-        style={[styles.milestoneItem, animatedStyle]}
-        onPress={onToggle}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        disabled={!editable || loading}
-      >
-        <View
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: milestone.isCompleted
-                ? palette.success
-                : 'transparent',
-              borderColor: milestone.isCompleted
-                ? palette.success
-                : palette.border,
-            },
-          ]}
-        >
-          {milestone.isCompleted && (
-            <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
-          )}
-        </View>
-
-        <View style={styles.milestoneContent}>
-          <ThemedText
-            style={[
-              styles.milestoneTitle,
-              milestone.isCompleted ? styles.completedText : undefined,
-              { color: milestone.isCompleted ? palette.muted : palette.text },
-            ]}
-          >
-            {milestone.title}
-          </ThemedText>
-          {milestone.isCompleted && milestone.completedAt && (
-            <ThemedText style={[styles.completedDate, { color: palette.muted }]}>
-              Completed {formatCompletedDate(milestone.completedAt)}
-            </ThemedText>
-          )}
-        </View>
-
-        {editable && onDelete && (
-          <Clickable
-            onPress={onDelete}
-            hitSlop={8}
-            style={styles.deleteButton}
-          >
-            <Ionicons name="trash-outline" size={18} color={palette.error} />
-          </Clickable>
-        )}
-      </AnimatedPressable>
-    </Animated.View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     gap: Spacing.xs,
-  },
-  milestoneItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  milestoneContent: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  milestoneTitle: {
-    fontSize: scaleFont(15),
-    lineHeight: scaleFont(20),
-  },
-  completedText: {
-    textDecorationLine: 'line-through',
-  },
-  completedDate: {
-    fontSize: scaleFont(12),
-  },
-  deleteButton: {
-    padding: Spacing.xs,
   },
   addInputContainer: {
     flexDirection: 'row',
@@ -400,22 +198,5 @@ const styles = StyleSheet.create({
   emptyText: {
     flex: 1,
     fontSize: scaleFont(14),
-  },
-  compactContainer: {
-    gap: Spacing.xxs,
-  },
-  compactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  compactText: {
-    fontSize: scaleFont(13),
-    flex: 1,
-  },
-  moreText: {
-    fontSize: scaleFont(12),
-    fontStyle: 'italic',
-    marginLeft: 20,
   },
 });

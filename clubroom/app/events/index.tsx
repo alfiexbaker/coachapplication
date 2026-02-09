@@ -32,7 +32,7 @@ export default function EventsListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<EventFilter>('upcoming');
 
-  const clubId = 'club_1'; // In real app, get from context or route params
+  const clubId = 'club_lions'; // In real app, get from context or route params
 
   const loadEvents = useCallback(async () => {
     try {
@@ -121,6 +121,7 @@ export default function EventsListScreen() {
         </View>
         {isCoach && (
           <Clickable
+            accessibilityLabel="Create event"
             onPress={() => router.push(Routes.EVENTS_CREATE)}
             style={[styles.addButton, { backgroundColor: palette.tint }]}
           >

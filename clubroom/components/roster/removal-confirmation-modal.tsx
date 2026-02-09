@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, StyleSheet, TextInput, View, Switch } from 'react-native';
+import { Modal, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -9,6 +9,14 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { RemovalReason } from '@/services/roster-service';
 import type { MemberRemovalReason } from '@/services/club-service';
 import { useTheme } from '@/hooks/useTheme';
+
+import {
+  ATHLETE_REASONS,
+  MEMBER_REASONS,
+  ReasonGrid,
+  WarningBox,
+  ArchiveToggle,
+} from './removal-confirmation-sections';
 
 type ReasonType = RemovalReason | MemberRemovalReason;
 
@@ -20,21 +28,6 @@ interface RemovalConfirmationModalProps {
   name: string;
   isLoading?: boolean;
 }
-
-const ATHLETE_REASONS: { value: RemovalReason; label: string; icon: string }[] = [
-  { value: 'GRADUATED', label: 'Graduated', icon: 'school-outline' },
-  { value: 'MOVED', label: 'Moved away', icon: 'airplane-outline' },
-  { value: 'INACTIVE', label: 'Inactive', icon: 'time-outline' },
-  { value: 'OTHER', label: 'Other', icon: 'ellipsis-horizontal' },
-];
-
-const MEMBER_REASONS: { value: MemberRemovalReason; label: string; icon: string }[] = [
-  { value: 'LEFT_CLUB', label: 'Left club', icon: 'exit-outline' },
-  { value: 'INACTIVE', label: 'Inactive', icon: 'time-outline' },
-  { value: 'CONDUCT', label: 'Conduct issue', icon: 'warning-outline' },
-  { value: 'SEASON_END', label: 'Season ended', icon: 'calendar-outline' },
-  { value: 'OTHER', label: 'Other', icon: 'ellipsis-horizontal' },
-];
 
 export function RemovalConfirmationModal({
   visible,
@@ -83,7 +76,7 @@ export function RemovalConfirmationModal({
               <ThemedText type="subtitle">{title}</ThemedText>
               <ThemedText style={{ color: palette.muted }}>{description}</ThemedText>
             </View>
-            <Clickable onPress={handleClose}>
+            <Clickable accessibilityLabel="Close" onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.icon} />
             </Clickable>
           </View>
@@ -91,41 +84,11 @@ export function RemovalConfirmationModal({
           {/* Reason Selection */}
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold">Reason for removal</ThemedText>
-            <View style={styles.reasonGrid}>
-              {reasons.map((reason) => {
-                const isSelected = selectedReason === reason.value;
-                return (
-                  <Clickable
-                    key={reason.value}
-                    onPress={() => setSelectedReason(reason.value as ReasonType)}
-                  >
-                    <View
-                      style={[
-                        styles.reasonCard,
-                        {
-                          borderColor: isSelected ? palette.tint : palette.border,
-                          backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={reason.icon as keyof typeof Ionicons.glyphMap}
-                        size={20}
-                        color={isSelected ? palette.tint : palette.icon}
-                      />
-                      <ThemedText
-                        style={[
-                          styles.reasonLabel,
-                          { color: isSelected ? palette.tint : palette.text },
-                        ]}
-                      >
-                        {reason.label}
-                      </ThemedText>
-                    </View>
-                  </Clickable>
-                );
-              })}
-            </View>
+            <ReasonGrid
+              reasons={reasons}
+              selectedReason={selectedReason}
+              onSelect={(reason) => setSelectedReason(reason)}
+            />
           </View>
 
           {/* Custom Reason Input */}
@@ -149,31 +112,11 @@ export function RemovalConfirmationModal({
 
           {/* Archive Option */}
           {type === 'athlete' && (
-            <View style={[styles.archiveRow, { borderColor: palette.border }]}>
-              <View style={styles.archiveInfo}>
-                <ThemedText type="defaultSemiBold">Keep history</ThemedText>
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-                  Archive session history and notes for records
-                </ThemedText>
-              </View>
-              <Switch
-                value={archive}
-                onValueChange={setArchive}
-                trackColor={{ false: palette.border, true: palette.tint }}
-                thumbColor={archive ? palette.background : palette.surface}
-              />
-            </View>
+            <ArchiveToggle archive={archive} onToggle={setArchive} />
           )}
 
           {/* Warning */}
-          <View style={[styles.warningBox, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
-            <Ionicons name="information-circle" size={18} color={palette.warning} />
-            <ThemedText style={{ ...Typography.small, color: palette.warning, flex: 1 }}>
-              {archive
-                ? 'This will remove them from active roster but keep their history.'
-                : 'This action cannot be undone. All data will be permanently deleted.'}
-            </ThemedText>
-          </View>
+          <WarningBox archive={archive} />
 
           {/* Actions */}
           <View style={styles.actions}>
@@ -240,47 +183,12 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
-  reasonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  reasonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  reasonLabel: { ...Typography.bodySmallSemiBold },
   input: { ...Typography.body, borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     minHeight: 60,
     textAlignVertical: 'top' },
-  archiveRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-  },
-  archiveInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,

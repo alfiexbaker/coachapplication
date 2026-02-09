@@ -90,7 +90,7 @@ export function NoShowCategorySheet({
             <ThemedText type="subtitle">
               {athleteName ? `Mark ${athleteName} as no-show` : 'Mark as no-show'}
             </ThemedText>
-            <Clickable onPress={handleClose}>
+            <Clickable accessibilityLabel="Close" onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </View>

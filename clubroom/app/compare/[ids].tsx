@@ -7,11 +7,12 @@
 
 import { useCallback, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Alert, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
@@ -77,8 +78,7 @@ export default function DynamicCompareScreen() {
             <ThemedText style={[styles.errorText, { color: palette.muted }]}>
               No coach IDs were provided in the URL. Please use a valid comparison link.
             </ThemedText>
-            <Pressable
-              accessibilityRole="button"
+            <Clickable
               accessibilityLabel="Go back"
               onPress={() => router.back()}
               style={({ pressed }) => [
@@ -89,7 +89,7 @@ export default function DynamicCompareScreen() {
             >
               <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
               <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
-            </Pressable>
+            </Clickable>
           </View>
         </SafeAreaView>
       </>
@@ -120,8 +120,7 @@ export default function DynamicCompareScreen() {
             <ThemedText style={[styles.errorText, { color: palette.muted }]}>
               You can compare a maximum of 3 coaches at once. Please reduce your selection.
             </ThemedText>
-            <Pressable
-              accessibilityRole="button"
+            <Clickable
               accessibilityLabel="Go back"
               onPress={() => router.back()}
               style={({ pressed }) => [
@@ -132,7 +131,7 @@ export default function DynamicCompareScreen() {
             >
               <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
               <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
-            </Pressable>
+            </Clickable>
           </View>
         </SafeAreaView>
       </>
@@ -148,14 +147,13 @@ export default function DynamicCompareScreen() {
           headerStyle: { backgroundColor: palette.background },
           headerTintColor: palette.text,
           headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
+            <Clickable
               accessibilityLabel="Share comparison"
               onPress={handleShare}
               style={styles.headerButton}
             >
               <Ionicons name="share-outline" size={22} color={palette.icon} />
-            </Pressable>
+            </Clickable>
           ) }}
       />
 

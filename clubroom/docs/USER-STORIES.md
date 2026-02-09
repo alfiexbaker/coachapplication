@@ -303,15 +303,15 @@
 | Story | Status | Notes |
 |-------|--------|-------|
 | Session plan templates | ❌ | |
-| Video challenges (coach posts, players submit) | ❌ | |
+| Video challenges (coach posts, players submit) | ✅ | Sprint 9C — challenges.tsx + challenge-card |
 | Challenge leaderboard | ❌ | |
 | Monthly progress report (shareable) | ❌ | |
-| Personal session journal with mood/energy | ❌ | |
+| Personal session journal with mood/energy | ✅ | Sprint 9D — journal.tsx + session-journal component |
 | Goal setting with age-based suggestions | ❌ | |
-| Submit video challenge attempts | ❌ | |
+| Submit video challenge attempts | ✅ | Sprint 9C — ChallengeCard onSubmitAttempt |
 | Assign from session plan templates | ❌ | |
-| Create video challenges for players | ❌ | |
-| Skill progression radar chart | ✅ | Needs enhancement |
+| Create video challenges for players | ✅ | Sprint 9C — create-challenge.tsx |
+| Skill progression radar chart | ✅ | Sprint 9A — SkillRadar on athlete/my-progress/child-progress |
 | Set/track goals enhancement | ✅ | 672 lines |
 | Compare to benchmarks | 🔨 | |
 | Set training goals enhancement | ✅ | 434 lines |

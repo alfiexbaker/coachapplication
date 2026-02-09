@@ -3,63 +3,28 @@
  *
  * A time range picker for configuring notification quiet hours.
  * Allows users to set a start and end time during which push notifications are suppressed.
- *
- * Features:
- * - Toggle quiet hours on/off
- * - Time picker for start and end times
- * - Visual preview of selected time range
- * - Handles overnight time ranges (e.g., 22:00 to 07:00)
  */
 
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Modal, Platform, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useState, useCallback } from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { QuietHours } from '@/constants/types';
+import {
+  parseTimeToDate,
+  formatDateToTime,
+  QuietHoursHeader,
+  TimeRangeSection,
+  TimePickerModal,
+} from './quiet-hours-sections';
 
 export interface QuietHoursSelectorProps {
-  /** Current quiet hours configuration */
   value: QuietHours;
-  /** Callback when quiet hours change */
   onChange: (quietHours: QuietHours) => void;
-  /** Whether the component is disabled */
   disabled?: boolean;
-  /** Loading state */
   loading?: boolean;
-}
-
-/**
- * Parse HH:mm string to Date object for time picker
- */
-function parseTimeToDate(time: string): Date {
-  const [hours, minutes] = time.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-
-/**
- * Format Date object to HH:mm string
- */
-function formatDateToTime(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-
-/**
- * Format time for display (e.g., "10:00 PM")
- */
-function formatTimeForDisplay(time: string): string {
-  const [hours, minutes] = time.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 export function QuietHoursSelector({
@@ -75,25 +40,17 @@ export function QuietHoursSelector({
   const [tempTime, setTempTime] = useState<Date | null>(null);
 
   const handleToggle = useCallback(() => {
-    onChange({
-      ...value,
-      enabled: !value.enabled,
-    });
+    onChange({ ...value, enabled: !value.enabled });
   }, [value, onChange]);
 
   const handleStartTimeChange = useCallback(
     (_event: unknown, selectedDate?: Date) => {
-      if (Platform.OS === 'android') {
-        setShowStartPicker(false);
-      }
+      if (Platform.OS === 'android') setShowStartPicker(false);
       if (selectedDate) {
         if (Platform.OS === 'ios') {
           setTempTime(selectedDate);
         } else {
-          onChange({
-            ...value,
-            startTime: formatDateToTime(selectedDate),
-          });
+          onChange({ ...value, startTime: formatDateToTime(selectedDate) });
         }
       }
     },
@@ -102,17 +59,12 @@ export function QuietHoursSelector({
 
   const handleEndTimeChange = useCallback(
     (_event: unknown, selectedDate?: Date) => {
-      if (Platform.OS === 'android') {
-        setShowEndPicker(false);
-      }
+      if (Platform.OS === 'android') setShowEndPicker(false);
       if (selectedDate) {
         if (Platform.OS === 'ios') {
           setTempTime(selectedDate);
         } else {
-          onChange({
-            ...value,
-            endTime: formatDateToTime(selectedDate),
-          });
+          onChange({ ...value, endTime: formatDateToTime(selectedDate) });
         }
       }
     },
@@ -120,23 +72,13 @@ export function QuietHoursSelector({
   );
 
   const handleConfirmStartTime = useCallback(() => {
-    if (tempTime) {
-      onChange({
-        ...value,
-        startTime: formatDateToTime(tempTime),
-      });
-    }
+    if (tempTime) onChange({ ...value, startTime: formatDateToTime(tempTime) });
     setTempTime(null);
     setShowStartPicker(false);
   }, [tempTime, value, onChange]);
 
   const handleConfirmEndTime = useCallback(() => {
-    if (tempTime) {
-      onChange({
-        ...value,
-        endTime: formatDateToTime(tempTime),
-      });
-    }
+    if (tempTime) onChange({ ...value, endTime: formatDateToTime(tempTime) });
     setTempTime(null);
     setShowEndPicker(false);
   }, [tempTime, value, onChange]);
@@ -147,137 +89,55 @@ export function QuietHoursSelector({
     setShowEndPicker(false);
   }, []);
 
-  const isOvernight = value.startTime > value.endTime;
+  const isDisabled = disabled || loading;
 
   return (
     <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
-      {/* Header with toggle */}
-      <Clickable
-        onPress={handleToggle}
-        disabled={disabled || loading}
-        style={styles.header}
-      >
-        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
-          <Ionicons name="moon" size={22} color={palette.accent} />
-        </View>
-        <View style={styles.headerContent}>
-          <ThemedText type="defaultSemiBold" style={styles.title}>
-            Quiet Hours
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Pause push notifications during set hours
-          </ThemedText>
-        </View>
-        <View
-          style={[
-            styles.toggle,
-            {
-              backgroundColor: value.enabled ? palette.accent : palette.border,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.toggleThumb,
-              {
-                backgroundColor: palette.surface,
-                transform: [{ translateX: value.enabled ? 20 : 0 }],
-              },
-            ]}
-          />
-        </View>
-      </Clickable>
+      <QuietHoursHeader
+        enabled={value.enabled}
+        disabled={isDisabled}
+        onToggle={handleToggle}
+        palette={palette}
+      />
 
-      {/* Time Range Selection (only shown when enabled) */}
       {value.enabled && (
-        <View style={styles.timeSection}>
-          <View style={styles.timeRow}>
-            <View style={styles.timeLabelContainer}>
-              <Ionicons name="time-outline" size={18} color={palette.muted} />
-              <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>From</ThemedText>
-            </View>
-            <Clickable
-              onPress={() => {
-                setTempTime(parseTimeToDate(value.startTime));
-                setShowStartPicker(true);
-              }}
-              disabled={disabled || loading}
-              style={[styles.timeButton, { backgroundColor: palette.background }]}
-            >
-              <ThemedText type="defaultSemiBold" style={styles.timeValue}>
-                {formatTimeForDisplay(value.startTime)}
-              </ThemedText>
-              <Ionicons name="chevron-down" size={16} color={palette.muted} />
-            </Clickable>
-          </View>
-
-          <View style={styles.timeRow}>
-            <View style={styles.timeLabelContainer}>
-              <Ionicons name="sunny-outline" size={18} color={palette.muted} />
-              <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>To</ThemedText>
-            </View>
-            <Clickable
-              onPress={() => {
-                setTempTime(parseTimeToDate(value.endTime));
-                setShowEndPicker(true);
-              }}
-              disabled={disabled || loading}
-              style={[styles.timeButton, { backgroundColor: palette.background }]}
-            >
-              <ThemedText type="defaultSemiBold" style={styles.timeValue}>
-                {formatTimeForDisplay(value.endTime)}
-              </ThemedText>
-              <Ionicons name="chevron-down" size={16} color={palette.muted} />
-            </Clickable>
-          </View>
-
-          {/* Info text */}
-          <View style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}>
-            <Ionicons name="information-circle" size={16} color={palette.accent} />
-            <ThemedText style={[styles.infoText, { color: palette.accent }]}>
-              {isOvernight
-                ? `Notifications paused from ${formatTimeForDisplay(value.startTime)} until ${formatTimeForDisplay(value.endTime)} the next day`
-                : `Notifications paused between ${formatTimeForDisplay(value.startTime)} and ${formatTimeForDisplay(value.endTime)}`}
-            </ThemedText>
-          </View>
-        </View>
+        <TimeRangeSection
+          startTime={value.startTime}
+          endTime={value.endTime}
+          disabled={isDisabled}
+          onStartPress={() => {
+            setTempTime(parseTimeToDate(value.startTime));
+            setShowStartPicker(true);
+          }}
+          onEndPress={() => {
+            setTempTime(parseTimeToDate(value.endTime));
+            setShowEndPicker(true);
+          }}
+          palette={palette}
+        />
       )}
 
       {/* iOS Time Picker Modal */}
-      {Platform.OS === 'ios' && (showStartPicker || showEndPicker) && (
-        <Modal transparent animationType="slide" visible>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.pickerContainer, { backgroundColor: palette.card }]}>
-              <View style={[styles.pickerHeader, { borderBottomColor: palette.border }]}>
-                <Pressable onPress={handleCancelPicker}>
-                  <ThemedText style={[styles.pickerButton, { color: palette.muted }]}>
-                    Cancel
-                  </ThemedText>
-                </Pressable>
-                <ThemedText type="defaultSemiBold">
-                  {showStartPicker ? 'Start Time' : 'End Time'}
-                </ThemedText>
-                <Pressable
-                  onPress={showStartPicker ? handleConfirmStartTime : handleConfirmEndTime}
-                >
-                  <ThemedText style={[styles.pickerButton, { color: palette.accent }]}>
-                    Done
-                  </ThemedText>
-                </Pressable>
-              </View>
-              <DateTimePicker
-                value={tempTime || parseTimeToDate(showStartPicker ? value.startTime : value.endTime)}
-                mode="time"
-                display="spinner"
-                onChange={showStartPicker ? handleStartTimeChange : handleEndTimeChange}
-                minuteInterval={15}
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
+      <TimePickerModal
+        visible={showStartPicker}
+        title="Start Time"
+        value={tempTime || parseTimeToDate(value.startTime)}
+        onChange={handleStartTimeChange}
+        onConfirm={handleConfirmStartTime}
+        onCancel={handleCancelPicker}
+        palette={palette}
+      />
+      <TimePickerModal
+        visible={showEndPicker}
+        title="End Time"
+        value={tempTime || parseTimeToDate(value.endTime)}
+        onChange={handleEndTimeChange}
+        onConfirm={handleConfirmEndTime}
+        onCancel={handleCancelPicker}
+        palette={palette}
+      />
 
-      {/* Android Time Picker */}
+      {/* Android Time Pickers */}
       {Platform.OS === 'android' && showStartPicker && (
         <DateTimePicker
           value={parseTimeToDate(value.startTime)}
@@ -300,97 +160,12 @@ export function QuietHoursSelector({
   );
 }
 
+export default QuietHoursSelector;
+
 const styles = StyleSheet.create({
   container: {
     borderRadius: Radii.lg,
     borderWidth: 0.75,
     overflow: 'hidden',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  title: { ...Typography.subheading },
-  subtitle: { ...Typography.small, lineHeight: 18 },
-  toggle: {
-    width: 50,
-    height: 30,
-    borderRadius: Radii.lg,
-    padding: 5,
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: Radii.md,
-    // backgroundColor set inline for dynamic theming
-  },
-  timeSection: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  timeLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  timeLabel: { ...Typography.bodySmall },
-  timeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
-  timeValue: { ...Typography.subheading },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  infoText: { ...Typography.caption, flex: 1,
-    lineHeight: 16 },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  pickerContainer: {
-    borderTopLeftRadius: Radii.xl,
-    borderTopRightRadius: Radii.xl,
-    paddingBottom: 34, // Safe area padding
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    // borderBottomColor set inline for dynamic theming
-  },
-  pickerButton: { ...Typography.subheading },
 });
-
-export default QuietHoursSelector;

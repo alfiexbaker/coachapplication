@@ -1,104 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { createLogger } from '@/utils/logger';
-import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import {
   AnalyticsStatCard,
   RevenueChart,
   PeakHoursHeatmap,
   RetentionCard,
   CancellationChart } from '@/components/analytics';
+import { AnalyticsTopSkills } from '@/components/analytics/analytics-top-skills';
+import { AnalyticsSessionTypes } from '@/components/analytics/analytics-session-types';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { coachAnalyticsService } from '@/services/analytics-service';
-import type { CoachAnalytics, CoachAnalyticsPeriod } from '@/constants/types';
+import { useAnalyticsDashboard, PERIOD_OPTIONS } from '@/hooks/use-analytics-dashboard';
 
-const logger = createLogger('AnalyticsDashboardScreen');
-
-const PERIOD_OPTIONS: { label: string; value: CoachAnalyticsPeriod }[] = [
-  { label: 'Week', value: 'WEEK' },
-  { label: 'Month', value: 'MONTH' },
-  { label: 'Quarter', value: 'QUARTER' },
-  { label: 'Year', value: 'YEAR' },
-];
-
-/**
- * Coach Analytics Dashboard Screen
- *
- * Displays comprehensive analytics for coaches including:
- * - Revenue trends and charts
- * - Session statistics
- * - Client retention metrics
- * - Cancellation patterns
- * - Peak hours heatmap
- * - Top skills taught
- */
 export default function AnalyticsDashboardScreen() {
   const { colors: palette } = useTheme();
-  const router = useRouter();
-  const { currentUser } = useAuth();
-
-  const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
-  const [period, setPeriod] = useState<CoachAnalyticsPeriod>('MONTH');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const fetchAnalytics = useCallback(async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      const data = await coachAnalyticsService.getCoachAnalytics(currentUser.id, period);
-      setAnalytics(data);
-    } catch (error) {
-      logger.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.id, period]);
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchAnalytics();
-    setRefreshing(false);
-  }, [fetchAnalytics]);
-
-  const handlePeriodChange = (newPeriod: CoachAnalyticsPeriod) => {
-    if (newPeriod !== period) {
-      setLoading(true);
-      setPeriod(newPeriod);
-    }
-  };
-
-  const formatCurrency = (amount: number): string => {
-    return `\u00A3${amount.toLocaleString()}`;
-  };
+  const {
+    analytics, period, loading, refreshing,
+    handleRefresh, handlePeriodChange, formatCurrency,
+    navigateToRevenue, navigateToRetention,
+  } = useAnalyticsDashboard();
 
   if (loading && !analytics) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading analytics...
-          </ThemedText>
-        </View>
+        <LoadingState variant="card" />
       </SafeAreaView>
     );
   }
@@ -107,216 +39,97 @@ export default function AnalyticsDashboardScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Row gap="sm" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={24} color={palette.text} />
-            </Pressable>
-            <ThemedText type="title" style={styles.title}>
-              Analytics
-            </ThemedText>
-          </View>
+            </Clickable>
+            <ThemedText type="title">Analytics</ThemedText>
+          </Row>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Your coaching performance insights
           </ThemedText>
         </View>
 
         {/* Period selector */}
-        <View style={styles.periodSelector}>
+        <Row gap="xs">
           {PERIOD_OPTIONS.map((option) => (
-            <Pressable
+            <Clickable
               key={option.value}
+              onPress={() => handlePeriodChange(option.value)}
               style={[
                 styles.periodButton,
                 {
-                  backgroundColor:
-                    period === option.value ? palette.tint : 'transparent',
-                  borderColor: period === option.value ? palette.tint : palette.border },
+                  backgroundColor: period === option.value ? palette.tint : 'transparent',
+                  borderColor: period === option.value ? palette.tint : palette.border,
+                },
               ]}
-              onPress={() => handlePeriodChange(option.value)}
+              accessibilityLabel={`${option.label} period`}
             >
               <ThemedText
-                style={[
-                  styles.periodButtonText,
-                  {
-                    color: period === option.value ? palette.onPrimary : palette.text },
-                ]}
+                style={[styles.periodText, { color: period === option.value ? palette.onPrimary : palette.text }]}
               >
                 {option.label}
               </ThemedText>
-            </Pressable>
+            </Clickable>
           ))}
-        </View>
+        </Row>
 
         {analytics && (
           <>
             {/* Key metrics */}
-            <View style={styles.statsGrid}>
+            <Row gap="md">
               <AnalyticsStatCard
-                label="Revenue"
-                value={analytics.totalRevenue}
-                changePercent={analytics.revenueChangePercent}
-                trend={analytics.revenueTrend}
-                icon="cash"
-                iconColor={palette.success}
-                isCurrency
-                onPress={() => router.push(Routes.ANALYTICS_REVENUE)}
+                label="Revenue" value={analytics.totalRevenue}
+                changePercent={analytics.revenueChangePercent} trend={analytics.revenueTrend}
+                icon="cash" iconColor={palette.success} isCurrency onPress={navigateToRevenue}
               />
               <AnalyticsStatCard
-                label="Sessions"
-                value={analytics.sessions.totalSessions}
+                label="Sessions" value={analytics.sessions.totalSessions}
                 changePercent={analytics.sessions.sessionsChangePercent}
-                trend={
-                  analytics.sessions.sessionsChangePercent > 2
-                    ? 'UP'
-                    : analytics.sessions.sessionsChangePercent < -2
-                    ? 'DOWN'
-                    : 'STABLE'
-                }
-                icon="calendar"
-                iconColor={palette.tint}
+                trend={analytics.sessions.sessionsChangePercent > 2 ? 'UP' : analytics.sessions.sessionsChangePercent < -2 ? 'DOWN' : 'STABLE'}
+                icon="calendar" iconColor={palette.tint}
               />
-            </View>
-
-            <View style={styles.statsGrid}>
+            </Row>
+            <Row gap="md">
               <AnalyticsStatCard
-                label="Active Clients"
-                value={analytics.retention.totalActiveClients}
-                icon="people"
-                iconColor={palette.tint}
-                onPress={() => router.push(Routes.ANALYTICS_RETENTION)}
+                label="Active Clients" value={analytics.retention.totalActiveClients}
+                icon="people" iconColor={palette.tint} onPress={navigateToRetention}
               />
               <AnalyticsStatCard
-                label="Avg Rating"
-                value={analytics.avgRating.toFixed(1)}
+                label="Avg Rating" value={analytics.avgRating.toFixed(1)}
                 change={analytics.ratingChange}
-                trend={
-                  analytics.ratingChange > 0
-                    ? 'UP'
-                    : analytics.ratingChange < 0
-                    ? 'DOWN'
-                    : 'STABLE'
-                }
-                icon="star"
-                iconColor={palette.warning}
+                trend={analytics.ratingChange > 0 ? 'UP' : analytics.ratingChange < 0 ? 'DOWN' : 'STABLE'}
+                icon="star" iconColor={palette.warning}
               />
-            </View>
+            </Row>
 
-            {/* Revenue chart */}
             <RevenueChart
-              data={analytics.revenueChart}
-              title="Revenue Trend"
-              totalRevenue={analytics.totalRevenue}
-              trend={analytics.revenueTrend}
-              changePercent={analytics.revenueChangePercent}
-              onPress={() => router.push(Routes.ANALYTICS_REVENUE)}
+              data={analytics.revenueChart} title="Revenue Trend"
+              totalRevenue={analytics.totalRevenue} trend={analytics.revenueTrend}
+              changePercent={analytics.revenueChangePercent} onPress={navigateToRevenue}
             />
-
-            {/* Peak hours heatmap */}
             <PeakHoursHeatmap
-              data={analytics.peakHours}
-              title="Peak Hours"
+              data={analytics.peakHours} title="Peak Hours"
               subtitle="When your sessions are scheduled"
-              busiestDay={analytics.busiestDay}
-              busiestHour={analytics.busiestHour}
+              busiestDay={analytics.busiestDay} busiestHour={analytics.busiestHour}
             />
-
-            {/* Retention card */}
             <RetentionCard
-              metrics={analytics.retention}
-              title="Client Retention"
-              onPress={() => router.push(Routes.ANALYTICS_RETENTION)}
+              metrics={analytics.retention} title="Client Retention"
+              onPress={navigateToRetention}
             />
-
-            {/* Cancellation chart */}
             {analytics.cancellations.totalCancellations > 0 && (
-              <CancellationChart
-                stats={analytics.cancellations}
-                title="Cancellations"
-              />
+              <CancellationChart stats={analytics.cancellations} title="Cancellations" />
             )}
-
-            {/* Top skills */}
             {analytics.topSkills.length > 0 && (
-              <SurfaceCard style={styles.skillsCard}>
-                <View style={styles.skillsHeader}>
-                  <Ionicons name="football" size={20} color={palette.tint} />
-                  <ThemedText style={styles.skillsTitle}>Top Skills Taught</ThemedText>
-                </View>
-                <View style={styles.skillsList}>
-                  {analytics.topSkills.map((skill, index) => (
-                    <View key={skill.skill} style={styles.skillRow}>
-                      <View style={styles.skillInfo}>
-                        <ThemedText style={styles.skillRank}>
-                          {index + 1}.
-                        </ThemedText>
-                        <ThemedText style={styles.skillName}>
-                          {skill.skill}
-                        </ThemedText>
-                      </View>
-                      <View style={styles.skillStats}>
-                        <ThemedText style={[styles.skillSessions, { color: palette.tint }]}>
-                          {skill.sessionCount}
-                        </ThemedText>
-                        <ThemedText style={[styles.skillLabel, { color: palette.muted }]}>
-                          sessions
-                        </ThemedText>
-                      </View>
-                      <ThemedText style={[styles.skillRevenue, { color: palette.success }]}>
-                        {formatCurrency(skill.revenue)}
-                      </ThemedText>
-                    </View>
-                  ))}
-                </View>
-              </SurfaceCard>
+              <AnalyticsTopSkills colors={palette} skills={analytics.topSkills} formatCurrency={formatCurrency} />
             )}
-
-            {/* Session breakdown */}
             {analytics.sessions.bySessionType.length > 0 && (
-              <SurfaceCard style={styles.sessionCard}>
-                <View style={styles.sessionHeader}>
-                  <Ionicons name="layers" size={20} color={palette.tint} />
-                  <ThemedText style={styles.sessionTitle}>Session Types</ThemedText>
-                </View>
-                <View style={styles.sessionList}>
-                  {analytics.sessions.bySessionType.map((sessionType) => (
-                    <View key={sessionType.type} style={styles.sessionRow}>
-                      <View style={styles.sessionInfo}>
-                        <ThemedText style={styles.sessionName}>
-                          {sessionType.type}
-                        </ThemedText>
-                        <ThemedText style={[styles.sessionPercent, { color: palette.muted }]}>
-                          {sessionType.percentage}%
-                        </ThemedText>
-                      </View>
-                      <View style={[styles.sessionBarContainer, { backgroundColor: palette.background }]}>
-                        <View
-                          style={[
-                            styles.sessionBar,
-                            {
-                              width: `${sessionType.percentage}%`,
-                              backgroundColor: palette.tint },
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.sessionMetrics}>
-                        <ThemedText style={styles.sessionCount}>
-                          {sessionType.count}
-                        </ThemedText>
-                        <ThemedText style={[styles.sessionRevenue, { color: palette.success }]}>
-                          {formatCurrency(sessionType.revenue)}
-                        </ThemedText>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </SurfaceCard>
+              <AnalyticsSessionTypes colors={palette} sessionTypes={analytics.sessions.bySessionType} formatCurrency={formatCurrency} />
             )}
           </>
         )}
@@ -326,122 +139,10 @@ export default function AnalyticsDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1 },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.md },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md },
-  loadingText: {
-    ...Typography.body },
-  header: {
-    marginBottom: Spacing.sm },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  backButton: {
-    padding: Spacing.xxs,
-    marginLeft: -4 },
-  title: {
-    ...Typography.display,
-    letterSpacing: -0.5 },
-  subtitle: {
-    ...Typography.body,
-    marginTop: Spacing.xxs,
-    marginLeft: 32 },
-  periodSelector: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm },
-  periodButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: 'center' },
-  periodButtonText: {
-    ...Typography.bodySmallSemiBold },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: Spacing.md },
-  skillsCard: {
-    padding: Spacing.md },
-  skillsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md },
-  skillsTitle: {
-    ...Typography.subheading },
-  skillsList: {
-    gap: Spacing.md },
-  skillRow: {
-    flexDirection: 'row',
-    alignItems: 'center' },
-  skillInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: Spacing.xs },
-  skillRank: {
-    ...Typography.bodySmallSemiBold,
-    width: 24 },
-  skillName: {
-    ...Typography.bodySemiBold },
-  skillStats: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: Spacing.xxs,
-    marginRight: Spacing.md },
-  skillSessions: {
-    ...Typography.subheading },
-  skillLabel: {
-    ...Typography.caption },
-  skillRevenue: {
-    ...Typography.bodySmallSemiBold,
-    width: 60,
-    textAlign: 'right' },
-  sessionCard: {
-    padding: Spacing.md },
-  sessionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md },
-  sessionTitle: {
-    ...Typography.subheading },
-  sessionList: {
-    gap: Spacing.md },
-  sessionRow: {
-    gap: Spacing.xs },
-  sessionInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center' },
-  sessionName: {
-    ...Typography.bodySmallSemiBold },
-  sessionPercent: {
-    ...Typography.caption },
-  sessionBarContainer: {
-    height: 8,
-    borderRadius: Radii.xs,
-    overflow: 'hidden' },
-  sessionBar: {
-    height: '100%',
-    borderRadius: Radii.xs },
-  sessionMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xxs },
-  sessionCount: {
-    ...Typography.smallSemiBold },
-  sessionRevenue: {
-    ...Typography.smallSemiBold } });
+  container: { flex: 1 },
+  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  header: { marginBottom: Spacing.sm },
+  subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: 32 },
+  periodButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
+  periodText: { ...Typography.bodySmallSemiBold },
+});

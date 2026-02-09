@@ -2,9 +2,19 @@
  * Coach Service
  *
  * Manages coach profiles, reviews, and public-facing data.
+ * Uses apiClient for all data access (AsyncStorage in mock mode, API in production).
  */
 
-import { api } from '@/constants/config';
+import { apiClient } from './api-client';
+import { createLogger } from '@/utils/logger';
+import type { Result, ServiceError } from '@/types/result';
+import { ok, err, notFound, storageError } from '@/types/result';
+
+const logger = createLogger('CoachService');
+
+// Storage keys (inline until added to storage-keys.ts)
+const COACHES_KEY = 'clubroom.coaches';
+const COACH_REVIEWS_KEY = 'clubroom.coach_reviews';
 
 // Simplified Coach type for public profiles
 export interface Coach {
@@ -56,8 +66,6 @@ export interface PublicReview {
   sessionType?: string;
   createdAt: string;
 }
-
-const USE_MOCK = api.useMock;
 
 // ============================================================================
 // MOCK DATA
@@ -205,13 +213,17 @@ export const coachService = {
   /**
    * Get a single coach by ID
    */
-  async getCoach(coachId: string): Promise<Coach | null> {
-    if (USE_MOCK) {
-      return MOCK_COACHES.find((c) => c.id === coachId) || null;
+  async getCoach(coachId: string): Promise<Result<Coach, ServiceError>> {
+    logger.info('Getting coach', { coachId });
+    try {
+      const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
+      const coach = coaches.find((c) => c.id === coachId);
+      if (!coach) return err(notFound('Coach', coachId));
+      return ok(coach);
+    } catch (error) {
+      logger.error('Failed to get coach', error);
+      return err(storageError('Failed to get coach'));
     }
-
-    const response = await fetch(`/api/coaches/${coachId}`);
-    return response.json();
   },
 
   /**
@@ -222,9 +234,10 @@ export const coachService = {
     location?: string;
     minRating?: number;
     maxPrice?: number;
-  }): Promise<Coach[]> {
-    if (USE_MOCK) {
-      let coaches = [...MOCK_COACHES];
+  }): Promise<Result<Coach[], ServiceError>> {
+    logger.info('Getting coaches', { filters });
+    try {
+      let coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
 
       if (filters?.minRating) {
         coaches = coaches.filter((c) => c.rating >= filters.minRating!);
@@ -232,30 +245,32 @@ export const coachService = {
       if (filters?.maxPrice) {
         coaches = coaches.filter((c) => c.minPriceUsd <= filters.maxPrice!);
       }
+      if (filters?.sport) {
+        coaches = coaches.filter((c) =>
+          c.sports.some((s) => s.toLowerCase() === filters.sport!.toLowerCase())
+        );
+      }
 
-      return coaches;
+      return ok(coaches);
+    } catch (error) {
+      logger.error('Failed to get coaches', error);
+      return err(storageError('Failed to get coaches'));
     }
-
-    const params = new URLSearchParams();
-    if (filters?.sport) params.append('sport', filters.sport);
-    if (filters?.location) params.append('location', filters.location);
-    if (filters?.minRating) params.append('minRating', filters.minRating.toString());
-    if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
-
-    const response = await fetch(`/api/coaches?${params}`);
-    return response.json();
   },
 
   /**
    * Get reviews for a coach
    */
-  async getCoachReviews(coachId: string): Promise<PublicReview[]> {
-    if (USE_MOCK) {
-      return MOCK_REVIEWS.filter((r) => r.coachId === coachId);
+  async getCoachReviews(coachId: string): Promise<Result<PublicReview[], ServiceError>> {
+    logger.info('Getting coach reviews', { coachId });
+    try {
+      const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
+      const coachReviews = reviews.filter((r) => r.coachId === coachId);
+      return ok(coachReviews);
+    } catch (error) {
+      logger.error('Failed to get coach reviews', error);
+      return err(storageError('Failed to get coach reviews'));
     }
-
-    const response = await fetch(`/api/coaches/${coachId}/reviews`);
-    return response.json();
   },
 
   /**
@@ -269,8 +284,11 @@ export const coachService = {
       sessionId?: string;
       sessionType?: string;
     }
-  ): Promise<PublicReview> {
-    if (USE_MOCK) {
+  ): Promise<Result<PublicReview, ServiceError>> {
+    logger.info('Submitting review', { coachId, rating: review.rating });
+    try {
+      const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
+
       const newReview: PublicReview = {
         id: `review-${Date.now()}`,
         coachId,
@@ -281,63 +299,64 @@ export const coachService = {
         sessionType: review.sessionType,
         createdAt: new Date().toISOString(),
       };
-      MOCK_REVIEWS.unshift(newReview);
-      return newReview;
-    }
 
-    const response = await fetch(`/api/coaches/${coachId}/reviews`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(review),
-    });
-    return response.json();
+      reviews.unshift(newReview);
+      await apiClient.set(COACH_REVIEWS_KEY, reviews);
+
+      return ok(newReview);
+    } catch (error) {
+      logger.error('Failed to submit review', error);
+      return err(storageError('Failed to submit review'));
+    }
   },
 
   /**
    * Search coaches
    */
-  async searchCoaches(query: string): Promise<Coach[]> {
-    if (USE_MOCK) {
+  async searchCoaches(query: string): Promise<Result<Coach[], ServiceError>> {
+    logger.info('Searching coaches', { query });
+    try {
+      const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const lowerQuery = query.toLowerCase();
-      return MOCK_COACHES.filter(
+      const results = coaches.filter(
         (c) =>
           c.name.toLowerCase().includes(lowerQuery) ||
           c.bio?.toLowerCase().includes(lowerQuery) ||
           c.footballFocuses?.some((f) => f.toLowerCase().includes(lowerQuery))
       );
+      return ok(results);
+    } catch (error) {
+      logger.error('Failed to search coaches', error);
+      return err(storageError('Failed to search coaches'));
     }
-
-    const response = await fetch(`/api/coaches/search?q=${encodeURIComponent(query)}`);
-    return response.json();
   },
 
   /**
    * Get featured/recommended coaches
    */
-  async getFeaturedCoaches(): Promise<Coach[]> {
-    if (USE_MOCK) {
-      return MOCK_COACHES.sort((a, b) => b.rating - a.rating).slice(0, 5);
+  async getFeaturedCoaches(): Promise<Result<Coach[], ServiceError>> {
+    logger.info('Getting featured coaches');
+    try {
+      const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
+      const featured = [...coaches].sort((a, b) => b.rating - a.rating).slice(0, 5);
+      return ok(featured);
+    } catch (error) {
+      logger.error('Failed to get featured coaches', error);
+      return err(storageError('Failed to get featured coaches'));
     }
-
-    const response = await fetch('/api/coaches/featured');
-    return response.json();
   },
 
   /**
    * Follow/unfollow a coach
    */
-  async toggleFollow(coachId: string, userId: string): Promise<boolean> {
-    if (USE_MOCK) {
-      // Mock: just return toggled state
-      return true;
+  async toggleFollow(coachId: string, _userId: string): Promise<Result<boolean, ServiceError>> {
+    logger.info('Toggling follow', { coachId });
+    try {
+      // TODO: Implement persistent follow storage when follow-service is integrated
+      return ok(true);
+    } catch (error) {
+      logger.error('Failed to toggle follow', error);
+      return err(storageError('Failed to toggle follow'));
     }
-
-    const response = await fetch(`/api/coaches/${coachId}/follow`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
-    const data = await response.json();
-    return data.isFollowing;
   },
 };

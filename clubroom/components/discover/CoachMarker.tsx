@@ -15,9 +15,13 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii , Typography, Spacing} from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachProfile } from '@/constants/types';
+
+// Re-export extracted components for backward compat
+export { ClusterMarker } from './coach-marker-sections';
+export type { ClusterMarkerProps } from './coach-marker-sections';
 
 interface CoachMarkerProps {
   coach: CoachProfile;
@@ -66,14 +70,8 @@ export function CoachMarker({
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={({ pressed }) => [
-          styles.container,
-          {
-            opacity: pressed ? 0.9 : 1,
-          },
-        ]}
+        style={({ pressed }) => [styles.container, { opacity: pressed ? 0.9 : 1 }]}
       >
-        {/* Main Marker */}
         <View
           style={[
             styles.marker,
@@ -102,17 +100,8 @@ export function CoachMarker({
           />
         </View>
 
-        {/* Pointer */}
-        <View
-          style={[
-            styles.pointer,
-            {
-              borderTopColor: isSelected ? palette.tint : palette.surface,
-            },
-          ]}
-        />
+        <View style={[styles.pointer, { borderTopColor: isSelected ? palette.tint : palette.surface }]} />
 
-        {/* Rating Badge */}
         {showRating && (
           <View
             style={[
@@ -142,62 +131,15 @@ export function CoachMarker({
           </View>
         )}
 
-        {/* Price Badge */}
         {showPrice && (
-          <View
-            style={[
-              styles.priceBadge,
-              {
-                backgroundColor: palette.surface,
-                borderColor: palette.border,
-              },
-            ]}
-          >
-            <ThemedText
-              style={[
-                styles.priceText,
-                { fontSize: dimensions.font, color: palette.text },
-              ]}
-            >
+          <View style={[styles.priceBadge, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <ThemedText style={[styles.priceText, { fontSize: dimensions.font, color: palette.text }]}>
               ${coach.priceRange.minUsd}
             </ThemedText>
           </View>
         )}
       </Pressable>
     </Animated.View>
-  );
-}
-
-/**
- * Cluster Marker Component
- *
- * Displayed when multiple coaches are grouped together.
- */
-interface ClusterMarkerProps {
-  count: number;
-  onPress?: () => void;
-}
-
-export function ClusterMarker({ count, onPress }: ClusterMarkerProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${count} coaches in this area`}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.cluster,
-        {
-          backgroundColor: palette.tint,
-          opacity: pressed ? 0.9 : 1,
-        },
-      ]}
-    >
-      <ThemedText style={[styles.clusterText, { color: palette.onPrimary }]}>
-        {count}
-      </ThemedText>
-    </Pressable>
   );
 }
 
@@ -253,17 +195,4 @@ const styles = StyleSheet.create({
   priceText: {
     fontWeight: '700',
   },
-  cluster: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000', // Decorative: standard shadow base
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  clusterText: { ...Typography.bodySemiBold },
 });

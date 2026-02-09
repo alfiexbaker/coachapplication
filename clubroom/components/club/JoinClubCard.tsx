@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, Pressable, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -51,12 +52,12 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           autoCapitalize="characters"
           style={[styles.input, { backgroundColor: palette.background, color: palette.text, borderColor: palette.border }]}
         />
-        <Pressable
+        <Clickable
           style={[styles.primaryButton, { backgroundColor: palette.tint }]}
           onPress={() => onJoin(joinCode)}
         >
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Join</ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
 
       {isCoach && (
@@ -65,13 +66,13 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
             <Divider />
             <ThemedText style={[styles.dividerText, { backgroundColor: palette.surface, color: palette.muted }]}>or</ThemedText>
           </View>
-          <Pressable
+          <Clickable
             style={[styles.createButton, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
             onPress={handleCreateClub}
           >
             <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Create New Club</ThemedText>
-          </Pressable>
+          </Clickable>
         </>
       )}
     </SurfaceCard>

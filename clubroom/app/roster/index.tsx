@@ -147,7 +147,7 @@ export default function RosterScreen() {
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <Clickable onPress={() => setSearchQuery('')}>
+            <Clickable accessibilityLabel="Clear search" onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={18} color={palette.muted} />
             </Clickable>
           )}

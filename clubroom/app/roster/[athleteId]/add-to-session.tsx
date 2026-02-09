@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -142,7 +142,7 @@ export default function AddToSessionScreen() {
               </ThemedText>
             </View>
 
-            <Pressable
+            <Clickable
               style={[styles.addButton, { backgroundColor: palette.tint, opacity: isAdding ? 0.6 : 1 }]}
               onPress={() => handleAddToSession(session)}
               disabled={isAdding}
@@ -151,7 +151,7 @@ export default function AddToSessionScreen() {
               <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>
                 {isAdding ? 'Adding...' : 'Add'}
               </ThemedText>
-            </Pressable>
+            </Clickable>
           </View>
         </SurfaceCard>
       </Animated.View>
@@ -167,13 +167,13 @@ export default function AddToSessionScreen() {
       <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
         Create a session first, then you can add athletes to it.
       </ThemedText>
-      <Pressable
+      <Clickable
         style={[styles.createButton, { backgroundColor: palette.tint }]}
         onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
       >
         <Ionicons name="add" size={18} color={palette.onPrimary} />
         <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Session</ThemedText>
-      </Pressable>
+      </Clickable>
     </View>
   );
 

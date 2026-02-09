@@ -3,9 +3,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useTheme, type ThemeColors } from '@/hooks/useTheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+
+// Re-export extracted components for backward compat
+export { StarRow, BadgeBanner, RecapActions } from './session-recap-card-sections';
+export type { StarRowProps, BadgeBannerProps, RecapActionsProps } from './session-recap-card-sections';
+
+import { StarRow, BadgeBanner, RecapActions } from './session-recap-card-sections';
 
 /* ---------- Types ---------- */
 
@@ -25,35 +30,6 @@ export interface SessionRecapCardProps {
   onShareWithFamily?: () => void;
   onSave?: () => void;
 }
-
-/* ---------- Sub-components ---------- */
-
-function StarRow({
-  rating,
-  palette,
-}: {
-  rating: number;
-  palette: Palette;
-}) {
-  return (
-    <View style={starStyles.row}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Ionicons
-          key={i}
-          name={i < rating ? 'star' : 'star-outline'}
-          size={18}
-          color={i < rating ? palette.warning : palette.border}
-        />
-      ))}
-    </View>
-  );
-}
-
-const starStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: Spacing.micro },
-});
-
-type Palette = ThemeColors;
 
 /* ---------- Component ---------- */
 
@@ -134,46 +110,15 @@ export function SessionRecapCard({
 
       {/* Badge earned */}
       {recap.badgeEarned ? (
-        <View style={[styles.badgeBanner, { backgroundColor: withAlpha(palette.warning, 0.09), borderColor: withAlpha(palette.warning, 0.25) }]}>
-          <Ionicons name="ribbon" size={20} color={palette.warning} />
-          <View style={styles.badgeText}>
-            <ThemedText style={[styles.badgeLabel, { color: palette.warning }]}>
-              Badge Earned!
-            </ThemedText>
-            <ThemedText type="defaultSemiBold">{recap.badgeEarned}</ThemedText>
-          </View>
-        </View>
+        <BadgeBanner badgeName={recap.badgeEarned} palette={palette} />
       ) : null}
 
       {/* Action buttons */}
-      <View style={styles.actions}>
-        {onShareWithFamily && (
-          <Clickable onPress={onShareWithFamily} accessibilityLabel="Share with Family">
-            <View style={[styles.button, { backgroundColor: palette.tint }]}>
-              <Ionicons name="share-outline" size={18} color={palette.surface} />
-              <ThemedText style={[styles.buttonText, { color: palette.surface }]}>
-                Share with Family
-              </ThemedText>
-            </View>
-          </Clickable>
-        )}
-        {onSave && (
-          <Clickable onPress={onSave} accessibilityLabel="Save">
-            <View
-              style={[
-                styles.button,
-                styles.buttonOutline,
-                { borderColor: palette.border },
-              ]}
-            >
-              <Ionicons name="bookmark-outline" size={18} color={palette.tint} />
-              <ThemedText style={[styles.buttonText, { color: palette.tint }]}>
-                Save
-              </ThemedText>
-            </View>
-          </Clickable>
-        )}
-      </View>
+      <RecapActions
+        onShareWithFamily={onShareWithFamily}
+        onSave={onSave}
+        palette={palette}
+      />
 
       {/* Branding */}
       <View style={[styles.branding, { borderTopColor: palette.border }]}>
@@ -242,42 +187,6 @@ const styles = StyleSheet.create({
   bulletText: {
     ...Typography.body,
     flex: 1,
-  },
-  badgeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-  },
-  badgeText: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  badgeLabel: {
-    ...Typography.caption,
-    fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  button: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: Components.button.height,
-    borderRadius: Radii.button,
-    gap: Spacing.xs,
-  },
-  buttonOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-  },
-  buttonText: {
-    ...Typography.bodySemiBold,
   },
   branding: {
     flexDirection: 'row',

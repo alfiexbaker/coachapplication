@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
@@ -48,12 +49,11 @@ function CommentPreviewInner({ postId, commentCount, onPress }: CommentPreviewPr
   }
 
   return (
-    <Pressable
+    <Clickable
       onPress={handlePress}
       style={styles.container}
-      hitSlop={{ top: 4, bottom: 4 }}
+      hitSlop={4}
       accessibilityLabel={`View all ${commentCount} comments`}
-      accessibilityRole="button"
     >
       {/* "View all X comments" link */}
       {commentCount > 1 && (
@@ -73,7 +73,7 @@ function CommentPreviewInner({ postId, commentCount, onPress }: CommentPreviewPr
           </ThemedText>
         </View>
       )}
-    </Pressable>
+    </Clickable>
   );
 }
 

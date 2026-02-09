@@ -1,357 +1,75 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+/**
+ * Emergency Contacts Screen
+ *
+ * Manage emergency contacts for a child. CRUD operations with
+ * primary contact designation and pickup authorization.
+ */
+
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Button } from '@/components/primitives/button';
-import { Badge } from '@/components/primitives/badge';
+import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { EmergencyContactCard } from '@/components/child/emergency-contact-card';
+import { EmergencyContactForm } from '@/components/child/emergency-contact-form';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { EmergencyInfo, EmergencyContact } from '@/constants/types';
-import { safetyService } from '@/services/safety-service';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('EmergencyContactsScreen');
-
-type ContactCardProps = {
-  contact: EmergencyContact;
-  onEdit: () => void;
-  onDelete: () => void;
-  onSetPrimary: () => void;
-};
-
-function ContactCard({ contact, onEdit, onDelete, onSetPrimary }: ContactCardProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <SurfaceCard style={styles.contactCard}>
-      <View style={styles.contactHeader}>
-        <View style={[styles.contactAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <Ionicons name="person" size={20} color={palette.tint} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <View style={styles.contactNameRow}>
-            <ThemedText type="defaultSemiBold">{contact.name}</ThemedText>
-            {contact.isPrimary && <Badge label="Primary" tone="success" />}
-          </View>
-          <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-            {contact.relationship}
-          </ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.contactDetails}>
-        <View style={styles.contactDetailRow}>
-          <Ionicons name="call" size={16} color={palette.muted} />
-          <ThemedText style={{ color: palette.text }}>{contact.phone}</ThemedText>
-        </View>
-        {contact.email && (
-          <View style={styles.contactDetailRow}>
-            <Ionicons name="mail" size={16} color={palette.muted} />
-            <ThemedText style={{ color: palette.text }}>{contact.email}</ThemedText>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.contactFlags}>
-        {contact.canPickup && (
-          <View style={[styles.flagBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
-            <Ionicons name="checkmark-circle" size={14} color={palette.success} />
-            <ThemedText style={{ ...Typography.caption, color: palette.success }}>Can pick up</ThemedText>
-          </View>
-        )}
-      </View>
-
-      <View style={[styles.contactActions, { borderTopColor: palette.border }]}>
-        {!contact.isPrimary && (
-          <Clickable onPress={onSetPrimary} style={styles.contactActionButton}>
-            <Ionicons name="star-outline" size={18} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, ...Typography.small }}>Set Primary</ThemedText>
-          </Clickable>
-        )}
-        <Clickable onPress={onEdit} style={styles.contactActionButton}>
-          <Ionicons name="create-outline" size={18} color={palette.tint} />
-          <ThemedText style={{ color: palette.tint, ...Typography.small }}>Edit</ThemedText>
-        </Clickable>
-        <Clickable onPress={onDelete} style={styles.contactActionButton}>
-          <Ionicons name="trash-outline" size={18} color={palette.error} />
-          <ThemedText style={{ color: palette.error, ...Typography.small }}>Remove</ThemedText>
-        </Clickable>
-      </View>
-    </SurfaceCard>
-  );
-}
-
-type ContactFormProps = {
-  contact?: EmergencyContact;
-  onSave: (contact: Omit<EmergencyContact, 'id'>) => void;
-  onCancel: () => void;
-};
-
-function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
-  const { colors: palette } = useTheme();
-  const [name, setName] = useState(contact?.name ?? '');
-  const [relationship, setRelationship] = useState(contact?.relationship ?? '');
-  const [phone, setPhone] = useState(contact?.phone ?? '');
-  const [email, setEmail] = useState(contact?.email ?? '');
-  const [canPickup, setCanPickup] = useState(contact?.canPickup ?? true);
-  const [isPrimary, setIsPrimary] = useState(contact?.isPrimary ?? false);
-
-  const handleSave = () => {
-    if (!name.trim() || !relationship.trim() || !phone.trim()) return;
-    onSave({
-      name: name.trim(),
-      relationship: relationship.trim(),
-      phone: phone.trim(),
-      email: email.trim() || undefined,
-      canPickup,
-      isPrimary });
-  };
-
-  const isValid = name.trim() && relationship.trim() && phone.trim();
-
-  return (
-    <SurfaceCard style={styles.formCard}>
-      <View style={styles.formHeader}>
-        <ThemedText type="defaultSemiBold">
-          {contact ? 'Edit Contact' : 'Add Emergency Contact'}
-        </ThemedText>
-        <Clickable onPress={onCancel}>
-          <Ionicons name="close" size={24} color={palette.muted} />
-        </Clickable>
-      </View>
-
-      <View style={styles.fieldContainer}>
-        <ThemedText style={styles.fieldLabel}>Full Name *</ThemedText>
-        <TextInput
-          style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-          placeholder="Contact's full name"
-          placeholderTextColor={palette.muted}
-          value={name}
-          onChangeText={setName}
-        />
-      </View>
-
-      <View style={styles.fieldContainer}>
-        <ThemedText style={styles.fieldLabel}>Relationship *</ThemedText>
-        <TextInput
-          style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-          placeholder="e.g., Mother, Father, Grandparent"
-          placeholderTextColor={palette.muted}
-          value={relationship}
-          onChangeText={setRelationship}
-        />
-      </View>
-
-      <View style={styles.fieldContainer}>
-        <ThemedText style={styles.fieldLabel}>Phone Number *</ThemedText>
-        <TextInput
-          style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-          placeholder="+44 7700 900000"
-          placeholderTextColor={palette.muted}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-        />
-      </View>
-
-      <View style={styles.fieldContainer}>
-        <ThemedText style={styles.fieldLabel}>Email (optional)</ThemedText>
-        <TextInput
-          style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-          placeholder="email@example.com"
-          placeholderTextColor={palette.muted}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-      </View>
-
-      <View style={styles.toggleRow}>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold">Can Pick Up Child</ThemedText>
-          <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-            Authorized to collect child after sessions
-          </ThemedText>
-        </View>
-        <Clickable onPress={() => setCanPickup(!canPickup)}>
-          <View
-            style={[
-              styles.toggle,
-              { backgroundColor: canPickup ? palette.success : palette.border },
-            ]}
-          >
-            <View
-              style={[
-                styles.toggleKnob,
-                {
-                  backgroundColor: palette.surface,
-                  transform: [{ translateX: canPickup ? 18 : 2 }] },
-              ]}
-            />
-          </View>
-        </Clickable>
-      </View>
-
-      {!contact && (
-        <View style={styles.toggleRow}>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold">Set as Primary Contact</ThemedText>
-            <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-              First contact called in emergencies
-            </ThemedText>
-          </View>
-          <Clickable onPress={() => setIsPrimary(!isPrimary)}>
-            <View
-              style={[
-                styles.toggle,
-                { backgroundColor: isPrimary ? palette.success : palette.border },
-              ]}
-            >
-              <View
-                style={[
-                  styles.toggleKnob,
-                  {
-                    backgroundColor: palette.surface,
-                    transform: [{ translateX: isPrimary ? 18 : 2 }] },
-                ]}
-              />
-            </View>
-          </Clickable>
-        </View>
-      )}
-
-      <Button onPress={handleSave} disabled={!isValid}>
-        {contact ? 'Save Changes' : 'Add Contact'}
-      </Button>
-    </SurfaceCard>
-  );
-}
+import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 
 export default function EmergencyContactsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: palette } = useTheme();
-  const [info, setInfo] = useState<EmergencyInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
-
-  const loadInfo = useCallback(async () => {
-    if (!id) return;
-    try {
-      const data = await safetyService.getEmergencyInfo(id);
-      setInfo(data);
-    } catch (error) {
-      logger.error('Failed to load emergency info:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadInfo();
-  }, [loadInfo]);
-
-  const handleAddContact = async (contact: Omit<EmergencyContact, 'id'>) => {
-    if (!id) return;
-    try {
-      await safetyService.addContact(id, contact);
-      await loadInfo();
-      setShowForm(false);
-    } catch (error) {
-      logger.error('Failed to add contact:', error);
-    }
-  };
-
-  const handleUpdateContact = async (contact: Omit<EmergencyContact, 'id'>) => {
-    if (!id || !editingContact) return;
-    try {
-      await safetyService.updateContact(id, editingContact.id, contact);
-      await loadInfo();
-      setEditingContact(null);
-    } catch (error) {
-      logger.error('Failed to update contact:', error);
-    }
-  };
-
-  const handleDeleteContact = async (contactId: string) => {
-    if (!id) return;
-    try {
-      await safetyService.removeContact(id, contactId);
-      await loadInfo();
-    } catch (error) {
-      logger.error('Failed to delete contact:', error);
-    }
-  };
-
-  const handleSetPrimary = async (contactId: string) => {
-    if (!id) return;
-    try {
-      await safetyService.updateContact(id, contactId, { isPrimary: true });
-      await loadInfo();
-    } catch (error) {
-      logger.error('Failed to set primary contact:', error);
-    }
-  };
+  const { colors } = useTheme();
+  const {
+    loading, contacts, showForm, editingContact,
+    handleAddContact, handleUpdateContact, handleDeleteContact, handleSetPrimary,
+    openForm, closeForm, startEdit,
+  } = useEmergencyContacts();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ThemedText style={{ textAlign: 'center', marginTop: Spacing.xl }}>Loading...</ThemedText>
       </SafeAreaView>
     );
   }
 
-  const contacts = info?.contacts ?? [];
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
+        <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
           <View style={{ flex: 1 }}>
             <ThemedText type="title">Emergency Contacts</ThemedText>
           </View>
           {!showForm && !editingContact && contacts.length > 0 && (
-            <Clickable
-              onPress={() => setShowForm(true)}
-              style={[styles.addButton, { backgroundColor: palette.tint }]}
-            >
-              <Ionicons name="add" size={20} color={palette.onPrimary} />
+            <Clickable accessibilityLabel="Add emergency contact" onPress={openForm} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+              <Ionicons name="add" size={20} color={colors.onPrimary} />
             </Clickable>
           )}
-        </View>
+        </Row>
 
-        <ThemedText style={{ color: palette.muted }}>
+        <ThemedText style={{ color: colors.muted }}>
           Emergency contacts will be notified in case of any incidents during sessions.
         </ThemedText>
 
         {showForm || editingContact ? (
-          <ContactForm
+          <EmergencyContactForm
             contact={editingContact ?? undefined}
             onSave={editingContact ? handleUpdateContact : handleAddContact}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingContact(null);
-            }}
+            onCancel={closeForm}
           />
         ) : contacts.length > 0 ? (
-          <View style={styles.contactsList}>
+          <View style={{ gap: Spacing.md }}>
             {contacts.map((contact) => (
-              <ContactCard
+              <EmergencyContactCard
                 key={contact.id}
                 contact={contact}
-                onEdit={() => setEditingContact(contact)}
+                onEdit={() => startEdit(contact)}
                 onDelete={() => handleDeleteContact(contact.id)}
                 onSetPrimary={() => handleSetPrimary(contact.id)}
               />
@@ -363,18 +81,18 @@ export default function EmergencyContactsScreen() {
             title="No Emergency Contacts"
             message="Add at least one emergency contact who can be reached during sessions."
             actionLabel="Add Contact"
-            onPressAction={() => setShowForm(true)}
+            onPressAction={openForm}
           />
         )}
 
         {contacts.length > 0 && !showForm && !editingContact && (
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={20} color={palette.tint} />
-            <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+          <Row gap="sm" style={[styles.infoBox, { backgroundColor: colors.surfaceSecondary }]}>
+            <Ionicons name="information-circle" size={20} color={colors.tint} />
+            <ThemedText style={[Typography.small, { flex: 1, color: colors.muted }]}>
               The primary contact will be called first in case of an emergency. Make sure at least
               one contact is authorized to pick up your child.
             </ThemedText>
-          </View>
+          </Row>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -382,110 +100,9 @@ export default function EmergencyContactsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1 },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.lg },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  backButton: {
-    padding: Spacing.xs,
-    marginLeft: -Spacing.xs },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  contactsList: {
-    gap: Spacing.md },
-  contactCard: {
-    gap: Spacing.sm },
-  contactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  contactAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  contactNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs },
-  contactDetails: {
-    gap: Spacing.xs,
-    marginLeft: 56 },
-  contactDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  contactFlags: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginLeft: 56 },
-  flagBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill },
-  contactActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    marginTop: Spacing.xs,
-    paddingTop: Spacing.sm },
-  contactActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs },
-  formCard: {
-    gap: Spacing.md },
-  formHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center' },
-  fieldContainer: {
-    gap: Spacing.xs },
-  fieldLabel: {
-    ...Typography.bodySmallSemiBold },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    ...Typography.body },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: Radii.lg,
-    justifyContent: 'center' },
-  toggleKnob: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md },
-  infoBox: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.02)' },
-  infoText: {
-    flex: 1,
-    ...Typography.small } });
+  container: { flex: 1 },
+  content: { padding: Spacing.lg, gap: Spacing.lg },
+  backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
+  addButton: { width: 36, height: 36, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  infoBox: { padding: Spacing.md, borderRadius: Radii.md, backgroundColor: 'transparent' },
+});

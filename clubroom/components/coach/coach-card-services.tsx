@@ -7,31 +7,40 @@
 
 import { StyleSheet, View } from 'react-native';
 
-import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
-// -----------------------------------------------------------------------------
+// Re-export extracted components for backward compat
+export {
+  formatPrice,
+  SpecialtyTags,
+  FocusBadge,
+  InlinePrice,
+} from './coach-card-services-sections';
+export type {
+  SpecialtyTagsProps,
+  FocusBadgeProps,
+  InlinePriceProps,
+} from './coach-card-services-sections';
+
+import {
+  formatPrice,
+  SpecialtyTags,
+  FocusBadge,
+} from './coach-card-services-sections';
+
+// ============================================================================
 // Types
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 export interface CoachCardServicesProps {
-  /** List of specialties or football focuses */
   specialties?: string[];
-  /** Alternative: football-specific focuses */
   footballFocuses?: string[];
-  /** Price per hour */
   pricePerHour?: number;
-  /** Minimum price (for range display) */
   priceMin?: number;
-  /** Maximum price (for range display) */
   priceMax?: number;
-  /** Layout variant */
   variant?: 'tags' | 'compact' | 'inline';
-}
-
-export interface SpecialtyTagsProps {
-  specialties: string[];
 }
 
 export interface PriceDisplayProps {
@@ -43,76 +52,11 @@ export interface PriceDisplayProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export interface FocusBadgeProps {
-  focus: string;
-}
-
 type Palette = ThemeColors;
 
-// -----------------------------------------------------------------------------
-// Utility Functions
-// -----------------------------------------------------------------------------
-
-export function formatPrice(
-  pricePerHour?: number,
-  priceMin?: number,
-  priceMax?: number
-): string | null {
-  if (pricePerHour) return `£${pricePerHour}`;
-  if (priceMin && priceMax) {
-    return priceMin === priceMax
-      ? `£${priceMin}`
-      : `£${priceMin}-£${priceMax}`;
-  }
-  return null;
-}
-
-// -----------------------------------------------------------------------------
-// SpecialtyTags Component
-// -----------------------------------------------------------------------------
-
-export function SpecialtyTags({ specialties }: SpecialtyTagsProps) {
-  const { colors: palette } = useTheme();
-
-  if (!specialties || specialties.length === 0) {
-    return null;
-  }
-
-  return (
-    <View style={styles.tagsRow}>
-      {specialties.map((tag) => (
-        <View
-          key={tag}
-          style={[styles.tagPill, { backgroundColor: palette.surfaceSecondary }]}
-        >
-          <ThemedText style={[styles.tagText, { color: palette.muted }]}>
-            {tag}
-          </ThemedText>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// FocusBadge Component (single badge for compact display)
-// -----------------------------------------------------------------------------
-
-export function FocusBadge({ focus }: FocusBadgeProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <View style={[styles.focusBadge, { backgroundColor: palette.surfaceSecondary }]}>
-      <ThemedText style={[styles.focusText, { color: palette.muted }]}>
-        {focus}
-      </ThemedText>
-    </View>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// PriceDisplay Component
-// -----------------------------------------------------------------------------
+// ============================================================================
+// PriceDisplay
+// ============================================================================
 
 export function PriceDisplay({
   pricePerHour,
@@ -150,46 +94,9 @@ export function PriceDisplay({
   );
 }
 
-// -----------------------------------------------------------------------------
-// InlinePrice Component (for action rows)
-// -----------------------------------------------------------------------------
-
-export interface InlinePriceProps {
-  pricePerHour?: number;
-  priceMin?: number;
-  priceMax?: number;
-  suffix?: string;
-}
-
-export function InlinePrice({
-  pricePerHour,
-  priceMin,
-  priceMax,
-  suffix = '/session',
-}: InlinePriceProps) {
-  const { colors: palette } = useTheme();
-
-  const priceStr = formatPrice(pricePerHour, priceMin, priceMax);
-
-  if (!priceStr) {
-    return null;
-  }
-
-  return (
-    <View style={styles.inlinePriceContainer}>
-      <ThemedText type="defaultSemiBold" style={styles.inlinePrice}>
-        {priceStr}
-      </ThemedText>
-      <ThemedText style={[styles.inlinePriceSuffix, { color: palette.muted }]}>
-        {suffix}
-      </ThemedText>
-    </View>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Full CoachCardServices Component
-// -----------------------------------------------------------------------------
+// ============================================================================
+// CoachCardServices
+// ============================================================================
 
 export function CoachCardServices({
   specialties,
@@ -199,8 +106,6 @@ export function CoachCardServices({
   priceMax,
   variant = 'tags',
 }: CoachCardServicesProps) {
-  const { colors: palette } = useTheme();
-
   const tags = specialties || footballFocuses || [];
   const primaryFocus = tags[0];
 
@@ -218,6 +123,7 @@ export function CoachCardServices({
   }
 
   if (variant === 'inline') {
+    const { InlinePrice } = require('./coach-card-services-sections');
     return (
       <View style={styles.inlineContainer}>
         {primaryFocus && <FocusBadge focus={primaryFocus} />}
@@ -243,9 +149,9 @@ export function CoachCardServices({
   );
 }
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 // Styles
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 const styles = StyleSheet.create({
   compactContainer: {
@@ -262,25 +168,6 @@ const styles = StyleSheet.create({
   fullContainer: {
     gap: Spacing.sm,
   },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  tagPill: {
-    paddingHorizontal: Components.pill.paddingHorizontal,
-    paddingVertical: Components.pill.paddingVertical,
-    borderRadius: Radii.pill,
-  },
-  tagText: {
-    ...Typography.caption,
-  },
-  focusBadge: {
-    paddingHorizontal: Spacing.sm - 2,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-  },
-  focusText: { ...Typography.caption },
   priceColumn: {
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -289,13 +176,6 @@ const styles = StyleSheet.create({
   priceMedium: { ...Typography.subheading, letterSpacing: -0.2 },
   priceSmall: { ...Typography.bodySmallSemiBold, letterSpacing: -0.1 },
   priceLabel: { ...Typography.caption, marginTop: 1 },
-  inlinePriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: Spacing.micro,
-  },
-  inlinePrice: { ...Typography.subheading, letterSpacing: -0.2 },
-  inlinePriceSuffix: { ...Typography.caption },
 });
 
 export default CoachCardServices;

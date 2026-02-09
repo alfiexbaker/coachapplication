@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Modal, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { Modal, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -25,35 +26,30 @@ export function GoalCelebration({
   onClose,
 }: GoalCelebrationProps) {
   const { colors: palette } = useTheme();
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useSharedValue(0);
+  const progressAnim = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      scaleAnim.setValue(0);
-      progressAnim.setValue(0);
+      scaleAnim.value = 0;
+      progressAnim.value = 0;
 
-      Animated.sequence([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          damping: 12,
-          stiffness: 150,
-          useNativeDriver: false,
-        }),
-        Animated.timing(progressAnim, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: false,
-        }),
-      ]).start();
+      // Sequence: spring scale in, then animate progress bar
+      scaleAnim.value = withSpring(1, { damping: 12, stiffness: 150 }, (finished) => {
+        if (finished) {
+          progressAnim.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.quad) });
+        }
+      });
     }
   }, [visible, scaleAnim, progressAnim]);
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scaleAnim.value }],
+  }));
+
+  const progressAnimStyle = useAnimatedStyle(() => ({
+    width: `${Math.round(progressAnim.value * 100)}%`,
+  }));
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
@@ -63,10 +59,8 @@ export function GoalCelebration({
         <Animated.View
           style={[
             styles.card,
-            {
-              backgroundColor: palette.surface,
-              transform: [{ scale: scaleAnim }],
-            },
+            { backgroundColor: palette.surface },
+            cardAnimStyle,
           ]}
         >
           {/* Target icon */}
@@ -92,10 +86,8 @@ export function GoalCelebration({
               <Animated.View
                 style={[
                   styles.progressFill,
-                  {
-                    backgroundColor: palette.success,
-                    width: progressWidth,
-                  },
+                  { backgroundColor: palette.success },
+                  progressAnimStyle,
                 ]}
               />
             </View>

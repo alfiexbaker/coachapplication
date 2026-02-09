@@ -2,11 +2,6 @@
  * Bulk Invite Button Component
  *
  * A primary action button for sending bulk invites to selected squad members.
- * Features:
- * - Shows count of selected members
- * - Loading state during send
- * - Disabled state when no members selected
- * - Configurable styles and labels
  */
 
 import { View, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
@@ -16,6 +11,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+
+// Re-export extracted components for backward compat
+export { CompactBulkInviteButton } from './bulk-invite-button-sections';
+export type { CompactBulkInviteButtonProps } from './bulk-invite-button-sections';
 
 interface BulkInviteButtonProps {
   selectedCount: number;
@@ -45,10 +44,8 @@ export function BulkInviteButton({
   fullWidth = true,
 }: BulkInviteButtonProps) {
   const { colors: palette } = useTheme();
-
   const isDisabled = disabled || loading || selectedCount === 0;
 
-  // Generate label
   const buttonLabel = loading
     ? loadingLabel
     : label ||
@@ -56,54 +53,25 @@ export function BulkInviteButton({
         ? 'Select members to invite'
         : `Send ${notificationCount} Invite${notificationCount !== 1 ? 's' : ''}`);
 
-  // Get styles based on variant
   const getVariantStyles = () => {
     switch (variant) {
       case 'secondary':
-        return {
-          backgroundColor: withAlpha(palette.tint, 0.09),
-          borderColor: palette.tint,
-          textColor: palette.tint,
-        };
+        return { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint, textColor: palette.tint };
       case 'outline':
-        return {
-          backgroundColor: 'transparent',
-          borderColor: palette.border,
-          textColor: palette.text,
-        };
+        return { backgroundColor: 'transparent', borderColor: palette.border, textColor: palette.text };
       default:
-        return {
-          backgroundColor: palette.tint,
-          borderColor: palette.tint,
-          textColor: palette.onPrimary,
-        };
+        return { backgroundColor: palette.tint, borderColor: palette.tint, textColor: palette.onPrimary };
     }
   };
 
-  // Get size styles
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
-        return {
-          ...Typography.small,
-          paddingVertical: Spacing.xs,
-          paddingHorizontal: Spacing.md,
-          iconSize: 16,
-        };
+        return { ...Typography.small, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.md, iconSize: 16 };
       case 'medium':
-        return {
-          ...Typography.bodySmall,
-          paddingVertical: Spacing.sm,
-          paddingHorizontal: Spacing.md,
-          iconSize: 18,
-        };
+        return { ...Typography.bodySmall, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, iconSize: 18 };
       default:
-        return {
-          ...Typography.body,
-          paddingVertical: Spacing.md,
-          paddingHorizontal: Spacing.lg,
-          iconSize: 20,
-        };
+        return { ...Typography.body, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, iconSize: 20 };
     }
   };
 
@@ -131,26 +99,13 @@ export function BulkInviteButton({
         {loading ? (
           <ActivityIndicator size="small" color={variantStyles.textColor} />
         ) : showIcon ? (
-          <Ionicons
-            name="paper-plane"
-            size={sizeStyles.iconSize}
-            color={variantStyles.textColor}
-          />
+          <Ionicons name="paper-plane" size={sizeStyles.iconSize} color={variantStyles.textColor} />
         ) : null}
-        <ThemedText
-          style={[
-            styles.buttonText,
-            {
-              color: variantStyles.textColor,
-              fontSize: sizeStyles.fontSize,
-            },
-          ]}
-        >
+        <ThemedText style={[styles.buttonText, { color: variantStyles.textColor, fontSize: sizeStyles.fontSize }]}>
           {buttonLabel}
         </ThemedText>
       </Clickable>
 
-      {/* Selection summary below button */}
       {selectedCount > 0 && !loading && (
         <View style={styles.summaryRow}>
           <Ionicons name="people" size={14} color={palette.muted} />
@@ -168,87 +123,12 @@ export function BulkInviteButton({
   );
 }
 
-/**
- * Compact version of the bulk invite button for inline use
- */
-interface CompactBulkInviteButtonProps {
-  selectedCount: number;
-  onPress: () => void;
-  loading?: boolean;
-  disabled?: boolean;
-}
-
-export function CompactBulkInviteButton({
-  selectedCount,
-  onPress,
-  loading = false,
-  disabled = false,
-}: CompactBulkInviteButtonProps) {
-  const { colors: palette } = useTheme();
-
-  const isDisabled = disabled || loading || selectedCount === 0;
-
-  return (
-    <Clickable
-      onPress={onPress}
-      disabled={isDisabled}
-      style={[
-        styles.compactButton,
-        {
-          backgroundColor: palette.tint,
-          opacity: isDisabled ? 0.5 : 1,
-        },
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={palette.onPrimary} />
-      ) : (
-        <>
-          <Ionicons name="paper-plane" size={16} color={palette.onPrimary} />
-          <ThemedText style={[styles.compactButtonText, { color: palette.onPrimary }]}>
-            Invite {selectedCount}
-          </ThemedText>
-        </>
-      )}
-    </Clickable>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  outlineButton: {
-    borderWidth: 1.5,
-  },
-  buttonText: {
-    fontWeight: '700',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-  },
+  container: { gap: Spacing.xs },
+  fullWidth: { width: '100%' },
+  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  outlineButton: { borderWidth: 1.5 },
+  buttonText: { fontWeight: '700' },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
   summaryText: { ...Typography.caption },
-  compactButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  compactButtonText: { ...Typography.smallSemiBold },
 });

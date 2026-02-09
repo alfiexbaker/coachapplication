@@ -3516,8 +3516,8 @@ export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
 // Session history for StatisticsScreen
 export const sessionHistory = MOCK_SESSIONS.map((session) => ({
   id: session.id,
-  coachName: session.coachName,
-  athleteName: session.athleteName,
+  coachName: session.coachName ?? 'Unknown Coach',
+  athleteName: session.athleteName ?? 'Unknown Athlete',
   focus: session.skillsWorkedOn[0] || 'General Training',
   durationMinutes: 60, // Standard session duration
   rating: session.performanceRating,
@@ -3731,5 +3731,122 @@ export const MOCK_DISCOVERY_COACHES: DiscoveryCoach[] = [
     specialties: ['Dribbling', 'Shooting'],
     nextAvailable: 'Wed, 3:00 PM',
     trialAvailable: false,
+  },
+];
+
+// ===== VIDEO CHALLENGES =====
+import type { Challenge, ChallengeSubmission } from '@/services/challenge-service';
+import type { JournalEntry } from '@/components/development/session-journal';
+
+export const MOCK_CHALLENGES: Challenge[] = [
+  {
+    id: 'chal_1',
+    squadId: 'squad_1',
+    createdBy: 'coach1',
+    createdByName: 'Sarah Mitchell',
+    title: 'Rainbow Flick Challenge',
+    description: 'Perform a clean rainbow flick over a cone. Upload your best attempt!',
+    demoVideoUrl: 'https://example.com/demo/rainbow-flick.mp4',
+    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    totalParticipants: 4,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'chal_2',
+    squadId: 'squad_1',
+    createdBy: 'coach1',
+    createdByName: 'Sarah Mitchell',
+    title: 'Juggling Record',
+    description: 'How many consecutive juggles can you do? Beat the squad record of 42!',
+    deadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    totalParticipants: 6,
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'chal_3',
+    squadId: 'squad_1',
+    createdBy: 'coach1',
+    createdByName: 'Sarah Mitchell',
+    title: '10 Consecutive Keepy-Ups',
+    description: 'Keep the ball in the air for 10 touches without it hitting the ground. Use any body part except hands!',
+    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    totalParticipants: 2,
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export const MOCK_CHALLENGE_SUBMISSIONS: ChallengeSubmission[] = [
+  {
+    id: 'sub_1',
+    challengeId: 'chal_1',
+    athleteId: 'user2',
+    athleteName: 'Tommy Williams',
+    videoUrl: 'https://example.com/submissions/tommy-rainbow.mp4',
+    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    awardedBadge: true,
+  },
+  {
+    id: 'sub_2',
+    challengeId: 'chal_1',
+    athleteId: 'user3',
+    athleteName: 'Lucy Evans',
+    videoUrl: 'https://example.com/submissions/lucy-rainbow.mp4',
+    submittedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    awardedBadge: false,
+  },
+  {
+    id: 'sub_3',
+    challengeId: 'chal_2',
+    athleteId: 'user2',
+    athleteName: 'Tommy Williams',
+    videoUrl: 'https://example.com/submissions/tommy-juggling.mp4',
+    submittedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    awardedBadge: true,
+  },
+  {
+    id: 'sub_4',
+    challengeId: 'chal_2',
+    athleteId: 'user4',
+    athleteName: 'Mia Johnson',
+    videoUrl: 'https://example.com/submissions/mia-juggling.mp4',
+    submittedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    awardedBadge: false,
+  },
+];
+
+// ===== SESSION JOURNAL =====
+export const MOCK_JOURNAL_ENTRIES: JournalEntry[] = [
+  {
+    id: 'journal_1',
+    sessionId: 'session_1',
+    athleteId: 'user2',
+    coachNotes: 'Great footwork today. Focus on weak-foot passing next time.',
+    personalNotes: 'Felt really good today! The drills were challenging but fun. Need to work on my left foot more.',
+    mood: 4,
+    energyLevel: 4,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'journal_2',
+    sessionId: 'session_2',
+    athleteId: 'user2',
+    coachNotes: 'Improved weak-foot accuracy. Keep it up!',
+    personalNotes: 'My left foot passing was better this week. Still need to practice more at home.',
+    mood: 5,
+    energyLevel: 3,
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'journal_3',
+    sessionId: 'session_3',
+    athleteId: 'user2',
+    coachNotes: 'Good effort in shooting drills. Need to follow through more on shots.',
+    personalNotes: 'Tired after school but pushed through. Scored 3 goals in practice match!',
+    mood: 3,
+    energyLevel: 2,
+    createdAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];

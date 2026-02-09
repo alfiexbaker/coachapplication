@@ -1,4 +1,4 @@
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -64,9 +64,9 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
         </View>
 
         {onDismiss ? (
-          <Pressable onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Clickable accessibilityLabel="Close" onPress={onDismiss} hitSlop={8}>
             <Ionicons name="close" size={Components.icon.md} color={palette.muted} />
-          </Pressable>
+          </Clickable>
         ) : null}
       </View>
 

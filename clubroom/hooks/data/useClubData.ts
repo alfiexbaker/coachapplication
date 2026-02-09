@@ -167,7 +167,7 @@ export function useClubData(
           },
           pending: allMembers.filter((m) => m.status === 'pending'),
           active: allMembers.filter((m) => m.status === 'active'),
-          recentRemovals: resultMap.removals ?? [],
+          recentRemovals: (resultMap.removals as ClubMemberRemovalRecord[] | undefined) ?? [],
         };
         setMembers(membersSummary);
 

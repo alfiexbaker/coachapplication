@@ -3,47 +3,24 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import type { CancellationStats, CancellationReason } from '@/constants/types';
+import { Spacing, Typography } from '@/constants/theme';
+import type { CancellationStats } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-const REASON_LABELS: Record<CancellationReason, string> = {
-  CLIENT_REQUEST: 'Client Request',
-  WEATHER: 'Weather',
-  ILLNESS: 'Illness',
-  SCHEDULING_CONFLICT: 'Scheduling',
-  NO_SHOW: 'No Show',
-  COACH_CANCELLED: 'Coach Cancelled',
-  OTHER: 'Other',
-};
+// Re-export extracted components for backward compat
+export { REASON_LABELS, REASON_ICONS, ReasonsBreakdown, DayOfWeekBreakdown, NoticeFooter } from './cancellation-chart-sections';
+export type { ReasonsBreakdownProps, DayOfWeekBreakdownProps, NoticeFooterProps } from './cancellation-chart-sections';
 
-const REASON_ICONS: Record<CancellationReason, keyof typeof Ionicons.glyphMap> = {
-  CLIENT_REQUEST: 'person-outline',
-  WEATHER: 'rainy-outline',
-  ILLNESS: 'medical-outline',
-  SCHEDULING_CONFLICT: 'calendar-outline',
-  NO_SHOW: 'close-circle-outline',
-  COACH_CANCELLED: 'person-remove-outline',
-  OTHER: 'help-circle-outline',
-};
+import { ReasonsBreakdown, DayOfWeekBreakdown, NoticeFooter } from './cancellation-chart-sections';
 
 export interface CancellationChartProps {
-  /** Cancellation statistics data */
   stats: CancellationStats;
-  /** Title for the chart */
   title?: string;
-  /** Whether the chart is loading */
   loading?: boolean;
-  /** Callback when chart is pressed */
   onPress?: () => void;
-  /** Currency symbol (default: GBP) */
   currencySymbol?: string;
 }
 
-/**
- * CancellationChart displays cancellation patterns and reasons.
- * Helps coaches identify problematic patterns in bookings.
- */
 export function CancellationChart({
   stats,
   title = 'Cancellations',
@@ -104,79 +81,21 @@ export function CancellationChart({
         </View>
       </View>
 
-      {/* Reasons breakdown */}
-      {stats.byReason.length > 0 && (
-        <View style={styles.reasonsSection}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-            By Reason
-          </ThemedText>
-          <View style={styles.reasonsList}>
-            {stats.byReason.map((reason) => (
-              <View key={reason.reason} style={styles.reasonRow}>
-                <View style={styles.reasonInfo}>
-                  <Ionicons
-                    name={REASON_ICONS[reason.reason]}
-                    size={16}
-                    color={palette.muted}
-                    style={styles.reasonIcon}
-                  />
-                  <ThemedText style={styles.reasonLabel}>
-                    {REASON_LABELS[reason.reason]}
-                  </ThemedText>
-                </View>
-                <View style={[styles.reasonBarContainer, { backgroundColor: palette.border }]}>
-                  <View
-                    style={[
-                      styles.reasonBar,
-                      {
-                        width: `${(reason.count / maxReasonCount) * 100}%`,
-                        backgroundColor: withAlpha(palette.error, 0.38),
-                      },
-                    ]}
-                  />
-                </View>
-                <ThemedText style={styles.reasonCount}>
-                  {reason.count}
-                </ThemedText>
-                <ThemedText style={[styles.reasonPercent, { color: palette.muted }]}>
-                  ({reason.percentage}%)
-                </ThemedText>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+      <ReasonsBreakdown
+        byReason={stats.byReason}
+        maxReasonCount={maxReasonCount}
+        palette={palette}
+      />
 
-      {/* Day of week breakdown */}
-      {stats.byDayOfWeek.length > 0 && (
-        <View style={[styles.daysSection, { borderTopColor: palette.border }]}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-            By Day of Week
-          </ThemedText>
-          <View style={styles.daysList}>
-            {stats.byDayOfWeek.map((day) => (
-              <View key={day.dayOfWeek} style={styles.dayItem}>
-                <ThemedText style={styles.dayName}>
-                  {day.dayName.slice(0, 3)}
-                </ThemedText>
-                <View style={[styles.dayBadge, { backgroundColor: withAlpha(palette.error, 0.12) }]}>
-                  <ThemedText style={[styles.dayCount, { color: palette.error }]}>
-                    {day.count}
-                  </ThemedText>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+      <DayOfWeekBreakdown
+        byDayOfWeek={stats.byDayOfWeek}
+        palette={palette}
+      />
 
-      {/* Notice time */}
-      <View style={[styles.noticeSection, { borderTopColor: palette.border }]}>
-        <Ionicons name="alarm-outline" size={16} color={palette.muted} />
-        <ThemedText style={[styles.noticeText, { color: palette.muted }]}>
-          Average notice: <ThemedText style={styles.noticeValue}>{stats.avgNoticeHours}h</ThemedText> before session
-        </ThemedText>
-      </View>
+      <NoticeFooter
+        avgNoticeHours={stats.avgNoticeHours}
+        palette={palette}
+      />
     </SurfaceCard>
   );
 }
@@ -204,76 +123,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryValue: { ...Typography.title },
-  summaryLabel: { ...Typography.caption, textAlign: 'center',
-    marginTop: Spacing.micro },
-  reasonsSection: {
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: Spacing.sm },
-  reasonsList: {
-    gap: Spacing.sm,
-  },
-  reasonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  reasonInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: 100,
-  },
-  reasonIcon: {
-    marginRight: Spacing.xxs,
-  },
-  reasonLabel: { ...Typography.smallSemiBold, flex: 1 },
-  reasonBarContainer: {
-    flex: 1,
-    height: 8,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  reasonBar: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  reasonCount: { ...Typography.smallSemiBold, width: 24,
-    textAlign: 'right' },
-  reasonPercent: { ...Typography.caption, width: 36,
-    textAlign: 'right' },
-  daysSection: {
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    marginBottom: Spacing.md,
-  },
-  daysList: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  dayItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  dayName: { ...Typography.caption },
-  dayBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-    minWidth: 28,
-    alignItems: 'center',
-  },
-  dayCount: { ...Typography.caption },
-  noticeSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-  },
-  noticeText: { ...Typography.small },
-  noticeValue: {
-    fontWeight: '600',
+  summaryLabel: {
+    ...Typography.caption,
+    textAlign: 'center',
+    marginTop: Spacing.micro,
   },
 });

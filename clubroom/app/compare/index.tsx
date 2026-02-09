@@ -7,11 +7,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -57,8 +58,7 @@ export default function CompareScreen() {
           headerTintColor: palette.text,
           headerRight: () =>
             coachCount > 0 ? (
-              <Pressable
-                accessibilityRole="button"
+              <Clickable
                 accessibilityLabel="Clear all coaches from comparison"
                 onPress={handleClearAll}
                 style={styles.headerButton}
@@ -66,7 +66,7 @@ export default function CompareScreen() {
                 <ThemedText style={[styles.headerButtonText, { color: palette.error }]}>
                   Clear All
                 </ThemedText>
-              </Pressable>
+              </Clickable>
             ) : null }}
       />
 
@@ -87,8 +87,7 @@ export default function CompareScreen() {
             </ThemedText>
           </View>
           {coachCount < comparisonService.getMaxCoaches() && coachCount > 0 && (
-            <Pressable
-              accessibilityRole="button"
+            <Clickable
               accessibilityLabel="Add more coaches to comparison"
               onPress={handleAddMore}
               style={({ pressed }) => [
@@ -102,7 +101,7 @@ export default function CompareScreen() {
               <ThemedText style={[styles.addMoreText, { color: palette.tint }]}>
                 Add More
               </ThemedText>
-            </Pressable>
+            </Clickable>
           )}
         </View>
 
@@ -121,8 +120,7 @@ export default function CompareScreen() {
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
               Browse coaches and tap the compare button to add them to your comparison list
             </ThemedText>
-            <Pressable
-              accessibilityRole="button"
+            <Clickable
               accessibilityLabel="Browse coaches"
               onPress={() => router.back()}
               style={({ pressed }) => [
@@ -133,7 +131,7 @@ export default function CompareScreen() {
             >
               <Ionicons name="search" size={18} color={palette.onPrimary} />
               <ThemedText style={[styles.browseButtonText, { color: palette.onPrimary }]}>Browse Coaches</ThemedText>
-            </Pressable>
+            </Clickable>
           </View>
         )}
       </SafeAreaView>

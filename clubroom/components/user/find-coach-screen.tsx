@@ -1,29 +1,23 @@
-import { useState, useMemo } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-} from 'react-native';
+import { useState, useMemo, useCallback } from 'react';
+import { View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   getAllCoachesWithProfiles,
   getDistanceBetweenPostcodes,
-  formatGBP,
 } from '@/constants/mock-data';
-import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
 
-const logger = createLogger('FindCoachScreen');
+import {
+  FindCoachSearchBar,
+  FindCoachEmptyState,
+  CoachResultCard,
+  styles,
+} from './find-coach-screen-sections';
+
+// ─── Component ──────────────────────────────────────────────────
 
 export function UserFindCoachScreen() {
   const { colors: palette } = useTheme();
@@ -35,7 +29,6 @@ export function UserFindCoachScreen() {
 
     const allCoaches = getAllCoachesWithProfiles();
 
-    // Calculate distances and filter
     return allCoaches
       .map((coach) => ({
         ...coach,
@@ -45,7 +38,7 @@ export function UserFindCoachScreen() {
       .sort((a, b) => a.distance - b.distance);
   }, [postcode, currentUser]);
 
-  const handlePostcodeChange = (value: string) => {
+  const handlePostcodeChange = useCallback((value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     if (!stripped) {
       setPostcode('');
@@ -53,9 +46,13 @@ export function UserFindCoachScreen() {
     }
 
     const withSpace =
-      stripped.length > 3 ? `${stripped.slice(0, stripped.length - 3)} ${stripped.slice(-3)}` : stripped;
+      stripped.length > 3
+        ? `${stripped.slice(0, stripped.length - 3)} ${stripped.slice(-3)}`
+        : stripped;
     setPostcode(withSpace);
-  };
+  }, []);
+
+  const handleClear = useCallback(() => setPostcode(''), []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -69,48 +66,17 @@ export function UserFindCoachScreen() {
           </ThemedText>
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Ionicons name="search" size={22} color={palette.icon} />
-          <TextInput
-            value={postcode}
-            onChangeText={handlePostcodeChange}
-            placeholder="Search by postcode (e.g., SW1A 1AA)"
-            placeholderTextColor={palette.muted}
-            keyboardType="default"
-            autoCapitalize="characters"
-            style={[styles.searchInput, { color: palette.text }]}
-          />
-          {postcode ? (
-            <Clickable onPress={() => setPostcode('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={22} color={palette.icon} />
-            </Clickable>
-          ) : null}
-        </View>
+        <FindCoachSearchBar
+          postcode={postcode}
+          onChangePostcode={handlePostcodeChange}
+          onClear={handleClear}
+          palette={palette}
+        />
 
         {!postcode || postcode.length < 3 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-              <Ionicons name="search" size={32} color={palette.icon} />
-            </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              Search for coaches
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              Enter your postcode to discover expert coaches in your area
-            </ThemedText>
-          </View>
+          <FindCoachEmptyState variant="search" palette={palette} />
         ) : nearbyCoaches.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-              <Ionicons name="location-outline" size={32} color={palette.icon} />
-            </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              No coaches nearby
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              Try searching with a different postcode
-            </ThemedText>
-          </View>
+          <FindCoachEmptyState variant="no-results" palette={palette} />
         ) : (
           <View style={styles.coachList}>
             <ThemedText style={styles.resultsText}>
@@ -118,86 +84,7 @@ export function UserFindCoachScreen() {
             </ThemedText>
 
             {nearbyCoaches.map((coach) => (
-              <Clickable
-                key={coach.id}
-                onPress={() => {
-                  logger.press('CoachCard', { coachId: coach.id });
-                  router.push(Routes.BOOK_COACH);
-                }}
-                style={({ pressed }) => [
-                  styles.coachCard,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <SurfaceCard style={styles.cardContent} tactile={false}>
-                  <View style={styles.coachHeader}>
-                    <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                      <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                        {coach.avatar || coach.name.charAt(0)}
-                      </ThemedText>
-                    </View>
-                    <View style={styles.coachInfo}>
-                      <ThemedText type="defaultSemiBold" style={styles.coachName}>
-                        {coach.name}
-                      </ThemedText>
-                      <View style={styles.coachMeta}>
-                        <View style={styles.metaItem}>
-                          <Ionicons name="location" size={14} color={palette.muted} />
-                          <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                            {coach.distance.toFixed(1)} miles
-                          </ThemedText>
-                        </View>
-                        <View style={styles.metaItem}>
-                          <Ionicons name="star" size={14} color={palette.rating} />
-                          <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                            {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews})
-                          </ThemedText>
-                        </View>
-                      </View>
-                    </View>
-                    <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
-                      {formatGBP(coach.profile.sessionRate)}
-                    </ThemedText>
-                  </View>
-
-                  <ThemedText style={[styles.bio, { color: palette.muted }]} numberOfLines={2}>
-                    {coach.profile.bio}
-                  </ThemedText>
-
-                  <View style={styles.specialties}>
-                    {coach.profile.specialties.slice(0, 3).map((specialty) => (
-                      <View key={specialty} style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                        <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
-                          {specialty}
-                        </ThemedText>
-                      </View>
-                    ))}
-                    {coach.profile.specialties.length > 3 && (
-                      <ThemedText style={[styles.moreText, { color: palette.muted }]}>
-                        +{coach.profile.specialties.length - 3} more
-                      </ThemedText>
-                    )}
-                  </View>
-
-                  <View style={styles.actionsRow}>
-                    <Clickable
-                      onPress={() => {
-                        logger.press('BookCoach', { coachId: coach.id });
-                        router.push(Routes.BOOK_COACH);
-                      }}
-                      style={({ pressed }) => [
-                        styles.bookButton,
-                        {
-                          backgroundColor: palette.tint,
-                          opacity: pressed ? 0.8 : 1,
-                        },
-                      ]}
-                    >
-                      <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>Book coach</ThemedText>
-                    </Clickable>
-                  </View>
-                </SurfaceCard>
-              </Clickable>
+              <CoachResultCard key={coach.id} coach={coach} palette={palette} />
             ))}
           </View>
         )}
@@ -205,121 +92,3 @@ export function UserFindCoachScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
-  },
-  header: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: { ...Typography.body, lineHeight: 22,
-    fontWeight: '500' },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: 2,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md + 4,
-  },
-  searchInput: { ...Typography.subheading, flex: 1,
-    paddingVertical: 0 },
-  emptyState: {
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing['2xl'] + Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-  },
-  emptyIconCircle: {
-    width: Components.listItem.large,
-    height: Components.listItem.large,
-    borderRadius: Components.listItem.large / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  emptyTitle: { ...Typography.heading, letterSpacing: -0.3 },
-  emptyText: { ...Typography.bodySmall, lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 260 },
-  coachList: {
-    gap: Spacing.md,
-  },
-  resultsText: { ...Typography.smallSemiBold, letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    opacity: 0.6,
-    paddingHorizontal: Spacing.xs },
-  coachCard: {
-    borderRadius: Radii.lg,
-  },
-  cardContent: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  coachHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { ...Typography.display },
-  coachInfo: {
-    flex: 1,
-    gap: Spacing.xs / 2,
-  },
-  coachName: { ...Typography.heading },
-  coachMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  metaText: { ...Typography.small },
-  price: { ...Typography.heading },
-  bio: { ...Typography.bodySmall, lineHeight: 20 },
-  specialties: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  bookButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.lg,
-  },
-  bookButtonText: {
-    fontWeight: '700',
-  },
-  specialtyBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: Radii.sm,
-  },
-  specialtyText: { ...Typography.caption },
-  moreText: { ...Typography.caption },
-});

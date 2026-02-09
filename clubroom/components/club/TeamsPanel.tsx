@@ -1,4 +1,5 @@
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -27,15 +28,15 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
       <View style={styles.header}>
         <ThemedText type="subtitle">Teams</ThemedText>
         {isCoach && (
-          <Pressable
+          <Clickable
             style={[styles.addButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
-            onPress={() => router.push(Routes.CLUB_SQUAD_CREATE)}
+            onPress={() => router.push(clubId ? Routes.clubSquadCreate(clubId) : Routes.CLUB_SQUAD_CREATE)}
           >
             <Ionicons name="add" size={16} color={palette.tint} />
             <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
               New Team
             </ThemedText>
-          </Pressable>
+          </Clickable>
         )}
       </View>
 
@@ -46,7 +47,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
           contentContainerStyle={styles.scrollContent}
         >
           {squads.map((squad) => (
-            <Pressable
+            <Clickable
               key={squad.id}
               onPress={() => router.push(Routes.clubSquad(squad.id))}
             >
@@ -77,7 +78,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
                   </View>
                 )}
               </SurfaceCard>
-            </Pressable>
+            </Clickable>
           ))}
         </ScrollView>
       ) : (

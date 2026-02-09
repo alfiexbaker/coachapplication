@@ -4,37 +4,26 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+
+// Re-export extracted components for backward compat
+export { AddChildConsentsStep } from './add-child-emergency-step-sections';
+export type { AddChildConsentsStepProps } from './add-child-emergency-step-sections';
 
 // ─── Types ──────────────────────────────────────────────────────
 
 export interface AddChildEmergencyStepProps {
-  // Primary contact
   emergencyName: string;
   emergencyPhone: string;
   emergencyRelation: string;
-  // Secondary contact
   secondaryName: string;
   secondaryPhone: string;
-  // Change handlers
   onEmergencyNameChange: (value: string) => void;
   onEmergencyPhoneChange: (value: string) => void;
   onEmergencyRelationChange: (value: string) => void;
   onSecondaryNameChange: (value: string) => void;
   onSecondaryPhoneChange: (value: string) => void;
-}
-
-export interface AddChildConsentsStepProps {
-  photoConsent: boolean;
-  videoConsent: boolean;
-  socialMediaConsent: boolean;
-  emergencyTreatmentConsent: boolean;
-  onPhotoConsentChange: (value: boolean) => void;
-  onVideoConsentChange: (value: boolean) => void;
-  onSocialMediaConsentChange: (value: boolean) => void;
-  onEmergencyTreatmentConsentChange: (value: boolean) => void;
 }
 
 // ─── Emergency Step ─────────────────────────────────────────────
@@ -134,90 +123,6 @@ function AddChildEmergencyStepInner({
   );
 }
 
-// ─── Consents Step ──────────────────────────────────────────────
-
-function AddChildConsentsStepInner({
-  photoConsent,
-  videoConsent,
-  socialMediaConsent,
-  emergencyTreatmentConsent,
-  onPhotoConsentChange,
-  onVideoConsentChange,
-  onSocialMediaConsentChange,
-  onEmergencyTreatmentConsentChange,
-}: AddChildConsentsStepProps) {
-  const { colors: palette } = useTheme();
-
-  const consentItems = [
-    {
-      title: 'Photography',
-      description: 'Allow photos during sessions for training purposes',
-      value: photoConsent,
-      onChange: onPhotoConsentChange,
-    },
-    {
-      title: 'Video Recording',
-      description: 'Allow video recording for training review',
-      value: videoConsent,
-      onChange: onVideoConsentChange,
-    },
-    {
-      title: 'Social Media',
-      description: 'Allow use in club social media posts',
-      value: socialMediaConsent,
-      onChange: onSocialMediaConsentChange,
-    },
-    {
-      title: 'Emergency Treatment',
-      description: 'Authorize emergency medical treatment if parent unavailable',
-      value: emergencyTreatmentConsent,
-      onChange: onEmergencyTreatmentConsentChange,
-    },
-  ];
-
-  return (
-    <View style={styles.stepContent}>
-      <SurfaceCard style={styles.infoCard}>
-        <Ionicons name="shield-checkmark-outline" size={24} color={palette.success} />
-        <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          These permissions help us provide the best experience while keeping your
-          child safe.
-        </ThemedText>
-      </SurfaceCard>
-
-      {consentItems.map((item) => (
-        <Clickable
-          key={item.title}
-          onPress={() => item.onChange(!item.value)}
-          style={[styles.consentRow, { borderColor: palette.border }]}
-        >
-          <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-            <ThemedText style={[styles.consentDesc, { color: palette.muted }]}>
-              {item.description}
-            </ThemedText>
-          </View>
-          <View
-            style={[
-              styles.toggle,
-              {
-                backgroundColor: item.value ? palette.success : palette.border,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.toggleKnob,
-                { backgroundColor: palette.onPrimary, transform: [{ translateX: item.value ? 18 : 2 }] },
-              ]}
-            />
-          </View>
-        </Clickable>
-      ))}
-    </View>
-  );
-}
-
 // ─── Styles ─────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -248,34 +153,9 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     ...Typography.body,
   },
-  consentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    gap: Spacing.md,
-  },
-  consentDesc: {
-    ...Typography.small,
-    marginTop: Spacing.micro,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: Radii.full,
-    justifyContent: 'center',
-  },
-  toggleKnob: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.full,
-    // backgroundColor set inline for dynamic theming
-  },
 });
 
 // ─── Exports ────────────────────────────────────────────────────
 
 export const AddChildEmergencyStep = React.memo(AddChildEmergencyStepInner);
-export const AddChildConsentsStep = React.memo(AddChildConsentsStepInner);
 export default AddChildEmergencyStep;

@@ -1,305 +1,99 @@
-/**
- * Health Dashboard Screen
- *
- * Main health and injury tracking dashboard. Shows active injuries,
- * recovery progress, and provides quick access to log new injuries.
- */
-
-import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives/row';
 import { InjuryCard } from '@/components/health';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import type { Injury, InjuryStats } from '@/constants/types';
+import { HealthStatusCard } from '@/components/health/health-status-card';
+import { HealthStatsCard } from '@/components/health/health-stats-card';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { injuryService } from '@/services/injury-service';
+import { useHealthHub } from '@/hooks/use-health-hub';
 import { scaleFont } from '@/utils/scale';
-import { createLogger } from '@/utils/logger';
 
-const logger = createLogger('HealthDashboardScreen');
-
-/**
- * Health Dashboard Screen showing injury overview and active injuries.
- */
 export default function HealthDashboardScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-
-  // State
-  const [injuries, setInjuries] = useState<Injury[]>([]);
-  const [stats, setStats] = useState<InjuryStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const userId = currentUser?.id ?? 'user1';
-
-  // Load data
-  const loadData = useCallback(async () => {
-    try {
-      const [userInjuries, injuryStats] = await Promise.all([
-        injuryService.getUserInjuries(userId, false),
-        injuryService.getInjuryStats(userId),
-      ]);
-      setInjuries(userInjuries);
-      setStats(injuryStats);
-    } catch (error) {
-      logger.error('Failed to load health data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [userId]);
-
-  // Reload on focus
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  // Pull to refresh
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
-
-  // Navigation
-  const handleLogInjury = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(Routes.HEALTH_LOG);
-  }, []);
-
-  const handleViewHistory = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(Routes.HEALTH_INJURIES);
-  }, []);
-
-  const handleInjuryPress = useCallback((injury: Injury) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(Routes.healthEntry(injury.id));
-  }, []);
-
-  // Calculate summary stats
-  const activeCount = useMemo(
-    () => injuries.filter((i) => i.status === 'ACTIVE' || i.status === 'RECOVERING').length,
-    [injuries]
-  );
-
-  const avgRecovery = useMemo(() => {
-    const recovering = injuries.filter((i) => i.status === 'RECOVERING');
-    if (recovering.length === 0) return 0;
-    return Math.round(recovering.reduce((sum, i) => sum + i.recoveryPercent, 0) / recovering.length);
-  }, [injuries]);
+  const { colors } = useTheme();
+  const {
+    injuries, stats, loading, refreshing, activeCount, avgRecovery,
+    handleRefresh, handleLogInjury, handleViewHistory, handleInjuryPress,
+  } = useHealthHub();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Health
-          </ThemedText>
-        </View>
-        <Clickable
-          onPress={handleLogInjury}
-          style={[styles.addButton, { backgroundColor: palette.tint }]}
-        >
-          <Ionicons name="add" size={24} color={palette.onPrimary} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <Row gap="md" align="center" style={styles.header}>
+        <Clickable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-      </View>
+        <ThemedText type="title" style={styles.headerTitle}>Health</ThemedText>
+        <Clickable accessibilityLabel="Log injury" onPress={handleLogInjury} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+          <Ionicons name="add" size={24} color={colors.onPrimary} />
+        </Clickable>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        {/* Status overview */}
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <SurfaceCard style={styles.statusCard}>
-            {activeCount === 0 ? (
-              <View style={styles.healthyState}>
-                <View style={[styles.healthyIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                  <Ionicons name="checkmark-circle" size={48} color={palette.success} />
-                </View>
-                <ThemedText type="subtitle" style={styles.healthyTitle}>
-                  All Clear!
-                </ThemedText>
-                <ThemedText style={[styles.healthyText, { color: palette.muted }]}>
-                  You have no active injuries. Keep up the great work!
-                </ThemedText>
-              </View>
-            ) : (
-              <View style={styles.statusContent}>
-                <View style={styles.statusRow}>
-                  <View style={styles.statusItem}>
-                    <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-                      <Ionicons name="pulse" size={24} color={palette.error} />
-                    </View>
-                    <ThemedText type="title" style={[styles.statusValue, { color: palette.error }]}>
-                      {injuries.filter((i) => i.status === 'ACTIVE').length}
-                    </ThemedText>
-                    <ThemedText style={[styles.statusLabel, { color: palette.muted }]}>
-                      Active
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.statusDivider, { backgroundColor: palette.border }]} />
-                  <View style={styles.statusItem}>
-                    <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
-                      <Ionicons name="trending-up" size={24} color={palette.warning} />
-                    </View>
-                    <ThemedText type="title" style={[styles.statusValue, { color: palette.warning }]}>
-                      {injuries.filter((i) => i.status === 'RECOVERING').length}
-                    </ThemedText>
-                    <ThemedText style={[styles.statusLabel, { color: palette.muted }]}>
-                      Recovering
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.statusDivider, { backgroundColor: palette.border }]} />
-                  <View style={styles.statusItem}>
-                    <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                      <Ionicons name="fitness" size={24} color={palette.tint} />
-                    </View>
-                    <ThemedText type="title" style={[styles.statusValue, { color: palette.tint }]}>
-                      {avgRecovery}%
-                    </ThemedText>
-                    <ThemedText style={[styles.statusLabel, { color: palette.muted }]}>
-                      Avg Recovery
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-            )}
-          </SurfaceCard>
+          <HealthStatusCard colors={colors} injuries={injuries} activeCount={activeCount} avgRecovery={avgRecovery} />
         </Animated.View>
 
-        {/* Quick actions */}
         <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.actionsRow}>
           <Clickable onPress={handleLogInjury} style={{ flex: 1 }}>
-            <View style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <View style={[styles.actionIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-                <Ionicons name="add-circle-outline" size={24} color={palette.error} />
+            <View style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.actionIcon, { backgroundColor: withAlpha(colors.error, 0.09) }]}>
+                <Ionicons name="add-circle-outline" size={24} color={colors.error} />
               </View>
               <ThemedText style={styles.actionLabel}>Log Injury</ThemedText>
             </View>
           </Clickable>
           <Clickable onPress={handleViewHistory} style={{ flex: 1 }}>
-            <View style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <View style={[styles.actionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <Ionicons name="time-outline" size={24} color={palette.tint} />
+            <View style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.actionIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+                <Ionicons name="time-outline" size={24} color={colors.tint} />
               </View>
               <ThemedText style={styles.actionLabel}>View History</ThemedText>
             </View>
           </Clickable>
         </Animated.View>
 
-        {/* Active injuries */}
         {injuries.length > 0 && (
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.injuriesSection}>
-            <View style={styles.sectionHeader}>
+            <Row justify="space-between" align="center" style={styles.sectionHeader}>
               <ThemedText type="subtitle">Current Injuries</ThemedText>
               <Clickable onPress={handleViewHistory}>
-                <ThemedText style={[styles.seeAllText, { color: palette.tint }]}>
-                  See all
-                </ThemedText>
+                <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>See all</ThemedText>
               </Clickable>
-            </View>
+            </Row>
             {injuries.slice(0, 3).map((injury) => (
-              <InjuryCard
-                key={injury.id}
-                injury={injury}
-                onPress={() => handleInjuryPress(injury)}
-              />
+              <InjuryCard key={injury.id} injury={injury} onPress={() => handleInjuryPress(injury)} />
             ))}
           </Animated.View>
         )}
 
-        {/* Stats summary */}
         {stats && stats.totalInjuries > 0 && (
           <Animated.View entering={FadeInDown.delay(250).springify()}>
-            <SurfaceCard style={styles.statsCard}>
-              <ThemedText type="subtitle" style={styles.statsTitle}>
-                Injury History
-              </ThemedText>
-              <View style={styles.statsGrid}>
-                <View style={styles.statsItem}>
-                  <ThemedText style={[styles.statsValue, { color: palette.text }]}>
-                    {stats.totalInjuries}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: palette.muted }]}>
-                    Total
-                  </ThemedText>
-                </View>
-                <View style={styles.statsItem}>
-                  <ThemedText style={[styles.statsValue, { color: palette.success }]}>
-                    {stats.healedInjuries}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: palette.muted }]}>
-                    Healed
-                  </ThemedText>
-                </View>
-                <View style={styles.statsItem}>
-                  <ThemedText style={[styles.statsValue, { color: palette.text }]}>
-                    {stats.averageRecoveryDays}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: palette.muted }]}>
-                    Avg Days
-                  </ThemedText>
-                </View>
-              </View>
-              {stats.commonBodyParts.length > 0 && (
-                <View style={styles.commonParts}>
-                  <ThemedText style={[styles.commonPartsLabel, { color: palette.muted }]}>
-                    Most common areas:
-                  </ThemedText>
-                  <View style={styles.commonPartsList}>
-                    {stats.commonBodyParts.slice(0, 3).map((item) => (
-                      <View
-                        key={item.bodyPart}
-                        style={[styles.commonPartBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-                      >
-                        <ThemedText style={[styles.commonPartText, { color: palette.tint }]}>
-                          {injuryService.getBodyPartLabel(item.bodyPart)} ({item.count})
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </SurfaceCard>
+            <HealthStatsCard colors={colors} stats={stats} />
           </Animated.View>
         )}
 
-        {/* Empty state for first-time users */}
         {!loading && injuries.length === 0 && stats?.totalInjuries === 0 && (
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-              <Ionicons name="fitness-outline" size={48} color={palette.success} />
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+              <Ionicons name="fitness-outline" size={48} color={colors.success} />
             </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              Stay Injury-Free
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            <ThemedText type="subtitle" style={styles.emptyTitle}>Stay Injury-Free</ThemedText>
+            <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
               Track any injuries here to monitor recovery and share status with your coach.
             </ThemedText>
-            <Button onPress={handleLogInjury} style={styles.emptyButton}>
-              Log an Injury
-            </Button>
+            <Button onPress={handleLogInjury} style={styles.emptyButton}>Log an Injury</Button>
           </Animated.View>
         )}
       </ScrollView>
@@ -308,145 +102,21 @@ export default function HealthDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md },
-  headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl },
-  statusCard: {
-    marginBottom: Spacing.md },
-  healthyState: {
-    alignItems: 'center',
-    padding: Spacing.md },
-  healthyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm },
-  healthyTitle: {
-    marginBottom: Spacing.xxs },
-  healthyText: {
-    textAlign: 'center',
-    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize) },
-  statusContent: {
-    padding: Spacing.sm },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around' },
-  statusItem: {
-    alignItems: 'center',
-    flex: 1 },
-  statusIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs },
-  statusValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
-  statusLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  statusDivider: {
-    width: 1,
-    height: 50 },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg },
-  actionCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: Spacing.xs },
-  actionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  actionLabel: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
-  injuriesSection: {
-    marginBottom: Spacing.lg },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm },
-  seeAllText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
-  statsCard: {
-    marginBottom: Spacing.md },
-  statsTitle: {
-    marginBottom: Spacing.md },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: Spacing.md },
-  statsItem: {
-    alignItems: 'center' },
-  statsValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
-  statsLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  commonParts: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-    paddingTop: Spacing.md },
-  commonPartsLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    marginBottom: Spacing.xs },
-  commonPartsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs },
-  commonPartBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill },
-  commonPartText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing['3xl'],
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md },
-  emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm },
-  emptyTitle: {
-    textAlign: 'center' },
-  emptyText: {
-    textAlign: 'center',
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(22),
-    maxWidth: 280 },
-  emptyButton: {
-    marginTop: Spacing.sm } });
+  container: { flex: 1 },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, justifyContent: 'space-between' },
+  headerTitle: { flex: 1, ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
+  addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+  actionsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
+  actionCard: { padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1, alignItems: 'center', gap: Spacing.xs },
+  actionIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  injuriesSection: { marginBottom: Spacing.lg },
+  sectionHeader: { marginBottom: Spacing.sm },
+  seeAllText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  emptyState: { alignItems: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  emptyIcon: { width: 96, height: 96, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyTitle: { textAlign: 'center' },
+  emptyText: { textAlign: 'center', ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22), maxWidth: 280 },
+  emptyButton: { marginTop: Spacing.sm },
+});

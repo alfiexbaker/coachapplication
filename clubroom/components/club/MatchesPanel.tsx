@@ -1,4 +1,5 @@
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -47,13 +48,13 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           <Ionicons name="trophy" size={20} color={palette.tint} />
           <ThemedText type="defaultSemiBold">Upcoming Matches</ThemedText>
         </View>
-        <Pressable
+        <Clickable
           style={styles.viewAllButton}
           onPress={handleViewAll}
         >
           <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
           <Ionicons name="chevron-forward" size={16} color={palette.tint} />
-        </Pressable>
+        </Clickable>
       </View>
 
       <View style={styles.matchesList}>
@@ -67,7 +68,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           const typeColor = matchService.getMatchTypeColor(match.matchType);
 
           return (
-            <Pressable
+            <Clickable
               key={match.id}
               style={[styles.matchItem, { borderColor: palette.border }]}
               onPress={() => router.push(Routes.match(match.id))}
@@ -86,13 +87,13 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
                 </ThemedText>
               </View>
               <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-            </Pressable>
+            </Clickable>
           );
         })}
       </View>
 
       {isCoach && (
-        <Pressable
+        <Clickable
           style={[styles.createMatchButton, { borderColor: palette.tint }]}
           onPress={handleCreateMatch}
         >
@@ -100,7 +101,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           <ThemedText style={[styles.createMatchText, { color: palette.tint }]}>
             Create Match
           </ThemedText>
-        </Pressable>
+        </Clickable>
       )}
     </SurfaceCard>
   );

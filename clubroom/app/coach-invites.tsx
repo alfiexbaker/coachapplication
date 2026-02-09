@@ -2,229 +2,31 @@
  * Coach Invites Screen
  *
  * Inbox for coaches to view and respond to club/organization invites.
- * When a coach uses a club invite code, they land here to confirm joining.
- *
- * FLOW:
- * 1. Coach enters invite code in Club Hub
- * 2. Code is validated and invite details shown here
- * 3. Coach can Accept (joins the club) or Decline (cancel)
- * 4. On Accept, coach becomes a member with the invited role
+ * All state/logic in useCoachInvites hook.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  Alert,
-  RefreshControl,
-} from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
-import { apiClient } from '@/services/api-client';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { getClubById } from '@/constants/mock-data';
-import type { ClubRole } from '@/constants/types';
-import { createLogger } from '@/utils/logger';
-
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-
-const logger = createLogger('CoachInvitesScreen');
-
-interface PendingClubInvite {
-  id: string;
-  inviteCode: string;
-  clubId: string;
-  clubName: string;
-  clubBadge?: string;
-  role: ClubRole;
-  invitedBy: string;
-  invitedAt: string;
-  expiresAt: string;
-  status: 'pending' | 'accepted' | 'declined';
-}
-
-// Role display names
-const ROLE_LABELS: Record<ClubRole, string> = {
-  OWNER: 'Owner',
-  ADMIN: 'Administrator',
-  HEAD_COACH: 'Head Coach',
-  COACH: 'Coach',
-  MEMBER: 'Member',
-};
+import { useCoachInvites, formatExpiry, ROLE_LABELS, type PendingClubInvite } from '@/hooks/use-coach-invites';
 
 export default function CoachInvitesScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-  const params = useLocalSearchParams<{ code?: string; clubId?: string; clubName?: string; role?: string }>();
-
-  const [invites, setInvites] = useState<PendingClubInvite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [respondingTo, setRespondingTo] = useState<string | null>(null);
-
-  // Load pending invites
-  const loadInvites = useCallback(async () => {
-    if (!currentUser) return;
-
-    try {
-      const stored = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
-      if (stored.length > 0) {
-        // Filter to only pending invites that haven't expired
-        const validInvites = stored.filter(
-          (inv) => inv.status === 'pending' && new Date(inv.expiresAt) > new Date()
-        );
-        setInvites(validInvites);
-      }
-    } catch (error) {
-      logger.error('Failed to load invites', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentUser]);
-
-  // Handle incoming invite code from params
-  useEffect(() => {
-    const processIncomingInvite = async () => {
-      if (params.code && params.clubId && params.clubName && currentUser) {
-        // Check if this invite is already pending
-        const existing = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
-
-        if (!existing.find((inv) => inv.inviteCode === params.code)) {
-          // Get club details for badge
-          const club = getClubById(params.clubId);
-
-          const newInvite: PendingClubInvite = {
-            id: `invite_${Date.now()}`,
-            inviteCode: params.code,
-            clubId: params.clubId,
-            clubName: params.clubName,
-            clubBadge: club?.badge,
-            role: (params.role as ClubRole) || 'COACH',
-            invitedBy: 'Club Admin',
-            invitedAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-            status: 'pending',
-          };
-
-          existing.push(newInvite);
-          await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, existing);
-          setInvites(existing.filter((inv) => inv.status === 'pending'));
-        }
-      }
-    };
-
-    processIncomingInvite();
-  }, [params.code, params.clubId, params.clubName, params.role, currentUser]);
-
-  useEffect(() => {
-    loadInvites();
-  }, [loadInvites]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadInvites();
-    }, [loadInvites])
-  );
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadInvites();
-  };
-
-  const handleAccept = async (invite: PendingClubInvite) => {
-    if (!currentUser) return;
-
-    setRespondingTo(invite.id);
-    try {
-      // Update invite status
-      const allInvites = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
-      const updated = allInvites.map((inv) =>
-        inv.id === invite.id ? { ...inv, status: 'accepted' as const } : inv
-      );
-      await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
-
-      // TODO: In real app, this would create the club membership via API
-      logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
-
-      Alert.alert(
-        'Welcome!',
-        `You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`,
-        [
-          {
-            text: 'Go to Club',
-            onPress: () => router.push(Routes.club(invite.clubId)),
-          },
-        ]
-      );
-
-      loadInvites();
-    } catch (error) {
-      logger.error('Failed to accept invite', error);
-      Alert.alert('Error', 'Failed to accept invite. Please try again.');
-    } finally {
-      setRespondingTo(null);
-    }
-  };
-
-  const handleDecline = (invite: PendingClubInvite) => {
-    Alert.alert(
-      'Decline Invite',
-      `Are you sure you want to decline the invitation to join ${invite.clubName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: async () => {
-            setRespondingTo(invite.id);
-            try {
-              const allInvites = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`, []);
-              const updated = allInvites.map((inv) =>
-                inv.id === invite.id ? { ...inv, status: 'declined' as const } : inv
-              );
-              await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`, updated);
-              loadInvites();
-            } catch (error) {
-              logger.error('Failed to decline invite', error);
-              Alert.alert('Error', 'Failed to decline invite.');
-            } finally {
-              setRespondingTo(null);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const formatExpiry = (expiresAt: string): string => {
-    const expires = new Date(expiresAt);
-    const now = new Date();
-    const diffMs = expires.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= 0) return 'Expired';
-    if (diffDays === 1) return 'Expires today';
-    if (diffDays <= 7) return `Expires in ${diffDays} days`;
-    return `Expires ${expires.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-  };
+  const c = useCoachInvites();
 
   const renderInvite = ({ item: invite }: { item: PendingClubInvite }) => {
-    const isResponding = respondingTo === invite.id;
-
+    const isResponding = c.respondingTo === invite.id;
     return (
       <SurfaceCard style={styles.inviteCard}>
-        {/* Club Info */}
         <View style={styles.inviteHeader}>
           <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>
@@ -232,94 +34,56 @@ export default function CoachInvitesScreen() {
             </ThemedText>
           </View>
           <View style={styles.clubInfo}>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>
-              {invite.clubName}
-            </ThemedText>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>{invite.clubName}</ThemedText>
             <View style={[styles.roleBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={14} color={palette.success} />
-              <ThemedText style={[styles.roleText, { color: palette.success }]}>
-                Invited as {ROLE_LABELS[invite.role]}
-              </ThemedText>
+              <ThemedText style={[styles.roleText, { color: palette.success }]}>Invited as {ROLE_LABELS[invite.role]}</ThemedText>
             </View>
           </View>
         </View>
-
-        {/* Invite Details */}
-        <View style={styles.detailsSection}>
-          <View style={styles.detailRow}>
-            <Ionicons name="person-outline" size={16} color={palette.muted} />
-            <ThemedText style={{ color: palette.muted }}>Invited by {invite.invitedBy}</ThemedText>
-          </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="time-outline" size={16} color={palette.warning} />
-            <ThemedText style={{ color: palette.warning }}>{formatExpiry(invite.expiresAt)}</ThemedText>
-          </View>
+        <View style={[styles.detailsSection, { borderTopColor: palette.border }]}>
+          <View style={styles.detailRow}><Ionicons name="person-outline" size={16} color={palette.muted} />
+            <ThemedText style={{ color: palette.muted }}>Invited by {invite.invitedBy}</ThemedText></View>
+          <View style={styles.detailRow}><Ionicons name="time-outline" size={16} color={palette.warning} />
+            <ThemedText style={{ color: palette.warning }}>{formatExpiry(invite.expiresAt)}</ThemedText></View>
         </View>
-
-        {/* Actions */}
         <View style={styles.actions}>
-          <Pressable
-            style={[styles.declineButton, { borderColor: palette.border }]}
-            onPress={() => handleDecline(invite)}
-            disabled={isResponding}
-          >
+          <Clickable style={[styles.declineButton, { borderColor: palette.border }]} onPress={() => c.handleDecline(invite)} disabled={isResponding}>
             <ThemedText style={[styles.declineText, { color: palette.muted }]}>Decline</ThemedText>
-          </Pressable>
-          <Pressable
-            style={[styles.acceptButton, { backgroundColor: palette.tint }]}
-            onPress={() => handleAccept(invite)}
-            disabled={isResponding}
-          >
-            {isResponding ? (
-              <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Joining...</ThemedText>
-            ) : (
-              <>
-                <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept & Join</ThemedText>
-              </>
+          </Clickable>
+          <Clickable style={[styles.acceptButton, { backgroundColor: palette.tint }]} onPress={() => c.handleAccept(invite)} disabled={isResponding}>
+            {isResponding ? <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Joining...</ThemedText> : (
+              <><Ionicons name="checkmark" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept & Join</ThemedText></>
             )}
-          </Pressable>
+          </Clickable>
         </View>
       </SurfaceCard>
     );
   };
 
-  const pendingCount = invites.length;
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <PageHeader
-        title="Club Invites"
-        subtitle={pendingCount > 0 ? `${pendingCount} pending` : 'No pending invites'}
-        showBack
-        onBackPress={() => router.back()}
-      />
-
-      <FlatList
-        data={invites}
-        keyExtractor={(item) => item.id}
-        renderItem={renderInvite}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      <PageHeader title="Club Invites" subtitle={c.pendingCount > 0 ? `${c.pendingCount} pending` : 'No pending invites'}
+        showBack onBackPress={() => router.back()} />
+      <FlatList data={c.invites} keyExtractor={(item) => item.id} renderItem={renderInvite}
+        contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons name="shield-outline" size={40} color={palette.muted} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              {loading ? 'Loading...' : 'No pending invites'}
+              {c.loading ? 'Loading...' : 'No pending invites'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
               When you enter a club invite code, the invitation will appear here for you to review and accept.
             </ThemedText>
-            <Pressable
-              style={[styles.goToClubHubButton, { backgroundColor: palette.tint }]}
-              onPress={() => router.push(Routes.CLUB_HUB)}
-            >
+            <Clickable style={[styles.goToClubHubButton, { backgroundColor: palette.tint }]} onPress={() => router.push(Routes.CLUB_HUB)}>
               <Ionicons name="people" size={18} color={palette.onPrimary} />
               <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
-            </Pressable>
+            </Clickable>
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -329,118 +93,26 @@ export default function CoachInvitesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  list: {
-    padding: Spacing.md,
-  },
-  inviteCard: {
-    gap: Spacing.md,
-  },
-  inviteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  clubBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clubBadgeText: {
-    ...Typography.heading,
-  },
-  clubInfo: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
-  roleText: {
-    ...Typography.smallSemiBold,
-  },
-  detailsSection: {
-    gap: Spacing.xs,
-    paddingTop: Spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
-  },
-  declineButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    alignItems: 'center',
-  },
-  declineText: {
-    ...Typography.bodySemiBold,
-  },
-  acceptButton: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  acceptText: {
-    ...Typography.bodySemiBold,
-  },
-  separator: {
-    height: Spacing.sm,
-  },
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-    gap: Spacing.sm,
-    marginTop: Spacing.xl,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  emptyTitle: {
-    ...Typography.heading,
-  },
-  emptyText: {
-    ...Typography.bodySmall,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
-  goToClubHubButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.md,
-  },
+  container: { flex: 1 },
+  list: { padding: Spacing.md },
+  inviteCard: { gap: Spacing.md },
+  inviteHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  clubBadge: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
+  clubBadgeText: { ...Typography.heading },
+  clubInfo: { flex: 1, gap: Spacing.xs },
+  roleBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  roleText: { ...Typography.smallSemiBold },
+  detailsSection: { gap: Spacing.xs, paddingTop: Spacing.xs, borderTopWidth: 1, borderTopColor: 'transparent' },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  declineButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center' },
+  declineText: { ...Typography.bodySemiBold },
+  acceptButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  acceptText: { ...Typography.bodySemiBold },
+  separator: { height: Spacing.sm },
+  empty: { alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm, marginTop: Spacing.xl },
+  emptyIcon: { width: 72, height: 72, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  emptyTitle: { ...Typography.heading },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+  goToClubHubButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
 });

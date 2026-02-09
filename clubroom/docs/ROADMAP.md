@@ -32,7 +32,7 @@
 - **Sprint 10A**: Coach + parent welcome/onboarding flows BUILT
 
 ### User Stories
-- 151 built, 24 need enhancement, 100 to build, 18 deferred (cash MVP)
+- 155 built, 24 need enhancement, 96 to build, 18 deferred (cash MVP)
 - 101 new stories identified from audit
 
 ### Remaining Blockers
@@ -237,7 +237,7 @@
 | Sprint 6 | Month 4 | Notifications + infrastructure |
 | Sprint 7 | Month 5 (W1) | Coach profiles + earnings |
 | Sprint 8 | Month 5 (W1-2) | Discovery revolution |
-| Sprint 9 | Deferred | Progress tracking enhancements |
+| Sprint 9 | Partial | Progress tracking — 9A/9C/9D BUILT (radar, challenges, journal) |
 | Sprint 10 | Month 5 (W3-4) | Delight + onboarding |
 
 ---
@@ -246,12 +246,13 @@
 
 These are valuable but not launch-critical:
 - Session plan templates
-- Video challenges + leaderboard
+- ~~Video challenges~~ ✅ Sprint 9C (challenges list, create challenge, submit attempts)
+- Challenge leaderboard
 - Monthly progress report (shareable)
-- Personal session journal with mood/energy
+- ~~Personal session journal with mood/energy~~ ✅ Sprint 9D (journal screen + session-journal component)
 - Goal setting with age-based suggestions
 - Assign from session plan templates
-- Create video challenges for players
+- ~~Create video challenges for players~~ ✅ Sprint 9C (create-challenge.tsx)
 - Challenge leaderboard
 - Submit video challenge attempts
 

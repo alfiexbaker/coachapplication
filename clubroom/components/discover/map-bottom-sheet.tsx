@@ -7,26 +7,17 @@
  */
 
 import { useRef, useState } from 'react';
-import {
-  Animated as RNAnimated,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { PanResponder, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
-import { useTheme, type ThemeColors } from '@/hooks/useTheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
+import { MiniCoachCard } from './map-coach-card';
+import { CoachListRow } from './map-coach-list-row';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface MapBottomSheetProps {
   coaches: MapCoach[];
@@ -37,264 +28,12 @@ interface MapBottomSheetProps {
   onToggleExpand?: () => void;
 }
 
-// ---------------------------------------------------------------------------
-// Mini Coach Card for carousel
-// ---------------------------------------------------------------------------
-
-function MiniCoachCard({
-  coach,
-  isSelected,
-  onPress,
-  onBookNow,
-  palette,
-}: {
-  coach: MapCoach;
-  isSelected: boolean;
-  onPress: () => void;
-  onBookNow: () => void;
-  palette: ThemeColors;
-}) {
-  return (
-    <SurfaceCard
-      onPress={onPress}
-      style={[
-        miniStyles.card,
-        isSelected && { borderColor: palette.tint, borderWidth: 2 },
-      ]}
-    >
-      <View style={miniStyles.row}>
-        {/* Avatar placeholder */}
-        <View
-          style={[
-            miniStyles.avatar,
-            { backgroundColor: palette.surfaceSecondary },
-          ]}
-        >
-          <Ionicons name="person" size={Components.icon.lg} color={palette.muted} />
-        </View>
-
-        {/* Info */}
-        <View style={miniStyles.info}>
-          <ThemedText style={[miniStyles.name, { color: palette.text }]} numberOfLines={1}>
-            {coach.fullName}
-          </ThemedText>
-
-          <View style={miniStyles.metaRow}>
-            <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
-            <ThemedText style={[miniStyles.metaText, { color: palette.text }]}>
-              {coach.rating.toFixed(1)}
-            </ThemedText>
-            <View style={[miniStyles.dot, { backgroundColor: palette.border }]} />
-            <Ionicons name="location-outline" size={Components.icon.sm} color={palette.muted} />
-            <ThemedText style={[miniStyles.metaText, { color: palette.muted }]}>
-              {coach.distanceMiles.toFixed(1)} mi
-            </ThemedText>
-          </View>
-
-          <ThemedText style={[miniStyles.price, { color: palette.text }]}>
-            {'\u00A3'}{coach.pricePerHour}/hr
-          </ThemedText>
-        </View>
-
-        {/* Book Now */}
-        <Pressable
-          accessibilityLabel={`Book ${coach.fullName}`}
-          onPress={onBookNow}
-          style={({ pressed }) => [
-            miniStyles.bookButton,
-            {
-              backgroundColor: pressed ? palette.tintPressed : palette.tint,
-              opacity: pressed ? 0.9 : 1,
-            },
-          ]}
-        >
-          <ThemedText style={[miniStyles.bookText, { color: palette.onPrimary }]}>
-            Book
-          </ThemedText>
-        </Pressable>
-      </View>
-    </SurfaceCard>
-  );
-}
-
-const miniStyles = StyleSheet.create({
-  card: {
-    width: 260,
-    padding: Spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  avatar: {
-    width: Components.avatar.md,
-    height: Components.avatar.md,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  info: {
-    flex: 1,
-    gap: Spacing.xs / 2,
-  },
-  name: {
-    ...Typography.bodySemiBold,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  metaText: {
-    ...Typography.caption,
-  },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: Radii.pill,
-  },
-  price: {
-    ...Typography.bodySemiBold,
-    fontWeight: '700',
-  },
-  bookButton: {
-    height: Components.buttonCompact.height,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.button,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookText: {
-    ...Typography.caption,
-    fontWeight: '700',
-  },
-});
-
-// ---------------------------------------------------------------------------
-// Full List Coach Row (expanded view)
-// ---------------------------------------------------------------------------
-
-function CoachListRow({
-  coach,
-  isSelected,
-  onPress,
-  onBookNow,
-  palette,
-}: {
-  coach: MapCoach;
-  isSelected: boolean;
-  onPress: () => void;
-  onBookNow: () => void;
-  palette: ThemeColors;
-}) {
-  return (
-    <Clickable onPress={onPress} accessibilityLabel={`Select ${coach.fullName}`}>
-      <View
-        style={[
-          listStyles.row,
-          { borderBottomColor: palette.border },
-          isSelected && { backgroundColor: withAlpha(palette.tint, 0.03) },
-        ]}
-      >
-        <View
-          style={[
-            listStyles.avatar,
-            { backgroundColor: palette.surfaceSecondary },
-          ]}
-        >
-          <Ionicons name="person" size={Components.icon.lg} color={palette.muted} />
-        </View>
-        <View style={listStyles.info}>
-          <ThemedText style={[listStyles.name, { color: palette.text }]}>{coach.fullName}</ThemedText>
-          <View style={listStyles.meta}>
-            <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
-            <ThemedText style={[listStyles.metaText, { color: palette.muted }]}>
-              {coach.rating.toFixed(1)} · {coach.distanceMiles.toFixed(1)} mi
-            </ThemedText>
-          </View>
-        </View>
-        <View style={listStyles.priceCol}>
-          <ThemedText style={[listStyles.price, { color: palette.text }]}>
-            {'\u00A3'}{coach.pricePerHour}/hr
-          </ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onBookNow}
-            style={({ pressed }) => [
-              listStyles.bookBtn,
-              {
-                backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                opacity: pressed ? 0.9 : 1,
-              },
-            ]}
-          >
-            <ThemedText style={[listStyles.bookBtnText, { color: palette.onPrimary }]}>
-              Book Now
-            </ThemedText>
-          </Pressable>
-        </View>
-      </View>
-    </Clickable>
-  );
-}
-
-const listStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderBottomWidth: 1,
-  },
-  avatar: {
-    width: Components.avatar.md,
-    height: Components.avatar.md,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  info: {
-    flex: 1,
-    gap: Spacing.xs / 2,
-  },
-  name: {
-    ...Typography.bodySemiBold,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  metaText: {
-    ...Typography.caption,
-  },
-  priceCol: {
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
-  },
-  price: {
-    ...Typography.bodySemiBold,
-    fontWeight: '700',
-  },
-  bookBtn: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: Radii.button,
-  },
-  bookBtnText: {
-    ...Typography.caption,
-    fontWeight: '700',
-  },
-});
-
-// ---------------------------------------------------------------------------
-// Main Bottom Sheet
-// ---------------------------------------------------------------------------
+// ─── Constants ──────────────────────────────────────────────────────────────
 
 const COLLAPSED_HEIGHT = 180;
 const EXPANDED_HEIGHT = 480;
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export function MapBottomSheet({
   coaches,
@@ -310,7 +49,8 @@ export function MapBottomSheet({
   const expanded = controlledExpanded ?? internalExpanded;
   const toggleExpand = onToggleExpand ?? (() => setInternalExpanded((p) => !p));
 
-  const sheetHeight = useRef(new RNAnimated.Value(COLLAPSED_HEIGHT)).current;
+  const sheetHeight = useSharedValue(COLLAPSED_HEIGHT);
+  const sheetAnimStyle = useAnimatedStyle(() => ({ height: sheetHeight.value }));
 
   // Simple drag-to-expand via PanResponder
   const panResponder = useRef(
@@ -319,22 +59,10 @@ export function MapBottomSheet({
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 5,
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dy < -40) {
-          // Swipe up — expand
-          RNAnimated.spring(sheetHeight, {
-            toValue: EXPANDED_HEIGHT,
-            useNativeDriver: false,
-            damping: 18,
-            stiffness: 200,
-          }).start();
+          sheetHeight.value = withSpring(EXPANDED_HEIGHT, { damping: 18, stiffness: 200 });
           if (!expanded) toggleExpand();
         } else if (gesture.dy > 40) {
-          // Swipe down — collapse
-          RNAnimated.spring(sheetHeight, {
-            toValue: COLLAPSED_HEIGHT,
-            useNativeDriver: false,
-            damping: 18,
-            stiffness: 200,
-          }).start();
+          sheetHeight.value = withSpring(COLLAPSED_HEIGHT, { damping: 18, stiffness: 200 });
           if (expanded) toggleExpand();
         }
       },
@@ -342,16 +70,8 @@ export function MapBottomSheet({
   ).current;
 
   return (
-    <RNAnimated.View
-      style={[
-        styles.sheet,
-        {
-          height: sheetHeight,
-          backgroundColor: palette.surface,
-          borderColor: palette.border,
-          shadowColor: palette.text,
-        },
-      ]}
+    <Animated.View
+      style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.text }, sheetAnimStyle]}
     >
       {/* Drag handle */}
       <View {...panResponder.panHandlers} style={styles.handleArea}>
@@ -383,10 +103,7 @@ export function MapBottomSheet({
           ))}
         </ScrollView>
       ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
           {coaches.map((coach) => (
             <CoachListRow
               key={coach.id}
@@ -399,45 +116,17 @@ export function MapBottomSheet({
           ))}
         </ScrollView>
       )}
-    </RNAnimated.View>
+    </Animated.View>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
+// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  sheet: {
-    borderTopLeftRadius: Radii.card,
-    borderTopRightRadius: Radii.card,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  handleArea: {
-    alignItems: 'center',
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: Radii.pill,
-  },
-  sheetTitle: {
-    ...Typography.bodySemiBold,
-  },
-  carouselContent: {
-    paddingHorizontal: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  listContent: {
-    paddingBottom: Spacing.lg,
-  },
+  sheet: { borderTopLeftRadius: Radii.card, borderTopRightRadius: Radii.card, borderWidth: 1, borderBottomWidth: 0, shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 8, overflow: 'hidden' },
+  handleArea: { alignItems: 'center', paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: Spacing.xs },
+  dragHandle: { width: 36, height: 4, borderRadius: Radii.pill },
+  sheetTitle: { ...Typography.bodySemiBold },
+  carouselContent: { paddingHorizontal: Spacing.sm, gap: Spacing.sm },
+  listContent: { paddingBottom: Spacing.lg },
 });

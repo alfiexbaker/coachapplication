@@ -84,6 +84,9 @@ export const STORAGE_KEYS = {
   /** History of removed roster members */
   ROSTER_REMOVAL_HISTORY: 'roster_removal_history',
 
+  /** Coach concerns about athletes (behavioral, safeguarding, medical, etc.) */
+  CONCERNS: 'clubroom.concerns',
+
   // ============================================================================
   // PROGRESS & SKILL TRACKING DOMAIN
   // ============================================================================

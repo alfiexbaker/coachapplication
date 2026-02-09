@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Modal, StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing, runOnJS } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -27,29 +28,17 @@ export function BadgeCelebration({
   onClose,
 }: BadgeCelebrationProps) {
   const { colors: palette } = useTheme();
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useSharedValue(0);
+  const opacityAnim = useSharedValue(0);
   const autoDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (visible) {
-      scaleAnim.setValue(0);
-      opacityAnim.setValue(0);
+      scaleAnim.value = 0;
+      opacityAnim.value = 0;
 
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          damping: 12,
-          stiffness: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
+      scaleAnim.value = withSpring(1, { damping: 12, stiffness: 150 });
+      opacityAnim.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) });
 
       autoDismissTimer.current = setTimeout(() => {
         onClose();
@@ -63,6 +52,11 @@ export function BadgeCelebration({
     };
   }, [visible, scaleAnim, opacityAnim, onClose]);
 
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scaleAnim.value }],
+    opacity: opacityAnim.value,
+  }));
+
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <View style={styles.overlay}>
@@ -71,11 +65,8 @@ export function BadgeCelebration({
         <Animated.View
           style={[
             styles.card,
-            {
-              backgroundColor: palette.surface,
-              transform: [{ scale: scaleAnim }],
-              opacity: opacityAnim,
-            },
+            { backgroundColor: palette.surface },
+            cardAnimStyle,
           ]}
         >
           {/* Trophy icon */}

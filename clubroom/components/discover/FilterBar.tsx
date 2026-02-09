@@ -6,7 +6,8 @@
  */
 
 import { useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Chip } from '@/components/primitives/chip';
@@ -14,11 +15,10 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import type {
-  CoachSearchFilters,
-  FootballObjective,
-  TrainingFormat,
-} from '@/constants/types';
+import type { CoachSearchFilters, FootballObjective } from '@/constants/types';
+
+import { QUICK_FILTERS, FOCUS_FILTERS } from './filter-bar-sections';
+import type { QuickFilter } from './filter-bar-sections';
 
 interface FilterBarProps {
   filters: CoachSearchFilters;
@@ -27,88 +27,6 @@ interface FilterBarProps {
   totalResults: number;
   activeFilterCount: number;
 }
-
-interface QuickFilter {
-  id: string;
-  label: string;
-  getIsActive: (filters: CoachSearchFilters) => boolean;
-  toggle: (filters: CoachSearchFilters) => CoachSearchFilters;
-}
-
-const QUICK_FILTERS: QuickFilter[] = [
-  {
-    id: 'rating',
-    label: '4+ Stars',
-    getIsActive: (f) => f.rating !== undefined && f.rating >= 4,
-    toggle: (f) => ({
-      ...f,
-      rating: f.rating !== undefined && f.rating >= 4 ? undefined : 4,
-    }),
-  },
-  {
-    id: 'nearby',
-    label: 'Nearby',
-    getIsActive: (f) => f.distance !== undefined && f.distance <= 5,
-    toggle: (f) => ({
-      ...f,
-      distance: f.distance !== undefined && f.distance <= 5 ? undefined : 5,
-    }),
-  },
-  {
-    id: 'inperson',
-    label: 'In-person',
-    getIsActive: (f) => f.formats?.includes('In-person') ?? false,
-    toggle: (f) => {
-      const current = f.formats ?? [];
-      const hasFormat = current.includes('In-person');
-      return {
-        ...f,
-        formats: hasFormat
-          ? current.filter((fmt) => fmt !== 'In-person')
-          : [...current, 'In-person' as TrainingFormat],
-      };
-    },
-  },
-  {
-    id: 'virtual',
-    label: 'Virtual',
-    getIsActive: (f) => f.formats?.includes('Virtual') ?? false,
-    toggle: (f) => {
-      const current = f.formats ?? [];
-      const hasFormat = current.includes('Virtual');
-      return {
-        ...f,
-        formats: hasFormat
-          ? current.filter((fmt) => fmt !== 'Virtual')
-          : [...current, 'Virtual' as TrainingFormat],
-      };
-    },
-  },
-  {
-    id: 'group',
-    label: 'Small group',
-    getIsActive: (f) => f.formats?.includes('Small group') ?? false,
-    toggle: (f) => {
-      const current = f.formats ?? [];
-      const hasFormat = current.includes('Small group');
-      return {
-        ...f,
-        formats: hasFormat
-          ? current.filter((fmt) => fmt !== 'Small group')
-          : [...current, 'Small group' as TrainingFormat],
-      };
-    },
-  },
-];
-
-const FOCUS_FILTERS: { id: FootballObjective; label: string }[] = [
-  { id: 'Goalkeeping', label: 'Goalkeeping' },
-  { id: 'Finishing', label: 'Finishing' },
-  { id: 'Dribbling', label: 'Dribbling' },
-  { id: 'Passing', label: 'Passing' },
-  { id: 'Defending', label: 'Defending' },
-  { id: 'Conditioning', label: 'Conditioning' },
-];
 
 export function FilterBar({
   filters,
@@ -153,16 +71,14 @@ export function FilterBar({
         contentContainerStyle={styles.scrollContent}
       >
         {/* All Filters Button */}
-        <Pressable
-          accessibilityRole="button"
+        <Clickable
           accessibilityLabel="Open all filters"
           onPress={onOpenFilters}
-          style={({ pressed }) => [
+          style={[
             styles.filterButton,
             {
               backgroundColor: hasActiveFilters ? withAlpha(palette.tint, 0.09) : palette.surface,
               borderColor: hasActiveFilters ? palette.tint : palette.border,
-              opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
@@ -186,7 +102,7 @@ export function FilterBar({
               </ThemedText>
             </View>
           )}
-        </Pressable>
+        </Clickable>
 
         {/* Quick Filters */}
         {QUICK_FILTERS.map((quickFilter) => (
@@ -222,20 +138,16 @@ export function FilterBar({
           {totalResults} {totalResults === 1 ? 'coach' : 'coaches'} found
         </ThemedText>
         {hasActiveFilters && (
-          <Pressable
-            accessibilityRole="button"
+          <Clickable
             accessibilityLabel="Clear all filters"
             onPress={handleClearFilters}
-            style={({ pressed }) => [
-              styles.clearButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
+            style={styles.clearButton}
           >
             <Ionicons name="close-circle" size={16} color={palette.tint} />
             <ThemedText style={[styles.clearText, { color: palette.tint }]}>
               Clear all
             </ThemedText>
-          </Pressable>
+          </Clickable>
         )}
       </View>
     </View>

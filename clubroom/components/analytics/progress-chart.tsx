@@ -6,6 +6,12 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillProgress } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+// Re-export extracted components for backward compat
+export { COLORS, Sparkline, ChartLegend } from './progress-chart-sections';
+export type { SparklineProps, ChartLegendProps } from './progress-chart-sections';
+
+import { COLORS, ChartLegend } from './progress-chart-sections';
+
 const CHART_HEIGHT = 180;
 
 interface ProgressChartProps {
@@ -14,13 +20,9 @@ interface ProgressChartProps {
   showLegend?: boolean;
 }
 
-// Decorative: categorical chart colors (not themeable)
-const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'] as const;
-
 export function ProgressChart({ skills, title = 'Progress Over Time', showLegend = true }: ProgressChartProps) {
   const { colors: palette } = useTheme();
 
-  // Get all unique dates from all skills
   const allDates = new Set<string>();
   skills.forEach((skill) => {
     skill.history.forEach((h) => allDates.add(h.date));
@@ -38,7 +40,6 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
     );
   }
 
-  // Calculate chart dimensions
   const yMin = 0;
   const yMax = 100;
 
@@ -66,23 +67,18 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
 
         {/* Chart Area */}
         <View style={styles.chartArea}>
-          {/* Grid Lines */}
           <View style={styles.gridLines}>
             {[0, 25, 50, 75, 100].map((level) => (
               <View
                 key={level}
                 style={[
                   styles.gridLine,
-                  {
-                    top: getY(level),
-                    backgroundColor: palette.border,
-                  },
+                  { top: getY(level), backgroundColor: palette.border },
                 ]}
               />
             ))}
           </View>
 
-          {/* Data Lines (simplified as bars since SVG not available) */}
           <View style={styles.barsContainer}>
             {skills.slice(0, 4).map((skill, skillIndex) => {
               const currentLevel = skill.currentLevel;
@@ -106,7 +102,6 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
             })}
           </View>
 
-          {/* Current Values */}
           <View style={styles.valuesRow}>
             {skills.slice(0, 4).map((skill, index) => {
               const color = COLORS[index % COLORS.length];
@@ -122,64 +117,7 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
         </View>
       </View>
 
-      {/* Legend */}
-      {showLegend && (
-        <View style={styles.legend}>
-          {skills.slice(0, 4).map((skill, index) => {
-            const color = COLORS[index % COLORS.length];
-            return (
-              <View key={skill.skillName} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: color }]} />
-                <ThemedText style={[styles.legendText, { color: palette.text }]}>
-                  {skill.skillName}
-                </ThemedText>
-              </View>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
-}
-
-// Simple sparkline for inline display
-interface SparklineProps {
-  data: number[];
-  color?: string;
-  width?: number;
-  height?: number;
-}
-
-export function Sparkline({ data, color, width = 60, height = 20 }: SparklineProps) {
-  const { colors: palette } = useTheme();
-  const lineColor = color || palette.tint;
-
-  if (data.length < 2) {
-    return <View style={{ width, height }} />;
-  }
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-
-  return (
-    <View style={[styles.sparkline, { width, height }]}>
-      {data.map((value, index) => {
-        const barHeight = ((value - min) / range) * height;
-        return (
-          <View
-            key={index}
-            style={[
-              styles.sparklineBar,
-              {
-                height: Math.max(barHeight, 2),
-                backgroundColor: lineColor,
-                opacity: 0.3 + (index / data.length) * 0.7,
-              },
-            ]}
-          />
-        );
-      })}
+      {showLegend && <ChartLegend skills={skills} palette={palette} />}
     </View>
   );
 }
@@ -254,30 +192,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   valueText: { ...Typography.caption },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginTop: Spacing.lg,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.xs,
-  },
-  legendText: { ...Typography.caption },
-  sparkline: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.micro,
-  },
-  sparklineBar: {
-    flex: 1,
-    borderRadius: Radii.xs,
-  },
 });

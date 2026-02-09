@@ -312,6 +312,7 @@ export const clubService = {
       removalHistoryCache.unshift(removalRecord);
       await saveRemovalHistory(removalHistoryCache);
 
+      emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
       return ok(removalRecord);
     }
 
@@ -488,6 +489,7 @@ export const clubService = {
       removalHistoryCache.unshift(removalRecord);
       await saveRemovalHistory(removalHistoryCache);
 
+      emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
       logger.info('MemberBanned', { clubId, userId, reason, bannedBy: bannedBy.id });
       return ok(removalRecord);
     }

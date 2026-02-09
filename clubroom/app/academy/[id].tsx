@@ -1,120 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { academyService } from '@/services/academy-service';
-import type { Academy, AcademyMembership } from '@/constants/types';
-
-const logger = createLogger('AcademyDetailScreen');
-
-// Decorative: staff role hierarchy colors
-const ROLE_COLORS = {
-  OWNER: '#7C3AED',
-  ADMIN: '#0284C7',
-  HEAD_COACH: '#059669',
-  ASSISTANT: '#6B7280',
-  MEMBER: '#9CA3AF',
-} as const;
-
-function StaffCard({
-  member,
-  index,
-  isOwner,
-  onManage,
-}: {
-  member: AcademyMembership;
-  index: number;
-  isOwner: boolean;
-  onManage: () => void;
-}) {
-  const { colors: palette } = useTheme();
-
-  const roleColors: Record<AcademyMembership['role'], string> = {
-    ...ROLE_COLORS,
-    COACH: palette.tint,
-  };
-
-  return (
-    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <SurfaceCard style={styles.staffCard}>
-        <View style={styles.staffMain}>
-          {member.userPhotoUrl ? (
-            <Image source={{ uri: member.userPhotoUrl }} style={styles.staffPhoto} />
-          ) : (
-            <View style={[styles.staffPhotoPlaceholder, { backgroundColor: palette.border }]}>
-              <Ionicons name="person" size={20} color={palette.muted} />
-            </View>
-          )}
-          <View style={styles.staffInfo}>
-            <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-            <View
-              style={[styles.roleBadge, { backgroundColor: withAlpha(roleColors[member.role], 0.09) }]}
-            >
-              <ThemedText style={[styles.roleText, { color: roleColors[member.role] }]}>
-                {academyService.formatRole(member.role)}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
-        {isOwner && member.role !== 'OWNER' && (
-          <Clickable onPress={onManage} hitSlop={8}>
-            <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
-          </Clickable>
-        )}
-      </SurfaceCard>
-    </Animated.View>
-  );
-}
+import { useAcademyDetail } from '@/hooks/use-academy-detail';
+import { AcademyBanner } from '@/components/academy/academy-banner';
+import { AcademyStaffCard } from '@/components/academy/academy-staff-card';
 
 export default function AcademyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-
-  const [academy, setAcademy] = useState<Academy | null>(null);
-  const [staff, setStaff] = useState<AcademyMembership[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userMembership, setUserMembership] = useState<AcademyMembership | null>(null);
-
-  const loadData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const [academyData, staffData] = await Promise.all([
-        academyService.getAcademy(id),
-        academyService.getStaff(id),
-      ]);
-      setAcademy(academyData);
-      setStaff(staffData);
-
-      if (currentUser?.id) {
-        const membership = staffData.find((m) => m.userId === currentUser.id);
-        setUserMembership(membership || null);
-      }
-    } catch (error) {
-      logger.error('Failed to load academy:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id, currentUser?.id]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const isOwner = userMembership?.role === 'OWNER';
-  const canManage = isOwner || userMembership?.permissions.includes('MANAGE_STAFF');
+  const { academy, staff, loading, userMembership, isOwner, canManage, primaryColor } = useAcademyDetail(id);
 
   if (loading || !academy) {
     return (
@@ -129,107 +32,34 @@ export default function AcademyDetailScreen() {
     );
   }
 
-  const primaryColor = academy.primaryColor || palette.tint;
+  const color = primaryColor || palette.tint;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Banner */}
-        <View style={styles.bannerContainer}>
-          {academy.bannerUrl ? (
-            <Image source={{ uri: academy.bannerUrl }} style={styles.banner} />
-          ) : (
-            <View style={[styles.bannerPlaceholder, { backgroundColor: primaryColor }]} />
-          )}
-          <View style={styles.bannerOverlay} />
-          <Clickable
-            onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]} // Decorative: overlay button scrim
-          >
-            <Ionicons name="arrow-back" size={22} color={palette.onPrimary} />
-          </Clickable>
-          {canManage && (
-            <Clickable
-              onPress={() => router.push(Routes.academySettings(id))}
-              style={[styles.settingsButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]} // Decorative: overlay button scrim
-            >
-              <Ionicons name="settings-outline" size={20} color={palette.onPrimary} />
-            </Clickable>
-          )}
-        </View>
-
-        {/* Logo & Name */}
-        <View style={styles.logoSection}>
-          {academy.logoUrl ? (
-            <Image source={{ uri: academy.logoUrl }} style={[styles.logo, { borderColor: palette.onPrimary }]} />
-          ) : (
-            <View style={[styles.logoPlaceholder, { backgroundColor: primaryColor, borderColor: palette.onPrimary }]}>
-              <ThemedText style={[styles.logoText, { color: palette.onPrimary }]}>
-                {academy.name.slice(0, 2).toUpperCase()}
-              </ThemedText>
-            </View>
-          )}
-          <ThemedText type="title" style={styles.academyName}>
-            {academy.name}
-          </ThemedText>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color={palette.muted} />
-            <ThemedText style={[styles.location, { color: palette.muted }]}>
-              {academy.city}
-            </ThemedText>
-          </View>
-          {academy.rating && (
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color={palette.warning} />
-              <ThemedText style={styles.ratingText}>
-                {academy.rating.average.toFixed(1)}
-              </ThemedText>
-              <ThemedText style={[styles.reviewCount, { color: palette.muted }]}>
-                ({academy.rating.reviewCount} reviews)
-              </ThemedText>
-            </View>
-          )}
-        </View>
+        <AcademyBanner academy={academy} colors={palette} primaryColor={color} canManage={!!canManage} />
 
         <View style={styles.content}>
           {/* Stats */}
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <ThemedText type="heading" style={[styles.statValue, { color: primaryColor }]}>
-                {academy.coachCount}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Coaches
-              </ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <ThemedText type="heading" style={[styles.statValue, { color: primaryColor }]}>
-                {academy.athleteCount}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Athletes
-              </ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <ThemedText type="heading" style={[styles.statValue, { color: primaryColor }]}>
-                {academy.sessionCount}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Sessions
-              </ThemedText>
-            </View>
+            {[
+              { label: 'Coaches', value: academy.coachCount },
+              { label: 'Athletes', value: academy.athleteCount },
+              { label: 'Sessions', value: academy.sessionCount },
+            ].map((stat) => (
+              <View key={stat.label} style={[styles.statCard, { backgroundColor: palette.surface }]}>
+                <ThemedText type="heading" style={{ color }}>{stat.value}</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{stat.label}</ThemedText>
+              </View>
+            ))}
           </View>
 
           {/* Description */}
           {academy.description && (
             <Animated.View entering={FadeInDown.delay(100).springify()}>
               <SurfaceCard style={styles.descriptionCard}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                  About
-                </ThemedText>
-                <ThemedText style={[styles.description, { color: palette.muted }]}>
-                  {academy.description}
-                </ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>About</ThemedText>
+                <ThemedText style={[styles.description, { color: palette.muted }]}>{academy.description}</ThemedText>
               </SurfaceCard>
             </Animated.View>
           )}
@@ -237,18 +67,11 @@ export default function AcademyDetailScreen() {
           {/* Specialties */}
           {academy.specialties && academy.specialties.length > 0 && (
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Specialties
-              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Specialties</ThemedText>
               <View style={styles.tagsRow}>
                 {academy.specialties.map((specialty) => (
-                  <View
-                    key={specialty}
-                    style={[styles.tag, { backgroundColor: withAlpha(primaryColor, 0.09) }]}
-                  >
-                    <ThemedText style={[styles.tagText, { color: primaryColor }]}>
-                      {specialty}
-                    </ThemedText>
+                  <View key={specialty} style={[styles.tag, { backgroundColor: withAlpha(color, 0.09) }]}>
+                    <ThemedText style={[styles.tagText, { color }]}>{specialty}</ThemedText>
                   </View>
                 ))}
               </View>
@@ -259,31 +82,23 @@ export default function AcademyDetailScreen() {
           {(academy.email || academy.phone || academy.website) && (
             <Animated.View entering={FadeInDown.delay(150).springify()}>
               <SurfaceCard style={styles.contactCard}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                  Contact
-                </ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Contact</ThemedText>
                 {academy.email && (
                   <View style={styles.contactRow}>
                     <Ionicons name="mail-outline" size={18} color={palette.muted} />
-                    <ThemedText style={[styles.contactText, { color: palette.text }]}>
-                      {academy.email}
-                    </ThemedText>
+                    <ThemedText style={{ color: palette.text }}>{academy.email}</ThemedText>
                   </View>
                 )}
                 {academy.phone && (
                   <View style={styles.contactRow}>
                     <Ionicons name="call-outline" size={18} color={palette.muted} />
-                    <ThemedText style={[styles.contactText, { color: palette.text }]}>
-                      {academy.phone}
-                    </ThemedText>
+                    <ThemedText style={{ color: palette.text }}>{academy.phone}</ThemedText>
                   </View>
                 )}
                 {academy.website && (
                   <View style={styles.contactRow}>
                     <Ionicons name="globe-outline" size={18} color={palette.muted} />
-                    <ThemedText style={[styles.contactText, { color: palette.tint }]}>
-                      {academy.website}
-                    </ThemedText>
+                    <ThemedText style={{ color: palette.tint }}>{academy.website}</ThemedText>
                   </View>
                 )}
               </SurfaceCard>
@@ -297,7 +112,7 @@ export default function AcademyDetailScreen() {
               {canManage && (
                 <Clickable
                   onPress={() => router.push(Routes.academyInvite(id))}
-                  style={[styles.inviteButton, { backgroundColor: primaryColor }]}
+                  style={[styles.inviteButton, { backgroundColor: color }]}
                 >
                   <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
                   <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>Invite</ThemedText>
@@ -306,7 +121,7 @@ export default function AcademyDetailScreen() {
             </View>
             <View style={styles.staffList}>
               {staff.map((member, index) => (
-                <StaffCard
+                <AcademyStaffCard
                   key={member.id}
                   member={member}
                   index={index}
@@ -317,16 +132,11 @@ export default function AcademyDetailScreen() {
             </View>
           </View>
 
-          {/* Actions for non-members */}
+          {/* Join for non-members */}
           {!userMembership && (
             <View style={styles.joinSection}>
-              <ThemedText style={[styles.joinText, { color: palette.muted }]}>
-                Have an invite code?
-              </ThemedText>
-              <Clickable
-                onPress={() => router.push(Routes.ACADEMY_JOIN)}
-                style={[styles.joinButton, { backgroundColor: primaryColor }]}
-              >
+              <ThemedText style={[styles.joinText, { color: palette.muted }]}>Have an invite code?</ThemedText>
+              <Clickable onPress={() => router.push(Routes.ACADEMY_JOIN)} style={[styles.joinButton, { backgroundColor: color }]}>
                 <ThemedText style={[styles.joinButtonText, { color: palette.onPrimary }]}>Join Team</ThemedText>
               </Clickable>
             </View>
@@ -340,231 +150,28 @@ export default function AcademyDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  bannerContainer: {
-    position: 'relative',
-    height: 180,
-  },
-  banner: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerPlaceholder: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)', // Decorative: banner image darkening overlay
-  },
-  backButton: {
-    position: 'absolute',
-    top: Spacing.md,
-    left: Spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsButton: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoSection: {
-    alignItems: 'center',
-    marginTop: -50,
-    paddingHorizontal: Spacing.lg,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    borderRadius: Radii.pill,
-    borderWidth: 4,
-  },
-  logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: Radii.pill,
-    borderWidth: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    ...Typography.display,
-  },
-  academyName: {
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginTop: Spacing.xxs,
-  },
-  location: {
-    ...Typography.small,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginTop: Spacing.xs,
-  },
-  ratingText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  reviewCount: {
-    ...Typography.small,
-  },
-  content: {
-    padding: Spacing.lg,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  statValue: {
-    ...Typography.title,
-  },
-  statLabel: {
-    ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
-  descriptionCard: {
-    marginBottom: Spacing.lg,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.sm,
-  },
-  description: {
-    ...Typography.bodySmall,
-  },
-  section: {
-    marginBottom: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  tag: {
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
-  tagText: {
-    ...Typography.smallSemiBold,
-  },
-  contactCard: {
-    marginBottom: Spacing.lg,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  contactText: {
-    ...Typography.bodySmall,
-  },
-  inviteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
-  inviteButtonText: {
-    ...Typography.smallSemiBold,
-  },
-  staffList: {
-    gap: Spacing.sm,
-  },
-  staffCard: {
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  staffMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    flex: 1,
-  },
-  staffPhoto: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-  },
-  staffPhotoPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  staffInfo: {
-    flex: 1,
-  },
-  roleBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-    marginTop: Spacing.xxs,
-  },
-  roleText: {
-    ...Typography.caption,
-  },
-  joinSection: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  joinText: {
-    ...Typography.small,
-    marginBottom: Spacing.sm,
-  },
-  joinButton: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  joinButtonText: {
-    ...Typography.bodySemiBold,
-  },
-  bottomSpacer: {
-    height: 40,
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  content: { padding: Spacing.lg },
+  statsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
+  statCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md },
+  statLabel: { ...Typography.caption, marginTop: Spacing.micro },
+  descriptionCard: { marginBottom: Spacing.lg },
+  sectionTitle: { marginBottom: Spacing.sm },
+  description: { ...Typography.bodySmall },
+  section: { marginBottom: Spacing.lg },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  tag: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
+  tagText: { ...Typography.smallSemiBold },
+  contactCard: { marginBottom: Spacing.lg },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
+  inviteButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
+  inviteButtonText: { ...Typography.smallSemiBold },
+  staffList: { gap: Spacing.sm },
+  joinSection: { alignItems: 'center', paddingVertical: Spacing.lg },
+  joinText: { ...Typography.small, marginBottom: Spacing.sm },
+  joinButton: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  joinButtonText: { ...Typography.bodySemiBold },
+  bottomSpacer: { height: 40 },
 });

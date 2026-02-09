@@ -1,17 +1,19 @@
 import { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, FlatList, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
-import type { EventRSVP, EventAttendance, EventAttendanceStats, RSVPStatus } from '@/constants/types';
+import { Spacing } from '@/constants/theme';
+import type { EventRSVP, EventAttendance, EventAttendanceStats } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { scaleFont } from '@/utils/scale';
 
 import { AttendeeCard } from './AttendeeCard';
-
-type FilterType = 'ALL' | RSVPStatus | 'CHECKED_IN' | 'NOT_CHECKED_IN';
+import {
+  AttendeeStatsCard,
+  AttendeeFilterChip,
+  AttendeeEmptyState,
+  type FilterType,
+  type FilterOption,
+} from './attendee-list-sections';
 
 interface AttendeeListProps {
   rsvps: EventRSVP[];
@@ -35,17 +37,14 @@ export function AttendeeList({
   emptyMessage = 'No attendees yet',
 }: AttendeeListProps) {
   const { colors: palette } = useTheme();
-
   const [filter, setFilter] = useState<FilterType>('ALL');
 
-  // Create a map of attendance by userId for quick lookup
   const attendanceMap = useMemo(() => {
     const map = new Map<string, EventAttendance>();
     attendance.forEach((a) => map.set(a.userId, a));
     return map;
   }, [attendance]);
 
-  // Filter and combine data
   const filteredData = useMemo(() => {
     let filtered = rsvps;
 
@@ -67,7 +66,6 @@ export function AttendeeList({
         break;
     }
 
-    // Sort by status (GOING first), then by response time
     return filtered.sort((a, b) => {
       const statusOrder = { GOING: 0, MAYBE: 1, NOT_GOING: 2 };
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
@@ -76,86 +74,12 @@ export function AttendeeList({
     });
   }, [rsvps, filter, attendanceMap]);
 
-  const filterOptions: { key: FilterType; label: string; count: number }[] = [
+  const filterOptions: FilterOption[] = [
     { key: 'ALL', label: 'All', count: rsvps.length },
     { key: 'GOING', label: 'Going', count: rsvps.filter((r) => r.status === 'GOING').length },
     { key: 'MAYBE', label: 'Maybe', count: rsvps.filter((r) => r.status === 'MAYBE').length },
     { key: 'CHECKED_IN', label: 'Checked In', count: attendance.length },
   ];
-
-  const renderStatsCard = () => {
-    if (!stats || !showStats) return null;
-
-    const { rsvpCounts, checkedInCount, attendanceRate, capacity } = stats;
-    const totalGoing = rsvpCounts.going + stats.expectedGuests;
-
-    return (
-      <View style={[styles.statsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <View style={styles.statsRow}>
-          {/* Going */}
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
-              <Ionicons name="checkmark-circle" size={20} color={palette.success} />
-            </View>
-            <ThemedText style={styles.statValue}>{rsvpCounts.going}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Going</ThemedText>
-          </View>
-
-          {/* Maybe */}
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.15) }]}>
-              <Ionicons name="help-circle" size={20} color={palette.warning} />
-            </View>
-            <ThemedText style={styles.statValue}>{rsvpCounts.maybe}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Maybe</ThemedText>
-          </View>
-
-          {/* Checked In */}
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
-              <Ionicons name="log-in" size={20} color={palette.tint} />
-            </View>
-            <ThemedText style={styles.statValue}>{checkedInCount}</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Checked In</ThemedText>
-          </View>
-
-          {/* Attendance Rate */}
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.accent, 0.15) }]}>
-              <Ionicons name="analytics" size={20} color={palette.accent} />
-            </View>
-            <ThemedText style={styles.statValue}>{attendanceRate}%</ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Rate</ThemedText>
-          </View>
-        </View>
-
-        {/* Capacity bar */}
-        {capacity && (
-          <View style={[styles.capacitySection, { borderTopColor: palette.border }]}>
-            <View style={styles.capacityHeader}>
-              <ThemedText style={[styles.capacityLabel, { color: palette.muted }]}>
-                Capacity
-              </ThemedText>
-              <ThemedText style={[styles.capacityValue, { color: palette.text }]}>
-                {totalGoing} / {capacity}
-              </ThemedText>
-            </View>
-            <View style={[styles.capacityBar, { backgroundColor: palette.border }]}>
-              <View
-                style={[
-                  styles.capacityFill,
-                  {
-                    backgroundColor: totalGoing >= capacity ? palette.error : palette.success,
-                    width: `${Math.min(100, (totalGoing / capacity) * 100)}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  };
 
   const renderAttendeeItem = useCallback(
     ({ item }: { item: EventRSVP }) => (
@@ -172,75 +96,18 @@ export function AttendeeList({
   const attendeeKeyExtractor = useCallback((item: EventRSVP) => item.id, []);
 
   const renderFilterItem = useCallback(
-    ({ item }: { item: { key: FilterType; label: string; count: number } }) => {
-      const isActive = filter === item.key;
-      return (
-        <Clickable
-          onPress={() => setFilter(item.key)}
-          style={[
-            styles.filterChip,
-            {
-              backgroundColor: isActive ? palette.tint : 'transparent',
-              borderColor: isActive ? palette.tint : palette.border,
-            },
-          ]}
-        >
-          <ThemedText
-            style={[
-              styles.filterChipText,
-              { color: isActive ? palette.onPrimary : palette.text },
-            ]}
-          >
-            {item.label}
-          </ThemedText>
-          <View
-            style={[
-              styles.filterChipCount,
-              { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : palette.surface },
-            ]}
-          >
-            <ThemedText
-              style={[
-                styles.filterChipCountText,
-                { color: isActive ? palette.onPrimary : palette.muted },
-              ]}
-            >
-              {item.count}
-            </ThemedText>
-          </View>
-        </Clickable>
-      );
-    },
+    ({ item }: { item: FilterOption }) => (
+      <AttendeeFilterChip
+        item={item}
+        isActive={filter === item.key}
+        onPress={() => setFilter(item.key)}
+        palette={palette}
+      />
+    ),
     [filter, palette]
   );
 
-  const filterKeyExtractor = useCallback((item: { key: FilterType; label: string; count: number }) => item.key, []);
-
-  const renderFilters = () => {
-    if (!showFilters) return null;
-
-    return (
-      <View style={styles.filtersContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={filterOptions}
-          keyExtractor={filterKeyExtractor}
-          contentContainerStyle={styles.filtersList}
-          renderItem={renderFilterItem}
-        />
-      </View>
-    );
-  };
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Ionicons name="people-outline" size={48} color={palette.muted} />
-      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-        {emptyMessage}
-      </ThemedText>
-    </View>
-  );
+  const filterKeyExtractor = useCallback((item: FilterOption) => item.key, []);
 
   if (loading) {
     return (
@@ -252,11 +119,23 @@ export function AttendeeList({
 
   return (
     <View style={styles.container}>
-      {renderStatsCard()}
-      {renderFilters()}
+      {stats && showStats && <AttendeeStatsCard stats={stats} palette={palette} />}
+
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={filterOptions}
+            keyExtractor={filterKeyExtractor}
+            contentContainerStyle={styles.filtersList}
+            renderItem={renderFilterItem}
+          />
+        </View>
+      )}
 
       {filteredData.length === 0 ? (
-        renderEmptyState()
+        <AttendeeEmptyState message={emptyMessage} palette={palette} />
       ) : (
         <FlatList
           data={filteredData}
@@ -271,115 +150,14 @@ export function AttendeeList({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.xl,
   },
-  statsCard: {
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xxs,
-  },
-  statValue: {
-    fontSize: scaleFont(18),
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: scaleFont(11),
-    fontWeight: '500',
-  },
-  capacitySection: {
-    marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    // borderTopColor set inline for dynamic theming
-  },
-  capacityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.xxs,
-  },
-  capacityLabel: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
-  },
-  capacityValue: {
-    fontSize: scaleFont(12),
-    fontWeight: '600',
-  },
-  capacityBar: {
-    height: 6,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  capacityFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  filtersContainer: {
-    marginBottom: Spacing.md,
-  },
-  filtersList: {
-    gap: Spacing.xs,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: 8,
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontSize: scaleFont(13),
-    fontWeight: '500',
-  },
-  filterChipCount: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-    minWidth: 22,
-    alignItems: 'center',
-  },
-  filterChipCountText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
-  },
-  listContent: {
-    paddingBottom: Spacing.lg,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: scaleFont(15),
-    textAlign: 'center',
-  },
+  filtersContainer: { marginBottom: Spacing.md },
+  filtersList: { gap: Spacing.xs },
+  listContent: { paddingBottom: Spacing.lg },
 });

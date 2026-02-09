@@ -1,0 +1,95 @@
+import { memo } from 'react';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
+import { Ionicons } from '@expo/vector-icons';
+
+import { ThemedText } from '@/components/themed-text';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export interface ClubMenuItem {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  color: string;
+}
+
+interface ClubHeaderMenuProps {
+  visible: boolean;
+  clubName: string;
+  inviteCode?: string;
+  canShareInvite: boolean;
+  menuItems: ClubMenuItem[];
+  onClose: () => void;
+  onShareInvite: () => void;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
+export const ClubHeaderMenu = memo(function ClubHeaderMenu({
+  visible,
+  clubName,
+  inviteCode,
+  canShareInvite,
+  menuItems,
+  onClose,
+  onShareInvite,
+}: ClubHeaderMenuProps) {
+  const { colors: palette } = useTheme();
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <View onStartShouldSetResponder={() => true} style={[styles.menuContainer, { backgroundColor: palette.surface }]}>
+          <View style={styles.menuHeader}>
+            <ThemedText type="defaultSemiBold">{clubName}</ThemedText>
+            <Clickable accessibilityLabel="Close" onPress={onClose}>
+              <Ionicons name="close" size={24} color={palette.muted} />
+            </Clickable>
+          </View>
+
+          {/* Invite Code Display */}
+          {canShareInvite && inviteCode && (
+            <View style={[styles.inviteCodeSection, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
+              <View>
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Invite Code</ThemedText>
+                <ThemedText type="defaultSemiBold" style={{ ...Typography.heading, color: palette.tint, letterSpacing: 2 }}>
+                  {inviteCode}
+                </ThemedText>
+              </View>
+              <Clickable style={[styles.copyButton, { backgroundColor: palette.tint }]} onPress={onShareInvite}>
+                <Ionicons name="share-outline" size={16} color={palette.onPrimary} />
+                <ThemedText style={{ ...Typography.smallSemiBold, color: palette.onPrimary }}>Share</ThemedText>
+              </Clickable>
+            </View>
+          )}
+
+          {/* Menu Items */}
+          <View style={styles.menuItems}>
+            {menuItems.map((item, index) => (
+              <Clickable key={index} style={styles.menuItem} onPress={item.onPress}>
+                <Ionicons name={item.icon} size={20} color={item.color} />
+                <ThemedText style={{ color: item.color, flex: 1 }}>{item.label}</ThemedText>
+                <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+              </Clickable>
+            ))}
+          </View>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+});
+
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
+  menuContainer: { borderTopLeftRadius: Components.modal.borderRadius, borderTopRightRadius: Components.modal.borderRadius, padding: Components.modal.padding, paddingBottom: Spacing.xl + 20 },
+  menuHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  inviteCodeSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Components.modal.padding, borderRadius: Radii.md, borderWidth: 1, marginBottom: Spacing.md },
+  copyButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  menuItems: { gap: Spacing.xs },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm },
+});

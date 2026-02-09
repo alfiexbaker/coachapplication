@@ -1,133 +1,40 @@
-import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RSVPButtons } from '@/components/event/rsvp-buttons';
-import { createLogger } from '@/utils/logger';
+import { EventAttendanceSection } from '@/components/event/event-attendance-section';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import type { ClubEvent, RSVPStatus } from '@/constants/types';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useEventDetail } from '@/hooks/use-event-detail';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
-
-const logger = createLogger('EventDetailScreen');
 
 export default function EventDetailScreen() {
   const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { currentUser } = useAuth();
-  const isCoach = currentUser?.role === 'COACH';
-
-  const [event, setEvent] = useState<ClubEvent | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showAttendees, setShowAttendees] = useState(false);
-
-  const loadEvent = useCallback(async () => {
-    if (!id) return;
-    try {
-      const data = await eventService.getEvent(id);
-      setEvent(data);
-    } catch (error) {
-      logger.error('Failed to load event:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadEvent();
-    }, [loadEvent])
-  );
-
-  const handleRSVP = async (status: RSVPStatus, guestCount: number) => {
-    if (!event || !currentUser) return;
-
-    try {
-      await eventService.rsvp(
-        event.id,
-        currentUser.id,
-        currentUser.name || 'Unknown',
-        isCoach ? 'COACH' : 'PARENT',
-        status,
-        guestCount,
-        currentUser.avatar
-      );
-      await loadEvent();
-    } catch (error) {
-      logger.error('Failed to RSVP:', error);
-      Alert.alert('Error', 'Failed to save your response. Please try again.');
-    }
-  };
-
-  const handlePublish = async () => {
-    if (!event) return;
-
-    Alert.alert('Publish Event', 'This will notify all club members about this event.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Publish',
-        onPress: async () => {
-          try {
-            await eventService.publishEvent(event.id);
-            await eventService.inviteClub(event.id);
-            await loadEvent();
-            Alert.alert('Success', 'Event published and members notified!');
-          } catch (error) {
-            logger.error('Failed to publish:', error);
-            Alert.alert('Error', 'Failed to publish event.');
-          }
-        } },
-    ]);
-  };
-
-  const handleCancel = async () => {
-    if (!event) return;
-
-    Alert.alert('Cancel Event', 'Are you sure you want to cancel this event?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await eventService.cancelEvent(event.id);
-            await loadEvent();
-          } catch (error) {
-            logger.error('Failed to cancel:', error);
-            Alert.alert('Error', 'Failed to cancel event.');
-          }
-        } },
-    ]);
-  };
+  const {
+    event, loading, showAttendees, isCoach, typeColor, typeIcon,
+    attendeeCounts, currentRSVP, isCreator,
+    handleRSVP, handlePublish, handleCancel, toggleAttendees,
+  } = useEventDetail(id);
 
   if (loading || !event) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ThemedText>Loading...</ThemedText>
-        </View>
+        <View style={styles.loadingContainer}><ThemedText>Loading...</ThemedText></View>
       </SafeAreaView>
     );
   }
 
-  const typeColor = eventService.getEventTypeColor(event.eventType);
-  const typeIcon = eventService.getEventTypeIcon(event.eventType);
-  const { going, maybe, notGoing, totalGuests } = eventService.getAttendeeCounts(event.attendees);
-  const currentRSVP = currentUser ? eventService.getUserRSVP(event.attendees, currentUser.id) : undefined;
-  const isCreator = currentUser?.id === event.createdBy;
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header image */}
         {event.imageUrl && (
           <View style={styles.imageContainer}>
             <Image source={{ uri: event.imageUrl }} style={styles.headerImage} />
@@ -135,24 +42,18 @@ export default function EventDetailScreen() {
           </View>
         )}
 
-        {/* Back button */}
         <View style={[styles.topBar, !event.imageUrl && { position: 'relative' }]}>
-          <Clickable
-            onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: event.imageUrl ? 'rgba(0,0,0,0.4)' : palette.surface }]}
-          >
+          <Clickable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: event.imageUrl ? 'rgba(0,0,0,0.4)' : palette.surface }]}>
             <Ionicons name="arrow-back" size={24} color={event.imageUrl ? palette.onPrimary : palette.text} />
           </Clickable>
         </View>
 
         <View style={styles.content}>
-          {/* Type badge and status */}
+          {/* Badges */}
           <View style={styles.badgeRow}>
             <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
               <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={16} color={typeColor} />
-              <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
-                {eventService.formatEventType(event.eventType)}
-              </ThemedText>
+              <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>{eventService.formatEventType(event.eventType)}</ThemedText>
             </View>
             {event.status === 'DRAFT' && (
               <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
@@ -172,54 +73,33 @@ export default function EventDetailScreen() {
             )}
           </View>
 
-          {/* Title */}
-          <ThemedText type="title" style={styles.title}>
-            {event.title}
-          </ThemedText>
+          <ThemedText type="title" style={styles.title}>{event.title}</ThemedText>
+          <ThemedText style={[styles.clubName, { color: palette.muted }]}>{event.clubName} - Posted by {event.createdByName}</ThemedText>
 
-          {/* Club info */}
-          <ThemedText style={[styles.clubName, { color: palette.muted }]}>
-            {event.clubName} - Posted by {event.createdByName}
-          </ThemedText>
-
-          {/* Details cards */}
+          {/* Detail cards */}
           <View style={styles.detailsSection}>
             <SurfaceCard style={styles.detailCard}>
               <View style={styles.detailRow}>
-                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                  <Ionicons name="calendar" size={20} color={palette.tint} />
-                </View>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}><Ionicons name="calendar" size={20} color={palette.tint} /></View>
                 <View style={styles.detailContent}>
-                  <ThemedText type="defaultSemiBold">
-                    {eventService.formatEventDate(event.date)}
-                  </ThemedText>
-                  <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>
-                    {eventService.formatEventTime(event.startTime, event.endTime)}
-                  </ThemedText>
+                  <ThemedText type="defaultSemiBold">{eventService.formatEventDate(event.date)}</ThemedText>
+                  <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>{eventService.formatEventTime(event.startTime, event.endTime)}</ThemedText>
                 </View>
               </View>
             </SurfaceCard>
 
             <SurfaceCard style={styles.detailCard}>
               <View style={styles.detailRow}>
-                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                  <Ionicons name="location" size={20} color={palette.tint} />
-                </View>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}><Ionicons name="location" size={20} color={palette.tint} /></View>
                 <View style={styles.detailContent}>
                   <ThemedText type="defaultSemiBold">{event.venue}</ThemedText>
-                  {event.address && (
-                    <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>
-                      {event.address}
-                    </ThemedText>
-                  )}
+                  {event.address && <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>{event.address}</ThemedText>}
                 </View>
               </View>
               {event.isVirtual && event.meetingLink && (
                 <Clickable style={[styles.linkButton, { borderColor: palette.tint }]}>
                   <Ionicons name="videocam" size={16} color={palette.tint} />
-                  <ThemedText style={[styles.linkText, { color: palette.tint }]}>
-                    Join Meeting
-                  </ThemedText>
+                  <ThemedText style={[styles.linkText, { color: palette.tint }]}>Join Meeting</ThemedText>
                 </Clickable>
               )}
             </SurfaceCard>
@@ -227,16 +107,10 @@ export default function EventDetailScreen() {
             {event.price > 0 && (
               <SurfaceCard style={styles.detailCard}>
                 <View style={styles.detailRow}>
-                  <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                    <Ionicons name="cash" size={20} color={palette.success} />
-                  </View>
+                  <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}><Ionicons name="cash" size={20} color={palette.success} /></View>
                   <View style={styles.detailContent}>
-                    <ThemedText type="defaultSemiBold">
-                      {eventService.formatPrice(event.price, event.currency)}
-                    </ThemedText>
-                    <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>
-                      per person
-                    </ThemedText>
+                    <ThemedText type="defaultSemiBold">{eventService.formatPrice(event.price, event.currency)}</ThemedText>
+                    <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>per person</ThemedText>
                   </View>
                 </View>
               </SurfaceCard>
@@ -245,124 +119,37 @@ export default function EventDetailScreen() {
 
           {/* Description */}
           <View style={styles.section}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              About this event
-            </ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>About this event</ThemedText>
             <ThemedText style={styles.description}>{event.description}</ThemedText>
           </View>
 
           {/* Audience */}
           <View style={styles.section}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              Who can attend
-            </ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Who can attend</ThemedText>
             <View style={[styles.audienceBadge, { backgroundColor: palette.surface }]}>
               <Ionicons name="people" size={16} color={palette.icon} />
               <ThemedText>{eventService.formatAudience(event.targetAudience)}</ThemedText>
             </View>
           </View>
 
-          {/* RSVP section */}
+          {/* RSVP */}
           {event.status === 'PUBLISHED' && event.rsvpRequired && (
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                RSVP
-              </ThemedText>
-              {event.rsvpDeadline && (
-                <ThemedText style={[styles.rsvpDeadline, { color: palette.muted }]}>
-                  Respond by {eventService.formatEventDate(event.rsvpDeadline)}
-                </ThemedText>
-              )}
-              <RSVPButtons
-                event={event}
-                currentRSVP={currentRSVP}
-                onRSVP={handleRSVP}
-              />
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>RSVP</ThemedText>
+              {event.rsvpDeadline && <ThemedText style={[styles.rsvpDeadline, { color: palette.muted }]}>Respond by {eventService.formatEventDate(event.rsvpDeadline)}</ThemedText>}
+              <RSVPButtons event={event} currentRSVP={currentRSVP} onRSVP={handleRSVP} />
             </View>
           )}
 
-          {/* Attendance summary */}
-          <View style={styles.section}>
-            <Clickable
-              onPress={() => setShowAttendees(!showAttendees)}
-              style={styles.attendanceHeader}
-            >
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Attendance ({going + totalGuests} confirmed)
-              </ThemedText>
-              <Ionicons
-                name={showAttendees ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={palette.icon}
-              />
-            </Clickable>
-
-            <View style={styles.attendanceStats}>
-              <View style={[styles.statBox, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                <ThemedText style={[styles.statNumber, { color: palette.success }]}>
-                  {going}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.success }]}>Going</ThemedText>
-              </View>
-              <View style={[styles.statBox, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
-                <ThemedText style={[styles.statNumber, { color: palette.warning }]}>
-                  {maybe}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.warning }]}>Maybe</ThemedText>
-              </View>
-              <View style={[styles.statBox, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-                <ThemedText style={[styles.statNumber, { color: palette.error }]}>
-                  {notGoing}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.error }]}>Can&apos;t Go</ThemedText>
-              </View>
-              {totalGuests > 0 && (
-                <View style={[styles.statBox, { backgroundColor: palette.surface }]}>
-                  <ThemedText style={styles.statNumber}>+{totalGuests}</ThemedText>
-                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Guests</ThemedText>
-                </View>
-              )}
-            </View>
-
-            {showAttendees && event.attendees.length > 0 && (
-              <View style={styles.attendeeList}>
-                {event.attendees
-                  .filter((a) => a.status === 'GOING')
-                  .map((attendee) => (
-                    <View key={attendee.userId} style={styles.attendeeRow}>
-                      <View style={[styles.attendeeAvatar, { backgroundColor: palette.border }]}>
-                        <ThemedText style={styles.attendeeInitial}>
-                          {attendee.userName.charAt(0)}
-                        </ThemedText>
-                      </View>
-                      <View style={styles.attendeeInfo}>
-                        <ThemedText>{attendee.userName}</ThemedText>
-                        {attendee.guestCount > 0 && (
-                          <ThemedText style={[styles.guestCount, { color: palette.muted }]}>
-                            +{attendee.guestCount} guest{attendee.guestCount > 1 ? 's' : ''}
-                          </ThemedText>
-                        )}
-                      </View>
-                      <View style={[styles.statusDot, { backgroundColor: palette.success }]} />
-                    </View>
-                  ))}
-              </View>
-            )}
-          </View>
+          {/* Attendance */}
+          <EventAttendanceSection event={event} attendeeCounts={attendeeCounts} showAttendees={showAttendees} isCoach={isCoach} onToggleAttendees={toggleAttendees} />
 
           {/* Coach actions */}
           {isCreator && event.status === 'DRAFT' && (
-            <View style={styles.actionSection}>
-              <Button onPress={handlePublish}>Publish Event</Button>
-            </View>
+            <View style={styles.actionSection}><Button onPress={handlePublish}>Publish Event</Button></View>
           )}
-
           {isCreator && event.status === 'PUBLISHED' && (
-            <View style={styles.actionSection}>
-              <Button variant="outline" onPress={handleCancel}>
-                Cancel Event
-              </Button>
-            </View>
+            <View style={styles.actionSection}><Button variant="outline" onPress={handleCancel}>Cancel Event</Button></View>
           )}
         </View>
       </ScrollView>
@@ -371,162 +158,35 @@ export default function EventDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1 },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  imageContainer: {
-    height: 220,
-    position: 'relative' },
-  headerImage: {
-    width: '100%',
-    height: '100%' },
-  imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)' },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    zIndex: 10 },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.lg },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    flexWrap: 'wrap' },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm },
-  typeBadgeText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radii.sm },
-  statusText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    letterSpacing: 0.5 },
-  virtualBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radii.sm },
-  virtualText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  title: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-    lineHeight: scaleFont(32) },
-  clubName: {
-    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-    marginTop: -Spacing.sm },
-  detailsSection: {
-    gap: Spacing.sm },
-  detailCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md },
-  detailIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  detailContent: {
-    flex: 1 },
-  detailSubtext: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-    marginTop: Spacing.micro },
-  linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    marginTop: Spacing.xs },
-  linkText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
-  section: {
-    gap: Spacing.sm },
-  sectionTitle: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
-  description: {
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(23) },
-  audienceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    alignSelf: 'flex-start' },
-  rsvpDeadline: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-    marginTop: -Spacing.xs },
-  attendanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between' },
-  attendanceStats: {
-    flexDirection: 'row',
-    gap: Spacing.sm },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md },
-  statNumber: {
-    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
-  statLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  attendeeList: {
-    marginTop: Spacing.sm,
-    gap: Spacing.xs },
-  attendeeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs },
-  attendeeAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  attendeeInitial: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
-  attendeeInfo: {
-    flex: 1 },
-  guestCount: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.xs },
-  actionSection: {
-    marginTop: Spacing.md } });
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  imageContainer: { height: 220, position: 'relative' },
+  headerImage: { width: '100%', height: '100%' },
+  imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, zIndex: 10 },
+  backButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: Spacing.lg, gap: Spacing.lg },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flexWrap: 'wrap' },
+  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  typeBadgeText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.sm },
+  statusText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), letterSpacing: 0.5 },
+  virtualBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.sm },
+  virtualText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
+  title: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), lineHeight: scaleFont(32) },
+  clubName: { ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize), marginTop: -Spacing.sm },
+  detailsSection: { gap: Spacing.sm },
+  detailCard: { padding: Spacing.md, gap: Spacing.sm },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  detailIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  detailContent: { flex: 1 },
+  detailSubtext: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize), marginTop: Spacing.micro },
+  linkButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  linkText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  section: { gap: Spacing.sm },
+  sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
+  description: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(23) },
+  audienceBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, alignSelf: 'flex-start' },
+  rsvpDeadline: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize), marginTop: -Spacing.xs },
+  actionSection: { marginTop: Spacing.md },
+});

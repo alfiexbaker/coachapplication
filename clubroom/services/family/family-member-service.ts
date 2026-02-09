@@ -11,7 +11,7 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
-import { eventBus, ServiceEvents } from '../event-bus';
+import { emitTyped, ServiceEvents } from '../event-bus';
 import {
   type Result,
   type ServiceError,
@@ -347,7 +347,7 @@ class FamilyMemberService {
     members.push(newMember);
     await this.saveMembers(members);
 
-    eventBus.emit(ServiceEvents.FAMILY_MEMBER_ADDED, {
+    emitTyped(ServiceEvents.FAMILY_MEMBER_ADDED, {
       familyId: parentId,
       memberId: newMember.id,
     });
@@ -426,7 +426,7 @@ class FamilyMemberService {
     members[index].isActive = false;
     await this.saveMembers(members);
 
-    eventBus.emit(ServiceEvents.FAMILY_MEMBER_REMOVED, { memberId: childId });
+    emitTyped(ServiceEvents.FAMILY_MEMBER_REMOVED, { familyId: '', memberId: childId });
     logger.info('family_member_removed', { childId });
     return true;
   }

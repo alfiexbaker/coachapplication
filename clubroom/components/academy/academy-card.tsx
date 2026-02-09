@@ -7,6 +7,12 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { Academy } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+// Re-export extracted components for backward compat
+export { CompactAcademyCard } from './academy-card-sections';
+export type { CompactAcademyCardProps } from './academy-card-sections';
+
+import { CompactAcademyCard } from './academy-card-sections';
+
 interface AcademyCardProps {
   academy: Academy;
   onPress?: () => void;
@@ -15,42 +21,14 @@ interface AcademyCardProps {
 
 export function AcademyCard({ academy, onPress, compact = false }: AcademyCardProps) {
   const { colors: palette } = useTheme();
-
   const primaryColor = academy.primaryColor || palette.tint;
 
   if (compact) {
-    return (
-      <SurfaceCard style={styles.compactCard} onPress={onPress}>
-        <View style={styles.compactMain}>
-          {academy.logoUrl ? (
-            <Image source={{ uri: academy.logoUrl }} style={styles.compactLogo} />
-          ) : (
-            <View style={[styles.compactLogoPlaceholder, { backgroundColor: primaryColor }]}>
-              <ThemedText style={styles.compactLogoText}>
-                {academy.name.slice(0, 2).toUpperCase()}
-              </ThemedText>
-            </View>
-          )}
-          <View style={styles.compactInfo}>
-            <ThemedText type="defaultSemiBold" numberOfLines={1}>
-              {academy.name}
-            </ThemedText>
-            <View style={styles.compactMeta}>
-              <Ionicons name="location-outline" size={12} color={palette.muted} />
-              <ThemedText style={[styles.compactLocation, { color: palette.muted }]}>
-                {academy.city}
-              </ThemedText>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-        </View>
-      </SurfaceCard>
-    );
+    return <CompactAcademyCard academy={academy} primaryColor={primaryColor} palette={palette} onPress={onPress} />;
   }
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
-      {/* Banner */}
       <View style={styles.bannerContainer}>
         {academy.bannerUrl ? (
           <Image source={{ uri: academy.bannerUrl }} style={styles.banner} />
@@ -59,79 +37,55 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
         )}
       </View>
 
-      {/* Logo & Info */}
       <View style={styles.content}>
         <View style={styles.logoRow}>
           {academy.logoUrl ? (
-            <Image source={{ uri: academy.logoUrl }} style={styles.logo} />
+            <Image source={{ uri: academy.logoUrl }} style={[styles.logo, { borderColor: palette.surface }]} />
           ) : (
-            <View style={[styles.logoPlaceholder, { backgroundColor: primaryColor }]}>
-              <ThemedText style={styles.logoText}>
-                {academy.name.slice(0, 2).toUpperCase()}
-              </ThemedText>
+            <View style={[styles.logoPlaceholder, { backgroundColor: primaryColor, borderColor: palette.surface }]}>
+              <ThemedText style={[styles.logoText, { color: palette.onPrimary }]}>{academy.name.slice(0, 2).toUpperCase()}</ThemedText>
             </View>
           )}
           <View style={styles.titleSection}>
-            <ThemedText type="defaultSemiBold" numberOfLines={1}>
-              {academy.name}
-            </ThemedText>
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>{academy.name}</ThemedText>
             <View style={styles.locationRow}>
               <Ionicons name="location-outline" size={12} color={palette.muted} />
-              <ThemedText style={[styles.location, { color: palette.muted }]}>
-                {academy.city}
-              </ThemedText>
+              <ThemedText style={[styles.location, { color: palette.muted }]}>{academy.city}</ThemedText>
             </View>
           </View>
         </View>
 
         {academy.description && (
-          <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>
-            {academy.description}
-          </ThemedText>
+          <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>{academy.description}</ThemedText>
         )}
 
-        {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Ionicons name="people" size={14} color={primaryColor} />
-            <ThemedText style={[styles.statText, { color: palette.muted }]}>
-              {academy.coachCount} coaches
-            </ThemedText>
+            <ThemedText style={[styles.statText, { color: palette.muted }]}>{academy.coachCount} coaches</ThemedText>
           </View>
           <View style={styles.stat}>
             <Ionicons name="person" size={14} color={primaryColor} />
-            <ThemedText style={[styles.statText, { color: palette.muted }]}>
-              {academy.athleteCount} athletes
-            </ThemedText>
+            <ThemedText style={[styles.statText, { color: palette.muted }]}>{academy.athleteCount} athletes</ThemedText>
           </View>
           {academy.rating && (
             <View style={styles.stat}>
               <Ionicons name="star" size={14} color={palette.rating} />
-              <ThemedText style={[styles.statText, { color: palette.muted }]}>
-                {academy.rating.average.toFixed(1)}
-              </ThemedText>
+              <ThemedText style={[styles.statText, { color: palette.muted }]}>{academy.rating.average.toFixed(1)}</ThemedText>
             </View>
           )}
         </View>
 
-        {/* Specialties */}
         {academy.specialties && academy.specialties.length > 0 && (
           <View style={styles.tagsRow}>
             {academy.specialties.slice(0, 3).map((specialty) => (
-              <View
-                key={specialty}
-                style={[styles.tag, { backgroundColor: withAlpha(primaryColor, 0.09) }]}
-              >
-                <ThemedText style={[styles.tagText, { color: primaryColor }]}>
-                  {specialty}
-                </ThemedText>
+              <View key={specialty} style={[styles.tag, { backgroundColor: withAlpha(primaryColor, 0.09) }]}>
+                <ThemedText style={[styles.tagText, { color: primaryColor }]}>{specialty}</ThemedText>
               </View>
             ))}
             {academy.specialties.length > 3 && (
               <View style={[styles.tag, { backgroundColor: palette.surfaceSecondary }]}>
-                <ThemedText style={[styles.tagText, { color: palette.muted }]}>
-                  +{academy.specialties.length - 3}
-                </ThemedText>
+                <ThemedText style={[styles.tagText, { color: palette.muted }]}>+{academy.specialties.length - 3}</ThemedText>
               </View>
             )}
           </View>
@@ -142,111 +96,23 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: 0,
-    overflow: 'hidden',
-  },
-  bannerContainer: {
-    height: 100,
-  },
-  banner: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerPlaceholder: {
-    width: '100%',
-    height: '100%',
-  },
-  content: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: -32,
-  },
-  logo: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    borderWidth: 3,
-    borderColor: '#FFFFFF', // Decorative: white border to separate logo from banner
-  },
-  logoPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    borderWidth: 3,
-    borderColor: '#FFFFFF', // Decorative: white border to separate logo from banner
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: { ...Typography.heading, color: '#FFFFFF' }, // Decorative: white text on brand-colored background
-  titleSection: {
-    flex: 1,
-    marginTop: 24,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.micro,
-    marginTop: Spacing.micro,
-  },
+  card: { padding: 0, overflow: 'hidden' },
+  bannerContainer: { height: 100 },
+  banner: { width: '100%', height: '100%' },
+  bannerPlaceholder: { width: '100%', height: '100%' },
+  content: { padding: Spacing.md, gap: Spacing.sm },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: -32 },
+  logo: { width: 56, height: 56, borderRadius: Radii['2xl'], borderWidth: 3 },
+  logoPlaceholder: { width: 56, height: 56, borderRadius: Radii['2xl'], borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  logoText: { ...Typography.heading },
+  titleSection: { flex: 1, marginTop: 24 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, marginTop: Spacing.micro },
   location: { ...Typography.caption },
   description: { ...Typography.small, lineHeight: 18 },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  statsRow: { flexDirection: 'row', gap: Spacing.md },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   statText: { ...Typography.caption },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  tag: {
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  tag: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   tagText: { ...Typography.caption },
-  // Compact styles
-  compactCard: {
-    padding: Spacing.md,
-  },
-  compactMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  compactLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-  },
-  compactLogoPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  compactLogoText: { ...Typography.bodySmallSemiBold, color: '#FFFFFF' }, // Decorative: white text on brand-colored background
-  compactInfo: {
-    flex: 1,
-  },
-  compactMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.micro,
-    marginTop: Spacing.micro,
-  },
-  compactLocation: { ...Typography.caption },
 });

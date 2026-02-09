@@ -197,6 +197,11 @@ export const ServiceEvents = {
   SYNC_COMPLETED: 'sync:completed',
   SYNC_FAILED: 'sync:failed',
 
+  // Concern events
+  CONCERN_RAISED: 'concern:raised',
+  CONCERN_UPDATED: 'concern:updated',
+  CONCERN_RESOLVED: 'concern:resolved',
+
   // Connection & offline queue events
   CONNECTION_CHANGED: 'connection:changed',
   QUEUE_FLUSHED: 'queue:flushed',
@@ -474,6 +479,25 @@ export interface EventPayloads {
     inviteId: string;
     sharedBy: string;
     shareLink: string;
+  };
+
+  // Concern events
+  [ServiceEvents.CONCERN_RAISED]: {
+    concernId: string;
+    coachId: string;
+    athleteId: string;
+    athleteName: string;
+    type: string;
+    severity: string;
+  };
+  [ServiceEvents.CONCERN_UPDATED]: {
+    concernId: string;
+    status: string;
+    changes: Record<string, unknown>;
+  };
+  [ServiceEvents.CONCERN_RESOLVED]: {
+    concernId: string;
+    resolution: string;
   };
 
   // Sync events

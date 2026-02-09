@@ -177,7 +177,7 @@ export const createButtonStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.tint,
   } as ViewStyle,
   primaryText: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   } as TextStyle,

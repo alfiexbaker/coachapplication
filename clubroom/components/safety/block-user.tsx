@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { ModalStyles, ButtonStyles } from '@/constants/styles';
+import { createModalStyles, createButtonStyles } from '@/constants/styles';
 import { blockService } from '@/services/block-service';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
@@ -36,6 +36,8 @@ export function BlockUserModal({
 }: BlockUserModalProps) {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
+  const ModalStyles = createModalStyles(palette);
+  const ButtonStyles = createButtonStyles(palette);
 
   const [blocking, setBlocking] = useState(false);
   const [blocked, setBlocked] = useState(false);

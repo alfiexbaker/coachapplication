@@ -3,12 +3,12 @@ import { StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 import { Fonts, Typography } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-type TextType = 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'eyebrow' | 'heading' | 'display';
+type TextType = 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'subheading' | 'link' | 'eyebrow' | 'heading' | 'display';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'eyebrow' | 'heading' | 'display';
+  type?: TextType;
 };
 
 export function ThemedText({
@@ -28,6 +28,7 @@ export function ThemedText({
     link: styles.link,
     eyebrow: styles.eyebrow,
     heading: styles.heading,
+    subheading: styles.subheading,
     display: styles.display,
   };
 
@@ -62,6 +63,9 @@ const styles = StyleSheet.create({
   },
   heading: {
     ...Typography.heading,
+  },
+  subheading: {
+    ...Typography.subheading,
   },
   eyebrow: {
     ...Typography.xs,

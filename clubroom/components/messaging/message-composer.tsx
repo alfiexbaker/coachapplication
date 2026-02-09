@@ -1,13 +1,19 @@
-import { useState, useRef } from 'react';
-import { View, StyleSheet, TextInput, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useState, useRef, useCallback } from 'react';
+import { View, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { Clickable } from '@/components/primitives/clickable';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii , Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Attachment } from '@/constants/types';
+
+import {
+  ReplyPreview,
+  AttachmentsPreview,
+  ComposerInputRow,
+  QuickActionsBarInner,
+  styles,
+} from './message-composer-sections';
+
+// ─── Types ──────────────────────────────────────────────────────
 
 interface MessageComposerProps {
   onSend: (text: string, attachments: Attachment[]) => void;
@@ -21,6 +27,8 @@ interface MessageComposerProps {
   replyingTo?: { id: string; preview: string } | null;
   onCancelReply?: () => void;
 }
+
+// ─── Component ──────────────────────────────────────────────────
 
 export function MessageComposer({
   onSend,
@@ -42,282 +50,64 @@ export function MessageComposer({
 
   const canSend = text.trim().length > 0 || attachments.length > 0;
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     if (!canSend || disabled) return;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSend(text.trim(), attachments);
     setText('');
     setIsExpanded(false);
-  };
+  }, [canSend, disabled, text, attachments, onSend]);
 
-  const handleTextChange = (value: string) => {
+  const handleTextChange = useCallback((value: string) => {
     setText(value);
-    // Auto-expand for multi-line
     setIsExpanded(value.includes('\n') || value.length > 100);
-  };
+  }, []);
 
-  const getAttachmentIcon = (type: Attachment['type']) => {
-    switch (type) {
-      case 'IMAGE':
-        return 'image';
-      case 'VIDEO':
-        return 'videocam';
-      case 'DOCUMENT':
-        return 'document';
-      default:
-        return 'attach';
-    }
-  };
+  const handleFocus = useCallback(() => setIsExpanded(true), []);
+  const handleBlur = useCallback(() => {
+    if (!text) setIsExpanded(false);
+  }, [text]);
 
   return (
     <View style={styles.container}>
-      {/* Reply Preview */}
       {replyingTo && (
-        <View style={[styles.replyPreview, { backgroundColor: palette.surface, borderLeftColor: palette.tint }]}>
-          <View style={styles.replyContent}>
-            <ThemedText style={[styles.replyLabel, { color: palette.tint }]}>
-              Replying to
-            </ThemedText>
-            <ThemedText style={styles.replyText} numberOfLines={1}>
-              {replyingTo.preview}
-            </ThemedText>
-          </View>
-          <Clickable onPress={onCancelReply}>
-            <Ionicons name="close" size={20} color={palette.muted} />
-          </Clickable>
-        </View>
+        <ReplyPreview
+          replyingTo={replyingTo}
+          onCancelReply={onCancelReply}
+          palette={palette}
+        />
       )}
 
-      {/* Attachments Preview */}
-      {attachments.length > 0 && (
-        <View style={styles.attachmentsRow}>
-          {attachments.map((attachment, index) => (
-            <View
-              key={index}
-              style={[styles.attachmentPreview, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            >
-              <Ionicons
-                name={getAttachmentIcon(attachment.type)}
-                size={16}
-                color={palette.tint}
-              />
-              <ThemedText style={styles.attachmentName} numberOfLines={1}>
-                {attachment.name || `File ${index + 1}`}
-              </ThemedText>
-              {onRemoveAttachment && (
-                <Clickable onPress={() => onRemoveAttachment(index)}>
-                  <Ionicons name="close-circle" size={16} color={palette.muted} />
-                </Clickable>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
+      <AttachmentsPreview
+        attachments={attachments}
+        onRemoveAttachment={onRemoveAttachment}
+        palette={palette}
+      />
 
-      {/* Composer Row */}
-      <View style={[styles.composerRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
-        {/* Action Buttons */}
-        <View style={styles.actionsRow}>
-          <Clickable
-            onPress={onAttachPress}
-            style={styles.actionButton}
-            hitSlop={8}
-          >
-            <Ionicons name="attach" size={22} color={palette.icon} />
-          </Clickable>
-
-          {onCameraPress && (
-            <Clickable
-              onPress={onCameraPress}
-              style={styles.actionButton}
-              hitSlop={8}
-            >
-              <Ionicons name="camera-outline" size={22} color={palette.icon} />
-            </Clickable>
-          )}
-        </View>
-
-        {/* Text Input */}
-        <View style={styles.inputWrapper}>
-          <TextInput
-            ref={inputRef}
-            style={[
-              styles.input,
-              {
-                color: palette.text,
-                maxHeight: isExpanded ? 120 : 40,
-              },
-            ]}
-            placeholder={placeholder}
-            placeholderTextColor={palette.muted}
-            value={text}
-            onChangeText={handleTextChange}
-            multiline
-            editable={!disabled}
-            onFocus={() => setIsExpanded(true)}
-            onBlur={() => !text && setIsExpanded(false)}
-          />
-        </View>
-
-        {/* Send/Voice Button */}
-        {canSend ? (
-          <Clickable
-            onPress={handleSend}
-            disabled={disabled}
-            style={({ pressed }) => [
-              styles.sendButton,
-              {
-                backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                opacity: disabled ? 0.5 : 1,
-              },
-            ]}
-          >
-            <Ionicons
-              name="send"
-              size={18}
-              color={scheme === 'light' ? palette.onPrimary : palette.text}
-            />
-          </Clickable>
-        ) : onVoicePress ? (
-          <Clickable
-            onPress={onVoicePress}
-            style={[styles.voiceButton, { borderColor: palette.border }]}
-          >
-            <Ionicons name="mic" size={20} color={palette.icon} />
-          </Clickable>
-        ) : (
-          <View style={styles.sendPlaceholder} />
-        )}
-      </View>
+      <ComposerInputRow
+        inputRef={inputRef}
+        text={text}
+        isExpanded={isExpanded}
+        canSend={canSend}
+        disabled={disabled}
+        placeholder={placeholder}
+        scheme={scheme}
+        onTextChange={handleTextChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onSend={handleSend}
+        onAttachPress={onAttachPress}
+        onCameraPress={onCameraPress}
+        onVoicePress={onVoicePress}
+        palette={palette}
+      />
     </View>
   );
 }
 
-// Quick actions bar for common responses
-interface QuickActionsBarProps {
-  actions: { label: string; icon?: string; onPress: () => void }[];
-}
-
-export function QuickActionsBar({ actions }: QuickActionsBarProps) {
+// Backward-compat wrapper
+export function QuickActionsBar({ actions }: { actions: { label: string; icon?: string; onPress: () => void }[] }) {
   const { colors: palette } = useTheme();
-
-  return (
-    <View style={styles.quickActionsContainer}>
-      {actions.map((action, index) => (
-        <Clickable
-          key={index}
-          onPress={action.onPress}
-          style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
-        >
-          {action.icon && (
-            <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={14} color={palette.tint} />
-          )}
-          <ThemedText style={[styles.quickActionText, { color: palette.text }]}>
-            {action.label}
-          </ThemedText>
-        </Clickable>
-      ))}
-    </View>
-  );
+  return <QuickActionsBarInner actions={actions} palette={palette} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  replyPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    marginHorizontal: Spacing.md,
-    borderRadius: Radii.sm,
-    borderLeftWidth: 3,
-    gap: Spacing.sm,
-  },
-  replyContent: {
-    flex: 1,
-  },
-  replyLabel: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
-  replyText: { ...Typography.small, marginTop: Spacing.micro },
-  attachmentsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-  },
-  attachmentPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    maxWidth: 150,
-  },
-  attachmentName: { ...Typography.caption, flex: 1 },
-  composerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    gap: Spacing.xs,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingBottom: 8,
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inputWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  input: { ...Typography.subheading, paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    paddingHorizontal: Spacing.xxs,
-    lineHeight: 20 },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  voiceButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendPlaceholder: {
-    width: 40,
-  },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  quickAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-  },
-  quickActionText: { ...Typography.smallSemiBold },
-});

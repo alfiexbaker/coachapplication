@@ -1,430 +1,165 @@
 /**
  * Goals Dashboard Screen
  *
- * Main screen for viewing and managing goals. Shows goal statistics,
- * active goals, and completed goals. Supports filtering by status and category.
+ * Main screen for viewing and managing goals. Shows statistics,
+ * active/completed goals, and category filters.
  */
 
-import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import {
-  GoalCard,
-  ProgressRing,
-} from '@/components/goals';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import type { Goal, GoalCategory } from '@/constants/types';
+import { Row } from '@/components/primitives/row';
+import { GoalCard, ProgressRing } from '@/components/goals';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useGoalsDashboard, GOAL_CATEGORIES, type TabFilter } from '@/hooks/use-goals-dashboard';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
-const logger = createLogger('GoalsDashboardScreen');
-
-type TabFilter = 'active' | 'completed' | 'all';
-
-/**
- * Goals dashboard screen showing goal statistics and lists.
- */
 export default function GoalsDashboardScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+  const { colors } = useTheme();
+  const {
+    goals, loading, refreshing, activeTab, categoryFilter, stats,
+    handleRefresh, handleTabChange, handleCategoryToggle,
+  } = useGoalsDashboard();
 
-  // State
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabFilter>('active');
-  const [categoryFilter, setCategoryFilter] = useState<GoalCategory | null>(null);
-
-  // Get current user ID (athlete or parent's child)
-  const userId = currentUser?.id ?? 'user1';
-
-  // Load goals
-  const loadGoals = useCallback(async () => {
-    try {
-      const userGoals = await progressService.getUserGoals(userId);
-      setGoals(userGoals);
-    } catch (error) {
-      logger.error('Failed to load goals', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [userId]);
-
-  // Reload on focus
-  useFocusEffect(
-    useCallback(() => {
-      loadGoals();
-    }, [loadGoals])
-  );
-
-  // Pull to refresh
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadGoals();
-  }, [loadGoals]);
-
-  // Filter goals
-  const filteredGoals = useMemo(() => {
-    let filtered = goals;
-
-    // Filter by tab
-    if (activeTab === 'active') {
-      filtered = filtered.filter((g) => g.status === 'ACTIVE' || g.status === 'PAUSED');
-    } else if (activeTab === 'completed') {
-      filtered = filtered.filter((g) => g.status === 'COMPLETED');
-    }
-
-    // Filter by category
-    if (categoryFilter) {
-      filtered = filtered.filter((g) => g.category === categoryFilter);
-    }
-
-    return filtered;
-  }, [goals, activeTab, categoryFilter]);
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const active = goals.filter((g) => g.status === 'ACTIVE').length;
-    const completed = goals.filter((g) => g.status === 'COMPLETED').length;
-    const activeGoals = goals.filter((g) => g.status === 'ACTIVE');
-    const avgProgress =
-      activeGoals.length > 0
-        ? Math.round(activeGoals.reduce((sum, g) => sum + g.progress, 0) / activeGoals.length)
-        : 0;
-    return { active, completed, total: goals.length, avgProgress };
-  }, [goals]);
-
-  // Navigation
-  const handleGoalPress = useCallback((goal: Goal) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(Routes.goal(goal.id));
-  }, []);
-
-  const handleCreateGoal = useCallback(() => {
+  const handleCreateGoal = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(Routes.GOALS_CREATE);
-  }, []);
+  };
 
-  const handleTabChange = useCallback((tab: TabFilter) => {
+  const handleGoalPress = (goalId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(tab);
-  }, []);
-
-  const handleCategoryToggle = useCallback((cat: GoalCategory) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setCategoryFilter((prev) => (prev === cat ? null : cat));
-  }, []);
+    router.push(Routes.goal(goalId));
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row align="center" justify="space-between" style={styles.header}>
+        <Row gap="md" align="center">
           <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Goals
-          </ThemedText>
-        </View>
-        <Clickable
-          onPress={handleCreateGoal}
-          style={[styles.addButton, { backgroundColor: palette.tint }]}
-        >
-          <Ionicons name="add" size={24} color={palette.onPrimary} />
+          <ThemedText type="title" style={{ ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) }}>Goals</ThemedText>
+        </Row>
+        <Clickable accessibilityLabel="Create goal" onPress={handleCreateGoal} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+          <Ionicons name="add" size={24} color={colors.onPrimary} />
         </Clickable>
-      </View>
+      </Row>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        {/* Stats Overview */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+        {/* Stats */}
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.statsCard}>
-            <View style={styles.statsRow}>
+            <Row align="center" justify="space-around">
               <View style={styles.statItem}>
                 <ProgressRing progress={stats.avgProgress} size={64} />
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                  Avg Progress
-                </ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Avg Progress</ThemedText>
               </View>
-              <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
               <View style={styles.statItem}>
-                <ThemedText type="title" style={styles.statValue}>
-                  {stats.active}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                  Active
-                </ThemedText>
+                <ThemedText type="title" style={styles.statValue}>{stats.active}</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Active</ThemedText>
               </View>
-              <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
               <View style={styles.statItem}>
-                <ThemedText type="title" style={[styles.statValue, { color: palette.success }]}>
-                  {stats.completed}
-                </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                  Completed
-                </ThemedText>
+                <ThemedText type="title" style={[styles.statValue, { color: colors.success }]}>{stats.completed}</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Completed</ThemedText>
               </View>
-            </View>
+            </Row>
           </SurfaceCard>
         </Animated.View>
 
-        {/* Tab Filter */}
+        {/* Tabs */}
         <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.tabRow}>
           {(['active', 'completed', 'all'] as TabFilter[]).map((tab) => (
-            <Clickable
-              key={tab}
-              onPress={() => handleTabChange(tab)}
-              style={[
-                styles.tab,
-                {
-                  backgroundColor: activeTab === tab ? palette.tint : 'transparent',
-                  borderColor: activeTab === tab ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.tabText,
-                  { color: activeTab === tab ? palette.onPrimary : palette.text },
-                ]}
-              >
+            <Clickable key={tab} onPress={() => handleTabChange(tab)}
+              style={[styles.tab, { backgroundColor: activeTab === tab ? colors.tint : 'transparent', borderColor: activeTab === tab ? colors.tint : colors.border }]}>
+              <ThemedText style={[styles.tabText, { color: activeTab === tab ? colors.onPrimary : colors.text }]}>
                 {tab === 'active' ? 'Active' : tab === 'completed' ? 'Completed' : 'All'}
               </ThemedText>
             </Clickable>
           ))}
         </Animated.View>
 
-        {/* Category Filter */}
+        {/* Category chips */}
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.categoryRow}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.categoryChips}>
-              {(['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'] as GoalCategory[]).map(
-                (cat) => {
-                  const { color, icon, label } = progressService.getCategoryInfo(cat);
-                  const isSelected = categoryFilter === cat;
-
-                  return (
-                    <Clickable
-                      key={cat}
-                      onPress={() => handleCategoryToggle(cat)}
-                      style={[
-                        styles.categoryChip,
-                        {
-                          backgroundColor: isSelected ? withAlpha(color, 0.12) : palette.surface,
-                          borderColor: isSelected ? color : palette.border,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={icon as keyof typeof Ionicons.glyphMap}
-                        size={14}
-                        color={isSelected ? color : palette.muted}
-                      />
-                      <ThemedText
-                        style={[
-                          styles.categoryChipText,
-                          { color: isSelected ? color : palette.text },
-                        ]}
-                      >
-                        {label}
-                      </ThemedText>
-                    </Clickable>
-                  );
-                }
-              )}
-            </View>
+            <Row gap="xs">
+              {GOAL_CATEGORIES.map((cat) => {
+                const { color, icon, label } = progressService.getCategoryInfo(cat);
+                const isSelected = categoryFilter === cat;
+                return (
+                  <Clickable key={cat} onPress={() => handleCategoryToggle(cat)}
+                    style={[styles.categoryChip, { backgroundColor: isSelected ? withAlpha(color, 0.12) : colors.surface, borderColor: isSelected ? color : colors.border }]}>
+                    <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={14} color={isSelected ? color : colors.muted} />
+                    <ThemedText style={[styles.categoryChipText, { color: isSelected ? color : colors.text }]}>{label}</ThemedText>
+                  </Clickable>
+                );
+              })}
+            </Row>
           </ScrollView>
         </Animated.View>
 
         {/* Goals List */}
-        <View style={styles.goalsSection}>
-          {loading ? (
-            <View style={styles.loadingPlaceholder}>
-              <ThemedText style={{ color: palette.muted }}>Loading goals...</ThemedText>
+        {loading ? (
+          <View style={styles.loadingPlaceholder}>
+            <ThemedText style={{ color: colors.muted }}>Loading goals...</ThemedText>
+          </View>
+        ) : goals.length === 0 ? (
+          <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.emptyState}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+              <Ionicons name="flag-outline" size={48} color={colors.tint} />
             </View>
-          ) : filteredGoals.length === 0 ? (
-            <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.emptyState}>
-              <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <Ionicons name="flag-outline" size={48} color={palette.tint} />
-              </View>
-              <ThemedText type="subtitle" style={styles.emptyTitle}>
-                {activeTab === 'active'
-                  ? 'No Active Goals'
-                  : activeTab === 'completed'
-                    ? 'No Completed Goals'
-                    : 'No Goals Yet'}
-              </ThemedText>
-              <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-                {activeTab === 'active'
-                  ? 'Create a goal to start tracking your progress!'
-                  : activeTab === 'completed'
-                    ? 'Complete some goals to see them here.'
-                    : 'Set goals to track your training journey.'}
-              </ThemedText>
-              {activeTab !== 'completed' && (
-                <Button onPress={handleCreateGoal} style={styles.emptyButton}>
-                  Create Goal
-                </Button>
-              )}
-            </Animated.View>
-          ) : (
-            <Animated.View entering={FadeInDown.delay(250).springify()}>
-              {filteredGoals.map((goal, index) => (
-                <GoalCard
-                  key={goal.id}
-                  goal={goal}
-                  onPress={() => handleGoalPress(goal)}
-                  variant="default"
-                />
-              ))}
-            </Animated.View>
-          )}
-        </View>
+            <ThemedText type="subtitle" style={{ textAlign: 'center' }}>
+              {activeTab === 'active' ? 'No Active Goals' : activeTab === 'completed' ? 'No Completed Goals' : 'No Goals Yet'}
+            </ThemedText>
+            <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
+              {activeTab === 'active' ? 'Create a goal to start tracking your progress!' : activeTab === 'completed' ? 'Complete some goals to see them here.' : 'Set goals to track your training journey.'}
+            </ThemedText>
+            {activeTab !== 'completed' && <Button onPress={handleCreateGoal} style={{ marginTop: Spacing.sm }}>Create Goal</Button>}
+          </Animated.View>
+        ) : (
+          <Animated.View entering={FadeInDown.delay(250).springify()}>
+            {goals.map((goal) => (
+              <GoalCard key={goal.id} goal={goal} onPress={() => handleGoalPress(goal.id)} variant="default" />
+            ))}
+          </Animated.View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
-  statsCard: {
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  statValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
-  statLabel: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  tabText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
-  categoryRow: {
-    marginBottom: Spacing.md,
-    marginHorizontal: -Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-  },
-  categoryChips: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xs + Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    gap: Spacing.xxs,
-  },
-  categoryChipText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
-  goalsSection: {
-    flex: 1,
-  },
-  loadingPlaceholder: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
-  emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(22),
-    maxWidth: 280,
-  },
-  emptyButton: {
-    marginTop: Spacing.sm,
-  },
+  container: { flex: 1 },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+  statsCard: { padding: Spacing.lg, marginBottom: Spacing.md },
+  statItem: { alignItems: 'center', gap: Spacing.xs },
+  statValue: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
+  statLabel: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
+  statDivider: { width: 1, height: 40 },
+  tabRow: { flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.md },
+  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radii.pill, borderWidth: 1 },
+  tabText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  categoryRow: { marginBottom: Spacing.md, marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg },
+  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, borderWidth: 1, gap: Spacing.xxs },
+  categoryChipText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
+  loadingPlaceholder: { padding: Spacing.xl, alignItems: 'center' },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  emptyIcon: { width: 96, height: 96, borderRadius: Radii['3xl' as keyof typeof Radii] ?? 64, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyText: { textAlign: 'center', ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22), maxWidth: 280 },
 });

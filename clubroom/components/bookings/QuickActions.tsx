@@ -1,27 +1,11 @@
-import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Typography, Spacing} from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
-
-// Web-compatible clickable wrapper using Pressable
-type ClickableProps = {
-  onPress: () => void;
-  style?: StyleProp<ViewStyle>;
-  children: React.ReactNode;
-};
-
-function Clickable({ onPress, style, children }: ClickableProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [style, pressed && { opacity: 0.7 }]}>
-      {children}
-    </Pressable>
-  );
-}
 
 export interface QuickActionsProps {
   userRole: 'USER' | 'PARENT' | 'COACH' | string | undefined;

@@ -7,6 +7,9 @@ import {
 } from '@/constants/types';
 import { storageService } from './storage-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SafetyService');
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 interface CachedEmergencyInfo {
@@ -555,18 +558,22 @@ class SafetyService {
 
   /**
    * Get alert level color for UI
+   * TODO: These hardcoded hex colors should be replaced with theme tokens
+   * (e.g. colors.error, colors.warning, colors.textSecondary, colors.success)
+   * when consumed in UI components. Service returns data values; UI layer
+   * should map to theme via useTheme().
    */
   getAlertLevelColor(level: 'none' | 'low' | 'medium' | 'high'): string {
     switch (level) {
       case 'high':
-        return '#C03E47'; // error red
+        return '#C03E47'; // TODO: map to colors.error in UI layer
       case 'medium':
-        return '#C78000'; // warning amber
+        return '#C78000'; // TODO: map to colors.warning in UI layer
       case 'low':
-        return '#64748b'; // muted gray
+        return '#64748b'; // TODO: map to colors.textSecondary in UI layer
       case 'none':
       default:
-        return '#1C8C5E'; // success green
+        return '#1C8C5E'; // TODO: map to colors.success in UI layer
     }
   }
 
@@ -642,7 +649,7 @@ class SafetyService {
         await this.cacheEmergencyInfo(attendee.athleteId, info, attendee.athleteName);
       } catch {
         // Ignore errors during pre-caching
-        console.warn(`Failed to pre-cache emergency info for ${attendee.athleteId}`);
+        logger.warn('Failed to pre-cache emergency info', { athleteId: attendee.athleteId });
       }
     }
   }

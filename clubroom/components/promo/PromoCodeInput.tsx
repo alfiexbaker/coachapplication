@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -15,16 +14,17 @@ import { promoService } from '@/services/promo-service';
 import type { PromoCodeValidationResult } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+// Re-export extracted components for backward compat
+export { ValidationMessage, RedeemButton, LoadingStateMessage } from './promo-code-input-sections';
+export type { ValidationMessageProps, RedeemButtonProps, LoadingStateMessageProps } from './promo-code-input-sections';
+
+import { ValidationMessage, RedeemButton, LoadingStateMessage } from './promo-code-input-sections';
+
 interface PromoCodeInputProps {
-  /** User ID for validation */
   userId: string;
-  /** Callback when code is successfully redeemed */
   onRedeem: (result: { code: string; creditAmount: number; newBalance: number }) => void;
-  /** Callback when validation occurs (optional) */
   onValidate?: (result: PromoCodeValidationResult) => void;
-  /** Whether the input is disabled */
   disabled?: boolean;
-  /** Placeholder text */
   placeholder?: string;
 }
 
@@ -48,11 +48,8 @@ export function PromoCodeInput({
   } | null>(null);
 
   const handleCodeChange = useCallback((text: string) => {
-    // Normalize to uppercase, remove spaces
     const normalized = text.toUpperCase().replace(/\s+/g, '');
     setCode(normalized);
-
-    // Reset validation state when code changes
     if (validationState !== 'idle' && validationState !== 'validating') {
       setValidationState('idle');
       setErrorMessage(null);
@@ -62,20 +59,14 @@ export function PromoCodeInput({
 
   const handleValidate = useCallback(async () => {
     if (!code.trim() || validationState === 'validating' || disabled) return;
-
     setValidationState('validating');
     setErrorMessage(null);
-
     try {
       const result = await promoService.validateCode(code, userId);
       onValidate?.(result);
-
       if (result.valid && result.promoCode) {
         setValidationState('valid');
-        setValidatedCode({
-          code: result.promoCode.code,
-          creditAmount: result.promoCode.creditAmount,
-        });
+        setValidatedCode({ code: result.promoCode.code, creditAmount: result.promoCode.creditAmount });
       } else {
         setValidationState('invalid');
         setErrorMessage(result.error ?? 'Invalid promo code');
@@ -88,19 +79,11 @@ export function PromoCodeInput({
 
   const handleRedeem = useCallback(async () => {
     if (validationState !== 'valid' || !validatedCode || disabled) return;
-
     setValidationState('redeeming');
-
     try {
       const result = await promoService.redeemCode(userId, code);
-
       if (result.success && result.usage && result.newBalance !== undefined) {
-        onRedeem({
-          code: validatedCode.code,
-          creditAmount: validatedCode.creditAmount,
-          newBalance: result.newBalance,
-        });
-        // Reset after successful redemption
+        onRedeem({ code: validatedCode.code, creditAmount: validatedCode.creditAmount, newBalance: result.newBalance });
         setCode('');
         setValidationState('idle');
         setValidatedCode(null);
@@ -127,13 +110,7 @@ export function PromoCodeInput({
   return (
     <View style={styles.container}>
       <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: palette.surface,
-            borderColor: getBorderColor(),
-          },
-        ]}
+        style={[styles.inputContainer, { backgroundColor: palette.surface, borderColor: getBorderColor() }]}
       >
         <Ionicons
           name="pricetag-outline"
@@ -155,12 +132,7 @@ export function PromoCodeInput({
         />
         {code.length > 0 && !isLoading && (
           <Pressable
-            onPress={() => {
-              setCode('');
-              setValidationState('idle');
-              setErrorMessage(null);
-              setValidatedCode(null);
-            }}
+            onPress={() => { setCode(''); setValidationState('idle'); setErrorMessage(null); setValidatedCode(null); }}
             style={styles.clearButton}
           >
             <Ionicons name="close-circle" size={18} color={palette.muted} />
@@ -171,69 +143,26 @@ export function PromoCodeInput({
         )}
       </View>
 
-      {/* Validation status */}
-      {isValid && validatedCode && (
-        <Animated.View entering={FadeIn} style={styles.validationMessage}>
-          <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-          <ThemedText style={[styles.validText, { color: palette.success }]}>
-            Code valid! You will receive {promoService.formatCredit(validatedCode.creditAmount)}
-          </ThemedText>
-        </Animated.View>
-      )}
+      <ValidationMessage
+        isValid={isValid}
+        isInvalid={isInvalid}
+        creditAmount={validatedCode?.creditAmount}
+        errorMessage={errorMessage}
+        palette={palette}
+      />
 
-      {isInvalid && errorMessage && (
-        <Animated.View entering={FadeIn} style={styles.validationMessage}>
-          <Ionicons name="alert-circle" size={16} color={palette.error} />
-          <ThemedText style={[styles.errorText, { color: palette.error }]}>
-            {errorMessage}
-          </ThemedText>
-        </Animated.View>
-      )}
-
-      {/* Action button */}
-      <Pressable
-        style={[
-          styles.actionButton,
-          {
-            backgroundColor: isValid ? palette.success : palette.tint,
-            opacity: (!code.trim() || disabled) ? 0.5 : 1,
-          },
-        ]}
-        onPress={isValid ? handleRedeem : handleValidate}
+      <RedeemButton
+        isValid={isValid}
+        isLoading={isLoading}
         disabled={!code.trim() || isLoading || disabled}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={palette.onPrimary} />
-        ) : (
-          <>
-            <Ionicons
-              name={isValid ? 'gift-outline' : 'checkmark-circle-outline'}
-              size={20}
-              color={palette.onPrimary}
-            />
-            <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
-              {isValid ? 'Redeem Code' : 'Apply Code'}
-            </ThemedText>
-          </>
-        )}
-      </Pressable>
+        onPress={isValid ? handleRedeem : handleValidate}
+        palette={palette}
+      />
 
-      {/* Loading state messages */}
-      {validationState === 'validating' && (
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.loadingMessage}>
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Validating code...
-          </ThemedText>
-        </Animated.View>
-      )}
-
-      {validationState === 'redeeming' && (
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.loadingMessage}>
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Applying credit to your wallet...
-          </ThemedText>
-        </Animated.View>
-      )}
+      <LoadingStateMessage
+        state={validationState === 'validating' ? 'validating' : validationState === 'redeeming' ? 'redeeming' : null}
+        palette={palette}
+      />
     </View>
   );
 }
@@ -253,33 +182,9 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginRight: Spacing.sm,
   },
-  input: { ...Typography.subheading, flex: 1,
-    letterSpacing: 1 },
+  input: { ...Typography.subheading, flex: 1, letterSpacing: 1 },
   clearButton: {
     marginLeft: Spacing.sm,
     padding: Spacing.xs,
   },
-  validationMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-  },
-  validText: { ...Typography.smallSemiBold },
-  errorText: { ...Typography.smallSemiBold },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-    marginTop: Spacing.xs,
-  },
-  buttonText: { ...Typography.subheading },
-  loadingMessage: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-  },
-  loadingText: { ...Typography.small },
 });

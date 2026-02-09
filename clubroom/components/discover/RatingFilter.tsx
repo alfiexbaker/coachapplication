@@ -5,7 +5,8 @@
  * Allows users to select minimum rating threshold.
  */
 
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -79,18 +80,14 @@ export function RatingFilter({
           Minimum Rating
         </ThemedText>
         {selectedRating !== undefined && (
-          <Pressable
-            accessibilityRole="button"
+          <Clickable
             onPress={() => onChange(undefined)}
-            style={({ pressed }) => [
-              styles.clearButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
+            style={styles.clearButton}
           >
             <ThemedText style={[styles.clearText, { color: palette.tint }]}>
               Clear
             </ThemedText>
-          </Pressable>
+          </Clickable>
         )}
       </View>
 
@@ -101,20 +98,18 @@ export function RatingFilter({
           const barWidth = getBarWidth(rating);
 
           return (
-            <Pressable
+            <Clickable
               key={rating}
-              accessibilityRole="button"
               accessibilityLabel={`${rating} stars and up, ${count} coaches`}
               accessibilityState={{ selected: isSelected }}
               onPress={() => handleRatingPress(rating)}
-              style={({ pressed }) => [
+              style={[
                 styles.ratingRow,
                 {
                   backgroundColor: isSelected
                     ? withAlpha(palette.tint, 0.1)
                     : 'transparent',
                   borderColor: isSelected ? palette.tint : palette.border,
-                  opacity: pressed ? 0.8 : 1,
                 },
               ]}
             >
@@ -161,7 +156,7 @@ export function RatingFilter({
                   style={styles.checkmark}
                 />
               )}
-            </Pressable>
+            </Clickable>
           );
         })}
       </View>

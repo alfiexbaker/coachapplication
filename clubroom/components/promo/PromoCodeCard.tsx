@@ -1,4 +1,5 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -10,16 +11,17 @@ import { promoService } from '@/services/promo-service';
 import type { PromoCode } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+// Re-export extracted components for backward compat
+export { formatExpiryDate, PromoStatsRow, PromoActionButtons } from './promo-code-card-sections';
+export type { PromoStatsRowProps, PromoActionButtonsProps } from './promo-code-card-sections';
+
+import { PromoStatsRow, PromoActionButtons } from './promo-code-card-sections';
+
 interface PromoCodeCardProps {
-  /** The promo code to display */
   promoCode: PromoCode;
-  /** Callback when deactivate/reactivate is pressed */
   onToggleActive?: (codeId: string, currentlyActive: boolean) => void;
-  /** Callback when view usage is pressed */
   onViewUsage?: (codeId: string) => void;
-  /** Callback when card is pressed */
   onPress?: (promoCode: PromoCode) => void;
-  /** Whether to show action buttons */
   showActions?: boolean;
 }
 
@@ -42,24 +44,6 @@ export function PromoCodeCard({
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const formatExpiryDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return 'Expired';
-    } else if (diffDays === 0) {
-      return 'Expires today';
-    } else if (diffDays === 1) {
-      return 'Expires tomorrow';
-    } else if (diffDays <= 7) {
-      return `Expires in ${diffDays} days`;
-    } else {
-      return `Expires ${promoService.formatDate(dateString)}`;
-    }
-  };
-
   return (
     <SurfaceCard
       style={styles.card}
@@ -68,14 +52,14 @@ export function PromoCodeCard({
     >
       {/* Header with code and status */}
       <View style={styles.header}>
-        <Pressable onPress={handleCopyCode} style={styles.codeContainer}>
+        <Clickable onPress={handleCopyCode} style={styles.codeContainer}>
           <View style={[styles.codeBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
             <ThemedText style={[styles.codeText, { color: statusInfo.color }]}>
               {promoCode.code}
             </ThemedText>
             <Ionicons name="copy-outline" size={14} color={statusInfo.color} />
           </View>
-        </Pressable>
+        </Clickable>
         <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.12) }]}>
           <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
             {statusInfo.label}
@@ -122,79 +106,23 @@ export function PromoCodeCard({
       </View>
 
       {/* Stats row */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Ionicons name="calendar-outline" size={14} color={palette.muted} />
-          <ThemedText style={[styles.statText, { color: palette.muted }]}>
-            Created {promoService.formatDate(promoCode.createdAt)}
-          </ThemedText>
-        </View>
-        {promoCode.expiresAt && (
-          <View style={styles.statItem}>
-            <Ionicons
-              name="time-outline"
-              size={14}
-              color={status === 'expired' ? palette.error : palette.muted}
-            />
-            <ThemedText
-              style={[
-                styles.statText,
-                { color: status === 'expired' ? palette.error : palette.muted },
-              ]}
-            >
-              {formatExpiryDate(promoCode.expiresAt)}
-            </ThemedText>
-          </View>
-        )}
-        {promoCode.onePerUser && (
-          <View style={styles.statItem}>
-            <Ionicons name="person-outline" size={14} color={palette.muted} />
-            <ThemedText style={[styles.statText, { color: palette.muted }]}>
-              One per user
-            </ThemedText>
-          </View>
-        )}
-      </View>
+      <PromoStatsRow
+        createdAt={promoCode.createdAt}
+        expiresAt={promoCode.expiresAt}
+        status={status}
+        onePerUser={promoCode.onePerUser}
+        palette={palette}
+      />
 
       {/* Action buttons */}
       {showActions && (
-        <View style={styles.actions}>
-          {onViewUsage && (
-            <Pressable
-              style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              onPress={() => onViewUsage(promoCode.id)}
-            >
-              <Ionicons name="analytics-outline" size={16} color={palette.text} />
-              <ThemedText style={styles.actionButtonText}>Usage</ThemedText>
-            </Pressable>
-          )}
-          {onToggleActive && (
-            <Pressable
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: promoCode.isActive ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09),
-                  borderColor: promoCode.isActive ? palette.error : palette.success,
-                },
-              ]}
-              onPress={() => onToggleActive(promoCode.id, promoCode.isActive)}
-            >
-              <Ionicons
-                name={promoCode.isActive ? 'pause-circle-outline' : 'play-circle-outline'}
-                size={16}
-                color={promoCode.isActive ? palette.error : palette.success}
-              />
-              <ThemedText
-                style={[
-                  styles.actionButtonText,
-                  { color: promoCode.isActive ? palette.error : palette.success },
-                ]}
-              >
-                {promoCode.isActive ? 'Deactivate' : 'Activate'}
-              </ThemedText>
-            </Pressable>
-          )}
-        </View>
+        <PromoActionButtons
+          codeId={promoCode.id}
+          isActive={promoCode.isActive}
+          onToggleActive={onToggleActive}
+          onViewUsage={onViewUsage}
+          palette={palette}
+        />
       )}
     </SurfaceCard>
   );
@@ -221,8 +149,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
-  codeText: { ...Typography.subheading, fontFamily: 'monospace',
-    letterSpacing: 1 },
+  codeText: { ...Typography.subheading, fontFamily: 'monospace', letterSpacing: 1 },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -256,31 +183,4 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: Radii.xs,
   },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  statText: { ...Typography.caption },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  actionButtonText: { ...Typography.smallSemiBold },
 });

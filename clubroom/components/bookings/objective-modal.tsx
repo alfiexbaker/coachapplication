@@ -5,11 +5,12 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { Radii, Spacing, Typography } from '@/constants/theme';
@@ -54,21 +55,19 @@ export const ObjectiveModal = memo(function ObjectiveModal({
           paddingV="md"
           style={{ borderBottomWidth: 1, borderBottomColor: palette.border }}
         >
-          <Pressable
+          <Clickable
             onPress={onClose}
             accessibilityLabel="Close modal"
-            accessibilityRole="button"
           >
             <Ionicons name="close" size={28} color={palette.foreground} />
-          </Pressable>
+          </Clickable>
           <ThemedText type="subtitle">{isEditing ? 'Edit Goal' : 'New Goal'}</ThemedText>
-          <Pressable
+          <Clickable
             onPress={onSave}
             accessibilityLabel="Save goal"
-            accessibilityRole="button"
           >
             <ThemedText style={[styles.saveButton, { color: palette.tint }]}>Save</ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
 
         <Column gap="lg" padding="lg">
@@ -77,11 +76,10 @@ export const ObjectiveModal = memo(function ObjectiveModal({
             <ThemedText type="defaultSemiBold">Skill</ThemedText>
             <Row wrap gap="xs">
               {FOOTBALL_OBJECTIVES.map((skill) => (
-                <Pressable
+                <Clickable
                   key={skill}
                   onPress={() => onSelectSkill(skill)}
                   accessibilityLabel={`Select ${skill}`}
-                  accessibilityRole="button"
                   style={[
                     styles.skillChip,
                     {
@@ -95,7 +93,7 @@ export const ObjectiveModal = memo(function ObjectiveModal({
                   >
                     {skill}
                   </ThemedText>
-                </Pressable>
+                </Clickable>
               ))}
             </Row>
           </Column>

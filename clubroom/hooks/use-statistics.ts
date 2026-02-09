@@ -75,18 +75,19 @@ export function useStatistics() {
   }, [currentUser, selectedChildId, targetId]);
 
   // Get sessions filtered by selected child for parents
-  const sessions: SessionDisplayItem[] = useMemo(() => {
+  const sessions = useMemo<SessionDisplayItem[]>(() => {
     if (isParent && selectedChildId) {
-      return getSessionsForAthlete(selectedChildId).map((s) => ({
+      const mapped: SessionDisplayItem[] = getSessionsForAthlete(selectedChildId).map((s) => ({
         id: s.id,
-        coachName: s.coachName,
-        athleteName: s.athleteName,
+        coachName: s.coachName ?? 'Unknown Coach',
+        athleteName: s.athleteName ?? 'Unknown Athlete',
         focus: s.skillsWorkedOn[0] || 'General Training',
         durationMinutes: 60,
         rating: s.performanceRating,
         coachFeedback: s.notes,
         completedAt: s.completedAt,
       }));
+      return mapped;
     }
     return sessionHistory;
   }, [currentUser, selectedChildId, isParent]);

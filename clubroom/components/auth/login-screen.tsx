@@ -1,32 +1,33 @@
 /**
  * LoginScreen - Authentication entry point using unified form system.
- *
- * Uses useForm for credential state and validation.
- * Uses FormInput for consistent input styling.
- * Uses FormButton for consistent button styling.
  */
 
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { FormInput, FormButton } from '@/components/forms';
 import { useForm } from '@/hooks/use-form';
 import { validators } from '@/utils/validation';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
 import OnboardingScreen from './onboarding-screen';
+
+// Re-export extracted components for backward compat
+export { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
+export type { SignupCardProps, InviteCodeCardProps, DemoAccountsCardProps } from './login-screen-sections';
+
+import { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
 
 type ScreenMode = 'login' | 'signup' | 'coach-signup';
 
@@ -64,11 +65,8 @@ export default function LoginScreen() {
 
   const handleOnboardingComplete = () => {
     // User is already auto-logged in by registerFromOnboarding
-    // The auth gate will automatically redirect to the main app
-    // No action needed here - the AuthProvider has already set currentUser
   };
 
-  // Show onboarding screen for new signups
   if (screenMode === 'signup') {
     return (
       <OnboardingScreen
@@ -78,7 +76,6 @@ export default function LoginScreen() {
     );
   }
 
-  // Show legacy coach signup screen
   if (screenMode === 'coach-signup') {
     return (
       <CoachSignupScreen
@@ -116,11 +113,11 @@ export default function LoginScreen() {
           <View style={styles.fieldGroup}>
             <View style={styles.labelRow}>
               <View />
-              <Pressable onPress={() => setScreenMode('login')}>
+              <Clickable onPress={() => setScreenMode('login')}>
                 <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
                   Forgot password?
                 </ThemedText>
-              </Pressable>
+              </Clickable>
             </View>
             <FormInput
               label="Password"
@@ -145,50 +142,9 @@ export default function LoginScreen() {
           />
         </SurfaceCard>
 
-        {/* Create Account Card */}
-        <Pressable
-          style={[styles.signupCard, { backgroundColor: palette.tint }]}
-          onPress={() => setScreenMode('signup')}>
-          <View style={styles.signupCardContent}>
-            <Ionicons name="person-add" size={24} color={palette.onPrimary} />
-            <View style={styles.signupCardText}>
-              <ThemedText style={[styles.signupTitle, { color: palette.onPrimary }]}>New to Clubroom?</ThemedText>
-              <ThemedText style={styles.signupSubtitle}>Create your free account</ThemedText>
-            </View>
-          </View>
-          <Ionicons name="arrow-forward" size={20} color={palette.onPrimary} />
-        </Pressable>
-
-        {/* Legacy Coach Signup (with invite code) */}
-        <Pressable
-          style={[styles.coachSignupCard, { backgroundColor: palette.card }]}
-          onPress={() => setScreenMode('coach-signup')}>
-          <ThemedText type="subtitle" style={styles.coachSignupTitle}>
-            Have an invite code?
-          </ThemedText>
-          <ThemedText style={styles.coachSignupText}>
-            Join your school or academy
-          </ThemedText>
-          <ThemedText style={[styles.coachSignupCTA, { color: palette.tint }]}>
-            Use Invite Code →
-          </ThemedText>
-        </Pressable>
-
-        <SurfaceCard style={styles.credentialsCard}>
-          <ThemedText type="subtitle" style={styles.credentialsTitle}>
-            Preloaded accounts
-          </ThemedText>
-          {availableUsers.slice(0, 4).map((user) => (
-            <View key={user.username} style={styles.credentialsRow}>
-              <View style={styles.roleBadge}>
-                <ThemedText style={styles.roleBadgeText}>{user.role}</ThemedText>
-              </View>
-              <ThemedText style={styles.credentialValue}>
-                {user.username} / {user.password}
-              </ThemedText>
-            </View>
-          ))}
-        </SurfaceCard>
+        <SignupCard onPress={() => setScreenMode('signup')} palette={palette} />
+        <InviteCodeCard onPress={() => setScreenMode('coach-signup')} palette={palette} />
+        <DemoAccountsCard users={availableUsers} palette={palette} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -227,57 +183,4 @@ const styles = StyleSheet.create({
   },
   forgotLink: { ...Typography.bodySmallSemiBold },
   helper: { ...Typography.bodySmall, opacity: 0.9 },
-  signupCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.lg,
-    borderRadius: Radii.lg,
-  },
-  signupCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  signupCardText: {
-    gap: Spacing.micro,
-  },
-  signupTitle: { ...Typography.subheading },
-  signupSubtitle: { ...Typography.bodySmall, color: 'rgba(255,255,255,0.8)' },
-  coachSignupCard: {
-    padding: Spacing.lg,
-    borderRadius: Radii.lg,
-    gap: Spacing.xs,
-  },
-  coachSignupTitle: {
-    textAlign: 'left',
-  },
-  coachSignupText: {
-    opacity: 0.8,
-  },
-  coachSignupCTA: {
-    fontWeight: '700',
-    marginTop: Spacing.xs,
-  },
-  credentialsCard: {
-    gap: Spacing.sm,
-  },
-  credentialsTitle: {
-    textAlign: 'left',
-  },
-  credentialsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  roleBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-    backgroundColor: 'rgba(99,102,241,0.15)',
-  },
-  roleBadgeText: { ...Typography.caption, textTransform: 'uppercase' },
-  credentialValue: {
-    fontFamily: 'monospace',
-  },
 });

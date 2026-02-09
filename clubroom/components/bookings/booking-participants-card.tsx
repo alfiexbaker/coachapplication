@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,7 +104,7 @@ const ParticipantRow = memo(function ParticipantRow({ participant, coachId, isCo
       justify="between"
       style={[styles.participantRow, { borderBottomColor: withAlpha(palette.border, 0.19) }]}
     >
-      <Pressable
+      <Clickable
         onPress={handlePress}
         style={styles.participantInfo}
         disabled={!isCoach}
@@ -128,7 +128,7 @@ const ParticipantRow = memo(function ParticipantRow({ participant, coachId, isCo
             </ThemedText>
           </View>
         </Column>
-      </Pressable>
+      </Clickable>
       {isCoach && (
         <Clickable
           onPress={handleMessage}
@@ -159,5 +159,5 @@ const styles = StyleSheet.create({
   clickableText: { textDecorationLine: 'underline' },
   participantStatus: { alignSelf: 'flex-start', paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.md },
   participantStatusText: { ...Typography.caption, textTransform: 'capitalize' },
-  messageButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  messageButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
 });

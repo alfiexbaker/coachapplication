@@ -1,4 +1,5 @@
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -78,7 +79,7 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
             {data.homeScore} - {data.awayScore}
           </ThemedText>
           <View style={[styles.resultPill, { backgroundColor: resultColor }]}>
-            <ThemedText style={styles.resultPillText}>{RESULT_LABELS[data.result]}</ThemedText>
+            <ThemedText style={[styles.resultPillText, { color: palette.onPrimary }]}>{RESULT_LABELS[data.result]}</ThemedText>
           </View>
         </View>
 
@@ -101,14 +102,14 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
 
       {/* Footer: likes + comments */}
       <View style={styles.footer}>
-        <Pressable style={styles.footerAction} onPress={onLike}>
+        <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
-        </Pressable>
-        <Pressable style={styles.footerAction} onPress={onComment}>
+        </Clickable>
+        <Clickable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
     </SurfaceCard>
   );
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   },
   resultPillText: {
     ...Typography.micro,
-    color: '#FFFFFF', // Decorative: white text on result-colored pill
+    // color applied inline via palette.onPrimary
   },
   potmRow: {
     flexDirection: 'row',

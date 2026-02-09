@@ -195,7 +195,7 @@ export default function RecurringBookingsScreen() {
           title: 'Recurring Bookings',
           headerShown: true,
           headerRight: () => (
-            <Clickable onPress={handleCreatePress} style={styles.headerButton}>
+            <Clickable accessibilityLabel="Create recurring booking" onPress={handleCreatePress} style={styles.headerButton}>
               <Ionicons name="add-circle" size={28} color={palette.tint} />
             </Clickable>
           ),

@@ -1,4 +1,5 @@
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -27,8 +28,8 @@ export function EventCard({ event, onPress }: EventCardProps) {
   };
 
   return (
-    <Pressable
-      style={({pressed}) => [styles.eventCard, { borderColor: palette.border }, pressed && {opacity: 0.7}]}
+    <Clickable
+      style={[styles.eventCard, { borderColor: palette.border }]}
       onPress={onPress}
     >
       <View style={styles.eventCardHeader}>
@@ -62,7 +63,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
           </ThemedText>
         </View>
       )}
-    </Pressable>
+    </Clickable>
   );
 }
 
@@ -99,13 +100,13 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
           <ThemedText type="defaultSemiBold">Club Events</ThemedText>
         </View>
         {isCoach && (
-          <Pressable
+          <Clickable
             style={[styles.addEventButton, { backgroundColor: palette.tint }]}
             onPress={handleCreateEvent}
           >
             <Ionicons name="add" size={16} color={palette.onPrimary} />
             <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Add</ThemedText>
-          </Pressable>
+          </Clickable>
         )}
       </View>
 
@@ -119,7 +120,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             />
           ))}
           {eventPosts.length > 3 && (
-            <Pressable
+            <Clickable
               style={styles.viewAllButton}
               onPress={() => router.push(Routes.EVENTS)}
             >
@@ -127,7 +128,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
                 View all {eventPosts.length} events
               </ThemedText>
               <Ionicons name="chevron-forward" size={16} color={palette.tint} />
-            </Pressable>
+            </Clickable>
           )}
         </View>
       ) : (
@@ -137,14 +138,14 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             No upcoming events
           </ThemedText>
           {isCoach && (
-            <Pressable
+            <Clickable
               style={[styles.createEventButton, { borderColor: palette.tint }]}
               onPress={handleCreateEvent}
             >
               <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
                 Create Event
               </ThemedText>
-            </Pressable>
+            </Clickable>
           )}
         </View>
       )}

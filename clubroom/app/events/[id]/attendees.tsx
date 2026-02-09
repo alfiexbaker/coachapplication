@@ -1,8 +1,6 @@
-import { useState, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -11,215 +9,77 @@ import { AttendeeList } from '@/components/event/AttendeeList';
 import { CheckInButton } from '@/components/event/CheckInButton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import type {
-  ClubEvent,
-  EventRSVP,
-  EventAttendance,
-  EventAttendanceStats,
-  CheckInInput,
-} from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { eventService } from '@/services/event-service';
-import { scaleFont } from '@/utils/scale';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('EventAttendees');
+import { useEventAttendees } from '@/hooks/use-event-attendees';
 
 export default function EventAttendeesScreen() {
-  const { colors: palette } = useTheme();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { currentUser } = useAuth();
-  const isCoach = currentUser?.role === 'COACH';
-
-  const [event, setEvent] = useState<ClubEvent | null>(null);
-  const [rsvps, setRSVPs] = useState<EventRSVP[]>([]);
-  const [attendance, setAttendance] = useState<EventAttendance[]>([]);
-  const [stats, setStats] = useState<EventAttendanceStats | null>(null);
-  const [currentAttendance, setCurrentAttendance] = useState<EventAttendance | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadData = useCallback(async () => {
-    if (!id || !currentUser) return;
-    try {
-      const [eventData, rsvpsData, attendanceData, statsData, userAttendance] = await Promise.all([
-        eventService.getEvent(id),
-        eventService.getEventRSVPs(id),
-        eventService.getAttendeeList(id),
-        eventService.getAttendanceStats(id),
-        eventService.getUserAttendance(id, currentUser.id),
-      ]);
-
-      setEvent(eventData);
-      setRSVPs(rsvpsData);
-      setAttendance(attendanceData);
-      setStats(statsData);
-      setCurrentAttendance(userAttendance);
-    } catch (error) {
-      logger.error('Failed to load attendee data', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [id, currentUser]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
-
-  const handleCheckIn = async (input: CheckInInput) => {
-    await eventService.checkIn(input);
-    await loadData();
-  };
-
-  const handleUndoCheckIn = async () => {
-    if (!id || !currentUser) return;
-    await eventService.removeCheckIn(id, currentUser.id);
-    await loadData();
-  };
-
-  const handleAttendeePress = (userId: string) => {
-    logger.press('AttendeeRow', { userId });
-    // Navigate to user profile
-    router.push(Routes.profile(userId));
-  };
+  const {
+    event, rsvps, attendance, stats, currentAttendance, loading, refreshing,
+    isCoach, isEventToday, checkInAvailable, currentUser,
+    handleCheckIn, handleUndoCheckIn, handleAttendeePress, handleExport, handleSendReminder,
+  } = useEventAttendees(id);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.centered}><ActivityIndicator size="large" color={colors.tint} /></View>
       </SafeAreaView>
     );
   }
 
   if (!event) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-            Event not found
-          </ThemedText>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.centered}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
+          <ThemedText style={[styles.errorText, { color: colors.muted }]}>Event not found</ThemedText>
         </View>
       </SafeAreaView>
     );
   }
 
-  const isEventToday = eventService.isEventToday(event);
-  const checkInAvailable = eventService.isCheckInAvailable(event);
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <View style={styles.headerContent}>
-          <ThemedText type="defaultSemiBold" style={styles.headerTitle} numberOfLines={1}>
-            Attendees
-          </ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]} numberOfLines={1}>
-            {event.title}
-          </ThemedText>
+          <ThemedText type="defaultSemiBold" numberOfLines={1}>Attendees</ThemedText>
+          <ThemedText style={[styles.headerSubtitle, { color: colors.muted }]} numberOfLines={1}>{event.title}</ThemedText>
         </View>
-        <View style={styles.headerSpacer} />
+        <View style={{ width: 40 }} />
       </View>
 
-      {/* Check-in section (only on event day) */}
       {(isEventToday || checkInAvailable || currentAttendance) && currentUser && (
         <View style={styles.checkInSection}>
           <SurfaceCard style={styles.checkInCard}>
             {isEventToday && (
               <View style={styles.todayBadge}>
-                <Ionicons name="today" size={14} color={palette.success} />
-                <ThemedText style={[styles.todayText, { color: palette.success }]}>
-                  Event is today
-                </ThemedText>
+                <Ionicons name="today" size={14} color={colors.success} />
+                <ThemedText style={[styles.todayText, { color: colors.success }]}>Event is today</ThemedText>
               </View>
             )}
-            <CheckInButton
-              event={event}
-              userId={currentUser.id}
-              userName={currentUser.name || 'Unknown'}
-              userRole={isCoach ? 'COACH' : 'PARENT'}
-              userPhotoUrl={currentUser.avatar}
-              currentAttendance={currentAttendance}
-              onCheckIn={handleCheckIn}
-              onUndoCheckIn={handleUndoCheckIn}
-            />
+            <CheckInButton event={event} userId={currentUser.id} userName={currentUser.name || 'Unknown'} userRole={isCoach ? 'COACH' : 'PARENT'} userPhotoUrl={currentUser.avatar} currentAttendance={currentAttendance} onCheckIn={handleCheckIn} onUndoCheckIn={handleUndoCheckIn} />
           </SurfaceCard>
         </View>
       )}
 
-      {/* Attendee list */}
       <View style={styles.listContainer}>
-        <AttendeeList
-          rsvps={rsvps}
-          attendance={attendance}
-          stats={stats || undefined}
-          onAttendeePress={handleAttendeePress}
-          showFilters={true}
-          showStats={true}
-          loading={refreshing}
-          emptyMessage="No RSVPs yet. Be the first to respond!"
-        />
+        <AttendeeList rsvps={rsvps} attendance={attendance} stats={stats || undefined} onAttendeePress={handleAttendeePress} showFilters showStats loading={refreshing} emptyMessage="No RSVPs yet. Be the first to respond!" />
       </View>
 
-      {/* Coach quick actions */}
       {isCoach && (
-        <View style={[styles.coachActions, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-          <Clickable
-            style={[styles.coachActionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            onPress={() => {
-              logger.press('ExportAttendees', { eventId: id });
-              const attendeeNames = attendance.map((a) => a.userName).join('\n');
-              Alert.alert(
-                'Attendee List',
-                `${attendance.length} checked in:\n\n${attendeeNames || 'No attendees yet'}`,
-                [{ text: 'OK' }]
-              );
-            }}
-          >
-            <Ionicons name="download-outline" size={20} color={palette.text} />
-            <ThemedText style={styles.coachActionText}>Export List</ThemedText>
+        <View style={[styles.coachActions, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          <Clickable style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleExport}>
+            <Ionicons name="download-outline" size={20} color={colors.text} />
+            <ThemedText style={styles.actionText}>Export List</ThemedText>
           </Clickable>
-
-          <Clickable
-            style={[styles.coachActionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            onPress={() => {
-              logger.press('SendReminder', { eventId: id });
-              const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
-              Alert.alert(
-                'Send Reminder',
-                nonResponders > 0
-                  ? `Send reminder to ${nonResponders} people who haven't responded?`
-                  : 'Everyone has already responded!',
-                nonResponders > 0
-                  ? [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Send',
-                        onPress: () => Alert.alert('Sent', 'Reminders have been sent'),
-                      },
-                    ]
-                  : [{ text: 'OK' }]
-              );
-            }}
-          >
-            <Ionicons name="notifications-outline" size={20} color={palette.text} />
-            <ThemedText style={styles.coachActionText}>Send Reminder</ThemedText>
+          <Clickable style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleSendReminder}>
+            <Ionicons name="notifications-outline" size={20} color={colors.text} />
+            <ThemedText style={styles.actionText}>Send Reminder</ThemedText>
           </Clickable>
         </View>
       )}
@@ -228,88 +88,19 @@ export default function EventAttendeesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  errorText: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-    textAlign: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
-  headerSubtitle: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  checkInSection: {
-    padding: Spacing.md,
-  },
-  checkInCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  todayBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginBottom: Spacing.xs,
-  },
-  todayText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
-  listContainer: {
-    flex: 1,
-    paddingHorizontal: Spacing.md,
-  },
-  coachActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderTopWidth: 1,
-  },
-  coachActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  coachActionText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+  container: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, gap: Spacing.md },
+  errorText: { ...Typography.subheading, textAlign: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerContent: { flex: 1, alignItems: 'center' },
+  headerSubtitle: { ...Typography.caption },
+  checkInSection: { padding: Spacing.md },
+  checkInCard: { padding: Spacing.md, gap: Spacing.sm },
+  todayBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginBottom: Spacing.xs },
+  todayText: { ...Typography.smallSemiBold },
+  listContainer: { flex: 1, paddingHorizontal: Spacing.md },
+  coachActions: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderTopWidth: 1 },
+  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  actionText: { ...Typography.smallSemiBold },
 });

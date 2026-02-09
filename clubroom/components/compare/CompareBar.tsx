@@ -6,14 +6,15 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View, Animated } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Shadows , Typography } from '@/constants/theme';
+import { Radii, Spacing, Shadows, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 
@@ -36,7 +37,7 @@ export function CompareBar({
 
   const [count, setCount] = useState(0);
   const [maxCount] = useState(comparisonService.getMaxCoaches());
-  const [translateY] = useState(new Animated.Value(100));
+  const translateY = useSharedValue(100);
 
   const refreshCount = useCallback(async () => {
     const newCount = await comparisonService.getComparisonCount();
@@ -53,12 +54,7 @@ export function CompareBar({
 
   useEffect(() => {
     const shouldShow = visible && count > 0;
-    Animated.spring(translateY, {
-      toValue: shouldShow ? 0 : 100,
-      useNativeDriver: true,
-      damping: 15,
-      stiffness: 150,
-    }).start();
+    translateY.value = withSpring(shouldShow ? 0 : 100, { damping: 15, stiffness: 150 });
   }, [visible, count, translateY]);
 
   const handleCompare = useCallback(() => {
@@ -77,14 +73,16 @@ export function CompareBar({
     return null;
   }
 
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   return (
     <Animated.View
       style={[
         styles.container,
-        {
-          bottom: bottomOffset,
-          transform: [{ translateY }],
-        },
+        { bottom: bottomOffset },
+        containerStyle,
       ]}
     >
       <View
@@ -98,14 +96,14 @@ export function CompareBar({
       >
         {/* Info section */}
         <View style={styles.info}>
-          <View style={styles.countBadge}>
+          <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.onPrimary, 0.2) }]}>
             <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
           </View>
           <View style={styles.textContainer}>
             <ThemedText style={[styles.title, { color: palette.onPrimary }]}>
               {count === 1 ? '1 Coach' : `${count} Coaches`}
             </ThemedText>
-            <ThemedText style={styles.subtitle}>
+            <ThemedText style={[styles.subtitle, { color: withAlpha(palette.onPrimary, 0.7) }]}>
               {count < maxCount ? `Add ${maxCount - count} more to compare` : 'Ready to compare'}
             </ThemedText>
           </View>
@@ -122,7 +120,7 @@ export function CompareBar({
               { opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.8)" />
+            <Ionicons name="close-circle" size={20} color={withAlpha(palette.onPrimary, 0.8)} />
           </Pressable>
 
           <Pressable
@@ -132,7 +130,7 @@ export function CompareBar({
             style={({ pressed }) => [
               styles.compareButton,
               {
-                backgroundColor: pressed ? 'rgba(255,255,255,0.9)' : palette.surface,
+                backgroundColor: pressed ? withAlpha(palette.onPrimary, 0.9) : palette.surface,
               },
             ]}
           >
@@ -172,7 +170,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -181,7 +178,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: { ...Typography.bodySemiBold },
-  subtitle: { ...Typography.caption, color: 'rgba(255,255,255,0.7)',
+  subtitle: { ...Typography.caption,
     marginTop: 1 },
   actions: {
     flexDirection: 'row',

@@ -3,11 +3,14 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import type { Goal, GoalMilestone } from '@/constants/types';
+import type { Goal } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { MilestoneItem } from './goal-progress-sections';
+
+// Re-export for backward compatibility
+export { GoalsSummary } from './goal-progress-sections';
 
 interface GoalProgressProps {
   goal: Goal;
@@ -98,7 +101,6 @@ export function GoalProgress({
           </View>
         </View>
 
-        {/* Progress Circle */}
         <View style={[styles.progressCircle, { borderColor: statusColor }]}>
           <ThemedText style={[styles.progressText, { color: statusColor }]}>
             {goal.progress}%
@@ -107,17 +109,12 @@ export function GoalProgress({
       </View>
 
       {/* Description */}
-      {goal.description && !expanded && (
-        <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>
-          {goal.description}
-        </ThemedText>
-      )}
-
-      {expanded && goal.description && (
-        <ThemedText style={[styles.description, { color: palette.muted }]}>
-          {goal.description}
-        </ThemedText>
-      )}
+      <ThemedText
+        style={[styles.description, { color: palette.muted }]}
+        numberOfLines={expanded ? undefined : 2}
+      >
+        {goal.description}
+      </ThemedText>
 
       {/* Progress Bar */}
       <View style={styles.progressBarContainer}>
@@ -125,10 +122,7 @@ export function GoalProgress({
           <View
             style={[
               styles.progressBarFill,
-              {
-                width: `${goal.progress}%`,
-                backgroundColor: statusColor,
-              },
+              { width: `${goal.progress}%`, backgroundColor: statusColor },
             ]}
           />
         </View>
@@ -173,125 +167,15 @@ export function GoalProgress({
   );
 }
 
-// Individual milestone item
-interface MilestoneItemProps {
-  milestone: GoalMilestone;
-  onComplete?: () => void;
-  disabled?: boolean;
-}
-
-function MilestoneItem({ milestone, onComplete, disabled }: MilestoneItemProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <Clickable
-      onPress={onComplete}
-      disabled={disabled}
-      style={styles.milestoneItem}
-    >
-      <View
-        style={[
-          styles.milestoneCheck,
-          {
-            backgroundColor: milestone.isCompleted ? palette.success : palette.surface,
-            borderColor: milestone.isCompleted ? palette.success : palette.border,
-          },
-        ]}
-      >
-        {milestone.isCompleted && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
-      </View>
-
-      <View style={styles.milestoneContent}>
-        <ThemedText
-          style={[
-            styles.milestoneTitle,
-            milestone.isCompleted ? {
-              textDecorationLine: 'line-through',
-              color: palette.muted,
-            } : undefined,
-          ]}
-        >
-          {milestone.title}
-        </ThemedText>
-        {milestone.completedAt && (
-          <ThemedText style={[styles.milestoneDate, { color: palette.muted }]}>
-            Completed{' '}
-            {new Date(milestone.completedAt).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-            })}
-          </ThemedText>
-        )}
-      </View>
-    </Clickable>
-  );
-}
-
-// Goals summary card
-interface GoalsSummaryProps {
-  activeGoals: number;
-  completedGoals: number;
-  onViewAll?: () => void;
-}
-
-export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSummaryProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <SurfaceCard style={styles.summaryCard}>
-      <View style={styles.summaryHeader}>
-        <ThemedText type="defaultSemiBold">Goals</ThemedText>
-        {onViewAll && (
-          <Clickable onPress={onViewAll}>
-            <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
-              View all
-            </ThemedText>
-          </Clickable>
-        )}
-      </View>
-
-      <View style={styles.summaryStats}>
-        <View style={styles.summaryItem}>
-          <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="flag" size={20} color={palette.tint} />
-          </View>
-          <ThemedText type="heading">{activeGoals}</ThemedText>
-          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-            Active
-          </ThemedText>
-        </View>
-
-        <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
-
-        <View style={styles.summaryItem}>
-          <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-            <Ionicons name="trophy" size={20} color={palette.success} />
-          </View>
-          <ThemedText type="heading">{completedGoals}</ThemedText>
-          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-            Completed
-          </ThemedText>
-        </View>
-      </View>
-    </SurfaceCard>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+  container: { padding: Spacing.md, gap: Spacing.sm },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
-  headerContent: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
+  headerContent: { flex: 1, gap: Spacing.xs },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -319,79 +203,19 @@ const styles = StyleSheet.create({
   },
   progressText: { ...Typography.caption },
   description: { ...Typography.small, lineHeight: 18 },
-  progressBarContainer: {
-    gap: Spacing.xxs,
-  },
+  progressBarContainer: { gap: Spacing.xxs },
   progressBarBg: {
     height: 6,
     borderRadius: Radii.xs,
     overflow: 'hidden',
   },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
+  progressBarFill: { height: '100%', borderRadius: Radii.xs },
   milestoneCount: { ...Typography.caption, textAlign: 'right' },
-  milestonesList: {
-    gap: Spacing.xs,
-    paddingTop: Spacing.xs,
-  },
-  milestoneItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  milestoneCheck: {
-    width: 20,
-    height: 20,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  milestoneContent: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  milestoneTitle: { ...Typography.small },
-  milestoneDate: { ...Typography.caption },
+  milestonesList: { gap: Spacing.xs, paddingTop: Spacing.xs },
   targetRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   targetText: { ...Typography.caption },
-  summaryCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  viewAllText: { ...Typography.smallSemiBold },
-  summaryStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  summaryIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryLabel: { ...Typography.caption },
-  summaryDivider: {
-    width: 1,
-    height: 48,
-  },
 });

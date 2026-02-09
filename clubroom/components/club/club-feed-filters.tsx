@@ -6,7 +6,8 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -75,7 +76,7 @@ const FilterTab = memo(function FilterTab({
   }, [onPress, filterKey]);
 
   return (
-    <Pressable
+    <Clickable
       style={[
         styles.tab,
         isActive
@@ -109,7 +110,7 @@ const FilterTab = memo(function FilterTab({
           </ThemedText>
         </View>
       )}
-    </Pressable>
+    </Clickable>
   );
 });
 

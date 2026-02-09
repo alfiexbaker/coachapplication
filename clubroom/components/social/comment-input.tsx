@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -52,13 +53,14 @@ function CommentInputInner({
           <ThemedText style={[styles.replyText, { color: palette.muted }]} numberOfLines={1}>
             Replying to <ThemedText style={styles.replyAuthor}>{replyingTo}</ThemedText>
           </ThemedText>
-          <Pressable
+          <Clickable
+            accessibilityLabel="Cancel reply"
             onPress={onCancelReply}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={10}
             style={styles.cancelReply}
           >
             <Ionicons name="close-circle" size={18} color={palette.muted} />
-          </Pressable>
+          </Clickable>
         </View>
       )}
 
@@ -81,7 +83,7 @@ function CommentInputInner({
           maxLength={2000}
           returnKeyType="default"
         />
-        <Pressable
+        <Clickable
           onPress={handleSend}
           disabled={!hasText}
           style={[
@@ -90,14 +92,14 @@ function CommentInputInner({
               backgroundColor: hasText ? palette.tint : palette.border,
             },
           ]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={8}
         >
           <Ionicons
             name="arrow-up"
             size={18}
             color={palette.onPrimary}
           />
-        </Pressable>
+        </Clickable>
       </View>
     </View>
   );

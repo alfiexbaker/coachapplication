@@ -1,358 +1,113 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+/**
+ * Medical Information Screen
+ *
+ * Manage medical conditions, allergies, medications, doctor info,
+ * insurance, and consent toggles for a child.
+ */
+
+import { View, ScrollView, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
+import { MedicalTagInput } from '@/components/child/medical-tag-input';
+import { MedicalConsentToggle } from '@/components/child/medical-consent-toggle';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { EmergencyInfo, MedicalInfo, Consent, ConsentType } from '@/constants/types';
-import { safetyService } from '@/services/safety-service';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('MedicalInfoScreen');
-
-type TagInputProps = {
-  label: string;
-  placeholder: string;
-  items: string[];
-  onAdd: (item: string) => void;
-  onRemove: (index: number) => void;
-};
-
-function TagInput({ label, placeholder, items, onAdd, onRemove }: TagInputProps) {
-  const { colors: palette } = useTheme();
-  const [inputValue, setInputValue] = useState('');
-
-  const handleAdd = () => {
-    if (inputValue.trim()) {
-      onAdd(inputValue.trim());
-      setInputValue('');
-    }
-  };
-
-  return (
-    <View style={styles.fieldContainer}>
-      <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
-      <View style={styles.tagInputRow}>
-        <TextInput
-          style={[styles.tagInput, { borderColor: palette.border, color: palette.text }]}
-          placeholder={placeholder}
-          placeholderTextColor={palette.muted}
-          value={inputValue}
-          onChangeText={setInputValue}
-          onSubmitEditing={handleAdd}
-          returnKeyType="done"
-        />
-        <Clickable
-          onPress={handleAdd}
-          style={[styles.addTagButton, { backgroundColor: palette.tint }]}
-        >
-          <Ionicons name="add" size={20} color={palette.onPrimary} />
-        </Clickable>
-      </View>
-      {items.length > 0 && (
-        <View style={styles.tagList}>
-          {items.map((item, index) => (
-            <View
-              key={index}
-              style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}
-            >
-              <ThemedText style={styles.tagText}>{item}</ThemedText>
-              <Clickable onPress={() => onRemove(index)}>
-                <Ionicons name="close" size={16} color={palette.muted} />
-              </Clickable>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
-type ConsentToggleProps = {
-  consent: Consent;
-  onToggle: (type: ConsentType, granted: boolean) => void;
-};
-
-function ConsentToggle({ consent, onToggle }: ConsentToggleProps) {
-  const { colors: palette } = useTheme();
-
-  const labels: Record<ConsentType, { title: string; description: string }> = {
-    PHOTO: {
-      title: 'Photography',
-      description: 'Allow photos to be taken during sessions' },
-    VIDEO: {
-      title: 'Video Recording',
-      description: 'Allow video recording for training review' },
-    SOCIAL_MEDIA: {
-      title: 'Social Media',
-      description: 'Allow use in club social media posts' },
-    EMERGENCY_TREATMENT: {
-      title: 'Emergency Treatment',
-      description: 'Authorize emergency medical treatment if parent unavailable' } };
-
-  const info = labels[consent.type];
-
-  return (
-    <Clickable
-      onPress={() => onToggle(consent.type, !consent.granted)}
-      style={styles.consentRow}
-    >
-      <View style={{ flex: 1 }}>
-        <ThemedText type="defaultSemiBold">{info.title}</ThemedText>
-        <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-          {info.description}
-        </ThemedText>
-      </View>
-      <View
-        style={[
-          styles.toggle,
-          {
-            backgroundColor: consent.granted ? palette.success : palette.border },
-        ]}
-      >
-        <View
-          style={[
-            styles.toggleKnob,
-            {
-              backgroundColor: palette.surface,
-              transform: [{ translateX: consent.granted ? 18 : 2 }] },
-          ]}
-        />
-      </View>
-    </Clickable>
-  );
-}
+import { useMedicalInfo } from '@/hooks/use-medical-info';
 
 export default function MedicalInfoScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: palette } = useTheme();
-  const [, setInfo] = useState<EmergencyInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  // Form state
-  const [conditions, setConditions] = useState<string[]>([]);
-  const [allergies, setAllergies] = useState<string[]>([]);
-  const [medications, setMedications] = useState<string[]>([]);
-  const [restrictions, setRestrictions] = useState<string[]>([]);
-  const [doctorName, setDoctorName] = useState('');
-  const [doctorPhone, setDoctorPhone] = useState('');
-  const [insuranceProvider, setInsuranceProvider] = useState('');
-  const [insuranceNumber, setInsuranceNumber] = useState('');
-  const [notes, setNotes] = useState('');
-  const [consents, setConsents] = useState<Consent[]>([]);
-
-  const loadInfo = useCallback(async () => {
-    if (!id) return;
-    try {
-      const data = await safetyService.getEmergencyInfo(id);
-      setInfo(data);
-      // Initialize form state
-      setConditions(data.medical.conditions);
-      setAllergies(data.medical.allergies);
-      setMedications(data.medical.medications);
-      setRestrictions(data.medical.restrictions);
-      setDoctorName(data.medical.doctorName ?? '');
-      setDoctorPhone(data.medical.doctorPhone ?? '');
-      setInsuranceProvider(data.medical.insuranceProvider ?? '');
-      setInsuranceNumber(data.medical.insuranceNumber ?? '');
-      setNotes(data.medical.notes ?? '');
-      setConsents(data.consents);
-    } catch (error) {
-      logger.error('Failed to load medical info:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadInfo();
-  }, [loadInfo]);
-
-  const handleConsentToggle = (type: ConsentType, granted: boolean) => {
-    setConsents((prev) =>
-      prev.map((c) =>
-        c.type === type
-          ? {
-              ...c,
-              granted,
-              grantedBy: granted ? 'Current User' : '',
-              grantedAt: granted ? new Date().toISOString() : undefined }
-          : c
-      )
-    );
-  };
-
-  const handleSave = async () => {
-    if (!id) return;
-
-    setSaving(true);
-    try {
-      const medicalUpdate: Partial<MedicalInfo> = {
-        conditions,
-        allergies,
-        medications,
-        restrictions,
-        doctorName: doctorName || undefined,
-        doctorPhone: doctorPhone || undefined,
-        insuranceProvider: insuranceProvider || undefined,
-        insuranceNumber: insuranceNumber || undefined,
-        notes: notes || undefined };
-
-      await safetyService.updateMedicalInfo(id, medicalUpdate);
-
-      // Update consents
-      for (const consent of consents) {
-        await safetyService.updateConsent(id, consent.type, consent.granted, consent.grantedBy);
-      }
-
-      router.back();
-    } catch (error) {
-      logger.error('Failed to save medical info:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { colors } = useTheme();
+  const {
+    loading, saving,
+    conditions, allergies, medications, restrictions,
+    doctorName, setDoctorName, doctorPhone, setDoctorPhone,
+    insuranceProvider, setInsuranceProvider, insuranceNumber, setInsuranceNumber,
+    notes, setNotes, consents,
+    handleConsentToggle, handleSave,
+    addCondition, removeCondition, addAllergy, removeAllergy,
+    addMedication, removeMedication, addRestriction, removeRestriction,
+  } = useMedicalInfo();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.tint} /></View>
       </SafeAreaView>
     );
   }
 
+  const inputStyle = [styles.input, { borderColor: colors.border, color: colors.text }];
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
+        <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
           <ThemedText type="title">Medical Information</ThemedText>
-        </View>
+        </Row>
 
-        <ThemedText style={{ color: palette.muted }}>
+        <ThemedText style={{ color: colors.muted }}>
           Keep medical information up to date for the safety of your child during sessions.
         </ThemedText>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Health Conditions</ThemedText>
-
-          <TagInput
-            label="Medical Conditions"
-            placeholder="e.g., Asthma, Diabetes"
-            items={conditions}
-            onAdd={(item) => setConditions([...conditions, item])}
-            onRemove={(index) => setConditions(conditions.filter((_, i) => i !== index))}
-          />
-
-          <TagInput
-            label="Allergies"
-            placeholder="e.g., Peanuts, Penicillin"
-            items={allergies}
-            onAdd={(item) => setAllergies([...allergies, item])}
-            onRemove={(index) => setAllergies(allergies.filter((_, i) => i !== index))}
-          />
-
-          <TagInput
-            label="Medications"
-            placeholder="e.g., Ventolin inhaler"
-            items={medications}
-            onAdd={(item) => setMedications([...medications, item])}
-            onRemove={(index) => setMedications(medications.filter((_, i) => i !== index))}
-          />
-
-          <TagInput
-            label="Activity Restrictions"
-            placeholder="e.g., No contact sports"
-            items={restrictions}
-            onAdd={(item) => setRestrictions([...restrictions, item])}
-            onRemove={(index) => setRestrictions(restrictions.filter((_, i) => i !== index))}
-          />
+          <MedicalTagInput label="Medical Conditions" placeholder="e.g., Asthma, Diabetes" items={conditions} onAdd={addCondition} onRemove={removeCondition} />
+          <MedicalTagInput label="Allergies" placeholder="e.g., Peanuts, Penicillin" items={allergies} onAdd={addAllergy} onRemove={removeAllergy} />
+          <MedicalTagInput label="Medications" placeholder="e.g., Ventolin inhaler" items={medications} onAdd={addMedication} onRemove={removeMedication} />
+          <MedicalTagInput label="Activity Restrictions" placeholder="e.g., No contact sports" items={restrictions} onAdd={addRestriction} onRemove={removeRestriction} />
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Doctor Information</ThemedText>
-
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.fieldLabel}>Doctor Name</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="Dr. John Smith"
-              placeholderTextColor={palette.muted}
-              value={doctorName}
-              onChangeText={setDoctorName}
-            />
+          <View style={styles.field}>
+            <ThemedText style={Typography.bodySmallSemiBold}>Doctor Name</ThemedText>
+            <TextInput style={inputStyle} placeholder="Dr. John Smith" placeholderTextColor={colors.muted} value={doctorName} onChangeText={setDoctorName} />
           </View>
-
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.fieldLabel}>Doctor Phone</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="+44 20 1234 5678"
-              placeholderTextColor={palette.muted}
-              value={doctorPhone}
-              onChangeText={setDoctorPhone}
-              keyboardType="phone-pad"
-            />
+          <View style={styles.field}>
+            <ThemedText style={Typography.bodySmallSemiBold}>Doctor Phone</ThemedText>
+            <TextInput style={inputStyle} placeholder="+44 20 1234 5678" placeholderTextColor={colors.muted} value={doctorPhone} onChangeText={setDoctorPhone} keyboardType="phone-pad" />
           </View>
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Insurance</ThemedText>
-
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.fieldLabel}>Insurance Provider</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="e.g., Bupa, AXA"
-              placeholderTextColor={palette.muted}
-              value={insuranceProvider}
-              onChangeText={setInsuranceProvider}
-            />
+          <View style={styles.field}>
+            <ThemedText style={Typography.bodySmallSemiBold}>Insurance Provider</ThemedText>
+            <TextInput style={inputStyle} placeholder="e.g., Bupa, AXA" placeholderTextColor={colors.muted} value={insuranceProvider} onChangeText={setInsuranceProvider} />
           </View>
-
-          <View style={styles.fieldContainer}>
-            <ThemedText style={styles.fieldLabel}>Policy Number</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="Policy number"
-              placeholderTextColor={palette.muted}
-              value={insuranceNumber}
-              onChangeText={setInsuranceNumber}
-            />
+          <View style={styles.field}>
+            <ThemedText style={Typography.bodySmallSemiBold}>Policy Number</ThemedText>
+            <TextInput style={inputStyle} placeholder="Policy number" placeholderTextColor={colors.muted} value={insuranceNumber} onChangeText={setInsuranceNumber} />
           </View>
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Additional Notes</ThemedText>
           <TextInput
-            style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
+            style={[styles.textArea, { borderColor: colors.border, color: colors.text }]}
             placeholder="Any other important medical information..."
-            placeholderTextColor={palette.muted}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
+            placeholderTextColor={colors.muted}
+            value={notes} onChangeText={setNotes}
+            multiline numberOfLines={4}
           />
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Consents</ThemedText>
-          <ThemedText style={{ color: palette.muted, ...Typography.small, marginBottom: Spacing.sm }}>
+          <ThemedText style={{ color: colors.muted, ...Typography.small, marginBottom: Spacing.sm }}>
             Manage permissions for your child during sessions
           </ThemedText>
           {consents.map((consent) => (
-            <ConsentToggle key={consent.type} consent={consent} onToggle={handleConsentToggle} />
+            <MedicalConsentToggle key={consent.type} consent={consent} onToggle={handleConsentToggle} />
           ))}
         </SurfaceCard>
 
@@ -365,80 +120,12 @@ export default function MedicalInfoScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1 },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.lg },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm },
-  backButton: {
-    padding: Spacing.xs,
-    marginLeft: -Spacing.xs },
-  section: {
-    gap: Spacing.md },
-  fieldContainer: {
-    gap: Spacing.xs },
-  fieldLabel: {
-    ...Typography.bodySmallSemiBold },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    ...Typography.body },
-  textArea: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    ...Typography.body,
-    minHeight: 100,
-    textAlignVertical: 'top' },
-  tagInputRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs },
-  tagInput: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    ...Typography.body },
-  addTagButton: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.md,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  tagList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1 },
-  tagText: {
-    ...Typography.small },
-  consentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: Radii.lg,
-    justifyContent: 'center' },
-  toggleKnob: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md } });
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  content: { padding: Spacing.lg, gap: Spacing.lg },
+  backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
+  section: { gap: Spacing.md },
+  field: { gap: Spacing.xs },
+  input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
+  textArea: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body, minHeight: 100, textAlignVertical: 'top' },
+});

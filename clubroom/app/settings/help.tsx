@@ -1,267 +1,76 @@
-import { useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('HelpSettings');
-
-interface FAQItem {
-  question: string;
-  answer: string;
-}
-
-const FAQ_ITEMS: FAQItem[] = [
-  {
-    question: 'How do I book a session?',
-    answer: 'Navigate to the Discover tab, find a coach you like, and tap "Book Session". Follow the steps to select a date, time, and session type.',
-  },
-  {
-    question: 'How do I cancel a booking?',
-    answer: 'Go to your Bookings tab, find the session you want to cancel, and tap on it. Then select "Cancel Booking". Note that cancellation policies may apply.',
-  },
-  {
-    question: 'How do I become a coach?',
-    answer: 'To become a coach, sign up with a coach account and complete the verification process. This includes providing credentials and background check information.',
-  },
-  {
-    question: 'How do payments work?',
-    answer: 'Payments are processed securely through our platform. Parents pay when booking, and coaches receive payouts weekly to their connected bank account.',
-  },
-  {
-    question: 'How do I update my availability?',
-    answer: 'Coaches can update their availability by going to Settings > Availability. Set your weekly schedule and any one-off time blocks.',
-  },
-];
-
-function FAQCard({ item, expanded, onToggle }: { item: FAQItem; expanded: boolean; onToggle: () => void }) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <SurfaceCard style={styles.faqCard} onPress={onToggle}>
-      <View style={styles.faqHeader}>
-        <ThemedText type="defaultSemiBold" style={styles.faqQuestion}>
-          {item.question}
-        </ThemedText>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={20}
-          color={palette.muted}
-        />
-      </View>
-      {expanded && (
-        <ThemedText style={[styles.faqAnswer, { color: palette.muted }]}>
-          {item.answer}
-        </ThemedText>
-      )}
-    </SurfaceCard>
-  );
-}
+import { useHelpScreen, FAQ_ITEMS } from '@/hooks/use-help-screen';
 
 export default function HelpSettingsScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-
-  const handleContactSupport = () => {
-    logger.press('ContactSupport');
-    Alert.alert(
-      'Contact Support',
-      'How would you like to reach us?',
-      [
-        {
-          text: 'Email',
-          onPress: () => Linking.openURL('mailto:support@clubroom.app'),
-        },
-        {
-          text: 'Live Chat',
-          onPress: () => Alert.alert('Coming Soon', 'Live chat support coming soon!'),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleReportProblem = () => {
-    logger.press('ReportProblem');
-    router.push(Routes.BOOKINGS_REPORT_PROBLEM);
-  };
-
-  const handleSendFeedback = () => {
-    logger.press('SendFeedback');
-    Alert.alert(
-      'Send Feedback',
-      'Your feedback helps us improve Clubroom. What would you like to share?',
-      [
-        {
-          text: 'Feature Request',
-          onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=Feature%20Request'),
-        },
-        {
-          text: 'General Feedback',
-          onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=General%20Feedback'),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleRateApp = () => {
-    logger.press('RateApp');
-    Alert.alert(
-      'Rate Clubroom',
-      'Enjoying the app? We\'d love your rating on the App Store!',
-      [
-        { text: 'Not Now', style: 'cancel' },
-        {
-          text: 'Rate Now',
-          onPress: () => {
-            // In production, this would link to App Store
-            Alert.alert('Thank You!', 'Thanks for rating Clubroom!');
-          },
-        },
-      ]
-    );
-  };
+  const { colors } = useTheme();
+  const {
+    currentUser, expandedFAQ, toggleFAQ,
+    handleContactSupport, handleReportProblem, handleSendFeedback,
+    handleRateApp, handleHelpCenter, handleVideoTutorials,
+    handleCommunityForum, handleShareApp,
+  } = useHelpScreen();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <Row justify="space-between" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Help & Support
-        </ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>Help & Support</ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Quick Actions */}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <SettingsSection title="Get Help">
-          <SettingsRow
-            icon="chatbubbles"
-            iconColor={palette.success}
-            title="Contact Support"
-            subtitle="Chat with our support team"
-            onPress={handleContactSupport}
-          />
-          <SettingsRow
-            icon="flag"
-            iconColor={palette.warning}
-            title="Report a Problem"
-            subtitle="Let us know about an issue"
-            onPress={handleReportProblem}
-          />
-          <SettingsRow
-            icon="bulb"
-            title="Send Feedback"
-            subtitle="Share your ideas and suggestions"
-            onPress={handleSendFeedback}
-          />
+          <SettingsRow icon="chatbubbles" iconColor={colors.success} title="Contact Support" subtitle="Chat with our support team" onPress={handleContactSupport} />
+          <SettingsRow icon="flag" iconColor={colors.warning} title="Report a Problem" subtitle="Let us know about an issue" onPress={handleReportProblem} />
+          <SettingsRow icon="bulb" title="Send Feedback" subtitle="Share your ideas and suggestions" onPress={handleSendFeedback} />
         </SettingsSection>
 
-        {/* FAQ */}
         <View style={styles.faqSection}>
-          <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-            FREQUENTLY ASKED QUESTIONS
-          </ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>FREQUENTLY ASKED QUESTIONS</ThemedText>
           <View style={styles.faqList}>
             {FAQ_ITEMS.map((item, index) => (
-              <FAQCard
-                key={index}
-                item={item}
-                expanded={expandedFAQ === index}
-                onToggle={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-              />
+              <FAQCard key={index} item={item} expanded={expandedFAQ === index} onToggle={() => toggleFAQ(index)} />
             ))}
           </View>
         </View>
 
-        {/* Resources */}
         <SettingsSection title="Resources">
-          <SettingsRow
-            icon="book"
-            title="Help Center"
-            subtitle="Browse articles and guides"
-            onPress={() => {
-              logger.press('HelpCenter');
-              Linking.openURL('https://help.clubroom.app');
-            }}
-          />
-          <SettingsRow
-            icon="videocam"
-            title="Video Tutorials"
-            subtitle="Learn how to use Clubroom"
-            onPress={() => {
-              logger.press('VideoTutorials');
-              Alert.alert('Coming Soon', 'Video tutorials coming soon!');
-            }}
-          />
-          <SettingsRow
-            icon="newspaper"
-            title="Community Forum"
-            subtitle="Connect with other users"
-            onPress={() => {
-              logger.press('CommunityForum');
-              Alert.alert('Coming Soon', 'Community forum coming soon!');
-            }}
-          />
+          <SettingsRow icon="book" title="Help Center" subtitle="Browse articles and guides" onPress={handleHelpCenter} />
+          <SettingsRow icon="videocam" title="Video Tutorials" subtitle="Learn how to use Clubroom" onPress={handleVideoTutorials} />
+          <SettingsRow icon="newspaper" title="Community Forum" subtitle="Connect with other users" onPress={handleCommunityForum} />
         </SettingsSection>
 
-        {/* Rate & Share */}
         <SettingsSection title="Support Us">
-          <SettingsRow
-            icon="star"
-            iconColor={palette.warning}
-            title="Rate Clubroom"
-            subtitle="Share your experience on the App Store"
-            onPress={handleRateApp}
-          />
-          <SettingsRow
-            icon="share-social"
-            title="Share Clubroom"
-            subtitle="Invite friends to join"
-            onPress={() => {
-              logger.press('ShareApp');
-              Alert.alert('Share', 'Share functionality coming soon!');
-            }}
-          />
+          <SettingsRow icon="star" iconColor={colors.warning} title="Rate Clubroom" subtitle="Share your experience on the App Store" onPress={handleRateApp} />
+          <SettingsRow icon="share-social" title="Share Clubroom" subtitle="Invite friends to join" onPress={handleShareApp} />
         </SettingsSection>
 
-        {/* Contact Info Card */}
         <SurfaceCard style={styles.contactCard}>
-          <View style={[styles.contactIcon, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
-            <Ionicons name="mail" size={24} color={palette.accent} />
+          <View style={[styles.contactIcon, { backgroundColor: withAlpha(colors.accent, 0.09) }]}>
+            <Ionicons name="mail" size={24} color={colors.accent} />
           </View>
           <View style={styles.contactInfo}>
             <ThemedText type="defaultSemiBold">Still need help?</ThemedText>
-            <ThemedText style={[styles.contactText, { color: palette.muted }]}>
-              Email us at support@clubroom.app
-            </ThemedText>
-            <ThemedText style={[styles.contactText, { color: palette.muted }]}>
-              Response time: Within 24 hours
-            </ThemedText>
+            <ThemedText style={[styles.contactText, { color: colors.muted }]}>Email us at support@clubroom.app</ThemedText>
+            <ThemedText style={[styles.contactText, { color: colors.muted }]}>Response time: Within 24 hours</ThemedText>
           </View>
         </SurfaceCard>
 
-        {/* Debug Info (for support) */}
         <View style={styles.debugInfo}>
-          <ThemedText style={[styles.debugText, { color: palette.muted }]}>
+          <ThemedText style={[styles.debugText, { color: colors.muted }]}>
             App Version: 1.0.0 | User ID: {currentUser?.id || 'N/A'}
           </ThemedText>
         </View>
@@ -270,78 +79,34 @@ export default function HelpSettingsScreen() {
   );
 }
 
+function FAQCard({ item, expanded, onToggle }: { item: typeof FAQ_ITEMS[number]; expanded: boolean; onToggle: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <SurfaceCard style={styles.faqCard} onPress={onToggle}>
+      <Row justify="space-between" align="center" gap="sm">
+        <ThemedText type="defaultSemiBold" style={styles.faqQuestion}>{item.question}</ThemedText>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.muted} />
+      </Row>
+      {expanded && <ThemedText style={[styles.faqAnswer, { color: colors.muted }]}>{item.answer}</ThemedText>}
+    </SurfaceCard>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    ...Typography.heading,
-  },
-  content: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
-  },
-  faqSection: {
-    gap: Spacing.sm,
-  },
-  sectionTitle: {
-    ...Typography.smallSemiBold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginLeft: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  faqList: {
-    gap: Spacing.sm,
-  },
-  faqCard: {
-    gap: Spacing.sm,
-  },
-  faqHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  faqQuestion: {
-    flex: 1,
-    ...Typography.body,
-  },
-  faqAnswer: {
-    ...Typography.bodySmall,
-  },
-  contactCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  contactIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contactInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  contactText: {
-    ...Typography.small,
-  },
-  debugInfo: {
-    alignItems: 'center',
-    paddingTop: Spacing.md,
-  },
-  debugText: {
-    ...Typography.caption,
-  },
+  container: { flex: 1 },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  headerTitle: { ...Typography.heading },
+  content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
+  faqSection: { gap: Spacing.sm },
+  sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: Spacing.xs, marginBottom: Spacing.xs },
+  faqList: { gap: Spacing.sm },
+  faqCard: { gap: Spacing.sm },
+  faqQuestion: { flex: 1, ...Typography.body },
+  faqAnswer: { ...Typography.bodySmall },
+  contactCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  contactIcon: { width: 48, height: 48, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  contactInfo: { flex: 1, gap: Spacing.micro },
+  contactText: { ...Typography.small },
+  debugInfo: { alignItems: 'center', paddingTop: Spacing.md },
+  debugText: { ...Typography.caption },
 });

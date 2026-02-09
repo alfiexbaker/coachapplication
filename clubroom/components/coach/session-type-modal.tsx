@@ -14,12 +14,13 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
-
-const DURATION_OPTIONS = [30, 45, 60, 90];
-const TYPE_OPTIONS: { key: SessionType; label: string }[] = [
-  { key: '1-to-1', label: '1-on-1' },
-  { key: 'small-group', label: 'Group' },
-];
+import {
+  DURATION_OPTIONS,
+  TYPE_OPTIONS,
+  SegmentSelector,
+  CapacityStepper,
+  PriceInput,
+} from './session-type-modal-sections';
 
 interface SessionTypeModalProps {
   visible: boolean;
@@ -52,7 +53,6 @@ export function SessionTypeModal({
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
 
-  // Reset form when modal opens/template changes
   useEffect(() => {
     if (visible) {
       if (existing) {
@@ -106,6 +106,13 @@ export function SessionTypeModal({
     );
   };
 
+  const handleTypeSelect = (key: SessionType) => {
+    setType(key);
+    if (key === '1-to-1' || key === 'assessment') setCapacity(1);
+  };
+
+  const durationOptions = DURATION_OPTIONS.map((d) => ({ key: d, label: `${d}m` }));
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -113,7 +120,6 @@ export function SessionTypeModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
-          {/* Handle */}
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
           {/* Header */}
@@ -121,7 +127,7 @@ export function SessionTypeModal({
             <ThemedText type="subtitle">
               {existing ? 'Edit Session Type' : 'New Session Type'}
             </ThemedText>
-            <Clickable onPress={onClose}>
+            <Clickable accessibilityLabel="Close" onPress={onClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </View>
@@ -140,97 +146,35 @@ export function SessionTypeModal({
           </View>
 
           {/* Type */}
-          <View style={styles.field}>
-            <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Type</ThemedText>
-            <View style={styles.segmentRow}>
-              {TYPE_OPTIONS.map((opt) => (
-                <Clickable
-                  key={opt.key}
-                  onPress={() => {
-                    setType(opt.key);
-                    if (opt.key === '1-to-1' || opt.key === 'assessment') setCapacity(1);
-                  }}
-                  style={[
-                    styles.segment,
-                    {
-                      backgroundColor: type === opt.key ? palette.tint : palette.background,
-                      borderColor: type === opt.key ? palette.tint : palette.border,
-                    },
-                  ]}
-                >
-                  <ThemedText style={[
-                    styles.segmentText,
-                    { color: type === opt.key ? palette.onPrimary : palette.text },
-                  ]}>
-                    {opt.label}
-                  </ThemedText>
-                </Clickable>
-              ))}
-            </View>
-          </View>
+          <SegmentSelector
+            label="Type"
+            options={TYPE_OPTIONS}
+            selected={type}
+            onSelect={handleTypeSelect}
+            palette={palette}
+          />
 
           {/* Duration */}
-          <View style={styles.field}>
-            <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Duration</ThemedText>
-            <View style={styles.segmentRow}>
-              {DURATION_OPTIONS.map((d) => (
-                <Clickable
-                  key={d}
-                  onPress={() => setDuration(d)}
-                  style={[
-                    styles.segment,
-                    {
-                      backgroundColor: duration === d ? palette.tint : palette.background,
-                      borderColor: duration === d ? palette.tint : palette.border,
-                    },
-                  ]}
-                >
-                  <ThemedText style={[
-                    styles.segmentText,
-                    { color: duration === d ? palette.onPrimary : palette.text },
-                  ]}>
-                    {d}m
-                  </ThemedText>
-                </Clickable>
-              ))}
-            </View>
-          </View>
+          <SegmentSelector
+            label="Duration"
+            options={durationOptions}
+            selected={duration}
+            onSelect={setDuration}
+            palette={palette}
+          />
 
           {/* Capacity + Price row */}
           <View style={styles.row}>
-            <View style={[styles.field, { flex: 1 }]}>
-              <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Max Athletes</ThemedText>
-              <View style={[styles.stepperRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
-                <Clickable
-                  onPress={() => setCapacity(Math.max(1, capacity - 1))}
-                  style={styles.stepperBtn}
-                >
-                  <Ionicons name="remove" size={18} color={palette.text} />
-                </Clickable>
-                <ThemedText type="defaultSemiBold" style={styles.stepperValue}>{capacity}</ThemedText>
-                <Clickable
-                  onPress={() => setCapacity(Math.min(20, capacity + 1))}
-                  style={styles.stepperBtn}
-                >
-                  <Ionicons name="add" size={18} color={palette.text} />
-                </Clickable>
-              </View>
-            </View>
-
-            <View style={[styles.field, { flex: 1 }]}>
-              <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Price per Head</ThemedText>
-              <View style={[styles.priceRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
-                <ThemedText style={{ color: palette.muted }}>£</ThemedText>
-                <TextInput
-                  style={[styles.priceInput, { color: palette.text }]}
-                  placeholder="0"
-                  placeholderTextColor={palette.muted}
-                  value={price}
-                  onChangeText={setPrice}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
+            <CapacityStepper
+              value={capacity}
+              onChange={setCapacity}
+              palette={palette}
+            />
+            <PriceInput
+              value={price}
+              onChange={setPrice}
+              palette={palette}
+            />
           </View>
 
           {/* Description */}
@@ -300,9 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  field: {
-    gap: Spacing.xs,
-  },
+  field: { gap: Spacing.xs },
   fieldLabel: {
     ...Typography.caption,
     textTransform: 'uppercase',
@@ -322,52 +264,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     ...Typography.body,
   },
-  segmentRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  segmentText: {
-    ...Typography.smallSemiBold,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  stepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-  },
-  stepperBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  stepperValue: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingLeft: Spacing.md,
-  },
-  priceInput: {
-    flex: 1,
-    padding: Spacing.md,
-    paddingLeft: Spacing.xs,
-    ...Typography.body,
-  },
+  row: { flexDirection: 'row', gap: Spacing.md },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -388,7 +285,5 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
   },
-  deleteBtnText: {
-    fontWeight: '600',
-  },
+  deleteBtnText: { fontWeight: '600' },
 });

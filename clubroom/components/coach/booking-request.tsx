@@ -1,8 +1,9 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -94,27 +95,23 @@ export function BookingRequest({
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
+        <Clickable
           onPress={() => onConfirm(bookingId)}
-          style={({ pressed }) => [
+          style={[
             styles.confirmButton,
-            {
-              backgroundColor: pressed ? withAlpha(palette.success, 0.87) : palette.success,
-            },
+            { backgroundColor: palette.success },
           ]}
         >
           <Ionicons name="checkmark" size={Components.icon.md} color={palette.onPrimary} />
           <ThemedText style={[styles.confirmLabel, { color: palette.onPrimary }]}>Confirm</ThemedText>
-        </Pressable>
+        </Clickable>
 
-        <Pressable
-          accessibilityRole="button"
+        <Clickable
           onPress={() => onSuggestAlternative(bookingId)}
-          style={({ pressed }) => [
+          style={[
             styles.alternativeButton,
             {
-              backgroundColor: pressed ? palette.overlay : palette.surface,
+              backgroundColor: palette.surface,
               borderColor: palette.border,
             },
           ]}
@@ -123,22 +120,18 @@ export function BookingRequest({
           <ThemedText style={[styles.alternativeLabel, { color: palette.foreground }]}>
             Suggest Alternative
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
 
       {/* Decline as text-only */}
-      <Pressable
-        accessibilityRole="button"
+      <Clickable
         onPress={() => onDecline(bookingId)}
-        style={({ pressed }) => [
-          styles.declineButton,
-          pressed && { opacity: 0.6 },
-        ]}
+        style={styles.declineButton}
       >
         <ThemedText style={[Typography.small, { color: palette.error }]}>
           Decline Request
         </ThemedText>
-      </Pressable>
+      </Clickable>
     </SurfaceCard>
   );
 }

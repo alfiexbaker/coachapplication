@@ -1,0 +1,85 @@
+import React, { memo } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/themed-text';
+import { Spacing, Typography } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
+
+export interface ClubDetailStatsProps {
+  memberCount: number;
+  squadCount: number;
+  sessionCount: number;
+  inviteCount: number;
+  canExpand: boolean;
+  isExpanded: boolean;
+  onToggleMembers: () => void;
+  colors: ThemeColors;
+}
+
+export const ClubDetailStats = memo(function ClubDetailStats({
+  memberCount,
+  squadCount,
+  sessionCount,
+  inviteCount,
+  canExpand,
+  isExpanded,
+  onToggleMembers,
+  colors,
+}: ClubDetailStatsProps) {
+  return (
+    <View style={[styles.row, { borderColor: colors.border }]}>
+      <Clickable style={styles.item} onPress={onToggleMembers}>
+        <ThemedText type="title" style={Typography.heading}>{memberCount}</ThemedText>
+        <View style={styles.labelRow}>
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>Members</ThemedText>
+          {canExpand && (
+            <Ionicons
+              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color={colors.muted}
+            />
+          )}
+        </View>
+      </Clickable>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <View style={styles.item}>
+        <ThemedText type="title" style={Typography.heading}>{squadCount}</ThemedText>
+        <ThemedText style={[Typography.caption, { color: colors.muted }]}>Squads</ThemedText>
+      </View>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <View style={styles.item}>
+        <ThemedText type="title" style={Typography.heading}>{sessionCount}</ThemedText>
+        <ThemedText style={[Typography.caption, { color: colors.muted }]}>Sessions</ThemedText>
+      </View>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <View style={styles.item}>
+        <ThemedText type="title" style={Typography.heading}>{inviteCount}</ThemedText>
+        <ThemedText style={[Typography.caption, { color: colors.muted }]}>Invites</ThemedText>
+      </View>
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    paddingVertical: Spacing.md,
+    marginHorizontal: Spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  item: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.micro,
+  },
+  divider: {
+    width: 1,
+    height: '100%',
+  },
+});

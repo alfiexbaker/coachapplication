@@ -1,132 +1,44 @@
 /**
  * Referral Invite Screen
  *
- * Dedicated screen for sharing referral codes. Provides multiple
- * sharing options and shows what friends will receive.
+ * Share referral codes via multiple channels. Shows code + link copy,
+ * share buttons, and terms. All state/logic in useReferralInvite hook.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
-import { createLogger } from '@/utils/logger';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ShareButton } from '@/components/referrals';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import type { ReferralCode } from '@/constants/types';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { referralService } from '@/services/referral-service';
+import { useReferralInvite } from '@/hooks/use-referral-invite';
 import { scaleFont } from '@/utils/scale';
 
-const logger = createLogger('ReferralInviteScreen');
-
-/**
- * Screen for sharing referral codes with multiple options.
- */
 export default function ReferralInviteScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-
-  // State
-  const [referralCode, setReferralCode] = useState<ReferralCode | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-
-  // Get current user info
-  const userId = currentUser?.id ?? 'parent1';
-  const userName = currentUser?.fullName ?? currentUser?.name ?? 'User';
-
-  // Load referral code
-  useEffect(() => {
-    async function loadCode() {
-      try {
-        const result = await referralService.getUserCode(userId, userName);
-        if (!result.success) {
-          logger.error('Failed to load referral code:', result.error);
-          Alert.alert('Error', 'Failed to load your referral code');
-          return;
-        }
-        setReferralCode(result.data);
-      } catch (error) {
-        logger.error('Failed to load referral code:', error);
-        Alert.alert('Error', 'Failed to load your referral code');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadCode();
-  }, [userId, userName]);
-
-  // Copy code to clipboard
-  const handleCopyCode = useCallback(async () => {
-    if (!referralCode) return;
-
-    try {
-      await Clipboard.setStringAsync(referralCode.code);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      Alert.alert('Error', 'Failed to copy code');
-    }
-  }, [referralCode]);
-
-  // Copy link to clipboard
-  const handleCopyLink = useCallback(async () => {
-    if (!referralCode) return;
-
-    try {
-      const url = referralService.getShareUrl(referralCode.code);
-      await Clipboard.setStringAsync(url);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      Alert.alert('Error', 'Failed to copy link');
-    }
-  }, [referralCode]);
-
-  const creditAmount = referralCode?.creditAmount ?? 10;
-  const creditText = referralService.formatCredit(creditAmount);
+  const c = useReferralInvite();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="close" size={28} color={palette.text} />
-        </Clickable>
-        <ThemedText type="subtitle" style={styles.headerTitle}>
-          Invite Friends
-        </ThemedText>
+        <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="close" size={28} color={palette.text} /></Clickable>
+        <ThemedText type="subtitle" style={styles.headerTitle}>Invite Friends</ThemedText>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ThemedText style={{ color: palette.muted }}>Loading...</ThemedText>
-          </View>
-        ) : referralCode ? (
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {c.loading ? (
+          <View style={styles.loadingContainer}><ThemedText style={{ color: palette.muted }}>Loading...</ThemedText></View>
+        ) : c.referralCode ? (
           <>
-            {/* Illustration / Icon */}
-            <Animated.View
-              entering={FadeInDown.delay(100).springify()}
-              style={styles.illustrationContainer}
-            >
+            <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.illustrationContainer}>
               <View style={[styles.illustrationCircle, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <View style={[styles.illustrationInner, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="gift" size={48} color={palette.tint} />
@@ -134,136 +46,58 @@ export default function ReferralInviteScreen() {
               </View>
             </Animated.View>
 
-            {/* Headline */}
             <Animated.View entering={FadeInDown.delay(150).springify()}>
-              <ThemedText type="title" style={styles.headline}>
-                Give {creditText}, Get {creditText}
-              </ThemedText>
+              <ThemedText type="title" style={styles.headline}>Give {c.creditText}, Get {c.creditText}</ThemedText>
               <ThemedText style={[styles.subheadline, { color: palette.muted }]}>
                 Share your code with friends. When they sign up and complete their first booking, you both earn wallet credits!
               </ThemedText>
             </Animated.View>
 
-            {/* Code Display */}
             <Animated.View entering={FadeInDown.delay(200).springify()}>
               <SurfaceCard style={styles.codeCard}>
-                <ThemedText style={[styles.codeLabel, { color: palette.muted }]}>
-                  Your Referral Code
-                </ThemedText>
-                <ThemedText type="title" style={styles.codeValue}>
-                  {referralCode.code}
-                </ThemedText>
+                <ThemedText style={[styles.codeLabel, { color: palette.muted }]}>Your Referral Code</ThemedText>
+                <ThemedText type="title" style={styles.codeValue}>{c.referralCode.code}</ThemedText>
                 <View style={styles.codeActions}>
-                  <Clickable
-                    onPress={handleCopyCode}
-                    style={[
-                      styles.actionButton,
-                      {
-                        backgroundColor: copied ? withAlpha(palette.success, 0.09) : palette.background,
-                        borderColor: copied ? palette.success : palette.border,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={copied ? 'checkmark' : 'copy-outline'}
-                      size={18}
-                      color={copied ? palette.success : palette.icon}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.actionButtonText,
-                        { color: copied ? palette.success : palette.text },
-                      ]}
-                    >
-                      {copied ? 'Copied!' : 'Copy Code'}
+                  <Clickable onPress={c.handleCopyCode} style={[styles.actionButton, {
+                    backgroundColor: c.copied ? withAlpha(palette.success, 0.09) : palette.background,
+                    borderColor: c.copied ? palette.success : palette.border,
+                  }]}>
+                    <Ionicons name={c.copied ? 'checkmark' : 'copy-outline'} size={18} color={c.copied ? palette.success : palette.icon} />
+                    <ThemedText style={[styles.actionButtonText, { color: c.copied ? palette.success : palette.text }]}>
+                      {c.copied ? 'Copied!' : 'Copy Code'}
                     </ThemedText>
                   </Clickable>
-                  <Clickable
-                    onPress={handleCopyLink}
-                    style={[
-                      styles.actionButton,
-                      {
-                        backgroundColor: linkCopied ? withAlpha(palette.success, 0.09) : palette.background,
-                        borderColor: linkCopied ? palette.success : palette.border,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={linkCopied ? 'checkmark' : 'link-outline'}
-                      size={18}
-                      color={linkCopied ? palette.success : palette.icon}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.actionButtonText,
-                        { color: linkCopied ? palette.success : palette.text },
-                      ]}
-                    >
-                      {linkCopied ? 'Copied!' : 'Copy Link'}
+                  <Clickable onPress={c.handleCopyLink} style={[styles.actionButton, {
+                    backgroundColor: c.linkCopied ? withAlpha(palette.success, 0.09) : palette.background,
+                    borderColor: c.linkCopied ? palette.success : palette.border,
+                  }]}>
+                    <Ionicons name={c.linkCopied ? 'checkmark' : 'link-outline'} size={18} color={c.linkCopied ? palette.success : palette.icon} />
+                    <ThemedText style={[styles.actionButtonText, { color: c.linkCopied ? palette.success : palette.text }]}>
+                      {c.linkCopied ? 'Copied!' : 'Copy Link'}
                     </ThemedText>
                   </Clickable>
                 </View>
               </SurfaceCard>
             </Animated.View>
 
-            {/* Share Options */}
             <Animated.View entering={FadeInDown.delay(250).springify()}>
-              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-                Share via
-              </ThemedText>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Share via</ThemedText>
               <View style={styles.shareOptions}>
-                <ShareOption
-                  icon="share-social"
-                  label="Share"
-                  color={palette.tint}
-                  code={referralCode.code}
-                  userName={userName}
-                  creditAmount={creditAmount}
-                />
-                <ShareOption
-                  icon="chatbubble"
-                  label="Message"
-                  color={palette.success}
-                  code={referralCode.code}
-                  userName={userName}
-                  creditAmount={creditAmount}
-                />
-                <ShareOption
-                  icon="mail"
-                  label="Email"
-                  color={palette.warning}
-                  code={referralCode.code}
-                  userName={userName}
-                  creditAmount={creditAmount}
-                />
-                <ShareOption
-                  icon="ellipsis-horizontal"
-                  label="More"
-                  color={palette.muted}
-                  code={referralCode.code}
-                  userName={userName}
-                  creditAmount={creditAmount}
-                />
+                {(['share-social', 'chatbubble', 'mail', 'ellipsis-horizontal'] as const).map((icon) => (
+                  <ShareButton key={icon} code={c.referralCode!.code} userName={c.userName} creditAmount={c.creditAmount}
+                    variant="icon" onShare={() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
+                ))}
               </View>
             </Animated.View>
 
-            {/* Main Share Button */}
             <Animated.View entering={FadeInUp.delay(300).springify()}>
-              <ShareButton
-                code={referralCode.code}
-                userName={userName}
-                creditAmount={creditAmount}
-                size="large"
-                label="Share Your Referral Link"
-              />
+              <ShareButton code={c.referralCode.code} userName={c.userName} creditAmount={c.creditAmount} size="large" label="Share Your Referral Link" />
             </Animated.View>
 
-            {/* Terms */}
             <Animated.View entering={FadeInUp.delay(350).springify()}>
               <View style={styles.termsContainer}>
                 <ThemedText style={[styles.termsText, { color: palette.muted }]}>
-                  Credits are awarded after your friend completes their first booking.
-                  Credits expire 12 months from the date they&apos;re earned.
+                  Credits are awarded after your friend completes their first booking. Credits expire 12 months from the date they&apos;re earned.
                 </ThemedText>
               </View>
             </Animated.View>
@@ -271,9 +105,7 @@ export default function ReferralInviteScreen() {
         ) : (
           <View style={styles.errorContainer}>
             <Ionicons name="warning-outline" size={48} color={palette.warning} />
-            <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-              Unable to load your referral code. Please try again.
-            </ThemedText>
+            <ThemedText style={[styles.errorText, { color: palette.muted }]}>Unable to load your referral code. Please try again.</ThemedText>
           </View>
         )}
       </ScrollView>
@@ -281,181 +113,28 @@ export default function ReferralInviteScreen() {
   );
 }
 
-// ============================================================================
-// SHARE OPTION COMPONENT
-// ============================================================================
-
-interface ShareOptionProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  color: string;
-  code: string;
-  userName: string;
-  creditAmount: number;
-}
-
-function ShareOption({ icon, label, color, code, userName, creditAmount }: ShareOptionProps) {
-  useTheme();
-
-  // All options trigger the native share sheet for now
-  // Could be customized to open specific apps if needed
-  return (
-    <ShareButton
-      code={code}
-      userName={userName}
-      creditAmount={creditAmount}
-      variant="icon"
-      onShare={() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-    />
-  );
-}
-
-// ============================================================================
-// STYLES
-// ============================================================================
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
-  headerSpacer: {
-    width: 28,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.lg,
-  },
-  loadingContainer: {
-    padding: Spacing['3xl'],
-    alignItems: 'center',
-  },
-
-  // Illustration
-  illustrationContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-  },
-  illustrationCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  illustrationInner: {
-    width: 100,
-    height: 100,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Headline
-  headline: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  subheadline: {
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    textAlign: 'center',
-    lineHeight: scaleFont(22),
-    maxWidth: 320,
-    alignSelf: 'center',
-  },
-
-  // Code card
-  codeCard: {
-    padding: Spacing.lg,
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  codeLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '500',
-  },
-  codeValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-    letterSpacing: 3,
-    fontVariant: ['tabular-nums'],
-  },
-  codeActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  actionButtonText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
-
-  // Share options
-  sectionLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '500',
-    marginBottom: Spacing.xs,
-    textAlign: 'center',
-  },
-  shareOptions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.md,
-  },
-  shareOption: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  shareIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
-
-  // Terms
-  termsContainer: {
-    paddingHorizontal: Spacing.md,
-  },
-  termsText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    textAlign: 'center',
-    lineHeight: scaleFont(18),
-  },
-
-  // Error state
-  errorContainer: {
-    padding: Spacing['3xl'],
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  errorText: {
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  headerTitle: { ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
+  headerSpacer: { width: 28 },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.lg },
+  loadingContainer: { padding: Spacing['3xl'], alignItems: 'center' },
+  illustrationContainer: { alignItems: 'center', paddingVertical: Spacing.md },
+  illustrationCircle: { width: 140, height: 140, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
+  illustrationInner: { width: 100, height: 100, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
+  headline: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), textAlign: 'center', marginBottom: Spacing.xs },
+  subheadline: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), textAlign: 'center', lineHeight: scaleFont(22), maxWidth: 320, alignSelf: 'center' },
+  codeCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.md },
+  codeLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textTransform: 'uppercase', letterSpacing: 1, fontWeight: '500' },
+  codeValue: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), letterSpacing: 3, fontVariant: ['tabular-nums'] },
+  codeActions: { flexDirection: 'row', gap: Spacing.sm },
+  actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  actionButtonText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  sectionLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '500', marginBottom: Spacing.xs, textAlign: 'center' },
+  shareOptions: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.md },
+  termsContainer: { paddingHorizontal: Spacing.md },
+  termsText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textAlign: 'center', lineHeight: scaleFont(18) },
+  errorContainer: { padding: Spacing['3xl'], alignItems: 'center', gap: Spacing.md },
+  errorText: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), textAlign: 'center' },
 });

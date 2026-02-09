@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { Dimensions, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, type SharedValue } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PARTICLE_COUNT = 35;
@@ -31,8 +32,29 @@ export interface ConfettiProps {
   active: boolean;
 }
 
+function ConfettiParticle({ anim, particle }: { anim: SharedValue<number>; particle: Particle }) {
+  const style = useAnimatedStyle(() => {
+    const translateY = interpolate(anim.value, [0, 1], [-particle.size, SCREEN_HEIGHT + particle.size]);
+    const translateX = interpolate(anim.value, [0, 0.25, 0.5, 0.75, 1], [0, particle.swayAmplitude, 0, -particle.swayAmplitude, 0]);
+    const rotate = interpolate(anim.value, [0, 1], [0, particle.rotationSpeed]);
+    const opacity = interpolate(anim.value, [0, 0.1, 0.8, 1], [0, 1, 1, 0]);
+
+    return {
+      left: particle.x,
+      width: particle.size,
+      height: particle.size,
+      borderRadius: particle.size / 2,
+      backgroundColor: particle.color,
+      transform: [{ translateY }, { translateX }, { rotate: `${rotate}deg` }],
+      opacity,
+    };
+  });
+
+  return <Animated.View style={[styles.particle, style]} />;
+}
+
 export function Confetti({ active }: ConfettiProps) {
-  const animationRef = useRef(new Animated.Value(0)).current;
+  const animationRef = useSharedValue(0);
 
   const particles = useMemo<Particle[]>(() => {
     return Array.from({ length: PARTICLE_COUNT }, () => ({
@@ -47,15 +69,10 @@ export function Confetti({ active }: ConfettiProps) {
 
   useEffect(() => {
     if (active) {
-      animationRef.setValue(0);
-      Animated.timing(animationRef, {
-        toValue: 1,
-        duration: DURATION,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }).start();
+      animationRef.value = 0;
+      animationRef.value = withTiming(1, { duration: DURATION, easing: Easing.linear });
     } else {
-      animationRef.setValue(0);
+      animationRef.value = 0;
     }
   }, [active, animationRef]);
 
@@ -65,51 +82,9 @@ export function Confetti({ active }: ConfettiProps) {
 
   return (
     <View style={styles.container} pointerEvents="none">
-      {particles.map((particle, index) => {
-        const translateY = animationRef.interpolate({
-          inputRange: [0, 1],
-          outputRange: [-particle.size, SCREEN_HEIGHT + particle.size],
-        });
-
-        const translateX = animationRef.interpolate({
-          inputRange: [0, 0.25, 0.5, 0.75, 1],
-          outputRange: [
-            0,
-            particle.swayAmplitude,
-            0,
-            -particle.swayAmplitude,
-            0,
-          ],
-        });
-
-        const rotate = animationRef.interpolate({
-          inputRange: [0, 1],
-          outputRange: ['0deg', `${particle.rotationSpeed}deg`],
-        });
-
-        const opacity = animationRef.interpolate({
-          inputRange: [0, 0.1, 0.8, 1],
-          outputRange: [0, 1, 1, 0],
-        });
-
-        return (
-          <Animated.View
-            key={index}
-            style={[
-              styles.particle,
-              {
-                left: particle.x,
-                width: particle.size,
-                height: particle.size,
-                borderRadius: particle.size / 2,
-                backgroundColor: particle.color,
-                transform: [{ translateY }, { translateX }, { rotate }],
-                opacity,
-              },
-            ]}
-          />
-        );
-      })}
+      {particles.map((particle, index) => (
+        <ConfettiParticle key={index} anim={animationRef} particle={particle} />
+      ))}
     </View>
   );
 }

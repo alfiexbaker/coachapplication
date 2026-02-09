@@ -7,11 +7,12 @@
  */
 
 import { useCallback, memo } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -81,14 +82,14 @@ export default function ClubHubScreen() {
       <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
         <View style={styles.errorContainer}>
           <StatusBanner variant="error" message={hub.loadError} />
-          <Pressable
+          <Clickable
             style={[styles.retryButton, { borderColor: colors.tint }]}
             onPress={hub.loadAllData}
             accessibilityLabel="Retry loading club data"
           >
             <Ionicons name="refresh" size={18} color={colors.tint} />
             <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>Retry</ThemedText>
-          </Pressable>
+          </Clickable>
         </View>
       </PageContainer>
     );
@@ -161,14 +162,14 @@ const FeedEmptyState = memo(function FeedEmptyState({
         {feedFilter === 'all' ? 'No posts yet. Be the first to share!' : `No ${feedFilter} posts yet.`}
       </ThemedText>
       {canCreatePosts && feedFilter === 'all' && (
-        <Pressable
+        <Clickable
           style={[styles.emptyFeedCta, { backgroundColor: colors.tint }]}
           onPress={onCreatePost}
           accessibilityLabel="Create first post"
         >
           <Ionicons name="add" size={18} color={colors.onPrimary} />
           <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>Create Post</ThemedText>
-        </Pressable>
+        </Clickable>
       )}
     </View>
   );

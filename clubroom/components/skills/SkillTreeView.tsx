@@ -7,7 +7,6 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,26 +18,26 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 
-import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import { SkillNode } from './SkillNode';
 import { SkillConnection } from './SkillConnection';
 import type { SkillTree, SkillNode as SkillNodeType } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import {
+  type ConnectionData,
+  TreeHeader,
+  TreeProgressBar,
+  TreeLegend,
+  ResetButton,
+  ZoomHint,
+} from './skill-tree-sections';
 
 export interface SkillTreeViewProps {
   tree: SkillTree;
   onNodePress?: (node: SkillNodeType) => void;
   canUnlockNodes?: Set<string>;
   animateUnlocks?: boolean;
-}
-
-interface ConnectionData {
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  isUnlocked: boolean;
-  key: string;
 }
 
 export function SkillTreeView({
@@ -59,7 +58,6 @@ export function SkillTreeView({
     setContainerSize({ width, height });
   }, []);
 
-  // Generate connections based on prerequisites
   const connections = useMemo<ConnectionData[]>(() => {
     const conns: ConnectionData[] = [];
     const nodeMap = new Map(tree.nodes.map((n) => [n.id, n]));
@@ -81,27 +79,21 @@ export function SkillTreeView({
     return conns;
   }, [tree.nodes]);
 
-  // Pinch zoom gesture
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
       scale.value = Math.max(0.5, Math.min(2, event.scale));
     })
     .onEnd(() => {
-      if (scale.value < 0.8) {
-        scale.value = withSpring(0.8);
-      } else if (scale.value > 1.5) {
-        scale.value = withSpring(1.5);
-      }
+      if (scale.value < 0.8) scale.value = withSpring(0.8);
+      else if (scale.value > 1.5) scale.value = withSpring(1.5);
     });
 
-  // Pan gesture
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       translateX.value = event.translationX;
       translateY.value = event.translationY;
     })
     .onEnd(() => {
-      // Snap back with spring if out of bounds
       const maxOffset = 100;
       if (Math.abs(translateX.value) > maxOffset) {
         translateX.value = withSpring(translateX.value > 0 ? maxOffset : -maxOffset);
@@ -127,62 +119,27 @@ export function SkillTreeView({
     translateY.value = withSpring(0);
   };
 
-  // Calculate stats
   const unlockedCount = tree.nodes.filter((n) => n.isUnlocked).length;
 
   return (
     <GestureHandlerRootView style={styles.root}>
       <SurfaceCard style={styles.card}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: withAlpha(tree.themeColor, 0.09) }]}>
-              <Ionicons
-                name={tree.icon as keyof typeof Ionicons.glyphMap}
-                size={24}
-                color={tree.themeColor}
-              />
-            </View>
-            <View>
-              <ThemedText type="defaultSemiBold" style={styles.treeName}>
-                {tree.name}
-              </ThemedText>
-              <ThemedText style={[styles.treeDesc, { color: palette.muted }]}>
-                {tree.description}
-              </ThemedText>
-            </View>
-          </View>
-          <View style={styles.statsContainer}>
-            <View style={[styles.statBadge, { backgroundColor: withAlpha(tree.themeColor, 0.09) }]}>
-              <ThemedText style={[styles.statValue, { color: tree.themeColor }]}>
-                {unlockedCount}/{tree.totalNodes}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Skills
-              </ThemedText>
-            </View>
-          </View>
-        </View>
+        <TreeHeader
+          name={tree.name}
+          description={tree.description}
+          icon={tree.icon}
+          themeColor={tree.themeColor}
+          unlockedCount={unlockedCount}
+          totalNodes={tree.totalNodes}
+          palette={palette}
+        />
 
-        {/* Progress bar */}
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBg, { backgroundColor: palette.border }]}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: tree.themeColor,
-                  width: `${tree.progressPercent}%`,
-                },
-              ]}
-            />
-          </View>
-          <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
-            {tree.progressPercent}% Complete
-          </ThemedText>
-        </View>
+        <TreeProgressBar
+          progressPercent={tree.progressPercent}
+          themeColor={tree.themeColor}
+          palette={palette}
+        />
 
-        {/* Tree visualization */}
         <GestureDetector gesture={composedGesture}>
           <View
             style={[styles.treeContainer, { backgroundColor: withAlpha(palette.background, 0.5) }]}
@@ -190,7 +147,6 @@ export function SkillTreeView({
           >
             {containerSize.width > 0 && (
               <Animated.View style={[styles.treeContent, animatedStyle]}>
-                {/* Render connections first (behind nodes) */}
                 {connections.map((conn, index) => (
                   <SkillConnection
                     key={conn.key}
@@ -204,22 +160,11 @@ export function SkillTreeView({
                   />
                 ))}
 
-                {/* Render nodes */}
                 {tree.nodes.map((node) => {
                   const x = (node.position.x / 100) * containerSize.width;
                   const y = (node.position.y / 100) * containerSize.height;
-
                   return (
-                    <View
-                      key={node.id}
-                      style={[
-                        styles.nodeWrapper,
-                        {
-                          left: x - 40,
-                          top: y - 30,
-                        },
-                      ]}
-                    >
+                    <View key={node.id} style={[styles.nodeWrapper, { left: x - 40, top: y - 30 }]}>
                       <SkillNode
                         node={node}
                         themeColor={tree.themeColor}
@@ -234,178 +179,26 @@ export function SkillTreeView({
               </Animated.View>
             )}
 
-            {/* Reset button */}
-            <View style={styles.resetButton}>
-              <SurfaceCard
-                style={styles.resetButtonInner}
-                onPress={handleReset}
-              >
-                <Ionicons name="refresh" size={16} color={palette.icon} />
-              </SurfaceCard>
-            </View>
-
-            {/* Zoom indicator */}
-            <View style={[styles.zoomHint, { backgroundColor: withAlpha(palette.surface, 0.56) }]}>
-              <Ionicons name="expand-outline" size={14} color={palette.muted} />
-              <ThemedText style={[styles.zoomText, { color: palette.muted }]}>
-                Pinch to zoom
-              </ThemedText>
-            </View>
+            <ResetButton onReset={handleReset} palette={palette} />
+            <ZoomHint palette={palette} />
           </View>
         </GestureDetector>
 
-        {/* Legend */}
-        <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View
-              style={[
-                styles.legendDot,
-                { backgroundColor: tree.themeColor },
-              ]}
-            />
-            <ThemedText style={[styles.legendText, { color: palette.muted }]}>
-              Unlocked
-            </ThemedText>
-          </View>
-          <View style={styles.legendItem}>
-            <View
-              style={[
-                styles.legendDot,
-                {
-                  backgroundColor: 'transparent',
-                  borderWidth: 2,
-                  borderColor: withAlpha(tree.themeColor, 0.38),
-                },
-              ]}
-            />
-            <ThemedText style={[styles.legendText, { color: palette.muted }]}>
-              Available
-            </ThemedText>
-          </View>
-          <View style={styles.legendItem}>
-            <View
-              style={[
-                styles.legendDot,
-                { backgroundColor: palette.border },
-              ]}
-            />
-            <ThemedText style={[styles.legendText, { color: palette.muted }]}>
-              Locked
-            </ThemedText>
-          </View>
-        </View>
+        <TreeLegend themeColor={tree.themeColor} palette={palette} />
       </SurfaceCard>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  card: {
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  treeName: { ...Typography.subheading },
-  treeDesc: { ...Typography.caption, lineHeight: 16 },
-  statsContainer: {
-    alignItems: 'flex-end',
-  },
-  statBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-  },
-  statValue: { ...Typography.bodySmallSemiBold },
-  statLabel: { ...Typography.micro },
-  progressContainer: {
-    gap: Spacing.xxs,
-  },
-  progressBg: {
-    height: 6,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  progressLabel: { ...Typography.caption, textAlign: 'right' },
+  root: { flex: 1 },
+  card: { gap: Spacing.sm, padding: Spacing.sm },
   treeContainer: {
     height: 380,
     borderRadius: Radii.md,
     overflow: 'hidden',
     position: 'relative',
   },
-  treeContent: {
-    flex: 1,
-    position: 'relative',
-  },
-  nodeWrapper: {
-    position: 'absolute',
-    width: 80,
-    alignItems: 'center',
-  },
-  resetButton: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-  },
-  resetButtonInner: {
-    width: 32,
-    height: 32,
-    padding: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radii.md,
-  },
-  zoomHint: {
-    position: 'absolute',
-    bottom: Spacing.xs,
-    left: Spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  zoomText: { ...Typography.micro },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.md,
-    paddingTop: Spacing.xs,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: Radii.sm,
-  },
-  legendText: { ...Typography.caption },
+  treeContent: { flex: 1, position: 'relative' },
+  nodeWrapper: { position: 'absolute', width: 80, alignItems: 'center' },
 });

@@ -1,32 +1,23 @@
-import { useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Switch } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useState, useCallback } from 'react';
 
-import { Clickable } from '@/components/primitives/clickable';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
+import {
+  OnWaitlistCard,
+  WaitlistOptionsCard,
+  JoinWaitlistButton,
+} from './waitlist-button-sections';
+
 interface WaitlistButtonProps {
-  /** Whether the user is already on the waitlist */
   isOnWaitlist: boolean;
-  /** Current position if on waitlist */
   position?: number;
-  /** Total number of people on waitlist */
   totalWaiting?: number;
-  /** Whether auto-book is enabled */
   autoBook?: boolean;
-  /** Callback when joining waitlist */
   onJoinWaitlist: (autoBook: boolean) => Promise<void>;
-  /** Callback when leaving waitlist */
   onLeaveWaitlist: () => Promise<void>;
-  /** Callback when toggling auto-book */
   onToggleAutoBook?: (enabled: boolean) => Promise<void>;
-  /** Whether the button is in a loading state */
   loading?: boolean;
-  /** Whether the button is disabled */
   disabled?: boolean;
-  /** Compact mode for smaller displays */
   compact?: boolean;
 }
 
@@ -47,7 +38,9 @@ export function WaitlistButton({
   const [localAutoBook, setLocalAutoBook] = useState(autoBook);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const handleJoin = async () => {
+  const isLoading = loading || actionLoading;
+
+  const handleJoin = useCallback(async () => {
     setActionLoading(true);
     try {
       await onJoinWaitlist(localAutoBook);
@@ -55,300 +48,72 @@ export function WaitlistButton({
       setActionLoading(false);
       setShowOptions(false);
     }
-  };
+  }, [onJoinWaitlist, localAutoBook]);
 
-  const handleLeave = async () => {
+  const handleLeave = useCallback(async () => {
     setActionLoading(true);
     try {
       await onLeaveWaitlist();
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [onLeaveWaitlist]);
 
-  const handleToggleAutoBook = async (value: boolean) => {
-    setLocalAutoBook(value);
-    if (isOnWaitlist && onToggleAutoBook) {
-      try {
-        await onToggleAutoBook(value);
-      } catch {
-        setLocalAutoBook(!value); // Revert on error
+  const handleToggleAutoBook = useCallback(
+    async (value: boolean) => {
+      setLocalAutoBook(value);
+      if (isOnWaitlist && onToggleAutoBook) {
+        try {
+          await onToggleAutoBook(value);
+        } catch {
+          setLocalAutoBook(!value);
+        }
       }
-    }
-  };
+    },
+    [isOnWaitlist, onToggleAutoBook],
+  );
 
-  const isLoading = loading || actionLoading;
+  const handleShowOptions = useCallback(() => setShowOptions(true), []);
+  const handleCancelOptions = useCallback(() => setShowOptions(false), []);
 
   if (isOnWaitlist) {
     return (
-      <View style={styles.container}>
-        <View
-          style={[
-            styles.onWaitlistCard,
-            compact ? styles.onWaitlistCardCompact : undefined,
-            { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning },
-          ]}
-        >
-          <View style={styles.waitlistInfo}>
-            <View style={styles.positionBadge}>
-              <Ionicons name="time" size={14} color={palette.warning} />
-              <ThemedText style={[styles.positionText, { color: palette.warning }]}>
-                {position ? `#${position}` : 'On waitlist'}
-                {totalWaiting && totalWaiting > 1 ? ` of ${totalWaiting}` : ''}
-              </ThemedText>
-            </View>
-            {!compact && (
-              <ThemedText style={[styles.waitlistLabel, { color: palette.muted }]}>
-                You&apos;re on the waitlist
-              </ThemedText>
-            )}
-          </View>
-
-          <View style={styles.waitlistActions}>
-            {onToggleAutoBook && (
-              <View style={styles.autoBookToggle}>
-                <Ionicons
-                  name={localAutoBook ? 'flash' : 'flash-outline'}
-                  size={14}
-                  color={localAutoBook ? palette.success : palette.muted}
-                />
-                <ThemedText
-                  style={[
-                    styles.autoBookLabel,
-                    { color: localAutoBook ? palette.success : palette.muted },
-                  ]}
-                >
-                  Auto
-                </ThemedText>
-                <Switch
-                  value={localAutoBook}
-                  onValueChange={handleToggleAutoBook}
-                  trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.31) }}
-                  thumbColor={localAutoBook ? palette.success : palette.muted}
-                  ios_backgroundColor={palette.border}
-                  style={styles.switch}
-                />
-              </View>
-            )}
-
-            <Clickable
-              onPress={handleLeave}
-              disabled={isLoading || disabled}
-              style={[
-                styles.leaveButton,
-                { backgroundColor: palette.surface, borderColor: palette.border },
-              ]}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={palette.error} />
-              ) : (
-                <>
-                  <Ionicons name="close" size={14} color={palette.error} />
-                  {!compact && (
-                    <ThemedText style={[styles.leaveButtonText, { color: palette.error }]}>
-                      Leave
-                    </ThemedText>
-                  )}
-                </>
-              )}
-            </Clickable>
-          </View>
-        </View>
-      </View>
+      <OnWaitlistCard
+        position={position}
+        totalWaiting={totalWaiting}
+        compact={compact}
+        localAutoBook={localAutoBook}
+        onToggleAutoBook={onToggleAutoBook ? handleToggleAutoBook : undefined}
+        onLeave={handleLeave}
+        isLoading={isLoading}
+        disabled={disabled}
+        showAutoBookToggle={!!onToggleAutoBook}
+        palette={palette}
+      />
     );
   }
 
   if (showOptions) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.optionsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <ThemedText type="defaultSemiBold" style={styles.optionsTitle}>
-            Join Waitlist
-          </ThemedText>
-
-          <Clickable
-            onPress={() => handleToggleAutoBook(!localAutoBook)}
-            style={styles.autoBookOption}
-          >
-            <View style={styles.autoBookOptionContent}>
-              <Ionicons
-                name={localAutoBook ? 'checkbox' : 'square-outline'}
-                size={20}
-                color={localAutoBook ? palette.tint : palette.muted}
-              />
-              <View style={styles.autoBookOptionText}>
-                <ThemedText type="defaultSemiBold">Auto-book when available</ThemedText>
-                <ThemedText style={[styles.autoBookDescription, { color: palette.muted }]}>
-                  Automatically book the spot when one opens up
-                </ThemedText>
-              </View>
-            </View>
-          </Clickable>
-
-          <View style={styles.optionsButtons}>
-            <Clickable
-              onPress={() => setShowOptions(false)}
-              style={[styles.cancelButton, { borderColor: palette.border }]}
-            >
-              <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
-            </Clickable>
-            <Clickable
-              onPress={handleJoin}
-              disabled={isLoading}
-              style={[styles.confirmButton, { backgroundColor: palette.warning }]}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={palette.onPrimary} />
-              ) : (
-                <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Join Waitlist</ThemedText>
-              )}
-            </Clickable>
-          </View>
-        </View>
-      </View>
+      <WaitlistOptionsCard
+        localAutoBook={localAutoBook}
+        onToggleAutoBook={handleToggleAutoBook}
+        onCancel={handleCancelOptions}
+        onConfirm={handleJoin}
+        isLoading={isLoading}
+        palette={palette}
+      />
     );
   }
 
-  const joinButtonStyle = compact
-    ? [styles.joinButton, styles.joinButtonCompact, { backgroundColor: palette.warning }]
-    : [styles.joinButton, { backgroundColor: palette.warning }];
-
   return (
-    <Clickable
-      onPress={() => setShowOptions(true)}
-      disabled={isLoading || disabled}
-      style={joinButtonStyle}
-    >
-      {isLoading ? (
-        <ActivityIndicator size="small" color={palette.onPrimary} />
-      ) : (
-        <>
-          <Ionicons name="add" size={compact ? 16 : 18} color={palette.onPrimary} />
-          <ThemedText style={[styles.joinButtonText, { color: palette.onPrimary }]}>
-            {compact ? 'Waitlist' : 'Join Waitlist'}
-          </ThemedText>
-          {totalWaiting !== undefined && totalWaiting > 0 && (
-            <View style={[styles.countBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{totalWaiting}</ThemedText>
-            </View>
-          )}
-        </>
-      )}
-    </Clickable>
+    <JoinWaitlistButton
+      onPress={handleShowOptions}
+      isLoading={isLoading}
+      disabled={disabled}
+      compact={compact}
+      totalWaiting={totalWaiting}
+      palette={palette}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  joinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  joinButtonCompact: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-  },
-  joinButtonText: { ...Typography.bodySmallSemiBold, /* color set inline for dynamic theming */ },
-  countBadge: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.md,
-    marginLeft: Spacing.xxs,
-  },
-  countText: { ...Typography.caption, /* color set inline for dynamic theming */ },
-  onWaitlistCard: {
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    padding: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  onWaitlistCardCompact: {
-    padding: Spacing.xs,
-  },
-  waitlistInfo: {
-    gap: Spacing.micro,
-  },
-  positionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  positionText: { ...Typography.smallSemiBold },
-  waitlistLabel: { ...Typography.caption },
-  waitlistActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  autoBookToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  autoBookLabel: { ...Typography.caption },
-  switch: {
-    transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }],
-    marginLeft: -4,
-  },
-  leaveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    paddingHorizontal: 10,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
-  leaveButtonText: { ...Typography.caption },
-  optionsCard: {
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  optionsTitle: { ...Typography.subheading },
-  autoBookOption: {
-    padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  autoBookOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
-  autoBookOptionText: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  autoBookDescription: { ...Typography.caption, lineHeight: 16 },
-  optionsButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  cancelButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  confirmButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  confirmButtonText: {
-    // color set inline for dynamic theming
-    fontWeight: '600',
-  },
-});

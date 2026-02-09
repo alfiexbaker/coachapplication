@@ -5,62 +5,29 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useTheme, type ThemeColors } from '@/hooks/useTheme';
-import { scaleFont } from '@/utils/scale';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { communityGroupService } from '@/services/community/community-group-service';
-import type { GroupMember, GroupMemberRole } from '@/constants/types';
+import type { GroupMember } from '@/constants/types';
 
-// ---------------------------------------------------------------------------
-// Role helpers
-// ---------------------------------------------------------------------------
+// Re-export extracted components for backward compat
+export { ROLE_LABELS, getRoleBadgeColor, MemberRowItem } from './group-members-modal-sections';
+export type { MemberRowItemProps } from './group-members-modal-sections';
 
-const ROLE_LABELS: Record<GroupMemberRole, string> = {
-  OWNER: 'Owner',
-  ADMIN: 'Admin',
-  MODERATOR: 'Moderator',
-  MEMBER: 'Member',
-};
-
-function getRoleBadgeColor(role: GroupMemberRole, palette: ThemeColors) {
-  switch (role) {
-    case 'OWNER':
-      return { bg: withAlpha(palette.warning, 0.12), text: palette.warning };
-    case 'ADMIN':
-      return { bg: withAlpha(palette.info, 0.12), text: palette.info };
-    case 'MODERATOR':
-      return { bg: withAlpha(palette.success, 0.12), text: palette.success };
-    default:
-      return { bg: withAlpha(palette.muted, 0.09), text: palette.muted };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
+import { MemberRowItem } from './group-members-modal-sections';
 
 interface GroupMembersModalProps {
   visible: boolean;
   onClose: () => void;
   members: GroupMember[];
   parentId: string;
-  currentRole: GroupMemberRole;
+  currentRole: 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
   isAdmin: boolean;
   onMemberManage: (member: GroupMember) => void;
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 function GroupMembersModalInner({
-  visible,
-  onClose,
-  members,
-  parentId,
-  currentRole,
-  isAdmin,
-  onMemberManage,
+  visible, onClose, members, parentId, currentRole, isAdmin, onMemberManage,
 }: GroupMembersModalProps) {
   const { colors: palette } = useTheme();
 
@@ -84,56 +51,24 @@ function GroupMembersModalInner({
     const canManage = isAdmin && !isSelf && (
       currentRole === 'OWNER' || communityGroupService.getRoleWeight(currentRole) > communityGroupService.getRoleWeight(item.role)
     );
-    const colors = getRoleBadgeColor(item.role, palette);
 
     return (
-      <View style={[styles.memberRow, { borderBottomColor: palette.border }]}>
-        <View style={[styles.memberAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <Ionicons name="person" size={18} color={palette.tint} />
-        </View>
-        <View style={styles.memberInfo}>
-          <View style={styles.memberNameRow}>
-            <ThemedText style={[styles.memberName, { color: palette.text }]} numberOfLines={1}>
-              {item.parentName}
-              {isSelf ? ' (You)' : ''}
-            </ThemedText>
-            <View style={[styles.roleBadge, { backgroundColor: colors.bg }]}>
-              <ThemedText style={[styles.roleBadgeText, { color: colors.text }]}>
-                {ROLE_LABELS[item.role]}
-              </ThemedText>
-            </View>
-          </View>
-          <ThemedText style={[styles.memberJoined, { color: palette.muted }]}>
-            Joined {new Date(item.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </ThemedText>
-        </View>
-        {canManage && (
-          <Clickable
-            onPress={() => onMemberManage(item)}
-            style={[styles.manageButton, { borderColor: palette.border }]}
-          >
-            <ThemedText style={[styles.manageButtonText, { color: palette.tint }]}>
-              Manage
-            </ThemedText>
-          </Clickable>
-        )}
-      </View>
+      <MemberRowItem
+        item={item}
+        parentId={parentId}
+        canManage={canManage}
+        onMemberManage={onMemberManage}
+        palette={palette}
+      />
     );
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]}>
         <View style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
-          <ThemedText type="title" style={styles.modalTitle}>
-            Members ({members.length})
-          </ThemedText>
-          <Clickable onPress={onClose}>
+          <ThemedText type="title" style={styles.modalTitle}>Members ({members.length})</ThemedText>
+          <Clickable accessibilityLabel="Close" onPress={onClose}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
         </View>
@@ -147,9 +82,7 @@ function GroupMembersModalInner({
         {isAdmin && (
           <View style={styles.manageMembersHeader}>
             <Ionicons name="shield-checkmark-outline" size={18} color={palette.tint} />
-            <ThemedText style={[styles.manageMembersLabel, { color: palette.tint }]}>
-              Manage Members
-            </ThemedText>
+            <ThemedText style={[styles.manageMembersLabel, { color: palette.tint }]}>Manage Members</ThemedText>
           </View>
         )}
 
@@ -167,14 +100,8 @@ function GroupMembersModalInner({
 
 export const GroupMembersModal = React.memo(GroupMembersModalInner);
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-  },
+  modalContainer: { flex: 1 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,17 +110,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
-  modalTitle: {
-    ...Typography.title,
-  },
+  modalTitle: { ...Typography.title },
   roleBreakdownBar: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
   },
-  roleBreakdownText: {
-    ...Typography.caption,
-  },
+  roleBreakdownText: { ...Typography.caption },
   manageMembersHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,63 +125,10 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xs,
   },
-  manageMembersLabel: {
-    ...Typography.caption,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
+  manageMembersLabel: { ...Typography.caption, letterSpacing: 0.5, textTransform: 'uppercase' },
   memberListContent: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.lg,
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    gap: Spacing.sm,
-  },
-  memberAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  memberInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  memberNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  memberName: {
-    ...Typography.bodySemiBold,
-    flexShrink: 1,
-  },
-  memberJoined: {
-    ...Typography.caption,
-  },
-  roleBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  roleBadgeText: {
-    ...Typography.micro,
-    fontSize: scaleFont(Typography.micro.fontSize),
-    letterSpacing: 0.3,
-  },
-  manageButton: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
-  manageButtonText: {
-    ...Typography.caption,
   },
 });

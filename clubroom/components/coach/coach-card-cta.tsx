@@ -5,7 +5,7 @@
  * and contact actions.
  */
 
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
@@ -14,50 +14,39 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { useTheme } from '@/hooks/useTheme';
 
-// -----------------------------------------------------------------------------
+// Re-export extracted components for backward compat
+export { InlineFavouriteIcon, ActionRow } from './coach-card-cta-sections';
+export type { InlineFavouriteIconProps, ActionRowProps } from './coach-card-cta-sections';
+
+// ============================================================================
 // Types
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 export interface CoachCardCTAProps {
-  /** Coach's name (for accessibility labels) */
   coachName: string;
-  /** Callback when book button is pressed */
   onBookNow?: () => void;
-  /** Whether to show the book button */
   showBookButton?: boolean;
-  /** Book button label */
   bookButtonLabel?: string;
-  /** Button variant */
   buttonVariant?: 'primary' | 'compact';
 }
 
 export interface FavouriteButtonProps {
-  /** Whether the coach is favourited */
   isFavourite: boolean;
-  /** Callback when pressed */
   onPress: () => void;
-  /** Whether the button is in loading state */
   loading?: boolean;
-  /** Button size variant */
   size?: 'sm' | 'md' | 'lg';
 }
 
 export interface BookButtonProps {
-  /** Coach's name (for accessibility) */
   coachName: string;
-  /** Callback when pressed */
   onPress: () => void;
-  /** Button label */
   label?: string;
-  /** Button variant */
   variant?: 'primary' | 'compact';
 }
 
-type Palette = ReturnType<typeof useTheme>['colors'];
-
-// -----------------------------------------------------------------------------
-// FavouriteButton Component
-// -----------------------------------------------------------------------------
+// ============================================================================
+// FavouriteButton
+// ============================================================================
 
 export function FavouriteButton({
   isFavourite,
@@ -97,43 +86,9 @@ export function FavouriteButton({
   );
 }
 
-// -----------------------------------------------------------------------------
-// Inline FavouriteIcon (without background for compact use)
-// -----------------------------------------------------------------------------
-
-export interface InlineFavouriteIconProps {
-  isFavourite: boolean;
-  onPress: () => void;
-  loading?: boolean;
-  size?: number;
-}
-
-export function InlineFavouriteIcon({
-  isFavourite,
-  onPress,
-  loading = false,
-  size = 20,
-}: InlineFavouriteIconProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <Clickable
-      onPress={onPress}
-      accessibilityLabel="Remove from favourites"
-      disabled={loading}
-    >
-      <Ionicons
-        name={isFavourite ? 'heart' : 'heart-outline'}
-        size={size}
-        color={isFavourite ? palette.error : palette.muted}
-      />
-    </Clickable>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// BookButton Component (Pressable variant for discovery)
-// -----------------------------------------------------------------------------
+// ============================================================================
+// BookButton
+// ============================================================================
 
 export function BookButton({
   coachName,
@@ -145,16 +100,12 @@ export function BookButton({
 
   if (variant === 'compact') {
     return (
-      <Pressable
-        accessibilityRole="button"
+      <Clickable
         accessibilityLabel={`Book ${coachName}`}
         onPress={onPress}
-        style={({ pressed }) => [
+        style={[
           styles.bookButtonCompact,
-          {
-            backgroundColor: pressed ? palette.tintPressed : palette.tint,
-            opacity: pressed ? 0.9 : 1,
-          },
+          { backgroundColor: palette.tint },
         ]}
       >
         <ThemedText
@@ -162,7 +113,7 @@ export function BookButton({
         >
           {label}
         </ThemedText>
-      </Pressable>
+      </Clickable>
     );
   }
 
@@ -178,60 +129,9 @@ export function BookButton({
   );
 }
 
-// -----------------------------------------------------------------------------
-// ActionRow Component (combines availability + book button)
-// -----------------------------------------------------------------------------
-
-export interface ActionRowProps {
-  /** Next available time slot */
-  nextAvailable?: string;
-  /** Coach name for accessibility */
-  coachName: string;
-  /** Book button callback */
-  onBookNow?: () => void;
-  /** Whether to show the book button */
-  showBookButton?: boolean;
-}
-
-export function ActionRow({
-  nextAvailable,
-  coachName,
-  onBookNow,
-  showBookButton = true,
-}: ActionRowProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <View style={styles.actionRow}>
-      {nextAvailable ? (
-        <View style={styles.availabilityContainer}>
-          <Ionicons
-            name="calendar-outline"
-            size={Components.icon.sm}
-            color={palette.success}
-          />
-          <ThemedText style={[styles.availabilityText, { color: palette.success }]}>
-            {nextAvailable}
-          </ThemedText>
-        </View>
-      ) : (
-        <View />
-      )}
-
-      {showBookButton && onBookNow && (
-        <BookButton
-          coachName={coachName}
-          onPress={onBookNow}
-          variant="compact"
-        />
-      )}
-    </View>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Full CoachCardCTA Component
-// -----------------------------------------------------------------------------
+// ============================================================================
+// CoachCardCTA
+// ============================================================================
 
 export function CoachCardCTA({
   coachName,
@@ -240,8 +140,6 @@ export function CoachCardCTA({
   bookButtonLabel = 'Book Now',
   buttonVariant = 'primary',
 }: CoachCardCTAProps) {
-  const { colors: palette } = useTheme();
-
   if (!showBookButton || !onBookNow) {
     return null;
   }
@@ -256,9 +154,9 @@ export function CoachCardCTA({
   );
 }
 
-// -----------------------------------------------------------------------------
+// ============================================================================
 // Styles
-// -----------------------------------------------------------------------------
+// ============================================================================
 
 const styles = StyleSheet.create({
   favouriteButton: {
@@ -279,20 +177,6 @@ const styles = StyleSheet.create({
   },
   bookButtonText: {
     ...Typography.bodySemiBold,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  availabilityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  availabilityText: {
-    ...Typography.caption,
-    fontWeight: '600',
   },
 });
 

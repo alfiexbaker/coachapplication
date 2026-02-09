@@ -1,177 +1,58 @@
-import { useCallback, useState } from 'react';
+/**
+ * Family Calendar Screen
+ *
+ * Calendar view of all children's sessions with child filtering,
+ * color legend, month stats, and quick actions.
+ */
+
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { createLogger } from '@/utils/logger';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { FamilyCalendar } from '@/components/family/FamilyCalendar';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import {
-  familyService,
-  type FamilyMember,
-  type FamilyCalendarEvent,
-  type FamilyDateRange } from '@/services/family';
-import { eventService } from '@/services/event-service';
+import { useFamilyCalendar } from '@/hooks/use-family-calendar';
 
-const logger = createLogger('FamilyCalendarScreen');
-
-/**
- * Family Calendar Screen - Shows all children's sessions in one calendar view
- * Supports filtering by child and date range
- */
 export default function FamilyCalendarScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [events, setEvents] = useState<FamilyCalendarEvent[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [dateRange, _setDateRange] = useState<FamilyDateRange>(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-    return {
-      startDate: startOfMonth.toISOString(),
-      endDate: endOfMonth.toISOString() };
-  });
-
-  const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
-
-    try {
-      const [membersData, bookingsData, clubEventsData] = await Promise.all([
-        familyService.getFamilyMembers(currentUser.id),
-        familyService.getFamilyCalendar(currentUser.id, dateRange),
-        eventService.getEventsForCalendar(
-          currentUser.id,
-          dateRange.startDate,
-          dateRange.endDate
-        ),
-      ]);
-
-      // Convert club events to calendar format and combine with bookings
-      const clubEventsAsCalendar: FamilyCalendarEvent[] = clubEventsData.map((event) => ({
-        id: event.id,
-        title: event.title,
-        start: `${event.date}T${event.startTime}`,
-        end: `${event.date}T${event.endTime}`,
-        status: 'CONFIRMED' as const,
-        childId: '', // Club events don't belong to a specific child
-        childName: 'Club Event',
-        colorCode: '#6366F1', // Decorative: default color for club events on calendar
-        coachId: '',
-        coachName: event.location,
-        location: event.location,
-        price: 0,
-        type: 'EVENT' as const,
-        eventType: event.eventType }));
-
-      setMembers(membersData);
-      // Combine bookings and club events, sort by date
-      const allEvents = [...bookingsData, ...clubEventsAsCalendar].sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
-      );
-      setEvents(allEvents);
-    } catch (error) {
-      logger.error('Failed to load calendar data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.id, dateRange]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-  };
-
-  const handleEventPress = (event: FamilyCalendarEvent) => {
-    // Check if it's a club event or a booking
-    if ((event as FamilyCalendarEvent & { type?: string }).type === 'EVENT') {
-      router.push(Routes.event(event.id));
-    } else {
-      router.push(Routes.booking(event.id));
-    }
-  };
-
-  const handleChildFilterChange = (childId: string | null) => {
-    setSelectedChildId(childId);
-  };
-
-  // Calculate stats for the current month
-  const monthStats = {
-    totalSessions: events.filter(
-      (e) =>
-        (e.status === 'CONFIRMED' || e.status === 'PENDING') &&
-        (!selectedChildId || e.childId === selectedChildId)
-    ).length,
-    completedSessions: events.filter(
-      (e) =>
-        e.status === 'COMPLETED' &&
-        (!selectedChildId || e.childId === selectedChildId)
-    ).length };
+  const {
+    loading, members, events, selectedDate, selectedChildId, monthStats,
+    handleDateSelect, handleEventPress, handleChildFilterChange,
+  } = useFamilyCalendar();
 
   if (loading) {
     return (
-      <PageContainer
-        header={
-          <PageHeader
-            title="Family Calendar"
-            subtitle="All sessions in one view"
-            showBack
-          />
-        }
-      >
+      <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading calendar...
-          </ThemedText>
+          <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>Loading calendar...</ThemedText>
         </View>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer
-      header={
-        <PageHeader
-          title="Family Calendar"
-          subtitle="All sessions in one view"
-          showBack
-        />
-      }
-      gap={Spacing.md}
-    >
+    <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />} gap={Spacing.md}>
       {/* Month Stats */}
       <Animated.View entering={FadeInDown.delay(50).springify()}>
-        <View style={styles.statsRow}>
+        <Row gap="sm">
           <SurfaceCard style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
               <Ionicons name="calendar" size={20} color={palette.tint} />
             </View>
             <View style={styles.statText}>
-              <ThemedText style={styles.statValue}>{monthStats.totalSessions}</ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Upcoming
-              </ThemedText>
+              <ThemedText style={Typography.title}>{monthStats.totalSessions}</ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Upcoming</ThemedText>
             </View>
           </SurfaceCard>
           <SurfaceCard style={styles.statCard}>
@@ -179,34 +60,26 @@ export default function FamilyCalendarScreen() {
               <Ionicons name="checkmark-circle" size={20} color={palette.success} />
             </View>
             <View style={styles.statText}>
-              <ThemedText style={styles.statValue}>{monthStats.completedSessions}</ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Completed
-              </ThemedText>
+              <ThemedText style={Typography.title}>{monthStats.completedSessions}</ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Completed</ThemedText>
             </View>
           </SurfaceCard>
-        </View>
+        </Row>
       </Animated.View>
 
       {/* Legend */}
       {members.length > 1 && (
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.legendCard}>
-            <ThemedText style={[styles.legendTitle, { color: palette.muted }]}>
-              Color Legend
-            </ThemedText>
-            <View style={styles.legendItems}>
+            <ThemedText style={[Typography.caption, { color: palette.muted }]}>Color Legend</ThemedText>
+            <Row gap="md" style={{ flexWrap: 'wrap' }}>
               {members.map((member) => (
-                <View key={member.id} style={styles.legendItem}>
-                  <View
-                    style={[styles.legendDot, { backgroundColor: member.colorCode }]}
-                  />
-                  <ThemedText style={styles.legendName}>
-                    {member.name.split(' ')[0]}
-                  </ThemedText>
-                </View>
+                <Row key={member.id} gap="xxs" align="center">
+                  <View style={[styles.legendDot, { backgroundColor: member.colorCode }]} />
+                  <ThemedText style={Typography.small}>{member.name.split(' ')[0]}</ThemedText>
+                </Row>
               ))}
-            </View>
+            </Row>
           </SurfaceCard>
         </Animated.View>
       )}
@@ -215,111 +88,37 @@ export default function FamilyCalendarScreen() {
       <Animated.View entering={FadeInDown.delay(150).springify()}>
         <ErrorBoundary>
           <FamilyCalendar
-            events={events}
-            members={members}
-            selectedDate={selectedDate}
-            onDateSelect={handleDateSelect}
-            onEventPress={handleEventPress}
-            selectedChildId={selectedChildId}
-            onChildFilterChange={handleChildFilterChange}
+            events={events} members={members} selectedDate={selectedDate}
+            onDateSelect={handleDateSelect} onEventPress={handleEventPress}
+            selectedChildId={selectedChildId} onChildFilterChange={handleChildFilterChange}
           />
         </ErrorBoundary>
       </Animated.View>
 
       {/* Quick Actions */}
       <Animated.View entering={FadeInDown.delay(200).springify()}>
-        <View style={styles.quickActions}>
-          <Clickable
-            onPress={() => router.push(Routes.MORE)}
-            style={[styles.actionButton, { backgroundColor: palette.tint }]}
-          >
+        <Row gap="sm">
+          <Clickable onPress={() => router.push(Routes.MORE)} style={[styles.actionButton, { backgroundColor: palette.tint }]}>
             <Ionicons name="add" size={20} color={palette.onPrimary} />
-            <ThemedText style={[styles.actionButtonText, { color: palette.onPrimary }]}>Book Session</ThemedText>
+            <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Book Session</ThemedText>
           </Clickable>
-          <Clickable
-            onPress={() => router.push(Routes.FAMILY_SPENDING)}
-            style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
-          >
+          <Clickable onPress={() => router.push(Routes.FAMILY_SPENDING)} style={[styles.actionButtonSecondary, { borderColor: palette.border }]}>
             <Ionicons name="wallet-outline" size={20} color={palette.tint} />
-            <ThemedText style={[styles.actionButtonTextSecondary, { color: palette.tint }]}>
-              View Spending
-            </ThemedText>
+            <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>View Spending</ThemedText>
           </Clickable>
-        </View>
+        </Row>
       </Animated.View>
     </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.md },
-  loadingText: {
-    ...Typography.bodySmall },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm },
-  statCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.sm },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center' },
-  statText: {
-    gap: Spacing.micro },
-  statValue: {
-    ...Typography.title },
-  statLabel: {
-    ...Typography.caption },
-  legendCard: {
-    padding: Spacing.sm,
-    gap: Spacing.xs },
-  legendTitle: {
-    ...Typography.caption },
-  legendItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: Radii.sm },
-  legendName: {
-    ...Typography.small },
-  quickActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg },
-  actionButtonText: {
-    ...Typography.bodySemiBold },
-  actionButtonSecondary: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5 },
-  actionButtonTextSecondary: {
-    ...Typography.bodySemiBold } });
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
+  statCard: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
+  statIcon: { width: 40, height: 40, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  statText: { gap: Spacing.micro },
+  legendCard: { padding: Spacing.sm, gap: Spacing.xs },
+  legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
+  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  actionButtonSecondary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
+});

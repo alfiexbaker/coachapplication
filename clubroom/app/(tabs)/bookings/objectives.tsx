@@ -6,10 +6,11 @@
  */
 
 import { useCallback } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
@@ -107,10 +108,9 @@ export default function ObjectivesScreen() {
 
       {/* Footer Add Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Pressable
+        <Clickable
           onPress={openAddModal}
           accessibilityLabel="Add goal"
-          accessibilityRole="button"
           style={({ pressed }) => [
             styles.addButton,
             { backgroundColor: palette.tint },
@@ -123,7 +123,7 @@ export default function ObjectivesScreen() {
               Add Goal
             </ThemedText>
           </Row>
-        </Pressable>
+        </Clickable>
       </View>
 
       <ObjectiveModal

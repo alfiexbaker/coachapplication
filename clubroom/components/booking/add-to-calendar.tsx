@@ -20,12 +20,12 @@
 
 import React, { useState } from 'react';
 import {
-  Pressable,
   StyleSheet,
   Alert,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import * as Calendar from 'expo-calendar';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Components , Typography , withAlpha } from '@/constants/theme';
@@ -177,12 +177,11 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
   };
 
   return (
-    <Pressable
-      style={({ pressed }) => [
+    <Clickable
+      style={[
         styles.button,
         { borderColor: added ? palette.success : palette.tint },
         added ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined,
-        pressed && !added ? { opacity: 0.8, backgroundColor: withAlpha(palette.tint, 0.03) } : undefined,
       ]}
       onPress={handleAddToCalendar}
       disabled={loading || added}
@@ -201,7 +200,7 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
           </ThemedText>
         </>
       )}
-    </Pressable>
+    </Clickable>
   );
 }
 

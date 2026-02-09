@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { Animated, StyleSheet, View, Dimensions } from 'react-native';
+import { StyleSheet, View, Dimensions } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,24 +36,14 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<ToastState>({ notification: null, visible: false });
-  const slideAnim = useRef(new Animated.Value(-100)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useSharedValue(-100);
+  const opacityAnim = useSharedValue(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hideToast = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: -100,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setToast({ notification: null, visible: false });
+    slideAnim.value = withTiming(-100, { duration: 200 });
+    opacityAnim.value = withTiming(0, { duration: 200 }, (finished) => {
+      if (finished) runOnJS(setToast)({ notification: null, visible: false });
     });
   }, [slideAnim, opacityAnim]);
 
@@ -65,19 +56,8 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     setToast({ notification, visible: true });
 
     // Animate in
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 12,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    slideAnim.value = withSpring(0, { stiffness: 80, damping: 12 });
+    opacityAnim.value = withTiming(1, { duration: 200 });
 
     // Auto-hide after 6 seconds (extended for better user visibility)
     timeoutRef.current = setTimeout(() => {
@@ -96,6 +76,11 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     }
   }, [toast.notification, hideToast, router]);
 
+  const containerAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: slideAnim.value }],
+    opacity: opacityAnim.value,
+  }));
+
   // Subscribe to new notifications
   useNotificationToast(showToast);
 
@@ -111,11 +96,8 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
       <Animated.View
         style={[
           styles.container,
-          {
-            top: insets.top + 10,
-            transform: [{ translateY: slideAnim }],
-            opacity: opacityAnim,
-          },
+          { top: insets.top + 10 },
+          containerAnimStyle,
         ]}
       >
         <Clickable onPress={handlePress}>

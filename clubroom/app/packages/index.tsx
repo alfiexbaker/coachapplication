@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -79,6 +79,7 @@ export default function PackagesScreen() {
         </View>
         {isCoach && (
           <Clickable
+            accessibilityLabel="Manage packages"
             onPress={() => router.push(Routes.PACKAGES_MANAGE)}
             style={[styles.manageButton, { backgroundColor: palette.tint }]}
           >
@@ -90,10 +91,10 @@ export default function PackagesScreen() {
       {/* Tab Navigation - Only for non-coaches */}
       {!isCoach && (
         <View style={styles.tabContainer}>
-          <Pressable
+          <Clickable
             style={[
               styles.tab,
-              activeTab === 'browse' && [styles.tabActive, { borderColor: palette.tint }],
+              activeTab === 'browse' && [styles.tabActive, { borderColor: palette.tint, backgroundColor: palette.surfaceSecondary }],
             ]}
             onPress={() => setActiveTab('browse')}
           >
@@ -110,12 +111,12 @@ export default function PackagesScreen() {
             >
               Browse
             </ThemedText>
-          </Pressable>
+          </Clickable>
 
-          <Pressable
+          <Clickable
             style={[
               styles.tab,
-              activeTab === 'my-packages' && [styles.tabActive, { borderColor: palette.tint }],
+              activeTab === 'my-packages' && [styles.tabActive, { borderColor: palette.tint, backgroundColor: palette.surfaceSecondary }],
             ]}
             onPress={() => setActiveTab('my-packages')}
           >
@@ -132,7 +133,7 @@ export default function PackagesScreen() {
             >
               My Packages
             </ThemedText>
-          </Pressable>
+          </Clickable>
         </View>
       )}
 
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent' },
   tabActive: {
-    backgroundColor: 'rgba(0,0,0,0.02)' },
+    backgroundColor: 'transparent' },
   tabText: {
     ...Typography.bodySmallSemiBold },
   content: {

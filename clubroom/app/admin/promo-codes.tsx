@@ -1,495 +1,160 @@
-import { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-  ActivityIndicator,
-  Pressable,
-  Modal,
-} from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+/**
+ * Admin Promo Codes Screen
+ *
+ * Manage promotional codes with stats, filters, and usage history.
+ * All state/logic in usePromoCodes hook. Usage modal extracted to component.
+ */
+
+import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { PromoCodeCard, CodeUsageList, CodeUsageSummary } from '@/components/promo';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { PromoCodeCard } from '@/components/promo';
+import { PromoUsageModal } from '@/components/promo/promo-usage-modal';
+import { Ionicons } from '@expo/vector-icons';
+import { Clickable } from '@/components/primitives/clickable';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
+import { usePromoCodes, type FilterType } from '@/hooks/use-promo-codes';
 import { promoService } from '@/services/promo-service';
-import type { PromoCode, PromoCodeUsage, PromoCodeStats } from '@/constants/types';
 
-const logger = createLogger('AdminPromoCodesScreen');
-
-type FilterType = 'all' | 'active' | 'expired' | 'exhausted' | 'inactive';
+const FILTERS: FilterType[] = ['all', 'active', 'expired', 'exhausted', 'inactive'];
 
 export default function AdminPromoCodesScreen() {
   const { colors: palette } = useTheme();
-  const router = useRouter();
-  useAuth();
+  const c = usePromoCodes();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [codes, setCodes] = useState<PromoCode[]>([]);
-  const [stats, setStats] = useState<PromoCodeStats | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
-
-  // Usage modal state
-  const [selectedCodeId, setSelectedCodeId] = useState<string | null>(null);
-  const [usageModalVisible, setUsageModalVisible] = useState(false);
-  const [usageData, setUsageData] = useState<PromoCodeUsage[]>([]);
-  const [usageLoading, setUsageLoading] = useState(false);
-
-  const loadData = useCallback(async () => {
-    try {
-      const [codesData, statsData] = await Promise.all([
-        promoService.getAllPromoCodes(),
-        promoService.getCodeStats(),
-      ]);
-
-      setCodes(codesData);
-      setStats(statsData);
-    } catch (error) {
-      logger.error('Failed to load promo codes:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  const handleToggleActive = async (codeId: string, currentlyActive: boolean) => {
-    try {
-      if (currentlyActive) {
-        await promoService.deactivateCode(codeId);
-      } else {
-        await promoService.reactivateCode(codeId);
-      }
-      await loadData();
-    } catch (error) {
-      logger.error('Failed to toggle code status:', error);
-    }
-  };
-
-  const handleViewUsage = async (codeId: string) => {
-    setSelectedCodeId(codeId);
-    setUsageModalVisible(true);
-    setUsageLoading(true);
-
-    try {
-      const usage = await promoService.getCodeUsage(codeId);
-      setUsageData(usage);
-    } catch (error) {
-      logger.error('Failed to load usage:', error);
-      setUsageData([]);
-    } finally {
-      setUsageLoading(false);
-    }
-  };
-
-  const handleCreateCode = () => {
-    router.push(Routes.ADMIN_PROMO_CODES_CREATE);
-  };
-
-  const getFilteredCodes = (): PromoCode[] => {
-    if (filter === 'all') return codes;
-
-    return codes.filter((code) => {
-      const status = promoService.getCodeStatus(code);
-      return status === filter;
-    });
-  };
-
-  const filteredCodes = getFilteredCodes();
-
-  const renderStatsCard = () => {
-    if (!stats) return null;
-
+  if (c.loading) {
     return (
-      <Animated.View entering={FadeInDown.delay(50).springify()}>
-        <SurfaceCard style={styles.statsCard}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <ThemedText type="title" style={styles.statValue}>
-                {stats.totalCodes}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Total Codes
-              </ThemedText>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-            <View style={styles.statItem}>
-              <ThemedText type="title" style={[styles.statValue, { color: palette.success }]}>
-                {stats.activeCodes}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Active
-              </ThemedText>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-            <View style={styles.statItem}>
-              <ThemedText type="title" style={styles.statValue}>
-                {stats.totalRedemptions}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Redeemed
-              </ThemedText>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-            <View style={styles.statItem}>
-              <ThemedText type="title" style={[styles.statValue, { color: palette.success }]}>
-                {promoService.formatCredit(stats.totalCreditsAwarded)}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Awarded
-              </ThemedText>
-            </View>
-          </View>
-        </SurfaceCard>
-      </Animated.View>
-    );
-  };
-
-  const renderFilters = () => (
-    <Animated.View entering={FadeInDown.delay(100).springify()}>
-      <View style={styles.filterContainer}>
-        {(['all', 'active', 'expired', 'exhausted', 'inactive'] as FilterType[]).map((f) => (
-          <Pressable
-            key={f}
-            style={[
-              styles.filterButton,
-              {
-                backgroundColor: filter === f ? palette.tint : palette.surface,
-                borderColor: filter === f ? palette.tint : palette.border,
-              },
-            ]}
-            onPress={() => setFilter(f)}
-          >
-            <ThemedText
-              style={[
-                styles.filterText,
-                { color: filter === f ? palette.onPrimary : palette.text },
-              ]}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
-    </Animated.View>
-  );
-
-  const renderPromoCode = ({ item, index }: { item: PromoCode; index: number }) => (
-    <Animated.View entering={FadeInDown.delay(150 + index * 50).springify()}>
-      <PromoCodeCard
-        promoCode={item}
-        onToggleActive={handleToggleActive}
-        onViewUsage={handleViewUsage}
-      />
-    </Animated.View>
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
-        <Ionicons name="pricetag-outline" size={40} color={palette.muted} />
-      </View>
-      <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
-        {filter === 'all' ? 'No promo codes yet' : `No ${filter} codes`}
-      </ThemedText>
-      <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
-        {filter === 'all'
-          ? 'Create your first promo code to get started'
-          : `No promo codes match the "${filter}" filter`}
-      </ThemedText>
-      {filter === 'all' && (
-        <Pressable
-          style={[styles.createButtonSmall, { backgroundColor: palette.tint }]}
-          onPress={handleCreateCode}
-        >
-          <Ionicons name="add" size={18} color={palette.onPrimary} />
-          <ThemedText style={[styles.createButtonSmallText, { color: palette.onPrimary }]}>Create Code</ThemedText>
-        </Pressable>
-      )}
-    </View>
-  );
-
-  const renderHeader = () => (
-    <>
-      {renderStatsCard()}
-      {renderFilters()}
-      <View style={styles.listHeader}>
-        <ThemedText type="subtitle" style={styles.listTitle}>
-          Promo Codes ({filteredCodes.length})
-        </ThemedText>
-      </View>
-    </>
-  );
-
-  const selectedCode = codes.find((c) => c.id === selectedCodeId);
-
-  if (loading) {
-    return (
-      <PageContainer
-        header={<PageHeader title="Promo Codes" subtitle="Manage promotional codes" showBack />}
-      >
+      <PageContainer header={<PageHeader title="Promo Codes" subtitle="Manage promotional codes" showBack />}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading promo codes...
-          </ThemedText>
+          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>Loading promo codes...</ThemedText>
         </View>
       </PageContainer>
     );
   }
 
+  const renderHeader = () => (
+    <>
+      {/* Stats */}
+      {c.stats && (
+        <Animated.View entering={FadeInDown.delay(50).springify()}>
+          <SurfaceCard style={styles.statsCard}>
+            <View style={styles.statsRow}>
+              {[
+                { value: c.stats.totalCodes, label: 'Total Codes' },
+                { value: c.stats.activeCodes, label: 'Active', color: palette.success },
+                { value: c.stats.totalRedemptions, label: 'Redeemed' },
+                { value: promoService.formatCredit(c.stats.totalCreditsAwarded), label: 'Awarded', color: palette.success },
+              ].map((stat, i) => (
+                <View key={stat.label} style={styles.statItem}>
+                  {i > 0 && <View style={[styles.statDivider, { backgroundColor: palette.border }]} />}
+                  <ThemedText type="title" style={[styles.statValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{stat.label}</ThemedText>
+                </View>
+              ))}
+            </View>
+          </SurfaceCard>
+        </Animated.View>
+      )}
+
+      {/* Filters */}
+      <Animated.View entering={FadeInDown.delay(100).springify()}>
+        <View style={styles.filterContainer}>
+          {FILTERS.map((f) => (
+            <Clickable key={f} style={[styles.filterButton, {
+              backgroundColor: c.filter === f ? palette.tint : palette.surface,
+              borderColor: c.filter === f ? palette.tint : palette.border,
+            }]} onPress={() => c.setFilter(f)}>
+              <ThemedText style={[styles.filterText, { color: c.filter === f ? palette.onPrimary : palette.text }]}>
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </ThemedText>
+            </Clickable>
+          ))}
+        </View>
+      </Animated.View>
+
+      <View style={styles.listHeader}>
+        <ThemedText type="subtitle" style={styles.listTitle}>Promo Codes ({c.filteredCodes.length})</ThemedText>
+      </View>
+    </>
+  );
+
   return (
     <PageContainer
       header={
-        <PageHeader
-          title="Promo Codes"
-          subtitle="Manage promotional codes"
-          showBack
+        <PageHeader title="Promo Codes" subtitle="Manage promotional codes" showBack
           right={
-            <Pressable
-              style={[styles.createButton, { backgroundColor: palette.tint }]}
-              onPress={handleCreateCode}
-            >
+            <Clickable style={[styles.createButton, { backgroundColor: palette.tint }]} onPress={c.handleCreateCode}>
               <Ionicons name="add" size={20} color={palette.onPrimary} />
               <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>New</ThemedText>
-            </Pressable>
+            </Clickable>
           }
         />
       }
-      gap={Spacing.md}
-      scrollable={false}
+      gap={Spacing.md} scrollable={false}
     >
-      <FlatList
-        data={filteredCodes}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPromoCode}
+      <FlatList data={c.filteredCodes} keyExtractor={(item) => item.id}
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(150 + index * 50).springify()}>
+            <PromoCodeCard promoCode={item} onToggleActive={c.handleToggleActive} onViewUsage={c.handleViewUsage} />
+          </Animated.View>
+        )}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={palette.tint}
-          />
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
+              <Ionicons name="pricetag-outline" size={40} color={palette.muted} />
+            </View>
+            <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
+              {c.filter === 'all' ? 'No promo codes yet' : `No ${c.filter} codes`}
+            </ThemedText>
+            <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
+              {c.filter === 'all' ? 'Create your first promo code to get started' : `No promo codes match the "${c.filter}" filter`}
+            </ThemedText>
+            {c.filter === 'all' && (
+              <Clickable style={[styles.createButtonSmall, { backgroundColor: palette.tint }]} onPress={c.handleCreateCode}>
+                <Ionicons name="add" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.createButtonSmallText, { color: palette.onPrimary }]}>Create Code</ThemedText>
+              </Clickable>
+            )}
+          </View>
         }
+        showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} tintColor={palette.tint} />}
       />
 
-      {/* Usage Modal */}
-      <Modal
-        visible={usageModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setUsageModalVisible(false)}
-      >
-        <SafeAreaView
-          style={[styles.modalContainer, { backgroundColor: palette.background }]}
-          edges={['top']}
-        >
-          <View style={styles.modalHeader}>
-            <View>
-              <ThemedText type="title" style={styles.modalTitle}>
-                Usage History
-              </ThemedText>
-              {selectedCode && (
-                <ThemedText style={[styles.modalSubtitle, { color: palette.tint }]}>
-                  {selectedCode.code}
-                </ThemedText>
-              )}
-            </View>
-            <Pressable
-              style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
-              onPress={() => setUsageModalVisible(false)}
-            >
-              <Ionicons name="close" size={24} color={palette.text} />
-            </Pressable>
-          </View>
-
-          <View style={styles.modalContent}>
-            {selectedCode && (
-              <CodeUsageSummary
-                totalRedemptions={selectedCode.currentUses}
-                totalCreditsAwarded={selectedCode.currentUses * selectedCode.creditAmount}
-                loading={usageLoading}
-              />
-            )}
-
-            <View style={styles.usageListContainer}>
-              <ThemedText type="defaultSemiBold" style={styles.usageListTitle}>
-                Recent Redemptions
-              </ThemedText>
-              <CodeUsageList
-                usage={usageData}
-                loading={usageLoading}
-                emptyMessage="No redemptions yet for this code"
-                showUser={true}
-              />
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <PromoUsageModal visible={c.usageModalVisible} selectedCode={c.selectedCode}
+        usageData={c.usageData} usageLoading={c.usageLoading} onClose={c.closeUsageModal} />
     </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  loadingText: {
-    ...Typography.bodySmall,
-  },
-  listContent: {
-    paddingBottom: Spacing.xl,
-    gap: Spacing.md,
-  },
-  statsCard: {
-    padding: Spacing.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    ...Typography.title,
-  },
-  statLabel: {
-    ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  filterButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  filterText: {
-    ...Typography.smallSemiBold,
-  },
-  listHeader: {
-    marginTop: Spacing.xs,
-  },
-  listTitle: {
-    ...Typography.heading,
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  createButtonText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    ...Typography.subheading,
-  },
-  emptyDescription: {
-    ...Typography.bodySmall,
-    textAlign: 'center',
-    paddingHorizontal: Spacing.lg,
-  },
-  createButtonSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.md,
-  },
-  createButtonSmallText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
-    paddingTop: Spacing.lg,
-  },
-  modalTitle: {
-    ...Typography.title,
-  },
-  modalSubtitle: {
-    ...Typography.bodySmallSemiBold,
-    marginTop: Spacing.micro,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalContent: {
-    flex: 1,
-    padding: Spacing.md,
-    gap: Spacing.lg,
-  },
-  usageListContainer: {
-    flex: 1,
-    gap: Spacing.md,
-  },
-  usageListTitle: {
-    ...Typography.subheading,
-  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
+  loadingText: { ...Typography.bodySmall },
+  listContent: { paddingBottom: Spacing.xl, gap: Spacing.md },
+  statsCard: { padding: Spacing.md },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { ...Typography.title },
+  statLabel: { ...Typography.caption, marginTop: Spacing.micro },
+  statDivider: { width: 1, height: 36, position: 'absolute', left: 0 },
+  filterContainer: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap' },
+  filterButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  filterText: { ...Typography.smallSemiBold },
+  listHeader: { marginTop: Spacing.xs },
+  listTitle: { ...Typography.heading },
+  createButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  createButtonText: { ...Typography.bodySmallSemiBold },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
+  emptyIcon: { width: 80, height: 80, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyTitle: { ...Typography.subheading },
+  emptyDescription: { ...Typography.bodySmall, textAlign: 'center', paddingHorizontal: Spacing.lg },
+  createButtonSmall: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
+  createButtonSmallText: { ...Typography.bodySmallSemiBold },
 });

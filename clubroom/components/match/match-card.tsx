@@ -10,6 +10,8 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 
+import { MatchAvailabilityRow, MatchPlayerStatusRow } from './match-card-sections';
+
 interface MatchCardProps {
   match: Match;
   isCoach?: boolean;
@@ -28,9 +30,6 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
   });
 
   const typeColor = matchService.getMatchTypeColor(match.matchType);
-  const statusColor = matchService.getStatusColor(match.status);
-  const availability = matchService.getAvailabilitySummary(match);
-
   const isUpcoming = match.status === 'SCHEDULED' || match.status === 'LINEUP_SET';
 
   const handlePress = () => {
@@ -135,53 +134,10 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
       )}
 
       {/* Status and availability (coach view) */}
-      {isCoach && isUpcoming && (
-        <View style={styles.availabilityRow}>
-          <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
-            <ThemedText style={[styles.statusText, { color: statusColor }]}>
-              {matchService.formatStatus(match.status)}
-            </ThemedText>
-          </View>
-          <View style={styles.availabilityStats}>
-            <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: palette.success }]} />
-              <ThemedText style={styles.statText}>{availability.available}</ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: palette.error }]} />
-              <ThemedText style={styles.statText}>{availability.unavailable}</ThemedText>
-            </View>
-            <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: palette.warning }]} />
-              <ThemedText style={styles.statText}>{availability.pending}</ThemedText>
-            </View>
-          </View>
-        </View>
-      )}
+      {isCoach && isUpcoming && <MatchAvailabilityRow match={match} />}
 
       {/* Player status (parent view) */}
-      {!isCoach && match.selectedPlayers.length > 0 && (
-        <View style={styles.playerStatusRow}>
-          {match.selectedPlayers.map((player) => (
-            <View
-              key={player.athleteId}
-              style={[
-                styles.playerBadge,
-                { backgroundColor: withAlpha(matchService.getPlayerStatusColor(player.status), 0.09) }
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.playerBadgeText,
-                  { color: matchService.getPlayerStatusColor(player.status) }
-                ]}
-              >
-                {player.athleteName}: {matchService.formatPlayerStatus(player.status)}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-      )}
+      {!isCoach && <MatchPlayerStatusRow match={match} />}
     </SurfaceCard>
   );
 }
@@ -257,47 +213,4 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   clubText: { ...Typography.caption },
-  availabilityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-    paddingTop: Spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(128,128,128,0.2)',
-  },
-  statusPill: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
-  statusText: { ...Typography.caption },
-  availabilityStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  statDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.xs,
-  },
-  statText: { ...Typography.smallSemiBold },
-  playerStatusRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  playerBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
-  playerBadgeText: { ...Typography.caption },
 });

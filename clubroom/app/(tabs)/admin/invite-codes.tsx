@@ -7,9 +7,10 @@
  */
 
 import { useCallback } from 'react';
-import { FlatList, Pressable, StyleSheet } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { InviteCodeCard } from '@/components/admin/invite-code-card';
 import { CreateCodeModal } from '@/components/admin/create-code-modal';
 import { Row } from '@/components/primitives/row';
@@ -59,16 +60,15 @@ export default function InviteCodesScreen() {
             {codes.length} codes generated
           </ThemedText>
         </Column>
-        <Pressable
+        <Clickable
           onPress={handleOpenModal}
           style={[styles.createButton, { backgroundColor: palette.tint }]}
           accessibilityLabel="Create new invite code"
-          accessibilityRole="button"
         >
           <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>
             + New Code
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </Row>
 
       {codes.length === 0 ? (

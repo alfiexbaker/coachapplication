@@ -8,10 +8,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { DAYS, HOURS } from './availability-grid-sections';
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
+// Re-export for backward compat
+export { DayScheduleView } from './availability-grid-sections';
 
 interface AvailabilityGridProps {
   templates: AvailabilityTemplate[];
@@ -30,7 +30,6 @@ export function AvailabilityGrid({
 }: AvailabilityGridProps) {
   const { colors: palette } = useTheme();
 
-  // Calculate which cells have availability
   const getSlotStatus = useCallback(
     (dayOfWeek: number, hour: number): { available: boolean; template?: AvailabilityTemplate } => {
       const template = templates.find((t) => {
@@ -39,7 +38,6 @@ export function AvailabilityGrid({
         const [endHour] = t.endTime.split(':').map(Number);
         return hour >= startHour && hour < endHour;
       });
-
       return { available: !!template, template };
     },
     [templates]
@@ -64,7 +62,6 @@ export function AvailabilityGrid({
     }
   };
 
-  // Get templates for a specific day
   const getDayTemplates = (dayOfWeek: number) => {
     return templates.filter((t) => t.dayOfWeek === dayOfWeek);
   };
@@ -97,16 +94,12 @@ export function AvailabilityGrid({
               <ThemedText
                 style={[
                   styles.dayText,
-                  {
-                    color: isSelected ? palette.tint : hasSlots ? palette.success : palette.muted,
-                  },
+                  { color: isSelected ? palette.tint : hasSlots ? palette.success : palette.muted },
                 ]}
               >
                 {day}
               </ThemedText>
-              {hasSlots && (
-                <View style={[styles.dayIndicator, { backgroundColor: palette.success }]} />
-              )}
+              {hasSlots && <View style={[styles.dayIndicator, { backgroundColor: palette.success }]} />}
             </Clickable>
           );
         })}
@@ -117,14 +110,12 @@ export function AvailabilityGrid({
         <View style={styles.grid}>
           {HOURS.map((hour) => (
             <View key={hour} style={styles.row}>
-              {/* Time Label */}
               <View style={styles.timeColumn}>
                 <ThemedText style={[styles.timeText, { color: palette.muted }]}>
                   {hour.toString().padStart(2, '0')}:00
                 </ThemedText>
               </View>
 
-              {/* Day Cells */}
               {DAYS.map((_, dayIndex) => {
                 const { available } = getSlotStatus(dayIndex, hour);
                 const isSelected = selectedDay === dayIndex;
@@ -147,11 +138,7 @@ export function AvailabilityGrid({
                       },
                     ]}
                   >
-                    {available && (
-                      <View
-                        style={[styles.slotIndicator, { backgroundColor: palette.success }]}
-                      />
-                    )}
+                    {available && <View style={[styles.slotIndicator, { backgroundColor: palette.success }]} />}
                   </Clickable>
                 );
               })}
@@ -178,242 +165,22 @@ export function AvailabilityGrid({
   );
 }
 
-interface DayScheduleViewProps {
-  dayOfWeek: number;
-  templates: AvailabilityTemplate[];
-  onEditTemplate: (template: AvailabilityTemplate) => void;
-  onDeleteTemplate: (templateId: string) => void;
-  onAddTemplate: () => void;
-}
-
-export function DayScheduleView({
-  dayOfWeek,
-  templates,
-  onEditTemplate,
-  onDeleteTemplate,
-  onAddTemplate,
-}: DayScheduleViewProps) {
-  const { colors: palette } = useTheme();
-
-  const dayTemplates = templates.filter((t) => t.dayOfWeek === dayOfWeek);
-
-  return (
-    <View style={styles.daySchedule}>
-      <View style={styles.dayScheduleHeader}>
-        <ThemedText type="subtitle">{FULL_DAYS[dayOfWeek]}</ThemedText>
-        <Clickable
-          onPress={onAddTemplate}
-          style={[styles.addButton, { backgroundColor: palette.tint }]}
-        >
-          <Ionicons name="add" size={18} color={palette.onPrimary} />
-          <ThemedText style={{ ...Typography.smallSemiBold, color: palette.onPrimary }}>
-            Add Slot
-          </ThemedText>
-        </Clickable>
-      </View>
-
-      {dayTemplates.length === 0 ? (
-        <View style={[styles.emptyDay, { backgroundColor: palette.surface }]}>
-          <Ionicons name="calendar-outline" size={32} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>
-            No availability set for this day
-          </ThemedText>
-        </View>
-      ) : (
-        <View style={styles.slotsList}>
-          {dayTemplates
-            .sort((a, b) => a.startTime.localeCompare(b.startTime))
-            .map((template) => (
-              <View
-                key={template.id}
-                style={[styles.slotCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              >
-                <View style={[styles.slotTime, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                  <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
-                    {template.startTime}
-                  </ThemedText>
-                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>to</ThemedText>
-                  <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
-                    {template.endTime}
-                  </ThemedText>
-                </View>
-
-                <View style={styles.slotInfo}>
-                  {template.location && (
-                    <View style={styles.slotDetail}>
-                      <Ionicons name="location-outline" size={14} color={palette.muted} />
-                      <ThemedText style={[styles.slotDetailText, { color: palette.text }]}>
-                        {template.location}
-                      </ThemedText>
-                    </View>
-                  )}
-                  <View style={styles.slotDetail}>
-                    <Ionicons name="people-outline" size={14} color={palette.muted} />
-                    <ThemedText style={[styles.slotDetailText, { color: palette.muted }]}>
-                      Max {template.maxConcurrent} booking{template.maxConcurrent !== 1 ? 's' : ''}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.slotDetail}>
-                    <Ionicons name="time-outline" size={14} color={palette.muted} />
-                    <ThemedText style={[styles.slotDetailText, { color: palette.muted }]}>
-                      {template.bufferMinutes} min buffer
-                    </ThemedText>
-                  </View>
-                </View>
-
-                <View style={styles.slotActions}>
-                  <Clickable
-                    onPress={() => onEditTemplate(template)}
-                    style={[styles.slotActionButton, { borderColor: palette.border }]}
-                  >
-                    <Ionicons name="pencil-outline" size={16} color={palette.tint} />
-                  </Clickable>
-                  <Clickable
-                    onPress={() => onDeleteTemplate(template.id)}
-                    style={[styles.slotActionButton, { borderColor: palette.border }]}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={palette.error} />
-                  </Clickable>
-                </View>
-              </View>
-            ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-  },
-  timeColumn: {
-    width: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayHeader: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    marginHorizontal: 1,
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
+  timeColumn: { width: 50, alignItems: 'center', justifyContent: 'center' },
+  dayHeader: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs, borderRadius: Radii.sm, marginHorizontal: 1 },
   dayText: { ...Typography.caption },
-  dayIndicator: {
-    width: 4,
-    height: 4,
-    borderRadius: Radii.xs,
-    marginTop: Spacing.micro,
-  },
-  gridScroll: {
-    flex: 1,
-  },
-  grid: {
-    paddingHorizontal: Spacing.xs,
-  },
-  row: {
-    flexDirection: 'row',
-    height: 36,
-  },
+  dayIndicator: { width: 4, height: 4, borderRadius: Radii.xs, marginTop: Spacing.micro },
+  gridScroll: { flex: 1 },
+  grid: { paddingHorizontal: Spacing.xs },
+  row: { flexDirection: 'row', height: 36 },
   timeText: { ...Typography.micro },
-  cell: {
-    flex: 1,
-    marginHorizontal: 1,
-    marginVertical: 1,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: Radii.xs,
-  },
-  legend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: Radii.sm,
-  },
+  cell: { flex: 1, marginHorizontal: 1, marginVertical: 1, borderRadius: Radii.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  slotIndicator: { width: 6, height: 6, borderRadius: Radii.xs },
+  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
   legendText: { ...Typography.caption },
   legendHint: { ...Typography.caption, fontStyle: 'italic' },
-  daySchedule: {
-    gap: Spacing.md,
-  },
-  dayScheduleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-  },
-  emptyDay: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-    borderRadius: Radii.md,
-  },
-  slotsList: {
-    gap: Spacing.sm,
-  },
-  slotCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  slotTime: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  slotInfo: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  slotDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  slotDetailText: { ...Typography.small },
-  slotActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  slotActionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

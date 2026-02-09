@@ -100,7 +100,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
                   <ThemedText style={[styles.noteDate, { color: palette.muted }]}>
                     {formatDate(note.createdAt)}
                   </ThemedText>
-                  <Clickable onPress={() => onDeleteNote(note.id)} hitSlop={8}>
+                  <Clickable accessibilityLabel="Delete note" onPress={() => onDeleteNote(note.id)} hitSlop={8}>
                     <Ionicons name="trash-outline" size={16} color={palette.error} />
                   </Clickable>
                 </View>

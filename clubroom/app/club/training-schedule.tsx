@@ -1,616 +1,134 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
+/**
+ * Training Schedule Screen
+ *
+ * Shows club training sessions in list or weekly calendar view.
+ * Supports squad filtering and parent attendance tracking.
+ */
+
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { TrainingCard } from '@/components/club/training-card';
+import { WeeklyCalendarView } from '@/components/club/weekly-calendar-view';
+import { TrainingAttendanceCard } from '@/components/club/training-attendance-card';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { groupSessionService } from '@/services/group-session-service';
-import { getClubMembershipForUser, getClubById, getClubSquads } from '@/constants/mock-data';
-import { hasChildren } from '@/utils/user-helpers';
-import type { GroupSession, ClubSquad } from '@/constants/types';
+import { useTrainingSchedule, type ViewMode } from '@/hooks/use-training-schedule';
 
-const logger = createLogger('TrainingScheduleScreen');
-
-type ViewMode = 'list' | 'calendar';
-
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function TrainingCard({
-  session,
-  index,
-  userHasChildrenView,
-}: {
-  session: GroupSession;
-  index: number;
-  userHasChildrenView: boolean;
-}) {
-  const { colors: palette } = useTheme();
-
-  const nextDate = groupSessionService.getNextTrainingDate(session);
-  const dayName = session.recurringPattern
-    ? groupSessionService.formatDayOfWeek(session.recurringPattern.dayOfWeek)
-    : '';
-
-  return (
-    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <SurfaceCard
-        style={styles.trainingCard}
-        onPress={() => router.push(Routes.groupSession(session.id))}
-      >
-        <View style={styles.cardHeader}>
-          <View style={styles.cardTitleSection}>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
-              {session.title}
-            </ThemedText>
-            {session.squadName && (
-              <View style={[styles.squadBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
-                  {session.squadName}
-                </ThemedText>
-              </View>
-            )}
-          </View>
-          {session.pricePerParticipant === 0 ? (
-            <View style={[styles.freeBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-              <ThemedText style={{ color: palette.success, ...Typography.caption }}>
-                FREE
-              </ThemedText>
-            </View>
-          ) : (
-            <ThemedText type="defaultSemiBold" style={{ color: palette.tint }}>
-              {groupSessionService.formatPrice(session.pricePerParticipant, session.currency)}
-            </ThemedText>
-          )}
-        </View>
-
-        <View style={styles.cardDetails}>
-          {/* Recurring pattern */}
-          {session.isRecurring && session.recurringPattern && (
-            <View style={styles.detailRow}>
-              <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <Ionicons name="repeat" size={14} color={palette.tint} />
-              </View>
-              <ThemedText style={{ color: palette.text }}>
-                Every {dayName} at {session.recurringPattern.startTime}
-              </ThemedText>
-            </View>
-          )}
-
-          {/* Next session */}
-          {nextDate && (
-            <View style={styles.detailRow}>
-              <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
-                <Ionicons name="calendar" size={14} color={palette.warning} />
-              </View>
-              <ThemedText style={{ color: palette.text }}>
-                Next: {new Date(nextDate.date).toLocaleDateString('en-GB', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                })} - {nextDate.startTime} to {nextDate.endTime}
-              </ThemedText>
-            </View>
-          )}
-
-          {/* Location */}
-          <View style={styles.detailRow}>
-            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
-              <Ionicons name="location" size={14} color={palette.muted} />
-            </View>
-            <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
-              {session.location}
-            </ThemedText>
-          </View>
-
-          {/* Participants */}
-          <View style={styles.detailRow}>
-            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
-              <Ionicons name="people" size={14} color={palette.muted} />
-            </View>
-            <ThemedText style={{ color: palette.muted }}>
-              {session.currentParticipants}/{session.maxParticipants} participants
-            </ThemedText>
-            {session.waitlistCount > 0 && (
-              <ThemedText style={{ color: palette.warning, ...Typography.caption }}>
-                (+{session.waitlistCount} waitlist)
-              </ThemedText>
-            )}
-          </View>
-        </View>
-
-        {/* Coach info */}
-        <View style={[styles.coachSection, { borderTopColor: palette.border }]}>
-          {session.coachPhotoUrl ? (
-            <Image source={{ uri: session.coachPhotoUrl }} style={styles.coachPhoto} />
-          ) : (
-            <View style={[styles.coachPhotoPlaceholder, { backgroundColor: palette.border }]}>
-              <Ionicons name="person" size={14} color={palette.muted} />
-            </View>
-          )}
-          <ThemedText style={{ color: palette.muted, flex: 1, ...Typography.small }}>
-            Coach {session.coachName}
-          </ThemedText>
-          {userHasChildrenView && (
-            <Pressable
-              style={[styles.rsvpButton, { backgroundColor: palette.tint }]}
-            >
-              <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>
-                RSVP
-              </ThemedText>
-            </Pressable>
-          )}
-        </View>
-      </SurfaceCard>
-    </Animated.View>
-  );
-}
-
-function WeeklyCalendarView({
-  sessions,
-  userHasChildrenView,
-}: {
-  sessions: GroupSession[];
-  userHasChildrenView: boolean;
-}) {
-  const { colors: palette } = useTheme();
-
-  // Group sessions by day of week
-  const sessionsByDay = DAYS.map((_, dayIndex) =>
-    sessions.filter((s) => s.recurringPattern?.dayOfWeek === dayIndex)
-  );
-
-  return (
-    <View style={styles.calendarContainer}>
-      {DAYS.map((day, dayIndex) => {
-        const daySessions = sessionsByDay[dayIndex];
-        return (
-          <View key={day} style={[styles.calendarDay, { borderColor: palette.border }]}>
-            <View style={[styles.dayHeader, { backgroundColor: palette.surface }]}>
-              <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
-                {day}
-              </ThemedText>
-            </View>
-            <View style={styles.dayContent}>
-              {daySessions.length > 0 ? (
-                daySessions.map((session) => (
-                  <Pressable
-                    key={session.id}
-                    style={[styles.calendarSession, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-                    onPress={() => router.push(Routes.groupSession(session.id))}
-                  >
-                    <ThemedText
-                      style={{ color: palette.tint, ...Typography.caption }}
-                      numberOfLines={1}
-                    >
-                      {session.title}
-                    </ThemedText>
-                    <ThemedText style={{ color: palette.muted, ...Typography.micro }}>
-                      {session.recurringPattern?.startTime}
-                    </ThemedText>
-                  </Pressable>
-                ))
-              ) : (
-                <ThemedText style={{ color: palette.muted, ...Typography.micro, textAlign: 'center' }}>
-                  -
-                </ThemedText>
-              )}
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
+const VIEW_MODES: { key: ViewMode; label: string; icon: 'list' | 'calendar' }[] = [
+  { key: 'list', label: 'List', icon: 'list' },
+  { key: 'calendar', label: 'Week', icon: 'calendar' },
+];
 
 export default function TrainingScheduleScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
-
-  const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
-  const [squads, setSquads] = useState<ClubSquad[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
-  const [clubName, setClubName] = useState('');
-
-  const userHasChildren = hasChildren(currentUser);
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-
-  const loadData = useCallback(async () => {
-    if (!currentUser) return;
-
-    setLoading(true);
-    try {
-      const membership = getClubMembershipForUser(currentUser.id);
-      if (membership) {
-        const club = getClubById(membership.clubId);
-        setClubName(club?.name || 'Club');
-        setSquads(getClubSquads(membership.clubId));
-        const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
-        setTrainingSessions(sessions);
-      }
-    } catch (error) {
-      logger.error('Failed to load training sessions', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const filteredSessions = selectedSquadId
-    ? trainingSessions.filter((s) => s.squadId === selectedSquadId)
-    : trainingSessions;
+  const { colors } = useTheme();
+  const {
+    loading, viewMode, setViewMode,
+    selectedSquadId, setSelectedSquadId,
+    clubName, squads, filteredSessions,
+    userHasChildren, isCoach,
+  } = useTrainingSchedule();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <View style={styles.headerTitle}>
+        <View style={{ flex: 1 }}>
           <ThemedText type="title">Training Schedule</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            {clubName}
-          </ThemedText>
+          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>{clubName}</ThemedText>
         </View>
         {isCoach && (
-          <Clickable
-            onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
-            style={[styles.addButton, { backgroundColor: palette.tint }]}
-          >
-            <Ionicons name="add" size={20} color={palette.onPrimary} />
+          <Clickable accessibilityLabel="Create training session" onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+            <Ionicons name="add" size={20} color={colors.onPrimary} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* View mode toggle */}
-      <View style={[styles.viewToggle, { backgroundColor: palette.surface }]}>
-        <Pressable
-          style={[
-            styles.toggleOption,
-            viewMode === 'list' ? { backgroundColor: palette.tint } : undefined,
-          ]}
-          onPress={() => setViewMode('list')}
-        >
-          <Ionicons
-            name="list"
-            size={18}
-            color={viewMode === 'list' ? palette.onPrimary : palette.muted}
-          />
-          <ThemedText
-            style={{ color: viewMode === 'list' ? palette.onPrimary : palette.muted, ...Typography.small }}
+      <View style={[styles.viewToggle, { backgroundColor: colors.surface }]}>
+        {VIEW_MODES.map((mode) => (
+          <Clickable
+            key={mode.key}
+            style={[styles.toggleOption, viewMode === mode.key ? { backgroundColor: colors.tint } : undefined]}
+            onPress={() => setViewMode(mode.key)}
           >
-            List
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.toggleOption,
-            viewMode === 'calendar' ? { backgroundColor: palette.tint } : undefined,
-          ]}
-          onPress={() => setViewMode('calendar')}
-        >
-          <Ionicons
-            name="calendar"
-            size={18}
-            color={viewMode === 'calendar' ? palette.onPrimary : palette.muted}
-          />
-          <ThemedText
-            style={{ color: viewMode === 'calendar' ? palette.onPrimary : palette.muted, ...Typography.small }}
-          >
-            Week
-          </ThemedText>
-        </Pressable>
+            <Ionicons name={mode.icon} size={18} color={viewMode === mode.key ? colors.onPrimary : colors.muted} />
+            <ThemedText style={[Typography.small, { color: viewMode === mode.key ? colors.onPrimary : colors.muted }]}>
+              {mode.label}
+            </ThemedText>
+          </Clickable>
+        ))}
       </View>
 
       {/* Squad filter */}
       {squads.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterContainer}
-        >
-          <Pressable
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: !selectedSquadId ? palette.tint : palette.surface,
-                borderColor: !selectedSquadId ? palette.tint : palette.border,
-              },
-            ]}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContainer}>
+          <Clickable
+            style={[styles.filterChip, { backgroundColor: !selectedSquadId ? colors.tint : colors.surface, borderColor: !selectedSquadId ? colors.tint : colors.border }]}
             onPress={() => setSelectedSquadId(null)}
           >
-            <ThemedText
-              style={{ color: !selectedSquadId ? palette.onPrimary : palette.text, ...Typography.small }}
-            >
-              All Squads
-            </ThemedText>
-          </Pressable>
+            <ThemedText style={[Typography.small, { color: !selectedSquadId ? colors.onPrimary : colors.text }]}>All Squads</ThemedText>
+          </Clickable>
           {squads.map((squad) => (
-            <Pressable
+            <Clickable
               key={squad.id}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: selectedSquadId === squad.id ? palette.tint : palette.surface,
-                  borderColor: selectedSquadId === squad.id ? palette.tint : palette.border,
-                },
-              ]}
+              style={[styles.filterChip, { backgroundColor: selectedSquadId === squad.id ? colors.tint : colors.surface, borderColor: selectedSquadId === squad.id ? colors.tint : colors.border }]}
               onPress={() => setSelectedSquadId(squad.id)}
             >
-              <ThemedText
-                style={{ color: selectedSquadId === squad.id ? palette.onPrimary : palette.text, ...Typography.small }}
-              >
-                {squad.name}
-              </ThemedText>
-            </Pressable>
+              <ThemedText style={[Typography.small, { color: selectedSquadId === squad.id ? colors.onPrimary : colors.text }]}>{squad.name}</ThemedText>
+            </Clickable>
           ))}
         </ScrollView>
       )}
 
       {/* Content */}
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ThemedText style={{ color: palette.muted }}>Loading...</ThemedText>
+            <ThemedText style={{ color: colors.muted }}>Loading...</ThemedText>
           </View>
         ) : filteredSessions.length === 0 ? (
           <EmptyState
             icon="football-outline"
             title="No training sessions"
-            message={
-              selectedSquadId
-                ? 'No training sessions for this squad yet'
-                : 'No training sessions scheduled'
-            }
+            message={selectedSquadId ? 'No training sessions for this squad yet' : 'No training sessions scheduled'}
           />
         ) : viewMode === 'list' ? (
           <View style={styles.list}>
             {filteredSessions.map((session, index) => (
-              <TrainingCard
-                key={session.id}
-                session={session}
-                index={index}
-                userHasChildrenView={userHasChildren}
-              />
+              <TrainingCard key={session.id} session={session} index={index} userHasChildrenView={userHasChildren} />
             ))}
           </View>
         ) : (
-          <WeeklyCalendarView sessions={filteredSessions} userHasChildrenView={userHasChildren} />
+          <WeeklyCalendarView sessions={filteredSessions} />
         )}
 
-        {/* Parent-specific: Attendance summary */}
-        {userHasChildren && filteredSessions.length > 0 && (
-          <SurfaceCard style={styles.attendanceCard}>
-            <View style={styles.attendanceHeader}>
-              <Ionicons name="checkmark-circle" size={20} color={palette.success} />
-              <ThemedText type="defaultSemiBold">Attendance Record</ThemedText>
-            </View>
-            <View style={styles.attendanceStats}>
-              <View style={styles.attendanceStat}>
-                <ThemedText type="heading" style={{ color: palette.success }}>
-                  12
-                </ThemedText>
-                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                  Attended
-                </ThemedText>
-              </View>
-              <View style={[styles.attendanceDivider, { backgroundColor: palette.border }]} />
-              <View style={styles.attendanceStat}>
-                <ThemedText type="heading" style={{ color: palette.warning }}>
-                  2
-                </ThemedText>
-                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                  Missed
-                </ThemedText>
-              </View>
-              <View style={[styles.attendanceDivider, { backgroundColor: palette.border }]} />
-              <View style={styles.attendanceStat}>
-                <ThemedText type="heading" style={{ color: palette.tint }}>
-                  86%
-                </ThemedText>
-                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                  Rate
-                </ThemedText>
-              </View>
-            </View>
-          </SurfaceCard>
-        )}
+        {userHasChildren && filteredSessions.length > 0 && <TrainingAttendanceCard />}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  headerTitle: {
-    flex: 1,
-  },
-  subtitle: {
-    ...Typography.small,
-    marginTop: Spacing.micro,
-  },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radii.md,
-    padding: Spacing.xxs,
-  },
-  toggleOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  filterScroll: {
-    marginTop: Spacing.md,
-    flexGrow: 0,
-  },
-  filterContainer: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.xs,
-  },
-  filterChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-  },
-  content: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl * 2,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  list: {
-    gap: Spacing.md,
-  },
-  trainingCard: {
-    gap: Spacing.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  cardTitleSection: {
-    flex: 1,
-    gap: Spacing.xs,
-    marginRight: Spacing.md,
-  },
-  squadBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  freeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  cardDetails: {
-    gap: Spacing.sm,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  iconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coachSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-  },
-  coachPhoto: {
-    width: 28,
-    height: 28,
-    borderRadius: Radii.lg,
-  },
-  coachPhotoPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rsvpButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-  },
-  calendarContainer: {
-    flexDirection: 'row',
-    gap: Spacing.xxs,
-  },
-  calendarDay: {
-    flex: 1,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  dayHeader: {
-    paddingVertical: Spacing.xs,
-    alignItems: 'center',
-  },
-  dayContent: {
-    padding: Spacing.xxs,
-    gap: Spacing.xxs,
-    minHeight: 80,
-  },
-  calendarSession: {
-    padding: Spacing.xxs,
-    borderRadius: Radii.xs,
-    gap: Spacing.micro,
-  },
-  attendanceCard: {
-    marginTop: Spacing.lg,
-    gap: Spacing.md,
-  },
-  attendanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  attendanceStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  attendanceStat: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  attendanceDivider: {
-    width: 1,
-    height: 40,
-  },
+  container: { flex: 1 },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  addButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  viewToggle: { flexDirection: 'row', marginHorizontal: Spacing.lg, borderRadius: Radii.md, padding: Spacing.xxs },
+  toggleOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
+  filterScroll: { marginTop: Spacing.md, flexGrow: 0 },
+  filterContainer: { paddingHorizontal: Spacing.lg, gap: Spacing.xs },
+  filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.full, borderWidth: 1 },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2 },
+  loadingContainer: { alignItems: 'center', padding: Spacing.xl },
+  list: { gap: Spacing.md },
 });

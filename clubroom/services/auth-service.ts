@@ -3,12 +3,20 @@
  *
  * Handles user authentication, registration, and session management.
  * Supports both mock (demo) and real API modes via USE_MOCK toggle.
- * Currently uses AsyncStorage for client-side persistence.
- * Ready for API integration.
+ * Uses apiClient for client-side persistence (never imports AsyncStorage directly).
+ * All methods return Result<T, ServiceError> for standardized error handling.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  unauthorized,
+  networkError,
+} from '@/types/result';
 
 const logger = createLogger('AuthService');
 
@@ -35,6 +43,17 @@ export interface AuthTokens {
   expiresAt: number;
 }
 
+/** Data payload returned on successful auth operations */
+export interface AuthData {
+  user: UserProfile;
+  tokens?: AuthTokens;
+  token?: string;
+}
+
+/**
+ * @deprecated Use Result<AuthData, ServiceError> instead.
+ * Kept for backward compatibility — will be removed in a future release.
+ */
 export interface AuthResult {
   success: boolean;
   user?: UserProfile;
@@ -155,17 +174,17 @@ let currentUser: UserProfile | null = null;
 // ============================================================================
 
 function generateId(): string {
-  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `user_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 function generateToken(): string {
-  return `token_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+  return `token_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`;
 }
 
 function generateMockTokens(): AuthTokens {
   return {
-    accessToken: `mock_access_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`,
-    refreshToken: `mock_refresh_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`,
+    accessToken: `mock_access_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`,
+    refreshToken: `mock_refresh_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`,
     expiresAt: Date.now() + 3600 * 1000,
   };
 }
@@ -174,22 +193,34 @@ function generateMockTokens(): AuthTokens {
 // API FETCH HELPER (for real API mode)
 // ============================================================================
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${API_URL}${path}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<Result<T, ServiceError>> {
+  try {
+    const url = `${API_URL}${path}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.message || `API error: ${response.status}`);
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const message = (errorBody as Record<string, unknown>).message;
+      const errorMessage = typeof message === 'string' ? message : `API error: ${response.status}`;
+
+      if (response.status === 401) {
+        return err(unauthorized(errorMessage));
+      }
+      return err(networkError(errorMessage));
+    }
+
+    const data = await response.json() as T;
+    return ok(data);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Network request failed';
+    return err(networkError(message));
   }
-
-  return response.json();
 }
 
 // ============================================================================
@@ -197,58 +228,58 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 // ============================================================================
 
 export const authService = {
-  async login(email: string, password: string): Promise<AuthResult> {
+  async login(email: string, password: string): Promise<Result<AuthData, ServiceError>> {
     logger.info('Login attempt', { email });
 
     if (USE_MOCK) {
       return this._mockLogin(email, password);
     }
 
-    try {
-      const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      await this.storeTokens(result.tokens);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
-      currentUser = result.user;
-      logger.success('Login successful', { userId: result.user.id });
-      return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Invalid email or password';
-      logger.warn('Login failed', { email, error: message });
-      return { success: false, error: message };
+    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!result.success) {
+      logger.warn('Login failed', { email, error: result.error.message });
+      return result;
     }
+
+    await this.storeTokens(result.data.tokens);
+    await apiClient.set(STORAGE_KEYS.USER, result.data.user);
+    currentUser = result.data.user;
+    logger.success('Login successful', { userId: result.data.user.id });
+    return ok({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
   },
 
-  async register(input: RegisterInput): Promise<AuthResult> {
+  async register(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
     logger.info('Registration attempt', { email: input.email, accountType: input.accountType });
 
     if (USE_MOCK) {
       return this._mockRegister(input);
     }
 
-    try {
-      const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(input),
-      });
-      await this.storeTokens(result.tokens);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
-      currentUser = result.user;
-      logger.success('Registration successful', { userId: result.user.id });
-      return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Registration failed';
-      logger.warn('Registration failed', { email: input.email, error: message });
-      return { success: false, error: message };
+    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+
+    if (!result.success) {
+      logger.warn('Registration failed', { email: input.email, error: result.error.message });
+      return result;
     }
+
+    await this.storeTokens(result.data.tokens);
+    await apiClient.set(STORAGE_KEYS.USER, result.data.user);
+    currentUser = result.data.user;
+    logger.success('Registration successful', { userId: result.data.user.id });
+    return ok({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
   },
 
   async storeTokens(tokens: AuthTokens): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.TOKENS, JSON.stringify(tokens));
-      await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, tokens.accessToken);
+      await apiClient.set(STORAGE_KEYS.TOKENS, tokens);
+      await apiClient.set(STORAGE_KEYS.TOKEN, tokens.accessToken);
     } catch (error) {
       logger.error('Failed to store tokens', error);
     }
@@ -256,10 +287,8 @@ export const authService = {
 
   async getTokens(): Promise<AuthTokens | null> {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEYS.TOKENS);
-      if (stored) {
-        return JSON.parse(stored);
-      }
+      const stored = await apiClient.get<AuthTokens | null>(STORAGE_KEYS.TOKENS, null);
+      return stored;
     } catch (error) {
       logger.error('Failed to get tokens', error);
     }
@@ -286,9 +315,13 @@ export const authService = {
       body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
     });
 
-    await this.storeTokens(result.tokens);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+
+    await this.storeTokens(result.data.tokens);
     logger.success('Token refreshed');
-    return result.tokens;
+    return result.data.tokens;
   },
 
   async logout(): Promise<void> {
@@ -308,9 +341,9 @@ export const authService = {
       }
     }
 
-    await AsyncStorage.removeItem(STORAGE_KEYS.USER);
-    await AsyncStorage.removeItem(STORAGE_KEYS.TOKEN);
-    await AsyncStorage.removeItem(STORAGE_KEYS.TOKENS);
+    await apiClient.remove(STORAGE_KEYS.USER);
+    await apiClient.remove(STORAGE_KEYS.TOKEN);
+    await apiClient.remove(STORAGE_KEYS.TOKENS);
     currentUser = null;
   },
 
@@ -319,20 +352,18 @@ export const authService = {
 
     try {
       const tokens = await this.getTokens();
-      const storedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+      const storedUser = await apiClient.get<UserProfile | null>(STORAGE_KEYS.USER, null);
 
       if (!tokens || !storedUser) {
         return { isAuthenticated: false, user: null, tokens: null };
       }
 
-      const user = JSON.parse(storedUser) as UserProfile;
-
       if (tokens.expiresAt < Date.now()) {
         logger.info('Token expired, attempting refresh');
         try {
           const newTokens = await this.refreshToken();
-          currentUser = user;
-          return { isAuthenticated: true, user, tokens: newTokens };
+          currentUser = storedUser;
+          return { isAuthenticated: true, user: storedUser, tokens: newTokens };
         } catch {
           logger.warn('Token refresh failed during auth check');
           await this.logout();
@@ -340,9 +371,9 @@ export const authService = {
         }
       }
 
-      currentUser = user;
-      logger.success('Auth state restored', { userId: user.id });
-      return { isAuthenticated: true, user, tokens };
+      currentUser = storedUser;
+      logger.success('Auth state restored', { userId: storedUser.id });
+      return { isAuthenticated: true, user: storedUser, tokens };
     } catch (error) {
       logger.error('Auth check failed', error);
       return { isAuthenticated: false, user: null, tokens: null };
@@ -374,10 +405,15 @@ export const authService = {
       return;
     }
 
-    await apiFetch('/api/auth/reset-password', {
+    const result = await apiFetch('/api/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
     });
+
+    if (!result.success) {
+      logger.warn('Password reset failed', { error: result.error.message });
+      return;
+    }
 
     logger.success('Password reset successful');
   },
@@ -390,9 +426,9 @@ export const authService = {
     if (currentUser) return currentUser;
 
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+      const stored = await apiClient.get<UserProfile | null>(STORAGE_KEYS.USER, null);
       if (stored) {
-        currentUser = JSON.parse(stored);
+        currentUser = stored;
         return currentUser;
       }
     } catch (error) {
@@ -402,15 +438,15 @@ export const authService = {
     return null;
   },
 
-  async updateProfile(updates: Partial<UserProfile>): Promise<AuthResult> {
+  async updateProfile(updates: Partial<UserProfile>): Promise<Result<AuthData, ServiceError>> {
     if (!currentUser) {
-      return { success: false, error: 'Not authenticated' };
+      return err(unauthorized('Not authenticated'));
     }
 
     if (USE_MOCK) {
       const userIndex = usersCache.findIndex(u => u.id === currentUser!.id);
       if (userIndex === -1) {
-        return { success: false, error: 'User not found' };
+        return err({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
       const updatedUser = {
@@ -422,28 +458,29 @@ export const authService = {
       usersCache[userIndex] = updatedUser;
 
       const { password, ...userWithoutPassword } = updatedUser;
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+      await apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
       currentUser = userWithoutPassword;
       logger.info('Profile updated', { userId: currentUser.id });
-      return { success: true, user: userWithoutPassword };
+      return ok({ user: userWithoutPassword });
     }
 
-    try {
-      const tokens = await this.getTokens();
-      const result = await apiFetch<{ user: UserProfile }>('/api/users/me', {
-        method: 'PATCH',
-        headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
-        body: JSON.stringify(updates),
-      });
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
-      currentUser = result.user;
-      return { success: true, user: result.user };
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Profile update failed' };
+    const tokens = await this.getTokens();
+    const result = await apiFetch<{ user: UserProfile }>('/api/users/me', {
+      method: 'PATCH',
+      headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
+      body: JSON.stringify(updates),
+    });
+
+    if (!result.success) {
+      return result;
     }
+
+    await apiClient.set(STORAGE_KEYS.USER, result.data.user);
+    currentUser = result.data.user;
+    return ok({ user: result.data.user });
   },
 
-  async completeOnboarding(data: OnboardingData): Promise<AuthResult> {
+  async completeOnboarding(data: OnboardingData): Promise<Result<AuthData, ServiceError>> {
     logger.info('Completing onboarding', { accountType: data.accountType });
 
     const registerResult = await this.register({
@@ -479,14 +516,14 @@ export const authService = {
       onboardingComplete: true,
     });
 
-    await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true');
+    await apiClient.set(STORAGE_KEYS.ONBOARDING_COMPLETE, true);
     logger.success('Onboarding complete', { userId: currentUser?.id });
     return updateResult;
   },
 
   async isOnboardingComplete(): Promise<boolean> {
-    const complete = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
-    return complete === 'true';
+    const complete = await apiClient.get<boolean>(STORAGE_KEYS.ONBOARDING_COMPLETE, false);
+    return complete === true;
   },
 
   async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
@@ -498,29 +535,30 @@ export const authService = {
     }
   },
 
-  async verifyEmail(code: string): Promise<AuthResult> {
+  async verifyEmail(code: string): Promise<Result<AuthData, ServiceError>> {
     if (!currentUser) {
-      return { success: false, error: 'Not authenticated' };
+      return err(unauthorized('Not authenticated'));
     }
 
     if (USE_MOCK) {
       if (code.length !== 6) {
-        return { success: false, error: 'Invalid verification code' };
+        return err({ code: 'VALIDATION', message: 'Invalid verification code' });
       }
       return this.updateProfile({ isVerified: true });
     }
 
-    try {
-      const tokens = await this.getTokens();
-      await apiFetch('/api/auth/verify-email', {
-        method: 'POST',
-        headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
-        body: JSON.stringify({ code }),
-      });
-      return this.updateProfile({ isVerified: true });
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Email verification failed' };
+    const tokens = await this.getTokens();
+    const fetchResult = await apiFetch('/api/auth/verify-email', {
+      method: 'POST',
+      headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
+      body: JSON.stringify({ code }),
+    });
+
+    if (!fetchResult.success) {
+      return err(fetchResult.error);
     }
+
+    return this.updateProfile({ isVerified: true });
   },
 
   async checkEmailAvailable(email: string): Promise<boolean> {
@@ -529,47 +567,43 @@ export const authService = {
       return !existing;
     }
 
-    try {
-      const result = await apiFetch<{ available: boolean }>(
-        `/api/auth/check-email?email=${encodeURIComponent(email)}`
-      );
-      return result.available;
-    } catch {
-      return true;
-    }
+    const result = await apiFetch<{ available: boolean }>(
+      `/api/auth/check-email?email=${encodeURIComponent(email)}`
+    );
+    return result.success ? result.data.available : true;
   },
 
   // ============================================================================
   // MOCK IMPLEMENTATIONS (internal)
   // ============================================================================
 
-  async _mockLogin(email: string, password: string): Promise<AuthResult> {
+  async _mockLogin(email: string, password: string): Promise<Result<AuthData, ServiceError>> {
     const user = usersCache.find(
       u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
     );
 
     if (!user) {
       logger.warn('Login failed: Invalid credentials', { email });
-      return { success: false, error: 'Invalid email or password' };
+      return err(unauthorized('Invalid email or password'));
     }
 
     const tokens = generateMockTokens();
     const legacyToken = generateToken();
     const { password: _, ...userWithoutPassword } = user;
 
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+    await apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
     await this.storeTokens(tokens);
     currentUser = userWithoutPassword;
 
     logger.success('Login successful', { userId: user.id });
-    return { success: true, user: userWithoutPassword, tokens, token: legacyToken };
+    return ok({ user: userWithoutPassword, tokens, token: legacyToken });
   },
 
-  async _mockRegister(input: RegisterInput): Promise<AuthResult> {
+  async _mockRegister(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
     const existing = usersCache.find(u => u.email.toLowerCase() === input.email.toLowerCase());
     if (existing) {
       logger.warn('Registration failed: Email exists', { email: input.email });
-      return { success: false, error: 'An account with this email already exists' };
+      return err({ code: 'CONFLICT', message: 'An account with this email already exists' });
     }
 
     const now = new Date().toISOString();
@@ -602,11 +636,11 @@ export const authService = {
     const legacyToken = generateToken();
 
     const { password: _, ...userWithoutPassword } = newUser;
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+    await apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
     await this.storeTokens(tokens);
     currentUser = userWithoutPassword;
 
     logger.success('Registration successful', { userId, accountType: input.accountType });
-    return { success: true, user: userWithoutPassword, tokens, token: legacyToken };
+    return ok({ user: userWithoutPassword, tokens, token: legacyToken });
   },
 };

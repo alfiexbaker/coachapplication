@@ -8,6 +8,16 @@ import { Chip } from '@/components/primitives/chip';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SessionFeedback } from '@/services/progress-service';
 import { useTheme } from '@/hooks/useTheme';
+import {
+  formatDate,
+  getPerformanceLabel,
+  RatingStars,
+  CompactFeedbackCard,
+  SkillRatingsGrid,
+  FeedbackCardDetails,
+} from './session-feedback-sections';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 type SessionFeedbackCardProps = {
   feedback: SessionFeedback;
@@ -16,34 +26,7 @@ type SessionFeedbackCardProps = {
   compact?: boolean;
 };
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-
-  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-}
-
-function RatingStars({ rating, size = 14 }: { rating: number; size?: number }) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <View style={styles.starsRow}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Ionicons
-          key={star}
-          name={star <= rating ? 'star' : 'star-outline'}
-          size={size}
-          color={star <= rating ? palette.rating : palette.muted}
-        />
-      ))}
-    </View>
-  );
-}
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export function SessionFeedbackCard({
   feedback,
@@ -53,68 +36,20 @@ export function SessionFeedbackCard({
 }: SessionFeedbackCardProps) {
   const { colors: palette } = useTheme();
 
-  const getPerformanceLabel = (rating: number) => {
-    switch (rating) {
-      case 5: return 'Excellent';
-      case 4: return 'Great';
-      case 3: return 'Good';
-      case 2: return 'Fair';
-      default: return 'Needs Work';
-    }
-  };
-
   if (compact) {
-    return (
-      <SurfaceCard
-        style={styles.compactCard}
-        onPress={onPress}
-        tactile={Boolean(onPress)}
-      >
-        <View style={styles.compactHeader}>
-          <View style={styles.compactLeft}>
-            <ThemedText type="defaultSemiBold" style={styles.compactDate}>
-              {formatDate(feedback.createdAt)}
-            </ThemedText>
-            {showCoachName && (
-              <ThemedText style={[styles.compactCoach, { color: palette.muted }]}>
-                {feedback.coachName}
-              </ThemedText>
-            )}
-          </View>
-          <View style={styles.compactRight}>
-            <RatingStars rating={feedback.overallPerformance} size={12} />
-          </View>
-        </View>
-        {feedback.publicSummary && (
-          <ThemedText
-            style={[styles.compactSummary, { color: palette.muted }]}
-            numberOfLines={2}
-          >
-            {feedback.publicSummary}
-          </ThemedText>
-        )}
-      </SurfaceCard>
-    );
+    return <CompactFeedbackCard feedback={feedback} onPress={onPress} showCoachName={showCoachName} />;
   }
 
   return (
-    <SurfaceCard
-      style={styles.card}
-      onPress={onPress}
-      tactile={Boolean(onPress)}
-    >
+    <SurfaceCard style={styles.card} onPress={onPress} tactile={Boolean(onPress)}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <ThemedText type="defaultSemiBold" style={styles.date}>
-            {formatDate(feedback.createdAt)}
-          </ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.date}>{formatDate(feedback.createdAt)}</ThemedText>
           {showCoachName && (
             <View style={styles.coachRow}>
               <Ionicons name="person" size={12} color={palette.muted} />
-              <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-                {feedback.coachName}
-              </ThemedText>
+              <ThemedText style={[styles.coachName, { color: palette.muted }]}>{feedback.coachName}</ThemedText>
             </View>
           )}
         </View>
@@ -130,15 +65,11 @@ export function SessionFeedbackCard({
       {/* Ratings Row */}
       <View style={styles.ratingsRow}>
         <View style={styles.ratingItem}>
-          <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>
-            Performance
-          </ThemedText>
+          <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>Performance</ThemedText>
           <RatingStars rating={feedback.overallPerformance} />
         </View>
         <View style={styles.ratingItem}>
-          <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>
-            Effort
-          </ThemedText>
+          <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>Effort</ThemedText>
           <RatingStars rating={feedback.effortRating} />
         </View>
       </View>
@@ -146,119 +77,31 @@ export function SessionFeedbackCard({
       {/* Summary */}
       {feedback.publicSummary && (
         <View style={styles.section}>
-          <ThemedText style={styles.summaryText}>
-            {feedback.publicSummary}
-          </ThemedText>
+          <ThemedText style={styles.summaryText}>{feedback.publicSummary}</ThemedText>
         </View>
       )}
 
       {/* Skills Worked On */}
       {feedback.skillsWorkedOn.length > 0 && (
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-            Skills covered
-          </ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skills covered</ThemedText>
           <View style={styles.skillsRow}>
             {feedback.skillsWorkedOn.map((skill, index) => (
-              <Chip key={index} dense>
-                {skill}
-              </Chip>
+              <Chip key={index} dense>{skill}</Chip>
             ))}
           </View>
         </View>
       )}
 
-      {/* Skill Ratings */}
-      {feedback.skillRatings.length > 0 && (
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-            Skill ratings
-          </ThemedText>
-          <View style={styles.skillRatingsGrid}>
-            {feedback.skillRatings.slice(0, 4).map((sr, index) => (
-              <View key={index} style={styles.skillRatingItem}>
-                <ThemedText style={styles.skillRatingName}>{sr.skill}</ThemedText>
-                <View style={styles.skillRatingValue}>
-                  <ThemedText type="defaultSemiBold" style={[styles.skillRatingNumber, { color: palette.tint }]}>
-                    {sr.rating}
-                  </ThemedText>
-                  <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>/10</ThemedText>
-                  {sr.previousRating !== undefined && sr.rating !== sr.previousRating && (
-                    <Ionicons
-                      name={sr.rating > sr.previousRating ? 'arrow-up' : 'arrow-down'}
-                      size={10}
-                      color={sr.rating > sr.previousRating ? palette.success : palette.error}
-                      style={{ marginLeft: Spacing.micro }}
-                    />
-                  )}
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+      <SkillRatingsGrid ratings={feedback.skillRatings} />
+      <FeedbackCardDetails feedback={feedback} />
 
-      {/* Improvements */}
-      {feedback.improvements && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="trending-up" size={14} color={palette.success} />
-            <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-              Improvements noted
-            </ThemedText>
-          </View>
-          <ThemedText style={[styles.sectionContent, { color: palette.text }]}>
-            {feedback.improvements}
-          </ThemedText>
-        </View>
-      )}
-
-      {/* Homework */}
-      {feedback.homework && (
-        <View style={[styles.section, styles.homeworkSection, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="clipboard-outline" size={14} color={palette.tint} />
-            <ThemedText style={[styles.sectionLabel, { color: palette.tint }]}>
-              Homework
-            </ThemedText>
-          </View>
-          <ThemedText style={[styles.sectionContent, { color: palette.text }]}>
-            {feedback.homework}
-          </ThemedText>
-        </View>
-      )}
-
-      {/* Video clips */}
-      {feedback.videoClipUrls && feedback.videoClipUrls.length > 0 && (
-        <View style={styles.mediaRow}>
-          <Ionicons name="videocam" size={14} color={palette.tint} />
-          <ThemedText style={[styles.mediaText, { color: palette.tint }]}>
-            {feedback.videoClipUrls.length} video{feedback.videoClipUrls.length > 1 ? 's' : ''} attached
-          </ThemedText>
-        </View>
-      )}
-
-      {/* Badge awarded */}
-      {feedback.badgeAwarded && (
-        <View style={[styles.badgeRow, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-          <Ionicons name="ribbon" size={16} color={palette.success} />
-          <ThemedText style={[styles.badgeText, { color: palette.success }]}>
-            Badge awarded: {feedback.badgeAwarded}
-          </ThemedText>
-        </View>
-      )}
-
-      {onPress && (
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={palette.muted}
-          style={styles.chevron}
-        />
-      )}
+      {onPress && <Ionicons name="chevron-forward" size={16} color={palette.muted} style={styles.chevron} />}
     </SurfaceCard>
   );
 }
+
+// ─── FeedbackList ───────────────────────────────────────────────────────────
 
 type FeedbackListProps = {
   feedback: SessionFeedback[];
@@ -281,9 +124,7 @@ export function FeedbackList({
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="document-text-outline" size={32} color={palette.muted} />
-        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-          {emptyMessage}
-        </ThemedText>
+        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{emptyMessage}</ThemedText>
       </View>
     );
   }
@@ -303,132 +144,27 @@ export function FeedbackList({
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-    position: 'relative',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerLeft: {
-    gap: Spacing.xxs,
-  },
+  card: { padding: Spacing.md, gap: Spacing.sm, position: 'relative' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerLeft: { gap: Spacing.xxs },
   headerRight: {},
   date: { ...Typography.body },
-  coachRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  coachRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   coachName: { ...Typography.caption },
-  performanceBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+  performanceBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   performanceText: { ...Typography.caption },
-  ratingsRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
-  ratingItem: {
-    gap: Spacing.xxs,
-  },
-  ratingLabel: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.3 },
-  starsRow: {
-    flexDirection: 'row',
-    gap: Spacing.micro,
-  },
-  section: {
-    gap: Spacing.xxs,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  sectionLabel: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    fontWeight: '600' },
-  sectionContent: { ...Typography.bodySmall, lineHeight: 20 },
+  ratingsRow: { flexDirection: 'row', gap: Spacing.lg },
+  ratingItem: { gap: Spacing.xxs },
+  ratingLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3 },
+  section: { gap: Spacing.xxs },
+  sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '600' },
   summaryText: { ...Typography.bodySmall, lineHeight: 20 },
-  skillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xxs,
-  },
-  skillRatingsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  skillRatingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    minWidth: '45%',
-  },
-  skillRatingName: { ...Typography.small, flex: 1 },
-  skillRatingValue: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  skillRatingNumber: { ...Typography.body, fontVariant: ['tabular-nums'] },
-  skillRatingMax: { ...Typography.caption },
-  homeworkSection: {
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
-  mediaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  mediaText: { ...Typography.smallSemiBold },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  badgeText: { ...Typography.smallSemiBold },
-  chevron: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.sm,
-  },
-  // Compact styles
-  compactCard: {
-    padding: Spacing.sm,
-    gap: Spacing.xxs,
-  },
-  compactHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  compactLeft: {
-    gap: Spacing.micro,
-  },
-  compactRight: {},
-  compactDate: { ...Typography.bodySmall },
-  compactCoach: { ...Typography.caption },
-  compactSummary: { ...Typography.small, lineHeight: 18 },
-  // List styles
-  list: {
-    gap: Spacing.sm,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
+  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xxs },
+  chevron: { position: 'absolute', top: Spacing.md, right: Spacing.sm },
+  list: { gap: Spacing.sm },
+  emptyContainer: { alignItems: 'center', padding: Spacing.lg, gap: Spacing.sm },
   emptyText: { ...Typography.bodySmall, textAlign: 'center' },
 });

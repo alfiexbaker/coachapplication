@@ -5,10 +5,11 @@
  */
 
 import React, { memo } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -43,7 +44,7 @@ export const StatsQuickLinks = memo(function StatsQuickLinks({
       </ThemedText>
       <Row wrap gap="sm">
         {links.map((link) => (
-          <Pressable
+          <Clickable
             key={link.id}
             style={[
               styles.link,
@@ -54,13 +55,12 @@ export const StatsQuickLinks = memo(function StatsQuickLinks({
             ]}
             onPress={link.onPress}
             accessibilityLabel={link.label}
-            accessibilityRole="button"
           >
             <Ionicons name={link.icon} size={24} color={link.color} />
             <ThemedText style={[styles.linkText, { color: link.color }]}>
               {link.label}
             </ThemedText>
-          </Pressable>
+          </Clickable>
         ))}
       </Row>
     </Column>

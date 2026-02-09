@@ -1,0 +1,133 @@
+import React, { memo } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+
+import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
+import type { GroupRegistration } from '@/constants/types';
+import type { AttendanceStatus } from '@/hooks/use-group-roster';
+
+export interface RollCallModalProps {
+  visible: boolean;
+  sessionTitle: string | undefined;
+  participants: GroupRegistration[];
+  attendance: Record<string, AttendanceStatus>;
+  stats: { total: number; present: number; late: number; absent: number; unmarked: number };
+  colors: ThemeColors;
+  onClose: () => void;
+  onMarkStatus: (id: string, status: AttendanceStatus) => void;
+  onMarkAllPresent: () => void;
+  onReset: () => void;
+  onSave: () => void;
+  onReportInjury: (registration: GroupRegistration) => void;
+}
+
+export const RollCallModal = memo(function RollCallModal({
+  visible, sessionTitle, participants, attendance, stats, colors,
+  onClose, onMarkStatus, onMarkAllPresent, onReset, onSave, onReportInjury,
+}: RollCallModalProps) {
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Pressable onPress={onClose}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <ThemedText type="defaultSemiBold" style={Typography.heading}>Roll Call</ThemedText>
+            <ThemedText style={[Typography.small, { color: colors.muted }]}>{sessionTitle}</ThemedText>
+          </View>
+          <Pressable
+            style={[styles.saveBtn, { backgroundColor: stats.unmarked === 0 ? colors.success : colors.border }]}
+            onPress={onSave}
+            disabled={stats.unmarked > 0}
+          >
+            <ThemedText style={{ color: stats.unmarked === 0 ? colors.onPrimary : colors.muted, fontWeight: '600' }}>Save</ThemedText>
+          </Pressable>
+        </View>
+
+        <Animated.View entering={FadeIn.delay(100)} style={[styles.stats, { backgroundColor: colors.surface }]}>
+          {[
+            { label: 'Present', count: stats.present, color: colors.success },
+            { label: 'Late', count: stats.late, color: colors.warning },
+            { label: 'Absent', count: stats.absent, color: colors.error },
+            { label: 'Remaining', count: stats.unmarked, color: colors.muted },
+          ].map((s) => (
+            <View key={s.label} style={styles.statItem}>
+              <View style={[styles.dot, { backgroundColor: s.color }]} />
+              <ThemedText style={Typography.small}>{s.label}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={{ color: s.color }}>{s.count}</ThemedText>
+            </View>
+          ))}
+        </Animated.View>
+
+        <ScrollView style={{ flex: 1, paddingHorizontal: Spacing.lg }} showsVerticalScrollIndicator={false}>
+          {participants.map((reg, i) => {
+            const status = attendance[reg.id] || 'unmarked';
+            return (
+              <Animated.View key={reg.id} entering={FadeInDown.delay(i * 30).springify()} style={[styles.item, { backgroundColor: colors.surface }]}>
+                <Row gap="md" align="center" style={{ marginBottom: Spacing.sm }}>
+                  <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
+                    <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.tint }]}>
+                      {reg.athleteName.split(' ').map(n => n[0]).join('')}
+                    </ThemedText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="defaultSemiBold">{reg.athleteName}</ThemedText>
+                    {reg.parentName && <ThemedText style={[Typography.caption, { color: colors.muted }]}>Parent: {reg.parentName}</ThemedText>}
+                  </View>
+                </Row>
+                <Row gap="sm" justify="flex-end">
+                  {([['present', 'checkmark', colors.success], ['late', 'time', colors.warning], ['absent', 'close', colors.error]] as const).map(([s, icon, color]) => (
+                    <Pressable
+                      key={s}
+                      style={[styles.actionBtn, { backgroundColor: status === s ? color : 'transparent', borderColor: status === s ? color : colors.border }]}
+                      onPress={() => onMarkStatus(reg.id, s)}
+                    >
+                      <Ionicons name={icon} size={s === 'late' ? 18 : 20} color={status === s ? colors.onPrimary : color} />
+                    </Pressable>
+                  ))}
+                  <Pressable
+                    style={[styles.injuryBtn, { backgroundColor: withAlpha(colors.error, 0.09), borderColor: withAlpha(colors.error, 0.19) }]}
+                    onPress={() => onReportInjury(reg)}
+                  >
+                    <Ionicons name="medkit" size={16} color={colors.error} />
+                  </Pressable>
+                </Row>
+              </Animated.View>
+            );
+          })}
+          <View style={{ height: 40 }} />
+        </ScrollView>
+
+        <View style={[styles.quickActions, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+          <Pressable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.success, 0.09) }]} onPress={onMarkAllPresent}>
+            <Ionicons name="checkmark-done" size={18} color={colors.success} />
+            <ThemedText style={[Typography.smallSemiBold, { color: colors.success }]}>All Present</ThemedText>
+          </Pressable>
+          <Pressable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.muted, 0.09) }]} onPress={onReset}>
+            <Ionicons name="refresh" size={18} color={colors.muted} />
+            <ThemedText style={[Typography.smallSemiBold, { color: colors.muted }]}>Reset</ThemedText>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+});
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  saveBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  stats: { flexDirection: 'row', justifyContent: 'space-around', padding: Spacing.md, marginHorizontal: Spacing.lg, marginVertical: Spacing.md, borderRadius: Radii.md },
+  statItem: { alignItems: 'center', gap: Spacing.xxs },
+  dot: { width: 10, height: 10, borderRadius: Radii.sm },
+  item: { padding: Spacing.md, borderRadius: Radii.md, marginBottom: Spacing.sm },
+  avatar: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  actionBtn: { width: 44, height: 44, borderRadius: Radii.xl, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  injuryBtn: { width: 44, height: 44, borderRadius: Radii.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: Spacing.xxs },
+  quickActions: { flexDirection: 'row', justifyContent: 'space-around', padding: Spacing.md, borderTopWidth: 1, paddingBottom: Spacing.lg },
+  quickBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+});

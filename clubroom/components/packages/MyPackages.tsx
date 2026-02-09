@@ -1,41 +1,33 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { packageService } from '@/services/package-service';
-import type { PackagePurchase, PackagePurchaseStatus } from '@/constants/types';
+import type { PackagePurchase } from '@/constants/types';
+
+// Re-export extracted components for backward compat
+export { getStatusColor, getStatusLabel, PurchaseListItem } from './my-packages-sections';
+export type { PurchaseListItemProps } from './my-packages-sections';
+
+import { PurchaseListItem } from './my-packages-sections';
 
 const logger = createLogger('MyPackages');
 
-/**
- * Props for the MyPackages component
- */
 export interface MyPackagesProps {
-  /** Whether to show only active packages */
   activeOnly?: boolean;
-  /** Maximum number of packages to show */
   limit?: number;
-  /** Callback when a package is pressed */
   onPackagePress?: (purchase: PackagePurchase) => void;
-  /** Whether to show header */
   showHeader?: boolean;
-  /** Callback to view all packages */
   onViewAll?: () => void;
 }
 
-/**
- * Component for displaying a user's purchased packages.
- * Shows session count, expiration, and status.
- */
 export function MyPackages({
   activeOnly = false,
   limit,
@@ -68,36 +60,6 @@ export function MyPackages({
       loadPurchases();
     }, [currentUser?.id, activeOnly, limit])
   );
-
-  const getStatusColor = (status: PackagePurchaseStatus) => {
-    switch (status) {
-      case 'ACTIVE':
-        return palette.success;
-      case 'EXPIRED':
-        return palette.error;
-      case 'EXHAUSTED':
-        return palette.warning;
-      case 'REFUNDED':
-        return palette.muted;
-      default:
-        return palette.muted;
-    }
-  };
-
-  const getStatusLabel = (status: PackagePurchaseStatus) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'Active';
-      case 'EXPIRED':
-        return 'Expired';
-      case 'EXHAUSTED':
-        return 'All Used';
-      case 'REFUNDED':
-        return 'Refunded';
-      default:
-        return status;
-    }
-  };
 
   if (loading) {
     return (
@@ -133,7 +95,6 @@ export function MyPackages({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       {showHeader && (
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.headerTitle}>
@@ -149,66 +110,15 @@ export function MyPackages({
         </View>
       )}
 
-      {/* Purchase List */}
       <View style={styles.list}>
         {purchases.map((purchase, index) => (
-          <Animated.View key={purchase.id} entering={FadeInDown.delay(index * 50).springify()}>
-            <SurfaceCard
-              style={styles.purchaseCard}
-              onPress={onPackagePress ? () => onPackagePress(purchase) : undefined}
-            >
-              <View style={styles.purchaseContent}>
-                {/* Left: Package Info */}
-                <View style={styles.purchaseInfo}>
-                  <ThemedText type="defaultSemiBold" style={styles.purchaseName} numberOfLines={1}>
-                    {purchase.packageName}
-                  </ThemedText>
-                  <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-                    {purchase.coachName}
-                  </ThemedText>
-
-                  {/* Session Progress */}
-                  <View style={styles.progressRow}>
-                    <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            backgroundColor: palette.success,
-                            width: `${(purchase.sessionsUsed / purchase.sessionsTotal) * 100}%`,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <ThemedText style={[styles.progressText, { color: palette.muted }]}>
-                      {purchase.sessionsRemaining}/{purchase.sessionsTotal} left
-                    </ThemedText>
-                  </View>
-                </View>
-
-                {/* Right: Status & Expiry */}
-                <View style={styles.purchaseStatus}>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: withAlpha(getStatusColor(purchase.status), 0.09) },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.statusText, { color: getStatusColor(purchase.status) }]}
-                    >
-                      {getStatusLabel(purchase.status)}
-                    </ThemedText>
-                  </View>
-                  {purchase.status === 'ACTIVE' && (
-                    <ThemedText style={[styles.expiryText, { color: palette.muted }]}>
-                      {packageService.formatExpirationDate(purchase.expiresAt)}
-                    </ThemedText>
-                  )}
-                </View>
-              </View>
-            </SurfaceCard>
-          </Animated.View>
+          <PurchaseListItem
+            key={purchase.id}
+            purchase={purchase}
+            index={index}
+            onPress={onPackagePress}
+            palette={palette}
+          />
         ))}
       </View>
     </View>
@@ -236,51 +146,6 @@ const styles = StyleSheet.create({
   list: {
     gap: Spacing.sm,
   },
-  purchaseCard: {
-    padding: Spacing.md,
-  },
-  purchaseContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  purchaseInfo: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  purchaseName: { ...Typography.body },
-  coachName: { ...Typography.caption },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.xxs,
-  },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  progressText: { ...Typography.caption, minWidth: 50,
-    textAlign: 'right' },
-  purchaseStatus: {
-    alignItems: 'flex-end',
-    gap: Spacing.xxs,
-    marginLeft: Spacing.md,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  statusText: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
-  expiryText: { ...Typography.caption },
 });
 
 export default MyPackages;

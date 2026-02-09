@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
@@ -6,36 +6,28 @@ import { useRouter, type Href } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Typography, Radii} from '@/constants/theme';
+import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+
+// Re-export extracted components for backward compat
+export { ChecklistItemRow, ProgressTrack } from './onboarding-checklist-sections';
+export type { ChecklistItem, ChecklistItemRowProps, ProgressTrackProps } from './onboarding-checklist-sections';
+
+import { ChecklistItemRow, ProgressTrack } from './onboarding-checklist-sections';
+import type { ChecklistItem } from './onboarding-checklist-sections';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface ChecklistItem {
-  id: string;
-  label: string;
-  isComplete: boolean;
-  route: string;
-}
-
 interface CoachOnboardingChecklistProps {
-  /** Coach user ID */
   coachId: string;
-  /** Whether the coach has a profile photo set */
   hasProfilePhoto: boolean;
-  /** The coach's bio text */
   bio: string;
-  /** Whether qualifications/certifications have been added */
   hasQualifications: boolean;
-  /** Whether availability slots have been configured */
   hasAvailability: boolean;
-  /** Whether scheduling rules have been configured */
   hasSchedulingRules: boolean;
-  /** Whether a cancellation policy has been set */
   hasCancellationPolicy: boolean;
-  /** Whether the coach profile is currently live */
   isLive: boolean;
 }
 
@@ -72,64 +64,26 @@ export function CoachOnboardingChecklist({
     setIsDismissed(true);
   }, [dismissKey]);
 
+  const handleNavigate = useCallback((route: string) => {
+    router.push(route as Href);
+  }, [router]);
+
   const items: ChecklistItem[] = [
-    {
-      id: 'account',
-      label: 'Account created',
-      isComplete: true,
-      route: '/settings',
-    },
-    {
-      id: 'photo',
-      label: 'Profile photo set',
-      isComplete: hasProfilePhoto,
-      route: '/settings',
-    },
-    {
-      id: 'bio',
-      label: 'Bio written',
-      isComplete: bio != null && bio.length > 20,
-      route: '/settings',
-    },
-    {
-      id: 'qualifications',
-      label: 'Qualifications added',
-      isComplete: hasQualifications,
-      route: '/settings',
-    },
-    {
-      id: 'availability',
-      label: 'Availability set',
-      isComplete: hasAvailability,
-      route: '/availability',
-    },
-    {
-      id: 'scheduling',
-      label: 'Scheduling rules configured',
-      isComplete: hasSchedulingRules,
-      route: '/availability',
-    },
-    {
-      id: 'cancellation',
-      label: 'Cancellation policy set',
-      isComplete: hasCancellationPolicy,
-      route: '/settings',
-    },
-    {
-      id: 'live',
-      label: 'Gone live',
-      isComplete: isLive,
-      route: '/settings',
-    },
+    { id: 'account', label: 'Account created', isComplete: true, route: '/settings' },
+    { id: 'photo', label: 'Profile photo set', isComplete: hasProfilePhoto, route: '/settings' },
+    { id: 'bio', label: 'Bio written', isComplete: bio != null && bio.length > 20, route: '/settings' },
+    { id: 'qualifications', label: 'Qualifications added', isComplete: hasQualifications, route: '/settings' },
+    { id: 'availability', label: 'Availability set', isComplete: hasAvailability, route: '/availability' },
+    { id: 'scheduling', label: 'Scheduling rules configured', isComplete: hasSchedulingRules, route: '/availability' },
+    { id: 'cancellation', label: 'Cancellation policy set', isComplete: hasCancellationPolicy, route: '/settings' },
+    { id: 'live', label: 'Gone live', isComplete: isLive, route: '/settings' },
   ];
 
   const completedCount = items.filter((item) => item.isComplete).length;
   const totalCount = items.length;
   const progress = completedCount / totalCount;
 
-  if (isDismissed) {
-    return null;
-  }
+  if (isDismissed) return null;
 
   return (
     <View style={[styles.container, { backgroundColor: palette.surface }]}>
@@ -141,74 +95,22 @@ export function CoachOnboardingChecklist({
             {completedCount} of {totalCount} steps done
           </ThemedText>
         </View>
-        <Clickable
-          onPress={handleDismiss}
-          hitSlop={12}
-        >
+        <Clickable accessibilityLabel="Close" onPress={handleDismiss} hitSlop={12}>
           <Ionicons name="close" size={20} color={palette.muted} />
         </Clickable>
       </View>
 
-      {/* Progress bar */}
-      <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${Math.round(progress * 100)}%`, backgroundColor: palette.success },
-          ]}
-        />
-      </View>
+      <ProgressTrack progress={progress} palette={palette} />
 
       {/* Checklist items */}
       <View style={styles.itemsList}>
         {items.map((item) => (
-          <Clickable
-            key={item.id}
-            style={styles.item}
-            onPress={() => {
-              if (!item.isComplete) {
-                router.push(item.route as Href);
-              }
-            }}
-            disabled={item.isComplete}
-          >
-            <View
-              style={[
-                styles.checkCircle,
-                { borderColor: palette.border },
-                item.isComplete ? { backgroundColor: palette.success, borderColor: palette.success } : undefined,
-              ]}
-            >
-              {item.isComplete && (
-                <Ionicons name="checkmark" size={14} color={palette.surface} />
-              )}
-            </View>
-            <ThemedText
-              style={[
-                styles.itemLabel,
-                { color: palette.text },
-                item.isComplete ? { color: palette.muted, textDecorationLine: 'line-through' } : undefined,
-              ]}
-              numberOfLines={1}
-            >
-              {item.label}
-            </ThemedText>
-            {!item.isComplete && (
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={palette.muted}
-              />
-            )}
-          </Clickable>
+          <ChecklistItemRow key={item.id} item={item} onNavigate={handleNavigate} palette={palette} />
         ))}
       </View>
 
       {/* Dismiss button */}
-      <Clickable
-        style={styles.dismissButton}
-        onPress={handleDismiss}
-      >
+      <Clickable style={styles.dismissButton} onPress={handleDismiss}>
         <ThemedText style={[styles.dismissButtonText, { color: palette.muted }]}>Dismiss checklist</ThemedText>
       </Clickable>
     </View>
@@ -240,35 +142,8 @@ const styles = StyleSheet.create({
   subtitle: {
     ...Typography.small,
   },
-  progressTrack: {
-    height: 6,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 6,
-    borderRadius: Radii.xs,
-  },
   itemsList: {
     gap: 0,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  checkCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  itemLabel: {
-    ...Typography.body,
-    flex: 1,
   },
   dismissButton: {
     alignSelf: 'center',

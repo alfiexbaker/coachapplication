@@ -6,8 +6,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Pressable } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -20,10 +19,22 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillNode as SkillNodeType } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+
+import {
+  NODE_SIZES,
+  ICON_SIZES,
+  getBackgroundColor,
+  getBorderColor,
+  getIconColor,
+  SkillNodeGlow,
+  ProgressRing,
+  NodeIcon,
+  LevelBadge,
+  NodeLabel,
+  styles,
+} from './SkillNode-sections';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -36,18 +47,6 @@ export interface SkillNodeProps {
   canUnlock?: boolean;
   animateUnlock?: boolean;
 }
-
-const NODE_SIZES = {
-  small: 44,
-  medium: 56,
-  large: 68,
-};
-
-const ICON_SIZES = {
-  small: 20,
-  medium: 24,
-  large: 28,
-};
 
 export function SkillNode({
   node,
@@ -129,39 +128,6 @@ export function SkillNode({
   const isInProgress = !node.isUnlocked && node.progress > 0;
   const progressPercent = node.progress;
 
-  const getBackgroundColor = () => {
-    if (node.isUnlocked) {
-      return themeColor;
-    }
-    if (canUnlock) {
-      return withAlpha(themeColor, 0.25);
-    }
-    if (isInProgress) {
-      return withAlpha(themeColor, 0.12);
-    }
-    return palette.surface;
-  };
-
-  const getBorderColor = () => {
-    if (node.isUnlocked) {
-      return themeColor;
-    }
-    if (canUnlock || isInProgress) {
-      return withAlpha(themeColor, 0.38);
-    }
-    return palette.border;
-  };
-
-  const getIconColor = () => {
-    if (node.isUnlocked) {
-      return palette.onPrimary;
-    }
-    if (canUnlock || isInProgress) {
-      return themeColor;
-    }
-    return palette.muted;
-  };
-
   return (
     <View style={styles.wrapper}>
       <AnimatedPressable
@@ -174,143 +140,52 @@ export function SkillNode({
             width: nodeSize,
             height: nodeSize,
             borderRadius: nodeSize / 2,
-            backgroundColor: getBackgroundColor(),
-            borderColor: getBorderColor(),
+            backgroundColor: getBackgroundColor(node, themeColor, canUnlock, palette),
+            borderColor: getBorderColor(node, themeColor, canUnlock, palette),
           },
           animatedContainerStyle,
         ]}
       >
-        {/* Glow effect for unlock animation */}
-        <Animated.View
-          style={[
-            styles.glow,
-            {
-              width: nodeSize + 16,
-              height: nodeSize + 16,
-              borderRadius: (nodeSize + 16) / 2,
-              backgroundColor: themeColor,
-            },
-            animatedGlowStyle,
-          ]}
-          pointerEvents="none"
+        <SkillNodeGlow
+          nodeSize={nodeSize}
+          themeColor={themeColor}
+          animatedStyle={animatedGlowStyle}
         />
 
-        {/* Progress ring for in-progress nodes */}
         {isInProgress && !node.isUnlocked && (
-          <View
-            style={[
-              styles.progressRing,
-              {
-                width: nodeSize - 4,
-                height: nodeSize - 4,
-                borderRadius: (nodeSize - 4) / 2,
-                borderColor: themeColor,
-                borderLeftColor: 'transparent',
-                borderBottomColor:
-                  progressPercent > 50 ? themeColor : 'transparent',
-                borderRightColor:
-                  progressPercent > 75 ? themeColor : 'transparent',
-                transform: [{ rotate: `${(progressPercent / 100) * 360}deg` }],
-              },
-            ]}
+          <ProgressRing
+            nodeSize={nodeSize}
+            progressPercent={progressPercent}
+            themeColor={themeColor}
           />
         )}
 
-        {/* Icon */}
-        {isLocked ? (
-          <Ionicons name="lock-closed" size={iconSize - 4} color={palette.muted} />
-        ) : (
-          <Ionicons
-            name={node.icon as keyof typeof Ionicons.glyphMap}
-            size={iconSize}
-            color={getIconColor()}
-          />
-        )}
+        <NodeIcon
+          node={node}
+          iconSize={iconSize}
+          isLocked={isLocked}
+          iconColor={getIconColor(node, themeColor, canUnlock, palette)}
+          palette={palette}
+        />
 
-        {/* Level indicator badge */}
-        <View
-          style={[
-            styles.levelBadge,
-            {
-              backgroundColor: node.isUnlocked
-                ? palette.surface
-                : palette.surfaceSecondary,
-              borderColor: node.isUnlocked ? themeColor : palette.border,
-            },
-          ]}
-        >
-          <ThemedText
-            style={[
-              styles.levelText,
-              { color: node.isUnlocked ? themeColor : palette.muted },
-            ]}
-          >
-            {node.level}
-          </ThemedText>
-        </View>
+        <LevelBadge
+          level={node.level}
+          isUnlocked={node.isUnlocked}
+          themeColor={themeColor}
+          palette={palette}
+        />
       </AnimatedPressable>
 
-      {/* Label */}
       {showLabel && (
-        <View style={styles.labelContainer}>
-          <ThemedText
-            style={[
-              styles.label,
-              {
-                color: node.isUnlocked ? palette.foreground : palette.muted,
-              },
-            ]}
-            numberOfLines={2}
-          >
-            {node.name}
-          </ThemedText>
-          {isInProgress && (
-            <ThemedText style={[styles.progressText, { color: themeColor }]}>
-              {progressPercent}%
-            </ThemedText>
-          )}
-        </View>
+        <NodeLabel
+          name={node.name}
+          isUnlocked={node.isUnlocked}
+          isInProgress={isInProgress}
+          progressPercent={progressPercent}
+          themeColor={themeColor}
+          palette={palette}
+        />
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  nodeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    position: 'relative',
-  },
-  glow: {
-    position: 'absolute',
-    opacity: 0.3,
-  },
-  progressRing: {
-    position: 'absolute',
-    borderWidth: 3,
-  },
-  levelBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  levelText: { ...Typography.micro },
-  labelContainer: {
-    alignItems: 'center',
-    maxWidth: 80,
-  },
-  label: { ...Typography.caption, textAlign: 'center',
-    lineHeight: 14 },
-  progressText: { ...Typography.micro },
-});

@@ -1,23 +1,19 @@
 import { useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7am to 7pm
+// Re-export extracted components for backward compat
+export { DAYS_SHORT, HOURS, formatHourLabel, GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
+export type { GridLegendProps, DayColumnHeadersProps } from './availability-week-grid-sections';
 
-const formatHourLabel = (hour: number): string => {
-  if (hour === 12) return '12p';
-  if (hour > 12) return `${hour - 12}p`;
-  return `${hour}a`;
-};
+import { DAYS_SHORT, HOURS, formatHourLabel, GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
 
 interface AvailabilityWeekGridProps {
   templates: AvailabilityTemplate[];
@@ -35,7 +31,6 @@ export function AvailabilityWeekGrid({
   const { colors: palette } = useTheme();
   const todayIndex = new Date().getDay();
 
-  // Build lookup for quick cell checks
   const slotLookup = useMemo(() => {
     const lookup = new Map<string, AvailabilityTemplate>();
     for (const t of templates) {
@@ -48,21 +43,8 @@ export function AvailabilityWeekGrid({
     return lookup;
   }, [templates]);
 
-  // Build blocked day lookup for overrides on today's date range
-  const blockedDays = useMemo(() => {
-    const blocked = new Set<string>();
-    for (const o of overrides) {
-      if (o.isBlocked) {
-        blocked.add(o.date);
-      }
-    }
-    return blocked;
-  }, [overrides]);
-
   const getSlotTemplate = useCallback(
-    (day: number, hour: number): AvailabilityTemplate | undefined => {
-      return slotLookup.get(`${day}-${hour}`);
-    },
+    (day: number, hour: number) => slotLookup.get(`${day}-${hour}`),
     [slotLookup],
   );
 
@@ -79,12 +61,9 @@ export function AvailabilityWeekGrid({
     }
   };
 
-  // Count slots per day for the header summary
   const dayCounts = useMemo(() => {
     const counts: number[] = [0, 0, 0, 0, 0, 0, 0];
-    for (const t of templates) {
-      counts[t.dayOfWeek]++;
-    }
+    for (const t of templates) counts[t.dayOfWeek]++;
     return counts;
   }, [templates]);
 
@@ -92,68 +71,21 @@ export function AvailabilityWeekGrid({
     <SurfaceCard style={styles.container}>
       <View style={styles.headerRow}>
         <ThemedText type="defaultSemiBold">Weekly Overview</ThemedText>
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
-          <ThemedText style={[styles.legendLabel, { color: palette.muted }]}>
-            Available
-          </ThemedText>
-          <ThemedText style={[styles.legendHint, { color: palette.muted }]}>
-            Tap to toggle
-          </ThemedText>
-        </View>
+        <GridLegend palette={palette} />
       </View>
 
-      {/* Day column headers */}
-      <View style={styles.dayHeaderRow}>
-        <View style={styles.hourLabel} />
-        {DAYS_SHORT.map((day, i) => {
-          const isToday = i === todayIndex;
-          const hasSlots = dayCounts[i] > 0;
-          return (
-            <View key={day} style={styles.dayHeaderCell}>
-              <ThemedText
-                style={[
-                  styles.dayHeaderText,
-                  {
-                    color: isToday
-                      ? palette.tint
-                      : hasSlots
-                      ? palette.success
-                      : palette.muted,
-                    fontWeight: isToday ? '700' : '600',
-                  },
-                ]}
-              >
-                {day}
-              </ThemedText>
-              {isToday && (
-                <View style={[styles.todayDot, { backgroundColor: palette.tint }]} />
-              )}
-            </View>
-          );
-        })}
-      </View>
+      <DayColumnHeaders todayIndex={todayIndex} dayCounts={dayCounts} palette={palette} />
 
-      {/* Scrollable grid body */}
-      <ScrollView
-        style={styles.gridScroll}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
-      >
+      <ScrollView style={styles.gridScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled>
         {HOURS.map((hour) => (
           <View key={hour} style={styles.gridRow}>
-            {/* Hour label */}
             <View style={styles.hourLabel}>
               <ThemedText style={[styles.hourText, { color: palette.muted }]}>
                 {formatHourLabel(hour)}
               </ThemedText>
             </View>
-
-            {/* Day cells */}
             {DAYS_SHORT.map((_, dayIndex) => {
-              const template = getSlotTemplate(dayIndex, hour);
-              const isAvailable = !!template;
-
+              const isAvailable = !!getSlotTemplate(dayIndex, hour);
               return (
                 <Clickable
                   key={`${dayIndex}-${hour}`}
@@ -163,19 +95,13 @@ export function AvailabilityWeekGrid({
                   style={[
                     styles.gridCell,
                     {
-                      backgroundColor: isAvailable
-                        ? withAlpha(palette.success, 0.15)
-                        : palette.background,
-                      borderColor: isAvailable
-                        ? withAlpha(palette.success, 0.38)
-                        : palette.border,
+                      backgroundColor: isAvailable ? withAlpha(palette.success, 0.15) : palette.background,
+                      borderColor: isAvailable ? withAlpha(palette.success, 0.38) : palette.border,
                     },
                   ]}
                 >
                   {isAvailable && (
-                    <View
-                      style={[styles.cellIndicator, { backgroundColor: palette.success }]}
-                    />
+                    <View style={[styles.cellIndicator, { backgroundColor: palette.success }]} />
                   )}
                 </Clickable>
               );
@@ -199,41 +125,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingBottom: Spacing.xs,
   },
-  legendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.xs,
-  },
-  legendLabel: {
-    ...Typography.caption,
-  },
-  legendHint: {
-    ...Typography.micro,
-    fontStyle: 'italic',
-  },
-  dayHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dayHeaderCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-  },
-  dayHeaderText: {
-    ...Typography.caption,
-  },
-  todayDot: {
-    width: 4,
-    height: 4,
-    borderRadius: Radii.xs,
-    marginTop: Spacing.micro,
-  },
   gridScroll: {
     maxHeight: 280,
   },
@@ -248,8 +139,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   hourText: {
-    ...Typography.micro,
     fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   gridCell: {
     flex: 1,

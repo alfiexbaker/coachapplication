@@ -71,7 +71,7 @@ function ProfilePostCardInner({
           <Ionicons name="chatbubble-outline" size={20} color={palette.foreground} />
           <ThemedText style={styles.actionText}>{post.comments}</ThemedText>
         </Clickable>
-        <Clickable style={styles.actionButton}>
+        <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
           <Ionicons name="share-outline" size={20} color={palette.foreground} />
         </Clickable>
       </View>

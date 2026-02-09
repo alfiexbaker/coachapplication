@@ -1,0 +1,106 @@
+import { memo } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Routes } from '@/navigation/routes';
+import { Clickable } from '@/components/primitives/clickable';
+import { ThemedText } from '@/components/themed-text';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { scaleFont } from '@/utils/scale';
+import type { ClubEvent } from '@/constants/types';
+
+interface Props {
+  event: ClubEvent;
+  attendeeCounts: { going: number; maybe: number; notGoing: number; totalGuests: number };
+  showAttendees: boolean;
+  isCoach: boolean;
+  onToggleAttendees: () => void;
+}
+
+export const EventAttendanceSection = memo(function EventAttendanceSection({
+  event, attendeeCounts, showAttendees, isCoach, onToggleAttendees,
+}: Props) {
+  const { colors: palette } = useTheme();
+  const { going, maybe, notGoing, totalGuests } = attendeeCounts;
+
+  return (
+    <View style={styles.section}>
+      <Clickable onPress={onToggleAttendees} style={styles.header}>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Attendance ({going + totalGuests} confirmed)
+        </ThemedText>
+        <Ionicons name={showAttendees ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
+      </Clickable>
+
+      <View style={styles.stats}>
+        <View style={[styles.statBox, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+          <ThemedText style={[styles.statNumber, { color: palette.success }]}>{going}</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.success }]}>Going</ThemedText>
+        </View>
+        <View style={[styles.statBox, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+          <ThemedText style={[styles.statNumber, { color: palette.warning }]}>{maybe}</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.warning }]}>Maybe</ThemedText>
+        </View>
+        <View style={[styles.statBox, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+          <ThemedText style={[styles.statNumber, { color: palette.error }]}>{notGoing}</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.error }]}>Can&apos;t Go</ThemedText>
+        </View>
+        {totalGuests > 0 && (
+          <View style={[styles.statBox, { backgroundColor: palette.surface }]}>
+            <ThemedText style={styles.statNumber}>+{totalGuests}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Guests</ThemedText>
+          </View>
+        )}
+      </View>
+
+      {showAttendees && event.attendees.length > 0 && (
+        <View style={styles.attendeeList}>
+          {event.attendees.filter((a) => a.status === 'GOING').map((attendee) => (
+            <View key={attendee.userId} style={styles.attendeeRow}>
+              <View style={[styles.avatar, { backgroundColor: palette.border }]}>
+                <ThemedText style={styles.avatarInitial}>{attendee.userName.charAt(0)}</ThemedText>
+              </View>
+              <View style={styles.attendeeInfo}>
+                <ThemedText>{attendee.userName}</ThemedText>
+                {attendee.guestCount > 0 && (
+                  <ThemedText style={[styles.guestCount, { color: palette.muted }]}>
+                    +{attendee.guestCount} guest{attendee.guestCount > 1 ? 's' : ''}
+                  </ThemedText>
+                )}
+              </View>
+              <View style={[styles.statusDot, { backgroundColor: palette.success }]} />
+            </View>
+          ))}
+        </View>
+      )}
+
+      {isCoach && event.attendees.length > 0 && (
+        <Clickable onPress={() => router.push(Routes.eventAttendees(event.id))} style={[styles.viewAllButton, { borderColor: palette.tint }]}>
+          <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All Attendees</ThemedText>
+          <Ionicons name="arrow-forward" size={16} color={palette.tint} />
+        </Clickable>
+      )}
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  section: { gap: Spacing.sm },
+  sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  stats: { flexDirection: 'row', gap: Spacing.sm },
+  statBox: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  statNumber: { ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
+  statLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
+  attendeeList: { marginTop: Spacing.sm, gap: Spacing.xs },
+  attendeeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  attendeeInfo: { flex: 1 },
+  guestCount: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
+  statusDot: { width: 8, height: 8, borderRadius: Radii.xs },
+  viewAllButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  viewAllText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+});

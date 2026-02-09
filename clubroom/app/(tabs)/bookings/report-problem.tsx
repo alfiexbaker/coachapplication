@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Clickable } from '@/components/primitives/clickable';
 import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
@@ -97,7 +98,7 @@ export default function ReportProblemScreen() {
             {problemCategories.map((category) => {
               const isSelected = selectedCategory === category.id;
               return (
-                <Pressable
+                <Clickable
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
                   style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
@@ -120,7 +121,7 @@ export default function ReportProblemScreen() {
                       {category.label}
                     </ThemedText>
                   </SurfaceCard>
-                </Pressable>
+                </Clickable>
               );
             })}
           </View>
@@ -155,10 +156,9 @@ export default function ReportProblemScreen() {
 
       {/* Submit Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Pressable
+        <Clickable
           onPress={handleSubmit}
           disabled={!selectedCategory || !description.trim() || submitting}
-          accessibilityRole="button"
           accessibilityLabel="Submit problem report"
           style={({ pressed }) => [
             styles.submitButton,
@@ -169,7 +169,7 @@ export default function ReportProblemScreen() {
           <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
             {submitting ? 'Submitting...' : 'Submit Report'}
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
     </SafeAreaView>
   );

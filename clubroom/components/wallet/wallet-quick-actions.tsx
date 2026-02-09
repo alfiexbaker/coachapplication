@@ -14,10 +14,12 @@ import { useTheme } from '@/hooks/useTheme';
 
 interface WalletQuickActionsProps {
   onTopUp: () => void;
+  onHistory?: () => void;
 }
 
 export const WalletQuickActions = memo(function WalletQuickActions({
   onTopUp,
+  onHistory,
 }: WalletQuickActionsProps) {
   const { colors } = useTheme();
 
@@ -47,9 +49,7 @@ export const WalletQuickActions = memo(function WalletQuickActions({
             styles.button,
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
-          onPress={() => {
-            // Scroll to transactions is handled by default since they're below
-          }}
+          onPress={onHistory ?? (() => {})}
           accessibilityLabel="View transaction history"
           accessibilityRole="button"
         >

@@ -1,4 +1,5 @@
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -84,14 +85,14 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
 
       {/* Footer: likes + comments */}
       <View style={styles.footer}>
-        <Pressable style={styles.footerAction} onPress={onLike}>
+        <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
-        </Pressable>
-        <Pressable style={styles.footerAction} onPress={onComment}>
+        </Clickable>
+        <Clickable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
     </SurfaceCard>
   );

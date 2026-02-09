@@ -244,6 +244,10 @@ export const Routes = {
     params: { id },
   }) as Href,
   CLUB_SQUAD_CREATE: '/club/squad/create' as Href,
+  clubSquadCreate: (clubId: string) => ({
+    pathname: '/club/squad/create',
+    params: { clubId },
+  }) as Href,
 
   // ─── Coach ─────────────────────────────────────────────────────
   COACH_INVITES: '/coach-invites' as Href,
@@ -316,6 +320,8 @@ export const Routes = {
   DRILLS_CREATE: '/drills/create' as Href,
   DRILLS_LIBRARY: '/drills/library' as Href,
   DRILLS_ASSIGN: '/drills/assign' as Href,
+  DRILLS_CHALLENGES: '/drills/challenges' as Href,
+  DRILLS_CREATE_CHALLENGE: '/drills/create-challenge' as Href,
   drill: (id: string) => ({
     pathname: '/drills/[id]',
     params: { id },
@@ -324,6 +330,9 @@ export const Routes = {
     pathname: '/drills/assign',
     params: { drillId },
   }) as Href,
+
+  // ─── Athlete ──────────────────────────────────────────────────
+  ATHLETE_JOURNAL: '/athlete/journal' as Href,
 
   // ─── Events ────────────────────────────────────────────────────
   EVENTS: '/events' as Href,
@@ -334,6 +343,10 @@ export const Routes = {
   }) as Href,
   eventRsvp: (id: string) => ({
     pathname: '/events/[id]/rsvp',
+    params: { id },
+  }) as Href,
+  eventAttendees: (id: string) => ({
+    pathname: '/events/[id]/attendees',
     params: { id },
   }) as Href,
 
@@ -438,6 +451,10 @@ export const Routes = {
     pathname: '/roster/[athleteId]/add-to-session',
     params: { athleteId },
   }) as Href,
+  rosterAthleteConcern: (athleteId: string) => ({
+    pathname: '/roster/[athleteId]/raise-concern',
+    params: { athleteId },
+  }) as unknown as Href,
 
   // ─── Sessions ──────────────────────────────────────────────────
   SESSIONS_CREATE: '/sessions/create' as Href,

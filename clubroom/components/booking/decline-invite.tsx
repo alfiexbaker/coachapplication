@@ -3,14 +3,6 @@
  *
  * Bottom sheet modal for parents to decline a session invite with a reason.
  * Includes radio button reasons, optional note, and a link to counter-offer.
- *
- * Usage:
- *   <DeclineInvite
- *     visible={showDecline}
- *     onClose={() => setShowDecline(false)}
- *     invite={selectedInvite}
- *     onDecline={(reason) => handleDecline(reason)}
- *   />
  */
 
 import React, { useState } from 'react';
@@ -24,18 +16,22 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
-import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import {
-  createModalStyles,
-  createInputStyles,
-} from '@/constants/styles';
+import { createModalStyles, createInputStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
+import {
+  DECLINE_REASONS,
+  InviteSummaryBanner,
+  ReasonRadioItem,
+  CounterOfferLink,
+  DeclineActionButtons,
+  type DeclineCategory,
+} from './decline-invite-sections';
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DeclineInviteProps {
   visible: boolean;
@@ -47,34 +43,15 @@ interface DeclineInviteProps {
     sessionType: string;
   };
   onDecline: (reason: DeclineReason) => void;
-  /** Optional: navigate to counter-offer flow */
   onCounterOffer?: () => void;
 }
 
 export interface DeclineReason {
-  category: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  category: DeclineCategory;
   note?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const DECLINE_REASONS: {
-  id: DeclineReason['category'];
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { id: 'schedule_conflict', label: 'Schedule conflict', icon: 'calendar-outline' },
-  { id: 'too_far', label: 'Too far away', icon: 'location-outline' },
-  { id: 'price', label: 'Price too high', icon: 'cash-outline' },
-  { id: 'child_unavailable', label: 'Child not available', icon: 'person-outline' },
-  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
-];
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function DeclineInvite({
   visible,
@@ -87,7 +64,7 @@ export function DeclineInvite({
   const ModalStyles = createModalStyles(colors);
   const InputStyles = createInputStyles(colors);
 
-  const [selectedReason, setSelectedReason] = useState<DeclineReason['category'] | null>(null);
+  const [selectedReason, setSelectedReason] = useState<DeclineCategory | null>(null);
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -97,14 +74,12 @@ export function DeclineInvite({
 
   const handleDecline = async () => {
     if (isSubmitting) return;
-
     setIsSubmitting(true);
     try {
       await onDecline({
         category: selectedReason || 'other',
         note: note.trim() || undefined,
       });
-      // Reset state
       setSelectedReason(null);
       setNote('');
     } finally {
@@ -119,12 +94,7 @@ export function DeclineInvite({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={ModalStyles.overlay}
@@ -132,82 +102,43 @@ export function DeclineInvite({
         <Pressable style={styles.backdrop} onPress={handleClose} />
 
         <View style={ModalStyles.container}>
-          {/* Handle */}
           <View style={ModalStyles.handle} />
 
-          {/* Header */}
           <View style={ModalStyles.header}>
             <ThemedText style={[ModalStyles.headerTitle, { color: colors.text }]}>
               Decline this invite?
             </ThemedText>
-            <Pressable onPress={handleClose} hitSlop={12}>
+            <Clickable accessibilityLabel="Close" onPress={handleClose} hitSlop={12}>
               <Ionicons name="close" size={24} color={colors.text} />
-            </Pressable>
+            </Clickable>
           </View>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Invite summary */}
-            <View style={[styles.inviteSummary, { backgroundColor: colors.background }]}>
-              <ThemedText style={[styles.inviteSummaryText, { color: colors.text }]}>
-                Coach {invite.coachName} invited {athleteDisplay} to a{' '}
-                {invite.sessionType.toLowerCase()} session
-              </ThemedText>
-              {invite.proposedSlots.length > 0 && (
-                <ThemedText style={[styles.inviteSummaryMuted, { color: colors.muted }]}>
-                  {invite.proposedSlots.length} proposed time{invite.proposedSlots.length !== 1 ? 's' : ''}
-                </ThemedText>
-              )}
-            </View>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <InviteSummaryBanner
+              coachName={invite.coachName}
+              athleteDisplay={athleteDisplay}
+              sessionType={invite.sessionType}
+              slotCount={invite.proposedSlots.length}
+              palette={colors}
+            />
 
-            {/* Reason selection */}
-            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>Reason (optional):</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+              Reason (optional):
+            </ThemedText>
             <View style={styles.reasonList}>
-              {DECLINE_REASONS.map((reason) => {
-                const isSelected = selectedReason === reason.id;
-                return (
-                  <Pressable
-                    key={reason.id}
-                    style={[
-                      styles.reasonItem,
-                      { borderColor: colors.border, backgroundColor: colors.surface },
-                      isSelected ? { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.03) } : undefined,
-                    ]}
-                    onPress={() =>
-                      setSelectedReason(isSelected ? null : reason.id)
-                    }
-                  >
-                    <View
-                      style={[
-                        styles.radioOuter,
-                        { borderColor: colors.border },
-                        isSelected ? { borderColor: colors.tint } : undefined,
-                      ]}
-                    >
-                      {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.tint }]} />}
-                    </View>
-                    <Ionicons
-                      name={reason.icon}
-                      size={20}
-                      color={isSelected ? colors.tint : colors.muted}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.reasonLabel,
-                        { color: colors.text },
-                        isSelected ? styles.reasonLabelSelected : undefined,
-                      ]}
-                    >
-                      {reason.label}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
+              {DECLINE_REASONS.map((reason) => (
+                <ReasonRadioItem
+                  key={reason.id}
+                  id={reason.id}
+                  label={reason.label}
+                  icon={reason.icon}
+                  isSelected={selectedReason === reason.id}
+                  onPress={() => setSelectedReason(selectedReason === reason.id ? null : reason.id)}
+                  palette={colors}
+                />
+              ))}
             </View>
 
-            {/* Optional note */}
             <TextInput
               style={[InputStyles.input, InputStyles.multiline, styles.noteInput]}
               placeholder="Add a note..."
@@ -219,56 +150,16 @@ export function DeclineInvite({
               textAlignVertical="top"
             />
 
-            {/* Counter-offer link */}
             {onCounterOffer && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.counterOfferButton,
-                  { borderColor: colors.border },
-                  pressed && { opacity: 0.7 },
-                ]}
-                onPress={onCounterOffer}
-              >
-                <Ionicons name="swap-horizontal-outline" size={18} color={colors.tint} />
-                <ThemedText style={[styles.counterOfferText, { color: colors.tint }]}>Suggest another time</ThemedText>
-                <Ionicons name="chevron-forward" size={16} color={colors.tint} />
-              </Pressable>
+              <CounterOfferLink onPress={onCounterOffer} palette={colors} />
             )}
 
-            {/* Action buttons */}
-            <View style={styles.buttonRow}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.cancelButton,
-                  { borderColor: colors.border },
-                  pressed ? styles.buttonPressed : undefined,
-                ]}
-                onPress={handleClose}
-              >
-                <ThemedText style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</ThemedText>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.declineButton,
-                  { backgroundColor: colors.error },
-                  isSubmitting ? { backgroundColor: colors.border } : undefined,
-                  pressed && !isSubmitting ? styles.buttonPressed : undefined,
-                ]}
-                onPress={handleDecline}
-                disabled={isSubmitting}
-              >
-                <ThemedText
-                  style={[
-                    styles.declineButtonText,
-                    { color: colors.surface },
-                    isSubmitting ? { color: colors.muted } : undefined,
-                  ]}
-                >
-                  {isSubmitting ? 'Declining...' : 'Decline'}
-                </ThemedText>
-              </Pressable>
-            </View>
+            <DeclineActionButtons
+              isSubmitting={isSubmitting}
+              onCancel={handleClose}
+              onDecline={handleDecline}
+              palette={colors}
+            />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -276,114 +167,18 @@ export function DeclineInvite({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
+export default DeclineInvite;
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-  },
-  inviteSummary: {
-    padding: Spacing.sm,
-    borderRadius: Radii.sm,
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  inviteSummaryText: {
-    ...Typography.bodySemiBold,
-  },
-  inviteSummaryMuted: {
-    ...Typography.small,
-  },
+  backdrop: { flex: 1 },
   sectionLabel: {
     ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: Spacing.xs,
   },
-  reasonList: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  reasonItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: Radii.sm,
-  },
-  reasonLabel: {
-    ...Typography.body,
-    flex: 1,
-  },
-  reasonLabelSelected: {
-    ...Typography.bodySemiBold,
-  },
-  noteInput: {
-    marginBottom: Spacing.md,
-    minHeight: 80,
-  },
-  counterOfferButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    height: Components.button.height,
-    paddingHorizontal: Spacing.sm,
-    marginBottom: Spacing.md,
-    borderRadius: Components.button.borderRadius,
-    borderWidth: 1,
-    backgroundColor: 'transparent',
-  },
-  counterOfferText: {
-    ...Typography.bodySemiBold,
-    flex: 1,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
-  },
-  cancelButton: {
-    flex: 1,
-    height: Components.button.height,
-    borderRadius: Components.button.borderRadius,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    ...Typography.subheading,
-  },
-  declineButton: {
-    flex: 1,
-    height: Components.button.height,
-    borderRadius: Components.button.borderRadius,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  declineButtonText: {
-    ...Typography.subheading,
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
+  reasonList: { gap: Spacing.xs, marginBottom: Spacing.md },
+  noteInput: { marginBottom: Spacing.md, minHeight: 80 },
 });
-
-export default DeclineInvite;
