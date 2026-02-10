@@ -28,19 +28,8 @@ const logger = createLogger('DiscoverService');
 
 const MAX_RECENT_SEARCHES = 10;
 
-// Try to import coach profiles from mock data, fall back to empty array
-let importedCoachProfiles: CoachProfile[] = [];
-try {
-  // Dynamic require to avoid build-time issues in test environments
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mockData = require('@/constants/mock-data');
-  if (mockData?.coachProfiles) {
-    importedCoachProfiles = mockData.coachProfiles;
-  }
-} catch {
-  // Mock data not available (e.g., in test environment)
-  importedCoachProfiles = [];
-}
+// Phase 2: keep discover data local to the service (no mock-data import dependency).
+const importedCoachProfiles: CoachProfile[] = [];
 
 // Create coaches with location data from imported profiles
 const coachesFromImport: CoachProfile[] = importedCoachProfiles.map((coach: CoachProfile, index: number) => ({

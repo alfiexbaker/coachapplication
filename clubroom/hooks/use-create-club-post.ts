@@ -3,15 +3,15 @@
  * Manages form state, image picking, audience targeting, and post submission.
  */
 
-import { useState, useCallback } from 'react';
-import { Alert, Platform } from 'react-native';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
-import { getClubById, getClubMembershipForUser, clubSquads } from '@/constants/mock-data';
-import type { ClubPostType, FeedType } from '@/constants/types';
+import { squadService } from '@/services/squad-service';
+import type { ClubPostType, FeedType, ClubMembership, ClubSquad } from '@/constants/types';
 
 export type PostTypeOption = {
   key: ClubPostType;
@@ -30,9 +30,28 @@ export const POST_TYPES: PostTypeOption[] = [
 export function useCreateClubPost(clubId: string | undefined) {
   const { currentUser } = useAuth();
 
-  const club = clubId ? getClubById(clubId) : undefined;
-  const membership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
-  const canPostAsClub = membership?.canPostAsClub || ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership?.role || '');
+  const userClubs = useMemo(
+    () => (currentUser?.id ? clubFeedService.getUserClubs(currentUser.id) : []),
+    [currentUser?.id],
+  );
+  const club = useMemo(() => userClubs.find((candidate) => candidate.id === clubId), [userClubs, clubId]);
+  const membership = useMemo<ClubMembership | undefined>(() => {
+    if (!currentUser || !clubId) return undefined;
+    const role = currentUser.role === 'ADMIN'
+      ? 'ADMIN'
+      : currentUser.role === 'COACH'
+        ? 'COACH'
+        : 'MEMBER';
+    return {
+      clubId,
+      userId: currentUser.id,
+      role,
+      status: 'active',
+      joinSource: 'invite',
+      canPostAsClub: role === 'ADMIN' || role === 'COACH',
+    };
+  }, [clubId, currentUser]);
+  const canPostAsClub = membership?.canPostAsClub || membership?.role === 'ADMIN' || membership?.role === 'COACH';
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const [title, setTitle] = useState('');
@@ -47,8 +66,38 @@ export function useCreateClubPost(clubId: string | undefined) {
   const [audienceType, setAudienceType] = useState<'club' | 'squad'>('club');
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const [availableSquads, setAvailableSquads] = useState<ClubSquad[]>([]);
 
-  const availableSquads = clubId ? clubSquads.filter((s) => s.clubId === clubId) : [];
+  useEffect(() => {
+    let active = true;
+
+    const loadSquads = async () => {
+      if (!clubId) {
+        if (active) {
+          setAvailableSquads([]);
+        }
+        return;
+      }
+
+      try {
+        const squads = await squadService.getSquads(clubId);
+        if (active) {
+          setAvailableSquads(squads);
+        }
+      } catch {
+        if (active) {
+          setAvailableSquads([]);
+        }
+      }
+    };
+
+    void loadSquads();
+
+    return () => {
+      active = false;
+    };
+  }, [clubId]);
+
   const selectedSquad = availableSquads.find((s) => s.id === selectedSquadId);
   const audienceLabel = audienceType === 'club' ? 'Club-wide' : selectedSquad?.name || 'Select a group';
 

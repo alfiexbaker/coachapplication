@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 
-import { getUserById } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
-import { TierNames, CategoryInfo } from '@/constants/progression';
-import type { BadgeAward, BadgeCategory } from '@/constants/types';
+import { userService } from '@/services/user-service';
+import type { BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { Ionicons } from '@expo/vector-icons';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('useChildBadges');
 
 export const BADGE_TIER_COLORS = {
   gold: '#FFD700',
@@ -27,27 +29,43 @@ type ProgressionData = {
 export function useChildBadges() {
   const { childId, highlightBadge } = useLocalSearchParams<{ childId: string; highlightBadge?: string }>();
 
+  const [child, setChild] = useState<User | null>(null);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [progressionData, setProgressionData] = useState<ProgressionData | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const child = getUserById(childId!);
 
   const loadData = useCallback(async () => {
     if (!childId) return;
     setLoading(true);
 
-    const [awardsData, progression] = await Promise.all([
-      badgeService.listAwardsForAthlete(childId),
-      badgeService.getProgressionSummary(childId),
-    ]);
+    try {
+      const childResult = await userService.getUserById(childId);
+      if (childResult.success) {
+        setChild(childResult.data);
+      } else {
+        setChild(null);
+        logger.error('Failed to load child profile for badges', {
+          childId,
+          error: childResult.error,
+        });
+      }
 
-    const visibleAwards = awardsData.filter(a => a.visibility !== 'coach_only');
-    setAwards(visibleAwards);
-    setProgressionData(progression);
+      const [awardsData, progression] = await Promise.all([
+        badgeService.listAwardsForAthlete(childId),
+        badgeService.getProgressionSummary(childId),
+      ]);
 
-    await badgeService.markAllSeenByParent(childId);
-    setLoading(false);
+      const visibleAwards = awardsData.filter(a => a.visibility !== 'coach_only');
+      setAwards(visibleAwards);
+      setProgressionData(progression);
+
+      await badgeService.markAllSeenByParent(childId);
+    } catch (error) {
+      logger.error('Failed to load child badges data', { childId, error });
+      setChild(null);
+    } finally {
+      setLoading(false);
+    }
   }, [childId]);
 
   useFocusEffect(

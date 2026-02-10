@@ -1,19 +1,5 @@
-import type { Club, ClubFeedPost, ClubPostType, FeedFilter, FeedType } from '@/constants/types';
+import type { Club, ClubFeedPost, ClubMembership, ClubPostType, FeedFilter, FeedType } from '@/constants/types';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
-import {
-  addClubFeedPost,
-  togglePinPost,
-  togglePostReaction,
-  hasUserReacted,
-  getClubFeed,
-  getPinnedPosts,
-  getAnnouncements,
-  getAggregatedFeed as getAggregatedFeedFromData,
-  getUserClubs,
-  getPersonalFeedForCoach,
-  getCombinedFeedForParent,
-  type AggregatedFeedPost,
-} from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationService } from './notification-service';
@@ -21,7 +7,7 @@ import { notificationService } from './notification-service';
 type CreateClubPostInput = {
   clubId: string;
   clubName?: string;
-  squadId?: string; // For squad-specific posts
+  squadId?: string;
   authorId: string;
   authorName: string;
   title: string;
@@ -30,14 +16,13 @@ type CreateClubPostInput = {
   postAs?: 'club' | 'self';
   audience?: 'club' | 'squad' | 'staff';
   audienceLabel?: string;
-  /** Where the post appears: personal coach feed, club feed, or both */
   feedType?: FeedType;
   imageUrl?: string;
   attachments?: string[];
   eventDate?: string;
   eventLocation?: string;
   badgeAwarded?: string;
-  notifyMembers?: boolean; // Whether to notify club members
+  notifyMembers?: boolean;
 };
 
 type CreateCoachPostInput = {
@@ -54,30 +39,399 @@ type CreateCoachPostInput = {
   clubName?: string;
 };
 
-// FeedFilter imported from @/constants/types (defined in club-types.ts)
+export type AggregatedFeedPost = ClubFeedPost & {
+  clubName: string;
+  clubBadge?: string;
+};
+
+const NOW = Date.now();
+
+const SEED_CLUBS: Club[] = [
+  {
+    id: 'club_lions',
+    name: 'Lions FC Academy',
+    city: 'London',
+    country: 'UK',
+    badge: 'LFC',
+    photoUrl: 'https://images.unsplash.com/photo-1470082784645-bc2f0b9f9614?auto=format&fit=crop&w=800&q=80',
+    tagline: 'North London performance pathway with parent-friendly comms.',
+    memberCount: 52,
+    coachCount: 8,
+    squadCount: 3,
+    ownerId: 'coach1',
+    ownerName: 'Director Kelly',
+    inviteCode: 'LIONS-CLUB',
+  },
+  {
+    id: 'club_eagles',
+    name: 'East London Eagles',
+    city: 'London',
+    country: 'UK',
+    badge: 'ELE',
+    photoUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Developing champions through dedication and teamwork.',
+    memberCount: 38,
+    coachCount: 5,
+    squadCount: 2,
+    ownerId: 'coach2',
+    ownerName: 'Sarah Mitchell',
+    inviteCode: 'EAGLES-JOIN',
+  },
+  {
+    id: 'club_warriors',
+    name: 'Southbank Warriors',
+    city: 'London',
+    country: 'UK',
+    badge: 'SW',
+    photoUrl: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Building character through football - all abilities welcome.',
+    memberCount: 65,
+    coachCount: 10,
+    squadCount: 5,
+    ownerId: 'coach3',
+    ownerName: 'David Roberts',
+    inviteCode: 'WARRIORS-2026',
+  },
+  {
+    id: 'club_phoenix',
+    name: 'Phoenix Youth FC',
+    city: 'London',
+    country: 'UK',
+    badge: 'PYF',
+    photoUrl: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Rise together - elite grassroots development.',
+    memberCount: 45,
+    coachCount: 6,
+    squadCount: 3,
+    ownerId: 'coach2',
+    ownerName: 'Mike Thompson',
+    inviteCode: 'PHOENIX-JOIN',
+  },
+  {
+    id: 'club_united',
+    name: 'North London United',
+    city: 'London',
+    country: 'UK',
+    badge: 'NLU',
+    photoUrl: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Community club with competitive spirit.',
+    memberCount: 72,
+    coachCount: 12,
+    squadCount: 6,
+    ownerId: 'admin',
+    ownerName: 'Admin User',
+    inviteCode: 'NLU-FAMILY',
+  },
+];
+
+const SEED_MEMBERSHIPS: ClubMembership[] = [
+  { clubId: 'club_lions', userId: 'coach1', role: 'HEAD_COACH', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-CLUB', canPostAsClub: true },
+  { clubId: 'club_lions', userId: 'coach2', role: 'COACH', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-COACH', canPostAsClub: true },
+  { clubId: 'club_lions', userId: 'user1', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
+  { clubId: 'club_lions', userId: 'user2', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
+  { clubId: 'club_lions', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
+  { clubId: 'club_lions', userId: 'user5', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
+
+  { clubId: 'club_eagles', userId: 'coach2', role: 'OWNER', status: 'active', joinSource: 'created', canPostAsClub: true },
+  { clubId: 'club_eagles', userId: 'coach1', role: 'COACH', status: 'active', joinSource: 'invite', inviteCode: 'EAGLES-COACH', canPostAsClub: true },
+  { clubId: 'club_eagles', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'EAGLES-JOIN' },
+
+  { clubId: 'club_warriors', userId: 'coach3', role: 'HEAD_COACH', status: 'active', joinSource: 'invite', inviteCode: 'WARRIORS-2026', canPostAsClub: true },
+  { clubId: 'club_warriors', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'WARRIORS-2026' },
+  { clubId: 'club_warriors', userId: 'user5', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'WARRIORS-2026' },
+
+  { clubId: 'club_phoenix', userId: 'coach2', role: 'COACH', status: 'active', joinSource: 'invite', inviteCode: 'PHOENIX-JOIN', canPostAsClub: true },
+  { clubId: 'club_phoenix', userId: 'user5', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'PHOENIX-JOIN' },
+
+  { clubId: 'club_united', userId: 'admin', role: 'OWNER', status: 'active', joinSource: 'created', canPostAsClub: true },
+  { clubId: 'club_united', userId: 'coach1', role: 'ADMIN', status: 'active', joinSource: 'invite', inviteCode: 'NLU-FAMILY', canPostAsClub: true },
+  { clubId: 'club_united', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'NLU-FAMILY' },
+];
+
+const SEED_FEED_POSTS: ClubFeedPost[] = [
+  {
+    id: 'club_post_seed_1',
+    clubId: 'club_lions',
+    title: 'Club registration now open',
+    body: 'Spring registration is live. Returning members get priority placement.',
+    createdAt: new Date(NOW - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach1',
+    postAs: 'club',
+    postType: 'announcement',
+    isPinned: true,
+    pinnedBy: 'coach1',
+    pinnedAt: new Date(NOW - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    reactionCount: 18,
+    commentCount: 6,
+  },
+  {
+    id: 'club_post_seed_2',
+    clubId: 'club_lions',
+    title: 'U15 tournament highlights',
+    body: 'Great collective performance and quality finishing in transition drills.',
+    createdAt: new Date(NOW - 8 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Mike Thompson',
+    authorId: 'coach2',
+    postAs: 'self',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80',
+    reactionCount: 13,
+    commentCount: 2,
+  },
+  {
+    id: 'club_post_seed_3',
+    clubId: 'club_eagles',
+    title: 'Winter camp announcement',
+    body: 'Half-term camp opens next week. Limited places.',
+    createdAt: new Date(NOW - 14 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'event',
+    eventDate: new Date(NOW + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    eventLocation: 'Victoria Park Sports Centre',
+    reactionCount: 9,
+    commentCount: 1,
+  },
+  {
+    id: 'club_post_seed_4',
+    clubId: 'club_warriors',
+    title: 'New weekly development block',
+    body: 'We are adding a Tuesday fundamentals block for U12 and U14 squads.',
+    createdAt: new Date(NOW - 20 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'David Roberts',
+    authorId: 'coach3',
+    postAs: 'club',
+    postType: 'announcement',
+    reactionCount: 6,
+    commentCount: 0,
+  },
+  {
+    id: 'club_post_seed_5',
+    clubId: 'club_lions',
+    title: 'Coach note: scanning before receiving',
+    body: 'Personal session clip upload: notice head checks before first touch.',
+    createdAt: new Date(NOW - 5 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Personal Feed',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach1',
+    postAs: 'self',
+    postType: 'general',
+    feedType: 'PERSONAL',
+    reactionCount: 3,
+    commentCount: 0,
+  },
+  {
+    id: 'club_post_seed_6',
+    clubId: 'club_united',
+    title: 'Open session this weekend',
+    body: 'Open group session published for all members. Tap to reserve a spot.',
+    createdAt: new Date(NOW - 2 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Personal + Club',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach1',
+    postAs: 'self',
+    postType: 'session_announcement',
+    feedType: 'BOTH',
+    reactionCount: 5,
+    commentCount: 1,
+  },
+];
+
+let clubsStore: Club[] = [...SEED_CLUBS];
+let membershipsStore: ClubMembership[] = [...SEED_MEMBERSHIPS];
+let clubFeedStore: ClubFeedPost[] = [...SEED_FEED_POSTS];
+const userReactions: Map<string, Set<string>> = new Map();
+
+function getClubById(clubId: string): Club | undefined {
+  return clubsStore.find((club) => club.id === clubId);
+}
+
+function getAllClubMembershipsForUser(userId: string): ClubMembership[] {
+  return membershipsStore.filter((membership) => membership.userId === userId && membership.status === 'active');
+}
+
+function getUserClubsInternal(userId: string): Club[] {
+  const memberships = getAllClubMembershipsForUser(userId);
+  return memberships
+    .map((membership) => getClubById(membership.clubId))
+    .filter((club): club is Club => Boolean(club));
+}
+
+function sortClubPosts(posts: ClubFeedPost[]): ClubFeedPost[] {
+  return [...posts].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
+function sortByDateDesc<T extends { createdAt: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+function filterPostsByType(posts: ClubFeedPost[], filter?: FeedFilter): ClubFeedPost[] {
+  if (!filter || filter === 'all') return posts;
+  return posts.filter((post) => post.postType === filter);
+}
+
+function getClubFeedInternal(clubId: string, filter?: FeedFilter): ClubFeedPost[] {
+  const posts = clubFeedStore.filter((post) => post.clubId === clubId);
+  return sortClubPosts(filterPostsByType(posts, filter));
+}
+
+function addClubFeedPostInternal(
+  post: Omit<ClubFeedPost, 'id' | 'createdAt' | 'reactionCount' | 'commentCount'>
+): ClubFeedPost {
+  const createdPost: ClubFeedPost = {
+    ...post,
+    id: `club_post_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    createdAt: new Date().toISOString(),
+    reactionCount: 0,
+    commentCount: 0,
+  };
+  clubFeedStore.unshift(createdPost);
+  return createdPost;
+}
+
+function togglePinInternal(postId: string, pinnedBy: string): boolean {
+  const post = clubFeedStore.find((candidate) => candidate.id === postId);
+  if (!post) return false;
+
+  post.isPinned = !post.isPinned;
+  if (post.isPinned) {
+    post.pinnedBy = pinnedBy;
+    post.pinnedAt = new Date().toISOString();
+  } else {
+    post.pinnedBy = undefined;
+    post.pinnedAt = undefined;
+  }
+
+  return post.isPinned;
+}
+
+function toggleReactionInternal(postId: string, userId: string): boolean {
+  const post = clubFeedStore.find((candidate) => candidate.id === postId);
+  if (!post) return false;
+
+  if (!userReactions.has(postId)) {
+    userReactions.set(postId, new Set());
+  }
+  const reactions = userReactions.get(postId)!;
+
+  if (reactions.has(userId)) {
+    reactions.delete(userId);
+    post.reactionCount = Math.max(0, (post.reactionCount || 0) - 1);
+    return false;
+  }
+
+  reactions.add(userId);
+  post.reactionCount = (post.reactionCount || 0) + 1;
+  return true;
+}
+
+function hasUserReactedInternal(postId: string, userId: string): boolean {
+  return userReactions.get(postId)?.has(userId) ?? false;
+}
+
+function getPinnedPostsInternal(clubId: string): ClubFeedPost[] {
+  return sortByDateDesc(
+    clubFeedStore.filter((post) => post.clubId === clubId && post.isPinned),
+  );
+}
+
+function getAnnouncementsInternal(clubId: string): ClubFeedPost[] {
+  return sortByDateDesc(
+    clubFeedStore.filter((post) => post.clubId === clubId && post.postType === 'announcement'),
+  );
+}
+
+function getAggregatedFeedInternal(userId: string, filter?: FeedFilter): AggregatedFeedPost[] {
+  const clubIds = new Set(getAllClubMembershipsForUser(userId).map((membership) => membership.clubId));
+
+  const posts = filterPostsByType(
+    clubFeedStore.filter((post) => clubIds.has(post.clubId)),
+    filter,
+  );
+
+  return sortByDateDesc(
+    posts.map((post) => {
+      const club = getClubById(post.clubId);
+      return {
+        ...post,
+        clubName: club?.name || 'Unknown Club',
+        clubBadge: club?.badge,
+      };
+    }),
+  );
+}
+
+function getPersonalFeedForCoachInternal(coachId: string): ClubFeedPost[] {
+  return sortByDateDesc(
+    clubFeedStore.filter(
+      (post) =>
+        post.authorId === coachId &&
+        (post.feedType === 'PERSONAL' || post.feedType === 'BOTH'),
+    ),
+  );
+}
+
+function getCombinedFeedForParentInternal(parentId: string, filter?: FeedFilter): AggregatedFeedPost[] {
+  const clubPosts = getAggregatedFeedInternal(parentId, filter);
+  const clubPostIds = new Set(clubPosts.map((post) => post.id));
+  const parentClubIds = new Set(clubPosts.map((post) => post.clubId));
+
+  const personalPosts = filterPostsByType(
+    clubFeedStore.filter(
+      (post) =>
+        parentClubIds.has(post.clubId) &&
+        (post.feedType === 'PERSONAL' || post.feedType === 'BOTH') &&
+        !clubPostIds.has(post.id),
+    ),
+    filter,
+  ).map((post) => {
+    const club = getClubById(post.clubId);
+    return {
+      ...post,
+      clubName: club?.name || 'Unknown Club',
+      clubBadge: club?.badge,
+    };
+  });
+
+  return sortByDateDesc([...clubPosts, ...personalPosts]);
+}
 
 // Mock club member list (in production, this would come from the database)
 const MOCK_CLUB_MEMBERS: Record<string, string[]> = {
-  club_bradwell: ['parent_1', 'parent_2', 'parent_3'],
-  club_victoria: ['parent_1', 'parent_4'],
+  club_lions: ['user4', 'user5', 'user1'],
+  club_eagles: ['user4'],
+  club_warriors: ['user4', 'user5'],
+  club_phoenix: ['user5'],
+  club_united: ['user4'],
 };
 
 class ClubFeedService {
   private logger = createLogger('ClubFeedService');
 
-  /**
-   * Create a new post in the club feed
-   */
   createPost(input: CreateClubPostInput): Result<ClubFeedPost, ServiceError> {
     const body = input.body.trim();
     if (!body && !input.imageUrl) {
       return err(validationError('Post must have content or an image'));
     }
 
-    // Determine the feed type: default to CLUB for backward compatibility
     const feedType: FeedType = input.feedType || 'CLUB';
 
-    // Build audience label based on feed type
     let audienceLabel = input.audienceLabel || 'Club-wide';
     if (feedType === 'PERSONAL') {
       audienceLabel = 'Personal Feed';
@@ -85,7 +439,7 @@ class ClubFeedService {
       audienceLabel = input.audienceLabel || 'Personal + Club';
     }
 
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: input.title || (input.postType === 'photo' ? 'Photo' : 'Update'),
       body,
@@ -111,18 +465,14 @@ class ClubFeedService {
       feedType,
     });
 
-    // Notify club members if requested (default to true for announcements)
     const shouldNotify = input.notifyMembers ?? (input.postType === 'announcement');
     if (shouldNotify) {
-      this.notifyClubMembers(input.clubId, input.clubName || 'your club', post.id, input.authorId);
+      void this.notifyClubMembers(input.clubId, input.clubName || 'your club', post.id, input.authorId);
     }
 
     return ok(post);
   }
 
-  /**
-   * Notify club members of a new post
-   */
   private async notifyClubMembers(
     clubId: string,
     clubName: string,
@@ -132,7 +482,6 @@ class ClubFeedService {
     const members = MOCK_CLUB_MEMBERS[clubId] || [];
 
     for (const memberId of members) {
-      // Don't notify the author of their own post
       if (memberId === authorId) continue;
 
       await notificationService.notifyParentClubPost({
@@ -144,32 +493,20 @@ class ClubFeedService {
     }
   }
 
-  /**
-   * Get feed posts for a club with optional filtering
-   */
   getFeed(clubId: string, filter: FeedFilter = 'all'): ClubFeedPost[] {
-    return getClubFeed(clubId, filter);
+    return getClubFeedInternal(clubId, filter);
   }
 
-  /**
-   * Get pinned posts for a club
-   */
   getPinnedPosts(clubId: string): ClubFeedPost[] {
-    return getPinnedPosts(clubId);
+    return getPinnedPostsInternal(clubId);
   }
 
-  /**
-   * Get announcements for a club
-   */
   getAnnouncements(clubId: string): ClubFeedPost[] {
-    return getAnnouncements(clubId);
+    return getAnnouncementsInternal(clubId);
   }
 
-  /**
-   * Toggle pin status of a post (coaches only)
-   */
   togglePin(postId: string, userId: string): boolean {
-    const isPinned = togglePinPost(postId, userId);
+    const isPinned = togglePinInternal(postId, userId);
     this.logger.info('post_pin_toggled', {
       postId,
       isPinned,
@@ -178,11 +515,8 @@ class ClubFeedService {
     return isPinned;
   }
 
-  /**
-   * React to a post (like/heart)
-   */
   toggleReaction(postId: string, userId: string): boolean {
-    const isNowReacted = togglePostReaction(postId, userId);
+    const isNowReacted = toggleReactionInternal(postId, userId);
     this.logger.info('post_reaction_toggled', {
       postId,
       userId,
@@ -191,18 +525,12 @@ class ClubFeedService {
     return isNowReacted;
   }
 
-  /**
-   * Check if user has reacted to a post
-   */
   hasUserReacted(postId: string, userId: string): boolean {
-    return hasUserReacted(postId, userId);
+    return hasUserReactedInternal(postId, userId);
   }
 
-  /**
-   * Get aggregated feed from all clubs user is member of
-   */
   getAggregatedFeed(userId: string, filter: FeedFilter = 'all'): AggregatedFeedPost[] {
-    const posts = getAggregatedFeedFromData(userId, filter === 'all' ? undefined : filter);
+    const posts = getAggregatedFeedInternal(userId, filter === 'all' ? undefined : filter);
     this.logger.info('aggregated_feed_fetched', {
       userId,
       filter,
@@ -211,17 +539,10 @@ class ClubFeedService {
     return posts;
   }
 
-  /**
-   * Get all clubs the user is a member of
-   */
   getUserClubs(userId: string): Club[] {
-    return getUserClubs(userId);
+    return getUserClubsInternal(userId);
   }
 
-  /**
-   * Add a post directly (for backward compatibility with badge sharing)
-   * Used by badge-service.markShared()
-   */
   addPost(input: {
     authorId: string;
     authorName: string;
@@ -234,8 +555,7 @@ class ClubFeedService {
     sessionId?: string;
     clubId?: string;
   }): ClubFeedPost | undefined {
-    // If no clubId provided, try to get user's first club
-    const clubs = getUserClubs(input.authorId);
+    const clubs = getUserClubsInternal(input.authorId);
     const clubId = input.clubId || clubs[0]?.id;
 
     if (!clubId) {
@@ -243,7 +563,7 @@ class ClubFeedService {
       return undefined;
     }
 
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId,
       title: input.badgeLabel ? `${input.authorName} earned a badge!` : 'Update',
       body: input.content,
@@ -270,10 +590,6 @@ class ClubFeedService {
     return post;
   }
 
-  /**
-   * Create an achievement post when a badge is awarded
-   * Auto-called by badge service
-   */
   createAchievementPost(input: {
     clubId: string;
     clubName: string;
@@ -286,7 +602,7 @@ class ClubFeedService {
     coachName: string;
     reason?: string;
   }): ClubFeedPost {
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: `${input.athleteName} earned a badge!`,
       body: `Congratulations to ${input.athleteName} for earning the "${input.badgeLabel}" badge!${input.reason ? ` ${input.reason}` : ''}`,
@@ -313,9 +629,6 @@ class ClubFeedService {
     return post;
   }
 
-  /**
-   * Create a post when a training session is scheduled
-   */
   createSessionPost(input: {
     clubId: string;
     clubName: string;
@@ -334,7 +647,7 @@ class ClubFeedService {
       month: 'long',
     });
 
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: `New Training Session: ${input.sessionTitle}`,
       body: `${input.squadName ? `${input.squadName} - ` : ''}Training scheduled for ${dateStr} at ${input.sessionTime}. Location: ${input.location}`,
@@ -358,9 +671,6 @@ class ClubFeedService {
     return post;
   }
 
-  /**
-   * Create a post when a match is scheduled
-   */
   createMatchPost(input: {
     clubId: string;
     clubName: string;
@@ -382,7 +692,7 @@ class ClubFeedService {
     });
     const homeAway = input.isHome ? 'Home' : 'Away';
 
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: `Match Scheduled: ${input.matchTitle}`,
       body: `${homeAway} match vs ${input.opponent} on ${dateStr}, kickoff ${input.kickoffTime}. Venue: ${input.venue}`,
@@ -406,9 +716,6 @@ class ClubFeedService {
     return post;
   }
 
-  /**
-   * Create a post from a parent about their child (e.g., sharing a badge)
-   */
   createParentPost(input: {
     clubId: string;
     parentId: string;
@@ -421,7 +728,7 @@ class ClubFeedService {
     badgeAwardId?: string;
     imageUrl?: string;
   }): ClubFeedPost {
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: input.title,
       body: input.body,
@@ -449,12 +756,9 @@ class ClubFeedService {
 
     return post;
   }
-  /**
-   * Get personal feed posts for a specific coach.
-   * Returns posts where feedType is PERSONAL or BOTH authored by this coach.
-   */
+
   getPersonalFeed(coachId: string): ClubFeedPost[] {
-    const posts = getPersonalFeedForCoach(coachId);
+    const posts = getPersonalFeedForCoachInternal(coachId);
     this.logger.info('personal_feed_fetched', {
       coachId,
       postCount: posts.length,
@@ -462,12 +766,8 @@ class ClubFeedService {
     return posts;
   }
 
-  /**
-   * Get combined feed for a parent: club posts + personal feed posts
-   * from coaches they have had sessions with.
-   */
   getCombinedFeedForParent(parentId: string, filter: FeedFilter = 'all'): AggregatedFeedPost[] {
-    const posts = getCombinedFeedForParent(parentId, filter === 'all' ? undefined : filter);
+    const posts = getCombinedFeedForParentInternal(parentId, filter === 'all' ? undefined : filter);
     this.logger.info('combined_parent_feed_fetched', {
       parentId,
       filter,
@@ -476,11 +776,6 @@ class ClubFeedService {
     return posts;
   }
 
-  /**
-   * Create a session announcement post when an OPEN session is published.
-   * Auto-called via service-subscribers when OPEN_SESSION_PUBLISHED fires.
-   * Posts to the coach's club (or first club) so followers see it in their feed.
-   */
   createSessionAnnouncementPost(input: {
     sessionId: string;
     coachId: string;
@@ -499,8 +794,7 @@ class ClubFeedService {
     clubName?: string;
     imageUrl?: string;
   }): ClubFeedPost | undefined {
-    // Resolve the target club: use the provided clubId or fall back to coach's first club
-    const clubs = getUserClubs(input.coachId);
+    const clubs = getUserClubsInternal(input.coachId);
     const clubId = input.clubId || clubs[0]?.id;
 
     if (!clubId) {
@@ -518,10 +812,10 @@ class ClubFeedService {
       ? 'Free'
       : `${input.currency === 'GBP' ? '\u00A3' : input.currency}${input.price}`;
 
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId,
       title: input.title,
-      body: `${input.description}\n\n${dateStr} \u00B7 ${input.startTime}\u2013${input.endTime}\n${input.location} \u00B7 ${priceLabel} per person`,
+      body: `${input.description}\n\n${dateStr} · ${input.startTime}–${input.endTime}\n${input.location} · ${priceLabel} per person`,
       audience: 'club',
       audienceLabel: 'Personal + Club',
       feedType: 'BOTH',
@@ -535,7 +829,7 @@ class ClubFeedService {
       imageUrl: input.imageUrl,
       sessionPrice: input.price,
       sessionCurrency: input.currency,
-      sessionTime: `${input.startTime}\u2013${input.endTime}`,
+      sessionTime: `${input.startTime}–${input.endTime}`,
       sessionType: input.sessionType,
     });
 
@@ -549,10 +843,6 @@ class ClubFeedService {
     return post;
   }
 
-  /**
-   * Create a post from a coach's personal feed.
-   * Defaults feedType to PERSONAL. Emits COACH_POST_CREATED event.
-   */
   createCoachPost(input: CreateCoachPostInput): Result<ClubFeedPost, ServiceError> {
     const body = input.body.trim();
     if (!body && !input.imageUrl) {
@@ -561,11 +851,9 @@ class ClubFeedService {
 
     const feedType: FeedType = input.feedType || 'PERSONAL';
 
-    // Resolve clubId: use provided or fall back to coach's first club
-    const clubs = getUserClubs(input.coachId);
+    const clubs = getUserClubsInternal(input.coachId);
     const clubId = input.clubId || clubs[0]?.id || '';
 
-    // Validate clubId is present when required by feed type
     if ((feedType === 'CLUB' || feedType === 'BOTH') && !clubId) {
       return err(validationError('Club ID is required for CLUB or BOTH feed type'));
     }
@@ -576,7 +864,7 @@ class ClubFeedService {
         ? 'Personal + Club'
         : 'Club-wide';
 
-    const post = addClubFeedPost({
+    const post = addClubFeedPostInternal({
       clubId,
       title: input.title || (input.postType === 'photo' ? 'Photo' : 'Update'),
       body,
@@ -599,7 +887,6 @@ class ClubFeedService {
       feedType,
     });
 
-    // Emit typed event for cross-service consumption
     emitTyped(ServiceEvents.COACH_POST_CREATED, {
       postId: post.id,
       coachId: input.coachId,
@@ -614,9 +901,4 @@ class ClubFeedService {
 }
 
 export const clubFeedService = new ClubFeedService();
-
-// Keep backward compatibility export
 export const socialFeedService = clubFeedService;
-
-// Export the AggregatedFeedPost type for use in components
-export type { AggregatedFeedPost };

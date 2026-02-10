@@ -11,7 +11,15 @@ import { useCoachDevelopment } from '@/hooks/use-coach-development';
 import { QuickActions, CompletionCard, AttentionSection, RecentSessionsSection, BadgesShortcut } from './development-sections';
 
 export function CoachDevelopmentScreen() {
-  const { currentUser, loading, awaitingCompletion, attentionAthletes, recentSessions, logger } = useCoachDevelopment();
+  const {
+    currentUser,
+    loading,
+    awaitingCompletion,
+    attentionAthletes,
+    recentSessions,
+    athleteDirectory,
+    logger,
+  } = useCoachDevelopment();
 
   if (!currentUser) return null;
 
@@ -31,7 +39,7 @@ export function CoachDevelopmentScreen() {
       <QuickActions />
       <CompletionCard bookings={awaitingCompletion} />
       <AttentionSection athletes={attentionAthletes} logger={logger} />
-      <RecentSessionsSection sessions={recentSessions} logger={logger} />
+      <RecentSessionsSection sessions={recentSessions} athleteDirectory={athleteDirectory} logger={logger} />
       <BadgesShortcut logger={logger} />
     </PageContainer>
   );

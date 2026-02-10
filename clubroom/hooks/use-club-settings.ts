@@ -1,7 +1,7 @@
 /**
  * useClubSettings — All state, data loading, and handlers for the Club Settings screen.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert, Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -9,8 +9,9 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { squadService } from '@/services/squad-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
-import { getClubById, getClubSquads, getClubInvites, getClubMembershipForUser } from '@/constants/mock-data';
 import type { Club, ClubSquad, ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
@@ -33,13 +34,43 @@ export const SETTINGS_SECTIONS: { key: SettingsSection; icon: string; label: str
   { key: 'danger', icon: 'warning-outline', label: 'Danger' },
 ];
 
+function buildInviteCodes(club: Club | null): InviteCodeItem[] {
+  if (!club) return [];
+
+  return [
+    {
+      code: club.inviteCode,
+      role: 'MEMBER',
+      remainingUses: 999,
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+}
+
 export function useClubSettings() {
   const { clubId: paramClubId, section: paramSection } = useLocalSearchParams<{ clubId?: string; section?: string }>();
-  const { currentUser } = useAuth();
+  const { currentUser, availableUsers } = useAuth();
   const { showToast } = useToast();
 
-  const membership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
-  const clubId = paramClubId || membership?.clubId;
+  const userClubs = useMemo(
+    () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
+    [currentUser?.id],
+  );
+
+  const knownClubs = useMemo(() => {
+    const deduped = new Map<string, Club>();
+    userClubs.forEach((club) => deduped.set(club.id, club));
+    availableUsers.forEach((user) => {
+      socialFeedService.getUserClubs(user.id).forEach((club) => {
+        if (!deduped.has(club.id)) {
+          deduped.set(club.id, club);
+        }
+      });
+    });
+    return Array.from(deduped.values());
+  }, [userClubs, availableUsers]);
+
+  const clubId = paramClubId || userClubs[0]?.id;
 
   const [club, setClub] = useState<Club | null>(null);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
@@ -52,28 +83,38 @@ export function useClubSettings() {
   const [editCity, setEditCity] = useState('');
 
   const loadData = useCallback(async () => {
-    if (!clubId) { setLoading(false); return; }
+    if (!clubId) {
+      setClub(null);
+      setSquads([]);
+      setMembers([]);
+      setInviteCodes([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const clubData = getClubById(clubId);
-      if (clubData) {
-        setClub(clubData);
-        setEditName(clubData.name);
-        setEditTagline(clubData.tagline || '');
-        setEditCity(clubData.city);
-      }
-      setSquads(getClubSquads(clubId));
-      const memberData = await clubService.getMembers(clubId);
+      const clubData = knownClubs.find((candidate) => candidate.id === clubId) || null;
+      setClub(clubData);
+      setEditName(clubData?.name || '');
+      setEditTagline(clubData?.tagline || '');
+      setEditCity(clubData?.city || '');
+
+      const [squadData, memberData] = await Promise.all([
+        squadService.getSquads(clubId),
+        clubService.getMembers(clubId),
+      ]);
+
+      setSquads(squadData);
       setMembers(memberData);
-      const inviteData = getClubInvites(clubId);
-      setInviteCodes(inviteData.map(i => ({ code: i.code, role: i.role, remainingUses: i.remainingUses, expiresAt: i.expiresAt })));
+      setInviteCodes(buildInviteCodes(clubData));
       logger.debug('ClubSettingsLoaded', { clubId, memberCount: memberData.length });
     } catch (error) {
       logger.error('LoadSettingsFailed', error);
     } finally {
       setLoading(false);
     }
-  }, [clubId]);
+  }, [clubId, knownClubs]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

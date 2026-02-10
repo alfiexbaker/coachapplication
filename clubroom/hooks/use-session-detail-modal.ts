@@ -7,7 +7,6 @@ import { Alert } from 'react-native';
 import { apiClient } from '@/services/api-client';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
-import { getChildrenForParent } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
 import { badgeService } from '@/services/badge-service';
 import type { SessionOffering, BadgeAward } from '@/constants/types';
@@ -89,7 +88,16 @@ export function useSessionDetailModal(
     r => r.userId === currentUser?.id && r.status === 'confirmed'
   ) ?? false;
 
-  const children = currentUser && hasChildren(currentUser) ? getChildrenForParent(currentUser.id) : [];
+  const children = useMemo(
+    () =>
+      currentUser && hasChildren(currentUser)
+        ? (currentUser.children || []).map((child) => ({
+          id: child.childId,
+          name: child.childName || 'Child',
+        }))
+        : [],
+    [currentUser],
+  );
   const hasMultipleKids = children.length > 1;
 
   const handleCancelInstance = useCallback(async (instanceDate: Date) => {

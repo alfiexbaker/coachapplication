@@ -420,6 +420,9 @@ export const STORAGE_KEYS = {
   // ONBOARDING & TUTORIAL DOMAIN
   // ============================================================================
 
+  /** User directory records for UserService lookups */
+  USERS: 'clubroom.users',
+
   /** Persisted auth user profile for active session */
   AUTH_USER: 'auth_user',
 

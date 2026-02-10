@@ -11,7 +11,7 @@ import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { Radii, Spacing, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { mockUserProfile } from '@/constants/mock-data';
+import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SettingsProfileCard');
@@ -24,6 +24,14 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
   role,
 }: SettingsProfileCardProps) {
   const { colors: palette } = useTheme();
+  const { currentUser } = useAuth();
+
+  const profileName = currentUser?.name ?? 'Your profile';
+  const profileEmail = currentUser?.email ?? 'No email available';
+  const profilePhone = undefined;
+  const profilePhotoUrl = currentUser?.avatar && currentUser.avatar.startsWith('http')
+    ? currentUser.avatar
+    : undefined;
 
   const handleEditProfile = useCallback(() => {
     logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-profile' });
@@ -37,9 +45,9 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
   return (
     <SurfaceCard style={styles.profileCard}>
       <Row gap="md" align="center">
-        {mockUserProfile.profilePhotoUrl ? (
+        {profilePhotoUrl ? (
           <Image
-            source={{ uri: mockUserProfile.profilePhotoUrl }}
+            source={{ uri: profilePhotoUrl }}
             style={styles.profilePhoto}
             accessibilityLabel="Profile photo"
           />
@@ -50,14 +58,14 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
         )}
         <Column gap="xs" flex>
           <ThemedText type="subtitle" style={styles.profileName}>
-            {mockUserProfile.fullName}
+            {profileName}
           </ThemedText>
           <ThemedText style={[styles.profileEmail, { color: palette.muted }]}>
-            {mockUserProfile.email}
+            {profileEmail}
           </ThemedText>
-          {mockUserProfile.phone && (
+          {profilePhone && (
             <ThemedText style={[styles.profilePhone, { color: palette.muted }]}>
-              {mockUserProfile.phone}
+              {profilePhone}
             </ThemedText>
           )}
         </Column>

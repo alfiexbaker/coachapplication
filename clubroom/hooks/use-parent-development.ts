@@ -5,33 +5,76 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
-import { getChildrenForParent, getSessionsForAthlete } from '@/constants/mock-data';
+import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
-import type { BadgeAward, SkillProgress, Goal } from '@/constants/types';
+import type { BadgeAward, SkillProgress, Goal, Session } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import type { ThemeColors } from '@/hooks/useTheme';
+import type { User } from '@/constants/app-types';
 
 const logger = createLogger('ParentDevelopmentScreen');
 
 export type DevTabType = 'progress' | 'badges' | 'goals';
 
 export function useParentDevelopment() {
-  const { currentUser } = useAuth();
+  const { currentUser, availableUsers } = useAuth();
 
   const userId = currentUser?.id;
-  const children = userId ? getChildrenForParent(userId) : [];
+  const children = useMemo<User[]>(() => {
+    if (!currentUser?.children || currentUser.children.length === 0) {
+      return [];
+    }
+
+    return currentUser.children.map((childRef) => {
+      const linkedUser = availableUsers.find((user) => user.id === childRef.childId);
+      return {
+        id: childRef.childId,
+        name: childRef.childName || linkedUser?.name || 'Child',
+        email: linkedUser?.email || '',
+        role: linkedUser?.role || 'USER',
+        postcode: linkedUser?.postcode || '',
+        dateOfBirth: linkedUser?.dateOfBirth || '',
+        avatar: linkedUser?.avatar,
+      };
+    });
+  }, [availableUsers, currentUser?.children]);
+
   const firstChildId = children[0]?.id;
 
   const [selectedChildId, setSelectedChildId] = useState<string | undefined>(firstChildId);
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [coachOnlyCount, setCoachOnlyCount] = useState(0);
   const [activeTab, setActiveTab] = useState<DevTabType>('progress');
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadSessions = async () => {
+      const sessions = await apiClient.get<Session[]>('coach_sessions', []);
+      if (active) {
+        setAllSessions(sessions);
+      }
+    };
+
+    void loadSessions();
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!selectedChildId && firstChildId) {
+      setSelectedChildId(firstChildId);
+    }
+  }, [firstChildId, selectedChildId]);
+
   const sessions = useMemo(() => {
-    return selectedChild ? getSessionsForAthlete(selectedChild.id) : [];
-  }, [selectedChild]);
+    return selectedChild ? allSessions.filter((session) => session.athleteId === selectedChild.id) : [];
+  }, [allSessions, selectedChild]);
 
   const skills: SkillProgress[] = useMemo(() => {
     if (sessions.length === 0) return [];

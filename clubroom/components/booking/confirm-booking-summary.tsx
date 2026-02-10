@@ -5,7 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { formatGBP } from '@/constants/mock-data';
+import { formatGBP } from '@/utils/format';
 import { Row } from '@/components/primitives';
 
 interface ConfirmBookingSummaryProps {

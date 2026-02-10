@@ -19,10 +19,10 @@ import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
-import { useMyProgress, PROGRESS_TABS, type ProgressTab } from '@/hooks/use-my-progress';
+import { useMyProgress, PROGRESS_TABS } from '@/hooks/use-my-progress';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { MOCK_JOURNAL_ENTRIES } from '@/constants/mock-data';
+import { SESSION_JOURNAL_SEEDS } from '@/constants/session-journal-seeds';
 import * as Haptics from 'expo-haptics';
 
 export default function MyProgressScreen() {
@@ -43,7 +43,7 @@ export default function MyProgressScreen() {
       const userId = currentUser?.id ?? 'user2';
       const data = stored.length > 0
         ? stored.filter((e) => e.athleteId === userId)
-        : MOCK_JOURNAL_ENTRIES.filter((e) => e.athleteId === userId);
+        : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
       setJournalEntries(data);
     };
     loadJournal();

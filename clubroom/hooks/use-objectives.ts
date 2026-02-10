@@ -8,14 +8,14 @@
  * - Child filtering for parent users
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
-import { activeObjectives, getChildrenForParent } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
 import { toDateStr } from '@/utils/format';
 import type { AthleteObjective, FootballObjective } from '@/constants/types';
+import type { User } from '@/constants/app-types';
 
 export const FOOTBALL_OBJECTIVES: FootballObjective[] = [
   'Dribbling',
@@ -26,10 +26,39 @@ export const FOOTBALL_OBJECTIVES: FootballObjective[] = [
   'Conditioning',
 ];
 
-export function useObjectives() {
-  const { currentUser } = useAuth();
+const DEFAULT_OBJECTIVES: AthleteObjective[] = [
+  {
+    id: 'obj-seed-1',
+    athleteId: 'user1',
+    label: 'Dribbling',
+    status: 'active',
+    updatedAt: new Date().toISOString(),
+    note: 'Keep touches tight at speed.',
+    coachName: 'Coach Sarah',
+    progress: 35,
+    sessionsCompleted: 3,
+    startDate: toDateStr(new Date()),
+    targetSessions: 10,
+  },
+  {
+    id: 'obj-seed-2',
+    athleteId: 'user2',
+    label: 'Passing',
+    status: 'active',
+    updatedAt: new Date().toISOString(),
+    note: 'Focus on first-time passing under pressure.',
+    coachName: 'Coach Mike',
+    progress: 50,
+    sessionsCompleted: 5,
+    startDate: toDateStr(new Date()),
+    targetSessions: 12,
+  },
+];
 
-  const [objectives, setObjectives] = useState<AthleteObjective[]>(activeObjectives);
+export function useObjectives() {
+  const { currentUser, availableUsers } = useAuth();
+
+  const [objectives, setObjectives] = useState<AthleteObjective[]>(DEFAULT_OBJECTIVES);
   const [showModal, setShowModal] = useState(false);
   const [editingObjective, setEditingObjective] = useState<AthleteObjective | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<FootballObjective>('Dribbling');
@@ -37,16 +66,33 @@ export function useObjectives() {
   const [targetSessions, setTargetSessions] = useState('10');
 
   // Parent-specific: child selection
-  const children = useMemo(() => {
+  const children = useMemo<User[]>(() => {
     if (currentUser && hasChildren(currentUser)) {
-      return getChildrenForParent(currentUser.id);
+      return (currentUser.children || []).map((childRef) => {
+        const linkedUser = availableUsers.find((user) => user.id === childRef.childId);
+        return {
+          id: childRef.childId,
+          name: childRef.childName || linkedUser?.name || 'Child',
+          email: linkedUser?.email || '',
+          role: linkedUser?.role || 'USER',
+          postcode: linkedUser?.postcode || '',
+          dateOfBirth: linkedUser?.dateOfBirth || '',
+          avatar: linkedUser?.avatar,
+        };
+      });
     }
     return [];
-  }, [currentUser]);
+  }, [availableUsers, currentUser]);
 
   const [selectedChildId, setSelectedChildId] = useState<string>(
     children.length > 0 ? children[0].id : ''
   );
+
+  useEffect(() => {
+    if (!selectedChildId && children.length > 0) {
+      setSelectedChildId(children[0].id);
+    }
+  }, [children, selectedChildId]);
 
   const isParent = hasChildren(currentUser);
 

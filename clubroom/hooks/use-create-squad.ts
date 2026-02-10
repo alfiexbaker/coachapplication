@@ -3,12 +3,12 @@
  * Manages squad creation form state, validation, and submission.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
-import { clubs } from '@/constants/mock-data';
 import { squadService } from '@/services/squad-service';
+import { socialFeedService } from '@/services/social-feed-service';
 
 export const AGE_GROUPS = [
   { label: 'U8', min: 5, max: 8 },
@@ -32,7 +32,7 @@ export const SKILL_TAGS = [
 ] as const;
 
 export function useCreateSquad() {
-  useAuth();
+  const { currentUser } = useAuth();
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
 
   const [squadName, setSquadName] = useState('');
@@ -42,7 +42,12 @@ export function useCreateSquad() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const club = clubs.find((c) => c.id === clubId);
+  const clubs = useMemo(
+    () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
+    [currentUser?.id],
+  );
+
+  const club = useMemo(() => clubs.find((candidate) => candidate.id === clubId), [clubs, clubId]);
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) => {

@@ -8,7 +8,7 @@ import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
-import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
+import { formatGBP } from '@/utils/format';
 import { bookingService } from '@/services/booking-service';
 import { notificationService } from '@/services/notification-service';
 import { hasChildren } from '@/utils/user-helpers';
@@ -48,9 +48,15 @@ export function useConfirmBooking() {
   useEffect(() => {
     if (!currentUser || athleteIds.length === 0) return;
     if (hasChildren(currentUser)) {
-      const userChildren = getChildrenForParent(currentUser.id);
-      const selected = userChildren.filter((c) => athleteIds.includes(c.id));
-      setAthletesInfo(selected.map((c) => ({ id: c.id, name: c.name, avatar: c.avatar })));
+      const selectedChildren = (currentUser.children || []).filter((child) =>
+        athleteIds.includes(child.childId)
+      );
+      setAthletesInfo(
+        selectedChildren.map((child) => ({
+          id: child.childId,
+          name: child.childName,
+        })),
+      );
     } else {
       setAthletesInfo([{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar }]);
     }

@@ -9,7 +9,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
-import { getClubById } from '@/constants/mock-data';
+import { socialFeedService } from '@/services/social-feed-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import type { ClubRole } from '@/constants/types';
@@ -64,10 +64,12 @@ export function useCoachInvites() {
       if (params.code && params.clubId && params.clubName && currentUser) {
         const existing = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
         if (!existing.find((inv) => inv.inviteCode === params.code)) {
-          const club = getClubById(params.clubId);
+          const knownClub = socialFeedService.getUserClubs(currentUser.id).find((club) => club.id === params.clubId);
           const newInvite: PendingClubInvite = {
             id: `invite_${Date.now()}`, inviteCode: params.code, clubId: params.clubId,
-            clubName: params.clubName, clubBadge: club?.badge, role: (params.role as ClubRole) || 'COACH',
+            clubName: params.clubName,
+            clubBadge: knownClub?.badge || params.clubName.slice(0, 2).toUpperCase(),
+            role: (params.role as ClubRole) || 'COACH',
             invitedBy: 'Club Admin', invitedAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'pending',
           };

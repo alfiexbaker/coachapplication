@@ -6,12 +6,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
-import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { badgeService } from '@/services/badge-service';
 import { childService, type ChildProfile } from '@/services/child-service';
-import type { Session, BadgeAward, BadgeCategory } from '@/constants/types';
+import { userService } from '@/services/user-service';
+import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
 
 const logger = createLogger('AthleteDetailScreen');
@@ -32,9 +32,15 @@ export interface LevelBadge {
   color: string;
 }
 
+function formatDate(date: Date | string): string {
+  const resolvedDate = typeof date === 'string' ? new Date(date) : date;
+  return resolvedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export function useAthleteDevelopment(athleteId: string) {
   const { currentUser } = useAuth();
 
+  const [athlete, setAthlete] = useState<User | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
@@ -43,33 +49,62 @@ export function useAthleteDevelopment(athleteId: string) {
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [progressionSummary, setProgressionSummary] = useState<ProgressionSummary | null>(null);
 
-  const athlete = getUserById(athleteId);
+  // Load athlete profile
+  useEffect(() => {
+    let mounted = true;
 
-  // Load sessions from mock data + AsyncStorage
+    const loadAthlete = async () => {
+      if (!athleteId) {
+        if (mounted) {
+          setAthlete(null);
+        }
+        return;
+      }
+
+      try {
+        const athleteResult = await userService.getUserById(athleteId);
+        if (!mounted) {
+          return;
+        }
+
+        if (athleteResult.success) {
+          setAthlete(athleteResult.data);
+        } else {
+          logger.error('Failed to load athlete profile', { athleteId, error: athleteResult.error });
+          setAthlete(null);
+        }
+      } catch (error) {
+        logger.error('Failed to load athlete profile', { athleteId, error });
+        if (mounted) {
+          setAthlete(null);
+        }
+      }
+    };
+
+    loadAthlete();
+
+    return () => {
+      mounted = false;
+    };
+  }, [athleteId]);
+
+  // Load sessions from AsyncStorage
   useEffect(() => {
     const loadSessions = async () => {
       if (!currentUser) return;
       try {
-        const mockSessions = getSessionsForCoach(currentUser.id).filter(
-          s => s.athleteId === athleteId
-        );
         const asyncSessions = await apiClient.get<Session[]>('coach_sessions', []);
         const athleteAsyncSessions = asyncSessions.filter(
           (s) => s.athleteId === athleteId && s.coachId === currentUser.id
         );
-        const allSessions = [...mockSessions, ...athleteAsyncSessions];
-        setSessions(allSessions);
+        setSessions(athleteAsyncSessions);
         logger.debug('Sessions loaded', {
-          mockCount: mockSessions.length,
           asyncCount: athleteAsyncSessions.length,
-          total: allSessions.length,
+          total: athleteAsyncSessions.length,
         });
       } catch (error) {
         logger.error('Failed to load sessions', error);
-        const mockSessions = getSessionsForCoach(currentUser.id).filter(
-          s => s.athleteId === athleteId
-        );
-        setSessions(mockSessions);
+        setSessions([]);
       } finally {
         setLoading(false);
       }

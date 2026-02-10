@@ -27,7 +27,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { challengeService } from '@/services/challenge-service';
 import type { Challenge, ChallengeSubmission } from '@/services/challenge-service';
 import { Routes } from '@/navigation/routes';
-import { MOCK_CHALLENGES, MOCK_CHALLENGE_SUBMISSIONS } from '@/constants/mock-data';
+import { CHALLENGE_SEEDS, CHALLENGE_SUBMISSION_SEEDS } from '@/constants/challenge-seeds';
 import { createLogger } from '@/utils/logger';
 
 type TabFilter = 'active' | 'completed';
@@ -51,10 +51,10 @@ export default function ChallengesScreen() {
       setError(false);
       const [challengeData, submissionData] = await Promise.all([
         challengeService.getChallengesForSquad('squad_1'),
-        Promise.resolve(MOCK_CHALLENGE_SUBMISSIONS),
+        Promise.resolve(CHALLENGE_SUBMISSION_SEEDS),
       ]);
-      // Use mock data as fallback if no challenges in storage
-      setChallenges(challengeData.length > 0 ? challengeData : MOCK_CHALLENGES);
+      // Keep deterministic demo defaults when storage is empty.
+      setChallenges(challengeData.length > 0 ? challengeData : CHALLENGE_SEEDS);
       setSubmissions(submissionData);
     } catch (err) {
       logger.error('Failed to load challenges', err);

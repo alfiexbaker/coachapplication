@@ -2,6 +2,7 @@ import { CoachProfile } from '@/constants/types';
 
 const shortWeekdayFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
 const shortMonthDayFormatter = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' });
+const shortDateWithYearFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const longDateFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'long',
   month: 'long',
@@ -48,6 +49,14 @@ export const formatGBP = (amount: number) => `£${amount.toLocaleString('en-GB')
 export const formatWeekday = (value: string | number | Date) => shortWeekdayFormatter.format(toDate(value));
 
 export const formatMonthDay = (value: string | number | Date) => shortMonthDayFormatter.format(toDate(value));
+
+export const formatShortDateWithYear = (value: string | number | Date, fallback = 'Unknown date') => {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+  return shortDateWithYearFormatter.format(date);
+};
 
 export const formatFullDate = (value: string | number | Date) => longDateFormatter.format(toDate(value));
 

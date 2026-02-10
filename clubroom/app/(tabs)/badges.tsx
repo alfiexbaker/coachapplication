@@ -24,13 +24,20 @@ import { useAuth } from '@/hooks/use-auth';
 import { badgeService } from '@/services/badge-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { ok, err } from '@/types/result';
-import { formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, BadgeCategory } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
 import type { CategoryBreakdownItem } from '@/components/badges/badge-category-carousel';
 
 const logger = createLogger('UserBadgesScreen');
+
+function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 interface BadgeScreenData {
   awards: BadgeAward[];
@@ -76,8 +83,11 @@ export default function UserBadgesScreen() {
     isEmpty: (d) => d.awards.length === 0 && d.progression.totalBadges === 0,
   });
 
-  // Use local awards if user has shared (optimistic update), otherwise use fetched data
-  const awards = localAwards ?? data?.awards ?? [];
+  // Use local awards if user has shared (optimistic update), otherwise use fetched data.
+  const awards = useMemo(
+    () => localAwards ?? data?.awards ?? [],
+    [localAwards, data?.awards],
+  );
   const progression = data?.progression ?? null;
 
   const supporterFacingAwards = useMemo(

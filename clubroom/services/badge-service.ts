@@ -1,4 +1,3 @@
-import { badgeAwards as mockBadgeAwards, badgeCatalog, getParentForAthlete, getUserClubs } from '@/constants/mock-data';
 import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
 import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
@@ -34,6 +33,93 @@ type AwardBadgeInput = {
   recipientId?: string; // Optional notification recipient
 };
 
+const BASE_BADGE_CATALOG: BadgeDefinition[] = [
+  { id: 'badge_best_training', label: 'Best Training Session', tone: 'success', description: 'Recognises a standout session with effort and focus.', category: 'consistency', tier: 1, pointValue: 10 },
+  { id: 'badge_streak_starter', label: 'Streak Starter', tone: 'default', description: 'Completed 3 sessions in a row without missing.', category: 'consistency', tier: 1, pointValue: 10 },
+  { id: 'badge_dedicated_athlete', label: 'Dedicated Athlete', tone: 'success', description: 'Maintained perfect attendance for a month.', category: 'consistency', tier: 2, pointValue: 25 },
+  { id: 'badge_master_passer', label: 'Master Passer', tone: 'default', description: 'Awarded for reliable build-up play and vision.', category: 'technique', tier: 2, pointValue: 25 },
+  { id: 'badge_sharp_shooter_pro', label: 'Sharp Shooter Pro', tone: 'warning', description: 'Celebrates clinical finishing under pressure.', category: 'technique', tier: 3, pointValue: 50 },
+  { id: 'badge_first_touch', label: 'Silky First Touch', tone: 'default', description: 'Demonstrated excellent ball control in tight spaces.', category: 'technique', tier: 1, pointValue: 10 },
+  { id: 'badge_team_captain', label: 'Team Captain', tone: 'success', description: 'Led drills and encouraged teammates.', category: 'leadership', tier: 2, pointValue: 25 },
+  { id: 'badge_vocal_leader', label: 'Vocal Leader', tone: 'default', description: 'Communicated well and organized the group.', category: 'leadership', tier: 1, pointValue: 10 },
+  { id: 'badge_mentor', label: 'Mentor', tone: 'success', description: 'Helped younger players improve their skills.', category: 'leadership', tier: 3, pointValue: 50 },
+  { id: 'badge_growth_mindset', label: 'Growth Mindset', tone: 'default', description: 'Embraced challenges and learned from mistakes.', category: 'mindset', tier: 1, pointValue: 10 },
+  { id: 'badge_focused_athlete', label: 'Laser Focus', tone: 'success', description: 'Maintained concentration throughout the session.', category: 'mindset', tier: 2, pointValue: 25 },
+  { id: 'badge_team_player', label: 'Team Player', tone: 'default', description: 'Put the team first and supported others.', category: 'teamwork', tier: 1, pointValue: 10 },
+  { id: 'badge_assist_king', label: 'Assist King', tone: 'success', description: 'Created multiple scoring opportunities for teammates.', category: 'teamwork', tier: 2, pointValue: 25 },
+  { id: 'badge_comeback_kid', label: 'Comeback Kid', tone: 'warning', description: 'Bounced back from setbacks with determination.', category: 'resilience', tier: 2, pointValue: 25 },
+  { id: 'badge_never_give_up', label: 'Never Give Up', tone: 'success', description: 'Showed incredible perseverance under pressure.', category: 'resilience', tier: 3, pointValue: 50 },
+];
+
+const SEED_BADGE_AWARDS: BadgeAward[] = [
+  {
+    id: 'award_training_focus',
+    badgeId: 'badge_best_training',
+    badgeLabel: 'Best Training Session',
+    badgeTone: 'success',
+    athleteId: 'user1',
+    athleteName: 'Tom Henderson',
+    coachId: 'coach1',
+    coachName: 'Sarah Mitchell',
+    sessionId: 'sess1',
+    reason: 'Led transitions and stayed switched on across drills.',
+    note: 'Kept energy up for younger players in the pod.',
+    awardedBy: 'coach1',
+    awardedByName: 'Sarah Mitchell',
+    awardedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    visibility: 'supporters',
+    badgeCategory: 'consistency',
+    badgeTier: 1,
+    badgePointValue: 10,
+  },
+  {
+    id: 'award_master_passer',
+    badgeId: 'badge_master_passer',
+    badgeLabel: 'Master Passer',
+    badgeTone: 'default',
+    athleteId: 'user2',
+    athleteName: 'Emma Henderson',
+    coachId: 'coach3',
+    coachName: 'David Roberts',
+    sessionId: 'sess4',
+    reason: 'Threaded creative passes under pressure.',
+    note: 'Great first-time balls during rondos.',
+    awardedBy: 'coach3',
+    awardedByName: 'David Roberts',
+    awardedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    visibility: 'athlete',
+    badgeCategory: 'technique',
+    badgeTier: 2,
+    badgePointValue: 25,
+  },
+  {
+    id: 'award_sharp_shooter',
+    badgeId: 'badge_sharp_shooter_pro',
+    badgeLabel: 'Sharp Shooter Pro',
+    badgeTone: 'warning',
+    athleteId: 'user3',
+    athleteName: 'James Wilson',
+    coachId: 'coach2',
+    coachName: 'Mike Thompson',
+    sessionId: 'club_session_1',
+    reason: 'Finished five consecutive reps with both feet.',
+    note: 'Stayed composed with a defender closing.',
+    awardedBy: 'coach2',
+    awardedByName: 'Mike Thompson',
+    awardedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    visibility: 'supporters',
+    badgeCategory: 'technique',
+    badgeTier: 3,
+    badgePointValue: 50,
+  },
+];
+
+const ATHLETE_PARENT_MAP: Record<string, { id: string }> = {
+  user1: { id: 'user4' },
+  user2: { id: 'user4' },
+  user3: { id: 'user5' },
+};
+
 class BadgeService {
   private logger = createLogger('BadgeService');
 
@@ -43,7 +129,7 @@ class BadgeService {
 
   private mergeAwards(stored: BadgeAward[]): BadgeAward[] {
     const merged = new Map<string, BadgeAward>();
-    mockBadgeAwards.forEach((award) => {
+    SEED_BADGE_AWARDS.forEach((award) => {
       merged.set(award.id, award);
     });
     stored.forEach((award) => {
@@ -56,7 +142,7 @@ class BadgeService {
   }
 
   async listDefinitions(): Promise<BadgeDefinition[]> {
-    return badgeCatalog;
+    return BASE_BADGE_CATALOG;
   }
 
   async listAwards(): Promise<BadgeAward[]> {
@@ -76,7 +162,7 @@ class BadgeService {
 
   async awardBadge(input: AwardBadgeInput): Promise<Result<BadgeAward, ServiceError>> {
     const stored = await this.getStoredAwards();
-    const definition = badgeCatalog.find((badge) => badge.id === input.badgeId);
+    const definition = BASE_BADGE_CATALOG.find((badge) => badge.id === input.badgeId);
     const allAwards = this.mergeAwards(stored);
     const mostRecentAward = allAwards.find((award) => award.athleteId === input.athleteId);
     const cooldownWindowDays = 7;
@@ -164,7 +250,7 @@ class BadgeService {
    * Create achievement posts in social feed for all clubs the athlete is in
    */
   private async createAchievementPosts(award: BadgeAward): Promise<void> {
-    const clubs = getUserClubs(award.athleteId);
+    const clubs = socialFeedService.getUserClubs(award.athleteId);
     if (clubs.length === 0) {
       this.logger.debug('no_clubs_for_achievement_post', { athleteId: award.athleteId });
       return;
@@ -203,7 +289,7 @@ class BadgeService {
    * Send notification to parent when a badge is awarded
    */
   private async notifyParent(award: BadgeAward): Promise<void> {
-    const parent = getParentForAthlete(award.athleteId);
+    const parent = ATHLETE_PARENT_MAP[award.athleteId];
     if (!parent) {
       this.logger.debug('no_parent_for_notification', { athleteId: award.athleteId });
       return;
@@ -377,7 +463,7 @@ class BadgeService {
       if (award.badgePointValue) {
         return total + award.badgePointValue;
       }
-      const definition = badgeCatalog.find((badge) => badge.id === award.badgeId);
+      const definition = BASE_BADGE_CATALOG.find((badge) => badge.id === award.badgeId);
       return total + (definition?.pointValue ?? 0);
     }, 0);
   }
@@ -440,7 +526,7 @@ class BadgeService {
         if (award.badgeCategory) {
           return award.badgeCategory === category;
         }
-        const definition = badgeCatalog.find((badge) => badge.id === award.badgeId);
+        const definition = BASE_BADGE_CATALOG.find((badge) => badge.id === award.badgeId);
         return definition?.category === category;
       });
 
@@ -449,7 +535,7 @@ class BadgeService {
         if (award.badgePointValue) {
           return sum + award.badgePointValue;
         }
-        const definition = badgeCatalog.find((badge) => badge.id === award.badgeId);
+        const definition = BASE_BADGE_CATALOG.find((badge) => badge.id === award.badgeId);
         return sum + (definition?.pointValue ?? 0);
       }, 0);
 

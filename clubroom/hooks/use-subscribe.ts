@@ -9,10 +9,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { recurringBookingService } from '@/services/recurring-booking-service';
-import { MOCK_USERS, MOCK_COACH_PROFILES, getChildrenForParent } from '@/constants/mock-data';
+import { discoverService } from '@/services/discover-service';
 import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
-import type { CreateRecurringBookingParams } from '@/constants/types';
+import type { CreateRecurringBookingParams, CoachProfile } from '@/constants/types';
 
 const logger = createLogger('SubscribeScreen');
 
@@ -27,34 +27,66 @@ export interface CoachOption {
   totalSessions: number;
 }
 
+const mapCoachProfileToOption = (coach: CoachProfile): CoachOption => ({
+  id: coach.id,
+  name: coach.fullName,
+  photoUrl: coach.profilePhotoUrl,
+  sessionTypes: coach.footballFocuses?.length > 0 ? coach.footballFocuses : ['1-on-1 Training'],
+  pricePerSession: coach.sessionRate ?? coach.priceRange.minUsd,
+  location: coach.city ? `${coach.city}, ${coach.state}` : 'TBD',
+  rating: coach.rating.average,
+  totalSessions: coach.totalSessions,
+});
+
 export function useSubscribe() {
-  const { currentUser } = useAuth();
+  const { currentUser, availableUsers } = useAuth();
   const params = useLocalSearchParams<{ coachId?: string }>();
 
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | null>(null);
+  const [coaches, setCoaches] = useState<CoachOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const coaches = useMemo<CoachOption[]>(() => {
-    const coachUsers = MOCK_USERS.filter((u) => u.role === 'COACH');
-    return coachUsers.map((coach) => {
-      const profile = MOCK_COACH_PROFILES.find((p) => p.userId === coach.id);
-      return {
-        id: coach.id, name: coach.name,
-        photoUrl: `https://i.pravatar.cc/100?u=${coach.id}`,
-        sessionTypes: profile?.specialties ?? ['1-on-1 Training'],
-        pricePerSession: profile?.sessionRate ?? 50,
-        location: profile?.availability?.[0]?.location ?? 'TBD',
-        rating: profile?.rating ?? 4.5,
-        totalSessions: profile?.totalSessions ?? 0,
-      };
-    });
-  }, []);
+  useEffect(() => {
+    let active = true;
+
+    const loadCoaches = async () => {
+      const result = await discoverService.getAllCoaches();
+      if (!active) {
+        return;
+      }
+
+      if (result.success && result.data.length > 0) {
+        setCoaches(result.data.map(mapCoachProfileToOption));
+        return;
+      }
+
+      const fallbackCoaches = availableUsers
+        .filter((user) => user.role === 'COACH')
+        .map((coach) => ({
+          id: coach.id,
+          name: coach.name || coach.fullName || 'Coach',
+          photoUrl: coach.avatar,
+          sessionTypes: ['1-on-1 Training'],
+          pricePerSession: 50,
+          location: coach.postcode || 'TBD',
+          rating: 4.5,
+          totalSessions: 0,
+        }));
+      setCoaches(fallbackCoaches);
+    };
+
+    void loadCoaches();
+
+    return () => {
+      active = false;
+    };
+  }, [availableUsers]);
 
   const athletes = useMemo(() => {
     if (!currentUser?.id || currentUser.role === 'COACH') return undefined;
     if (hasChildren(currentUser)) {
-      const children = getChildrenForParent(currentUser.id);
-      return children.map((child) => ({ id: child.id, name: child.name }));
+      const children = currentUser.children || [];
+      return children.map((child) => ({ id: child.childId, name: child.childName || 'Child' }));
     }
     return [{ id: currentUser.id, name: currentUser.fullName || 'Me' }];
   }, [currentUser]);

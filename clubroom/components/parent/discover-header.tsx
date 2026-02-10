@@ -20,7 +20,7 @@ interface ChildInfo {
 }
 
 interface DiscoverHeaderProps {
-  children: ChildInfo[];
+  childOptions: ChildInfo[];
   selectedChildId: string | undefined;
   onSelectChild: (id: string) => void;
   postcode: string;
@@ -28,7 +28,7 @@ interface DiscoverHeaderProps {
 }
 
 function DiscoverHeaderInner({
-  children,
+  childOptions,
   selectedChildId,
   onSelectChild,
   postcode,
@@ -54,20 +54,20 @@ function DiscoverHeaderInner({
     <View style={[styles.stickyHeader, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>Discover Coaches</ThemedText>
-        {children.length === 0 ? (
+        {childOptions.length === 0 ? (
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Add children to your account to book sessions
           </ThemedText>
-        ) : children.length === 1 ? (
+        ) : childOptions.length === 1 ? (
           <View style={styles.singleChild}>
             <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              Booking for {children[0].name}
+              Booking for {childOptions[0].name}
             </ThemedText>
           </View>
         ) : (
           <View style={styles.childTabs}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
-              {children.map((child) => {
+              {childOptions.map((child) => {
                 const isSelected = child.id === selectedChildId;
                 return (
                   <Pressable
@@ -100,7 +100,7 @@ function DiscoverHeaderInner({
         )}
       </View>
 
-      {children.length > 0 && (
+      {childOptions.length > 0 && (
         <Row align="center" gap="sm" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Ionicons name="search" size={20} color={palette.icon} />
           <TextInput

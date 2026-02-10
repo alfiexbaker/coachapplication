@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
 
 interface BadgeSessionSelectorProps {
@@ -22,6 +21,14 @@ interface BadgeSessionSelectorProps {
 }
 
 const getSessionLabel = (session: Session) => session.nextFocusAreas?.[0] ?? 'Coaching session';
+
+function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export const BadgeSessionSelector = memo(function BadgeSessionSelector({
   sessionQuery, onQueryChange, filteredSessions, selectedSessionId, onSelectSession,

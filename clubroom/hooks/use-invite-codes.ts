@@ -4,10 +4,13 @@
  * Manages invite code list, create modal, and code generation.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-import { inviteCodes } from '@/constants/mock-data';
 import type { InviteCode, School } from '@/constants/types';
+import { INVITE_CODE_SEEDS } from '@/constants/invite-code-seeds';
+import { apiClient } from '@/services/api-client';
+
+const INVITE_CODES_STORAGE_KEY = 'clubroom.invite_codes';
 
 function generateRandomCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -34,11 +37,18 @@ export interface UseInviteCodesResult {
 }
 
 export function useInviteCodes(): UseInviteCodesResult {
-  const [codes, setCodes] = useState<InviteCode[]>(inviteCodes);
+  const [codes, setCodes] = useState<InviteCode[]>(INVITE_CODE_SEEDS);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [newCodeText, setNewCodeText] = useState('');
   const [maxUses, setMaxUses] = useState('20');
+
+  useEffect(() => {
+    void (async () => {
+      const storedCodes = await apiClient.get<InviteCode[]>(INVITE_CODES_STORAGE_KEY, INVITE_CODE_SEEDS);
+      setCodes(storedCodes);
+    })();
+  }, []);
 
   const generateCode = useCallback(() => {
     if (!selectedSchool) return;
@@ -57,7 +67,11 @@ export function useInviteCodes(): UseInviteCodesResult {
       status: 'active',
     };
 
-    setCodes((prev) => [newCode, ...prev]);
+    setCodes((prev) => {
+      const next = [newCode, ...prev];
+      void apiClient.set(INVITE_CODES_STORAGE_KEY, next);
+      return next;
+    });
     setShowCreateModal(false);
     setNewCodeText('');
     setMaxUses('20');
@@ -65,16 +79,18 @@ export function useInviteCodes(): UseInviteCodesResult {
   }, [selectedSchool, newCodeText, maxUses]);
 
   const deactivateCode = useCallback((codeId: string) => {
-    setCodes((prev) =>
-      prev.map((code) =>
+    setCodes((prev) => {
+      const next = prev.map((code) =>
         code.id === codeId
           ? {
               ...code,
               status: code.status === 'active' ? ('exhausted' as const) : ('active' as const),
             }
           : code
-      )
-    );
+      );
+      void apiClient.set(INVITE_CODES_STORAGE_KEY, next);
+      return next;
+    });
   }, []);
 
   const copyToClipboard = useCallback((code: string) => {

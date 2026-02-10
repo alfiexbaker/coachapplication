@@ -2,11 +2,11 @@ import { useState, useCallback } from 'react';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
-import { getUserById } from '@/constants/mock-data';
 import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
+import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
-import type { BadgeAward } from '@/constants/types';
+import type { BadgeAward, User } from '@/constants/types';
 
 const logger = createLogger('ChildProgressScreen');
 
@@ -26,7 +26,7 @@ export function useChildProgress() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [child, setChild] = useState<ReturnType<typeof getUserById>>(undefined);
+  const [child, setChild] = useState<User | undefined>(undefined);
   const [progress, setProgress] = useState<AthleteProgress | null>(null);
   const [feedback, setFeedback] = useState<SessionFeedback[]>([]);
   const [badges, setBadges] = useState<BadgeAward[]>([]);
@@ -36,8 +36,12 @@ export function useChildProgress() {
     if (!childId) return;
 
     try {
-      const childData = getUserById(childId);
+      const childResult = await userService.getUserById(childId);
+      const childData = childResult.success ? childResult.data : undefined;
       setChild(childData);
+      if (!childResult.success) {
+        logger.error('Failed to load child profile', { childId, error: childResult.error });
+      }
 
       const progressData = await progressService.getAthleteProgress(childId, 'parent');
       progressData.athleteName = childData?.name || 'Athlete';

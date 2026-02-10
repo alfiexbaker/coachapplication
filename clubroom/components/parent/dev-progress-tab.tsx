@@ -17,7 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { SkillsSummary } from '@/components/analytics/skill-progress-bar';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
 import type { SkillProgress } from '@/constants/types';
 
@@ -82,7 +82,7 @@ function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTa
                     <Row justify="space-between" align="flex-start">
                       <View style={styles.cardInfo}>
                         <ThemedText type="defaultSemiBold">{session.coachName}</ThemedText>
-                        <ThemedText style={[styles.date, { color: palette.muted }]}>{formatDate(session.completedAt)}</ThemedText>
+                        <ThemedText style={[styles.date, { color: palette.muted }]}>{formatShortDateWithYear(session.completedAt)}</ThemedText>
                       </View>
                       <Row align="center" gap="xxs">
                         <ThemedText type="defaultSemiBold" style={styles.ratingValue}>{session.performanceRating.toFixed(1)}</ThemedText>

@@ -8,7 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Session, BadgeAward } from '@/constants/types';
 
@@ -41,12 +41,12 @@ export const DevSessionCard = memo(function DevSessionCard({
       tactile
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`Session on ${formatDate(session.completedAt)}`}
+      accessibilityLabel={`Session on ${formatShortDateWithYear(session.completedAt)}`}
       style={styles.card}
     >
       <Row justify="space-between" align="center" style={{ marginBottom: Spacing.xs }}>
         <Row gap="sm" align="center" style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold">{formatDate(session.completedAt)}</ThemedText>
+          <ThemedText type="defaultSemiBold">{formatShortDateWithYear(session.completedAt)}</ThemedText>
           {needsNotes && (
             <View style={[styles.needsNotesBadge, { backgroundColor: colors.error }]}>
               <ThemedText style={[Typography.micro, { color: colors.onPrimary }]}>Needs Notes</ThemedText>
@@ -76,7 +76,7 @@ export const DevSessionCard = memo(function DevSessionCard({
             <Row key={award.id} style={[styles.awardChip, { borderColor: colors.border }]}>
               <ThemedText style={{ fontWeight: '700' }}>{award.badgeLabel}</ThemedText>
               <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
-                {formatDate(award.awardedAt)}
+                {formatShortDateWithYear(award.awardedAt)}
               </ThemedText>
             </Row>
           ))}

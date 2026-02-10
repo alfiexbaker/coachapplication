@@ -13,7 +13,6 @@
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { ClubSquad, SquadMember } from '@/constants/types';
-import { clubSquads } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 
@@ -22,6 +21,111 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('SquadService');
 
 const USE_MOCK = api.useMock;
+
+const BASE_CLUB_SQUADS: ClubSquad[] = [
+  {
+    id: 'squad_u15',
+    clubId: 'club_lions',
+    name: 'U15 Performance',
+    level: 'U15 · Competitive',
+    memberCount: 18,
+    primaryCoach: 'coach1',
+    meetLocation: 'Pitch 2',
+    tags: ['Pressing', 'Finishing'],
+  },
+  {
+    id: 'squad_juniors',
+    clubId: 'club_lions',
+    name: 'Junior Skills',
+    level: 'U11 · Development',
+    memberCount: 22,
+    primaryCoach: 'coach2',
+    meetLocation: 'Sports Hall',
+    tags: ['Ball Mastery', 'Confidence'],
+  },
+  {
+    id: 'squad_staff',
+    clubId: 'club_lions',
+    name: 'Staff Room',
+    level: 'Coaches & Admins',
+    memberCount: 8,
+    primaryCoach: 'coach1',
+    meetLocation: 'Clubhouse',
+    tags: ['Approvals', 'Safeguarding'],
+  },
+  {
+    id: 'squad_warriors_u12',
+    clubId: 'club_warriors',
+    name: 'U12 Development',
+    level: 'U12 · Grassroots',
+    memberCount: 16,
+    primaryCoach: 'coach3',
+    meetLocation: 'Southbank Fields',
+  },
+  {
+    id: 'squad_warriors_u14',
+    clubId: 'club_warriors',
+    name: 'U14 Competitive',
+    level: 'U14 · League',
+    memberCount: 20,
+    primaryCoach: 'coach4',
+    meetLocation: 'Southbank Stadium',
+  },
+  {
+    id: 'squad_warriors_girls',
+    clubId: 'club_warriors',
+    name: 'Girls Team',
+    level: 'U16 · Development',
+    memberCount: 14,
+    primaryCoach: 'coach4',
+    meetLocation: 'Southbank Fields',
+  },
+  {
+    id: 'squad_phoenix_elite',
+    clubId: 'club_phoenix',
+    name: 'Elite Academy',
+    level: 'U15 · Performance',
+    memberCount: 18,
+    primaryCoach: 'coach5',
+    meetLocation: 'Phoenix Training Ground',
+  },
+  {
+    id: 'squad_phoenix_dev',
+    clubId: 'club_phoenix',
+    name: 'Development Squad',
+    level: 'U13 · Foundation',
+    memberCount: 22,
+    primaryCoach: 'coach7',
+    meetLocation: 'Phoenix Training Ground',
+  },
+  {
+    id: 'squad_nlu_elite',
+    clubId: 'club_united',
+    name: 'Elite First Team',
+    level: 'U16 · Competitive',
+    memberCount: 18,
+    primaryCoach: 'coach6',
+    meetLocation: 'United Stadium',
+  },
+  {
+    id: 'squad_nlu_academy',
+    clubId: 'club_united',
+    name: 'Academy Pathway',
+    level: 'U14 · Development',
+    memberCount: 24,
+    primaryCoach: 'coach1',
+    meetLocation: 'United Training Pitch',
+  },
+  {
+    id: 'squad_nlu_tots',
+    clubId: 'club_united',
+    name: 'Mini Kickers',
+    level: 'U8 · Fun Football',
+    memberCount: 30,
+    primaryCoach: 'coach2',
+    meetLocation: 'Community Centre',
+  },
+];
 
 // Cache for custom squads (created by users)
 let customSquadsCache: ClubSquad[] = [];
@@ -227,7 +331,7 @@ export const squadService = {
   async getSquads(clubId: string): Promise<ClubSquad[]> {
     if (USE_MOCK) {
       const custom = await loadCustomSquads();
-      const mockSquads = clubSquads.filter((s) => s.clubId === clubId);
+      const mockSquads = BASE_CLUB_SQUADS.filter((s) => s.clubId === clubId);
       const customForClub = custom.filter((s) => s.clubId === clubId);
       return [...mockSquads, ...customForClub];
     }
@@ -241,7 +345,7 @@ export const squadService = {
    */
   async getSquad(squadId: string): Promise<ClubSquad | null> {
     if (USE_MOCK) {
-      const fromMock = clubSquads.find((s) => s.id === squadId);
+      const fromMock = BASE_CLUB_SQUADS.find((s) => s.id === squadId);
       if (fromMock) return fromMock;
 
       const custom = await loadCustomSquads();

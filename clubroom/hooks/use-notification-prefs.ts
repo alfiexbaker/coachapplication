@@ -12,15 +12,25 @@ export function useNotificationPrefs() {
   const userId = currentUser?.id ?? 'demo_user';
 
   const [preferences, setPreferences] = useState<EnhancedNotificationPreferences | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const loadPreferences = useCallback(async () => {
     try {
-      const prefs = await notificationService.getPreferences(userId);
-      setPreferences(prefs);
+      const prefsResult = await notificationService.getPreferences(userId);
+      if (!prefsResult.success) {
+        const serviceError = new Error(prefsResult.error.message);
+        setError(serviceError);
+        logger.error('Failed to load preferences', { userId, error: prefsResult.error });
+        return;
+      }
+
+      setPreferences(prefsResult.data);
+      setError(null);
     } catch (error) {
+      setError(error instanceof Error ? error : new Error('Failed to load notification preferences'));
       logger.error('Failed to load preferences', { error });
     }
   }, [userId]);
@@ -37,9 +47,25 @@ export function useNotificationPrefs() {
     if (!preferences) return;
     setUpdating(true);
     try {
-      const updated = await notificationService.setQuietHours(userId, quietHours.startTime, quietHours.endTime, quietHours.enabled);
-      setPreferences(updated);
-    } catch (error) { logger.error('Failed to update quiet hours', { error }); }
+      const updatedResult = await notificationService.setQuietHours(
+        userId,
+        quietHours.startTime,
+        quietHours.endTime,
+        quietHours.enabled
+      );
+      if (!updatedResult.success) {
+        const serviceError = new Error(updatedResult.error.message);
+        setError(serviceError);
+        logger.error('Failed to update quiet hours', { userId, error: updatedResult.error });
+        return;
+      }
+
+      setPreferences(updatedResult.data);
+      setError(null);
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error('Failed to update quiet hours'));
+      logger.error('Failed to update quiet hours', { error });
+    }
     finally { setUpdating(false); }
   }, [preferences, userId]);
 
@@ -47,9 +73,20 @@ export function useNotificationPrefs() {
     if (!preferences) return;
     setUpdating(true);
     try {
-      const updated = await notificationService.toggleChannel(userId, channel, enabled);
-      setPreferences(updated);
-    } catch (error) { logger.error('Failed to toggle channel', { error }); }
+      const updatedResult = await notificationService.toggleChannel(userId, channel, enabled);
+      if (!updatedResult.success) {
+        const serviceError = new Error(updatedResult.error.message);
+        setError(serviceError);
+        logger.error('Failed to toggle channel', { userId, channel, enabled, error: updatedResult.error });
+        return;
+      }
+
+      setPreferences(updatedResult.data);
+      setError(null);
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error('Failed to toggle notification channel'));
+      logger.error('Failed to toggle channel', { error });
+    }
     finally { setUpdating(false); }
   }, [preferences, userId]);
 
@@ -57,9 +94,25 @@ export function useNotificationPrefs() {
     if (!preferences) return;
     setUpdating(true);
     try {
-      const updated = await notificationService.toggleNotificationType(userId, type, enabled);
-      setPreferences(updated);
-    } catch (error) { logger.error('Failed to toggle notification type', { error }); }
+      const updatedResult = await notificationService.toggleNotificationType(userId, type, enabled);
+      if (!updatedResult.success) {
+        const serviceError = new Error(updatedResult.error.message);
+        setError(serviceError);
+        logger.error('Failed to toggle notification type', {
+          userId,
+          type,
+          enabled,
+          error: updatedResult.error,
+        });
+        return;
+      }
+
+      setPreferences(updatedResult.data);
+      setError(null);
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error('Failed to toggle notification type'));
+      logger.error('Failed to toggle notification type', { error });
+    }
     finally { setUpdating(false); }
   }, [preferences, userId]);
 
@@ -67,14 +120,25 @@ export function useNotificationPrefs() {
     if (!preferences) return;
     setUpdating(true);
     try {
-      const updated = await notificationService.unmuteCoach(userId, coachId);
-      setPreferences(updated);
-    } catch (error) { logger.error('Failed to unmute coach', { error }); }
+      const updatedResult = await notificationService.unmuteCoach(userId, coachId);
+      if (!updatedResult.success) {
+        const serviceError = new Error(updatedResult.error.message);
+        setError(serviceError);
+        logger.error('Failed to unmute coach', { userId, coachId, error: updatedResult.error });
+        return;
+      }
+
+      setPreferences(updatedResult.data);
+      setError(null);
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error('Failed to unmute coach'));
+      logger.error('Failed to unmute coach', { error });
+    }
     finally { setUpdating(false); }
   }, [preferences, userId]);
 
   return {
-    preferences, loading, refreshing, updating,
+    preferences, error, loading, refreshing, updating,
     handleRefresh, handleQuietHoursChange, handleChannelToggle, handleTypeToggle, handleUnmuteCoach,
   };
 }

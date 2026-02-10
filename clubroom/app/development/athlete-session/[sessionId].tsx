@@ -18,13 +18,30 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useAthleteSessionDetail } from '@/hooks/use-athlete-session-detail';
-import { formatDate } from '@/constants/mock-data';
+import { LoadingState } from '@/components/ui/screen-states';
 
 export default function AthleteSessionDetailScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { session, hasNotes, hasVideos, hasSkills, hasNextFocus, ratingLabel } = useAthleteSessionDetail();
+  const { session, loading, hasNotes, hasVideos, hasSkills, hasNextFocus, ratingLabel, formatDate } = useAthleteSessionDetail();
 
-  if (!session) return null;
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!session) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <View style={styles.notFoundState}>
+          <Ionicons name="alert-circle-outline" size={28} color={palette.muted} />
+          <ThemedText style={[Typography.body, { color: palette.muted }]}>Session not found</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -118,7 +135,7 @@ export default function AthleteSessionDetailScreen() {
           <View style={styles.section}>
             <ThemedText type="subtitle" style={Typography.heading}>Session Videos</ThemedText>
             <View style={{ gap: Spacing.sm }}>
-              {session.videoUrls!.map((url, index) => (
+              {session.videoUrls!.map((_, index) => (
                 <SurfaceCard key={index} style={styles.videoCard}>
                   <Row align="center" justify="space-between">
                     <Row gap="sm" align="center" style={{ flex: 1 }}>
@@ -147,6 +164,7 @@ const styles = StyleSheet.create({
   ratingCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.md },
   cardPadded: { padding: Spacing.lg },
   skillsGrid: {},
+  notFoundState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   skillChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   emptyNotes: { padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm },
   videoCard: { padding: Spacing.md },

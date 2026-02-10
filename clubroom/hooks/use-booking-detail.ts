@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { apiClient } from '@/services/api-client';
-import { upcomingBookings } from '@/constants/mock-data';
+import { bookingService } from '@/services/booking-service';
 import { useAuth } from '@/hooks/use-auth';
 import { useSessionNote } from '@/hooks/use-session-note';
 import type { BookingSummary, Booking } from '@/constants/types';
@@ -50,28 +50,47 @@ export function useBookingDetail(id: string): BookingDetailResult {
   const sessionNote = useSessionNote(id);
 
   useEffect(() => {
+    const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] => {
+      if (status === 'CONFIRMED') return 'Confirmed';
+      if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
+      return 'Completed';
+    };
+
+    const toBookingSummary = (booking: Booking): BookingSummary => ({
+      id: booking.id,
+      coachName: booking.coachName,
+      childName: booking.athleteName ?? 'Athlete',
+      service: booking.service ?? 'Session',
+      start: booking.scheduledAt,
+      status: mapBookingStatus(booking.status),
+      locationLabel: booking.location,
+      coach: {
+        name: booking.coachName,
+        photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
+      },
+      client: {
+        name: booking.athleteName ?? 'Athlete',
+        photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
+      },
+      coachId: booking.coachId,
+      clientId: booking.athleteId ?? '',
+    });
+
     const loadBooking = async () => {
       logger.debug('Loading booking', { id });
-      let foundBooking = upcomingBookings.find((b) => b.id === id);
+      let foundBooking: BookingSummary | undefined;
+
+      const booking = await bookingService.getBooking(id);
+      if (booking) {
+        foundBooking = toBookingSummary(booking);
+      }
 
       if (!foundBooking) {
         try {
           const sessionBookings = await apiClient.get<Booking[]>('session_bookings', []);
           const sessionBooking = sessionBookings.find((b) => b.id === id);
           if (sessionBooking) {
-            foundBooking = {
-              id: sessionBooking.id,
-              coachName: sessionBooking.coachName,
-              childName: sessionBooking.athleteName ?? 'Athlete',
-              service: sessionBooking.service ?? 'Session',
-              start: sessionBooking.scheduledAt,
-              status: sessionBooking.status === 'CONFIRMED' ? 'Confirmed' : sessionBooking.status === 'PENDING' ? 'Pending' : 'Completed',
-              locationLabel: sessionBooking.location,
-              coach: { name: sessionBooking.coachName, photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.coachId },
-              client: { name: sessionBooking.athleteName ?? 'Athlete', photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.athleteId },
-              coachId: sessionBooking.coachId,
-              clientId: sessionBooking.athleteId ?? '',
-            };
+            foundBooking = toBookingSummary(sessionBooking);
           }
         } catch (error) {
           logger.error('Failed to load session bookings', error);

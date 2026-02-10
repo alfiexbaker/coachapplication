@@ -10,7 +10,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { ChatThreadSummary } from '@/constants/types';
-import { chatThreads } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { messagingService } from '@/services/messaging-service';
 
@@ -37,19 +36,11 @@ export function useMessages(): UseMessagesResult {
   const { currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [threads, setThreads] = useState<ChatThreadSummary[]>(chatThreads);
+  const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('direct');
   const [groupFilter, setGroupFilter] = useState<GroupFilter>('all');
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-
-  // Auto-open thread if coachId param is provided
-  useEffect(() => {
-    if (params.coachId) {
-      const thread = chatThreads[0];
-      if (thread) router.push(Routes.chat(thread.id));
-    }
-  }, [params.coachId]);
 
   useEffect(() => {
     messagingService.listThreads().then((result) => {
@@ -58,6 +49,14 @@ export function useMessages(): UseMessagesResult {
       }
     });
   }, []);
+
+  // Auto-open thread if coachId param is provided.
+  useEffect(() => {
+    if (!params.coachId || threads.length === 0) {
+      return;
+    }
+    router.push(Routes.chat(threads[0].id));
+  }, [params.coachId, threads]);
 
   const filteredThreads = useMemo(() => {
     const term = search.trim().toLowerCase();

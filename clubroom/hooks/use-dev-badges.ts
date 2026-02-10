@@ -2,9 +2,21 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
-import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
+import { apiClient } from '@/services/api-client';
+import { userService } from '@/services/user-service';
+import { createLogger } from '@/utils/logger';
 import type { Session } from '@/constants/app-types';
 import { BADGE_REASONS } from '@/components/badges/badge-award-modal';
+
+const logger = createLogger('useDevBadges');
+
+function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export type BadgeCategory = 'toAward' | 'recent' | 'shared';
 
@@ -43,16 +55,65 @@ export function useDevBadges() {
 
   const [activeTab, setActiveTab] = useState<BadgeCategory>('toAward');
   const [sessionQuery, setSessionQuery] = useState('');
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [showAwardModal, setShowAwardModal] = useState(false);
   const [awardContext, setAwardContext] = useState<{
     athleteId: string; athleteName: string; sessionId?: string; sessionLabel?: string; reason?: string;
   } | null>(null);
 
-  const sessions = useMemo<Session[]>(() => {
-    if (!currentUser) return [];
-    return getSessionsForCoach(currentUser.id);
-  }, [currentUser]);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSessions = async () => {
+      if (!currentUser?.id) {
+        if (isMounted) {
+          setSessions([]);
+        }
+        return;
+      }
+
+      try {
+        const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
+        const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
+        const athleteIds = [...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean))];
+        const athleteResult = await userService.getUsersByIds(athleteIds);
+        const athleteMap = new Map<string, { name: string }>();
+
+        if (athleteResult.success) {
+          athleteResult.data.forEach((athlete) => {
+            athleteMap.set(athlete.id, { name: athlete.name });
+          });
+        } else {
+          logger.error('Failed to resolve athletes for badges session picker', {
+            coachId: currentUser.id,
+            error: athleteResult.error,
+          });
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        const normalizedSessions = coachSessions.map((session) => ({
+          ...session,
+          athleteName: session.athleteName || athleteMap.get(session.athleteId)?.name || 'Athlete',
+        }));
+        setSessions(normalizedSessions);
+      } catch (error) {
+        logger.error('Failed to load coach sessions for badges', { coachId: currentUser.id, error });
+        if (isMounted) {
+          setSessions([]);
+        }
+      }
+    };
+
+    loadSessions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
 
   const filteredSessions = useMemo(() => {
     const q = sessionQuery.toLowerCase();

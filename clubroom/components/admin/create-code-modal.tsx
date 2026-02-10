@@ -12,7 +12,7 @@ import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { schools } from '@/constants/mock-data';
+import { SCHOOL_SEEDS } from '@/constants/school-seeds';
 import type { School } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -77,7 +77,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
         <Column gap="lg" padding="lg">
           <Column gap="sm">
             <ThemedText style={styles.label}>Select School</ThemedText>
-            {schools.map((school) => (
+            {SCHOOL_SEEDS.map((school) => (
               <Pressable
                 key={school.id}
                 onPress={() => onSelectSchool(school)}

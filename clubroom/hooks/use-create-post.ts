@@ -11,9 +11,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
-import { getClubMembershipForUser, getUserClubs } from '@/constants/mock-data';
 import { clubFeedService } from '@/services/social-feed-service';
-import type { ClubPostType } from '@/constants/types';
+import type { ClubPostType, ClubMembership } from '@/constants/types';
 import type { Ionicons } from '@expo/vector-icons';
 
 export type PostTypeOption = {
@@ -32,9 +31,23 @@ export const POST_TYPES: PostTypeOption[] = [
 export function useCreatePost() {
   const { currentUser } = useAuth();
 
-  const membership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
+  const clubs = useMemo(() => (currentUser ? clubFeedService.getUserClubs(currentUser.id) : []), [currentUser]);
+  const membership = useMemo<ClubMembership | undefined>(() => {
+    if (!currentUser || clubs.length === 0) return undefined;
+    const role = currentUser.role === 'ADMIN'
+      ? 'ADMIN'
+      : currentUser.role === 'COACH'
+        ? 'COACH'
+        : 'MEMBER';
+    return {
+      clubId: clubs[0].id,
+      userId: currentUser.id,
+      role,
+      status: 'active',
+      joinSource: 'invite',
+    };
+  }, [clubs, currentUser]);
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-  const clubs = useMemo(() => (currentUser ? getUserClubs(currentUser.id) : []), [currentUser]);
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');

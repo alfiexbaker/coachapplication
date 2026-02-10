@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
+import { createLogger } from '@/utils/logger';
 
 export type NotificationFilter = 'all' | 'booking' | 'message' | 'review' | 'badge' | 'reminder' | 'community';
 
@@ -22,6 +23,8 @@ interface UseNotificationsResult {
   currentFilter: NotificationFilter;
 }
 
+const logger = createLogger('useNotifications');
+
 /**
  * Hook for accessing and managing notifications
  * Provides unread count for badge display on tab bar
@@ -40,21 +43,28 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       setIsLoading(true);
       setError(null);
 
-      const allNotifications = await notificationService.list();
+      const allNotificationsResult = await notificationService.list();
+      if (!allNotificationsResult.success) {
+        throw new Error(allNotificationsResult.error.message);
+      }
+
+      const allNotifications = allNotificationsResult.data;
 
       // Filter by type if not 'all'
       let filtered = allNotifications;
       if (currentFilter !== 'all') {
-        filtered = allNotifications.filter((n) => n.type === currentFilter);
+        filtered = allNotifications.filter((n: ExtendedNotificationItem) => n.type === currentFilter);
       }
 
       setNotifications(filtered);
 
       // Calculate unread count from all notifications (not filtered)
-      const unread = allNotifications.filter((n) => !n.read).length;
+      const unread = allNotifications.filter((n: ExtendedNotificationItem) => !n.read).length;
       setUnreadCount(unread);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch notifications'));
+      const normalizedError = err instanceof Error ? err : new Error('Failed to fetch notifications');
+      logger.error('Failed to fetch notifications', { error: normalizedError, currentFilter });
+      setError(normalizedError);
     } finally {
       setIsLoading(false);
     }
@@ -80,17 +90,38 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   }, [fetchNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
-    await notificationService.markAsRead(id);
+    const result = await notificationService.markAsRead(id);
+    if (!result.success) {
+      const markError = new Error(result.error.message);
+      setError(markError);
+      logger.error('Failed to mark notification as read', { id, error: result.error });
+      return;
+    }
+
     await fetchNotifications();
   }, [fetchNotifications]);
 
   const markAllAsRead = useCallback(async () => {
-    await notificationService.markAllAsRead();
+    const result = await notificationService.markAllAsRead();
+    if (!result.success) {
+      const markError = new Error(result.error.message);
+      setError(markError);
+      logger.error('Failed to mark all notifications as read', { error: result.error });
+      return;
+    }
+
     await fetchNotifications();
   }, [fetchNotifications]);
 
   const clearAll = useCallback(async () => {
-    await notificationService.clearAll();
+    const result = await notificationService.clearAll();
+    if (!result.success) {
+      const clearError = new Error(result.error.message);
+      setError(clearError);
+      logger.error('Failed to clear notifications', { error: result.error });
+      return;
+    }
+
     await fetchNotifications();
   }, [fetchNotifications]);
 
@@ -115,8 +146,13 @@ export function useNotificationCount(): number {
   const [count, setCount] = useState(0);
 
   const fetchCount = useCallback(async () => {
-    const unreadCount = await notificationService.getUnreadCount();
-    setCount(unreadCount);
+    const unreadCountResult = await notificationService.getUnreadCount();
+    if (!unreadCountResult.success) {
+      logger.error('Failed to fetch notification count', { error: unreadCountResult.error });
+      return;
+    }
+
+    setCount(unreadCountResult.data);
   }, []);
 
   useEffect(() => {

@@ -15,19 +15,15 @@ import { Clickable } from '@/components/primitives/clickable';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
 import { apiClient } from '@/services/api-client';
-import {
-  getAllCoachesWithProfiles,
-  getDistanceBetweenPostcodes,
-  getChildrenForParent,
-  clubs,
-  clubMemberships,
-} from '@/constants/mock-data';
 import { availabilityService } from '@/services/availability-service';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { bookingService } from '@/services/booking-service';
+import { socialFeedService } from '@/services/social-feed-service';
+import { childService, type ChildProfile } from '@/services/child-service';
+import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
+import type { AvailabilitySlot, SessionInvite, Club, CoachProfile } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 
 import { DiscoverHeader } from './discover-header';
@@ -40,10 +36,44 @@ const logger = createLogger('ParentDiscoverScreen');
 
 const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
 
+type ChildOption = {
+  id: string;
+  name: string;
+};
+
+type CoachOption = {
+  id: string;
+  name: string;
+  avatar?: string;
+  distance: number;
+  profile: {
+    rating?: number;
+    sessionRate?: number;
+    specialties?: string[];
+  };
+};
+
+const formatChildName = (child: ChildProfile) =>
+  child.nickname || `${child.firstName} ${child.lastName}`.trim();
+
+const mapCoachOption = (coach: CoachProfile): CoachOption => ({
+  id: coach.id,
+  name: coach.fullName,
+  avatar: coach.profilePhotoUrl,
+  distance: coach.distanceMiles,
+  profile: {
+    rating: coach.rating.average,
+    sessionRate: coach.sessionRate ?? coach.priceRange.minUsd,
+    specialties: coach.footballFocuses,
+  },
+});
+
 export function ParentDiscoverScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [postcode, setPostcode] = useState('');
+  const [children, setChildren] = useState<ChildOption[]>([]);
+  const [allCoaches, setAllCoaches] = useState<CoachOption[]>([]);
   const [nextAvailableSlots, setNextAvailableSlots] = useState<Record<string, AvailabilitySlot | null>>({});
   const [pendingInvites, setPendingInvites] = useState<SessionInvite[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | undefined>(undefined);
@@ -51,20 +81,81 @@ export function ParentDiscoverScreen() {
   const [invitesError, setInvitesError] = useState<string | null>(null);
   const [completedSessions, setCompletedSessions] = useState<Booking[]>([]);
 
-  const children = useMemo(() => {
-    if (!currentUser) return [];
-    return getChildrenForParent(currentUser.id);
-  }, [currentUser]);
-
   const userClubs = useMemo((): Club[] => {
-    if (!currentUser) return [];
-    const memberships = clubMemberships.filter((m) => m.userId === currentUser.id && m.status === 'active');
-    return memberships.map((m) => clubs.find((c) => c.id === m.clubId)).filter((c): c is Club => c !== undefined);
-  }, [currentUser]);
+    if (!currentUser?.id) return [];
+    return socialFeedService.getUserClubs(currentUser.id);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) setSelectedChildId(children[0].id);
   }, [children, selectedChildId]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadChildren = async () => {
+      if (!currentUser?.id) {
+        if (active) {
+          setChildren([]);
+        }
+        return;
+      }
+
+      const linkedChildren = (currentUser.children || [])
+        .filter((child) => Boolean(child.childId))
+        .map((child) => ({
+          id: child.childId,
+          name: child.childName || 'Child',
+        }));
+
+      if (linkedChildren.length > 0) {
+        if (active) {
+          setChildren(linkedChildren);
+        }
+        return;
+      }
+
+      const childProfiles = await childService.getChildren(currentUser.id);
+      if (active) {
+        setChildren(
+          childProfiles.map((child) => ({
+            id: child.id,
+            name: formatChildName(child),
+          })),
+        );
+      }
+    };
+
+    void loadChildren();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id, currentUser?.children]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCoaches = async () => {
+      const result = await discoverService.getAllCoaches();
+      if (!active) {
+        return;
+      }
+
+      if (!result.success) {
+        setAllCoaches([]);
+        return;
+      }
+
+      setAllCoaches(result.data.map(mapCoachOption));
+    };
+
+    void loadCoaches();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const loadCompletedSessions = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -117,14 +208,18 @@ export function ParentDiscoverScreen() {
 
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3 || !currentUser) return [];
-    return getAllCoachesWithProfiles()
-      .map((coach) => ({ ...coach, distance: getDistanceBetweenPostcodes(currentUser.postcode, coach.postcode) }))
+    return allCoaches
       .filter((coach) => coach.distance <= 5)
       .sort((a, b) => a.distance - b.distance);
-  }, [postcode, currentUser]);
+  }, [allCoaches, postcode, currentUser]);
 
   useEffect(() => {
     const fetchSlots = async () => {
+      if (nearbyCoaches.length === 0) {
+        setNextAvailableSlots({});
+        return;
+      }
+
       const today = toDateStr(new Date());
       const twoWeeks = new Date();
       twoWeeks.setDate(twoWeeks.getDate() + 14);
@@ -148,7 +243,7 @@ export function ParentDiscoverScreen() {
       }
       setNextAvailableSlots(slotsMap);
     };
-    if (nearbyCoaches.length > 0) fetchSlots();
+    void fetchSlots();
   }, [nearbyCoaches]);
 
   if (!currentUser) return null;
@@ -193,7 +288,7 @@ export function ParentDiscoverScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[0]}>
         <DiscoverHeader
-          children={children}
+          childOptions={children}
           selectedChildId={selectedChildId}
           onSelectChild={setSelectedChildId}
           postcode={postcode}

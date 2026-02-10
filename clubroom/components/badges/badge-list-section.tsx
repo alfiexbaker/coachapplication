@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { formatDate } from '@/constants/mock-data';
 import { BADGE_TABS, type BadgeItem, type BadgeCategory } from '@/hooks/use-dev-badges';
 import type { Session } from '@/constants/app-types';
 
@@ -18,6 +17,14 @@ interface BadgeListSectionProps {
   selectedSession: Session | null;
   linkedAthlete: string;
   onAward: (badge: BadgeItem) => void;
+}
+
+function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export const BadgeListSection = memo(function BadgeListSection({

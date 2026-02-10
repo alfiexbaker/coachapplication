@@ -1,4 +1,3 @@
-import { chatThreads, chatMessages } from '@/constants/mock-data';
 import { ChatAttachment, ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -9,13 +8,76 @@ import { type Result, type ServiceError, ok, err, storageError, notFound } from 
 
 const logger = createLogger('MessagingService');
 
+const DEFAULT_THREADS: ChatThreadSummary[] = [
+  {
+    id: 'thread_tom_coach1',
+    kind: 'direct',
+    bookingId: 'book1',
+    coachName: 'Sarah Mitchell',
+    childName: 'Tom Henderson',
+    serviceName: '1-to-1 Training',
+    location: 'Hyde Park',
+    scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    unreadCount: 1,
+    safetyCopy: 'All conversations are monitored for safety',
+    pinnedObjectives: ['Finishing', 'Passing'],
+    lastMessageSnippet: 'See you tomorrow at 5pm.',
+    lastMessageSender: 'Sarah Mitchell',
+  },
+  {
+    id: 'thread_emma_coach2',
+    kind: 'direct',
+    bookingId: 'book2',
+    coachName: 'Mike Thompson',
+    childName: 'Emma Henderson',
+    serviceName: 'Small Group Session',
+    location: 'Hackney Marshes',
+    scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    unreadCount: 0,
+    safetyCopy: 'All conversations are monitored for safety',
+    pinnedObjectives: ['Dribbling'],
+    lastMessageSnippet: 'Brilliant energy today.',
+    lastMessageSender: 'Mike Thompson',
+  },
+];
+
+const DEFAULT_MESSAGES: ChatMessage[] = [
+  {
+    id: 'msg_thread_tom_1',
+    threadId: 'thread_tom_coach1',
+    sender: 'coach',
+    senderName: 'Sarah Mitchell',
+    body: 'Great effort today. Keep practicing your first touch.',
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    status: 'seen',
+  },
+  {
+    id: 'msg_thread_tom_2',
+    threadId: 'thread_tom_coach1',
+    sender: 'parent',
+    senderName: 'John Henderson',
+    body: 'Thanks coach, we will work on that this evening.',
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    status: 'seen',
+  },
+  {
+    id: 'msg_thread_emma_1',
+    threadId: 'thread_emma_coach2',
+    sender: 'coach',
+    senderName: 'Mike Thompson',
+    body: 'Brilliant energy today. Emma is improving each week.',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    status: 'delivered',
+  },
+];
+
 export class MessagingService {
-  private inMemoryThreads: ChatThreadSummary[] = chatThreads;
+  private inMemoryThreads: ChatThreadSummary[] = DEFAULT_THREADS.map((thread) => ({ ...thread }));
   private inMemoryMessages: Record<string, ChatMessage[]> = {};
 
   constructor() {
-    chatThreads.forEach((thread) => {
-      this.inMemoryMessages[thread.id] = chatMessages.filter((m) => m.threadId === thread.id);
+    this.inMemoryThreads.forEach((thread) => {
+      this.inMemoryMessages[thread.id] = DEFAULT_MESSAGES.filter((message) => message.threadId === thread.id);
     });
   }
 

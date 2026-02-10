@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
-import { getClubMembershipForUser, getClubById, getClubSquads } from '@/constants/mock-data';
+import { squadService } from '@/services/squad-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import type { GroupSession, ClubSquad } from '@/constants/types';
@@ -31,20 +32,32 @@ export function useTrainingSchedule() {
 
     setLoading(true);
     try {
-      const membership = getClubMembershipForUser(currentUser.id);
-      if (membership) {
-        const club = getClubById(membership.clubId);
-        setClubName(club?.name || 'Club');
-        setSquads(getClubSquads(membership.clubId));
-        const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
-        setTrainingSessions(sessions);
+      const userClubs = socialFeedService.getUserClubs(currentUser.id);
+      const activeClub = userClubs[0];
+
+      if (!activeClub) {
+        setClubName('Club');
+        setSquads([]);
+        setTrainingSessions([]);
+        return;
       }
+
+      setClubName(activeClub.name);
+      const [clubSquads, sessions] = await Promise.all([
+        isCoach
+          ? squadService.getCoachSquads(currentUser.id, activeClub.id)
+          : squadService.getSquads(activeClub.id),
+        groupSessionService.getClubTrainingSessions(activeClub.id),
+      ]);
+
+      setSquads(clubSquads);
+      setTrainingSessions(sessions);
     } catch (error) {
       logger.error('Failed to load training sessions', error);
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, isCoach]);
 
   useEffect(() => {
     loadData();

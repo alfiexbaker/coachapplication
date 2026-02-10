@@ -4,11 +4,12 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
-import { getSessionsForAthlete, getUserById } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { badgeService } from '@/services/badge-service';
-import type { BadgeAward, Goal, SkillProgress } from '@/constants/types';
+import { apiClient } from '@/services/api-client';
+import { userService } from '@/services/user-service';
+import type { BadgeAward, Goal, Session, SkillProgress, User } from '@/constants/types';
 
 const logger = createLogger('AthleteProgressScreen');
 
@@ -135,13 +136,59 @@ function getMockGoals(athleteId: string): Goal[] {
 
 export function useAthleteProgress() {
   const { currentUser } = useAuth();
+  const [athlete, setAthlete] = useState<User | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [activeTab, setActiveTab] = useState<ProgressTabType>('progress');
   const [goals, setGoals] = useState<Goal[]>([]);
 
   const userId = currentUser?.id;
-  const athlete = userId ? getUserById(userId) : null;
-  const sessions = useMemo(() => userId ? getSessionsForAthlete(userId) : [], [userId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadAthleteAndSessions = async () => {
+      if (!userId) {
+        if (mounted) {
+          setAthlete(null);
+          setSessions([]);
+        }
+        return;
+      }
+
+      try {
+        const [athleteResult, allSessions] = await Promise.all([
+          userService.getUserById(userId),
+          apiClient.get<Session[]>('coach_sessions', []),
+        ]);
+
+        if (!mounted) {
+          return;
+        }
+
+        if (athleteResult.success) {
+          setAthlete(athleteResult.data);
+        } else {
+          logger.error('Failed to load athlete profile', { userId, error: athleteResult.error });
+          setAthlete(null);
+        }
+
+        setSessions(allSessions.filter((session) => session.athleteId === userId));
+      } catch (error) {
+        logger.error('Failed to load athlete sessions', { userId, error });
+        if (mounted) {
+          setAthlete(null);
+          setSessions([]);
+        }
+      }
+    };
+
+    loadAthleteAndSessions();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (userId) {

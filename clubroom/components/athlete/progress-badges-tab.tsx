@@ -11,7 +11,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 import { getBadgeColor, getBadgeIcon, getTierColor } from '@/hooks/use-athlete-progress';
 import type { BadgeAward } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -76,12 +76,12 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
                       <ThemedText style={[styles.tierText, { color: palette.onPrimary }]}>{award.badgeTier}</ThemedText>
                     </View>
                   )}
-                </View>
+                    </View>
                 <View style={styles.badgeContent}>
                   <ThemedText type="defaultSemiBold" style={styles.badgeLabel}>{award.badgeLabel}</ThemedText>
                   <ThemedText style={[styles.badgeReason, { color: palette.muted }]}>{award.reason}</ThemedText>
                   <Row style={styles.badgeMeta}>
-                    <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>{formatDate(award.awardedAt)}</ThemedText>
+                    <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
                     {award.coachName && (
                       <ThemedText style={[styles.badgeCoach, { color: palette.muted }]}>from {award.coachName}</ThemedText>
                     )}

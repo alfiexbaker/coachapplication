@@ -21,13 +21,13 @@ Building features on this foundation means every feature inherits the debt. Fix 
 
 | Phase | Sprint Doc | What |
 |-------|-----------|------|
-| **1** | `PHASE-1-SERVICE-HARDENING.md` | Every service returns Result<T>, uses apiClient, has logger, emits events |
-| **2** | `PHASE-2-DATA-ACCESS.md` | 70 mock-data imports → service calls. UserService. Remove denormalized fields. |
+| **1** | `../CompletedSprints/PHASE-1-SERVICE-HARDENING.md` | ✅ Complete. Every service returns Result<T>, uses apiClient, has logger, emits events |
+| **2** | `PHASE-2-DATA-ACCESS.md` | ACTIVE. 70 mock-data imports → service calls. UserService. Remove denormalized fields. |
 | **3** | `PHASE-3-SCREEN-INFRASTRUCTURE.md` | Enhance useScreen(). Migrate 175 screens. 4 visual states everywhere. |
 | **4** | `PHASE-4-UI-CONSISTENCY.md` | Decompose oversized components. Pressable→Clickable. flexDirection→Row. Tokens. |
 | **5** | `PHASE-5-TEST-COVERAGE.md` | 70%+ service coverage. strict:true. Critical path tests. |
 
-**Status update (2026-02-10):** Phase 1 service hardening quality gates are now passing.
+**Status update (2026-02-10):** Phase 1 moved to `CompletedSprints`. Phase 2 kickoff uses `PHASE-2-EXECUTION-PLAY.md`.
 
 ## Execution Order
 
@@ -54,3 +54,8 @@ After each phase completes:
 1. Update this INDEX with ✅
 2. Move completed phase doc to `../CompletedSprints/`
 3. Update `memory/LastStep.md`
+
+Current active execution:
+- `PHASE-2-DATA-ACCESS.md`
+- `PHASE-2-EXECUTION-PLAY.md`
+- `PHASE-2-LIVE-TRACKER.md`

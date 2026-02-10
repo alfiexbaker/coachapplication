@@ -17,7 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
-import { formatGBP } from '@/constants/mock-data';
+import { formatGBP } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
 import type { ThemeColors } from '@/hooks/useTheme';
 

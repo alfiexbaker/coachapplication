@@ -13,7 +13,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
-import { formatGBP } from '@/constants/mock-data';
+import { formatGBP } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
 import type { AvailabilitySlot } from '@/constants/types';
 

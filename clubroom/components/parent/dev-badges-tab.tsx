@@ -15,7 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 import { getBadgeColor, getBadgeIcon } from '@/hooks/use-parent-development';
 import type { BadgeAward } from '@/constants/types';
 
@@ -66,7 +66,7 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
                         &quot;{award.note}&quot;
                       </ThemedText>
                     )}
-                    <ThemedText style={[styles.date, { color: palette.muted }]}>{formatDate(award.awardedAt)}</ThemedText>
+                    <ThemedText style={[styles.date, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
                   </View>
                 </Row>
               </Animated.View>
@@ -118,7 +118,7 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
                         <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
                         <ThemedText style={[styles.reason, { color: palette.muted }]}>{award.reason}</ThemedText>
                       </View>
-                      <ThemedText style={[styles.date, { color: palette.muted }]}>{formatDate(award.awardedAt)}</ThemedText>
+                      <ThemedText style={[styles.date, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
                     </Row>
                     <Row>
                       <Row align="center" gap="xxs" style={[

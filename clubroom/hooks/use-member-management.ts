@@ -7,11 +7,19 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { clubService, type ClubMember } from '@/services/club-service';
-import { getClubById, getClubSquads, getAllClubMembershipsForUser } from '@/constants/mock-data';
+import { squadService } from '@/services/squad-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
 import type { Club, ClubSquad, ClubRole } from '@/constants/types';
 
 const logger = createLogger('MemberManagement');
+
+const mapUserRoleToClubRole = (role: string | undefined): ClubRole | null => {
+  if (role === 'ADMIN') return 'ADMIN';
+  if (role === 'COACH') return 'COACH';
+  if (role === 'USER') return 'MEMBER';
+  return null;
+};
 
 export function useMemberManagement() {
   const { clubId, memberId } = useLocalSearchParams<{ clubId: string; memberId: string }>();
@@ -29,22 +37,20 @@ export function useMemberManagement() {
     if (!clubId || !memberId) return;
     setLoading(true);
     try {
-      const clubData = getClubById(clubId);
+      const clubData = currentUser?.id
+        ? socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId)
+        : undefined;
       setClub(clubData || null);
       const memberData = await clubService.getMember(clubId, memberId);
       setMember(memberData);
-      setSquads(getClubSquads(clubId));
-      if (currentUser?.id) {
-        const memberships = getAllClubMembershipsForUser(currentUser.id);
-        const myMembership = memberships.find((m) => m.clubId === clubId);
-        setCurrentUserRole(myMembership?.role || null);
-      }
+      setSquads(await squadService.getSquads(clubId));
+      setCurrentUserRole(mapUserRoleToClubRole(currentUser?.role));
     } catch (error) {
       logger.error('Failed to load member data', error);
     } finally {
       setLoading(false);
     }
-  }, [clubId, memberId, currentUser?.id]);
+  }, [clubId, memberId, currentUser?.id, currentUser?.role]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

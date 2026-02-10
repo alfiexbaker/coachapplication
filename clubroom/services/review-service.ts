@@ -1,5 +1,4 @@
 import { Review } from '@/constants/types';
-import { MOCK_REVIEWS } from '@/constants/mock-data';
 import { apiClient } from './api-client';
 import { notificationService } from './notification-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -11,12 +10,69 @@ const logger = createLogger('ReviewService');
 // Extended review that works with both types
 type ExtendedReview = Review & { comment?: string };
 
+const DEFAULT_REVIEWS: ExtendedReview[] = [
+  {
+    id: 'review_seed_1',
+    coachId: 'coach1',
+    coachName: 'Sarah Mitchell',
+    parentId: 'user4',
+    parentName: 'John Henderson',
+    athleteId: 'user1',
+    athleteName: 'Tom Henderson',
+    rating: 5,
+    title: 'Huge confidence boost',
+    content: 'Tom has improved massively in decision-making and composure in front of goal.',
+    comment: 'Tom has improved massively in decision-making and composure in front of goal.',
+    isPublic: true,
+    isVerifiedBooking: true,
+    status: 'PUBLISHED',
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    helpfulCount: 4,
+  },
+  {
+    id: 'review_seed_2',
+    coachId: 'coach2',
+    coachName: 'Mike Thompson',
+    parentId: 'user5',
+    parentName: 'Lisa Wilson',
+    athleteId: 'user3',
+    athleteName: 'James Wilson',
+    rating: 5,
+    title: 'Excellent structure',
+    content: 'Sessions are focused, clear, and very practical. James looks forward to every one.',
+    comment: 'Sessions are focused, clear, and very practical. James looks forward to every one.',
+    isPublic: true,
+    isVerifiedBooking: true,
+    status: 'PUBLISHED',
+    createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+    helpfulCount: 2,
+  },
+  {
+    id: 'review_seed_3',
+    coachId: 'coach3',
+    coachName: 'David Roberts',
+    parentId: 'user4',
+    parentName: 'John Henderson',
+    athleteId: 'user2',
+    athleteName: 'Emma Henderson',
+    rating: 4,
+    title: 'Great attention to detail',
+    content: 'David gives very actionable feedback after each session.',
+    comment: 'David gives very actionable feedback after each session.',
+    isPublic: true,
+    isVerifiedBooking: true,
+    status: 'PUBLISHED',
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    helpfulCount: 1,
+  },
+];
+
 class ReviewService {
   async list(): Promise<Result<ExtendedReview[], ServiceError>> {
     try {
       const reviews = await apiClient.get<ExtendedReview[]>(
         STORAGE_KEYS.REVIEWS,
-        MOCK_REVIEWS as unknown as ExtendedReview[],
+        DEFAULT_REVIEWS,
       );
       return ok(reviews);
     } catch (error) {

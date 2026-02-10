@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -8,8 +8,9 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Typography, Spacing, Shadows} from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
-import { chatThreads } from '@/constants/mock-data';
 import { useNotificationCount } from '@/hooks/use-notifications';
+import { messagingService } from '@/services/messaging-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 
 // ============================================================================
 // HELPER FUNCTIONS FOR SIMPLIFIED USER TYPE SYSTEM
@@ -154,9 +155,43 @@ export default function TabLayout() {
   const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
   const notificationCount = useNotificationCount();
+  const [messageCount, setMessageCount] = useState(0);
+
+  const loadMessageCount = useCallback(async () => {
+    const threadResult = await messagingService.listThreads();
+    if (!threadResult.success) {
+      setMessageCount(0);
+      return;
+    }
+
+    const count = threadResult.data.reduce(
+      (total, thread) => total + (thread.unreadCount ?? 0),
+      0,
+    );
+    setMessageCount(count);
+  }, []);
+
+  useEffect(() => {
+    void loadMessageCount();
+
+    const unsubscribeMessageSent = onTyped(ServiceEvents.MESSAGE_SENT, () => {
+      void loadMessageCount();
+    });
+    const unsubscribeMessageEdited = onTyped(ServiceEvents.MESSAGE_EDITED, () => {
+      void loadMessageCount();
+    });
+    const unsubscribeMessageDeleted = onTyped(ServiceEvents.MESSAGE_DELETED, () => {
+      void loadMessageCount();
+    });
+
+    return () => {
+      unsubscribeMessageSent();
+      unsubscribeMessageEdited();
+      unsubscribeMessageDeleted();
+    };
+  }, [loadMessageCount]);
 
   const userRole = currentUser?.role ?? 'DEFAULT';
-  const messageCount = chatThreads.reduce((total, thread) => total + (thread.unreadCount || 0), 0);
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
   const hiddenRoutes = roleConfig.hidden ?? [];
 

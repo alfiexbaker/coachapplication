@@ -15,10 +15,6 @@ import { inviteService as sessionInviteService } from '@/services/invite';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import {
-  upcomingBookings,
-  getChildrenForParent,
-} from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
@@ -162,11 +158,9 @@ export function useBookings(): UseBookingsResult {
       )
     );
 
-    const allBookings = [...upcomingBookings, ...sessionBookings];
-    const filteredBookings = allBookings.filter((booking) => {
+    const filteredBookings = sessionBookings.filter((booking) => {
       if (hasChildren(currentUser)) {
-        const children = getChildrenForParent(currentUser?.id || '');
-        const childrenIds = children.map(c => c.id);
+        const childrenIds = (currentUser?.children || []).map((child) => child.childId);
         return childrenIds.includes(booking.clientId || '') ||
                booking.clientId === currentUser?.id ||
                booking.client?.name === currentUser?.fullName;

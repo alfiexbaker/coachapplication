@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
 import { TierNames, CategoryInfo } from '@/constants/progression';
 import { getTierColor, getCategoryIcon, isRecent } from '@/hooks/use-child-badges';
@@ -18,6 +17,14 @@ interface ChildBadgeCardProps {
   award: BadgeAward;
   highlighted: boolean;
   onRefresh: () => void;
+}
+
+function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export const ChildBadgeCard = memo(function ChildBadgeCard({ award, highlighted, onRefresh }: ChildBadgeCardProps) {

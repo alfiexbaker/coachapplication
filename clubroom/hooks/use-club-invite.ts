@@ -1,11 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { router } from 'expo-router';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useLocalSearchParams, router } from 'expo-router';
 
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/use-auth';
-import { bookings, getUserById, getClubById } from '@/constants/mock-data';
+import { bookingService } from '@/services/booking-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubRole } from '@/constants/types';
+import type { Booking } from '@/constants/app-types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('InviteMembers');
@@ -30,7 +31,7 @@ export const ROLE_OPTIONS: { role: ClubRole; label: string; description: string 
 
 export function useClubInvite() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const { currentUser } = useAuth();
+  const { currentUser, availableUsers } = useAuth();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<InviteTab>('past-sessions');
@@ -39,33 +40,67 @@ export function useClubInvite() {
   const [selectedRole, setSelectedRole] = useState<ClubRole>('MEMBER');
   const [manualEmail, setManualEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
+  const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
 
-  const club = clubId ? getClubById(clubId) : null;
+  const club = useMemo(() => {
+    if (!clubId || !currentUser?.id) return null;
+    return socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId) || null;
+  }, [clubId, currentUser?.id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCompletedBookings = async () => {
+      if (!currentUser?.id) {
+        if (active) {
+          setCompletedBookings([]);
+        }
+        return;
+      }
+
+      const allBookings = await bookingService.list();
+      if (!active) {
+        return;
+      }
+
+      setCompletedBookings(
+        allBookings.filter((booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED'),
+      );
+    };
+
+    void loadCompletedBookings();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
 
   const pastSessionUsers = useMemo(() => {
     if (!currentUser) return [];
 
     const userMap = new Map<string, PastSessionUser>();
-    const coachBookings = bookings.filter(
-      (b) => b.coachId === currentUser.id && b.status === 'COMPLETED'
-    );
+    const usersById = new Map(availableUsers.map((user) => [user.id, user]));
 
-    coachBookings.forEach((booking) => {
+    completedBookings.forEach((booking) => {
       const bookedBy = booking.bookedById || booking.athleteId;
+      if (!bookedBy) {
+        return;
+      }
+
       const isParent = bookedBy !== booking.athleteId;
-      const user = getUserById(bookedBy!);
+      const user = usersById.get(bookedBy);
       if (!user) return;
 
-      const existing = userMap.get(bookedBy!);
+      const existing = userMap.get(bookedBy);
       if (existing) {
         existing.sessionCount++;
         if (new Date(booking.scheduledAt) > new Date(existing.lastSessionDate)) {
           existing.lastSessionDate = booking.scheduledAt;
         }
       } else {
-        const athlete = isParent && booking.athleteId ? getUserById(booking.athleteId) : null;
-        userMap.set(bookedBy!, {
-          userId: bookedBy!,
+        const athlete = isParent && booking.athleteId ? usersById.get(booking.athleteId) : null;
+        userMap.set(bookedBy, {
+          userId: bookedBy,
           userName: user.name || 'Unknown',
           userAvatar: user.avatar,
           sessionCount: 1,
@@ -77,7 +112,7 @@ export function useClubInvite() {
     });
 
     return Array.from(userMap.values()).sort((a, b) => b.sessionCount - a.sessionCount);
-  }, [currentUser]);
+  }, [currentUser, completedBookings, availableUsers]);
 
   const filteredUsers = useMemo(() => {
     if (!searchQuery) return pastSessionUsers;

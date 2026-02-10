@@ -12,12 +12,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
-import type { Booking } from '@/constants/app-types';
+import type { Booking, Session } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
 
 import type { AthleteRosterEntry } from '@/hooks/use-coach-development';
-import { formatDate, getUserById } from '@/hooks/use-coach-development';
-import type { Session } from '@/constants/app-types';
+import { formatDate } from '@/hooks/use-coach-development';
 import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
@@ -151,7 +150,15 @@ export const AttentionSection = memo(AttentionSectionInner);
 // RecentSessionsSection
 // ---------------------------------------------------------------------------
 
-function RecentSessionsSectionInner({ sessions, logger }: { sessions: Session[]; logger: { press: (event: string, data: Record<string, unknown>) => void } }) {
+function RecentSessionsSectionInner({
+  sessions,
+  athleteDirectory,
+  logger,
+}: {
+  sessions: Session[];
+  athleteDirectory: Record<string, { name: string; avatar?: string }>;
+  logger: { press: (event: string, data: Record<string, unknown>) => void };
+}) {
   const { colors: palette } = useTheme();
   return (
     <SurfaceCard style={styles.sectionCard}>
@@ -161,15 +168,17 @@ function RecentSessionsSectionInner({ sessions, logger }: { sessions: Session[];
       </Row>
       <View style={{ gap: Spacing.xs }}>
         {sessions.map((session) => {
-          const athlete = getUserById(session.athleteId);
+          const athlete = athleteDirectory[session.athleteId];
+          const athleteName = athlete?.name || session.athleteName || 'Athlete';
+          const athleteAvatar = athlete?.avatar || athleteName.charAt(0).toUpperCase();
           return (
             <Row key={session.id} style={[styles.recentRow, { borderColor: palette.border }]}>
               <Row style={styles.rowLeft}>
                 <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                  <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{athlete?.avatar || athlete?.name?.charAt(0) || '?'}</ThemedText>
+                  <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{athleteAvatar}</ThemedText>
                 </View>
                 <View style={styles.rowContent}>
-                  <ThemedText type="defaultSemiBold" style={styles.athleteName}>{athlete?.name || 'Athlete'}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.athleteName}>{athleteName}</ThemedText>
                   <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>{formatDate(session.completedAt)} · Rated {session.performanceRating}</ThemedText>
                 </View>
               </Row>

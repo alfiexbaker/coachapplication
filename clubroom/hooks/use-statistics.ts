@@ -14,16 +14,11 @@ import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
-import {
-  sessionHistory,
-  athleteSkillLevels,
-  getChildrenForParent,
-  getSessionsForAthlete,
-} from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
+import { apiClient } from '@/services/api-client';
 import { hasChildren } from '@/utils/user-helpers';
 import { Routes } from '@/navigation/routes';
-import type { ThemeColors } from '@/hooks/useTheme';
+import type { Session, User } from '@/constants/types';
 
 export interface StatItem {
   id: string;
@@ -44,16 +39,39 @@ export interface SessionDisplayItem {
   completedAt?: string;
 }
 
-export function useStatistics() {
-  const { currentUser } = useAuth();
-  const { colors: palette } = useTheme();
+const mapSessionToDisplay = (session: Session): SessionDisplayItem => ({
+  id: session.id,
+  coachName: session.coachName ?? 'Unknown Coach',
+  athleteName: session.athleteName ?? 'Unknown Athlete',
+  focus: session.skillsWorkedOn[0] || 'General Training',
+  durationMinutes: 60,
+  rating: session.performanceRating,
+  coachFeedback: session.notes,
+  completedAt: session.completedAt,
+});
 
-  const children = useMemo(() => {
+export function useStatistics() {
+  const { currentUser, availableUsers } = useAuth();
+  const { colors: palette } = useTheme();
+  const [storedSessions, setStoredSessions] = useState<Session[]>([]);
+
+  const children = useMemo<User[]>(() => {
     if (currentUser && hasChildren(currentUser)) {
-      return getChildrenForParent(currentUser.id);
+      return (currentUser.children || []).map((childRef) => {
+        const linkedUser = availableUsers.find((user) => user.id === childRef.childId);
+        return {
+          id: childRef.childId,
+          name: childRef.childName || linkedUser?.name || 'Child',
+          email: linkedUser?.email || '',
+          role: linkedUser?.role || 'USER',
+          postcode: linkedUser?.postcode || '',
+          dateOfBirth: linkedUser?.dateOfBirth || '',
+          avatar: linkedUser?.avatar,
+        };
+      });
     }
     return [];
-  }, [currentUser]);
+  }, [availableUsers, currentUser]);
 
   const [selectedChildId, setSelectedChildId] = useState<string>(
     children.length > 0 ? children[0].id : ''
@@ -62,6 +80,27 @@ export function useStatistics() {
 
   const isParent = hasChildren(currentUser);
   const targetId = isParent ? selectedChildId : currentUser?.id;
+
+  // Load stored sessions once per user context
+  useEffect(() => {
+    let active = true;
+    const loadSessions = async () => {
+      const sessions = await apiClient.get<Session[]>('coach_sessions', []);
+      if (active) {
+        setStoredSessions(sessions);
+      }
+    };
+    void loadSessions();
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!selectedChildId && children.length > 0) {
+      setSelectedChildId(children[0].id);
+    }
+  }, [children, selectedChildId]);
 
   // Load badge count
   useEffect(() => {
@@ -76,21 +115,15 @@ export function useStatistics() {
 
   // Get sessions filtered by selected child for parents
   const sessions = useMemo<SessionDisplayItem[]>(() => {
-    if (isParent && selectedChildId) {
-      const mapped: SessionDisplayItem[] = getSessionsForAthlete(selectedChildId).map((s) => ({
-        id: s.id,
-        coachName: s.coachName ?? 'Unknown Coach',
-        athleteName: s.athleteName ?? 'Unknown Athlete',
-        focus: s.skillsWorkedOn[0] || 'General Training',
-        durationMinutes: 60,
-        rating: s.performanceRating,
-        coachFeedback: s.notes,
-        completedAt: s.completedAt,
-      }));
-      return mapped;
+    if (!targetId) {
+      return [];
     }
-    return sessionHistory;
-  }, [currentUser, selectedChildId, isParent]);
+
+    const filtered = storedSessions.filter((session) => session.athleteId === targetId);
+    return filtered
+      .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+      .map(mapSessionToDisplay);
+  }, [storedSessions, targetId]);
 
   // Calculate stats
   const totalSessions = sessions.length;
@@ -131,13 +164,24 @@ export function useStatistics() {
   );
 
   // Sorted skills (top 6)
-  const topSkills = useMemo(
-    () =>
-      [...athleteSkillLevels]
-        .sort((a, b) => b.level - a.level)
-        .slice(0, 6),
-    []
-  );
+  const topSkills = useMemo(() => {
+    const skillCounts = new Map<string, number>();
+    for (const session of sessions) {
+      const skill = session.focus;
+      if (!skill) {
+        continue;
+      }
+      skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+    }
+
+    return Array.from(skillCounts.entries())
+      .map(([skill, count]) => ({
+        skill,
+        level: Math.min(100, count * 20),
+      }))
+      .sort((a, b) => b.level - a.level)
+      .slice(0, 6);
+  }, [sessions]);
 
   // Recent sessions (top 5)
   const recentSessions = useMemo(() => sessions.slice(0, 5), [sessions]);

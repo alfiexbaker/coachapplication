@@ -5,23 +5,25 @@
 
 ---
 
-## Foundation/ (7 files) — ACTIVE
+## Foundation/ (9 files) — ACTIVE
 
 **The current plan. Do these in order. No feature work until all 5 phases pass their quality gates.**
 
 | File | Status | Duration | What |
 |------|--------|----------|------|
-| `PHASE-1-SERVICE-HARDENING.md` | ✅ Complete | ~1 week | 34 services → Result<T>, storageService → apiClient, loggers, events |
-| `PHASE-2-DATA-ACCESS.md` | Pending | ~1.5 weeks | 70 mock-data imports → services, UserService, remove 194 denormalized fields |
+| `PHASE-2-DATA-ACCESS.md` | ACTIVE | ~1.5 weeks | 70 mock-data imports → services, UserService, remove denormalized fields |
+| `PHASE-2-EXECUTION-PLAY.md` | ACTIVE | ~1.5 weeks | Repo-validated Phase 2 sequencing, risk controls, and quality gates |
+| `PHASE-2-LIVE-TRACKER.md` | ACTIVE | Rolling | Exact 70-file migration checklist with per-item status tracking |
 | `PHASE-3-SCREEN-INFRASTRUCTURE.md` | Pending | ~1.5 weeks | Enhance useScreen(), migrate 175 screens, 4 visual states everywhere |
 | `PHASE-4-UI-CONSISTENCY.md` | Pending | ~1 week | Decompose 188 components, Pressable→Clickable, Row, Reanimated, tokens |
+| `PHASE-4-PROGRESS.md` | Tracking | — | Progress tracker for Phase 4 migration batches |
 | `PHASE-5-TEST-COVERAGE.md` | Pending | ~1.5 weeks | 70%+ service coverage, strict:true, critical path tests |
 | `SPRINT-9-TODO-AFTER.md` | — | — | Parking lot for post-foundation work |
 | `INDEX.md` | — | — | This overview |
 
 ---
 
-## CompletedSprints/ (19 files)
+## CompletedSprints/ (20 files)
 
 All verified done. Historical reference only.
 
@@ -35,6 +37,7 @@ All verified done. Historical reference only.
 | `SPRINT7-TOUCHABLE-OPACITY.md` | TouchableOpacity → Pressable — 52/52 files |
 | `SPRINT8-COLORS-LIGHT.md` | Colors.light → dynamic colors — ~216 files |
 | `SPRINT9-FONTWEIGHT-CLEANUP.md` | fontWeight → Typography tokens — 17 files |
+| `PHASE-1-SERVICE-HARDENING.md` | Foundation Phase 1 complete — services hardened for Result<T>/apiClient/events |
 | `1A-api-client-service-pattern.md` | API client + 59 services migrated |
 | `1B-fix-broken-flows.md` | Invite→booking + counter-offer→booking |
 | `1C-offline-support.md` | Offline banner + action queue |

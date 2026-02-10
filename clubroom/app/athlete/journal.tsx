@@ -19,13 +19,13 @@ import { Row } from '@/components/primitives/row';
 import { SessionJournal } from '@/components/development/session-journal';
 import type { JournalEntry } from '@/components/development/session-journal';
 import { useScreen } from '@/hooks/use-screen';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { ok } from '@/types/result';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { MOCK_JOURNAL_ENTRIES } from '@/constants/mock-data';
+import { SESSION_JOURNAL_SEEDS } from '@/constants/session-journal-seeds';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('AthleteJournalScreen');
@@ -45,10 +45,9 @@ export default function AthleteJournalScreen() {
     try {
       setError(false);
       const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
-      // Use mock data as fallback
       const data = stored.length > 0
         ? stored.filter((e) => e.athleteId === userId)
-        : MOCK_JOURNAL_ENTRIES.filter((e) => e.athleteId === userId);
+        : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
       setEntries(data);
     } catch (err) {
       logger.error('Failed to load journal', err);

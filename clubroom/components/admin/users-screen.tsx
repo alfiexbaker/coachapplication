@@ -5,18 +5,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Typography } from '@/constants/theme';
-import { MOCK_USERS } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { Row } from '@/components/primitives';
 
 export function AdminUsersScreen() {
   const { colors: palette } = useTheme();
+  const { availableUsers } = useAuth();
 
   const userCounts = {
-    coaches: MOCK_USERS.filter((u) => u.role === 'COACH').length,
-    users: MOCK_USERS.filter((u) => u.role === 'USER').length,
-    parents: MOCK_USERS.filter((u) => hasChildren(u)).length,
+    coaches: availableUsers.filter((user) => user.role === 'COACH').length,
+    users: availableUsers.filter((user) => user.role === 'USER').length,
+    parents: availableUsers.filter((user) => hasChildren(user)).length,
   };
 
   return (

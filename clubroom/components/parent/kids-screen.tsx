@@ -1,6 +1,7 @@
+import { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,26 +10,144 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { getChildrenForParent, getBookingsForAthlete, getUserProfile, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
+import { bookingService } from '@/services/booking-service';
+import { childService } from '@/services/child-service';
+import { formatShortDateWithYear } from '@/utils/format';
+import type { Booking } from '@/constants/app-types';
 
 const logger = createLogger('ParentKidsScreen');
 
+type KidSummary = {
+  id: string;
+  name: string;
+  avatar?: string;
+  metadata?: string;
+};
+
+const formatSkillLevel = (skillLevel?: string) => skillLevel?.toLowerCase();
+
 export function ParentKidsScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+  const { currentUser, availableUsers } = useAuth();
+  const [fallbackChildren, setFallbackChildren] = useState<KidSummary[]>([]);
+  const [nextSessionsByChild, setNextSessionsByChild] = useState<Record<string, Booking | undefined>>({});
+
+  const linkedChildren = useMemo<KidSummary[]>(() => {
+    return (currentUser?.children || [])
+      .filter((child) => Boolean(child.childId))
+      .map((child) => {
+        const linkedUser = availableUsers.find((user) => user.id === child.childId);
+        const skillLevel = formatSkillLevel(linkedUser?.skillLevel);
+        const metadata = linkedUser?.position && skillLevel
+          ? `${linkedUser.position} • ${skillLevel}`
+          : linkedUser?.position || skillLevel;
+
+        return {
+          id: child.childId,
+          name: child.childName || linkedUser?.name || 'Child',
+          avatar: linkedUser?.avatar,
+          metadata,
+        };
+      });
+  }, [availableUsers, currentUser?.children]);
+
+  const children = linkedChildren.length > 0 ? linkedChildren : fallbackChildren;
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const loadFallbackChildren = async () => {
+        if (!currentUser?.id) {
+          if (active) {
+            setFallbackChildren([]);
+          }
+          return;
+        }
+
+        if (linkedChildren.length > 0) {
+          if (active) {
+            setFallbackChildren([]);
+          }
+          return;
+        }
+
+        const profiles = await childService.getChildren(currentUser.id);
+        if (!active) {
+          return;
+        }
+
+        setFallbackChildren(
+          profiles.map((child) => {
+            const age = child.dateOfBirth ? childService.getAge(child.dateOfBirth) : null;
+            return {
+              id: child.id,
+              name: child.nickname || `${child.firstName} ${child.lastName}`.trim(),
+              avatar: child.photoUrl,
+              metadata: age !== null ? `Age ${age}` : undefined,
+            };
+          }),
+        );
+      };
+
+      void loadFallbackChildren();
+
+      return () => {
+        active = false;
+      };
+    }, [currentUser?.id, linkedChildren]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      const loadUpcomingBookings = async () => {
+        if (!currentUser?.id || children.length === 0) {
+          if (active) {
+            setNextSessionsByChild({});
+          }
+          return;
+        }
+
+        const bookings = await bookingService.getBookingsForUser(currentUser.id, 'parent');
+        if (!active) {
+          return;
+        }
+
+        const now = Date.now();
+        const upcoming = bookings
+          .filter((booking) => new Date(booking.scheduledAt).getTime() > now)
+          .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+        const nextMap: Record<string, Booking | undefined> = {};
+        for (const child of children) {
+          nextMap[child.id] = upcoming.find(
+            (booking) => booking.athleteId === child.id || booking.athleteIds?.includes(child.id),
+          );
+        }
+
+        setNextSessionsByChild(nextMap);
+      };
+
+      void loadUpcomingBookings();
+
+      return () => {
+        active = false;
+      };
+    }, [children, currentUser?.id]),
+  );
 
   if (!currentUser) {
     logger.warn('No current user found');
     return null;
   }
 
-  const children = getChildrenForParent(currentUser.id);
-
   logger.debug('Parent kids screen rendered', {
     childrenCount: children.length,
-    parentId: currentUser.id
+    parentId: currentUser.id,
   });
 
   return (
@@ -58,11 +177,7 @@ export function ParentKidsScreen() {
         ) : (
           <View style={styles.kidsList}>
             {children.map((child) => {
-              const profile = getUserProfile(child.id);
-              const upcomingBookings = getBookingsForAthlete(child.id)
-                .filter((b) => new Date(b.scheduledAt) > new Date())
-                .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-              const nextSession = upcomingBookings[0];
+              const nextSession = nextSessionsByChild[child.id];
 
               return (
                 <Pressable
@@ -71,7 +186,7 @@ export function ParentKidsScreen() {
                     logger.press('KidCard', {
                       childId: child.id,
                       childName: child.name,
-                      hasUpcomingSession: !!nextSession
+                      hasUpcomingSession: !!nextSession,
                     });
                     router.push(Routes.developmentChildProgress(child.id));
                   }}
@@ -92,9 +207,9 @@ export function ParentKidsScreen() {
                           <ThemedText type="defaultSemiBold" style={styles.kidName}>
                             {child.name}
                           </ThemedText>
-                          {profile && (
+                          {child.metadata && (
                             <ThemedText style={[styles.kidMetadata, { color: palette.muted }]}>
-                              {profile.position} • {profile.skillLevel.toLowerCase()}
+                              {child.metadata}
                             </ThemedText>
                           )}
                         </View>
@@ -109,7 +224,7 @@ export function ParentKidsScreen() {
                             </ThemedText>
                           </Row>
                           <ThemedText style={[styles.sessionInfo, { color: palette.muted }]}>
-                            {formatDate(nextSession.scheduledAt)}
+                            {formatShortDateWithYear(nextSession.scheduledAt)}
                           </ThemedText>
                           <ThemedText style={[styles.sessionCoach, { color: palette.muted }]}>
                             with {nextSession.coachName}

@@ -16,7 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { SkillsSummary, SkillCategoryGroup } from '@/components/analytics/skill-progress-bar';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
 import type { SkillProgress } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -82,7 +82,7 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
                   <SurfaceCard style={styles.card}>
                     <Row style={styles.cardHeader}>
                       <View style={styles.cardLeft}>
-                        <ThemedText type="defaultSemiBold" style={styles.date}>{formatDate(session.completedAt)}</ThemedText>
+                        <ThemedText type="defaultSemiBold" style={styles.date}>{formatShortDateWithYear(session.completedAt)}</ThemedText>
                         <ThemedText style={[styles.coach, { color: palette.muted }]}>with {session.coachName}</ThemedText>
                       </View>
                       <Row style={styles.rating}>

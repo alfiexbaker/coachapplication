@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { followService } from '@/services/follow-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import { coachProfiles } from '@/constants/mock-data';
+import { discoverService } from '@/services/discover-service';
 import type { SessionOffering, ClubFeedPost, CoachProfile } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
@@ -110,9 +110,43 @@ function getProfileCompletion(coach: CoachProfile | undefined): ProfileCompletio
   return { checks, completed, total: checks.length, percentage: Math.round((completed / checks.length) * 100) };
 }
 
+function buildFallbackCoach(currentUser: ReturnType<typeof useAuth>['currentUser']): CoachProfile {
+  const coachName = currentUser?.fullName || currentUser?.name || 'Coach';
+
+  return {
+    id: currentUser?.id || 'coach-fallback',
+    fullName: coachName,
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'London',
+    state: 'England',
+    distanceMiles: 0,
+    rating: { average: 4.5, reviewCount: 0 },
+    priceRange: { minUsd: 50, maxUsd: 50, unitLabel: 'per session' },
+    sessionRate: 50,
+    nextAvailability: new Date().toISOString(),
+    badges: [],
+    sessionFormats: ['In-person'],
+    shortBio: '',
+    profilePhotoUrl: '',
+    coverPhotoUrl: '',
+    footballFocuses: ['Dribbling'],
+    location: { lat: 51.5074, lng: -0.1278 },
+    joinedDate: new Date().toISOString(),
+    totalSessions: 0,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [],
+    achievements: [],
+  };
+}
+
 export function useCoachProfile(): UseCoachProfileResult {
   const { currentUser, logout } = useAuth();
-  const coach = coachProfiles[0];
+  const [coach, setCoach] = useState<CoachProfile | null>(null);
 
   // Loading and error state
   const [profileLoading, setProfileLoading] = useState(true);
@@ -136,8 +170,9 @@ export function useCoachProfile(): UseCoachProfileResult {
   const [isLive, setIsLive] = useState(currentUser?.isLive ?? false);
   const [liveLoading, setLiveLoading] = useState(false);
 
-  const isOwnProfile = currentUser?.role === 'COACH' && currentUser?.id === coach?.id;
-  const profileCompletion = getProfileCompletion(coach);
+  const resolvedCoach = coach ?? buildFallbackCoach(currentUser);
+  const isOwnProfile = currentUser?.role === 'COACH' && currentUser?.id === resolvedCoach.id;
+  const profileCompletion = getProfileCompletion(resolvedCoach);
   const canGoLive = profileCompletion.percentage >= 80;
 
   // ── Load all profile data ──
@@ -145,19 +180,26 @@ export function useCoachProfile(): UseCoachProfileResult {
     setProfileError(null);
     setProfileLoading(true);
     try {
+      let activeCoach = coach ?? buildFallbackCoach(currentUser);
+      const coachesResult = await discoverService.getAllCoaches();
+      if (coachesResult.success && coachesResult.data.length > 0) {
+        activeCoach = coachesResult.data.find((candidate) => candidate.id === currentUser?.id) ?? coachesResult.data[0];
+      }
+      setCoach(activeCoach);
+
       const results = await Promise.allSettled([
         (async () => {
-          if (!currentUser || !coach) return;
+          if (!currentUser) return;
           const [following, count] = await Promise.all([
-            followService.isFollowing(currentUser.id, coach.id),
-            followService.getFollowerCount(coach.id),
+            followService.isFollowing(currentUser.id, activeCoach.id),
+            followService.getFollowerCount(activeCoach.id),
           ]);
           setIsFollowing(following);
           setFollowerCount(count);
         })(),
         (async () => {
           const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-          setSessionOfferings(offerings.filter((o) => o.coachId === coach.id && o.status === 'active'));
+          setSessionOfferings(offerings.filter((o) => o.coachId === activeCoach.id && o.status === 'active'));
         })(),
       ]);
       const failures = results.filter((r) => r.status === 'rejected');
@@ -178,17 +220,16 @@ export function useCoachProfile(): UseCoachProfileResult {
 
   // ── Load feed posts ──
   const loadFeedPosts = useCallback(() => {
-    if (!coach) return;
     setFeedLoading(true);
     try {
-      const posts = socialFeedService.getPersonalFeed(coach.id);
+      const posts = socialFeedService.getPersonalFeed(resolvedCoach.id);
       setFeedPosts(posts.map(normalizePost));
     } catch (error) {
       logger.error('Failed to load feed posts', error);
     } finally {
       setFeedLoading(false);
     }
-  }, [coach]);
+  }, [resolvedCoach.id]);
 
   useEffect(() => {
     loadFeedPosts();
@@ -196,11 +237,11 @@ export function useCoachProfile(): UseCoachProfileResult {
 
   // ── Follow toggle ──
   const handleFollowToggle = useCallback(async () => {
-    if (!currentUser || !coach || followLoading) return;
+    if (!currentUser || followLoading) return;
     setFollowLoading(true);
     try {
       if (isFollowing) {
-        await followService.unfollow(currentUser.id, coach.id);
+        await followService.unfollow(currentUser.id, resolvedCoach.id);
         setIsFollowing(false);
         setFollowerCount((prev) => Math.max(0, prev - 1));
       } else {
@@ -208,10 +249,10 @@ export function useCoachProfile(): UseCoachProfileResult {
           followerId: currentUser.id,
           followerName: currentUser.name || currentUser.fullName || 'User',
           followerType: currentUser.role === 'COACH' ? 'COACH' : 'USER',
-          followingId: coach.id,
-          followingName: coach.fullName,
+          followingId: resolvedCoach.id,
+          followingName: resolvedCoach.fullName,
           followingType: 'COACH',
-          followingAvatar: coach.profilePhotoUrl,
+          followingAvatar: resolvedCoach.profilePhotoUrl,
         });
         setIsFollowing(true);
         setFollowerCount((prev) => prev + 1);
@@ -221,7 +262,7 @@ export function useCoachProfile(): UseCoachProfileResult {
     } finally {
       setFollowLoading(false);
     }
-  }, [currentUser, coach, isFollowing, followLoading]);
+  }, [currentUser, isFollowing, followLoading, resolvedCoach]);
 
   // ── Go-Live toggle ──
   const handleGoLiveToggle = useCallback(async (value: boolean) => {
@@ -253,8 +294,8 @@ export function useCoachProfile(): UseCoachProfileResult {
   // ── Refresh offerings ──
   const refreshOfferings = useCallback(async () => {
     const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-    setSessionOfferings(offerings.filter((o) => o.coachId === coach.id && o.status === 'active'));
-  }, [coach]);
+    setSessionOfferings(offerings.filter((o) => o.coachId === resolvedCoach.id && o.status === 'active'));
+  }, [resolvedCoach.id]);
 
   // ── Navigation handlers ──
   const handleComposePress = useCallback(() => {
@@ -270,14 +311,14 @@ export function useCoachProfile(): UseCoachProfileResult {
   const renderPostCard = useCallback(
     (post: NormalizedPost) => ({
       post,
-      coachName: coach.fullName,
-      coachAvatar: coach.profilePhotoUrl,
+      coachName: resolvedCoach.fullName,
+      coachAvatar: resolvedCoach.profilePhotoUrl,
     }),
-    [coach.fullName, coach.profilePhotoUrl]
+    [resolvedCoach.fullName, resolvedCoach.profilePhotoUrl]
   );
 
   return {
-    coach,
+    coach: resolvedCoach,
     currentUser,
     isOwnProfile,
     profileLoading,

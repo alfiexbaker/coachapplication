@@ -9,7 +9,7 @@ import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/t
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Session } from '@/constants/types';
 import type { LevelBadge } from '@/hooks/use-athlete-development';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 
 type TrendType = 'improving' | 'declining' | 'steady';
 
@@ -45,7 +45,7 @@ export const DevAthleteHero = memo(function DevAthleteHero({
     : '-';
 
   const lastSessionDate = sessions.length > 0
-    ? formatDate(sortedSessions[0].completedAt).split(' ')[0]
+    ? formatShortDateWithYear(sortedSessions[0].completedAt).split(' ')[0]
     : '-';
 
   return (

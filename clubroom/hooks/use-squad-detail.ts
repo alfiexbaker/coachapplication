@@ -10,9 +10,9 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { squadService } from '@/services/squad-service';
 import { squadGroupService } from '@/services/squad-group-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { clubSquads as fallbackSquads } from '@/constants/mock-data';
 import type { ClubSquad } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -41,9 +41,7 @@ export function useSquadDetail(squadId: string | undefined) {
     if (!squadId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);
-      const allSquads = storedSquads.length > 0 ? storedSquads : fallbackSquads;
-      const squadData = allSquads.find((s) => s.id === squadId) || null;
+      const squadData = await squadService.getSquad(squadId);
       setSquad(squadData);
       const clubId = squadData?.clubId;
       setResolvedClubId(clubId || null);
@@ -153,7 +151,8 @@ export function useSquadDetail(squadId: string | undefined) {
     setDeleting(true);
     try {
       const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);
-      const allSquads = storedSquads.length > 0 ? storedSquads : [...fallbackSquads];
+      const fallbackSquads = resolvedClubId ? await squadService.getSquads(resolvedClubId) : [];
+      const allSquads = storedSquads.length > 0 ? storedSquads : fallbackSquads;
       const deletedSquad = allSquads.find((s) => s.id === squadId);
       const filtered = allSquads.filter((s) => s.id !== squadId);
       await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, filtered);
@@ -167,7 +166,7 @@ export function useSquadDetail(squadId: string | undefined) {
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
-  }, [squadId, showToast]);
+  }, [resolvedClubId, squadId, showToast]);
 
   const handleInviteSquad = useCallback(() => {
     router.push(Routes.squadInvite(squadId || ''));

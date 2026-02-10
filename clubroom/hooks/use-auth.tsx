@@ -2,13 +2,13 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { createContext, useContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
-import { getUserById } from '@/constants/mock-data';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
 import type { UserRole, SimplifiedUserType } from '@/constants/user-types';
 import type { OnboardingData, AccountType } from '@/services/auth-service';
 import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
@@ -232,6 +232,18 @@ const DEMO_USERS: DemoUser[] = [
   },
 ];
 
+function mapDemoUserToUserRecord(user: DemoUser): User {
+  return {
+    id: user.id,
+    email: user.email || `${user.username}@demo.clubroom.app`,
+    role: user.role,
+    name: user.name || user.fullName || user.username,
+    avatar: user.avatar,
+    postcode: user.postcode || '',
+    dateOfBirth: user.dateOfBirth || '1990-01-01',
+  };
+}
+
 type AuthContextValue = {
   currentUser: DemoUser | null;
   isAuthenticated: boolean;
@@ -253,6 +265,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(DEMO_USERS);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const syncUserDirectory = async () => {
+      try {
+        const storedUsers = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+        const storedOnlyUsers = storedUsers.filter(
+          (storedUser) => !registeredUsers.some((registeredUser) => registeredUser.id === storedUser.id)
+        );
+        const nextUsers = [...registeredUsers.map(mapDemoUserToUserRecord), ...storedOnlyUsers];
+
+        if (!mounted) {
+          return;
+        }
+
+        await apiClient.set(STORAGE_KEYS.USERS, nextUsers);
+      } catch (error) {
+        logger.error('Failed to sync user directory', error);
+      }
+    };
+
+    syncUserDirectory();
+
+    return () => {
+      mounted = false;
+    };
+  }, [registeredUsers]);
+
   // Check auth state on app start for session persistence
   useEffect(() => {
     let mounted = true;
@@ -266,10 +306,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             u => u.email?.toLowerCase() === authState.user!.email.toLowerCase()
           );
           if (demoMatch) {
-            const userRecord = getUserById(demoMatch.id);
-            const mergedUser = userRecord ? { ...demoMatch, ...userRecord } : demoMatch;
-            setCurrentUser(mergedUser);
-            logger.success('Session restored from storage', { userId: mergedUser.id });
+            setCurrentUser(demoMatch);
+            logger.success('Session restored from storage', { userId: demoMatch.id });
           }
         }
       } catch (err) {
@@ -297,14 +335,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     if (match) {
-      const userRecord = getUserById(match.id);
-      const mergedUser = userRecord ? { ...match, ...userRecord } : match;
       logger.success('Login successful', {
-        username: mergedUser.username,
-        role: mergedUser.role,
-        userId: mergedUser.id
+        username: match.username,
+        role: match.role,
+        userId: match.id
       });
-      setCurrentUser(mergedUser);
+      setCurrentUser(match);
       setError(null);
 
       // Store tokens for session persistence (fire and forget)

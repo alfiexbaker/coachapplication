@@ -21,7 +21,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
-import { formatDate } from '@/constants/mock-data';
+import { formatShortDateWithYear } from '@/utils/format';
 
 export default function ChildProgressScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
@@ -155,7 +155,7 @@ export default function ChildProgressScreen() {
                     <ThemedText type="defaultSemiBold">{badge.badgeLabel}</ThemedText>
                     <ThemedText style={[Typography.small, { color: colors.muted }]}>{badge.reason}</ThemedText>
                     <Row gap="sm">
-                      <ThemedText style={[Typography.caption, { color: colors.muted }]}>{formatDate(badge.awardedAt)}</ThemedText>
+                      <ThemedText style={[Typography.caption, { color: colors.muted }]}>{formatShortDateWithYear(badge.awardedAt)}</ThemedText>
                       {badge.coachName && <ThemedText style={[Typography.caption, { color: colors.muted }]}>by {badge.coachName}</ThemedText>}
                     </Row>
                   </SurfaceCard>

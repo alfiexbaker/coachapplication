@@ -1,15 +1,12 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
-import {
-  getSessionsForCoach,
-  getCoachProfile,
-  formatGBP,
-} from '@/constants/mock-data';
+import { coachAnalyticsService } from '@/services/analytics-service';
+import { formatGBP } from '@/utils/format';
 
 import {
   AnalyticsStatCard,
@@ -18,61 +15,68 @@ import {
   styles,
 } from './analytics-screen-sections';
 
+type AnalyticsViewModel = {
+  sessionsCount: number;
+  activeClients: number;
+  avgRating: number;
+  topSkills: [string, number][];
+  busiestDay: string;
+  revenue: number;
+  sessionRate: number;
+};
+
 export function CoachAnalyticsScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
+  const [analytics, setAnalytics] = useState<AnalyticsViewModel | null>(null);
 
-  const analytics = useMemo(() => {
-    if (!currentUser) return null;
+  useEffect(() => {
+    let active = true;
 
-    const sessions = getSessionsForCoach(currentUser.id);
-    const profile = getCoachProfile(currentUser.id);
+    const loadAnalytics = async () => {
+      if (!currentUser?.id) {
+        if (active) {
+          setAnalytics(null);
+        }
+        return;
+      }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthSessions = sessions.filter(
-      (s) => new Date(s.completedAt) >= startOfMonth
-    );
+      const result = await coachAnalyticsService.getCoachAnalytics(currentUser.id, 'MONTH');
+      if (!active) {
+        return;
+      }
 
-    const activeClients = new Set(thisMonthSessions.map((s) => s.athleteId)).size;
+      if (!result.success || !result.data) {
+        setAnalytics({
+          sessionsCount: 0,
+          activeClients: 0,
+          avgRating: 0,
+          topSkills: [],
+          busiestDay: 'N/A',
+          revenue: 0,
+          sessionRate: 0,
+        });
+        return;
+      }
 
-    const avgRating = thisMonthSessions.length > 0
-      ? thisMonthSessions.reduce((sum, s) => sum + s.performanceRating, 0) / thisMonthSessions.length
-      : 0;
-
-    const skillCounts = new Map<string, number>();
-    thisMonthSessions.forEach((session) => {
-      session.skillsWorkedOn.forEach((skill) => {
-        skillCounts.set(skill, (skillCounts.get(skill) || 0) + 1);
+      const data = result.data;
+      setAnalytics({
+        sessionsCount: data.sessions.totalSessions,
+        activeClients: data.retention.totalActiveClients,
+        avgRating: data.avgRating,
+        topSkills: data.topSkills.slice(0, 5).map((skill) => [skill.skill, skill.sessionCount] as [string, number]),
+        busiestDay: data.busiestDay.sessionCount > 0 ? `${data.busiestDay.dayName} (${data.busiestDay.sessionCount})` : 'N/A',
+        revenue: data.totalRevenue,
+        sessionRate: data.avgRevenuePerSession,
       });
-    });
-
-    const topSkills = Array.from(skillCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    const dayCounts = new Map<string, number>();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    thisMonthSessions.forEach((session) => {
-      const day = dayNames[new Date(session.completedAt).getDay()];
-      dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
-    });
-
-    const busiestDay = Array.from(dayCounts.entries())
-      .sort((a, b) => b[1] - a[1])[0];
-
-    const revenue = profile ? thisMonthSessions.length * profile.sessionRate : 0;
-
-    return {
-      sessionsCount: thisMonthSessions.length,
-      activeClients,
-      avgRating,
-      topSkills,
-      busiestDay: busiestDay ? `${busiestDay[0]} (${busiestDay[1]})` : 'N/A',
-      revenue,
-      sessionRate: profile?.sessionRate || 0,
     };
-  }, [currentUser]);
+
+    void loadAnalytics();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.id]);
 
   if (!currentUser || !analytics) {
     return null;

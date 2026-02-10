@@ -19,7 +19,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { TierNames, CategoryInfo } from '@/constants/progression';
-import { formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
 
@@ -31,6 +30,14 @@ const BADGE_TIER_COLORS = {
   silver: '#C0C0C0',
   bronze: '#CD7F32',
 } as const;
+
+function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 function getTierColor(tier: 1 | 2 | 3 | undefined, fallback: string): string {
   switch (tier) {

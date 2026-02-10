@@ -8,8 +8,8 @@ import { Alert, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
-import { getClubFeedPostById, getPostById } from '@/constants/mock-data';
 import { commentService } from '@/services/comment-service';
+import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
 import type { Post } from '@/constants/social-types';
 import type { ClubFeedPost } from '@/constants/club-types';
@@ -72,8 +72,24 @@ export function usePostDetail() {
 
   const post = useMemo(() => {
     if (!postId) return null;
-    return getPostById(postId) ?? getClubFeedPostById(postId) ?? null;
-  }, [postId]);
+    if (currentUser?.id) {
+      const aggregatedPosts = socialFeedService.getAggregatedFeed(currentUser.id);
+      const aggregatedMatch = aggregatedPosts.find((item) => item.id === postId);
+      if (aggregatedMatch) {
+        return aggregatedMatch;
+      }
+    }
+
+    if (currentUser?.role === 'COACH' && currentUser.id) {
+      const personalPosts = socialFeedService.getPersonalFeed(currentUser.id);
+      const personalMatch = personalPosts.find((item) => item.id === postId);
+      if (personalMatch) {
+        return personalMatch;
+      }
+    }
+
+    return null;
+  }, [postId, currentUser?.id, currentUser?.role]);
 
   const [threads, setThreads] = useState<CommentThread[]>([]);
   const [loading, setLoading] = useState(true);

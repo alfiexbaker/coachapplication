@@ -13,7 +13,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 import { CoachCard, type CoachCardData } from '@/components/coach';
-import { MOCK_DISCOVERY_COACHES } from '@/constants/mock-data';
 import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
@@ -67,7 +66,10 @@ export function FeaturedSection({
 }: FeaturedSectionProps) {
   const { colors: palette } = useTheme();
 
-  const data: CoachCardData[] = coaches ?? MOCK_DISCOVERY_COACHES;
+  const data: CoachCardData[] = coaches ?? [];
+  if (data.length === 0) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>

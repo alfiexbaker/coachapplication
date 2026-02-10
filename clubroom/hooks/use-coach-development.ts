@@ -7,18 +7,38 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
-import { getSessionsForCoach, getUserById, formatDate } from '@/constants/mock-data';
-import type { Session, User, Booking } from '@/constants/app-types';
+import { userService } from '@/services/user-service';
+import type { Session, Booking } from '@/constants/app-types';
+import type { User } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CoachDevelopmentScreen');
+
+function formatAthleteName(name: string | undefined): string {
+  const trimmed = name?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : 'Athlete';
+}
+
+export function formatDate(date: Date | string): string {
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Unknown date';
+  }
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+export interface AthleteSummary {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
 export interface AthleteWithSessions {
-  athlete: User;
+  athlete: AthleteSummary;
   sessionCount: number;
   lastSession: string;
   averageRating: number;
@@ -36,6 +56,7 @@ export interface AthleteRosterEntry extends AthleteWithSessions {
 export function useCoachDevelopment() {
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
+  const [athleteDirectory, setAthleteDirectory] = useState<Record<string, User>>({});
   const [loading, setLoading] = useState(true);
   const [awaitingCompletion, setAwaitingCompletion] = useState<Booking[]>([]);
 
@@ -56,43 +77,107 @@ export function useCoachDevelopment() {
   );
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadSessions = async () => {
-      if (!currentUser) return;
+      if (!currentUser?.id) {
+        if (isMounted) {
+          setAllSessions([]);
+          setAthleteDirectory({});
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
-        const mockSessions = getSessionsForCoach(currentUser.id);
-        const asyncSessions = await apiClient.get<Session[]>('coach_sessions', []);
-        const coachAsyncSessions = asyncSessions.filter((s) => s.coachId === currentUser.id);
-        const combined = [...mockSessions, ...coachAsyncSessions];
-        setAllSessions(combined);
-        logger.debug('Sessions loaded', { mockCount: mockSessions.length, asyncCount: coachAsyncSessions.length, total: combined.length });
+        setLoading(true);
+        const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
+        const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
+
+        const athleteIds = [...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean))];
+        const athleteResult = await userService.getUsersByIds(athleteIds);
+        const nextAthleteDirectory: Record<string, User> = {};
+
+        if (athleteResult.success) {
+          athleteResult.data.forEach((athlete) => {
+            nextAthleteDirectory[athlete.id] = athlete;
+          });
+        } else {
+          logger.error('Failed to resolve athlete profiles for sessions', {
+            coachId: currentUser.id,
+            error: athleteResult.error,
+          });
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setAthleteDirectory(nextAthleteDirectory);
+        setAllSessions(coachSessions);
+        logger.debug('Sessions loaded', {
+          coachId: currentUser.id,
+          sessionCount: coachSessions.length,
+          athleteCount: athleteIds.length,
+        });
       } catch (error) {
         logger.error('Failed to load sessions', error);
-        const mockSessions = getSessionsForCoach(currentUser.id);
-        setAllSessions(mockSessions);
+        if (!isMounted) {
+          return;
+        }
+        setAllSessions([]);
+        setAthleteDirectory({});
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+
     loadSessions();
-  }, [currentUser]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
 
   const athletesWithSessions = useMemo(() => {
     if (!currentUser || allSessions.length === 0) return [];
+
     const athleteMap = new Map<string, Session[]>();
     allSessions.forEach((session) => {
       const existing = athleteMap.get(session.athleteId) || [];
       athleteMap.set(session.athleteId, [...existing, session]);
     });
+
     const athletes: AthleteWithSessions[] = [];
     athleteMap.forEach((athleteSessions, athleteId) => {
-      const athlete = getUserById(athleteId);
-      if (!athlete) return;
       const sortedSessions = [...athleteSessions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
-      const avgRating = athleteSessions.reduce((sum, s) => sum + s.performanceRating, 0) / athleteSessions.length;
-      athletes.push({ athlete, sessionCount: athleteSessions.length, lastSession: sortedSessions[0].completedAt, averageRating: avgRating });
+      const latestSession = sortedSessions[0];
+      const storedAthlete = athleteDirectory[athleteId];
+      const athlete: AthleteSummary = storedAthlete
+        ? {
+            id: storedAthlete.id,
+            name: formatAthleteName(storedAthlete.name),
+            avatar: storedAthlete.avatar,
+          }
+        : {
+            id: athleteId,
+            name: formatAthleteName(latestSession?.athleteName),
+            avatar: formatAthleteName(latestSession?.athleteName).charAt(0),
+          };
+
+      const avgRating = athleteSessions.reduce((sum, session) => sum + session.performanceRating, 0) / athleteSessions.length;
+      athletes.push({
+        athlete,
+        sessionCount: athleteSessions.length,
+        lastSession: latestSession.completedAt,
+        averageRating: avgRating,
+      });
     });
+
     return athletes.sort((a, b) => new Date(b.lastSession).getTime() - new Date(a.lastSession).getTime());
-  }, [currentUser, allSessions]);
+  }, [currentUser, allSessions, athleteDirectory]);
 
   const rosterEntries: AthleteRosterEntry[] = useMemo(() => {
     const now = Date.now();
@@ -111,7 +196,13 @@ export function useCoachDevelopment() {
     [allSessions],
   );
 
-  return { currentUser, loading, awaitingCompletion, attentionAthletes, recentSessions, logger };
+  return {
+    currentUser,
+    loading,
+    awaitingCompletion,
+    attentionAthletes,
+    recentSessions,
+    athleteDirectory,
+    logger,
+  };
 }
-
-export { formatDate, getUserById } from '@/constants/mock-data';

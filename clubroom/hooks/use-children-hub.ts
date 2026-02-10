@@ -9,10 +9,11 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { apiClient } from '@/services/api-client';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { badgeService } from '@/services/badge-service';
-import { getSessionsForAthlete } from '@/constants/mock-data';
 import type { BadgeAward } from '@/constants/types';
+import type { Session } from '@/constants/app-types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,19 +52,20 @@ export function useChildrenHub() {
 
     const stats: Record<string, ChildStats> = {};
     const allRecentBadges: BadgeAward[] = [];
+    const sessions = await apiClient.get<Session[]>('coach_sessions', []);
 
     for (const child of childrenData) {
-      const sessions = getSessionsForAthlete(child.id);
+      const childSessions = sessions.filter((session) => session.athleteId === child.id);
       const awards = await badgeService.listAwardsForAthlete(child.id);
       const unseenCount = await badgeService.getUnseenBadgeCount(child.id);
-      const avgRating = sessions.length > 0
-        ? sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length
+      const avgRating = childSessions.length > 0
+        ? childSessions.reduce((sum, session) => sum + session.performanceRating, 0) / childSessions.length
         : 0;
 
       const visibleAwards = awards.filter(a => a.visibility !== 'coach_only');
 
       stats[child.id] = {
-        sessions: sessions.length,
+        sessions: childSessions.length,
         badges: visibleAwards.length,
         avgRating,
         unseenBadges: unseenCount,

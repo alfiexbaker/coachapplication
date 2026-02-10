@@ -5,26 +5,64 @@
  * for both coach and parent profile editing flows.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
-import { coachProfiles, mockUserProfile } from '@/constants/mock-data';
 import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
 import type {
   CoachCertification,
   CoachExperience,
   CoachLanguage,
+  CoachProfile,
   FootballObjective,
   SocialLinks,
 } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
+import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('EditProfile');
 
 const LANGUAGE_OPTIONS = ['English', 'Spanish', 'French', 'Portuguese', 'German', 'Arabic', 'Italian'];
 const PROFICIENCY_OPTIONS: CoachLanguage['proficiency'][] = ['Native', 'Fluent', 'Conversational', 'Basic'];
+
+type EditableChildInput = {
+  childId?: string;
+  childName?: string;
+  name?: string;
+  age?: number;
+};
+
+type DirectoryUser = {
+  id: string;
+  fullName?: string;
+  name?: string;
+  dateOfBirth?: string;
+};
+
+type EditableUserProfile = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  bio?: string;
+  profilePhotoUrl?: string;
+  children: { name: string; age: number }[];
+};
+
+type AuthLikeUser = {
+  id: string;
+  role?: string;
+  fullName?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  phone?: string;
+  bio?: string;
+  children?: EditableChildInput[];
+};
 
 const createBlankExperience = (): CoachExperience => ({
   id: `exp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -51,6 +89,139 @@ const createBlankCertification = (): CoachCertification => ({
   credentialUrl: '',
 });
 
+const calculateAge = (dateOfBirth?: string): number => {
+  if (!dateOfBirth) return 0;
+
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return 0;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  return Math.max(0, age);
+};
+
+function buildEditableChildren(
+  children: EditableChildInput[] | undefined,
+  directory: DirectoryUser[]
+): { name: string; age: number }[] {
+  if (!children || children.length === 0) return [];
+
+  const usersById = new Map(directory.map((user) => [user.id, user]));
+
+  return children.map((child) => {
+    const directoryUser = child.childId ? usersById.get(child.childId) : undefined;
+    const resolvedName =
+      child.childName ||
+      child.name ||
+      directoryUser?.fullName ||
+      directoryUser?.name ||
+      'Child';
+
+    const resolvedAge =
+      typeof child.age === 'number'
+        ? child.age
+        : calculateAge(directoryUser?.dateOfBirth);
+
+    return {
+      name: resolvedName,
+      age: Math.max(0, resolvedAge),
+    };
+  });
+}
+
+function createEditableUserProfile(
+  currentUser: AuthLikeUser,
+  directory: DirectoryUser[]
+): EditableUserProfile {
+  return {
+    id: currentUser.id,
+    fullName: currentUser.fullName || currentUser.name || currentUser.username || 'User',
+    email: currentUser.email || '',
+    phone: currentUser.phone || '',
+    bio: currentUser.bio || '',
+    profilePhotoUrl: currentUser.avatar,
+    children: buildEditableChildren(currentUser.children, directory),
+  };
+}
+
+function createFallbackCoachProfile(currentUser: AuthLikeUser): CoachProfile {
+  const displayName = currentUser.fullName || currentUser.name || currentUser.username || 'Coach';
+  const nowIso = new Date().toISOString();
+
+  return {
+    id: currentUser.id,
+    fullName: displayName,
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'London',
+    state: 'England',
+    distanceMiles: 0,
+    rating: {
+      average: 0,
+      reviewCount: 0,
+    },
+    priceRange: {
+      minUsd: 50,
+      maxUsd: 80,
+      unitLabel: 'per session',
+    },
+    nextAvailability: nowIso,
+    badges: [],
+    sessionFormats: ['In-person'],
+    shortBio: currentUser.bio || '',
+    profilePhotoUrl: currentUser.avatar || '',
+    coverPhotoUrl: undefined,
+    footballFocuses: [],
+    location: {
+      lat: 51.5074,
+      lng: -0.1278,
+    },
+    bio: currentUser.bio || '',
+    phone: currentUser.phone || '',
+    email: currentUser.email || '',
+    website: '',
+    joinedDate: nowIso,
+    totalSessions: 0,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [],
+    achievements: [],
+    socialLinks: {},
+  };
+}
+
+async function resolveCoachProfile(currentUser: AuthLikeUser): Promise<CoachProfile> {
+  const byIdResult = await discoverService.getCoachById(currentUser.id);
+  if (byIdResult.success && byIdResult.data) {
+    return byIdResult.data;
+  }
+
+  const allCoachesResult = await discoverService.getAllCoaches();
+  if (allCoachesResult.success) {
+    const normalizedName = (currentUser.fullName || currentUser.name || '').trim().toLowerCase();
+    const matchedCoach = allCoachesResult.data.find((coach) => {
+      if (coach.id === currentUser.id) return true;
+      if (!normalizedName) return false;
+      return coach.fullName.trim().toLowerCase() === normalizedName;
+    });
+
+    if (matchedCoach) {
+      return matchedCoach;
+    }
+  }
+
+  return createFallbackCoachProfile(currentUser);
+}
+
 export interface EditProfileState {
   // Common
   fullName: string;
@@ -58,7 +229,7 @@ export interface EditProfileState {
   email: string;
   phone: string;
   // Parent
-  children: Array<{ name: string; age: number }>;
+  children: { name: string; age: number }[];
   // Coach
   website: string;
   priceMin: string;
@@ -80,30 +251,30 @@ export interface EditProfileModals {
 }
 
 export function useEditProfile() {
-  const { currentUser: authUser } = useAuth();
-  const currentUser = authUser || mockUserProfile;
+  const { currentUser, availableUsers } = useAuth();
   const userIsCoach = currentUser?.role === 'COACH';
-  const coach = userIsCoach ? coachProfiles[0] : null;
-  const user = !userIsCoach ? mockUserProfile : null;
+
+  const [coach, setCoach] = useState<CoachProfile | null>(null);
+  const [user, setUser] = useState<EditableUserProfile | null>(null);
 
   // ── Common fields ──────────────────────────────────────────────
-  const [fullName, setFullName] = useState(userIsCoach ? coach!.fullName : user!.fullName);
-  const [bio, setBio] = useState(userIsCoach ? (coach!.bio || '') : (user!.bio || ''));
-  const [email, setEmail] = useState(userIsCoach ? (coach!.email || '') : user!.email);
-  const [phone, setPhone] = useState(userIsCoach ? (coach!.phone || '') : (user!.phone || ''));
+  const [fullName, setFullName] = useState('');
+  const [bio, setBio] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
   // ── Parent fields ──────────────────────────────────────────────
-  const [children, setChildren] = useState(user?.children || []);
+  const [children, setChildren] = useState<{ name: string; age: number }[]>([]);
 
   // ── Coach fields ───────────────────────────────────────────────
-  const [website, setWebsite] = useState(coach?.website || '');
-  const [priceMin, setPriceMin] = useState(coach?.priceRange.minUsd.toString() || '50');
-  const [priceMax, setPriceMax] = useState(coach?.priceRange.maxUsd.toString() || '80');
-  const [selectedFocuses, setSelectedFocuses] = useState<FootballObjective[]>(coach?.footballFocuses || []);
-  const [experiences, setExperiences] = useState<CoachExperience[]>(coach?.experiences || []);
-  const [languages, setLanguages] = useState<CoachLanguage[]>(coach?.languages || []);
-  const [certifications, setCertifications] = useState<CoachCertification[]>(coach?.certifications || []);
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>(coach?.socialLinks || {});
+  const [website, setWebsite] = useState('');
+  const [priceMin, setPriceMin] = useState('50');
+  const [priceMax, setPriceMax] = useState('80');
+  const [selectedFocuses, setSelectedFocuses] = useState<FootballObjective[]>([]);
+  const [experiences, setExperiences] = useState<CoachExperience[]>([]);
+  const [languages, setLanguages] = useState<CoachLanguage[]>([]);
+  const [certifications, setCertifications] = useState<CoachCertification[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
 
   // ── Modal drafts ───────────────────────────────────────────────
   const [experienceDraft, setExperienceDraft] = useState<CoachExperience>(createBlankExperience());
@@ -112,6 +283,81 @@ export function useEditProfile() {
   const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
   const [certificationDraft, setCertificationDraft] = useState<CoachCertification>(createBlankCertification());
   const [isCertificationModalVisible, setCertificationModalVisible] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const initializeProfile = async () => {
+      if (!currentUser) {
+        setCoach(null);
+        setUser(null);
+        setFullName('');
+        setBio('');
+        setEmail('');
+        setPhone('');
+        setChildren([]);
+        setWebsite('');
+        setPriceMin('50');
+        setPriceMax('80');
+        setSelectedFocuses([]);
+        setExperiences([]);
+        setLanguages([]);
+        setCertifications([]);
+        setSocialLinks({});
+        return;
+      }
+
+      const typedCurrentUser = currentUser as AuthLikeUser;
+      const typedDirectory = availableUsers as DirectoryUser[];
+
+      if (typedCurrentUser.role === 'COACH') {
+        const resolvedCoach = await resolveCoachProfile(typedCurrentUser);
+        if (!active) return;
+
+        setCoach(resolvedCoach);
+        setUser(null);
+        setFullName(resolvedCoach.fullName);
+        setBio(resolvedCoach.bio || resolvedCoach.shortBio || '');
+        setEmail(resolvedCoach.email || typedCurrentUser.email || '');
+        setPhone(resolvedCoach.phone || typedCurrentUser.phone || '');
+        setChildren([]);
+        setWebsite(resolvedCoach.website || '');
+        setPriceMin(resolvedCoach.priceRange.minUsd.toString());
+        setPriceMax(resolvedCoach.priceRange.maxUsd.toString());
+        setSelectedFocuses(resolvedCoach.footballFocuses || []);
+        setExperiences(resolvedCoach.experiences || []);
+        setLanguages(resolvedCoach.languages || []);
+        setCertifications(resolvedCoach.certifications || []);
+        setSocialLinks(resolvedCoach.socialLinks || {});
+        return;
+      }
+
+      const resolvedUser = createEditableUserProfile(typedCurrentUser, typedDirectory);
+      if (!active) return;
+
+      setUser(resolvedUser);
+      setCoach(null);
+      setFullName(resolvedUser.fullName);
+      setBio(resolvedUser.bio || '');
+      setEmail(resolvedUser.email);
+      setPhone(resolvedUser.phone || '');
+      setChildren(resolvedUser.children);
+      setWebsite('');
+      setPriceMin('50');
+      setPriceMax('80');
+      setSelectedFocuses([]);
+      setExperiences([]);
+      setLanguages([]);
+      setCertifications([]);
+      setSocialLinks({});
+    };
+
+    void initializeProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser, availableUsers]);
 
   // ── Focus toggles ──────────────────────────────────────────────
   const toggleFocus = useCallback((focus: FootballObjective) => {
@@ -219,21 +465,61 @@ export function useEditProfile() {
   // ── Save handler ───────────────────────────────────────────────
   const handleSave = useCallback(() => {
     if (userIsCoach) {
+      if (!coach) {
+        Alert.alert('Profile unavailable', 'Coach profile is still loading. Please try again.');
+        return;
+      }
+
       const payload = {
-        ...coach!,
-        fullName, bio, email, phone, website,
-        priceRange: { ...coach!.priceRange, minUsd: Number(priceMin), maxUsd: Number(priceMax) },
-        footballFocuses: selectedFocuses, experiences, languages, certifications, socialLinks,
+        ...coach,
+        fullName,
+        bio,
+        email,
+        phone,
+        website,
+        priceRange: {
+          ...coach.priceRange,
+          minUsd: Number(priceMin),
+          maxUsd: Number(priceMax),
+        },
+        footballFocuses: selectedFocuses,
+        experiences,
+        languages,
+        certifications,
+        socialLinks,
       };
       logger.info('Coach profile payload ready for API sync', payload);
     } else {
-      const payload = { ...user!, fullName, bio, email, phone, children };
+      if (!user) {
+        Alert.alert('Profile unavailable', 'User profile is still loading. Please try again.');
+        return;
+      }
+
+      const payload = { ...user, fullName, bio, email, phone, children };
       logger.info('User profile payload ready for API sync', payload);
     }
+
     Alert.alert('Success', 'Profile updated successfully', [
       { text: 'OK', onPress: () => router.back() },
     ]);
-  }, [userIsCoach, coach, user, fullName, bio, email, phone, website, priceMin, priceMax, selectedFocuses, experiences, languages, certifications, socialLinks, children]);
+  }, [
+    userIsCoach,
+    coach,
+    user,
+    fullName,
+    bio,
+    email,
+    phone,
+    website,
+    priceMin,
+    priceMax,
+    selectedFocuses,
+    experiences,
+    languages,
+    certifications,
+    socialLinks,
+    children,
+  ]);
 
   // ── Image picker ───────────────────────────────────────────────
   const pickImage = useCallback((type: 'profile' | 'cover') => {
