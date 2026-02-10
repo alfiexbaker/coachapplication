@@ -72,7 +72,7 @@ function makeBooking(overrides = {}) {
 (0, node_test_1.describe)('bookingStatusService', () => {
     (0, node_test_1.beforeEach)(async () => {
         await api_client_1.apiClient.remove('clubroom.bookings');
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     // ---------------------------------------------------------------------------
     // confirmBooking
@@ -90,7 +90,7 @@ function makeBooking(overrides = {}) {
             const booking = makeBooking();
             await booking_crud_service_1.bookingCrudService.saveBookingDirect(booking);
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.BOOKING_CONFIRMED, () => { emitted = true; });
+            eventBus.on(event_bus_1.ServiceEvents.BOOKING_CONFIRMED, () => { emitted = true; });
             await booking_status_service_1.bookingStatusService.confirmBooking(booking.id);
             strict_1.default.equal(emitted, true);
         });

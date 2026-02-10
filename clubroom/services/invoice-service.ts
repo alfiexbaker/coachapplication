@@ -11,6 +11,7 @@ import {
 import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { generateInvoiceHtml } from './invoice-template';
 
 // ============================================================================
 // CONFIGURATION
@@ -596,7 +597,7 @@ class InvoiceService {
     }
 
     // Generate PDF content (HTML to PDF)
-    const htmlContent = this.generateInvoiceHtml(invoice);
+    const htmlContent = generateInvoiceHtml(invoice);
 
     // For demo, we'll save as HTML file that can be printed/saved as PDF
     // In production, use a proper PDF library like react-native-html-to-pdf
@@ -653,181 +654,6 @@ class InvoiceService {
     }
   }
 
-  /**
-   * Generate HTML content for invoice PDF
-   */
-  private generateInvoiceHtml(invoice: Invoice): string {
-    const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
-    };
-
-    const formatCurrency = (amount: number) => {
-      return `\u00A3${amount.toFixed(2)}`;
-    };
-
-    const statusColor = {
-      DRAFT: '#6B7280',
-      SENT: '#2563EB',
-      PAID: '#059669',
-      VOID: '#DC2626',
-    };
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Invoice ${invoice.invoiceNumber}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: #1F2937;
-      padding: 40px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-    .logo { font-size: 24px; font-weight: 700; color: #0F172A; }
-    .invoice-number { text-align: right; }
-    .invoice-number h1 { font-size: 28px; color: #0F172A; margin-bottom: 4px; }
-    .invoice-number .date { color: #6B7280; font-size: 14px; }
-    .status {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      color: white;
-      background: ${statusColor[invoice.status]};
-      margin-top: 8px;
-    }
-    .parties { display: flex; gap: 60px; margin-bottom: 40px; }
-    .party { flex: 1; }
-    .party-label { font-size: 12px; color: #6B7280; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .party-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-    .party-details { font-size: 14px; color: #4B5563; line-height: 1.6; }
-    .details-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-    .details-table th {
-      text-align: left;
-      padding: 12px 16px;
-      background: #F9FAFB;
-      border-bottom: 1px solid #E5E7EB;
-      font-size: 12px;
-      color: #6B7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .details-table td {
-      padding: 16px;
-      border-bottom: 1px solid #E5E7EB;
-      font-size: 14px;
-    }
-    .amount-col { text-align: right; }
-    .totals { width: 300px; margin-left: auto; }
-    .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
-    .total-row.final {
-      font-size: 18px;
-      font-weight: 700;
-      border-top: 2px solid #0F172A;
-      margin-top: 8px;
-      padding-top: 12px;
-    }
-    .notes { margin-top: 40px; padding: 20px; background: #F9FAFB; border-radius: 8px; }
-    .notes-title { font-size: 12px; color: #6B7280; margin-bottom: 8px; text-transform: uppercase; }
-    .notes-content { font-size: 14px; color: #4B5563; }
-    .footer { margin-top: 60px; text-align: center; color: #9CA3AF; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="logo">${invoice.coachBusinessName || invoice.coachName}</div>
-    <div class="invoice-number">
-      <h1>${invoice.invoiceNumber}</h1>
-      <div class="date">Issued: ${formatDate(invoice.createdAt)}</div>
-      ${invoice.dueDate ? `<div class="date">Due: ${formatDate(invoice.dueDate)}</div>` : ''}
-      <div class="status">${invoice.status}</div>
-    </div>
-  </div>
-
-  <div class="parties">
-    <div class="party">
-      <div class="party-label">From</div>
-      <div class="party-name">${invoice.coachBusinessName || invoice.coachName}</div>
-      <div class="party-details">
-        ${invoice.coachBusinessEmail || ''}<br>
-        ${invoice.coachBusinessAddress || ''}
-      </div>
-    </div>
-    <div class="party">
-      <div class="party-label">Bill To</div>
-      <div class="party-name">${invoice.userName}</div>
-      <div class="party-details">
-        ${invoice.billingAddress || ''}
-      </div>
-    </div>
-  </div>
-
-  <table class="details-table">
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th>Date</th>
-        <th>Duration</th>
-        <th class="amount-col">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <strong>${invoice.sessionType || 'Training Session'}</strong><br>
-          <span style="color: #6B7280; font-size: 12px;">
-            Athlete: ${invoice.athleteName}<br>
-            Location: ${invoice.sessionLocation || 'N/A'}
-          </span>
-        </td>
-        <td>${formatDate(invoice.sessionDate)}</td>
-        <td>${invoice.sessionDuration ? `${invoice.sessionDuration} mins` : 'N/A'}</td>
-        <td class="amount-col">${formatCurrency(invoice.amount)}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <div class="total-row">
-      <span>Subtotal</span>
-      <span>${formatCurrency(invoice.amount)}</span>
-    </div>
-    <div class="total-row">
-      <span>VAT (${invoice.taxRate}%)</span>
-      <span>${formatCurrency(invoice.tax)}</span>
-    </div>
-    <div class="total-row final">
-      <span>Total</span>
-      <span>${formatCurrency(invoice.total)}</span>
-    </div>
-  </div>
-
-  ${invoice.notes ? `
-  <div class="notes">
-    <div class="notes-title">Notes</div>
-    <div class="notes-content">${invoice.notes}</div>
-  </div>
-  ` : ''}
-
-  <div class="footer">
-    Thank you for your business!<br>
-    Generated by Clubroom
-  </div>
-</body>
-</html>
-    `.trim();
-  }
 
   // ==========================================================================
   // SUMMARY & STATISTICS

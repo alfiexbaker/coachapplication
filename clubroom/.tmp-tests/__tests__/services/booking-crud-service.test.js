@@ -74,7 +74,7 @@ function makeBooking(overrides = {}) {
     (0, node_test_1.beforeEach)(async () => {
         await api_client_1.apiClient.remove('clubroom.bookings');
         booking_crud_service_1.bookingCrudService.resetDraft();
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     // ---------------------------------------------------------------------------
     // Draft methods
@@ -153,7 +153,7 @@ function makeBooking(overrides = {}) {
     (0, node_test_1.describe)('cancel', () => {
         (0, node_test_1.default)('sets status to CANCELLED and emits event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.BOOKING_CANCELLED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.BOOKING_CANCELLED, () => {
                 emitted = true;
             });
             const booking = makeBooking();
@@ -170,7 +170,7 @@ function makeBooking(overrides = {}) {
     (0, node_test_1.describe)('createMultipleBookings', () => {
         (0, node_test_1.default)('saves all bookings and emits events', async () => {
             let emitCount = 0;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.BOOKING_CREATED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.BOOKING_CREATED, () => {
                 emitCount++;
             });
             const bookings = [makeBooking(), makeBooking(), makeBooking()];

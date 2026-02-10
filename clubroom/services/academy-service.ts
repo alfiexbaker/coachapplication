@@ -594,6 +594,25 @@ export const academyService = {
   },
 
   /**
+   * Delete an academy
+   * TODO: Implement full deletion logic with membership cleanup
+   */
+  async deleteAcademy(academyId: string): Promise<Result<void, ServiceError>> {
+    if (USE_MOCK) {
+      academiesCache = await loadAcademies();
+      const index = academiesCache.findIndex((a) => a.id === academyId);
+      if (index === -1) return err(notFound('Academy', academyId));
+
+      academiesCache.splice(index, 1);
+      await saveAcademies(academiesCache);
+      return ok(undefined);
+    }
+
+    await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });
+    return ok(undefined);
+  },
+
+  /**
    * Format role for display
    */
   formatRole(role: AcademyMembership['role']): string {

@@ -1,4 +1,4 @@
-import { Pressable, type AccessibilityRole, type ViewStyle } from 'react-native';
+import { Pressable, type AccessibilityRole, type AccessibilityState, type ViewStyle, type StyleProp } from 'react-native';
 import React from 'react';
 
 /**
@@ -8,13 +8,14 @@ export interface ClickableProps {
   onPress?: () => void;
   onLongPress?: () => void;
   delayLongPress?: number;
-  style?: ViewStyle | ViewStyle[] | ((state: { pressed: boolean }) => ViewStyle | ViewStyle[]);
+  style?: StyleProp<ViewStyle> | ((state: { pressed: boolean }) => StyleProp<ViewStyle>);
   children?: React.ReactNode;
   disabled?: boolean;
   hitSlop?: number;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
 }
 
 export function Clickable({
@@ -28,6 +29,7 @@ export function Clickable({
   accessibilityLabel,
   accessibilityHint,
   accessibilityRole,
+  accessibilityState,
 }: ClickableProps) {
   const handlePress = disabled ? undefined : onPress;
   const handleLongPress = disabled ? undefined : onLongPress;
@@ -43,6 +45,7 @@ export function Clickable({
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       accessibilityRole={accessibilityRole}
+      accessibilityState={accessibilityState}
       style={(state) => [
         resolveStyle({ pressed: state.pressed }) as ViewStyle | ViewStyle[],
         disabled ? { opacity: 0.5 } : undefined,

@@ -7,7 +7,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { Row } from '@/components/primitives';
 
 interface MedicalTagInputProps {
   label: string;

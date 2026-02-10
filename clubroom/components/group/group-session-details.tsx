@@ -10,7 +10,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;

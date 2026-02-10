@@ -246,7 +246,7 @@ exports.followService = {
         const following = await this.getFollowingIds(userId);
         // Get all available coaches from the coach service
         const allCoaches = await coach_service_1.coachService.getCoaches();
-        const allCoachIds = allCoaches.map((c) => c.id);
+        const allCoachIds = allCoaches.success ? allCoaches.data.map((c) => c.id) : [];
         // Filter out coaches the user already follows
         const suggestions = allCoachIds.filter((id) => !following.includes(id));
         return suggestions.slice(0, limit);

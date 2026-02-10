@@ -73,9 +73,9 @@ export function usePublicProfile(coachId: string) {
     if (!coachId) return;
     try {
       const data = await coachService.getCoach(coachId);
-      setCoach(data);
+      if (data.success) setCoach(data.data);
       const reviewData = await coachService.getCoachReviews(coachId);
-      setReviews(reviewData);
+      if (reviewData.success) setReviews(reviewData.data);
     } catch {
       // Fail silently
     } finally {

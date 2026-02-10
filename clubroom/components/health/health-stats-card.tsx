@@ -8,7 +8,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { InjuryStats } from '@/constants/types';
 import { injuryService } from '@/services/injury-service';
-import { Row } from '@/components/primitives';
 
 interface HealthStatsCardProps {
   colors: ThemeColors;

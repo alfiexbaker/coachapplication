@@ -54,7 +54,7 @@ const CLUB_ID = `club_${rid()}`;
         await api_client_1.apiClient.remove(`club_members_${CLUB_ID}`);
         await api_client_1.apiClient.remove('club_member_removals');
         await api_client_1.apiClient.remove(`club_branding_${CLUB_ID}`);
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     // ---------------------------------------------------------------------------
     // getMembers
@@ -86,7 +86,7 @@ const CLUB_ID = `club_${rid()}`;
     (0, node_test_1.describe)('removeMember', () => {
         (0, node_test_1.default)('removes member and emits CLUB_MEMBER_LEFT event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.CLUB_MEMBER_LEFT, () => {
+            eventBus.on(event_bus_1.ServiceEvents.CLUB_MEMBER_LEFT, () => {
                 emitted = true;
             });
             const result = await club_service_1.clubService.removeMember(CLUB_ID, 'parent1', 'LEFT_CLUB', { id: 'coach1', name: 'Director Kelly' });
@@ -141,7 +141,7 @@ const CLUB_ID = `club_${rid()}`;
     (0, node_test_1.describe)('banMember', () => {
         (0, node_test_1.default)('bans member and emits event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.CLUB_MEMBER_LEFT, () => {
+            eventBus.on(event_bus_1.ServiceEvents.CLUB_MEMBER_LEFT, () => {
                 emitted = true;
             });
             const result = await club_service_1.clubService.banMember(CLUB_ID, 'parent1', 'Misconduct', { id: 'coach1', name: 'Director Kelly' });
@@ -162,7 +162,7 @@ const CLUB_ID = `club_${rid()}`;
     (0, node_test_1.describe)('squad management', () => {
         (0, node_test_1.default)('adds member to squad and emits SQUAD_MEMBER_ADDED', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.SQUAD_MEMBER_ADDED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.SQUAD_MEMBER_ADDED, () => {
                 emitted = true;
             });
             const result = await club_service_1.clubService.addMemberToSquad(CLUB_ID, 'parent1', 'squad_u15');
@@ -176,7 +176,7 @@ const CLUB_ID = `club_${rid()}`;
             // First add to squad
             await club_service_1.clubService.addMemberToSquad(CLUB_ID, 'parent1', 'squad_u15');
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.SQUAD_MEMBER_REMOVED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.SQUAD_MEMBER_REMOVED, () => {
                 emitted = true;
             });
             const result = await club_service_1.clubService.removeMemberFromSquad(CLUB_ID, 'parent1', 'squad_u15');

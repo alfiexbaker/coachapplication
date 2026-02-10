@@ -497,6 +497,23 @@ exports.academyService = {
         return data.hasPermission;
     },
     /**
+     * Delete an academy
+     * TODO: Implement full deletion logic with membership cleanup
+     */
+    async deleteAcademy(academyId) {
+        if (USE_MOCK) {
+            academiesCache = await loadAcademies();
+            const index = academiesCache.findIndex((a) => a.id === academyId);
+            if (index === -1)
+                return (0, result_1.err)((0, result_1.notFound)('Academy', academyId));
+            academiesCache.splice(index, 1);
+            await saveAcademies(academiesCache);
+            return (0, result_1.ok)(undefined);
+        }
+        await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });
+        return (0, result_1.ok)(undefined);
+    },
+    /**
      * Format role for display
      */
     formatRole(role) {

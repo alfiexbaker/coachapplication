@@ -154,6 +154,7 @@ export function useAthleteDevelopment(athleteId: string) {
         athleteId,
         athleteName: athlete.name,
         coachId: currentUser.id,
+        coachName: currentUser.name,
         bookingId: `manual-${Date.now()}`,
         completedAt: new Date().toISOString(),
         performanceRating: 3,

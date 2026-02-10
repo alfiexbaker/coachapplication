@@ -12,7 +12,7 @@
 
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import ReanimatedView, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -228,7 +228,7 @@ export const SavedToast = memo(function SavedToast({
   if (!visible) return null;
 
   return (
-    <ReanimatedView
+    <Animated.View
       style={[
         styles.toast,
         { backgroundColor: palette.surface },
@@ -239,7 +239,7 @@ export const SavedToast = memo(function SavedToast({
     >
       <Ionicons name="checkmark-circle" size={18} color={palette.success} />
       <Text style={[styles.toastText, { color: palette.success }]}>Saved</Text>
-    </ReanimatedView>
+    </Animated.View>
   );
 });
 

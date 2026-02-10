@@ -19,6 +19,7 @@ export function usePromoCodes() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [codes, setCodes] = useState<PromoCode[]>([]);
   const [stats, setStats] = useState<PromoCodeStats | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -31,14 +32,16 @@ export function usePromoCodes() {
 
   const loadData = useCallback(async () => {
     try {
+      setError(null);
       const [codesData, statsData] = await Promise.all([
         promoService.getAllPromoCodes(),
         promoService.getCodeStats(),
       ]);
       setCodes(codesData);
       setStats(statsData);
-    } catch (error) {
-      logger.error('Failed to load promo codes:', error);
+    } catch (e) {
+      logger.error('Failed to load promo codes:', e);
+      setError(e instanceof Error ? e.message : 'Failed to load promo codes');
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,7 @@ export function usePromoCodes() {
   const selectedCode = codes.find((c) => c.id === selectedCodeId) ?? null;
 
   return {
-    loading, refreshing, stats, filter, filteredCodes, codes,
+    loading, refreshing, error, stats, filter, filteredCodes, codes,
     usageModalVisible, usageData, usageLoading, selectedCode,
     setFilter, handleRefresh, handleToggleActive, handleViewUsage,
     handleCreateCode, closeUsageModal,

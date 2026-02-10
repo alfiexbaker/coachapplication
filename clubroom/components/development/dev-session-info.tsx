@@ -8,7 +8,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { BadgeAward } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 export interface DevSessionInfoProps {
   athleteName: string;

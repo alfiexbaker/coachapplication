@@ -13,7 +13,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 interface TrainingCardProps {
   session: GroupSession;

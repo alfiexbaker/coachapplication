@@ -14,7 +14,6 @@ import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Drill } from '@/constants/types';
 import type { DrillAthlete } from '@/hooks/use-drill-assign';
-import { Row } from '@/components/primitives';
 
 interface AssignDrillFormProps {
   drill: Drill;

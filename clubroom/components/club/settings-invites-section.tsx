@@ -12,7 +12,6 @@ import { clubService } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubRole } from '@/constants/types';
 import type { InviteCodeItem } from '@/hooks/use-club-settings';
-import { Row } from '@/components/primitives';
 
 interface SettingsInvitesSectionProps {
   inviteCodes: InviteCodeItem[];

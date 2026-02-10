@@ -136,7 +136,7 @@ async function handleBookingCreated(data) {
         const startDate = new Date(booking.scheduledAt);
         const endDate = new Date(startDate.getTime() + (booking.duration ?? 60) * 60 * 1000);
         const title = (0, calendar_helpers_1.buildCalendarTitle)({
-            coachName: booking.coachName ?? 'Coach',
+            coachName: booking.coachName,
             scheduledAt: booking.scheduledAt,
             duration: booking.duration ?? 60,
             location: booking.location,
@@ -144,7 +144,7 @@ async function handleBookingCreated(data) {
             price: booking.price,
         });
         const notes = (0, calendar_helpers_1.buildCalendarNotes)({
-            coachName: booking.coachName ?? 'Coach',
+            coachName: booking.coachName,
             scheduledAt: booking.scheduledAt,
             duration: booking.duration ?? 60,
             sessionType: booking.serviceType ?? booking.service,
@@ -195,7 +195,7 @@ async function handleBookingUpdated(data) {
         const startDate = new Date(booking.scheduledAt);
         const endDate = new Date(startDate.getTime() + (booking.duration ?? 60) * 60 * 1000);
         const title = (0, calendar_helpers_1.buildCalendarTitle)({
-            coachName: booking.coachName ?? 'Coach',
+            coachName: booking.coachName,
             scheduledAt: booking.scheduledAt,
             duration: booking.duration ?? 60,
             location: booking.location,
@@ -203,7 +203,7 @@ async function handleBookingUpdated(data) {
             price: booking.price,
         });
         const notes = (0, calendar_helpers_1.buildCalendarNotes)({
-            coachName: booking.coachName ?? 'Coach',
+            coachName: booking.coachName,
             scheduledAt: booking.scheduledAt,
             duration: booking.duration ?? 60,
             sessionType: booking.serviceType ?? booking.service,

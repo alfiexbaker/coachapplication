@@ -7,7 +7,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Components, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
-import { Row } from '@/components/primitives';
 
 export interface DevSpecialNeedsCardProps {
   childProfile: ChildProfile | null;

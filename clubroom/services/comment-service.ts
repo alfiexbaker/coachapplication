@@ -12,7 +12,7 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
-import { ok, err, type Result, type ServiceError, validationError, notFound, storageError } from '@/types/result';
+import { ok, err, type Result, type ServiceError, validationError, notFound, storageError, unauthorized, conflictError } from '@/types/result';
 import type {
   ThreadedComment,
   CreateCommentInput,
@@ -89,7 +89,7 @@ async function getCommentsForPost(postId: string): Promise<Result<CommentThread[
     return ok(threads);
   } catch (error) {
     logger.error('Failed to load comments', error);
-    return err({ code: 'STORAGE', message: 'Failed to load comments' });
+    return err(storageError('Failed to load comments'));
   }
 }
 
@@ -105,7 +105,7 @@ async function getCommentCount(postId: string): Promise<Result<number, ServiceEr
     return ok(count);
   } catch (error) {
     logger.error('Failed to get comment count', error);
-    return err({ code: 'STORAGE', message: 'Failed to get comment count' });
+    return err(storageError('Failed to get comment count'));
   }
 }
 
@@ -119,7 +119,7 @@ async function createComment(input: CreateCommentInput): Promise<Result<Threaded
     return err(validationError('Comment content cannot be empty'));
   }
   if (input.content.trim().length > 2000) {
-    return err({ code: 'VALIDATION', message: 'Comment must be 2000 characters or fewer' });
+    return err(validationError('Comment must be 2000 characters or fewer'));
   }
   if (!input.postId) {
     return err(validationError('Post ID is required'));
@@ -201,7 +201,7 @@ async function createComment(input: CreateCommentInput): Promise<Result<Threaded
     return ok(newComment);
   } catch (error) {
     logger.error('Failed to create comment', error);
-    return err({ code: 'STORAGE', message: 'Failed to create comment' });
+    return err(storageError('Failed to create comment'));
   }
 }
 
@@ -225,11 +225,11 @@ async function deleteComment(input: DeleteCommentInput): Promise<Result<Threaded
     const comment = allComments[index];
 
     if (comment.authorId !== input.userId) {
-      return err({ code: 'UNAUTHORIZED', message: 'Only the author can delete their own comment' });
+      return err(unauthorized('Only the author can delete their own comment'));
     }
 
     if (comment.isDeleted) {
-      return err({ code: 'CONFLICT', message: 'Comment is already deleted' });
+      return err(conflictError('Comment is already deleted'));
     }
 
     const now = new Date().toISOString();
@@ -256,7 +256,7 @@ async function deleteComment(input: DeleteCommentInput): Promise<Result<Threaded
     return ok(deletedComment);
   } catch (error) {
     logger.error('Failed to delete comment', error);
-    return err({ code: 'STORAGE', message: 'Failed to delete comment' });
+    return err(storageError('Failed to delete comment'));
   }
 }
 
@@ -308,7 +308,7 @@ async function toggleLike(input: ToggleCommentLikeInput): Promise<Result<Threade
     return ok(updatedComment);
   } catch (error) {
     logger.error('Failed to toggle comment like', error);
-    return err({ code: 'STORAGE', message: 'Failed to toggle comment like' });
+    return err(storageError('Failed to toggle comment like'));
   }
 }
 
@@ -325,7 +325,7 @@ async function getCommentById(commentId: string): Promise<Result<ThreadedComment
     return ok(comment);
   } catch (error) {
     logger.error('Failed to get comment', error);
-    return err({ code: 'STORAGE', message: 'Failed to get comment' });
+    return err(storageError('Failed to get comment'));
   }
 }
 
@@ -342,7 +342,7 @@ async function getLatestComment(postId: string): Promise<Result<ThreadedComment 
     return ok(postComments.length > 0 ? postComments[0] : null);
   } catch (error) {
     logger.error('Failed to get latest comment', error);
-    return err({ code: 'STORAGE', message: 'Failed to get latest comment' });
+    return err(storageError('Failed to get latest comment'));
   }
 }
 

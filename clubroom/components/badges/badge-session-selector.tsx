@@ -10,7 +10,6 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
-import { Row } from '@/components/primitives';
 
 interface BadgeSessionSelectorProps {
   sessionQuery: string;

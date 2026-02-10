@@ -12,7 +12,7 @@
 import { apiClient } from './api-client';
 import { communityGroupService } from './community/community-group-service';
 import { squadService } from './squad-service';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import type { ParentGroup } from '@/constants/types';
@@ -80,7 +80,7 @@ export const squadGroupService = {
     // 2. Fetch squad info + parents for initial member seeding
     const squad = await squadService.getSquad(squadId);
     if (!squad) {
-      return err({ code: 'NOT_FOUND', message: `Squad '${squadId}' not found` });
+      return err(notFound('Squad', squadId));
     }
 
     let parentIds: string[] = [];

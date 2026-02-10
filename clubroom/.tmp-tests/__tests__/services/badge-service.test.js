@@ -52,7 +52,7 @@ const rid = () => Math.random().toString(36).slice(2, 10);
     (0, node_test_1.beforeEach)(async () => {
         // Must use storageService.removeItem to clear BOTH apiClient AND in-memory cache
         await storage_service_1.storageService.removeItem('clubroom.badge_awards');
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     // ---------------------------------------------------------------------------
     // listDefinitions
@@ -84,7 +84,7 @@ const rid = () => Math.random().toString(36).slice(2, 10);
     (0, node_test_1.describe)('awardBadge', () => {
         (0, node_test_1.default)('creates award and emits BADGE_EARNED event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.BADGE_EARNED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.BADGE_EARNED, () => {
                 emitted = true;
             });
             const defs = await badge_service_1.badgeService.listDefinitions();

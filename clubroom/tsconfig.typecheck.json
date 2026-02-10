@@ -1,29 +1,20 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "jsx": "react-native",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "noEmit": true,
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "noEmit": true
   },
-  "files": [
-    "app/book-coach.tsx",
-    "components/ui/booking/availability-picker.tsx",
-    "components/ui/booking/booking-stepper.tsx",
-    "components/ui/booking/child-selection-grid.tsx",
-    "components/ui/booking/coach-summary-card.tsx",
-    "components/ui/booking/objective-selector.tsx",
-    "components/ui/booking/service-selection-list.tsx",
-    "components/primitives/selection-tile.tsx",
-    "constants/booking-types.ts",
-    "hooks/use-booking-persona.ts"
-  ]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "services/**/*.ts",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "constants/**/*.ts",
+    "types/**/*.ts",
+    "utils/**/*.ts",
+    "navigation/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".tmp-tests"]
 }

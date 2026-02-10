@@ -11,7 +11,7 @@ import test, { describe, beforeEach } from 'node:test';
 import { communityGroupService } from '../../services/community/community-group-service';
 import { apiClient } from '../../services/api-client';
 import { storageService } from '../../services/storage-service';
-import { eventBus, ServiceEvents } from '../../services/event-bus';
+import { onTyped, ServiceEvents } from '../../services/event-bus';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 

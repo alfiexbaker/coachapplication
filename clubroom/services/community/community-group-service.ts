@@ -171,85 +171,136 @@ class CommunityGroupService {
   /**
    * Get all groups (internal helper for cross-service access)
    */
-  async getAllGroups(): Promise<ParentGroup[]> {
-    const persisted = await storageService.getItem<ParentGroup[]>(STORAGE_KEYS.PARENT_GROUPS, []);
-    if (persisted.length > 0) {
-      this.inMemoryGroups = persisted;
+  async getAllGroups(): Promise<Result<ParentGroup[], ServiceError>> {
+    try {
+      const persisted = await storageService.getItem<ParentGroup[]>(STORAGE_KEYS.PARENT_GROUPS, []);
+      if (persisted.length > 0) {
+        this.inMemoryGroups = persisted;
+      }
+      logger.info('all_groups_retrieved', { count: this.inMemoryGroups.length });
+      return ok(this.inMemoryGroups);
+    } catch (error) {
+      logger.error('Failed to get all groups', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get all groups: ${String(error)}` });
     }
-    return this.inMemoryGroups;
   }
 
   /**
    * Get all groups that a user is a member of
    */
-  async getParentGroups(parentId: string): Promise<ParentGroup[]> {
-    const allGroups = await this.getAllGroups();
+  async getParentGroups(parentId: string): Promise<Result<ParentGroup[], ServiceError>> {
+    try {
+      const allGroupsResult = await this.getAllGroups();
+      if (!allGroupsResult.success) return allGroupsResult;
 
-    return allGroups.filter((group) =>
-      group.members.some((member) => member.parentId === parentId)
-    );
+      const filtered = allGroupsResult.data.filter((group) =>
+        group.members.some((member) => member.parentId === parentId)
+      );
+
+      logger.info('parent_groups_retrieved', { parentId, count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get parent groups', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get parent groups: ${String(error)}` });
+    }
   }
 
   /**
    * Get all available public groups
    */
-  async getPublicGroups(): Promise<ParentGroup[]> {
-    const allGroups = await this.getAllGroups();
+  async getPublicGroups(): Promise<Result<ParentGroup[], ServiceError>> {
+    try {
+      const allGroupsResult = await this.getAllGroups();
+      if (!allGroupsResult.success) return allGroupsResult;
 
-    return allGroups.filter((group) => group.isPublic);
+      const filtered = allGroupsResult.data.filter((group) => group.isPublic);
+
+      logger.info('public_groups_retrieved', { count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get public groups', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get public groups: ${String(error)}` });
+    }
   }
 
   /**
    * Get a single group by ID
    */
-  async getGroup(groupId: string): Promise<ParentGroup | undefined> {
-    const allGroups = await this.getAllGroups();
+  async getGroup(groupId: string): Promise<Result<ParentGroup, ServiceError>> {
+    try {
+      const allGroupsResult = await this.getAllGroups();
+      if (!allGroupsResult.success) return allGroupsResult;
 
-    return allGroups.find((group) => group.id === groupId);
+      const group = allGroupsResult.data.find((group) => group.id === groupId);
+
+      if (!group) {
+        return err(notFound('Group', groupId));
+      }
+
+      logger.info('group_retrieved', { groupId });
+      return ok(group);
+    } catch (error) {
+      logger.error('Failed to get group', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get group: ${String(error)}` });
+    }
   }
 
   /**
    * Create a new parent group.
    * The creator is assigned OWNER role.
    */
-  async createGroup(params: CreateGroupParams): Promise<ParentGroup> {
-    const timestamp = new Date().toISOString();
+  async createGroup(params: CreateGroupParams): Promise<Result<ParentGroup, ServiceError>> {
+    try {
+      // Validation
+      if (!params.name) {
+        return err(validationError('Group name is required'));
+      }
+      if (!params.creatorId) {
+        return err(validationError('Creator ID is required'));
+      }
 
-    const members: GroupMember[] = [
-      {
-        parentId: params.creatorId,
-        parentName: params.creatorName,
-        role: 'OWNER',
-        joinedAt: timestamp,
-      },
-      ...params.memberIds.map((id, index) => ({
-        parentId: id,
-        parentName: params.memberNames[index] || 'Unknown',
-        role: 'MEMBER' as const,
-        joinedAt: timestamp,
-      })),
-    ];
+      const timestamp = new Date().toISOString();
 
-    const newGroup: ParentGroup = {
-      id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      name: params.name,
-      description: params.description,
-      type: params.type,
-      members,
-      createdById: params.creatorId,
-      createdByName: params.creatorName,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      isPublic: params.isPublic ?? false,
-      clubId: params.clubId,
-      sessionId: params.sessionId,
-      maxMembers: params.maxMembers,
-    };
+      const members: GroupMember[] = [
+        {
+          parentId: params.creatorId,
+          parentName: params.creatorName,
+          role: 'OWNER',
+          joinedAt: timestamp,
+        },
+        ...params.memberIds.map((id, index) => ({
+          parentId: id,
+          parentName: params.memberNames[index] || 'Unknown',
+          role: 'MEMBER' as const,
+          joinedAt: timestamp,
+        })),
+      ];
 
-    this.inMemoryGroups.push(newGroup);
-    await this.persistGroups();
+      const newGroup: ParentGroup = {
+        id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        name: params.name,
+        description: params.description,
+        type: params.type,
+        members,
+        createdById: params.creatorId,
+        createdByName: params.creatorName,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        isPublic: params.isPublic ?? false,
+        clubId: params.clubId,
+        sessionId: params.sessionId,
+        maxMembers: params.maxMembers,
+      };
 
-    return newGroup;
+      this.inMemoryGroups.push(newGroup);
+      await this.persistGroups();
+
+      logger.info('group_created', { groupId: newGroup.id, type: params.type });
+      return ok(newGroup);
+    } catch (error) {
+      logger.error('Failed to create group', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to create group: ${String(error)}` });
+    }
   }
 
   /**
@@ -265,8 +316,10 @@ class CommunityGroupService {
     parentName: string,
     options?: { isCoach?: boolean },
   ): Promise<Result<ParentGroup, ServiceError>> {
-    const allGroups = await this.getAllGroups();
+    const allGroupsResult = await this.getAllGroups();
+    if (!allGroupsResult.success) return allGroupsResult;
 
+    const allGroups = allGroupsResult.data;
     const groupIndex = allGroups.findIndex((g) => g.id === groupId);
     if (groupIndex === -1) {
       return err(notFound('Group', groupId));
@@ -325,8 +378,10 @@ class CommunityGroupService {
    * Leave a group
    */
   async leaveGroup(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
-    const allGroups = await this.getAllGroups();
+    const allGroupsResult = await this.getAllGroups();
+    if (!allGroupsResult.success) return allGroupsResult;
 
+    const allGroups = allGroupsResult.data;
     const groupIndex = allGroups.findIndex((g) => g.id === groupId);
     if (groupIndex === -1) {
       return err(notFound('Group', groupId));
@@ -372,10 +427,10 @@ class CommunityGroupService {
     inviteeId: string,
     inviteeName: string
   ): Promise<Result<GroupInvite, ServiceError>> {
-    const group = await this.getGroup(groupId);
-    if (!group) {
-      return err(notFound('Group', groupId));
-    }
+    const groupResult = await this.getGroup(groupId);
+    if (!groupResult.success) return groupResult;
+
+    const group = groupResult.data;
 
     // Check if inviter has admin privileges
     const inviter = group.members.find((m) => m.parentId === inviterId);
@@ -389,8 +444,10 @@ class CommunityGroupService {
     }
 
     // Check for existing pending invite
-    const existingInvites = await this.getGroupInvites(inviteeId);
-    if (existingInvites.some((i) => i.groupId === groupId && i.status === 'PENDING')) {
+    const existingInvitesResult = await this.getGroupInvites(inviteeId);
+    if (!existingInvitesResult.success) return existingInvitesResult;
+
+    if (existingInvitesResult.data.some((i) => i.groupId === groupId && i.status === 'PENDING')) {
       return err(conflictError('Invite already sent'));
     }
 
@@ -429,17 +486,35 @@ class CommunityGroupService {
   /**
    * Get pending group invites for a user
    */
-  async getGroupInvites(userId: string): Promise<GroupInvite[]> {
-    const allInvites = await storageService.getItem<GroupInvite[]>(STORAGE_KEYS.GROUP_INVITES, []);
-    return allInvites.filter((i) => i.inviteeId === userId);
+  async getGroupInvites(userId: string): Promise<Result<GroupInvite[], ServiceError>> {
+    try {
+      const allInvites = await storageService.getItem<GroupInvite[]>(STORAGE_KEYS.GROUP_INVITES, []);
+      const filtered = allInvites.filter((i) => i.inviteeId === userId);
+
+      logger.info('group_invites_retrieved', { userId, count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get group invites', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get group invites: ${String(error)}` });
+    }
   }
 
   /**
    * Get pending invites for a user
    */
-  async getPendingInvites(userId: string): Promise<GroupInvite[]> {
-    const invites = await this.getGroupInvites(userId);
-    return invites.filter((i) => i.status === 'PENDING');
+  async getPendingInvites(userId: string): Promise<Result<GroupInvite[], ServiceError>> {
+    try {
+      const invitesResult = await this.getGroupInvites(userId);
+      if (!invitesResult.success) return invitesResult;
+
+      const filtered = invitesResult.data.filter((i) => i.status === 'PENDING');
+
+      logger.info('pending_invites_retrieved', { userId, count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get pending invites', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get pending invites: ${String(error)}` });
+    }
   }
 
   /**
@@ -464,8 +539,9 @@ class CommunityGroupService {
     await storageService.setItem(STORAGE_KEYS.GROUP_INVITES, allInvites);
 
     // Add member to group
-    const group = await this.getGroup(invite.groupId);
-    if (group) {
+    const groupResult = await this.getGroup(invite.groupId);
+    if (groupResult.success) {
+      const group = groupResult.data;
       const newMember: GroupMember = {
         parentId: invite.inviteeId,
         parentName: invite.inviteeName,
@@ -538,10 +614,10 @@ class CommunityGroupService {
   async changeMemberRole(params: ChangeMemberRoleParams): Promise<Result<void, ServiceError>> {
     const { groupId, requesterId, memberId, newRole } = params;
 
-    const group = await this.getGroup(groupId);
-    if (!group) {
-      return err(notFound('Group', groupId));
-    }
+    const groupResult = await this.getGroup(groupId);
+    if (!groupResult.success) return groupResult;
+
+    const group = groupResult.data;
 
     const requester = group.members.find((m) => m.parentId === requesterId);
     if (!requester || !isAdminRole(requester.role)) {
@@ -674,7 +750,10 @@ class CommunityGroupService {
     parentName: string,
     role: GroupMemberRole = 'MEMBER',
   ): Promise<Result<ParentGroup, ServiceError>> {
-    const allGroups = await this.getAllGroups();
+    const allGroupsResult = await this.getAllGroups();
+    if (!allGroupsResult.success) return allGroupsResult;
+
+    const allGroups = allGroupsResult.data;
     const group = allGroups.find((g) => g.id === groupId);
 
     if (!group) {
@@ -717,7 +796,10 @@ class CommunityGroupService {
     groupId: string,
     parentId: string,
   ): Promise<Result<void, ServiceError>> {
-    const allGroups = await this.getAllGroups();
+    const allGroupsResult = await this.getAllGroups();
+    if (!allGroupsResult.success) return allGroupsResult;
+
+    const allGroups = allGroupsResult.data;
     const group = allGroups.find((g) => g.id === groupId);
 
     if (!group) {
@@ -746,7 +828,10 @@ class CommunityGroupService {
    * Used when a squad is deleted — removes its associated group.
    */
   async deleteGroup(groupId: string): Promise<Result<void, ServiceError>> {
-    const allGroups = await this.getAllGroups();
+    const allGroupsResult = await this.getAllGroups();
+    if (!allGroupsResult.success) return allGroupsResult;
+
+    const allGroups = allGroupsResult.data;
     const groupIndex = allGroups.findIndex((g) => g.id === groupId);
 
     if (groupIndex === -1) {

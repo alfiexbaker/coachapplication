@@ -65,7 +65,7 @@ function makeGroupParams(overrides = {}) {
     (0, node_test_1.beforeEach)(async () => {
         await storage_service_1.storageService.removeItem('clubroom.parent_groups');
         await storage_service_1.storageService.removeItem('clubroom.group_invites');
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     // ---------------------------------------------------------------------------
     // createGroup
@@ -128,7 +128,7 @@ function makeGroupParams(overrides = {}) {
     (0, node_test_1.describe)('joinGroup', () => {
         (0, node_test_1.default)('joins public group and emits GROUP_MEMBER_JOINED', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.GROUP_MEMBER_JOINED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.GROUP_MEMBER_JOINED, () => {
                 emitted = true;
             });
             const group = await community_group_service_1.communityGroupService.createGroup(makeGroupParams({ isPublic: true }));
@@ -192,7 +192,7 @@ function makeGroupParams(overrides = {}) {
     (0, node_test_1.describe)('changeMemberRole', () => {
         (0, node_test_1.default)('promotes member and emits GROUP_MEMBER_ROLE_CHANGED', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.GROUP_MEMBER_ROLE_CHANGED, () => {
+            eventBus.on(event_bus_1.ServiceEvents.GROUP_MEMBER_ROLE_CHANGED, () => {
                 emitted = true;
             });
             const creatorId = `creator_${rid()}`;

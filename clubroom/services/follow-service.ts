@@ -23,7 +23,7 @@
 import { apiClient } from './api-client';
 import type { Follow, FollowRequest, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
-import { coachService } from './coach-service';
+import { coachService, type Coach } from './coach-service';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
@@ -304,10 +304,10 @@ export const followService = {
 
     // Get all available coaches from the coach service
     const allCoaches = await coachService.getCoaches();
-    const allCoachIds = allCoaches.map((c) => c.id);
+    const allCoachIds = allCoaches.success ? allCoaches.data.map((c: Coach) => c.id) : [];
 
     // Filter out coaches the user already follows
-    const suggestions = allCoachIds.filter((id) => !following.includes(id));
+    const suggestions = allCoachIds.filter((id: string) => !following.includes(id));
 
     return suggestions.slice(0, limit);
   },

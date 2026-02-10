@@ -313,10 +313,13 @@ function makeRegisterInput(overrides) {
             await auth_service_1.authService.register(input);
             const oldTokens = await auth_service_1.authService.getTokens();
             strict_1.default.ok(oldTokens);
-            const newTokens = await auth_service_1.authService.refreshToken();
-            strict_1.default.ok(newTokens.accessToken);
-            strict_1.default.ok(newTokens.refreshToken);
-            strict_1.default.ok(newTokens.expiresAt > Date.now());
+            const result = await auth_service_1.authService.refreshToken();
+            strict_1.default.ok(result.success);
+            if (result.success) {
+                strict_1.default.ok(result.data.accessToken);
+                strict_1.default.ok(result.data.refreshToken);
+                strict_1.default.ok(result.data.expiresAt > Date.now());
+            }
         });
     });
     // ---------------------------------------------------------------------------

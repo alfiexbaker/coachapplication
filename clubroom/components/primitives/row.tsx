@@ -12,16 +12,29 @@
  */
 
 import React, { memo } from 'react';
-import { View, type ViewStyle, type StyleProp } from 'react-native';
+import { View, type ViewStyle, type StyleProp, type AccessibilityRole, type AccessibilityState } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 
 type SpacingKey = keyof typeof Spacing;
 
-type AlignItems = ViewStyle['alignItems'];
+type AlignItems =
+  | 'start' | 'end' | 'center' | 'stretch' | 'baseline'
+  | 'flex-start' | 'flex-end';
+
 type JustifyContent =
   | 'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'
   | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+
+const alignMap: Record<AlignItems, ViewStyle['alignItems']> = {
+  start: 'flex-start',
+  end: 'flex-end',
+  center: 'center',
+  stretch: 'stretch',
+  baseline: 'baseline',
+  'flex-start': 'flex-start',
+  'flex-end': 'flex-end',
+};
 
 const justifyMap: Record<JustifyContent, ViewStyle['justifyContent']> = {
   start: 'flex-start',
@@ -48,6 +61,10 @@ export interface RowProps {
   flex?: boolean;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
+  testID?: string;
 }
 
 function resolveSpacing(value: SpacingKey | number | undefined): number | undefined {
@@ -67,11 +84,15 @@ export const Row = memo(function Row({
   flex,
   style,
   children,
+  accessibilityRole,
+  accessibilityLabel,
+  accessibilityState,
+  testID,
 }: RowProps) {
   const computed: ViewStyle = {
     flexDirection: 'row',
     gap: resolveSpacing(gap),
-    alignItems: align,
+    alignItems: align ? alignMap[align] : undefined,
     justifyContent: justify ? justifyMap[justify] : undefined,
     padding: resolveSpacing(padding),
     paddingHorizontal: resolveSpacing(paddingH),
@@ -80,5 +101,15 @@ export const Row = memo(function Row({
     flex: flex ? 1 : undefined,
   };
 
-  return <View style={[computed, style]}>{children}</View>;
+  return (
+    <View
+      style={[computed, style]}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
+      testID={testID}
+    >
+      {children}
+    </View>
+  );
 });

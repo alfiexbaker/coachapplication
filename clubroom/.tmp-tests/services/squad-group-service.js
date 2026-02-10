@@ -70,7 +70,7 @@ exports.squadGroupService = {
         // 2. Fetch squad info + parents for initial member seeding
         const squad = await squad_service_1.squadService.getSquad(squadId);
         if (!squad) {
-            return (0, result_1.err)({ code: 'NOT_FOUND', message: `Squad '${squadId}' not found` });
+            return (0, result_1.err)((0, result_1.notFound)('Squad', squadId));
         }
         let parentIds = [];
         let parentNames = [];

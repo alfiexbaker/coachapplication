@@ -13,7 +13,6 @@ import { badgeService } from '@/services/badge-service';
 import { TierNames, CategoryInfo } from '@/constants/progression';
 import { getTierColor, getCategoryIcon, isRecent } from '@/hooks/use-child-badges';
 import type { BadgeAward } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 interface ChildBadgeCardProps {
   award: BadgeAward;

@@ -69,7 +69,7 @@ export interface Booking {
   duration?: number; // minutes (default 60)
   location: string;
   notes?: string;
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
+  coachName: string; // Denormalized — resolve from coachId in real API
   athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId/athleteIds instead
   // Group booking fields
   isGroupSession?: boolean;
@@ -125,7 +125,7 @@ export interface Session {
   performanceRating: number; // 1-5
   nextFocusAreas: string[];
   videoUrls?: string[]; // Session videos uploaded by coach
-  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
+  coachName: string; // Denormalized — resolve from coachId in real API
   athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
 }
 

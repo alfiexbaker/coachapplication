@@ -7,7 +7,6 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import { Row } from '@/components/primitives';
 
 export interface DevSessionNotesProps {
   publicNotes: string;

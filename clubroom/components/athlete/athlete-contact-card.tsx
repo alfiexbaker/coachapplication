@@ -14,7 +14,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { callPhone, sendEmail, openMessage } from '@/utils/contact-actions';
 import type { RosterEntry } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 interface AthleteContactCardProps {
   athlete: RosterEntry;

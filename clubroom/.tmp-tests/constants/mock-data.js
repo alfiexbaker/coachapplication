@@ -3360,14 +3360,14 @@ exports.coachProfiles = [
 // Upcoming bookings for BookingsScreen
 exports.upcomingBookings = exports.MOCK_BOOKINGS.filter((b) => new Date(b.scheduledAt) > today).map((booking) => ({
     id: booking.id,
-    coachName: booking.coachName ?? 'Coach',
+    coachName: booking.coachName,
     childName: booking.athleteName ?? 'Athlete',
     service: booking.isGroupSession ? 'Group Coaching Session' : 'Football Coaching',
     start: booking.scheduledAt,
     status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
     locationLabel: booking.location,
     coach: {
-        name: booking.coachName ?? 'Coach',
+        name: booking.coachName,
         photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
     },
     client: {
@@ -3385,7 +3385,7 @@ exports.upcomingBookings = exports.MOCK_BOOKINGS.filter((b) => new Date(b.schedu
 // Session history for StatisticsScreen
 exports.sessionHistory = exports.MOCK_SESSIONS.map((session) => ({
     id: session.id,
-    coachName: session.coachName ?? 'Unknown Coach',
+    coachName: session.coachName,
     athleteName: session.athleteName ?? 'Unknown Athlete',
     focus: session.skillsWorkedOn[0] || 'General Training',
     durationMinutes: 60, // Standard session duration

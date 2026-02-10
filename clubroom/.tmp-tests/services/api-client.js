@@ -27,6 +27,7 @@ const auth_service_1 = require("@/services/auth-service");
 const error_types_1 = require("@/constants/error-types");
 Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () { return error_types_1.ApiError; } });
 const config_1 = require("@/constants/config");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('ApiClient');
 // Config-driven settings
 const USE_MOCK = config_1.api.useMock;
@@ -65,7 +66,11 @@ const rateLimiter = new RateLimiter(config_1.rateLimits.apiRequestsPerMinute);
 // ============================================================================
 let _isRefreshing = false;
 let _refreshPromise = null;
-async function apiFetch(path, options) {
+/**
+ * Internal fetch that throws errors (for backward compat).
+ * Use apiFetch() instead which returns Result<T, ServiceError>.
+ */
+async function _apiFetchUnsafe(path, options) {
     // Rate limiting
     await rateLimiter.waitForSlot();
     rateLimiter.recordRequest();
@@ -110,9 +115,12 @@ async function apiFetch(path, options) {
         try {
             if (!_isRefreshing) {
                 _isRefreshing = true;
-                _refreshPromise = auth_service_1.authService.refreshToken().then(() => {
+                _refreshPromise = auth_service_1.authService.refreshToken().then((result) => {
                     _isRefreshing = false;
                     _refreshPromise = null;
+                    if (!result.success) {
+                        throw new error_types_1.UnauthorizedError(result.error.message);
+                    }
                 });
             }
             await _refreshPromise;
@@ -163,6 +171,51 @@ async function apiFetch(path, options) {
         return undefined;
     return response.json();
 }
+/**
+ * API fetch with Result pattern - catches all errors and returns Result<T, ServiceError>.
+ */
+async function apiFetch(path, options) {
+    try {
+        const data = await _apiFetchUnsafe(path, options);
+        return (0, result_1.ok)(data);
+    }
+    catch (error) {
+        if (error instanceof error_types_1.NetworkError) {
+            return (0, result_1.err)((0, result_1.networkError)(error.message));
+        }
+        if (error instanceof error_types_1.UnauthorizedError) {
+            return (0, result_1.err)((0, result_1.unauthorized)(error.message));
+        }
+        if (error instanceof error_types_1.ApiError) {
+            // Map ApiError to ServiceError
+            let code;
+            switch (error.status) {
+                case 404:
+                    code = 'NOT_FOUND';
+                    break;
+                case 401:
+                case 403:
+                    code = 'UNAUTHORIZED';
+                    break;
+                case 409:
+                    code = 'CONFLICT';
+                    break;
+                case 429:
+                    code = 'RATE_LIMITED';
+                    break;
+                case 400:
+                    code = 'VALIDATION';
+                    break;
+                default:
+                    code = 'UNKNOWN';
+            }
+            return (0, result_1.err)((0, result_1.serviceError)(code, error.message, error.details));
+        }
+        // Unknown error
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return (0, result_1.err)((0, result_1.serviceError)('UNKNOWN', message));
+    }
+}
 // ============================================================================
 // MOCK HELPERS (AsyncStorage-based)
 // ============================================================================
@@ -207,13 +260,12 @@ exports.apiClient = {
         if (USE_MOCK) {
             return mockGet(key, fallback);
         }
-        try {
-            return await apiFetch(`/api/${key}`);
+        const result = await apiFetch(`/api/${key}`);
+        if (result.success) {
+            return result.data;
         }
-        catch (error) {
-            logger.error(`API get failed for ${key}`, error);
-            return fallback;
-        }
+        logger.error(`API get failed for ${key}`, result.error);
+        return fallback;
     },
     /**
      * Store data by storage key (mock) or POST to API (real).
@@ -222,10 +274,14 @@ exports.apiClient = {
         if (USE_MOCK) {
             return mockSet(key, data);
         }
-        await apiFetch(`/api/${key}`, {
+        const result = await apiFetch(`/api/${key}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
+        if (!result.success) {
+            logger.error(`API set failed for ${key}`, result.error);
+            throw new Error(result.error.message);
+        }
     },
     /**
      * Read-modify-write pattern. Reads current value, applies updater, saves result.
@@ -243,7 +299,11 @@ exports.apiClient = {
         if (USE_MOCK) {
             return mockRemove(key);
         }
-        await apiFetch(`/api/${key}`, { method: 'DELETE' });
+        const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });
+        if (!result.success) {
+            logger.error(`API remove failed for ${key}`, result.error);
+            throw new Error(result.error.message);
+        }
     },
     /**
      * Generate a unique ID with optional prefix.

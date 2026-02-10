@@ -120,7 +120,7 @@ export async function handleBookingCreated(
     const startDate = new Date(booking.scheduledAt);
     const endDate = new Date(startDate.getTime() + (booking.duration ?? 60) * 60 * 1000);
     const title = buildCalendarTitle({
-      coachName: booking.coachName ?? 'Coach',
+      coachName: booking.coachName,
       scheduledAt: booking.scheduledAt,
       duration: booking.duration ?? 60,
       location: booking.location,
@@ -128,7 +128,7 @@ export async function handleBookingCreated(
       price: booking.price,
     });
     const notes = buildCalendarNotes({
-      coachName: booking.coachName ?? 'Coach',
+      coachName: booking.coachName,
       scheduledAt: booking.scheduledAt,
       duration: booking.duration ?? 60,
       sessionType: booking.serviceType ?? booking.service,
@@ -184,7 +184,7 @@ export async function handleBookingUpdated(
     const startDate = new Date(booking.scheduledAt);
     const endDate = new Date(startDate.getTime() + (booking.duration ?? 60) * 60 * 1000);
     const title = buildCalendarTitle({
-      coachName: booking.coachName ?? 'Coach',
+      coachName: booking.coachName,
       scheduledAt: booking.scheduledAt,
       duration: booking.duration ?? 60,
       location: booking.location,
@@ -192,7 +192,7 @@ export async function handleBookingUpdated(
       price: booking.price,
     });
     const notes = buildCalendarNotes({
-      coachName: booking.coachName ?? 'Coach',
+      coachName: booking.coachName,
       scheduledAt: booking.scheduledAt,
       duration: booking.duration ?? 60,
       sessionType: booking.serviceType ?? booking.service,

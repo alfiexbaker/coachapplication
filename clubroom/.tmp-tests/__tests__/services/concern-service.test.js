@@ -64,7 +64,7 @@ function makeConcernInput(overrides = {}) {
 (0, node_test_1.describe)('concernService', () => {
     (0, node_test_1.beforeEach)(async () => {
         await api_client_1.apiClient.remove('clubroom.concerns');
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     // ---------------------------------------------------------------------------
     // raiseConcern
@@ -81,7 +81,7 @@ function makeConcernInput(overrides = {}) {
         });
         (0, node_test_1.default)('emits CONCERN_RAISED event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.CONCERN_RAISED, () => { emitted = true; });
+            eventBus.on(event_bus_1.ServiceEvents.CONCERN_RAISED, () => { emitted = true; });
             await concern_service_1.concernService.raiseConcern(makeConcernInput());
             strict_1.default.equal(emitted, true);
         });
@@ -150,7 +150,7 @@ function makeConcernInput(overrides = {}) {
         });
         (0, node_test_1.default)('emits CONCERN_RESOLVED event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.CONCERN_RESOLVED, () => { emitted = true; });
+            eventBus.on(event_bus_1.ServiceEvents.CONCERN_RESOLVED, () => { emitted = true; });
             const raised = await concern_service_1.concernService.raiseConcern(makeConcernInput());
             if (raised.success) {
                 await concern_service_1.concernService.resolveConcern(raised.data.id, 'Done');
@@ -164,7 +164,7 @@ function makeConcernInput(overrides = {}) {
     (0, node_test_1.describe)('updateStatus', () => {
         (0, node_test_1.default)('updates status and emits event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.CONCERN_UPDATED, () => { emitted = true; });
+            eventBus.on(event_bus_1.ServiceEvents.CONCERN_UPDATED, () => { emitted = true; });
             const raised = await concern_service_1.concernService.raiseConcern(makeConcernInput());
             if (!raised.success)
                 return;

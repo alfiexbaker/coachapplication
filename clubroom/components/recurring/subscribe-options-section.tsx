@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { StyleSheet, View, TextInput, Platform } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';

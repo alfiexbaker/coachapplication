@@ -10,7 +10,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { BodyPart, InjurySeverity } from '@/constants/types';
 import { BODY_PART_CATEGORIES, SEVERITY_OPTIONS } from '@/hooks/use-group-roster';
-import { Row } from '@/components/primitives';
 
 export interface InjuryReportModalProps {
   visible: boolean;

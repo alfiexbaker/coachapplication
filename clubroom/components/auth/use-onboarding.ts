@@ -6,7 +6,7 @@
  */
 
 import { useReducer, useCallback } from 'react';
-import Animated, { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, withTiming, runOnJS, type SharedValue } from 'react-native-reanimated';
 
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -60,7 +60,7 @@ function onboardingReducer(state: OnboardingState, action: OnboardingAction): On
 
 export interface UseOnboardingResult {
   state: OnboardingState;
-  fadeOpacity: Animated.SharedValue<number>;
+  fadeOpacity: SharedValue<number>;
   dispatch: React.Dispatch<OnboardingAction>;
   handleNext: () => void;
   handleBack: () => void;

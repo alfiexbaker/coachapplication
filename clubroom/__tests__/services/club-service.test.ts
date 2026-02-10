@@ -10,7 +10,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { clubService } from '../../services/club-service';
 import { apiClient } from '../../services/api-client';
-import { eventBus, ServiceEvents } from '../../services/event-bus';
+import { onTyped, ServiceEvents } from '../../services/event-bus';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 const CLUB_ID = `club_${rid()}`;

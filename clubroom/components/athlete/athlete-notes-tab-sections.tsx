@@ -20,7 +20,6 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterNote, FootballObjective } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

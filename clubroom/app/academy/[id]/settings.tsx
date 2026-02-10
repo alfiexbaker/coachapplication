@@ -49,7 +49,7 @@ export default function AcademySettingsScreen() {
     if (!id) return;
     setSaving(true);
     try {
-      await academyService.updateAcademy(id, { name, description, isPublic, requiresApproval });
+      await academyService.updateSettings(id, { name, description, isPublic, requiresApproval });
     } finally {
       setSaving(false);
     }

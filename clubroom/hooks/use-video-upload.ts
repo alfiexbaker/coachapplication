@@ -57,8 +57,10 @@ export function useVideoUpload() {
     }
   }, [videoData, title, description, visibility, currentUser]);
 
+  const canSubmit = !!videoData && !!title.trim() && !uploading;
+
   return {
-    videoData, title, description, visibility, uploading, uploadProgress,
+    videoData, title, description, visibility, uploading, uploadProgress, canSubmit,
     setTitle, setDescription, setVisibility,
     handleVideoSelected, handleUploadProgress, handleSubmit,
   };

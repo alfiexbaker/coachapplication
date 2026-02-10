@@ -139,22 +139,22 @@ exports.authService = {
             const newTokens = generateMockTokens();
             await this.storeTokens(newTokens);
             logger.success('Mock token refreshed');
-            return newTokens;
+            return (0, result_1.ok)(newTokens);
         }
         const currentTokens = await this.getTokens();
         if (!currentTokens) {
-            throw new Error('No refresh token available');
+            return (0, result_1.err)((0, result_1.unauthorized)('No refresh token available'));
         }
         const result = await apiFetch('/api/auth/refresh', {
             method: 'POST',
             body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
         });
         if (!result.success) {
-            throw new Error(result.error.message);
+            return (0, result_1.err)(result.error);
         }
         await this.storeTokens(result.data.tokens);
         logger.success('Token refreshed');
-        return result.data.tokens;
+        return (0, result_1.ok)(result.data.tokens);
     },
     async logout() {
         logger.info('Logout');
@@ -187,16 +187,14 @@ exports.authService = {
             }
             if (tokens.expiresAt < Date.now()) {
                 logger.info('Token expired, attempting refresh');
-                try {
-                    const newTokens = await this.refreshToken();
-                    currentUser = storedUser;
-                    return { isAuthenticated: true, user: storedUser, tokens: newTokens };
-                }
-                catch {
+                const refreshResult = await this.refreshToken();
+                if (!refreshResult.success) {
                     logger.warn('Token refresh failed during auth check');
                     await this.logout();
                     return { isAuthenticated: false, user: null, tokens: null };
                 }
+                currentUser = storedUser;
+                return { isAuthenticated: true, user: storedUser, tokens: refreshResult.data };
             }
             currentUser = storedUser;
             logger.success('Auth state restored', { userId: storedUser.id });
@@ -262,7 +260,7 @@ exports.authService = {
         if (USE_MOCK) {
             const userIndex = usersCache.findIndex(u => u.id === currentUser.id);
             if (userIndex === -1) {
-                return (0, result_1.err)({ code: 'NOT_FOUND', message: 'User not found' });
+                return (0, result_1.err)((0, result_1.notFound)('User'));
             }
             const updatedUser = {
                 ...usersCache[userIndex],
@@ -344,7 +342,7 @@ exports.authService = {
         }
         if (USE_MOCK) {
             if (code.length !== 6) {
-                return (0, result_1.err)({ code: 'VALIDATION', message: 'Invalid verification code' });
+                return (0, result_1.err)((0, result_1.validationError)('Invalid verification code'));
             }
             return this.updateProfile({ isVerified: true });
         }
@@ -389,7 +387,7 @@ exports.authService = {
         const existing = usersCache.find(u => u.email.toLowerCase() === input.email.toLowerCase());
         if (existing) {
             logger.warn('Registration failed: Email exists', { email: input.email });
-            return (0, result_1.err)({ code: 'CONFLICT', message: 'An account with this email already exists' });
+            return (0, result_1.err)((0, result_1.conflictError)('An account with this email already exists'));
         }
         const now = new Date().toISOString();
         const userId = generateId();

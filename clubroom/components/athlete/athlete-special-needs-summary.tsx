@@ -10,7 +10,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
 import type { RosterEntry } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
   childData,

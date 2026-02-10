@@ -14,7 +14,6 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

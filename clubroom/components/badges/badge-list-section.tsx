@@ -11,7 +11,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatDate } from '@/constants/mock-data';
 import { BADGE_TABS, type BadgeItem, type BadgeCategory } from '@/hooks/use-dev-badges';
 import type { Session } from '@/constants/app-types';
-import { Row } from '@/components/primitives';
 
 interface BadgeListSectionProps {
   activeTab: BadgeCategory;

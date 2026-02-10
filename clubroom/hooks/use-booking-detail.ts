@@ -61,13 +61,13 @@ export function useBookingDetail(id: string): BookingDetailResult {
           if (sessionBooking) {
             foundBooking = {
               id: sessionBooking.id,
-              coachName: sessionBooking.coachName ?? 'Coach',
+              coachName: sessionBooking.coachName,
               childName: sessionBooking.athleteName ?? 'Athlete',
               service: sessionBooking.service ?? 'Session',
               start: sessionBooking.scheduledAt,
               status: sessionBooking.status === 'CONFIRMED' ? 'Confirmed' : sessionBooking.status === 'PENDING' ? 'Pending' : 'Completed',
               locationLabel: sessionBooking.location,
-              coach: { name: sessionBooking.coachName ?? 'Coach', photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.coachId },
+              coach: { name: sessionBooking.coachName, photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.coachId },
               client: { name: sessionBooking.athleteName ?? 'Athlete', photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.athleteId },
               coachId: sessionBooking.coachId,
               clientId: sessionBooking.athleteId ?? '',

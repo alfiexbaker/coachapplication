@@ -8,7 +8,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { clubService, type ClubMember } from '@/services/club-service';
-import { Row } from '@/components/primitives';
 
 interface MemberProfileCardProps {
   member: ClubMember;

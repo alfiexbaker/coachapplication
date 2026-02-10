@@ -74,7 +74,7 @@ export default function AcademyBrandingScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <BrandingPreview
           colors={colors}
-          academyName={academy.name}
+          academyName={academy!.name}
           logoUrl={logoUrl}
           bannerUrl={bannerUrl}
           primaryColor={primaryColor}

@@ -329,10 +329,13 @@ describe('AuthService (mock mode)', () => {
       const oldTokens = await authService.getTokens();
       assert.ok(oldTokens);
 
-      const newTokens = await authService.refreshToken();
-      assert.ok(newTokens.accessToken);
-      assert.ok(newTokens.refreshToken);
-      assert.ok(newTokens.expiresAt > Date.now());
+      const result = await authService.refreshToken();
+      assert.ok(result.success);
+      if (result.success) {
+        assert.ok(result.data.accessToken);
+        assert.ok(result.data.refreshToken);
+        assert.ok(result.data.expiresAt > Date.now());
+      }
     });
   });
 

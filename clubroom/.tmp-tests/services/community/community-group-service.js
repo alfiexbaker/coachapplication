@@ -120,71 +120,125 @@ class CommunityGroupService {
      * Get all groups (internal helper for cross-service access)
      */
     async getAllGroups() {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, []);
-        if (persisted.length > 0) {
-            this.inMemoryGroups = persisted;
+        try {
+            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, []);
+            if (persisted.length > 0) {
+                this.inMemoryGroups = persisted;
+            }
+            logger.info('all_groups_retrieved', { count: this.inMemoryGroups.length });
+            return (0, result_1.ok)(this.inMemoryGroups);
         }
-        return this.inMemoryGroups;
+        catch (error) {
+            logger.error('Failed to get all groups', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get all groups: ${String(error)}` });
+        }
     }
     /**
      * Get all groups that a user is a member of
      */
     async getParentGroups(parentId) {
-        const allGroups = await this.getAllGroups();
-        return allGroups.filter((group) => group.members.some((member) => member.parentId === parentId));
+        try {
+            const allGroupsResult = await this.getAllGroups();
+            if (!allGroupsResult.success)
+                return allGroupsResult;
+            const filtered = allGroupsResult.data.filter((group) => group.members.some((member) => member.parentId === parentId));
+            logger.info('parent_groups_retrieved', { parentId, count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get parent groups', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get parent groups: ${String(error)}` });
+        }
     }
     /**
      * Get all available public groups
      */
     async getPublicGroups() {
-        const allGroups = await this.getAllGroups();
-        return allGroups.filter((group) => group.isPublic);
+        try {
+            const allGroupsResult = await this.getAllGroups();
+            if (!allGroupsResult.success)
+                return allGroupsResult;
+            const filtered = allGroupsResult.data.filter((group) => group.isPublic);
+            logger.info('public_groups_retrieved', { count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get public groups', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get public groups: ${String(error)}` });
+        }
     }
     /**
      * Get a single group by ID
      */
     async getGroup(groupId) {
-        const allGroups = await this.getAllGroups();
-        return allGroups.find((group) => group.id === groupId);
+        try {
+            const allGroupsResult = await this.getAllGroups();
+            if (!allGroupsResult.success)
+                return allGroupsResult;
+            const group = allGroupsResult.data.find((group) => group.id === groupId);
+            if (!group) {
+                return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
+            }
+            logger.info('group_retrieved', { groupId });
+            return (0, result_1.ok)(group);
+        }
+        catch (error) {
+            logger.error('Failed to get group', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get group: ${String(error)}` });
+        }
     }
     /**
      * Create a new parent group.
      * The creator is assigned OWNER role.
      */
     async createGroup(params) {
-        const timestamp = new Date().toISOString();
-        const members = [
-            {
-                parentId: params.creatorId,
-                parentName: params.creatorName,
-                role: 'OWNER',
-                joinedAt: timestamp,
-            },
-            ...params.memberIds.map((id, index) => ({
-                parentId: id,
-                parentName: params.memberNames[index] || 'Unknown',
-                role: 'MEMBER',
-                joinedAt: timestamp,
-            })),
-        ];
-        const newGroup = {
-            id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-            name: params.name,
-            description: params.description,
-            type: params.type,
-            members,
-            createdById: params.creatorId,
-            createdByName: params.creatorName,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            isPublic: params.isPublic ?? false,
-            clubId: params.clubId,
-            sessionId: params.sessionId,
-            maxMembers: params.maxMembers,
-        };
-        this.inMemoryGroups.push(newGroup);
-        await this.persistGroups();
-        return newGroup;
+        try {
+            // Validation
+            if (!params.name) {
+                return (0, result_1.err)((0, result_1.validationError)('Group name is required'));
+            }
+            if (!params.creatorId) {
+                return (0, result_1.err)((0, result_1.validationError)('Creator ID is required'));
+            }
+            const timestamp = new Date().toISOString();
+            const members = [
+                {
+                    parentId: params.creatorId,
+                    parentName: params.creatorName,
+                    role: 'OWNER',
+                    joinedAt: timestamp,
+                },
+                ...params.memberIds.map((id, index) => ({
+                    parentId: id,
+                    parentName: params.memberNames[index] || 'Unknown',
+                    role: 'MEMBER',
+                    joinedAt: timestamp,
+                })),
+            ];
+            const newGroup = {
+                id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                name: params.name,
+                description: params.description,
+                type: params.type,
+                members,
+                createdById: params.creatorId,
+                createdByName: params.creatorName,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+                isPublic: params.isPublic ?? false,
+                clubId: params.clubId,
+                sessionId: params.sessionId,
+                maxMembers: params.maxMembers,
+            };
+            this.inMemoryGroups.push(newGroup);
+            await this.persistGroups();
+            logger.info('group_created', { groupId: newGroup.id, type: params.type });
+            return (0, result_1.ok)(newGroup);
+        }
+        catch (error) {
+            logger.error('Failed to create group', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to create group: ${String(error)}` });
+        }
     }
     /**
      * Join an existing group.
@@ -194,7 +248,10 @@ class CommunityGroupService {
      * hierarchy and must be explicitly promoted.
      */
     async joinGroup(groupId, parentId, parentName, options) {
-        const allGroups = await this.getAllGroups();
+        const allGroupsResult = await this.getAllGroups();
+        if (!allGroupsResult.success)
+            return allGroupsResult;
+        const allGroups = allGroupsResult.data;
         const groupIndex = allGroups.findIndex((g) => g.id === groupId);
         if (groupIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
@@ -241,7 +298,10 @@ class CommunityGroupService {
      * Leave a group
      */
     async leaveGroup(groupId, parentId) {
-        const allGroups = await this.getAllGroups();
+        const allGroupsResult = await this.getAllGroups();
+        if (!allGroupsResult.success)
+            return allGroupsResult;
+        const allGroups = allGroupsResult.data;
         const groupIndex = allGroups.findIndex((g) => g.id === groupId);
         if (groupIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
@@ -272,10 +332,10 @@ class CommunityGroupService {
      * Invite a parent to join a group
      */
     async inviteToGroup(groupId, inviterId, inviteeId, inviteeName) {
-        const group = await this.getGroup(groupId);
-        if (!group) {
-            return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
-        }
+        const groupResult = await this.getGroup(groupId);
+        if (!groupResult.success)
+            return groupResult;
+        const group = groupResult.data;
         // Check if inviter has admin privileges
         const inviter = group.members.find((m) => m.parentId === inviterId);
         if (!inviter || !isAdminRole(inviter.role)) {
@@ -286,8 +346,10 @@ class CommunityGroupService {
             return (0, result_1.err)((0, result_1.conflictError)('User is already a member'));
         }
         // Check for existing pending invite
-        const existingInvites = await this.getGroupInvites(inviteeId);
-        if (existingInvites.some((i) => i.groupId === groupId && i.status === 'PENDING')) {
+        const existingInvitesResult = await this.getGroupInvites(inviteeId);
+        if (!existingInvitesResult.success)
+            return existingInvitesResult;
+        if (existingInvitesResult.data.some((i) => i.groupId === groupId && i.status === 'PENDING')) {
             return (0, result_1.err)((0, result_1.conflictError)('Invite already sent'));
         }
         // Create the invite
@@ -322,15 +384,33 @@ class CommunityGroupService {
      * Get pending group invites for a user
      */
     async getGroupInvites(userId) {
-        const allInvites = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
-        return allInvites.filter((i) => i.inviteeId === userId);
+        try {
+            const allInvites = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
+            const filtered = allInvites.filter((i) => i.inviteeId === userId);
+            logger.info('group_invites_retrieved', { userId, count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get group invites', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get group invites: ${String(error)}` });
+        }
     }
     /**
      * Get pending invites for a user
      */
     async getPendingInvites(userId) {
-        const invites = await this.getGroupInvites(userId);
-        return invites.filter((i) => i.status === 'PENDING');
+        try {
+            const invitesResult = await this.getGroupInvites(userId);
+            if (!invitesResult.success)
+                return invitesResult;
+            const filtered = invitesResult.data.filter((i) => i.status === 'PENDING');
+            logger.info('pending_invites_retrieved', { userId, count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get pending invites', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get pending invites: ${String(error)}` });
+        }
     }
     /**
      * Accept a group invite
@@ -350,8 +430,9 @@ class CommunityGroupService {
         allInvites[inviteIndex].respondedAt = new Date().toISOString();
         await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
         // Add member to group
-        const group = await this.getGroup(invite.groupId);
-        if (group) {
+        const groupResult = await this.getGroup(invite.groupId);
+        if (groupResult.success) {
+            const group = groupResult.data;
             const newMember = {
                 parentId: invite.inviteeId,
                 parentName: invite.inviteeName,
@@ -415,10 +496,10 @@ class CommunityGroupService {
      */
     async changeMemberRole(params) {
         const { groupId, requesterId, memberId, newRole } = params;
-        const group = await this.getGroup(groupId);
-        if (!group) {
-            return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
-        }
+        const groupResult = await this.getGroup(groupId);
+        if (!groupResult.success)
+            return groupResult;
+        const group = groupResult.data;
         const requester = group.members.find((m) => m.parentId === requesterId);
         if (!requester || !isAdminRole(requester.role)) {
             return (0, result_1.err)((0, result_1.unauthorized)('Only group owners and admins can change member roles'));
@@ -526,7 +607,10 @@ class CommunityGroupService {
      * Used by automated processes (e.g. squad group auto-sync).
      */
     async addMemberDirect(groupId, parentId, parentName, role = 'MEMBER') {
-        const allGroups = await this.getAllGroups();
+        const allGroupsResult = await this.getAllGroups();
+        if (!allGroupsResult.success)
+            return allGroupsResult;
+        const allGroups = allGroupsResult.data;
         const group = allGroups.find((g) => g.id === groupId);
         if (!group) {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
@@ -557,7 +641,10 @@ class CommunityGroupService {
      * Used by automated processes (e.g. squad group auto-sync).
      */
     async removeMemberDirect(groupId, parentId) {
-        const allGroups = await this.getAllGroups();
+        const allGroupsResult = await this.getAllGroups();
+        if (!allGroupsResult.success)
+            return allGroupsResult;
+        const allGroups = allGroupsResult.data;
         const group = allGroups.find((g) => g.id === groupId);
         if (!group) {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
@@ -579,7 +666,10 @@ class CommunityGroupService {
      * Used when a squad is deleted — removes its associated group.
      */
     async deleteGroup(groupId) {
-        const allGroups = await this.getAllGroups();
+        const allGroupsResult = await this.getAllGroups();
+        if (!allGroupsResult.success)
+            return allGroupsResult;
+        const allGroups = allGroupsResult.data;
         const groupIndex = allGroups.findIndex((g) => g.id === groupId);
         if (groupIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));

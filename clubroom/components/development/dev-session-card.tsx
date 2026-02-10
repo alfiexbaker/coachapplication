@@ -11,7 +11,6 @@ import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/t
 import { formatDate } from '@/constants/mock-data';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Session, BadgeAward } from '@/constants/types';
-import { Row } from '@/components/primitives';
 
 export interface DevSessionCardProps {
   session: Session;

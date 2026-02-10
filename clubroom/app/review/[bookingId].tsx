@@ -59,7 +59,7 @@ export default function ReviewScreen() {
           setBooking({
             id: found.id,
             coachId: found.coachId,
-            coachName: found.coachName ?? 'Coach',
+            coachName: found.coachName,
             service: found.service ?? 'Session',
             scheduledAt: found.scheduledAt,
           });

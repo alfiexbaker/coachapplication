@@ -61,7 +61,7 @@ function makeNotification(overrides = {}) {
 (0, node_test_1.describe)('NotificationStore', () => {
     (0, node_test_1.beforeEach)(async () => {
         await notification_store_1.notificationStore.clearAll();
-        event_bus_1.eventBus.clearAll();
+        eventBus.clearAll();
     });
     (0, node_test_1.describe)('create + list', () => {
         (0, node_test_1.default)('creates a notification and lists it', async () => {
@@ -79,7 +79,7 @@ function makeNotification(overrides = {}) {
         });
         (0, node_test_1.default)('emits NOTIFICATION_CREATED event', async () => {
             let emitted = false;
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.NOTIFICATION_CREATED, () => { emitted = true; });
+            eventBus.on(event_bus_1.ServiceEvents.NOTIFICATION_CREATED, () => { emitted = true; });
             await notification_store_1.notificationStore.create(makeNotification());
             strict_1.default.equal(emitted, true);
         });
@@ -94,7 +94,7 @@ function makeNotification(overrides = {}) {
         });
         (0, node_test_1.default)('emits NOTIFICATION_READ event', async () => {
             let readId = '';
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.NOTIFICATION_READ, (d) => {
+            eventBus.on(event_bus_1.ServiceEvents.NOTIFICATION_READ, (d) => {
                 readId = d.notificationId;
             });
             const notif = makeNotification();
@@ -120,7 +120,7 @@ function makeNotification(overrides = {}) {
         });
         (0, node_test_1.default)('emits NOTIFICATION_DISMISSED event', async () => {
             let dismissed = '';
-            event_bus_1.eventBus.on(event_bus_1.ServiceEvents.NOTIFICATION_DISMISSED, (d) => {
+            eventBus.on(event_bus_1.ServiceEvents.NOTIFICATION_DISMISSED, (d) => {
                 dismissed = d.notificationId;
             });
             const notif = makeNotification();

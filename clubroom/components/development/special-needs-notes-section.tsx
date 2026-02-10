@@ -8,7 +8,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
-import { Row } from '@/components/primitives';
 
 interface SpecialNeedsNotesSectionProps {
   childProfile: ChildProfile;

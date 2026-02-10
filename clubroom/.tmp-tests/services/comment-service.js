@@ -72,7 +72,7 @@ async function getCommentsForPost(postId) {
     }
     catch (error) {
         logger.error('Failed to load comments', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to load comments' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to load comments'));
     }
 }
 /**
@@ -86,7 +86,7 @@ async function getCommentCount(postId) {
     }
     catch (error) {
         logger.error('Failed to get comment count', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to get comment count' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to get comment count'));
     }
 }
 /**
@@ -99,7 +99,7 @@ async function createComment(input) {
         return (0, result_1.err)((0, result_1.validationError)('Comment content cannot be empty'));
     }
     if (input.content.trim().length > 2000) {
-        return (0, result_1.err)({ code: 'VALIDATION', message: 'Comment must be 2000 characters or fewer' });
+        return (0, result_1.err)((0, result_1.validationError)('Comment must be 2000 characters or fewer'));
     }
     if (!input.postId) {
         return (0, result_1.err)((0, result_1.validationError)('Post ID is required'));
@@ -175,7 +175,7 @@ async function createComment(input) {
     }
     catch (error) {
         logger.error('Failed to create comment', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to create comment' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to create comment'));
     }
 }
 /**
@@ -194,10 +194,10 @@ async function deleteComment(input) {
         }
         const comment = allComments[index];
         if (comment.authorId !== input.userId) {
-            return (0, result_1.err)({ code: 'UNAUTHORIZED', message: 'Only the author can delete their own comment' });
+            return (0, result_1.err)((0, result_1.unauthorized)('Only the author can delete their own comment'));
         }
         if (comment.isDeleted) {
-            return (0, result_1.err)({ code: 'CONFLICT', message: 'Comment is already deleted' });
+            return (0, result_1.err)((0, result_1.conflictError)('Comment is already deleted'));
         }
         const now = new Date().toISOString();
         const deletedComment = {
@@ -221,7 +221,7 @@ async function deleteComment(input) {
     }
     catch (error) {
         logger.error('Failed to delete comment', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to delete comment' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to delete comment'));
     }
 }
 /**
@@ -265,7 +265,7 @@ async function toggleLike(input) {
     }
     catch (error) {
         logger.error('Failed to toggle comment like', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to toggle comment like' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to toggle comment like'));
     }
 }
 /**
@@ -282,7 +282,7 @@ async function getCommentById(commentId) {
     }
     catch (error) {
         logger.error('Failed to get comment', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to get comment' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to get comment'));
     }
 }
 /**
@@ -298,7 +298,7 @@ async function getLatestComment(postId) {
     }
     catch (error) {
         logger.error('Failed to get latest comment', error);
-        return (0, result_1.err)({ code: 'STORAGE', message: 'Failed to get latest comment' });
+        return (0, result_1.err)((0, result_1.storageError)('Failed to get latest comment'));
     }
 }
 // ---------------------------------------------------------------------------

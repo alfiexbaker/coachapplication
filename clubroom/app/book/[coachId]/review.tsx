@@ -38,11 +38,11 @@ export default function ReviewScreen() {
     const loadCoach = async () => {
       if (!coachId) return;
       try {
-        const coachData = await coachService.getCoach(coachId);
-        setCoach(coachData);
-        // Store coach name in draft for confirmation
-        if (coachData) {
-          updateDraft({ coachName: coachData.name });
+        const coachResult = await coachService.getCoach(coachId);
+        if (coachResult.success) {
+          setCoach(coachResult.data);
+          // Store coach name in draft for confirmation
+          updateDraft({ coachName: coachResult.data.name });
         }
       } catch (error) {
         logger.error('Failed to load coach:', error);

@@ -62,21 +62,21 @@ export default function AcademyStaffScreen() {
     if (!id) return;
     setCreatingInvite(true);
     try {
-      const code = await academyService.createInviteCode(id, inviteRole);
-      setInviteCode(typeof code === 'string' ? code : null);
+      const invite = await academyService.createInvite(id, data!.academy.name, inviteRole, [], currentUser?.id ?? '', currentUser?.name ?? '');
+      setInviteCode(invite.code);
     } finally { setCreatingInvite(false); }
   }, [id, inviteRole]);
 
   const handleUpdateRole = useCallback(async () => {
     if (!editingMember || !id) return;
-    await academyService.updateMemberRole(id, editingMember.id, editRole);
+    await academyService.updateMemberRole(editingMember.id, editRole, editingMember.permissions);
     setEditingMember(null);
     onRefresh();
   }, [editingMember, id, editRole, onRefresh]);
 
   const handleRemoveMember = useCallback(async (member: AcademyMembership) => {
     if (!id) return;
-    await academyService.removeMember(id, member.id);
+    await academyService.removeMember(member.id);
     onRefresh();
   }, [id, onRefresh]);
 
@@ -153,7 +153,7 @@ export default function AcademyStaffScreen() {
         colors={colors}
         inviteRole={inviteRole}
         creatingInvite={creatingInvite}
-        inviteCode={inviteCode}
+        inviteCode={inviteCode ?? ''}
         onRoleChange={setInviteRole}
         onCreateInvite={handleCreateInvite}
         onClose={() => setShowInviteModal(false)}

@@ -89,65 +89,117 @@ class CommunityCarpoolService {
      * Get all carpool offers for a session
      */
     async getCarpoolOffers(sessionId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
-        const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
-        return allOffers.filter((offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE');
+        try {
+            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+            const filtered = allOffers.filter((offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE');
+            logger.info('carpool_offers_retrieved', { sessionId, count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get carpool offers', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get carpool offers: ${String(error)}` });
+        }
     }
     /**
      * Get all carpool offers created by a parent
      */
     async getParentCarpoolOffers(parentId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
-        const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
-        return allOffers.filter((offer) => offer.parentId === parentId);
+        try {
+            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+            const filtered = allOffers.filter((offer) => offer.parentId === parentId);
+            logger.info('parent_carpool_offers_retrieved', { parentId, count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get parent carpool offers', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get parent carpool offers: ${String(error)}` });
+        }
     }
     /**
      * Get all available carpool offers (excluding user's own offers)
      */
     async getAvailableCarpoolOffers(excludeParentId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
-        const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
-        return allOffers.filter((offer) => offer.parentId !== excludeParentId &&
-            offer.status === 'ACTIVE' &&
-            offer.seatsAvailable > offer.seatsTaken);
+        try {
+            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+            const filtered = allOffers.filter((offer) => offer.parentId !== excludeParentId &&
+                offer.status === 'ACTIVE' &&
+                offer.seatsAvailable > offer.seatsTaken);
+            logger.info('available_carpool_offers_retrieved', { excludeParentId, count: filtered.length });
+            return (0, result_1.ok)(filtered);
+        }
+        catch (error) {
+            logger.error('Failed to get available carpool offers', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get available carpool offers: ${String(error)}` });
+        }
     }
     /**
      * Get a single carpool offer by ID
      */
     async getCarpoolOffer(offerId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
-        const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
-        return allOffers.find((offer) => offer.id === offerId);
+        try {
+            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+            const offer = allOffers.find((offer) => offer.id === offerId);
+            if (!offer) {
+                return (0, result_1.err)((0, result_1.notFound)('Carpool offer', offerId));
+            }
+            logger.info('carpool_offer_retrieved', { offerId });
+            return (0, result_1.ok)(offer);
+        }
+        catch (error) {
+            logger.error('Failed to get carpool offer', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get carpool offer: ${String(error)}` });
+        }
     }
     /**
      * Create a new carpool offer
      */
     async createCarpoolOffer(params) {
-        const timestamp = new Date().toISOString();
-        const newOffer = {
-            id: `carpool_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-            parentId: params.parentId,
-            parentName: params.parentName,
-            parentAvatar: params.parentAvatar,
-            sessionId: params.sessionId,
-            sessionName: params.sessionName,
-            sessionDate: params.sessionDate,
-            seatsAvailable: params.seatsAvailable,
-            seatsTaken: 0,
-            pickupLocation: params.pickupLocation,
-            pickupTime: params.pickupTime,
-            returnOffered: params.returnOffered,
-            returnTime: params.returnTime,
-            notes: params.notes,
-            status: 'ACTIVE',
-            requests: [],
-            acceptedRequests: [],
-            createdAt: timestamp,
-            updatedAt: timestamp,
-        };
-        this.inMemoryCarpools.push(newOffer);
-        await this.persistCarpools();
-        return newOffer;
+        try {
+            // Validation
+            if (!params.parentId) {
+                return (0, result_1.err)((0, result_1.validationError)('Parent ID is required'));
+            }
+            if (!params.sessionId) {
+                return (0, result_1.err)((0, result_1.validationError)('Session ID is required'));
+            }
+            if (params.seatsAvailable < 1) {
+                return (0, result_1.err)((0, result_1.validationError)('At least 1 seat must be available'));
+            }
+            const timestamp = new Date().toISOString();
+            const newOffer = {
+                id: `carpool_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                parentId: params.parentId,
+                parentName: params.parentName,
+                parentAvatar: params.parentAvatar,
+                sessionId: params.sessionId,
+                sessionName: params.sessionName,
+                sessionDate: params.sessionDate,
+                seatsAvailable: params.seatsAvailable,
+                seatsTaken: 0,
+                pickupLocation: params.pickupLocation,
+                pickupTime: params.pickupTime,
+                returnOffered: params.returnOffered,
+                returnTime: params.returnTime,
+                notes: params.notes,
+                status: 'ACTIVE',
+                requests: [],
+                acceptedRequests: [],
+                createdAt: timestamp,
+                updatedAt: timestamp,
+            };
+            this.inMemoryCarpools.push(newOffer);
+            await this.persistCarpools();
+            logger.info('carpool_offer_created', { offerId: newOffer.id, sessionId: params.sessionId });
+            return (0, result_1.ok)(newOffer);
+        }
+        catch (error) {
+            logger.error('Failed to create carpool offer', error);
+            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to create carpool offer: ${String(error)}` });
+        }
     }
     /**
      * Request a seat on a carpool offer

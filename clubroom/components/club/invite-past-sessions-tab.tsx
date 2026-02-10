@@ -10,7 +10,6 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { PastSessionUser } from '@/hooks/use-club-invite';
-import { Row } from '@/components/primitives';
 
 interface InvitePastSessionsTabProps {
   searchQuery: string;

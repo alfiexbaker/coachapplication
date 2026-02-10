@@ -7,4 +7,10 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*', '.tmp-tests/*'],
   },
+  {
+    files: ['services/**/*.ts'],
+    rules: {
+      'no-console': 'error',
+    },
+  },
 ]);

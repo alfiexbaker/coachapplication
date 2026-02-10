@@ -74,7 +74,7 @@ export function useRateCoach() {
             }
           } else {
             coachMap.set(booking.coachId, {
-              id: booking.coachId, name: booking.coachName ?? 'Coach',
+              id: booking.coachId, name: booking.coachName,
               photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
               sessionCount: 1, lastSession: booking.scheduledAt,
               hasReview: reviewedCoachIds.has(booking.coachId),

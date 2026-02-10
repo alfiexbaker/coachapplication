@@ -9,7 +9,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { notificationStore } from '../../services/notification/notification-store';
 import type { ExtendedNotificationItem } from '../../services/notification/notification-store';
-import { eventBus, ServiceEvents } from '../../services/event-bus';
+import { onTyped, ServiceEvents } from '../../services/event-bus';
 
 function makeNotification(overrides: Partial<ExtendedNotificationItem> = {}): ExtendedNotificationItem {
   return {

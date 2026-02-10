@@ -82,14 +82,14 @@ export function useBookings(): UseBookingsResult {
       if (bookings.length > 0) {
         const summaries: BookingSummary[] = bookings.map((booking) => ({
           id: booking.id,
-          coachName: booking.coachName ?? 'Coach',
+          coachName: booking.coachName,
           childName: booking.athleteName ?? 'Athlete',
           service: booking.service ?? 'Session',
           start: booking.scheduledAt,
           status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
           locationLabel: booking.location,
           coach: {
-            name: booking.coachName ?? 'Coach',
+            name: booking.coachName,
             photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
           },
           client: {

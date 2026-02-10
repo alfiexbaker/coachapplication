@@ -10,7 +10,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import type { AttendanceStatus } from '@/hooks/use-group-roster';
-import { Row } from '@/components/primitives';
 
 export interface RollCallModalProps {
   visible: boolean;

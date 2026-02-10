@@ -15,6 +15,7 @@ import {
   TierNames,
 } from '@/constants/progression';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { SESSION_MILESTONE_BADGES, STREAK_BADGES, EVENT_BADGES } from './badge-definitions';
 
 type AwardBadgeInput = {
   badgeId: string;
@@ -646,11 +647,11 @@ class BadgeService {
     // Add special event badges
     // Check if athlete has earned any event badges from their awards
     const eventAwards = awards.filter((a) =>
-      SPECIAL_EVENT_BADGES.some((e) => e.id === a.badgeId)
+      EVENT_BADGES.some((e) => e.id === a.badgeId)
     );
     const earnedEventIds = new Set(eventAwards.map((a) => a.badgeId));
 
-    SPECIAL_EVENT_BADGES.forEach((event) => {
+    EVENT_BADGES.forEach((event) => {
       const isUnlocked = earnedEventIds.has(event.id);
       const award = eventAwards.find((a) => a.badgeId === event.id);
 
@@ -789,151 +790,5 @@ export interface AllBadgeWithProgress {
   currentValue?: number;
   targetValue?: number;
 }
-
-// Session milestone badge definitions
-const SESSION_MILESTONE_BADGES = [
-  {
-    id: 'milestone_5_sessions',
-    label: 'First Five',
-    description: 'Complete 5 training sessions',
-    threshold: 5,
-    tier: 1 as const,
-    pointValue: 10,
-  },
-  {
-    id: 'milestone_10_sessions',
-    label: 'Double Digits',
-    description: 'Complete 10 training sessions',
-    threshold: 10,
-    tier: 1 as const,
-    pointValue: 15,
-  },
-  {
-    id: 'milestone_25_sessions',
-    label: 'Quarter Century',
-    description: 'Complete 25 training sessions',
-    threshold: 25,
-    tier: 2 as const,
-    pointValue: 25,
-  },
-  {
-    id: 'milestone_50_sessions',
-    label: 'Half Century',
-    description: 'Complete 50 training sessions',
-    threshold: 50,
-    tier: 2 as const,
-    pointValue: 35,
-  },
-  {
-    id: 'milestone_100_sessions',
-    label: 'Century Club',
-    description: 'Complete 100 training sessions',
-    threshold: 100,
-    tier: 3 as const,
-    pointValue: 50,
-  },
-];
-
-// Weekly streak badge definitions
-const STREAK_BADGES = [
-  {
-    id: 'streak_2_weeks',
-    label: 'Getting Started',
-    description: 'Train for 2 consecutive weeks',
-    threshold: 2,
-    tier: 1 as const,
-    pointValue: 10,
-  },
-  {
-    id: 'streak_4_weeks',
-    label: 'Monthly Momentum',
-    description: 'Train for 4 consecutive weeks',
-    threshold: 4,
-    tier: 1 as const,
-    pointValue: 15,
-  },
-  {
-    id: 'streak_8_weeks',
-    label: 'Two Month Warrior',
-    description: 'Train for 8 consecutive weeks',
-    threshold: 8,
-    tier: 2 as const,
-    pointValue: 25,
-  },
-  {
-    id: 'streak_12_weeks',
-    label: 'Quarter Year Champion',
-    description: 'Train for 12 consecutive weeks',
-    threshold: 12,
-    tier: 3 as const,
-    pointValue: 50,
-  },
-];
-
-// Special event badge definitions
-const SPECIAL_EVENT_BADGES: {
-  id: string;
-  label: string;
-  description: string;
-  category: BadgeCategory;
-  tier: 1 | 2 | 3;
-  pointValue: number;
-  requirementLabel: string;
-  mockUnlocked?: boolean;
-  mockEarnedAt?: string;
-}[] = [
-  {
-    id: 'event_summer_camp',
-    label: 'Summer Camp Graduate',
-    description: 'Completed the Summer Training Camp program',
-    category: 'consistency',
-    tier: 2,
-    pointValue: 30,
-    requirementLabel: 'Complete Summer Camp',
-    mockUnlocked: true,
-    mockEarnedAt: '2025-08-15T10:00:00Z',
-  },
-  {
-    id: 'event_tournament_mvp',
-    label: 'Tournament MVP',
-    description: 'Named Most Valuable Player in a tournament',
-    category: 'leadership',
-    tier: 3,
-    pointValue: 50,
-    requirementLabel: 'Win Tournament MVP',
-    mockUnlocked: false,
-  },
-  {
-    id: 'event_first_goal',
-    label: 'First Goal',
-    description: 'Scored your first competitive goal',
-    category: 'technique',
-    tier: 1,
-    pointValue: 15,
-    requirementLabel: 'Score in a match',
-    mockUnlocked: true,
-    mockEarnedAt: '2025-06-22T14:30:00Z',
-  },
-  {
-    id: 'event_clean_sheet',
-    label: 'Clean Sheet Hero',
-    description: 'Kept a clean sheet as goalkeeper',
-    category: 'technique',
-    tier: 2,
-    pointValue: 25,
-    requirementLabel: 'Keep a clean sheet',
-    mockUnlocked: false,
-  },
-  {
-    id: 'event_community_helper',
-    label: 'Community Helper',
-    description: 'Helped coach younger players in a session',
-    category: 'teamwork',
-    tier: 2,
-    pointValue: 25,
-    requirementLabel: 'Assist in coaching session',
-    mockUnlocked: false,
-  },
-];
 
 export const badgeService = new BadgeService();

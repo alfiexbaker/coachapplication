@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
+import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { LoadingState } from '@/components/ui/screen-states';
 import { ok } from '@/types/result';

@@ -117,82 +117,135 @@ class CommunityCarpoolService {
   /**
    * Get all carpool offers for a session
    */
-  async getCarpoolOffers(sessionId: string): Promise<CarpoolOffer[]> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
-    const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+  async getCarpoolOffers(sessionId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
+    try {
+      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
-    return allOffers.filter(
-      (offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE'
-    );
+      const filtered = allOffers.filter(
+        (offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE'
+      );
+
+      logger.info('carpool_offers_retrieved', { sessionId, count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get carpool offers', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get carpool offers: ${String(error)}` });
+    }
   }
 
   /**
    * Get all carpool offers created by a parent
    */
-  async getParentCarpoolOffers(parentId: string): Promise<CarpoolOffer[]> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
-    const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+  async getParentCarpoolOffers(parentId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
+    try {
+      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
-    return allOffers.filter((offer) => offer.parentId === parentId);
+      const filtered = allOffers.filter((offer) => offer.parentId === parentId);
+
+      logger.info('parent_carpool_offers_retrieved', { parentId, count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get parent carpool offers', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get parent carpool offers: ${String(error)}` });
+    }
   }
 
   /**
    * Get all available carpool offers (excluding user's own offers)
    */
-  async getAvailableCarpoolOffers(excludeParentId: string): Promise<CarpoolOffer[]> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
-    const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+  async getAvailableCarpoolOffers(excludeParentId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
+    try {
+      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
-    return allOffers.filter(
-      (offer) =>
-        offer.parentId !== excludeParentId &&
-        offer.status === 'ACTIVE' &&
-        offer.seatsAvailable > offer.seatsTaken
-    );
+      const filtered = allOffers.filter(
+        (offer) =>
+          offer.parentId !== excludeParentId &&
+          offer.status === 'ACTIVE' &&
+          offer.seatsAvailable > offer.seatsTaken
+      );
+
+      logger.info('available_carpool_offers_retrieved', { excludeParentId, count: filtered.length });
+      return ok(filtered);
+    } catch (error) {
+      logger.error('Failed to get available carpool offers', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get available carpool offers: ${String(error)}` });
+    }
   }
 
   /**
    * Get a single carpool offer by ID
    */
-  async getCarpoolOffer(offerId: string): Promise<CarpoolOffer | undefined> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
-    const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
+  async getCarpoolOffer(offerId: string): Promise<Result<CarpoolOffer, ServiceError>> {
+    try {
+      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
-    return allOffers.find((offer) => offer.id === offerId);
+      const offer = allOffers.find((offer) => offer.id === offerId);
+
+      if (!offer) {
+        return err(notFound('Carpool offer', offerId));
+      }
+
+      logger.info('carpool_offer_retrieved', { offerId });
+      return ok(offer);
+    } catch (error) {
+      logger.error('Failed to get carpool offer', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to get carpool offer: ${String(error)}` });
+    }
   }
 
   /**
    * Create a new carpool offer
    */
-  async createCarpoolOffer(params: CreateCarpoolOfferParams): Promise<CarpoolOffer> {
-    const timestamp = new Date().toISOString();
+  async createCarpoolOffer(params: CreateCarpoolOfferParams): Promise<Result<CarpoolOffer, ServiceError>> {
+    try {
+      // Validation
+      if (!params.parentId) {
+        return err(validationError('Parent ID is required'));
+      }
+      if (!params.sessionId) {
+        return err(validationError('Session ID is required'));
+      }
+      if (params.seatsAvailable < 1) {
+        return err(validationError('At least 1 seat must be available'));
+      }
 
-    const newOffer: CarpoolOffer = {
-      id: `carpool_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      parentId: params.parentId,
-      parentName: params.parentName,
-      parentAvatar: params.parentAvatar,
-      sessionId: params.sessionId,
-      sessionName: params.sessionName,
-      sessionDate: params.sessionDate,
-      seatsAvailable: params.seatsAvailable,
-      seatsTaken: 0,
-      pickupLocation: params.pickupLocation,
-      pickupTime: params.pickupTime,
-      returnOffered: params.returnOffered,
-      returnTime: params.returnTime,
-      notes: params.notes,
-      status: 'ACTIVE',
-      requests: [],
-      acceptedRequests: [],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
+      const timestamp = new Date().toISOString();
 
-    this.inMemoryCarpools.push(newOffer);
-    await this.persistCarpools();
+      const newOffer: CarpoolOffer = {
+        id: `carpool_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        parentId: params.parentId,
+        parentName: params.parentName,
+        parentAvatar: params.parentAvatar,
+        sessionId: params.sessionId,
+        sessionName: params.sessionName,
+        sessionDate: params.sessionDate,
+        seatsAvailable: params.seatsAvailable,
+        seatsTaken: 0,
+        pickupLocation: params.pickupLocation,
+        pickupTime: params.pickupTime,
+        returnOffered: params.returnOffered,
+        returnTime: params.returnTime,
+        notes: params.notes,
+        status: 'ACTIVE',
+        requests: [],
+        acceptedRequests: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
 
-    return newOffer;
+      this.inMemoryCarpools.push(newOffer);
+      await this.persistCarpools();
+
+      logger.info('carpool_offer_created', { offerId: newOffer.id, sessionId: params.sessionId });
+      return ok(newOffer);
+    } catch (error) {
+      logger.error('Failed to create carpool offer', error);
+      return err({ code: 'STORAGE_ERROR', message: `Failed to create carpool offer: ${String(error)}` });
+    }
   }
 
   /**

@@ -20,6 +20,8 @@ import { createLogger } from '@/utils/logger';
 import { authService } from '@/services/auth-service';
 import { ApiError, UnauthorizedError, NetworkError } from '@/constants/error-types';
 import { api, rateLimits } from '@/constants/config';
+import type { Result, ServiceError, ServiceErrorCode } from '@/types/result';
+import { ok, err, networkError, unauthorized, serviceError, storageError } from '@/types/result';
 
 const logger = createLogger('ApiClient');
 
@@ -75,7 +77,11 @@ export { ApiError };
 let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+/**
+ * Internal fetch that throws errors (for backward compat).
+ * Use apiFetch() instead which returns Result<T, ServiceError>.
+ */
+async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<T> {
   // Rate limiting
   await rateLimiter.waitForSlot();
   rateLimiter.recordRequest();
@@ -123,9 +129,12 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     try {
       if (!_isRefreshing) {
         _isRefreshing = true;
-        _refreshPromise = authService.refreshToken().then(() => {
+        _refreshPromise = authService.refreshToken().then((result) => {
           _isRefreshing = false;
           _refreshPromise = null;
+          if (!result.success) {
+            throw new UnauthorizedError(result.error.message);
+          }
         });
       }
       await _refreshPromise;
@@ -181,6 +190,51 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   return response.json();
 }
 
+/**
+ * API fetch with Result pattern - catches all errors and returns Result<T, ServiceError>.
+ */
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<Result<T, ServiceError>> {
+  try {
+    const data = await _apiFetchUnsafe<T>(path, options);
+    return ok(data);
+  } catch (error: unknown) {
+    if (error instanceof NetworkError) {
+      return err(networkError(error.message));
+    }
+    if (error instanceof UnauthorizedError) {
+      return err(unauthorized(error.message));
+    }
+    if (error instanceof ApiError) {
+      // Map ApiError to ServiceError
+      let code: ServiceErrorCode;
+      switch (error.status) {
+        case 404:
+          code = 'NOT_FOUND';
+          break;
+        case 401:
+        case 403:
+          code = 'UNAUTHORIZED';
+          break;
+        case 409:
+          code = 'CONFLICT';
+          break;
+        case 429:
+          code = 'RATE_LIMITED';
+          break;
+        case 400:
+          code = 'VALIDATION';
+          break;
+        default:
+          code = 'UNKNOWN';
+      }
+      return err(serviceError(code, error.message, error.details));
+    }
+    // Unknown error
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return err(serviceError('UNKNOWN', message));
+  }
+}
+
 // ============================================================================
 // MOCK HELPERS (AsyncStorage-based)
 // ============================================================================
@@ -226,12 +280,12 @@ export const apiClient = {
     if (USE_MOCK) {
       return mockGet(key, fallback);
     }
-    try {
-      return await apiFetch<T>(`/api/${key}`);
-    } catch (error) {
-      logger.error(`API get failed for ${key}`, error);
-      return fallback;
+    const result = await apiFetch<T>(`/api/${key}`);
+    if (result.success) {
+      return result.data;
     }
+    logger.error(`API get failed for ${key}`, result.error);
+    return fallback;
   },
 
   /**
@@ -241,10 +295,14 @@ export const apiClient = {
     if (USE_MOCK) {
       return mockSet(key, data);
     }
-    await apiFetch(`/api/${key}`, {
+    const result = await apiFetch(`/api/${key}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    if (!result.success) {
+      logger.error(`API set failed for ${key}`, result.error);
+      throw new Error(result.error.message);
+    }
   },
 
   /**
@@ -264,7 +322,11 @@ export const apiClient = {
     if (USE_MOCK) {
       return mockRemove(key);
     }
-    await apiFetch(`/api/${key}`, { method: 'DELETE' });
+    const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });
+    if (!result.success) {
+      logger.error(`API remove failed for ${key}`, result.error);
+      throw new Error(result.error.message);
+    }
   },
 
   /**
