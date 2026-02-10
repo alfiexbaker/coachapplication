@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SkillRating } from '@/hooks/use-dev-session';
 import { AVAILABLE_SKILLS } from '@/hooks/use-dev-session';
+import { Row } from '@/components/primitives';
 
 export interface DevSessionSkillsProps {
   selectedSkills: string[];
@@ -25,7 +26,7 @@ export const DevSessionSkills = memo(function DevSessionSkills({
       <Column gap="sm">
         <ThemedText type="subtitle" style={Typography.subheading}>Skills Covered</ThemedText>
         <SurfaceCard style={{ padding: Spacing.md }}>
-          <View style={styles.grid}>
+          <Row style={styles.grid}>
             {AVAILABLE_SKILLS.map((skill) => {
               const isSelected = selectedSkills.includes(skill);
               return (
@@ -40,7 +41,7 @@ export const DevSessionSkills = memo(function DevSessionSkills({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </SurfaceCard>
       </Column>
 
@@ -51,7 +52,7 @@ export const DevSessionSkills = memo(function DevSessionSkills({
             {skillRatings.map((sr) => (
               <View key={sr.skill} style={{ gap: Spacing.xxs }}>
                 <ThemedText style={Typography.bodySmallSemiBold}>{sr.skill}</ThemedText>
-                <View style={styles.ratingSlider}>
+                <Row style={styles.ratingSlider}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                     <Clickable
                       key={num}
@@ -63,7 +64,7 @@ export const DevSessionSkills = memo(function DevSessionSkills({
                       )}
                     </Clickable>
                   ))}
-                </View>
+                </Row>
               </View>
             ))}
           </SurfaceCard>
@@ -74,8 +75,8 @@ export const DevSessionSkills = memo(function DevSessionSkills({
 });
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  grid: { flexWrap: 'wrap', gap: Spacing.xs },
   skillBtn: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
-  ratingSlider: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  ratingSlider: { justifyContent: 'space-between', alignItems: 'center' },
   dot: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
 });

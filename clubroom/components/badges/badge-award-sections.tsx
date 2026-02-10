@@ -13,6 +13,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BadgeDefinition } from '@/constants/types';
 import { getBadgeIcon, BADGE_REASONS, QUICK_NOTES } from './badge-award-helpers';
+import { Row } from '@/components/primitives';
 
 /* ─── Athlete Header ─── */
 interface AthleteHeaderProps {
@@ -21,8 +22,8 @@ interface AthleteHeaderProps {
 export const AthleteHeader = memo(function AthleteHeader({ athleteName, athletePhotoUrl, sessionLabel, onClose }: AthleteHeaderProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.header}>
-      <View style={styles.athleteInfo}>
+    <Row style={styles.header}>
+      <Row style={styles.athleteInfo}>
         {athletePhotoUrl ? (
           <Image source={{ uri: athletePhotoUrl }} style={styles.avatar} />
         ) : (
@@ -34,11 +35,11 @@ export const AthleteHeader = memo(function AthleteHeader({ athleteName, athleteP
           <ThemedText type="subtitle">{athleteName}</ThemedText>
           {sessionLabel && <ThemedText style={[styles.sessionLabel, { color: palette.muted }]}>{sessionLabel}</ThemedText>}
         </View>
-      </View>
+      </Row>
       <Clickable accessibilityLabel="Close" onPress={onClose} style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}>
         <Ionicons name="close" size={20} color={palette.icon} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -84,7 +85,7 @@ export const ReasonSelector = memo(function ReasonSelector({ selectedReason, onS
   return (
     <View style={styles.section}>
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>For</ThemedText>
-      <View style={styles.reasonContainer}>
+      <Row style={styles.reasonContainer}>
         {BADGE_REASONS.map((reason) => {
           const isSelected = selectedReason === reason;
           return (
@@ -95,7 +96,7 @@ export const ReasonSelector = memo(function ReasonSelector({ selectedReason, onS
             </Pressable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -110,7 +111,7 @@ export const NoteInput = memo(function NoteInput({ note, onNoteChange, onQuickNo
       <View style={[styles.noteInputContainer, { borderColor: palette.border, backgroundColor: palette.surface }]}>
         <TextInput style={[styles.noteInput, { color: palette.text }]} placeholder="Tell them why they earned this..."
           placeholderTextColor={palette.muted} value={note} onChangeText={onNoteChange} multiline maxLength={280} />
-        <View style={styles.quickNotes}>
+        <Row style={styles.quickNotes}>
           {QUICK_NOTES.map((quickNote) => (
             <Pressable key={quickNote} onPress={() => onQuickNote(quickNote)}>
               <View style={[styles.quickNotePill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
@@ -118,7 +119,7 @@ export const NoteInput = memo(function NoteInput({ note, onNoteChange, onQuickNo
               </View>
             </Pressable>
           ))}
-        </View>
+        </Row>
       </View>
       <ThemedText style={[styles.charCount, { color: palette.muted }]}>{note.length}/280</ThemedText>
     </View>
@@ -133,7 +134,7 @@ export const PreviewSection = memo(function PreviewSection({ selectedBadge, sele
     <Animated.View entering={FadeIn} style={styles.section}>
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Preview</ThemedText>
       <SurfaceCard style={[styles.previewCard, { borderColor: palette.border }]}>
-        <View style={styles.previewHeader}>
+        <Row style={styles.previewHeader}>
           <View style={[styles.previewBadgeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="ribbon" size={20} color={palette.tint} />
           </View>
@@ -141,7 +142,7 @@ export const PreviewSection = memo(function PreviewSection({ selectedBadge, sele
             <ThemedText type="defaultSemiBold">{selectedBadge.label}</ThemedText>
             <ThemedText style={[styles.previewReason, { color: palette.muted }]}>{selectedReason}</ThemedText>
           </View>
-        </View>
+        </Row>
         {note.trim() !== '' && <ThemedText style={styles.previewNote}>{note}</ThemedText>}
         <ThemedText style={[styles.previewFooter, { color: palette.muted }]}>From {coachName || 'Coach'} {'\u2022'} Just now</ThemedText>
       </SurfaceCard>
@@ -154,16 +155,16 @@ interface ErrorBannerProps { error: string; }
 export const ErrorBanner = memo(function ErrorBanner({ error }: ErrorBannerProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+    <Row style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
       <Ionicons name="alert-circle" size={16} color={palette.error} />
       <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
-  athleteInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
+  athleteInfo: { alignItems: 'center', gap: Spacing.md },
   avatar: { width: 48, height: 48, borderRadius: Radii.xl },
   avatarPlaceholder: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   sessionLabel: { ...Typography.small },
@@ -175,21 +176,21 @@ const styles = StyleSheet.create({
   badgeIconCircle: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   badgeLabel: { ...Typography.caption, textAlign: 'center' },
   selectedCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-  reasonContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  reasonContainer: { flexWrap: 'wrap', gap: Spacing.xs },
   reasonPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.full, borderWidth: 1 },
   reasonText: { ...Typography.bodySmallSemiBold },
   noteInputContainer: { borderRadius: Radii.lg, borderWidth: 1, overflow: 'hidden' },
   noteInput: { ...Typography.body, padding: Spacing.md, minHeight: 80, textAlignVertical: 'top' },
-  quickNotes: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, padding: Spacing.sm, paddingTop: 0 },
+  quickNotes: { flexWrap: 'wrap', gap: Spacing.xs, padding: Spacing.sm, paddingTop: 0 },
   quickNotePill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.full },
   quickNoteText: { ...Typography.caption },
   charCount: { ...Typography.caption, textAlign: 'right' },
   previewCard: { padding: Spacing.md, gap: Spacing.sm },
-  previewHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  previewHeader: { alignItems: 'center', gap: Spacing.sm },
   previewBadgeIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   previewHeaderText: { flex: 1 },
   previewReason: { ...Typography.small },
   previewNote: { ...Typography.bodySmall, lineHeight: 20 },
   previewFooter: { ...Typography.caption },
-  errorBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
+  errorBanner: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
 });

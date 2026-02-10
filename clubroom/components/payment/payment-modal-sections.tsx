@@ -13,6 +13,7 @@ import React, { memo } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
@@ -87,7 +88,7 @@ export const SessionSummaryCard = memo(function SessionSummaryCard({
     <View style={styles.section}>
       <ThemedText style={styles.sectionTitle}>Session Details</ThemedText>
       <SurfaceCard style={styles.sessionCard}>
-        <View style={styles.sessionRow}>
+        <Row align="center" gap="md">
           <View style={[styles.coachAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.coachInitials, { color: palette.tint }]}>
               {initials}
@@ -99,33 +100,33 @@ export const SessionSummaryCard = memo(function SessionSummaryCard({
               {sessionType} - {focus}
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         <Divider />
 
         <View style={styles.detailsList}>
-          <View style={styles.detailRow}>
+          <Row align="center" gap="sm">
             <Ionicons name="calendar-outline" size={18} color={palette.muted} />
             <ThemedText style={styles.detailText}>{formattedDate}</ThemedText>
-          </View>
-          <View style={styles.detailRow}>
+          </Row>
+          <Row align="center" gap="sm">
             <Ionicons name="time-outline" size={18} color={palette.muted} />
             <ThemedText style={styles.detailText}>
               {startTime} - {endTime}
             </ThemedText>
-          </View>
+          </Row>
           {location && (
-            <View style={styles.detailRow}>
+            <Row align="center" gap="sm">
               <Ionicons name="location-outline" size={18} color={palette.muted} />
               <ThemedText style={styles.detailText}>{location}</ThemedText>
-            </View>
+            </Row>
           )}
-          <View style={styles.detailRow}>
+          <Row align="center" gap="sm">
             <Ionicons name="people-outline" size={18} color={palette.muted} />
             <ThemedText style={styles.detailText}>
               {athleteNames.join(', ')}
             </ThemedText>
-          </View>
+          </Row>
         </View>
       </SurfaceCard>
     </View>
@@ -151,24 +152,24 @@ export const PaymentBreakdownCard = memo(function PaymentBreakdownCard({
     <View style={styles.section}>
       <ThemedText style={styles.sectionTitle}>Payment Summary</ThemedText>
       <SurfaceCard style={styles.paymentCard}>
-        <View style={styles.priceRow}>
+        <Row justify="space-between" align="center">
           <ThemedText style={{ color: palette.text }}>Session fee</ThemedText>
           <ThemedText style={{ color: palette.text }}>£{price.toFixed(2)}</ThemedText>
-        </View>
-        <View style={styles.priceRow}>
-          <View style={styles.feeLabel}>
+        </Row>
+        <Row justify="space-between" align="center">
+          <Row align="center" gap="xxs">
             <ThemedText style={{ color: palette.muted }}>Service fee</ThemedText>
             <Ionicons name="information-circle-outline" size={14} color={palette.muted} />
-          </View>
+          </Row>
           <ThemedText style={{ color: palette.muted }}>£{serviceFee.toFixed(2)}</ThemedText>
-        </View>
+        </Row>
         <Divider spacing={Spacing.xs} />
-        <View style={styles.priceRow}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>Total</ThemedText>
           <ThemedText type="defaultSemiBold" style={{ ...Typography.heading, color: palette.tint }}>
             £{total.toFixed(2)}
           </ThemedText>
-        </View>
+        </Row>
       </SurfaceCard>
     </View>
   );
@@ -185,18 +186,20 @@ export const PaymentMethodCard = memo(function PaymentMethodCard({
     <View style={styles.section}>
       <ThemedText style={styles.sectionTitle}>Payment Method</ThemedText>
       <SurfaceCard style={styles.methodCard}>
-        <View style={[styles.cardIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-          <Ionicons name="card" size={24} color={palette.tint} />
-        </View>
-        <View style={styles.cardInfo}>
-          <ThemedText type="defaultSemiBold">•••• •••• •••• 4242</ThemedText>
-          <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Expires 12/26</ThemedText>
-        </View>
-        <Clickable style={[styles.changeButton, { borderColor: palette.border }]}>
-          <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
-            Change
-          </ThemedText>
-        </Clickable>
+        <Row align="center" gap="md">
+          <View style={[styles.cardIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+            <Ionicons name="card" size={24} color={palette.tint} />
+          </View>
+          <View style={styles.cardInfo}>
+            <ThemedText type="defaultSemiBold">•••• •••• •••• 4242</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Expires 12/26</ThemedText>
+          </View>
+          <Clickable style={[styles.changeButton, { borderColor: palette.border }]}>
+            <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
+              Change
+            </ThemedText>
+          </Clickable>
+        </Row>
       </SurfaceCard>
     </View>
   );
@@ -206,12 +209,12 @@ export const PaymentMethodCard = memo(function PaymentMethodCard({
 
 export function SecurityNote({ palette }: { palette: ThemeColors }) {
   return (
-    <View style={[styles.securityNote, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
+    <Row align="center" gap="sm" style={[styles.securityNote, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
       <Ionicons name="shield-checkmark" size={18} color={palette.success} />
       <ThemedText style={[styles.securityText, { color: palette.success }]}>
         Your payment is secured with 256-bit encryption
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -242,9 +245,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   sessionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
+    // layout moved to Row
   },
   coachAvatar: {
     width: 48,
@@ -257,9 +258,7 @@ const styles = StyleSheet.create({
   sessionInfo: { flex: 1, gap: Spacing.micro },
   detailsList: { gap: Spacing.sm },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+    // layout moved to Row
   },
   detailText: { ...Typography.bodySmall, flex: 1 },
   paymentCard: {
@@ -267,20 +266,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    // layout moved to Row
   },
   feeLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
+    // layout moved to Row
   },
   methodCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Components.card.padding,
-    gap: Spacing.md,
   },
   cardIcon: {
     width: 44,
@@ -297,9 +289,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   securityNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
   },

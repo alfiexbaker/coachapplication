@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Components, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -125,7 +126,7 @@ export function PageHeader({
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <Row align="center" gap="sm">
         {renderLeft()}
         <View style={styles.titleContainer}>
           <ThemedText type="title" style={styles.title}>
@@ -138,7 +139,7 @@ export function PageHeader({
           ) : null}
         </View>
         {rightContent || (action || actionIcon) ? (
-          <View style={styles.rightContainer}>
+          <Row align="center">
             {rightContent || (
               <Pressable
                 style={[
@@ -150,25 +151,27 @@ export function PageHeader({
                 ]}
                 onPress={onActionPress}
               >
-                {actionIcon ? (
-                  <Ionicons name={actionIcon} size={18} color={palette.foreground} />
-                ) : null}
-                {action ? (
-                  <ThemedText
-                    style={[
-                      styles.actionText,
-                      { color: palette.foreground },
-                      !actionIcon ? styles.actionTextOnly : undefined,
-                    ]}
-                  >
-                    {action}
-                  </ThemedText>
-                ) : null}
+                <Row align="center" gap={Spacing.xs / 2}>
+                  {actionIcon ? (
+                    <Ionicons name={actionIcon} size={18} color={palette.foreground} />
+                  ) : null}
+                  {action ? (
+                    <ThemedText
+                      style={[
+                        styles.actionText,
+                        { color: palette.foreground },
+                        !actionIcon ? styles.actionTextOnly : undefined,
+                      ]}
+                    >
+                      {action}
+                    </ThemedText>
+                  ) : null}
+                </Row>
               </Pressable>
             )}
-          </View>
+          </Row>
         ) : null}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -179,11 +182,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
   },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
   titleContainer: {
     flex: 1,
     gap: Spacing.xs / 2,
@@ -191,16 +189,9 @@ const styles = StyleSheet.create({
   title: { ...Typography.title, letterSpacing: -0.3 },
   subtitle: { ...Typography.caption, lineHeight: 18,
     fontWeight: '400' },
-  rightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
-    gap: Spacing.xs / 2,
     height: Components.buttonCompact.height,
     borderWidth: 1,
   },

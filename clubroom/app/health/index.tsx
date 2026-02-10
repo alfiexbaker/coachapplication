@@ -26,7 +26,7 @@ export default function HealthDashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <Row gap="md" align="center" style={styles.header}>
+      <Row gap="md" align="center" justify="between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
@@ -46,22 +46,24 @@ export default function HealthDashboardScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.actionsRow}>
-          <Clickable onPress={handleLogInjury} style={{ flex: 1 }}>
-            <View style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.actionIcon, { backgroundColor: withAlpha(colors.error, 0.09) }]}>
-                <Ionicons name="add-circle-outline" size={24} color={colors.error} />
+          <Row gap="sm">
+            <Clickable onPress={handleLogInjury} style={{ flex: 1 }}>
+              <View style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.actionIcon, { backgroundColor: withAlpha(colors.error, 0.09) }]}>
+                  <Ionicons name="add-circle-outline" size={24} color={colors.error} />
+                </View>
+                <ThemedText style={styles.actionLabel}>Log Injury</ThemedText>
               </View>
-              <ThemedText style={styles.actionLabel}>Log Injury</ThemedText>
-            </View>
-          </Clickable>
-          <Clickable onPress={handleViewHistory} style={{ flex: 1 }}>
-            <View style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.actionIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <Ionicons name="time-outline" size={24} color={colors.tint} />
+            </Clickable>
+            <Clickable onPress={handleViewHistory} style={{ flex: 1 }}>
+              <View style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.actionIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+                  <Ionicons name="time-outline" size={24} color={colors.tint} />
+                </View>
+                <ThemedText style={styles.actionLabel}>View History</ThemedText>
               </View>
-              <ThemedText style={styles.actionLabel}>View History</ThemedText>
-            </View>
-          </Clickable>
+            </Clickable>
+          </Row>
         </Animated.View>
 
         {injuries.length > 0 && (
@@ -103,11 +105,11 @@ export default function HealthDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, justifyContent: 'space-between' },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { flex: 1, ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
-  actionsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
+  actionsRow: { marginBottom: Spacing.lg },
   actionCard: { padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1, alignItems: 'center', gap: Spacing.xs },
   actionIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   actionLabel: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },

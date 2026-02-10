@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS, DAYS_SHORT, QUICK_PRESETS } from '@/hooks/use-recurring-template-form';
+import { Row } from '@/components/primitives';
 
 interface TemplateDaySectionProps {
   isEditing: boolean;
@@ -37,14 +38,14 @@ function TemplateDaySectionInner({
       )}
 
       {isQuickAdd && preselectedDay !== undefined && (
-        <View style={[styles.quickAddDayLabel, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <Row style={[styles.quickAddDayLabel, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="calendar-outline" size={16} color={palette.tint} />
           <ThemedText style={{ ...Typography.bodySemiBold, color: palette.tint }}>{DAYS[preselectedDay]}</ThemedText>
-        </View>
+        </Row>
       )}
 
       {!isEditing && !isQuickAdd && (
-        <View style={styles.presetsRow}>
+        <Row style={styles.presetsRow}>
           {QUICK_PRESETS.map((preset) => {
             const isActive = preset.days.every(d => selectedDays.includes(d)) && selectedDays.every(d => preset.days.includes(d));
             return (
@@ -58,11 +59,11 @@ function TemplateDaySectionInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       )}
 
       {!isQuickAdd && (
-        <View style={styles.dayChipsRow}>
+        <Row style={styles.dayChipsRow}>
           {DAYS_SHORT.map((day, index) => {
             const isSelected = selectedDays.includes(index);
             const isWeekend = index === 0 || index === 6;
@@ -81,11 +82,11 @@ function TemplateDaySectionInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       )}
 
       {!isEditing && !isQuickAdd && selectedDays.length > 0 && (
-        <View style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+        <Row style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
           <Ionicons name="checkmark-circle" size={16} color={palette.success} />
           <ThemedText style={{ ...Typography.small, color: palette.success }}>
             {selectedDays.length === 7
@@ -94,7 +95,7 @@ function TemplateDaySectionInner({
               ? DAYS[selectedDays[0]]
               : `${selectedDays.length} days: ${selectedDays.map(d => DAYS_SHORT[d]).join(', ')}`}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -106,12 +107,12 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading },
   sectionHint: { ...Typography.small, marginBottom: Spacing.xs },
-  quickAddDayLabel: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderRadius: Radii.md },
-  presetsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.sm },
-  presetChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1 },
+  quickAddDayLabel: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderRadius: Radii.md },
+  presetsRow: { flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.sm },
+  presetChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1 },
   presetText: { ...Typography.caption },
-  dayChipsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.xs },
+  dayChipsRow: { justifyContent: 'space-between', gap: Spacing.xs },
   dayChip: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
   dayChipText: { ...Typography.caption, fontWeight: '700' },
-  selectionSummary: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.xs },
+  selectionSummary: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.xs },
 });

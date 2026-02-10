@@ -19,6 +19,7 @@ import type { CoachSearchFilters, FootballObjective } from '@/constants/types';
 
 import { QUICK_FILTERS, FOCUS_FILTERS } from './filter-bar-sections';
 import type { QuickFilter } from './filter-bar-sections';
+import { Row } from '@/components/primitives';
 
 interface FilterBarProps {
   filters: CoachSearchFilters;
@@ -133,7 +134,7 @@ export function FilterBar({
       </ScrollView>
 
       {/* Results count and Clear */}
-      <View style={styles.footer}>
+      <Row style={styles.footer}>
         <ThemedText style={[styles.resultsText, { color: palette.muted }]}>
           {totalResults} {totalResults === 1 ? 'coach' : 'coaches'} found
         </ThemedText>
@@ -149,7 +150,7 @@ export function FilterBar({
             </ThemedText>
           </Clickable>
         )}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -164,7 +165,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.xs,
@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   footer: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
@@ -204,7 +203,6 @@ const styles = StyleSheet.create({
     ...Typography.sm,
   },
   clearButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

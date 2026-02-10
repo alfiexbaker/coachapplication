@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,12 +76,12 @@ export function SimilarCoaches({
         </ThemedText>
 
         {/* Rating */}
-        <View style={styles.ratingRow}>
+        <Row style={styles.ratingRow}>
           <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
           <ThemedText style={[Typography.small, { color: palette.text }]}>
             {item.rating.toFixed(1)}
           </ThemedText>
-        </View>
+        </Row>
 
         {/* Specialties */}
         {item.specialties.length > 0 ? (
@@ -172,7 +173,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs / 2,
   },
   ratingRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSchedule } from '@/hooks/use-schedule';
@@ -41,6 +41,16 @@ export default function ScheduleScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <LoadingState variant="calendar" />
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (schedule.error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
+        <ErrorState message={schedule.error} onRetry={schedule.retry} />
       </SafeAreaView>
     );
   }

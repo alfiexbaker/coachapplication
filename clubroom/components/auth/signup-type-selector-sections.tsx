@@ -87,7 +87,6 @@ export const AccountTypeCard = memo(function AccountTypeCard({
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.lg,

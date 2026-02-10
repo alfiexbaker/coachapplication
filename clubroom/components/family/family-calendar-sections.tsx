@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
   palette,
 }: CalendarDayGridProps) {
   return (
-    <View style={styles.grid}>
+    <Row style={styles.grid}>
       {calendarData.map((item, index) => {
         const dateEvents = getEventsForDate(item.date);
         const hasEvents = dateEvents.length > 0;
@@ -121,16 +122,16 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
               )}
             </View>
             {hasEvents && (
-              <View style={styles.eventDots}>
+              <Row style={styles.eventDots}>
                 {dateEvents.slice(0, 3).map((event, i) => (
                   <View key={i} style={[styles.eventDot, { backgroundColor: event.colorCode }]} />
                 ))}
-              </View>
+              </Row>
             )}
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -161,30 +162,30 @@ export const EventListSection = memo(function EventListSection({
           <SurfaceCard style={styles.eventCard}>
             <View style={[styles.eventColorBar, { backgroundColor: event.colorCode }]} />
             <View style={styles.eventContent}>
-              <View style={styles.eventHeader}>
+              <Row style={styles.eventHeader}>
                 <ThemedText type="defaultSemiBold">{event.title}</ThemedText>
                 <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
                   {new Date(event.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                 </ThemedText>
-              </View>
-              <View style={styles.eventMeta}>
-                <View style={styles.eventMetaItem}>
+              </Row>
+              <Row style={styles.eventMeta}>
+                <Row style={styles.eventMetaItem}>
                   <Ionicons name="person" size={12} color={palette.muted} />
                   <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.childName}</ThemedText>
-                </View>
+                </Row>
                 {event.coachName && (
-                  <View style={styles.eventMetaItem}>
+                  <Row style={styles.eventMetaItem}>
                     <Ionicons name="school" size={12} color={palette.muted} />
                     <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.coachName}</ThemedText>
-                  </View>
+                  </Row>
                 )}
                 {event.location && (
-                  <View style={styles.eventMetaItem}>
+                  <Row style={styles.eventMetaItem}>
                     <Ionicons name="location" size={12} color={palette.muted} />
                     <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.location}</ThemedText>
-                  </View>
+                  </Row>
                 )}
-              </View>
+              </Row>
             </View>
           </SurfaceCard>
         </Clickable>
@@ -197,23 +198,23 @@ export const EventListSection = memo(function EventListSection({
 
 const styles = StyleSheet.create({
   filterRow: { flexDirection: 'row', gap: Spacing.xs, paddingVertical: Spacing.xs },
-  filterChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
+  filterChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
   filterDot: { width: 8, height: 8, borderRadius: Radii.xs },
   filterChipText: { ...Typography.smallSemiBold },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  grid: { flexWrap: 'wrap' },
   dayCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.micro },
   dayContent: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   dayText: { ...Typography.bodySmallSemiBold },
-  eventDots: { flexDirection: 'row', gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: 4 },
+  eventDots: { gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: 4 },
   eventDot: { width: 4, height: 4, borderRadius: Radii.xs },
   eventsSection: { gap: Spacing.sm },
   eventsSectionTitle: { ...Typography.bodySmall },
   eventCard: { flexDirection: 'row', overflow: 'hidden' },
   eventColorBar: { width: 4 },
   eventContent: { flex: 1, padding: Spacing.sm, gap: Spacing.xxs },
-  eventHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  eventHeader: { justifyContent: 'space-between', alignItems: 'center' },
   eventTime: { ...Typography.small },
-  eventMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  eventMetaItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  eventMeta: { flexWrap: 'wrap', gap: Spacing.sm },
+  eventMetaItem: { alignItems: 'center', gap: Spacing.xxs },
   eventMetaText: { ...Typography.caption },
 });

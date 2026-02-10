@@ -9,6 +9,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { matchService } from '@/services/match-service';
@@ -30,27 +31,27 @@ export const MatchAvailabilityRow = React.memo(function MatchAvailabilityRow({
   const availability = matchService.getAvailabilitySummary(match);
 
   return (
-    <View style={[styles.availabilityRow, { borderTopColor: palette.border }]}>
+    <Row align="center" justify="between" style={[styles.availabilityRow, { borderTopColor: palette.border }]}>
       <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
         <ThemedText style={[styles.statusText, { color: statusColor }]}>
           {matchService.formatStatus(match.status)}
         </ThemedText>
       </View>
-      <View style={styles.availabilityStats}>
-        <View style={styles.statItem}>
+      <Row align="center" gap="md">
+        <Row align="center" gap="xxs">
           <View style={[styles.statDot, { backgroundColor: palette.success }]} />
           <ThemedText style={styles.statText}>{availability.available}</ThemedText>
-        </View>
-        <View style={styles.statItem}>
+        </Row>
+        <Row align="center" gap="xxs">
           <View style={[styles.statDot, { backgroundColor: palette.error }]} />
           <ThemedText style={styles.statText}>{availability.unavailable}</ThemedText>
-        </View>
-        <View style={styles.statItem}>
+        </Row>
+        <Row align="center" gap="xxs">
           <View style={[styles.statDot, { backgroundColor: palette.warning }]} />
           <ThemedText style={styles.statText}>{availability.pending}</ThemedText>
-        </View>
-      </View>
-    </View>
+        </Row>
+      </Row>
+    </Row>
   );
 });
 
@@ -68,7 +69,7 @@ export const MatchPlayerStatusRow = React.memo(function MatchPlayerStatusRow({
   if (match.selectedPlayers.length === 0) return null;
 
   return (
-    <View style={styles.playerStatusRow}>
+    <Row wrap gap="xs" style={styles.playerStatusRow}>
       {match.selectedPlayers.map((player) => (
         <View
           key={player.athleteId}
@@ -87,7 +88,7 @@ export const MatchPlayerStatusRow = React.memo(function MatchPlayerStatusRow({
           </ThemedText>
         </View>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -97,9 +98,6 @@ export const MatchPlayerStatusRow = React.memo(function MatchPlayerStatusRow({
 
 const styles = StyleSheet.create({
   availabilityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: Spacing.xs,
     paddingTop: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -111,16 +109,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   statusText: { ...Typography.caption },
-  availabilityStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
   statDot: {
     width: 8,
     height: 8,
@@ -128,9 +116,6 @@ const styles = StyleSheet.create({
   },
   statText: { ...Typography.smallSemiBold },
   playerStatusRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
   playerBadge: {

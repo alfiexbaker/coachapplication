@@ -12,6 +12,7 @@ import { SocialLinks } from '@/components/profile/social-links';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { CoachExperience, CoachCertification, CoachLanguage, SocialLinks as SocialLinksType } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
@@ -75,7 +76,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
 
       {/* Experience */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row style={styles.sectionHeader}>
           <ThemedText type="subtitle">Experience</ThemedText>
           {userRole === 'COACH' && (
             <Clickable onPress={() => {}} style={styles.addButton}>
@@ -83,9 +84,9 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
               <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>Add</ThemedText>
             </Clickable>
           )}
-        </View>
+        </Row>
         {coach.experiences && coach.experiences.length > 0 ? coach.experiences.map((exp) => (
-          <View key={exp.id} style={styles.credentialItem}>
+          <Row key={exp.id} style={styles.credentialItem}>
             <View style={[styles.credentialIcon, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
               <Ionicons name="briefcase" size={20} color={palette.tint} />
             </View>
@@ -96,7 +97,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
               {exp.description && <ThemedText style={styles.credentialDesc}>{exp.description}</ThemedText>}
             </View>
             {userRole === 'COACH' && <Clickable onPress={() => {}} style={styles.editButton}><Ionicons name="pencil" size={16} color={palette.muted} /></Clickable>}
-          </View>
+          </Row>
         )) : (
           <ThemedText style={styles.emptyText}>No experience added yet. Share your coaching and playing background.</ThemedText>
         )}
@@ -104,7 +105,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
 
       {/* Certifications */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row style={styles.sectionHeader}>
           <ThemedText type="subtitle">Certifications &amp; Licences</ThemedText>
           {userRole === 'COACH' && (
             <Clickable onPress={() => {}} style={styles.addButton}>
@@ -112,11 +113,11 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
               <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>Add</ThemedText>
             </Clickable>
           )}
-        </View>
+        </Row>
         {coach.certifications && coach.certifications.length > 0 ? coach.certifications.map((cert) => {
           const isExpiring = cert.expiryDate ? new Date(cert.expiryDate).getTime() - Date.now() < 90 * 24 * 60 * 60 * 1000 : false;
           return (
-            <View key={cert.id} style={styles.credentialItem}>
+            <Row key={cert.id} style={styles.credentialItem}>
               <View style={[styles.credentialIcon, { backgroundColor: withAlpha(palette.success, 0.1) }]}>
                 <Ionicons name={isExpiring ? 'warning' : 'ribbon'} size={20} color={isExpiring ? palette.warning : palette.success} />
               </View>
@@ -127,7 +128,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
                 {isExpiring && <ThemedText style={[styles.certWarning, { color: palette.warning }]}>Expiring soon - renewal required</ThemedText>}
               </View>
               {userRole === 'COACH' && <Clickable onPress={() => {}} style={styles.editButton}><Ionicons name="pencil" size={16} color={palette.muted} /></Clickable>}
-            </View>
+            </Row>
           );
         }) : (
           <ThemedText style={styles.emptyText}>No certifications added yet. Add your FA, UEFA, or other coaching qualifications.</ThemedText>
@@ -139,10 +140,10 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Achievements</ThemedText>
           {coach.achievements.map((achievement, index) => (
-            <View key={index} style={styles.achievementItem}>
+            <Row key={index} style={styles.achievementItem}>
               <Ionicons name="trophy" size={18} color={palette.warning} />
               <ThemedText style={styles.achievementText}>{achievement}</ThemedText>
-            </View>
+            </Row>
           ))}
         </SurfaceCard>
       )}
@@ -151,27 +152,27 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
       {coach.languages && coach.languages.length > 0 && (
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Languages</ThemedText>
-          <View style={styles.tagsRow}>
+          <Row style={styles.tagsRow}>
             {coach.languages.map((lang: CoachLanguage) => (
               <View key={lang.id} style={[styles.languageTag, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <ThemedText style={[styles.languageText, { color: palette.tint }]}>{lang.name}</ThemedText>
                 <ThemedText style={[styles.languageLevel, { color: palette.muted }]}>{lang.proficiency}</ThemedText>
               </View>
             ))}
-          </View>
+          </Row>
         </SurfaceCard>
       )}
 
       {/* Specialties */}
       <SurfaceCard style={styles.section}>
         <ThemedText type="subtitle">Coaching Specialties</ThemedText>
-        <View style={styles.tagsRow}>
+        <Row style={styles.tagsRow}>
           {coach.footballFocuses.map((focus) => (
             <View key={focus} style={[styles.specialtyTag, { backgroundColor: palette.card, borderColor: withAlpha(palette.text, 0.1) }]}>
               <ThemedText style={styles.specialtyText}>{focus}</ThemedText>
             </View>
           ))}
-        </View>
+        </Row>
       </SurfaceCard>
     </View>
   );
@@ -182,13 +183,13 @@ export const ProfileTabAbout = React.memo(ProfileTabAboutInner);
 const styles = StyleSheet.create({
   aboutContent: { gap: Spacing.md },
   section: { gap: Spacing.md },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
-  addButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
+  sectionHeader: { justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  addButton: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
   addButtonText: { ...Typography.bodySmallSemiBold },
   bio: { ...Typography.body, opacity: 0.8 },
-  contactItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  contactItem: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
   contactText: { ...Typography.body, flex: 1 },
-  credentialItem: { flexDirection: 'row', gap: Spacing.sm, paddingTop: Spacing.md },
+  credentialItem: { gap: Spacing.sm, paddingTop: Spacing.md },
   credentialIcon: { width: 40, height: 40, borderRadius: Radii.full, justifyContent: 'center', alignItems: 'center' },
   credentialContent: { flex: 1, gap: Spacing.micro },
   credentialOrg: { ...Typography.body, fontWeight: '500', opacity: 0.8 },
@@ -197,9 +198,9 @@ const styles = StyleSheet.create({
   certWarning: { ...Typography.caption, fontWeight: '600', marginTop: Spacing.xxs },
   editButton: { padding: Spacing.xs, marginLeft: Spacing.xs },
   emptyText: { ...Typography.bodySmall, opacity: 0.6, fontStyle: 'italic' },
-  achievementItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  achievementItem: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
   achievementText: { ...Typography.body, flex: 1 },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  tagsRow: { flexWrap: 'wrap', gap: Spacing.xs },
   languageTag: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
   languageText: { ...Typography.bodySemiBold },
   languageLevel: { ...Typography.caption },

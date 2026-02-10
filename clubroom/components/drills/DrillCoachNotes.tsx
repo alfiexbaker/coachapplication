@@ -14,6 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -33,12 +34,12 @@ function DrillCoachNotesInner({ notes, coachName }: DrillCoachNotesProps) {
 
   return (
     <SurfaceCard style={styles.notesCard}>
-      <View style={styles.notesHeader}>
+      <Row style={styles.notesHeader}>
         <Ionicons name="chatbubble-outline" size={16} color={palette.tint} />
         <ThemedText type="defaultSemiBold" style={styles.notesTitle}>
           Coach Notes
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={[styles.notesText, { color: palette.text }]}>
         {notes}
       </ThemedText>
@@ -63,7 +64,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   notesHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.sm,

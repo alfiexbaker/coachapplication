@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SquadInviteModal } from '@/components/squad/squad-invite-modal';
 import { CreateSessionTypeStep } from '@/components/group/create-session-type-step';
@@ -55,19 +56,19 @@ export default function CreateGroupSessionScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={styles.header}>
+        <Row align="center" gap="md" style={styles.header}>
           <Clickable accessibilityLabel="Go back" onPress={goBack} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>Create Session</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
 
-        <View style={styles.progressContainer}>
+        <Row justify="center" gap="xs" style={styles.progressContainer}>
           {steps.map((s, i) => (
             <View key={s} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border }]} />
           ))}
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {renderStep()}
@@ -113,8 +114,8 @@ export default function CreateGroupSessionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
-  progressContainer: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.xs, paddingBottom: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  progressContainer: { paddingBottom: Spacing.md },
   progressDot: { width: 8, height: 8, borderRadius: Radii.xs },
   scrollContent: { padding: Spacing.lg, paddingTop: 0 },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },

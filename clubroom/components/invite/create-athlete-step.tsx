@@ -140,7 +140,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   athleteItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, TextInput, Modal, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -31,14 +32,14 @@ export const RejectModal = memo(function RejectModal({ visible, reason, onReason
             value={reason} onChangeText={onReasonChange}
             multiline numberOfLines={3} textAlignVertical="top"
           />
-          <View style={styles.buttons}>
+          <Row gap="sm" style={styles.buttons}>
             <Clickable onPress={onCancel} style={[styles.cancelButton, { borderColor: palette.border }]}>
               <ThemedText>Cancel</ThemedText>
             </Clickable>
             <Clickable onPress={onConfirm} style={[styles.confirmButton, { backgroundColor: palette.error }]}>
               <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Decline</ThemedText>
             </Clickable>
-          </View>
+          </Row>
         </Pressable>
       </Pressable>
     </Modal>
@@ -51,8 +52,7 @@ const styles = StyleSheet.create({
   title: { ...Typography.heading },
   subtitle: { ...Typography.small },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body, minHeight: 80, marginTop: Spacing.xs },
-  buttons: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+  buttons: { marginTop: Spacing.sm },
   cancelButton: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   confirmButton: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md },
-  confirmText: { fontWeight: '600' },
-});
+  confirmText: { fontWeight: '600' } });

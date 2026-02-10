@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { MutedCoach } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
@@ -59,7 +60,9 @@ export const MutedCoachRow = memo(function MutedCoachRow({
   };
 
   return (
-    <View
+    <Row
+      align="center"
+      gap="sm"
       style={[
         styles.row,
         !isLast && {
@@ -97,7 +100,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
       >
         <Ionicons name="volume-high" size={18} color={palette.error} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -105,10 +108,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.md,
-    gap: Spacing.sm,
   },
   avatar: {
     width: 44,

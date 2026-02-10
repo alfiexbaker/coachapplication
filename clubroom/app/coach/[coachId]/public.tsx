@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ShareProfile } from '@/components/coach/share-profile';
 import { PublicProfileHero } from '@/components/coach/public-profile-hero';
 import { PublicProfileAbout } from '@/components/coach/public-profile-about';
@@ -20,12 +21,13 @@ import { PublicProfileSpecialties } from '@/components/coach/public-profile-spec
 import { PublicProfileCredentials } from '@/components/coach/public-profile-credentials';
 import { PublicProfileReviews } from '@/components/coach/public-profile-reviews';
 import { Spacing, Components, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { usePublicProfile, PROFILE_TABS } from '@/hooks/use-public-profile';
 
 export default function PublicCoachProfileScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const profile = usePublicProfile(coachId);
 
   if (profile.loading) {
@@ -80,10 +82,12 @@ export default function PublicCoachProfileScreen() {
                 onPress={() => profile.setActiveTab(tab.id)}
                 style={[styles.tab, isActive && { borderBottomColor: palette.tint, borderBottomWidth: 2 }].filter(Boolean) as ViewStyle[]}
               >
-                <Ionicons name={tab.icon} size={Components.icon.md} color={isActive ? palette.tint : palette.muted} />
-                <ThemedText style={[Typography.small, { color: isActive ? palette.tint : palette.muted }, isActive && { fontWeight: '600' }].filter(Boolean) as TextStyle[]}>
-                  {tab.label}
-                </ThemedText>
+                <Row align="center" gap={Spacing.xs / 2}>
+                  <Ionicons name={tab.icon} size={Components.icon.md} color={isActive ? palette.tint : palette.muted} />
+                  <ThemedText style={[Typography.small, { color: isActive ? palette.tint : palette.muted }, isActive && { fontWeight: '600' }].filter(Boolean) as TextStyle[]}>
+                    {tab.label}
+                  </ThemedText>
+                </Row>
               </Clickable>
             );
           })}
@@ -116,7 +120,7 @@ const styles = StyleSheet.create({
   errorText: { ...Typography.body },
   goBackBtn: { height: Components.button.height, paddingHorizontal: Spacing.lg, borderRadius: Components.button.borderRadius, alignItems: 'center', justifyContent: 'center' },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
-  tabBarContent: { flexDirection: 'row', paddingHorizontal: Spacing.sm },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
+  tabBarContent: { paddingHorizontal: Spacing.sm },
+  tab: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
   tabContentContainer: { paddingBottom: Spacing['3xl'] },
 });

@@ -3,6 +3,7 @@
  * Athlete/parent home: stats, streak, quick actions, next session, badges, clubs.
  */
 import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -44,10 +45,10 @@ export function UserHomeScreen() {
         )}
 
         {error && !loading && (
-          <View style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
+          <Row align="center" gap="sm" style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
             <Ionicons name="alert-circle" size={20} color={palette.error} />
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
-          </View>
+          </Row>
         )}
 
         <StatsRow stats={stats} />
@@ -68,6 +69,6 @@ const styles = StyleSheet.create({
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20, fontWeight: '500' },
   loadingContainer: { padding: Spacing['2xl'], alignItems: 'center', justifyContent: 'center' },
-  errorContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  errorContainer: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   errorText: { ...Typography.bodySmall, flex: 1 },
 });

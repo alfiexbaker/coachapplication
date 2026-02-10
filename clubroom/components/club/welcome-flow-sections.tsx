@@ -13,6 +13,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -48,10 +49,10 @@ const StepListContent = memo(function StepListContent({
     return (
       <View style={styles.listContainer}>
         {squadNames.map((name) => (
-          <View key={name} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row key={name} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <Ionicons name="people" size={Components.icon.md} color={brandColor} />
             <ThemedText style={[styles.listItemText, { color: palette.text }]}>{name}</ThemedText>
-          </View>
+          </Row>
         ))}
       </View>
     );
@@ -61,13 +62,13 @@ const StepListContent = memo(function StepListContent({
     return (
       <View style={styles.listContainer}>
         {upcomingEvents.slice(0, 3).map((event, idx) => (
-          <View key={idx} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row key={idx} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <Ionicons name="calendar" size={Components.icon.md} color={brandColor} />
             <View style={styles.listItemInner}>
               <ThemedText style={[styles.listItemText, { color: palette.text }]}>{event.title}</ThemedText>
               <ThemedText style={[styles.listItemSub, { color: palette.muted }]}>{event.date}</ThemedText>
             </View>
-          </View>
+          </Row>
         ))}
       </View>
     );
@@ -77,13 +78,13 @@ const StepListContent = memo(function StepListContent({
     return (
       <View style={styles.listContainer}>
         {coaches.map((coach, idx) => (
-          <View key={idx} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row key={idx} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <Ionicons name="shield" size={Components.icon.md} color={brandColor} />
             <View style={styles.listItemInner}>
               <ThemedText style={[styles.listItemText, { color: palette.text }]}>{coach.name}</ThemedText>
               <ThemedText style={[styles.listItemSub, { color: palette.muted }]}>{coach.role}</ThemedText>
             </View>
-          </View>
+          </Row>
         ))}
       </View>
     );
@@ -153,7 +154,7 @@ export const WelcomeBottomControls = memo(function WelcomeBottomControls({
   return (
     <View style={styles.bottomControls}>
       {/* Dot indicators */}
-      <View style={styles.dotRow}>
+      <Row style={styles.dotRow}>
         {steps.map((_, idx) => (
           <View
             key={idx}
@@ -166,7 +167,7 @@ export const WelcomeBottomControls = memo(function WelcomeBottomControls({
             ]}
           />
         ))}
-      </View>
+      </Row>
 
       {/* Next / Get Started button */}
       <Clickable
@@ -236,7 +237,6 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   listItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.sm,
@@ -259,7 +259,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dotRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

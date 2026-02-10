@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -45,16 +46,18 @@ export const SquadAddMembers = memo(function SquadAddMembers({
           const initials = member.userName.slice(0, 2).toUpperCase();
           return (
             <Clickable key={member.userId} style={[styles.row, { borderColor: colors.border }]} onPress={() => onAdd(member)}>
-              <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
-                <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>{initials}</ThemedText>
-              </View>
-              <View style={{ flex: 1 }}>
-                <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: roleColor }]}>{clubService.formatRole(member.role)}</ThemedText>
-              </View>
-              <View style={[styles.addIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <Ionicons name="add" size={18} color={colors.tint} />
-              </View>
+              <Row align="center" gap="sm">
+                <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
+                  <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>{initials}</ThemedText>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: roleColor }]}>{clubService.formatRole(member.role)}</ThemedText>
+                </View>
+                <View style={[styles.addIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+                  <Ionicons name="add" size={18} color={colors.tint} />
+                </View>
+              </Row>
             </Clickable>
           );
         })}
@@ -67,7 +70,7 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   empty: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
   list: { gap: Spacing.xxs },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  row: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   addIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
 });

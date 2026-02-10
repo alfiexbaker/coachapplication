@@ -20,6 +20,7 @@ export type { SignupType, AccountTypeOption, AccountTypeCardProps } from './sign
 
 import { ACCOUNT_TYPE_OPTIONS, AccountTypeCard } from './signup-type-selector-sections';
 import type { SignupType } from './signup-type-selector-sections';
+import { Row } from '@/components/primitives';
 
 interface SignupTypeSelectorProps {
   visible: boolean;
@@ -43,13 +44,13 @@ export function SignupTypeSelector({ visible, onClose, onSelect }: SignupTypeSel
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable accessibilityLabel="Close" onPress={handleClose}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="subtitle">Create Account</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
 
         <View style={styles.content}>
           <View style={styles.titleSection}>
@@ -85,7 +86,6 @@ export function SignupTypeSelector({ visible, onClose, onSelect }: SignupTypeSel
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,

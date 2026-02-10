@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 import { ProfileTabPosts } from './profile-tab-posts';
 import { ProfileTabAbout } from './profile-tab-about';
+import { Row } from '@/components/primitives';
 
 // Re-export TabBar and types from their dedicated file
 export { ProfileTabBar, type TabType, type ProfileTabsProps } from './profile-tab-bar';
@@ -54,13 +55,13 @@ function ProfileTabContentInner({
       {activeTab === 'about' && <ProfileTabAbout coach={coach} userRole={userRole} />}
 
       {activeTab === 'photos' && (
-        <View style={styles.photosGrid}>
+        <Row style={styles.photosGrid}>
           {coach.photoGallery && coach.photoGallery.length > 0 ? (
             coach.photoGallery.map((url, index) => <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />)
           ) : (
             <SurfaceCard style={styles.emptyState}><ThemedText style={styles.emptyStateText}>No photos yet</ThemedText></SurfaceCard>
           )}
-        </View>
+        </Row>
       )}
 
       {activeTab === 'sessions' && (
@@ -87,7 +88,7 @@ export default ProfileTabContent;
 
 const styles = StyleSheet.create({
   tabContent: { padding: Spacing.lg, gap: Spacing.md },
-  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.micro },
+  photosGrid: { flexWrap: 'wrap', gap: Spacing.micro },
   gridPhoto: { width: '32.5%', aspectRatio: 1 },
   emptyState: { paddingVertical: Spacing.xl, alignItems: 'center', gap: Spacing.xs },
   emptyStateText: { fontSize: 15, opacity: 0.6 },

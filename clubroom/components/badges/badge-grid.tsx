@@ -8,6 +8,7 @@ import type { AllBadgeWithProgress } from '@/services/badge-service';
 import { useTheme } from '@/hooks/useTheme';
 
 import { BadgeSectionGridInner, BadgeStatsInner } from './badge-grid-sections';
+import { Row } from '@/components/primitives';
 
 interface BadgeGridProps {
   badges: AllBadgeWithProgress[];
@@ -43,7 +44,7 @@ export function BadgeGrid({
   return (
     <SurfaceCard style={styles.container}>
       {(title || showCounts) && (
-        <View style={styles.header}>
+        <Row style={styles.header}>
           <View style={styles.headerLeft}>
             {title && (
               <ThemedText type="defaultSemiBold" style={styles.title}>{title}</ThemedText>
@@ -59,10 +60,10 @@ export function BadgeGrid({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
       )}
 
-      <View style={[styles.grid, { gap: Spacing.sm }]}>
+      <Row style={[styles.grid, { gap: Spacing.sm }]}>
         {badges.map((badge) => (
           <View key={badge.id} style={{ width: cardWidth }}>
             <BadgeCard
@@ -72,7 +73,7 @@ export function BadgeGrid({
             />
           </View>
         ))}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -103,7 +104,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -120,7 +120,6 @@ const styles = StyleSheet.create({
   },
   countText: { ...Typography.caption },
   grid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
   },
 });

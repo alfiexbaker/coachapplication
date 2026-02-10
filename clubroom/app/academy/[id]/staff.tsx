@@ -1,48 +1,93 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ok, err, notFound, serviceError } from '@/types/result';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { EmptyState } from '@/components/ui/empty-state';
 import { StaffInviteModal } from '@/components/academy/staff-invite-modal';
 import { StaffEditModal } from '@/components/academy/staff-edit-modal';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import { useAcademyStaff, ROLE_COLORS } from '@/hooks/use-academy-staff';
+import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
-import type { AcademyMembership } from '@/constants/types';
+import { ROLE_COLORS } from '@/hooks/use-academy-staff';
+import type { Academy, AcademyMembership } from '@/constants/types';
+
+interface StaffScreenData {
+  academy: Academy;
+  staff: AcademyMembership[];
+}
 
 export default function AcademyStaffScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
-  const {
-    academy, staff, loading, canManageStaff,
-    showInviteModal, inviteRole, creatingInvite, inviteCode,
-    editingMember, editRole,
-    setShowInviteModal, setInviteRole, setEditRole, setEditingMember,
-    openInviteModal, handleCreateInvite,
-    openEditMember, handleUpdateRole, handleRemoveMember,
-  } = useAcademyStaff(id);
+  const { currentUser } = useAuth();
 
+  const { data, status, error: loadError, refreshing, onRefresh, retry, colors } = useScreen<StaffScreenData>({
+    load: async () => {
+      if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
+      try {
+        const [academy, staffList] = await Promise.all([
+          academyService.getAcademy(id),
+          academyService.getStaff(id),
+        ]);
+        if (!academy) return err(notFound('Academy', id));
+        return ok({ academy, staff: staffList });
+      } catch (e) {
+        return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load staff'));
+      }
+    },
+    deps: [id],
+  });
+
+  // Modal / UI state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteRole, setInviteRole] = useState<AcademyMembership['role']>('COACH');
+  const [creatingInvite, setCreatingInvite] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [editingMember, setEditingMember] = useState<AcademyMembership | null>(null);
+  const [editRole, setEditRole] = useState<AcademyMembership['role']>('COACH');
+
+  const openInviteModal = useCallback(() => { setInviteCode(null); setShowInviteModal(true); }, []);
+  const openEditMember = useCallback((member: AcademyMembership) => { setEditingMember(member); setEditRole(member.role); }, []);
+
+  const handleCreateInvite = useCallback(async () => {
+    if (!id) return;
+    setCreatingInvite(true);
+    try {
+      const code = await academyService.createInviteCode(id, inviteRole);
+      setInviteCode(typeof code === 'string' ? code : null);
+    } finally { setCreatingInvite(false); }
+  }, [id, inviteRole]);
+
+  const handleUpdateRole = useCallback(async () => {
+    if (!editingMember || !id) return;
+    await academyService.updateMemberRole(id, editingMember.id, editRole);
+    setEditingMember(null);
+    onRefresh();
+  }, [editingMember, id, editRole, onRefresh]);
+
+  const handleRemoveMember = useCallback(async (member: AcademyMembership) => {
+    if (!id) return;
+    await academyService.removeMember(id, member.id);
+    onRefresh();
+  }, [id, onRefresh]);
+
+  if (status === 'loading') return <LoadingState variant="list" />;
+  if (status === 'error') return <ErrorState message={loadError!.message} onRetry={retry} />;
+  if (status === 'empty') return <EmptyState icon="business-outline" title="Academy not found" message="This academy may have been removed" />;
+
+  const { academy, staff } = data!;
+  const userMembership = staff.find((m) => m.userId === currentUser?.id);
+  const canManageStaff = userMembership?.role === 'OWNER' || userMembership?.permissions.includes('MANAGE_STAFF');
   const roleColors: Record<AcademyMembership['role'], string> = { ...ROLE_COLORS, COACH: colors.tint };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -61,7 +106,7 @@ export default function AcademyStaffScreen() {
         )}
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {staff.length === 0 ? (
           <EmptyState
             icon="people-outline"

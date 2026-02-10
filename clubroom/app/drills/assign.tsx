@@ -20,11 +20,12 @@ import { LoadingState } from '@/components/ui/screen-states';
 import { AssignDrillForm } from '@/components/drills/assign-drill-form';
 import { Spacing, Typography } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useDrillAssign } from '@/hooks/use-drill-assign';
 
 export default function AssignDrillScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     drill, athletes, loading, submitting,
     selectedAthlete, notes, setNotes,

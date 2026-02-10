@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   sectionHeader: { paddingHorizontal: Spacing.xs, marginBottom: Spacing.xs },
   sectionTitle: { ...Typography.heading },
   customTiersContainer: { gap: Spacing.sm, marginBottom: Spacing.md },
-  addTierButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderWidth: 1, borderStyle: 'dashed', borderRadius: Radii.card },
+  addTierButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderWidth: 1, borderStyle: 'dashed', borderRadius: Radii.card },
   addTierText: { ...Typography.bodySemiBold },
   saveButton: { height: Components.button.height, borderRadius: Components.button.borderRadius, alignItems: 'center' as const, justifyContent: 'center' as const, marginTop: Spacing.sm },
   saveButtonDisabled: { opacity: 0.6 },

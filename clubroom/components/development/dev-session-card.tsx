@@ -11,6 +11,7 @@ import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/t
 import { formatDate } from '@/constants/mock-data';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Session, BadgeAward } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 export interface DevSessionCardProps {
   session: Session;
@@ -59,9 +60,9 @@ export const DevSessionCard = memo(function DevSessionCard({
             accessibilityLabel="Open badges workspace for this session"
             hitSlop={10}
           >
-            <View style={[styles.workspaceChip, { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+            <Row style={[styles.workspaceChip, { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.09) }]}>
               <Ionicons name="ribbon-outline" size={14} color={colors.tint} />
-            </View>
+            </Row>
           </Clickable>
           <Row gap="xs" align="center">
             <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
@@ -71,26 +72,26 @@ export const DevSessionCard = memo(function DevSessionCard({
       </Row>
 
       {sessionAwards.length > 0 && (
-        <View style={styles.awardRow}>
+        <Row style={styles.awardRow}>
           {sessionAwards.map((award) => (
-            <View key={award.id} style={[styles.awardChip, { borderColor: colors.border }]}>
+            <Row key={award.id} style={[styles.awardChip, { borderColor: colors.border }]}>
               <ThemedText style={{ fontWeight: '700' }}>{award.badgeLabel}</ThemedText>
               <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
                 {formatDate(award.awardedAt)}
               </ThemedText>
-            </View>
+            </Row>
           ))}
-        </View>
+        </Row>
       )}
 
       {session.skillsWorkedOn.length > 0 && (
-        <View style={styles.skillsRow}>
+        <Row style={styles.skillsRow}>
           {session.skillsWorkedOn.map((skill, index) => (
             <View key={index} style={[styles.skillChip, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
               <ThemedText style={[styles.skillText, { color: colors.tint }]}>{skill}</ThemedText>
             </View>
           ))}
-        </View>
+        </Row>
       )}
 
       {session.notes && session.notes.trim() !== '' && (
@@ -125,7 +126,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   workspaceChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.xs,
@@ -138,13 +138,11 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   awardRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
   awardChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -153,7 +151,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   skillsRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

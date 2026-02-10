@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type {
@@ -117,7 +118,7 @@ export const CategorySection = memo(function CategorySection({
             {description}
           </ThemedText>
         </View>
-        <View style={styles.statusContainer}>
+        <Row align="center" gap="xs">
           <ThemedText style={[styles.statusText, { color: palette.muted }]}>
             {enabledCount}/{types.length}
           </ThemedText>
@@ -126,7 +127,7 @@ export const CategorySection = memo(function CategorySection({
             size={20}
             color={palette.muted}
           />
-        </View>
+        </Row>
       </Clickable>
 
       {expanded && (
@@ -137,8 +138,10 @@ export const CategorySection = memo(function CategorySection({
             const isLast = index === types.length - 1;
 
             return (
-              <View
+              <Row
                 key={type}
+                align="center"
+                justify="between"
                 style={[
                   styles.typeRow,
                   !isLast && {
@@ -162,7 +165,7 @@ export const CategorySection = memo(function CategorySection({
                   thumbColor={palette.surface}
                   disabled={disabled || loading}
                 />
-              </View>
+              </Row>
             );
           })}
         </View>
@@ -198,19 +201,11 @@ const styles = StyleSheet.create({
   },
   categoryTitle: { ...Typography.subheading },
   categorySubtitle: { ...Typography.small, lineHeight: 18 },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   statusText: { ...Typography.small },
   typeList: {
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   typeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     marginLeft: 52,

@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,7 +39,7 @@ function SessionBookingOptionsInner({
   if (isRegistered) {
     return (
       <SurfaceCard style={[styles.card, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-        <View style={styles.registeredBanner}>
+        <Row align="start" gap={12}>
           <Ionicons name="checkmark-circle" size={24} color={palette.success} />
           <View style={styles.registeredInfo}>
             <ThemedText style={[styles.registeredText, { color: palette.success }]}>
@@ -48,7 +49,7 @@ function SessionBookingOptionsInner({
               <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>Cancel Booking</ThemedText>
             </Clickable>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     );
   }
@@ -70,12 +71,14 @@ function SessionBookingOptionsInner({
                 },
               ]}
             >
-              <Ionicons
-                name={selectedChildId === child.id ? 'radio-button-on' : 'radio-button-off'}
-                size={20}
-                color={selectedChildId === child.id ? palette.tint : palette.icon}
-              />
-              <ThemedText>{child.name}</ThemedText>
+              <Row align="center" gap={12}>
+                <Ionicons
+                  name={selectedChildId === child.id ? 'radio-button-on' : 'radio-button-off'}
+                  size={20}
+                  color={selectedChildId === child.id ? palette.tint : palette.icon}
+                />
+                <ThemedText>{child.name}</ThemedText>
+              </Row>
             </Clickable>
           ))}
         </SurfaceCard>
@@ -84,7 +87,7 @@ function SessionBookingOptionsInner({
       {isRecurring && (
         <SurfaceCard style={styles.card}>
           <ThemedText type="subtitle">Book for how many weeks?</ThemedText>
-          <View style={styles.weeksSelector}>
+          <Row gap={10} style={styles.weeksSelector}>
             {[1, 2, 3, 4].map(weeks => (
               <Clickable
                 key={weeks}
@@ -107,7 +110,7 @@ function SessionBookingOptionsInner({
                 </ThemedText>
               </Clickable>
             ))}
-          </View>
+          </Row>
         </SurfaceCard>
       )}
     </>
@@ -118,11 +121,10 @@ export const SessionBookingOptions = memo(SessionBookingOptionsInner);
 
 const styles = StyleSheet.create({
   card: { marginBottom: 16, padding: 20, gap: 14 },
-  childOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs + Spacing.xxs, padding: 16, borderRadius: Radii.md, borderWidth: 2, marginTop: 10 },
-  weeksSelector: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  childOption: { padding: 16, borderRadius: Radii.md, borderWidth: 2, marginTop: 10 },
+  weeksSelector: { marginTop: 10 },
   weekButton: { flex: 1, paddingVertical: 16, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center' },
   weekButtonText: { fontSize: scaleFont(15), fontWeight: '700', letterSpacing: 0.2 },
-  registeredBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs + Spacing.xxs },
   registeredInfo: { flex: 1, gap: Spacing.xxs },
   registeredText: { fontSize: scaleFont(17), fontWeight: '700', letterSpacing: -0.3, lineHeight: scaleFont(23) },
   cancelBookingLink: { alignSelf: 'flex-start' },

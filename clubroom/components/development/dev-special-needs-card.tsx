@@ -7,6 +7,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Components, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
+import { Row } from '@/components/primitives';
 
 export interface DevSpecialNeedsCardProps {
   childProfile: ChildProfile | null;
@@ -66,7 +67,7 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
       </Row>
 
       {hasNeeds && disabilityCount > 0 && (
-        <View style={[styles.preview, { borderTopColor: withAlpha(colors.border, 0.3) }]}>
+        <Row style={[styles.preview, { borderTopColor: withAlpha(colors.border, 0.3) }]}>
           {childProfile!.disabilities.slice(0, 2).map((d) => (
             <View key={d.id} style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.07) }]}>
               <ThemedText style={[styles.tagText, { color: colors.warning }]}>{d.type}</ThemedText>
@@ -77,7 +78,7 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
               <ThemedText style={[styles.tagText, { color: colors.error }]}>{a}</ThemedText>
             </View>
           ))}
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -111,7 +112,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   preview: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
     paddingTop: Spacing.xs,

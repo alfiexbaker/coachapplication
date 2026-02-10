@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { Club, ClubMembership } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { ClubHeaderMenu, type ClubMenuItem } from './club-header-menu';
+import { Row } from '@/components/primitives';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -117,10 +118,10 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
         ) : (
           <View style={[styles.coverPhotoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             {canManage && (
-              <View style={styles.coverPhotoHint}>
+              <Row style={styles.coverPhotoHint}>
                 <Ionicons name="camera-outline" size={20} color={palette.muted} />
                 <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Add cover photo</ThemedText>
-              </View>
+              </Row>
             )}
           </View>
         )}
@@ -132,7 +133,7 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
       </Clickable>
 
       {/* Club Info Row */}
-      <View style={styles.clubHeader}>
+      <Row style={styles.clubHeader}>
         <Clickable
           onPress={() => canManage && pickImage('profile')}
           disabled={!canManage}
@@ -167,7 +168,7 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
         >
           <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
 
       {/* Menu Modal */}
       <ClubHeaderMenu
@@ -189,11 +190,11 @@ const styles = StyleSheet.create({
   coverPhotoContainer: { width: '100%', marginBottom: -Spacing.lg },
   coverPhoto: { width: '100%', height: 140, borderRadius: Radii.md },
   coverPhotoPlaceholder: { width: '100%', height: 140, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-  coverPhotoHint: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  coverPhotoHint: { alignItems: 'center', gap: Spacing.xs },
   coverEditBadge: { position: 'absolute', bottom: Spacing.xs, right: Spacing.xs, width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   profilePhotoTouchable: { position: 'relative' },
   profileEditBadge: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-  clubHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg },
+  clubHeader: { alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg },
   clubAvatar: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
   clubAvatarText: { ...Typography.title },
   menuButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },

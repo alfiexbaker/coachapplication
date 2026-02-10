@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -26,14 +27,14 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({ feedType, clubN
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
-      <View style={styles.row}>
+      <Row wrap gap="xs">
         {opts.map((o) => (
           <Clickable key={o.key} style={[styles.chip, { borderColor: feedType === o.key ? o.color : palette.border }, feedType === o.key ? { backgroundColor: withAlpha(o.color, 0.06) } : undefined]} onPress={() => onSelect(o.key)}>
             <Ionicons name={o.icon as keyof typeof Ionicons.glyphMap} size={18} color={feedType === o.key ? o.color : palette.muted} />
             <ThemedText style={{ color: feedType === o.key ? o.color : palette.text, ...Typography.smallSemiBold }} numberOfLines={1}>{o.label}</ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -64,14 +65,14 @@ export const PostAsSelector = memo(function PostAsSelector({ postAs, onSelect }:
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post As</ThemedText>
-      <View style={styles.twoCol}>
+      <Row gap="sm">
         {(['self', 'club'] as const).map((pa) => (
           <Clickable key={pa} style={[styles.twoColOption, { borderColor: postAs === pa ? palette.tint : palette.border }, postAs === pa ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined]} onPress={() => onSelect(pa)}>
             <Ionicons name={pa === 'self' ? 'person-outline' : 'shield-outline'} size={18} color={postAs === pa ? palette.tint : palette.muted} />
             <ThemedText style={{ color: postAs === pa ? palette.tint : palette.text }}>{pa === 'self' ? 'Yourself' : 'Club'}</ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -91,7 +92,7 @@ export const AudienceSelector = memo(function AudienceSelector({ audienceType, s
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
-      <View style={styles.twoCol}>
+      <Row gap="sm">
         <Clickable style={[styles.twoColOption, { borderColor: audienceType === 'club' ? palette.tint : palette.border }, audienceType === 'club' ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined]} onPress={onSelectClub}>
           <Ionicons name="people-outline" size={18} color={audienceType === 'club' ? palette.tint : palette.muted} />
           <ThemedText style={{ color: audienceType === 'club' ? palette.tint : palette.text }}>All Members</ThemedText>
@@ -100,7 +101,7 @@ export const AudienceSelector = memo(function AudienceSelector({ audienceType, s
           <Ionicons name="grid-outline" size={18} color={audienceType === 'squad' ? palette.tint : palette.muted} />
           <ThemedText style={{ color: audienceType === 'squad' ? palette.tint : palette.text }}>Specific Group</ThemedText>
         </Clickable>
-      </View>
+      </Row>
       {audienceType === 'squad' && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, { marginTop: Spacing.sm }]}>
           {squads.map((squad) => (
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
   chipLabel: { ...Typography.smallSemiBold },
-  twoCol: { flexDirection: 'row', gap: Spacing.sm },
+  // twoCol replaced by Row primitive
   twoColOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   squadOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md, borderWidth: 1, minWidth: 180 },
   squadBadge: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },

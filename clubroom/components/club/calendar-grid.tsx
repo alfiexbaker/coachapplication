@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { WEEKDAY_LABELS, formatDateKey } from '@/hooks/use-club-calendar';
 import type { CalendarEvent, CalendarEventType } from '@/services/club-service';
+import { Row } from '@/components/primitives';
 
 function getEventColor(type: CalendarEventType, colors: ThemeColors): string {
   switch (type) {
@@ -37,13 +38,13 @@ export const CalendarGrid = memo(function CalendarGrid({
   return (
     <SurfaceCard style={styles.card} tactile={false}>
       {/* Weekday headers */}
-      <View style={styles.weekRow}>
+      <Row style={styles.weekRow}>
         {WEEKDAY_LABELS.map((label) => (
           <View key={label} style={styles.weekdayCell}>
             <ThemedText style={[Typography.caption, { color: colors.muted }]}>{label}</ThemedText>
           </View>
         ))}
-      </View>
+      </Row>
 
       {loading ? (
         <View style={styles.loading}>
@@ -51,7 +52,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         </View>
       ) : (
         weeks.map((week, weekIdx) => (
-          <View key={weekIdx} style={styles.weekRow}>
+          <Row key={weekIdx} style={styles.weekRow}>
             {week.map((day, dayIdx) => {
               if (day === null) return <View key={dayIdx} style={styles.dayCell} />;
 
@@ -80,15 +81,15 @@ export const CalendarGrid = memo(function CalendarGrid({
                   ]}>
                     {day}
                   </ThemedText>
-                  <View style={styles.dotsRow}>
+                  <Row style={styles.dotsRow}>
                     {uniqueTypes.slice(0, 3).map((type) => (
                       <View key={type} style={[styles.dot, { backgroundColor: selected ? colors.onPrimary : getEventColor(type, colors) }]} />
                     ))}
-                  </View>
+                  </Row>
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         ))
       )}
     </SurfaceCard>
@@ -97,10 +98,10 @@ export const CalendarGrid = memo(function CalendarGrid({
 
 const styles = StyleSheet.create({
   card: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs },
-  weekRow: { flexDirection: 'row' },
+  weekRow: {  },
   weekdayCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs / 2 },
   loading: { paddingVertical: Spacing.xl, alignItems: 'center' },
   dayCell: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xs, minHeight: 44 },
-  dotsRow: { flexDirection: 'row', gap: Spacing.micro, height: 6, alignItems: 'center' },
+  dotsRow: { gap: Spacing.micro, height: 6, alignItems: 'center' },
   dot: { width: 5, height: 5, borderRadius: Radii.xs },
 });

@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { NoShowCategory } from '@/constants/session-types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface NoShowCategoryOption {
   key: NoShowCategory;
@@ -86,14 +87,14 @@ export function NoShowCategorySheet({
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
           {/* Header */}
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="subtitle">
               {athleteName ? `Mark ${athleteName} as no-show` : 'Mark as no-show'}
             </ThemedText>
             <Clickable accessibilityLabel="Close" onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Select a reason to help track patterns
@@ -198,7 +199,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -210,7 +210,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   option: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.md,
@@ -230,7 +229,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   submitBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

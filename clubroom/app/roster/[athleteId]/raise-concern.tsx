@@ -79,33 +79,35 @@ const ConcernTypePicker = React.memo(function ConcernTypePicker({
               ]}
               accessibilityLabel={CONCERN_TYPE_LABELS[type]}
             >
-              <View
-                style={[
-                  styles.typeIcon,
-                  {
-                    backgroundColor: isSelected
-                      ? withAlpha(colors.tint, 0.15)
-                      : withAlpha(colors.muted, 0.09),
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={CONCERN_TYPE_ICONS[type] as 'alert-circle'}
-                  size={20}
-                  color={isSelected ? colors.tint : colors.muted}
-                />
-              </View>
-              <ThemedText
-                style={[
-                  styles.typeLabel,
-                  { color: isSelected ? colors.tint : colors.text },
-                ]}
-              >
-                {CONCERN_TYPE_LABELS[type]}
-              </ThemedText>
-              {isSelected && (
-                <Ionicons name="checkmark-circle" size={20} color={colors.tint} />
-              )}
+              <Row align="center" gap="sm" style={styles.typeOptionRow}>
+                <View
+                  style={[
+                    styles.typeIcon,
+                    {
+                      backgroundColor: isSelected
+                        ? withAlpha(colors.tint, 0.15)
+                        : withAlpha(colors.muted, 0.09),
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={CONCERN_TYPE_ICONS[type] as 'alert-circle'}
+                    size={20}
+                    color={isSelected ? colors.tint : colors.muted}
+                  />
+                </View>
+                <ThemedText
+                  style={[
+                    styles.typeLabel,
+                    { color: isSelected ? colors.tint : colors.text },
+                  ]}
+                >
+                  {CONCERN_TYPE_LABELS[type]}
+                </ThemedText>
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={20} color={colors.tint} />
+                )}
+              </Row>
             </Clickable>
           );
         })}
@@ -151,15 +153,17 @@ const SeverityPicker = React.memo(function SeverityPicker({
               ]}
               accessibilityLabel={`Severity: ${CONCERN_SEVERITY_LABELS[s]}`}
             >
-              <View style={[styles.severityDot, { backgroundColor: color }]} />
-              <ThemedText
-                style={[
-                  styles.severityText,
-                  { color: isSelected ? color : colors.muted },
-                ]}
-              >
-                {CONCERN_SEVERITY_LABELS[s]}
-              </ThemedText>
+              <Row align="center" justify="center" gap="xxs">
+                <View style={[styles.severityDot, { backgroundColor: color }]} />
+                <ThemedText
+                  style={[
+                    styles.severityText,
+                    { color: isSelected ? color : colors.muted },
+                  ]}
+                >
+                  {CONCERN_SEVERITY_LABELS[s]}
+                </ThemedText>
+              </Row>
             </Clickable>
           );
         })}
@@ -358,14 +362,12 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   typeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     minHeight: 52,
   },
+  typeOptionRow: {},
   typeIcon: {
     width: 36,
     height: 36,
@@ -379,10 +381,6 @@ const styles = StyleSheet.create({
   },
   severityChip: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,

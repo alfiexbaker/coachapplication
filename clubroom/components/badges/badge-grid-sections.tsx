@@ -16,6 +16,7 @@ import { BadgeCard } from './badge-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -77,8 +78,8 @@ export const BadgeSectionGridInner = memo(function BadgeSectionGridInner({
 
   return (
     <SurfaceCard style={styles.sectionContainer}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionHeaderLeft}>
+      <Row style={styles.sectionHeader}>
+        <Row style={styles.sectionHeaderLeft}>
           <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name={sectionIcon} size={18} color={palette.tint} />
           </View>
@@ -90,13 +91,13 @@ export const BadgeSectionGridInner = memo(function BadgeSectionGridInner({
               {unlockedCount} of {totalCount} earned
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <View style={styles.sectionProgress}>
           <ThemedText style={[styles.progressPercent, { color: palette.tint }]}>
             {progressPercent}%
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <View style={[styles.sectionProgressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <View
@@ -107,7 +108,7 @@ export const BadgeSectionGridInner = memo(function BadgeSectionGridInner({
         />
       </View>
 
-      <View style={[styles.grid, { gap: Spacing.sm }]}>
+      <Row style={[styles.grid, { gap: Spacing.sm }]}>
         {badges.map((badge) => (
           <View key={badge.id} style={{ width: cardWidth }}>
             <BadgeCard
@@ -116,7 +117,7 @@ export const BadgeSectionGridInner = memo(function BadgeSectionGridInner({
             />
           </View>
         ))}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -140,7 +141,7 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
 
   return (
     <SurfaceCard style={styles.statsContainer}>
-      <View style={styles.statsRow}>
+      <Row style={styles.statsRow}>
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={20} color={palette.success} />
@@ -168,13 +169,13 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
           <ThemedText type="heading" style={styles.statValue}>{totalPoints}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Points</ThemedText>
         </View>
-      </View>
+      </Row>
 
       <View style={styles.overallProgress}>
-        <View style={styles.progressHeader}>
+        <Row style={styles.progressHeader}>
           <ThemedText style={[styles.progressTitle, { color: palette.text }]}>Overall Progress</ThemedText>
           <ThemedText style={[styles.progressValue, { color: palette.tint }]}>{progressPercent}%</ThemedText>
-        </View>
+        </Row>
         <View style={[styles.progressBarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <View
             style={[
@@ -192,7 +193,6 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
 
 const styles = StyleSheet.create({
   grid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
   },
   sectionContainer: {
@@ -200,12 +200,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   sectionHeaderLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
@@ -241,7 +239,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   statsRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
   },
@@ -271,7 +268,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   progressHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },

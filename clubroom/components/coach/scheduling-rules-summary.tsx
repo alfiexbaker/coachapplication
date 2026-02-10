@@ -10,6 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface SchedulingRulesSummaryProps {
   colors: ThemeColors;
@@ -32,7 +33,7 @@ export const SchedulingRulesSummary = memo(function SchedulingRulesSummary({
         Summary
       </ThemedText>
       <View style={styles.summaryList}>
-        <View style={styles.summaryItem}>
+        <Row style={styles.summaryItem}>
           <Ionicons name="checkmark-circle" size={16} color={colors.success} />
           <ThemedText style={[styles.summaryText, { color: colors.text }]}>
             Athletes must book at least{' '}
@@ -41,21 +42,21 @@ export const SchedulingRulesSummary = memo(function SchedulingRulesSummary({
             </ThemedText>{' '}
             before
           </ThemedText>
-        </View>
-        <View style={styles.summaryItem}>
+        </Row>
+        <Row style={styles.summaryItem}>
           <Ionicons name="checkmark-circle" size={16} color={colors.success} />
           <ThemedText style={[styles.summaryText, { color: colors.text }]}>
             <ThemedText type="defaultSemiBold">{bufferMinutes} minutes</ThemedText> between sessions
           </ThemedText>
-        </View>
-        <View style={styles.summaryItem}>
+        </Row>
+        <Row style={styles.summaryItem}>
           <Ionicons name="checkmark-circle" size={16} color={colors.success} />
           <ThemedText style={[styles.summaryText, { color: colors.text }]}>
             Booking up to{' '}
             <ThemedText type="defaultSemiBold">{maxAdvanceDays} days</ThemedText> in advance
           </ThemedText>
-        </View>
-        <View style={styles.summaryItem}>
+        </Row>
+        <Row style={styles.summaryItem}>
           <Ionicons
             name={allowSameDayBookings ? 'checkmark-circle' : 'close-circle'}
             size={16}
@@ -67,7 +68,7 @@ export const SchedulingRulesSummary = memo(function SchedulingRulesSummary({
               {allowSameDayBookings ? 'allowed' : 'not allowed'}
             </ThemedText>
           </ThemedText>
-        </View>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -82,7 +83,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   summaryItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },

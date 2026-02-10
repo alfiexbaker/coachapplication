@@ -71,7 +71,7 @@ function ProfileTabPostsInner({ coachName, userRole, feedPosts, feedLoading, onC
 export const ProfileTabPosts = React.memo(ProfileTabPostsInner);
 
 const styles = StyleSheet.create({
-  createPostButton: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.lg, gap: Spacing.sm },
+  createPostButton: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.lg, gap: Spacing.sm },
   createPostText: { ...Typography.body, opacity: 0.6 },
   feedLoadingContainer: { gap: Spacing.md, paddingVertical: Spacing.sm },
   skeletonCard: { gap: Spacing.sm, paddingVertical: Spacing.lg },

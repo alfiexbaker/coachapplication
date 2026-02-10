@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
@@ -45,7 +46,7 @@ export const PostHeader = memo(function PostHeader({
   palette,
 }: PostHeaderProps) {
   return (
-    <View style={styles.feedHeader}>
+    <Row gap="sm" align="start">
       <View
         style={[
           styles.avatar,
@@ -59,7 +60,7 @@ export const PostHeader = memo(function PostHeader({
         <ThemedText style={styles.avatarText}>{initials}</ThemedText>
       </View>
       <View style={styles.bodyContainer}>
-        <View style={styles.authorRow}>
+        <Row align="center" gap="xs">
           <ThemedText type="defaultSemiBold">{authorName}</ThemedText>
           {postAs === 'club' && (
             <View style={[styles.officialBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -68,12 +69,12 @@ export const PostHeader = memo(function PostHeader({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
         <ThemedText style={[styles.metaText, { color: palette.muted }]}>
           {formatDate(createdAt)} · {audienceLabel || audience}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -97,7 +98,7 @@ export const EventDetailsCard = memo(function EventDetailsCard({
         { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border },
       ]}
     >
-      <View style={styles.eventRow}>
+      <Row align="center" gap="sm">
         <Ionicons name="calendar" size={16} color={palette.tint} />
         <ThemedText style={{ color: palette.text }}>
           {new Date(eventDate).toLocaleDateString('en-GB', {
@@ -106,12 +107,12 @@ export const EventDetailsCard = memo(function EventDetailsCard({
             day: 'numeric',
           })}
         </ThemedText>
-      </View>
+      </Row>
       {eventLocation && (
-        <View style={styles.eventRow}>
+        <Row align="center" gap="sm">
           <Ionicons name="location" size={16} color={palette.tint} />
           <ThemedText style={{ color: palette.text }}>{eventLocation}</ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -131,10 +132,12 @@ export const AttachmentChips = memo(function AttachmentChips({
   if (attachments.length === 0) return null;
 
   return (
-    <View style={styles.attachments}>
+    <Row wrap gap="xs">
       {attachments.map((attachment) => (
-        <View
+        <Row
           key={attachment}
+          align="center"
+          gap="xxs"
           style={[
             styles.attachmentChip,
             { backgroundColor: palette.surface, borderColor: palette.border },
@@ -144,20 +147,15 @@ export const AttachmentChips = memo(function AttachmentChips({
           <ThemedText style={[styles.attachmentText, { color: palette.muted }]}>
             {attachment}
           </ThemedText>
-        </View>
+        </Row>
       ))}
-    </View>
+    </Row>
   );
 });
 
 // ─── Styles ─────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  feedHeader: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'flex-start',
-  },
   bodyContainer: {
     flex: 1,
   },
@@ -170,11 +168,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     ...Typography.bodySmallSemiBold,
-  },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
   },
   officialBadge: {
     paddingHorizontal: Spacing.xxs,
@@ -195,20 +188,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: Spacing.xs,
   },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  attachments: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
   attachmentChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,

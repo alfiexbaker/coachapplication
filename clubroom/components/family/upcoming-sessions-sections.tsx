@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { FamilyCalendarEvent } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,15 +98,15 @@ export const SessionCard = memo(function SessionCard({
         <View style={[styles.colorBar, { backgroundColor: session.colorCode }]} />
 
         <View style={styles.sessionContent}>
-          <View style={styles.sessionHeader}>
-            <View style={styles.dateTime}>
+          <Row style={styles.sessionHeader}>
+            <Row style={styles.dateTime}>
               <ThemedText type="defaultSemiBold" style={styles.dateText}>
                 {formatSessionDate(session.start)}
               </ThemedText>
               <ThemedText style={[styles.timeText, { color: palette.muted }]}>
                 {formatTime(session.start)}
               </ThemedText>
-            </View>
+            </Row>
             <View
               style={[
                 styles.statusBadge,
@@ -117,7 +118,7 @@ export const SessionCard = memo(function SessionCard({
                 {statusBadge.label}
               </ThemedText>
             </View>
-          </View>
+          </Row>
 
           <View style={styles.sessionInfo}>
             <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>
@@ -133,23 +134,23 @@ export const SessionCard = memo(function SessionCard({
             )}
           </View>
 
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
+          <Row style={styles.metaRow}>
+            <Row style={styles.metaItem}>
               <View style={[styles.childDot, { backgroundColor: session.colorCode }]} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {session.childName}
               </ThemedText>
-            </View>
+            </Row>
             {session.coachName && (
-              <View style={styles.metaItem}>
+              <Row style={styles.metaItem}>
                 <Ionicons name="person" size={12} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   {session.coachName}
                 </ThemedText>
-              </View>
+              </Row>
             )}
             {session.location && (
-              <View style={styles.metaItem}>
+              <Row style={styles.metaItem}>
                 <Ionicons name="location" size={12} color={palette.muted} />
                 <ThemedText
                   style={[styles.metaText, { color: palette.muted }]}
@@ -157,16 +158,16 @@ export const SessionCard = memo(function SessionCard({
                 >
                   {session.location}
                 </ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
 
           {session.price !== undefined && (
-            <View style={styles.priceRow}>
+            <Row style={styles.priceRow}>
               <ThemedText type="defaultSemiBold" style={styles.priceText}>
                 {'\u00A3'}{session.price.toFixed(2)}
               </ThemedText>
-            </View>
+            </Row>
           )}
         </View>
 
@@ -185,7 +186,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -195,7 +195,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sessionCard: {
-    flexDirection: 'row',
     overflow: 'hidden',
     padding: 0,
   },
@@ -208,19 +207,16 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   sessionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dateTime: {
-    flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.xs,
   },
   dateText: { ...Typography.bodySmall },
   timeText: { ...Typography.caption },
   statusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
@@ -239,12 +235,10 @@ export const styles = StyleSheet.create({
   sessionTitle: { ...Typography.body },
   sessionDescription: { ...Typography.small },
   metaRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
   metaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -255,7 +249,6 @@ export const styles = StyleSheet.create({
   },
   metaText: { ...Typography.caption },
   priceRow: {
-    flexDirection: 'row',
     justifyContent: 'flex-end',
   },
   priceText: { ...Typography.bodySmall },
@@ -264,7 +257,6 @@ export const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   viewAllButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

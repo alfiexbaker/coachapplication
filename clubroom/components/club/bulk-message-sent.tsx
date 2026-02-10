@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Recipient, DeliveryStatus } from './bulk-message';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ export const BulkMessageSent = memo(function BulkMessageSent({
             : palette.muted;
 
       return (
-        <View style={[styles.recipientRow, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.recipientRow, { borderBottomColor: palette.border }]}>
           <View style={[styles.recipientAvatar, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
             <ThemedText style={[styles.recipientInitial, { color: palette.tint }]}>
               {item.name.charAt(0).toUpperCase()}
@@ -56,7 +57,7 @@ export const BulkMessageSent = memo(function BulkMessageSent({
               <ThemedText style={[styles.recipientRole, { color: palette.muted }]}>{item.role}</ThemedText>
             ) : null}
           </View>
-          <View style={styles.statusContainer}>
+          <Row style={styles.statusContainer}>
             <Ionicons
               name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
               size={Components.icon.md}
@@ -65,8 +66,8 @@ export const BulkMessageSent = memo(function BulkMessageSent({
             <ThemedText style={[styles.statusLabel, { color: statusColor }]}>
               {statusInfo.label}
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       );
     },
     [palette],
@@ -147,7 +148,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs / 2,
   },
   recipientRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.xs,
     borderBottomWidth: 1,
@@ -174,7 +174,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   statusContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

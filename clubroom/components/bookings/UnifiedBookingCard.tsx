@@ -30,6 +30,7 @@ import {
   CompactBookingCard,
   DetailedBookingCard,
 } from './unified-booking-sections';
+import { Row } from '@/components/primitives';
 
 const logger = createLogger('UnifiedBookingCard');
 
@@ -114,7 +115,7 @@ export function UnifiedBookingCard({
   return (
     <Clickable onPress={handlePress}>
       <SurfaceCard style={styles.standardCard}>
-        <View style={styles.standardRow}>
+        <Row style={styles.standardRow}>
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
 
           <View style={styles.standardContent}>
@@ -126,28 +127,28 @@ export function UnifiedBookingCard({
             </ThemedText>
 
             {booking.childName && (
-              <View style={styles.childRow}>
+              <Row style={styles.childRow}>
                 <Ionicons name="person" size={14} color={palette.tint} />
                 <ThemedText style={[styles.childText, { color: palette.tint }]}>
                   {booking.childName}
                 </ThemedText>
-              </View>
+              </Row>
             )}
 
-            <View style={styles.dateRow}>
+            <Row style={styles.dateRow}>
               <Ionicons name="calendar-outline" size={14} color={palette.muted} />
               <ThemedText style={[styles.dateText, { color: palette.muted }]}>
                 {day} · {time}
               </ThemedText>
-            </View>
+            </Row>
 
             {booking.locationLabel ? (
-              <View style={styles.locationRow}>
+              <Row style={styles.locationRow}>
                 <Ionicons name="location-outline" size={14} color={palette.tint} />
                 <ThemedText style={[styles.locationText, { color: palette.tint }]} numberOfLines={1}>
                   {booking.locationLabel}
                 </ThemedText>
-              </View>
+              </Row>
             ) : null}
           </View>
 
@@ -159,7 +160,7 @@ export function UnifiedBookingCard({
             </View>
             <Ionicons name="chevron-forward" size={18} color={palette.muted} />
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     </Clickable>
   );
@@ -176,7 +177,6 @@ const styles = StyleSheet.create({
   statusText: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3 },
   standardCard: { padding: Spacing.sm },
   standardRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -185,19 +185,16 @@ const styles = StyleSheet.create({
   standardSubtitle: { ...Typography.bodySmall },
   standardRight: { alignItems: 'flex-end', gap: Spacing.xxs },
   childRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   childText: { ...Typography.smallSemiBold },
   dateRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   dateText: { ...Typography.caption },
   locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

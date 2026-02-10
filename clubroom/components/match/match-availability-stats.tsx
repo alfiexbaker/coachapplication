@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { SELECTED_STATUS_COLOR } from '@/hooks/use-match-detail';
@@ -30,7 +31,7 @@ export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({ mat
   return (
     <SurfaceCard style={styles.card}>
       <ThemedText type="defaultSemiBold" style={styles.title}>Squad Availability</ThemedText>
-      <View style={styles.statsRow}>
+      <Row justify="around">
         {stats.map((s) => (
           <View key={s.label} style={styles.statItem}>
             <View style={[styles.dot, { backgroundColor: s.color }]} />
@@ -38,11 +39,13 @@ export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({ mat
             <ThemedText style={[styles.label, { color: colors.muted }]}>{s.label}</ThemedText>
           </View>
         ))}
-      </View>
+      </Row>
       {match.status === 'SCHEDULED' && availability.available > 0 && (
         <Clickable style={[styles.button, { backgroundColor: colors.tint }]} onPress={onSetLineup}>
-          <Ionicons name="people" size={20} color={colors.onPrimary} />
-          <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>Set Lineup</ThemedText>
+          <Row align="center" justify="center" gap="sm">
+            <Ionicons name="people" size={20} color={colors.onPrimary} />
+            <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>Set Lineup</ThemedText>
+          </Row>
         </Clickable>
       )}
     </SurfaceCard>
@@ -52,9 +55,8 @@ export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({ mat
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   title: { ...Typography.subheading, marginBottom: Spacing.sm },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   statItem: { alignItems: 'center', gap: Spacing.xxs },
   dot: { width: 8, height: 8, borderRadius: Radii.xs },
   label: { ...Typography.caption },
-  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },
+  button: { padding: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },
 });

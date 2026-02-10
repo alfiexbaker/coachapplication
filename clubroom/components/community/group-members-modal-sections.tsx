@@ -8,6 +8,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import type { GroupMember, GroupMemberRole } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Role Helpers ───────────────────────────────────────────────
 
@@ -48,12 +49,12 @@ export const MemberRowItem = memo(function MemberRowItem({
   const colors = getRoleBadgeColor(item.role, palette);
 
   return (
-    <View style={[styles.memberRow, { borderBottomColor: palette.border }]}>
+    <Row style={[styles.memberRow, { borderBottomColor: palette.border }]}>
       <View style={[styles.memberAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name="person" size={18} color={palette.tint} />
       </View>
       <View style={styles.memberInfo}>
-        <View style={styles.memberNameRow}>
+        <Row style={styles.memberNameRow}>
           <ThemedText style={[styles.memberName, { color: palette.text }]} numberOfLines={1}>
             {item.parentName}{isSelf ? ' (You)' : ''}
           </ThemedText>
@@ -62,7 +63,7 @@ export const MemberRowItem = memo(function MemberRowItem({
               {ROLE_LABELS[item.role]}
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <ThemedText style={[styles.memberJoined, { color: palette.muted }]}>
           Joined {new Date(item.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </ThemedText>
@@ -72,7 +73,7 @@ export const MemberRowItem = memo(function MemberRowItem({
           <ThemedText style={[styles.manageButtonText, { color: palette.tint }]}>Manage</ThemedText>
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -80,7 +81,6 @@ export const MemberRowItem = memo(function MemberRowItem({
 
 const styles = StyleSheet.create({
   memberRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
@@ -98,7 +98,6 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   memberNameRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

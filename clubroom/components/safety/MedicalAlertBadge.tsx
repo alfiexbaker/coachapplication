@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -28,8 +29,7 @@ export function MedicalAlertBadge({
   type,
   label,
   onPress,
-  size = 'medium',
-}: MedicalAlertBadgeProps) {
+  size = 'medium' }: MedicalAlertBadgeProps) {
   const { colors: palette } = useTheme();
   const config = getAlertConfig(type, palette);
 
@@ -38,27 +38,26 @@ export function MedicalAlertBadge({
       ...Typography.micro,
       paddingHorizontal: Spacing.xxs,
       paddingVertical: Spacing.micro,
-      iconSize: 10,
-    },
+      iconSize: 10 },
     medium: { ...Typography.caption, paddingHorizontal: Spacing.xs,
       paddingVertical: Spacing.xxs,
       iconSize: 12 },
     large: { ...Typography.bodySmall, paddingHorizontal: Spacing.sm,
       paddingVertical: Spacing.xxs,
-      iconSize: 14 },
-  };
+      iconSize: 14 } };
 
   const sizeConfig = sizeStyles[size];
 
   const content = (
-    <View
+    <Row
+      align="center"
+      gap="xxs"
       style={[
         styles.badge,
         {
           backgroundColor: config.bgColor,
           paddingHorizontal: sizeConfig.paddingHorizontal,
-          paddingVertical: sizeConfig.paddingVertical,
-        },
+          paddingVertical: sizeConfig.paddingVertical },
       ]}
     >
       <Ionicons name={config.icon} size={sizeConfig.iconSize} color={config.color} />
@@ -71,7 +70,7 @@ export function MedicalAlertBadge({
       >
         {label}
       </ThemedText>
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -83,12 +82,6 @@ export function MedicalAlertBadge({
 
 const styles = StyleSheet.create({
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   label: {
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

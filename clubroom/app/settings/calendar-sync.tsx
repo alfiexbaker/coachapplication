@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCalendarSync } from '@/hooks/use-calendar-sync';
@@ -25,30 +26,27 @@ export default function CalendarSyncScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="center" justify="space-between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>Calendar Sync</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.accent} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>Loading settings...</ThemedText>
-        </View>
+        </Row>
+        <LoadingState variant="form" />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="title" style={styles.headerTitle}>Calendar Sync</ThemedText>
         {isSaving ? <ActivityIndicator size="small" color={palette.accent} /> : <View style={{ width: 24 }} />}
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <SettingsSection title="Sync Settings">
@@ -97,7 +95,7 @@ export default function CalendarSyncScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.heading },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   loadingText: { ...Typography.bodySmall },

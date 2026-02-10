@@ -267,7 +267,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.body.fontSize),
   },
   messageFooter: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.xxs,
@@ -289,7 +288,6 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   inputWrapper: {
-    flexDirection: 'row',
     alignItems: 'flex-end',
     borderWidth: 1,
     borderRadius: Radii.lg,

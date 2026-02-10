@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface EventCardProps {
   event: ClubFeedPost;
@@ -32,7 +33,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
       style={[styles.eventCard, { borderColor: palette.border }]}
       onPress={onPress}
     >
-      <View style={styles.eventCardHeader}>
+      <Row style={styles.eventCardHeader}>
         <View style={[styles.eventIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="calendar" size={20} color={palette.tint} />
         </View>
@@ -47,7 +48,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
           )}
         </View>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-      </View>
+      </Row>
 
       {event.body && (
         <ThemedText style={{ ...Typography.small, color: palette.text }} numberOfLines={2}>
@@ -56,12 +57,12 @@ export function EventCard({ event, onPress }: EventCardProps) {
       )}
 
       {event.eventLocation && (
-        <View style={styles.eventLocation}>
+        <Row style={styles.eventLocation}>
           <Ionicons name="location-outline" size={14} color={palette.muted} />
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {event.eventLocation}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </Clickable>
   );
@@ -94,11 +95,11 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
 
   return (
     <SurfaceCard style={styles.eventsCard}>
-      <View style={styles.eventsSectionHeader}>
-        <View style={styles.eventsHeaderLeft}>
+      <Row style={styles.eventsSectionHeader}>
+        <Row style={styles.eventsHeaderLeft}>
           <Ionicons name="calendar" size={20} color={palette.tint} />
           <ThemedText type="defaultSemiBold">Club Events</ThemedText>
-        </View>
+        </Row>
         {isCoach && (
           <Clickable
             style={[styles.addEventButton, { backgroundColor: palette.tint }]}
@@ -108,7 +109,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Add</ThemedText>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {eventPosts.length > 0 ? (
         <View style={styles.eventsList}>
@@ -160,17 +161,14 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   eventsSectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   eventsHeaderLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   addEventButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -186,7 +184,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   eventCardHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -198,12 +195,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   eventLocation: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   viewAllButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

@@ -2,16 +2,18 @@ import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { CreateAcademyStepContent } from '@/components/academy/create-academy-steps';
 import { Spacing, Radii } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useCreateAcademy } from '@/hooks/use-create-academy';
 
 export default function CreateAcademyScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     step, steps, currentStepIndex, loading,
     name, description, city, postcode, email, phone, website, specialties,
@@ -23,20 +25,20 @@ export default function CreateAcademyScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         {/* Header */}
-        <View style={styles.header}>
+        <Row style={styles.header}>
           <Clickable accessibilityLabel="Go back" onPress={goBack} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>Create Academy</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
 
         {/* Progress */}
-        <View style={styles.progressContainer}>
+        <Row style={styles.progressContainer}>
           {steps.map((s, i) => (
             <View key={s} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border }]} />
           ))}
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <CreateAcademyStepContent
@@ -63,8 +65,8 @@ export default function CreateAcademyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
-  progressContainer: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.xs, paddingBottom: Spacing.md },
+  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  progressContainer: { justifyContent: 'center', gap: Spacing.xs, paddingBottom: Spacing.md },
   progressDot: { width: 8, height: 8, borderRadius: Radii.xs },
   scrollContent: { padding: Spacing.lg, paddingTop: 0 },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },

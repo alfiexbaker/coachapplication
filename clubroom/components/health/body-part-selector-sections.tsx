@@ -19,6 +19,7 @@ import type { BodyPart, BodyPartCategory } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -79,28 +80,28 @@ export const BodyDiagram = memo(function BodyDiagram({
     <View style={[styles.bodyDiagram, { backgroundColor: palette.surface }]}>
       <View style={styles.bodyFigure}>
         <View style={[styles.head, getPartStyle('HEAD', selectedPart, palette)]} />
-        <View style={styles.torsoContainer}>
+        <Row style={styles.torsoContainer}>
           <View style={[styles.shoulder, styles.leftShoulder, getPartStyle('LEFT_SHOULDER', selectedPart, palette)]} />
           <View style={[styles.torso, getPartStyle('CHEST', selectedPart, palette)]} />
           <View style={[styles.shoulder, styles.rightShoulder, getPartStyle('RIGHT_SHOULDER', selectedPart, palette)]} />
-        </View>
-        <View style={styles.armsContainer}>
+        </Row>
+        <Row style={styles.armsContainer}>
           <View style={[styles.arm, getPartStyle('LEFT_ARM', selectedPart, palette)]} />
           <View style={[styles.core, getPartStyle('ABDOMEN', selectedPart, palette)]} />
           <View style={[styles.arm, getPartStyle('RIGHT_ARM', selectedPart, palette)]} />
-        </View>
-        <View style={styles.legsContainer}>
+        </Row>
+        <Row style={styles.legsContainer}>
           <View style={[styles.thigh, getPartStyle('LEFT_THIGH', selectedPart, palette)]} />
           <View style={[styles.thigh, getPartStyle('RIGHT_THIGH', selectedPart, palette)]} />
-        </View>
-        <View style={styles.lowerLegsContainer}>
+        </Row>
+        <Row style={styles.lowerLegsContainer}>
           <View style={[styles.calf, getPartStyle('LEFT_CALF', selectedPart, palette)]} />
           <View style={[styles.calf, getPartStyle('RIGHT_CALF', selectedPart, palette)]} />
-        </View>
-        <View style={styles.feetContainer}>
+        </Row>
+        <Row style={styles.feetContainer}>
           <View style={[styles.foot, getPartStyle('LEFT_FOOT', selectedPart, palette)]} />
           <View style={[styles.foot, getPartStyle('RIGHT_FOOT', selectedPart, palette)]} />
-        </View>
+        </Row>
       </View>
       {selectedPart && (
         <View style={[styles.selectedLabel, { backgroundColor: palette.tint }]}>
@@ -147,7 +148,7 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
             },
           ]}
         >
-          <View style={styles.categoryLeft}>
+          <Row style={styles.categoryLeft}>
             <Ionicons
               name={category.icon as keyof typeof Ionicons.glyphMap}
               size={20}
@@ -161,7 +162,7 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
             >
               {category.label}
             </ThemedText>
-          </View>
+          </Row>
           <Ionicons
             name={isExpanded ? 'chevron-up' : 'chevron-down'}
             size={20}
@@ -232,7 +233,6 @@ export const styles = StyleSheet.create({
     marginBottom: Spacing.xxs,
   },
   torsoContainer: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'center',
     width: '100%',
@@ -254,7 +254,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   armsContainer: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'center',
     width: '100%',
@@ -271,7 +270,6 @@ export const styles = StyleSheet.create({
     marginHorizontal: Spacing.micro,
   },
   legsContainer: {
-    flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.xxs,
@@ -282,7 +280,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   lowerLegsContainer: {
-    flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.micro,
@@ -293,7 +290,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   feetContainer: {
-    flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
     marginTop: Spacing.micro,
@@ -327,7 +323,6 @@ export const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   categoryHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
@@ -335,7 +330,6 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
   },
   categoryLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -344,7 +338,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   partsGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     padding: Spacing.sm,
     gap: Spacing.xs,
@@ -353,7 +346,6 @@ export const styles = StyleSheet.create({
     borderBottomRightRadius: Radii.md,
   },
   partItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

@@ -11,6 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { ShareButton } from './ShareButton';
@@ -71,7 +72,7 @@ export function ReferralCodeCard({
   return (
     <SurfaceCard style={styles.card}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="md">
         <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="gift-outline" size={24} color={palette.tint} />
         </View>
@@ -83,7 +84,7 @@ export function ReferralCodeCard({
             Get {creditText} for each friend who signs up
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <CodeDisplay code={referralCode.code} copied={copied} onCopy={handleCopy} palette={palette} />
 
@@ -104,11 +105,6 @@ export function ReferralCodeCard({
 const styles = StyleSheet.create({
   card: {
     padding: Components.card.padding,
-    gap: Spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.md,
   },
   iconCircle: {

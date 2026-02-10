@@ -14,6 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { callPhone, sendEmail, openMessage } from '@/utils/contact-actions';
 import type { RosterEntry } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface AthleteContactCardProps {
   athlete: RosterEntry;
@@ -40,7 +41,7 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
     <SurfaceCard style={styles.card}>
       <ThemedText type="defaultSemiBold">Parent / Guardian</ThemedText>
 
-      <View style={styles.contactRow}>
+      <Row style={styles.contactRow}>
         <View style={styles.contactInfo}>
           <ThemedText type="defaultSemiBold">{athlete.parentName}</ThemedText>
           <ThemedText style={[styles.detail, { color: colors.muted }]}>
@@ -78,7 +79,7 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
             <Ionicons name="mail-outline" size={18} color={colors.tint} />
           </Clickable>
         </Row>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -90,7 +91,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   contactRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },

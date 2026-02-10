@@ -14,6 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ export const InviteCodeSection = memo(function InviteCodeSection({
     <View style={styles.inviteSection}>
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>School Invite Code</ThemedText>
-        <View style={styles.inviteRow}>
+        <Row style={styles.inviteRow}>
           <TextInput
             value={inviteCode}
             onChangeText={onChangeCode}
@@ -93,7 +94,7 @@ export const InviteCodeSection = memo(function InviteCodeSection({
               {inviteValidated ? 'Verified' : 'Verify'}
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
         {inviteError ? (
           <ThemedText style={[styles.helper, { color: palette.error }]}>{inviteError}</ThemedText>
         ) : inviteValidated && validatedSchoolName ? (
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
-  inviteRow: { flexDirection: 'row', gap: Spacing.xs },
+  inviteRow: { gap: Spacing.xs },
   inviteInput: {
     flex: 1,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',

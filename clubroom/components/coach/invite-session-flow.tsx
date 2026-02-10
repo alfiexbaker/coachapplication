@@ -13,6 +13,7 @@ import { useInviteSessionFlow } from '@/hooks/use-invite-session-flow';
 import { InviteAthleteModal } from './invite-athlete-modal';
 import type { Athlete } from '@/hooks/use-invite-athletes';
 import { ChoiceStep, SessionListStep, ConfirmStep } from './invite-session-steps';
+import { Row } from '@/components/primitives';
 
 interface InviteSessionFlowProps {
   visible: boolean;
@@ -43,7 +44,7 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
       <View style={styles.overlay}>
         <View style={[styles.modal, { backgroundColor: palette.surface }]}>
           {/* Header */}
-          <View style={styles.header}>
+          <Row style={styles.header}>
             {flow.step !== 'choice' && (
               <Clickable accessibilityLabel="Go back" onPress={flow.handleBack} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -57,7 +58,7 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
             <Clickable accessibilityLabel="Close" onPress={flow.handleClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           <ScrollView contentContainerStyle={styles.content}>
             {flow.step === 'choice' && <ChoiceStep onSelect={flow.handleChoiceSelect} />}
@@ -79,7 +80,7 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modal: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, maxHeight: '90%', minHeight: '50%' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backButton: { marginRight: Spacing.sm },
   headerTitle: { flex: 1, textAlign: 'center' },
   content: { padding: Spacing.lg, paddingTop: 0 },

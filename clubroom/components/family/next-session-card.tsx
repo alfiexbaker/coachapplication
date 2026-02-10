@@ -9,6 +9,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { FamilyCalendarEvent } from '@/services/family';
+import { Row } from '@/components/primitives';
 
 interface NextSessionCardProps {
   session: FamilyCalendarEvent;
@@ -33,10 +34,10 @@ export const NextSessionCard = memo(function NextSessionCard({
   return (
     <Clickable onPress={handlePress}>
       <SurfaceCard style={[styles.card, { borderColor: session.colorCode, borderWidth: 2 }]}>
-        <View style={[styles.badge, { backgroundColor: withAlpha(session.colorCode, 0.09) }]}>
+        <Row style={[styles.badge, { backgroundColor: withAlpha(session.colorCode, 0.09) }]}>
           <Ionicons name="time" size={16} color={session.colorCode} />
           <ThemedText style={[Typography.caption, { color: session.colorCode }]}>Next Up</ThemedText>
-        </View>
+        </Row>
         <ThemedText type="defaultSemiBold" style={Typography.subheading}>{session.title}</ThemedText>
         <Row gap="md" style={{ flexWrap: 'wrap' }}>
           <Row gap="xxs" align="center">
@@ -59,5 +60,5 @@ export const NextSessionCard = memo(function NextSessionCard({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, alignSelf: 'flex-start' },
+  badge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, alignSelf: 'flex-start' },
 });

@@ -14,11 +14,12 @@ import { SettingsInvitesSection } from '@/components/club/settings-invites-secti
 import { SettingsSquadsSection } from '@/components/club/settings-squads-section';
 import { SettingsMembersSection } from '@/components/club/settings-members-section';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
 
 export default function ClubSettingsScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     club, clubId, squads, members, inviteCodes, loading,
     activeSection, setActiveSection,
@@ -71,8 +72,10 @@ export default function ClubSettingsScreen() {
               { borderColor: activeSection === section.key ? colors.tint : colors.border }].filter(Boolean) as ViewStyle[]}
             onPress={() => setActiveSection(section.key)}
           >
-            <Ionicons name={section.icon as keyof typeof Ionicons.glyphMap} size={18} color={activeSection === section.key ? colors.tint : colors.muted} />
-            <ThemedText style={[Typography.smallSemiBold, { color: activeSection === section.key ? colors.tint : colors.muted }]}>{section.label}</ThemedText>
+            <Row align="center" gap="xs">
+              <Ionicons name={section.icon as keyof typeof Ionicons.glyphMap} size={18} color={activeSection === section.key ? colors.tint : colors.muted} />
+              <ThemedText style={[Typography.smallSemiBold, { color: activeSection === section.key ? colors.tint : colors.muted }]}>{section.label}</ThemedText>
+            </Row>
           </Clickable>
         ))}
       </ScrollView>
@@ -97,8 +100,10 @@ export default function ClubSettingsScreen() {
               <ThemedText type="defaultSemiBold" style={[Typography.heading, { color: colors.error }]}>Danger Zone</ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>These actions are irreversible</ThemedText>
               <Clickable style={[styles.dangerBtn, { borderColor: colors.error }]} onPress={handleDeleteClub}>
-                <Ionicons name="trash-outline" size={18} color={colors.error} />
-                <ThemedText style={{ color: colors.error, fontWeight: '600' }}>Delete Club</ThemedText>
+                <Row align="center" justify="center" gap="sm">
+                  <Ionicons name="trash-outline" size={18} color={colors.error} />
+                  <ThemedText style={{ color: colors.error, fontWeight: '600' }}>Delete Club</ThemedText>
+                </Row>
               </Clickable>
             </SurfaceCard>
           </Animated.View>
@@ -113,8 +118,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   tabsContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.sm },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.full, borderWidth: 1 },
+  tab: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.full, borderWidth: 1 },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
   dangerCard: { gap: Spacing.md },
-  dangerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
+  dangerBtn: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
 });

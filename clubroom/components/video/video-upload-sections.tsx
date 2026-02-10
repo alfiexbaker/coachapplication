@@ -13,6 +13,7 @@ import Animated, { FadeIn, useAnimatedStyle, type SharedValue } from 'react-nati
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -56,7 +57,7 @@ export const VideoPickerCards = memo(function VideoPickerCards({
   palette,
 }: VideoPickerCardsProps) {
   return (
-    <View style={styles.pickersRow}>
+    <Row gap="md">
       <Clickable
         onPress={onPickVideo}
         style={[styles.pickerCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
@@ -78,7 +79,7 @@ export const VideoPickerCards = memo(function VideoPickerCards({
         <ThemedText type="defaultSemiBold">Record Video</ThemedText>
         <ThemedText style={[styles.pickerHint, { color: palette.muted }]}>Use camera</ThemedText>
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -130,20 +131,20 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
             {video.name}
           </ThemedText>
-          <View style={styles.videoMeta}>
-            <View style={styles.metaItem}>
+          <Row gap="md">
+            <Row align="center" gap="xxs">
               <Ionicons name="time-outline" size={14} color={palette.muted} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {formatDuration(video.duration)}
               </ThemedText>
-            </View>
-            <View style={styles.metaItem}>
+            </Row>
+            <Row align="center" gap="xxs">
               <Ionicons name="document-outline" size={14} color={palette.muted} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {formatFileSize(video.fileSize)}
               </ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
         </View>
 
         {/* Upload Progress */}
@@ -194,10 +195,10 @@ export const RequirementsList = memo(function RequirementsList({
       <ThemedText style={[styles.requirementsTitle, { color: palette.muted }]}>Requirements</ThemedText>
       <View style={styles.requirementsList}>
         {items.map((text) => (
-          <View key={text} style={styles.requirementItem}>
+          <Row key={text} align="center" gap="xs">
             <Ionicons name="checkmark-circle" size={14} color={palette.success} />
             <ThemedText style={[styles.requirementText, { color: palette.muted }]}>{text}</ThemedText>
-          </View>
+          </Row>
         ))}
       </View>
     </View>
@@ -207,10 +208,6 @@ export const RequirementsList = memo(function RequirementsList({
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  pickersRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
   pickerCard: {
     flex: 1,
     alignItems: 'center',
@@ -262,15 +259,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.xs,
   },
-  videoMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
   metaText: { ...Typography.caption },
   progressSection: {
     paddingHorizontal: Spacing.md,
@@ -302,11 +290,6 @@ const styles = StyleSheet.create({
   },
   requirementsTitle: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   requirementsList: {
-    gap: Spacing.xs,
-  },
-  requirementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.xs,
   },
   requirementText: { ...Typography.small },

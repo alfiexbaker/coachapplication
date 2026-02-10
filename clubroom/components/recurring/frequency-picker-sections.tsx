@@ -12,6 +12,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { RecurrenceFrequency } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -97,7 +98,7 @@ export const FrequencyCardOption = memo(function FrequencyCardOption({
       </View>
 
       <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
+        <Row align="center" gap="xs">
           <Ionicons
             name={option.icon}
             size={20}
@@ -109,13 +110,13 @@ export const FrequencyCardOption = memo(function FrequencyCardOption({
           >
             {option.label}
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.cardDescription, { color: palette.muted }]}>
           {option.description}
         </ThemedText>
 
         {monthlyEstimate !== null && (
-          <View style={styles.estimateRow}>
+          <Row align="center" gap="xxs" style={styles.estimateRow}>
             <ThemedText style={[styles.estimateLabel, { color: palette.muted }]}>
               Est. monthly:
             </ThemedText>
@@ -127,7 +128,7 @@ export const FrequencyCardOption = memo(function FrequencyCardOption({
             >
               ${monthlyEstimate}
             </ThemedText>
-          </View>
+          </Row>
         )}
       </View>
 
@@ -230,16 +231,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   cardContent: { flex: 1, gap: Spacing.micro },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   cardDescription: { ...Typography.small },
   estimateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     marginTop: Spacing.xxs,
   },
   estimateLabel: { ...Typography.caption },

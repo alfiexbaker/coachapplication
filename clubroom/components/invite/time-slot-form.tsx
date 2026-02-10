@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   addSlotButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

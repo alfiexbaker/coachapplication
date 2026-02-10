@@ -15,11 +15,12 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCreateSquad, AGE_GROUPS, SQUAD_LEVELS, SKILL_TAGS } from '@/hooks/use-create-squad';
 
 export default function CreateSquadScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     squadName, selectedAgeGroup, selectedLevel, meetLocation,
     selectedTags, isSubmitting, isValid,
@@ -54,7 +55,7 @@ export default function CreateSquadScreen() {
           {/* Age Group */}
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold">Age Group *</ThemedText>
-            <View style={styles.optionsGrid}>
+            <Row style={styles.optionsGrid}>
               {AGE_GROUPS.map((option) => (
                 <Clickable
                   key={option.label}
@@ -69,7 +70,7 @@ export default function CreateSquadScreen() {
                   </ThemedText>
                 </Clickable>
               ))}
-            </View>
+            </Row>
           </View>
 
           {/* Level */}
@@ -111,7 +112,7 @@ export default function CreateSquadScreen() {
           {/* Focus Tags */}
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold">Focus Areas (max 3)</ThemedText>
-            <View style={styles.optionsGrid}>
+            <Row style={styles.optionsGrid}>
               {SKILL_TAGS.map((tag) => (
                 <Clickable
                   key={tag}
@@ -124,7 +125,7 @@ export default function CreateSquadScreen() {
                   <ThemedText style={[Typography.bodySmallSemiBold, { color: selectedTags.includes(tag) ? colors.tint : colors.text }]}>{tag}</ThemedText>
                 </Clickable>
               ))}
-            </View>
+            </Row>
           </View>
 
           {/* Preview */}
@@ -159,14 +160,16 @@ export default function CreateSquadScreen() {
             onPress={handleCreate}
             disabled={!isValid || isSubmitting}
           >
-            {isSubmitting ? (
-              <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Creating...</ThemedText>
-            ) : (
-              <Row gap="sm" align="center" justify="center">
-                <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Create Squad</ThemedText>
-              </Row>
-            )}
+            <Row align="center" justify="center" gap="sm">
+              {isSubmitting ? (
+                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Creating...</ThemedText>
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Create Squad</ThemedText>
+                </>
+              )}
+            </Row>
           </Clickable>
         </View>
       </KeyboardAvoidingView>
@@ -180,7 +183,7 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: 100 },
   section: { gap: Spacing.sm },
   input: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading },
-  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  optionsGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   optionChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.full, borderWidth: 1 },
   levelOptions: { gap: Spacing.sm },
   levelOption: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
@@ -190,5 +193,5 @@ const styles = StyleSheet.create({
   previewIcon: { width: 48, height: 48, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   previewTag: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.lg, borderTopWidth: 1 },
-  createButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  createButton: { paddingVertical: Spacing.md, borderRadius: Radii.lg },
 });

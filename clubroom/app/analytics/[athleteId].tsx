@@ -5,7 +5,7 @@
  * stats, performance summary, skills progress, and goals.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -19,26 +19,18 @@ import { AthleteStatCard } from '@/components/analytics/athlete-stat-card';
 import { AthleteSkillBar } from '@/components/analytics/athlete-skill-bar';
 import { AthleteGoalCard } from '@/components/analytics/athlete-goal-card';
 import { AnalyticsPerformanceCard } from '@/components/analytics/analytics-performance-card';
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ok } from '@/types/result';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useAthleteAnalytics, ANALYTICS_ACCENT_COLOR, PERIOD_OPTIONS } from '@/hooks/use-athlete-analytics';
 
 export default function AthleteAnalyticsScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { athleteId, analytics, loading, period, setPeriod, handleCompleteMilestone, handleShare } = useAthleteAnalytics();
 
-  if (loading || !analytics) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <Row gap="md" align="center" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
-        </Row>
-      </SafeAreaView>
-    );
-  }
+  if (loading || !analytics) return <LoadingState variant="detail" />;
+  if (!analytics) return <EmptyState icon="analytics-outline" title="No analytics" message="Analytics will appear after sessions" />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -64,13 +56,13 @@ export default function AthleteAnalyticsScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.statsGrid}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={false} onRefresh={() => {}} />}>
+        <Row style={styles.statsGrid}>
           <AthleteStatCard icon="fitness-outline" label="Sessions" value={analytics.sessionsThisPeriod} color={colors.tint} index={0} />
           <AthleteStatCard icon="star-outline" label="Avg Rating" value={analytics.averageSessionRating.toFixed(1)} suffix="/5" color={colors.rating} index={1} />
           <AthleteStatCard icon="calendar-outline" label="Attendance" value={analytics.attendanceRate} suffix="%" color={colors.success} index={2} />
           <AthleteStatCard icon="trending-up-outline" label="Improvement" value={`+${analytics.improvementRate.toFixed(1)}`} suffix="%" color={ANALYTICS_ACCENT_COLOR} index={3} />
-        </View>
+        </Row>
 
         <AnalyticsPerformanceCard analytics={analytics} />
 
@@ -106,10 +98,10 @@ export default function AthleteAnalyticsScreen() {
           <View style={styles.section}>
             <Row align="center" justify="space-between" style={{ marginBottom: Spacing.md }}>
               <ThemedText type="subtitle">Completed Goals</ThemedText>
-              <View style={[styles.completedBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+              <Row style={[styles.completedBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={14} color={colors.success} />
                 <ThemedText style={[Typography.caption, { color: colors.success }]}>{analytics.completedGoals.length}</ThemedText>
-              </View>
+              </Row>
             </Row>
             {analytics.completedGoals.slice(0, 1).map((goal) => (
               <SurfaceCard key={goal.id} style={{ padding: Spacing.md }}>
@@ -139,7 +131,7 @@ const styles = StyleSheet.create({
   periodsContainer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.sm },
   periodChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.full },
   content: { padding: Spacing.lg, paddingTop: 0 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
+  statsGrid: { flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
   section: { marginBottom: Spacing.lg },
-  completedBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  completedBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
 });

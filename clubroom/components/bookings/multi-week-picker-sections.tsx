@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
 import type { WeekRow } from './multi-week-picker';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -77,7 +78,7 @@ export const WeekRowItem = memo(function WeekRowItem({
         },
       ]}
     >
-      <View style={styles.weekRowInner}>
+      <Row style={styles.weekRowInner}>
         {/* Left: Date info */}
         <View style={styles.dateColumn}>
           <ThemedText
@@ -95,7 +96,7 @@ export const WeekRowItem = memo(function WeekRowItem({
 
         {/* Middle: Time + Location */}
         <View style={styles.detailColumn}>
-          <View style={styles.timeRow}>
+          <Row style={styles.timeRow}>
             <Ionicons name="time-outline" size={14} color={palette.muted} />
             <ThemedText
               style={[
@@ -105,9 +106,9 @@ export const WeekRowItem = memo(function WeekRowItem({
             >
               {formatTimeDisplay(week.startTime)} - {formatTimeDisplay(week.endTime)}
             </ThemedText>
-          </View>
+          </Row>
           {week.location ? (
-            <View style={styles.locationRow}>
+            <Row style={styles.locationRow}>
               <Ionicons name="location-outline" size={14} color={palette.tint} />
               <ThemedText
                 style={[Typography.small, { color: palette.tint }]}
@@ -115,7 +116,7 @@ export const WeekRowItem = memo(function WeekRowItem({
               >
                 {week.location}
               </ThemedText>
-            </View>
+            </Row>
           ) : null}
           {!week.available && week.unavailableReason ? (
             <ThemedText style={[Typography.small, { color: palette.error }]}>
@@ -142,7 +143,7 @@ export const WeekRowItem = memo(function WeekRowItem({
             />
           )}
         </View>
-      </View>
+      </Row>
     </Chip>
   );
 });
@@ -154,7 +155,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   weekRowInner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     width: '100%',
@@ -168,12 +168,10 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   timeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

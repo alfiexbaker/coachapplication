@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
@@ -109,7 +110,8 @@ export function PromoCodeInput({
 
   return (
     <View style={styles.container}>
-      <View
+      <Row
+        align="center"
         style={[styles.inputContainer, { backgroundColor: palette.surface, borderColor: getBorderColor() }]}
       >
         <Ionicons
@@ -141,7 +143,7 @@ export function PromoCodeInput({
         {isLoading && (
           <ActivityIndicator size="small" color={palette.tint} style={styles.clearButton} />
         )}
-      </View>
+      </Row>
 
       <ValidationMessage
         isValid={isValid}
@@ -172,8 +174,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     paddingHorizontal: Spacing.md,

@@ -16,6 +16,7 @@ import {
   suggestedGoalsForAge,
 } from './goal-editor-helpers';
 import { ProgressSection, MilestonesSection, SuggestionsSection } from './goal-editor-sections';
+import { Row } from '@/components/primitives';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -87,19 +88,19 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
         />
 
         <ThemedText style={[styles.label, { color: palette.foreground }]}>Set By</ThemedText>
-        <View style={styles.roleRow}>
+        <Row style={styles.roleRow}>
           {SET_BY_OPTIONS.map((opt) => {
             const isActive = setBy === opt.value;
             return (
               <Clickable key={opt.value} onPress={() => setSetBy(opt.value)} accessibilityLabel={`Set by ${opt.label}`}>
-                <View style={[styles.roleChip, { backgroundColor: isActive ? palette.tint : palette.surfaceSecondary, borderColor: isActive ? palette.tint : palette.border }]}>
+                <Row style={[styles.roleChip, { backgroundColor: isActive ? palette.tint : palette.surfaceSecondary, borderColor: isActive ? palette.tint : palette.border }]}>
                   <Ionicons name={opt.icon} size={Components.icon.sm} color={isActive ? palette.surface : palette.muted} />
                   <ThemedText style={[styles.roleLabel, { color: isActive ? palette.surface : palette.foreground }]}>{opt.label}</ThemedText>
-                </View>
+                </Row>
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </SurfaceCard>
 
       <ProgressSection progress={progress} onProgressChange={setProgress} />
@@ -133,8 +134,8 @@ const styles = StyleSheet.create({
   label: { ...Typography.bodySemiBold },
   input: { height: Components.input.height, borderRadius: Radii.md, borderWidth: 1, paddingHorizontal: Spacing.sm, ...Typography.body },
   multilineInput: { height: 88, paddingVertical: Spacing.sm },
-  roleRow: { flexDirection: 'row', gap: Spacing.xs },
-  roleChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1, gap: Spacing.xs / 2 },
+  roleRow: { gap: Spacing.xs },
+  roleChip: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1, gap: Spacing.xs / 2 },
   roleLabel: { ...Typography.small },
   saveButton: { height: Components.button.height, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
   saveText: { ...Typography.bodySemiBold },

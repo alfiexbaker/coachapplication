@@ -14,8 +14,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ReferralCodeCard, ReferralStats, ReferralHistory } from '@/components/referrals';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useReferrals } from '@/hooks/use-referrals';
@@ -34,20 +36,20 @@ export default function ReferralsDashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row align="center" justify="space-between" style={styles.header}>
+        <Row gap="md" align="center">
           <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
           <ThemedText type="title" style={styles.headerTitle}>Referrals</ThemedText>
-        </View>
+        </Row>
         <Clickable onPress={c.handleInvitePress} style={[styles.inviteButton, { backgroundColor: palette.tint }]}>
           <Ionicons name="share-social-outline" size={20} color={palette.onPrimary} />
         </Clickable>
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}>
         {c.loading ? (
-          <View style={styles.loadingContainer}><ThemedText style={{ color: palette.muted }}>Loading...</ThemedText></View>
+          <LoadingState variant="card" />
         ) : (
           <>
             <Animated.View entering={FadeInDown.delay(100).springify()}>
@@ -80,7 +82,7 @@ export default function ReferralsDashboardScreen() {
                 <ThemedText type="subtitle" style={styles.sectionTitle}>How It Works</ThemedText>
                 <View style={styles.stepsContainer}>
                   {STEPS.map((step, i) => (
-                    <View key={step.number} style={styles.stepItem}>
+                    <Row key={step.number} gap="md" style={styles.stepItem}>
                       <View style={styles.stepLeft}>
                         <View style={[styles.stepNumber, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                           <ThemedText style={[styles.stepNumberText, { color: palette.tint }]}>{step.number}</ThemedText>
@@ -91,7 +93,7 @@ export default function ReferralsDashboardScreen() {
                         <ThemedText type="defaultSemiBold" style={styles.stepTitle}>{step.title}</ThemedText>
                         <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>{step.description}</ThemedText>
                       </View>
-                    </View>
+                    </Row>
                   ))}
                 </View>
               </SurfaceCard>
@@ -104,8 +106,10 @@ export default function ReferralsDashboardScreen() {
             {c.referrals.length > 5 && (
               <Animated.View entering={FadeInDown.delay(350).springify()}>
                 <Clickable style={styles.viewAllLink} onPress={c.handleViewAll}>
-                  <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All Referrals</ThemedText>
-                  <Ionicons name="chevron-forward" size={18} color={palette.tint} />
+                  <Row align="center" justify="center" gap="xxs">
+                    <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All Referrals</ThemedText>
+                    <Ionicons name="chevron-forward" size={18} color={palette.tint} />
+                  </Row>
                 </Clickable>
               </Animated.View>
             )}
@@ -125,8 +129,8 @@ export default function ReferralsDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  headerLeft: {},
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   inviteButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.md },
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
   howItWorksCard: { padding: Spacing.lg, gap: Spacing.md },
   sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   stepsContainer: { gap: 0 },
-  stepItem: { flexDirection: 'row', gap: Spacing.md },
+  stepItem: {},
   stepLeft: { alignItems: 'center', width: 32 },
   stepNumber: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   stepNumberText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
@@ -146,7 +150,7 @@ const styles = StyleSheet.create({
   stepContent: { flex: 1, paddingBottom: Spacing.md, gap: Spacing.micro },
   stepTitle: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   stepDescription: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
-  viewAllLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm },
+  viewAllLink: { paddingVertical: Spacing.sm },
   viewAllText: { ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize) },
-  ctaButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, marginTop: Spacing.sm },
+  ctaButton: { marginTop: Spacing.sm },
 });

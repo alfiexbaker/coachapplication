@@ -16,6 +16,7 @@ import { useDayEditor, SHEET_MAX_HEIGHT } from '@/hooks/use-day-editor';
 import { DayEditorExistingBlocks } from '@/components/availability/day-editor-existing-blocks';
 import { DayEditorTimeSection } from '@/components/availability/day-editor-time-section';
 import { DayEditorVenueSection } from '@/components/availability/day-editor-venue-section';
+import { Row } from '@/components/primitives';
 
 export type DayEditorScope = 'recurring' | 'just-this-date' | 'next-n-weeks';
 
@@ -73,14 +74,14 @@ export function DayEditorSheet({
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} bounces={false}>
             {/* Header */}
-            <View style={styles.headerRow}>
+            <Row style={styles.headerRow}>
               <ThemedText style={[styles.headerTitle, { color: palette.text }]}>
                 {ed.isNewTimeBlock ? `${ed.dayName} \u2014 New Time Block` : ed.dayName}
               </ThemedText>
               <Clickable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Close">
                 <Ionicons name="close" size={22} color={palette.muted} />
               </Clickable>
-            </View>
+            </Row>
 
             {/* Existing Blocks */}
             {existingTemplatesForDay && existingTemplatesForDay.length > 0 && (
@@ -88,7 +89,7 @@ export function DayEditorSheet({
             )}
 
             {/* Scope Selector */}
-            <View style={styles.scopeRow}>
+            <Row style={styles.scopeRow}>
               <Clickable onPress={() => ed.handleScopeChange('recurring')} accessibilityLabel={`Every ${ed.dayName}`} style={[styles.scopePill, { backgroundColor: ed.scope === 'recurring' ? withAlpha(palette.tint, 0.12) : palette.background, borderColor: ed.scope === 'recurring' ? palette.tint : palette.border }]}>
                 <ThemedText style={[styles.scopeText, { color: ed.scope === 'recurring' ? palette.tint : palette.muted }]}>Every {ed.dayName}</ThemedText>
               </Clickable>
@@ -97,7 +98,7 @@ export function DayEditorSheet({
                   <ThemedText style={[styles.scopeText, { color: ed.scope === 'just-this-date' ? palette.tint : palette.muted }]}>This {ed.dayName}</ThemedText>
                 </Clickable>
               )}
-            </View>
+            </Row>
 
             {/* Time Section */}
             <DayEditorTimeSection startTime={ed.startTime} endTime={ed.endTime} isValid={ed.isValid} durationLabel={ed.durationLabel} overlapWarning={ed.overlapWarning} onStartTimeChange={ed.handleStartTimeChange} onEndTimeChange={ed.setEndTime} />
@@ -139,14 +140,14 @@ const styles = StyleSheet.create({
   handleArea: { alignItems: 'center', paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
   handle: { width: 36, height: 4, borderRadius: Radii.pill },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl + 34, gap: Spacing.md },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { ...Typography.title },
   closeBtn: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  scopeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  scopeRow: { flexWrap: 'wrap', gap: Spacing.xs },
   scopePill: { paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   scopeText: { ...Typography.smallSemiBold },
   saveBtn: { minHeight: Components.button.height, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
   saveBtnText: { ...Typography.bodySemiBold },
-  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, minHeight: 44 },
+  deleteBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, minHeight: 44 },
   deleteBtnText: { ...Typography.bodySemiBold },
 });

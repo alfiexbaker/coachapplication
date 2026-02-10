@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -76,13 +77,13 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
 
   return (
     <SurfaceCard style={styles.selectorCard}>
-      <View style={styles.selectorHeader}>
+      <Row style={styles.selectorHeader}>
         <Ionicons name="football" size={20} color={palette.tint} />
         <ThemedText type="defaultSemiBold">Select Athletes</ThemedText>
-      </View>
+      </Row>
 
       {athletes.length > 1 && (
-        <View style={styles.quickActions}>
+        <Row style={styles.quickActions}>
           <Clickable
             onPress={selectAll}
             style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
@@ -96,7 +97,7 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
           >
             <ThemedText style={{ ...Typography.caption, color: palette.text }}>Clear</ThemedText>
           </Clickable>
-        </View>
+        </Row>
       )}
 
       <View style={styles.athleteList}>
@@ -136,12 +137,12 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
       </View>
 
       {selectedAthleteIds.length > 0 && (
-        <View style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <Row style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
           <ThemedText style={{ color: palette.tint, ...Typography.small }}>
             {selectedAthleteIds.length} athlete{selectedAthleteIds.length !== 1 ? 's' : ''} selected
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -153,12 +154,12 @@ export const InlineAthleteSelector = memo(InlineAthleteSelectorInner);
 
 const styles = StyleSheet.create({
   selectorCard: { gap: Spacing.md },
-  selectorHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  selectionSummary: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
-  quickActions: { flexDirection: 'row', gap: Spacing.xs },
-  quickActionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md },
+  selectorHeader: { alignItems: 'center', gap: Spacing.sm },
+  selectionSummary: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
+  quickActions: { gap: Spacing.xs },
+  quickActionButton: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md },
   athleteList: { gap: Spacing.xs },
-  athleteRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  athleteRow: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   athleteAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   checkbox: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

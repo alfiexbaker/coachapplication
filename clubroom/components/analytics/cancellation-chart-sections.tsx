@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { CancellationReason } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -53,8 +54,8 @@ export const ReasonsBreakdown = memo(function ReasonsBreakdown({
       </ThemedText>
       <View style={styles.reasonsList}>
         {byReason.map((reason) => (
-          <View key={reason.reason} style={styles.reasonRow}>
-            <View style={styles.reasonInfo}>
+          <Row key={reason.reason} style={styles.reasonRow}>
+            <Row style={styles.reasonInfo}>
               <Ionicons
                 name={REASON_ICONS[reason.reason]}
                 size={16}
@@ -64,7 +65,7 @@ export const ReasonsBreakdown = memo(function ReasonsBreakdown({
               <ThemedText style={styles.reasonLabel}>
                 {REASON_LABELS[reason.reason]}
               </ThemedText>
-            </View>
+            </Row>
             <View style={[styles.reasonBarContainer, { backgroundColor: palette.border }]}>
               <View
                 style={[
@@ -80,7 +81,7 @@ export const ReasonsBreakdown = memo(function ReasonsBreakdown({
             <ThemedText style={[styles.reasonPercent, { color: palette.muted }]}>
               ({reason.percentage}%)
             </ThemedText>
-          </View>
+          </Row>
         ))}
       </View>
     </View>
@@ -105,7 +106,7 @@ export const DayOfWeekBreakdown = memo(function DayOfWeekBreakdown({
       <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
         By Day of Week
       </ThemedText>
-      <View style={styles.daysList}>
+      <Row style={styles.daysList}>
         {byDayOfWeek.map((day) => (
           <View key={day.dayOfWeek} style={styles.dayItem}>
             <ThemedText style={styles.dayName}>{day.dayName.slice(0, 3)}</ThemedText>
@@ -116,7 +117,7 @@ export const DayOfWeekBreakdown = memo(function DayOfWeekBreakdown({
             </View>
           </View>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -133,12 +134,12 @@ export const NoticeFooter = memo(function NoticeFooter({
   palette,
 }: NoticeFooterProps) {
   return (
-    <View style={[styles.noticeSection, { borderTopColor: palette.border }]}>
+    <Row style={[styles.noticeSection, { borderTopColor: palette.border }]}>
       <Ionicons name="alarm-outline" size={16} color={palette.muted} />
       <ThemedText style={[styles.noticeText, { color: palette.muted }]}>
         Average notice: <ThemedText style={styles.noticeValue}>{avgNoticeHours}h</ThemedText> before session
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -158,12 +159,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reasonRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   reasonInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     width: 100,
   },
@@ -189,7 +188,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   daysList: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
   },
   dayItem: {
@@ -206,7 +204,6 @@ const styles = StyleSheet.create({
   },
   dayCount: { ...Typography.caption },
   noticeSection: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingTop: Spacing.md,

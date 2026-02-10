@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ClubEventType } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const EVENT_TYPES: { key: ClubEventType; label: string; icon: string }[] = [
   { key: 'TOURNAMENT', label: 'Tournament', icon: 'trophy' },
@@ -37,7 +38,7 @@ function CreateEventTypeStepInner({ eventType, onEventTypeChange }: CreateEventT
       <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
         Choose the category that best fits your event
       </ThemedText>
-      <View style={styles.typeGrid}>
+      <Row style={styles.typeGrid}>
         {EVENT_TYPES.map((type) => {
           const typeColor = eventService.getEventTypeColor(type.key);
           return (
@@ -77,7 +78,7 @@ function CreateEventTypeStepInner({ eventType, onEventTypeChange }: CreateEventT
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </Animated.View>
   );
 }
@@ -98,7 +99,6 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.sm,
   },
   typeGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
     justifyContent: 'center',

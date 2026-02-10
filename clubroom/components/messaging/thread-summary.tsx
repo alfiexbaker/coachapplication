@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Chip } from '@/components/primitives/chip';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -20,7 +21,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.headerRow}>
+      <Row align="center" gap="sm">
         <View
           style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.13) }]}
           accessibilityLabel={`${displayName} avatar placeholder`}>
@@ -28,7 +29,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
         </View>
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">{displayName}</ThemedText>
-          <View style={styles.subtitleRow}>
+          <Row align="center" gap="xs">
             <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
             {isGroup && thread.scopeLabel ? (
               <View style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
@@ -40,7 +41,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
                 <ThemedText style={styles.tagLabel}>{thread.groupType}</ThemedText>
               </View>
             ) : null}
-          </View>
+          </Row>
         </View>
         {thread.unreadCount ? (
           <View style={[styles.badge, { backgroundColor: palette.tint }]}>
@@ -49,8 +50,8 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
             </ThemedText>
           </View>
         ) : null}
-      </View>
-      <View style={styles.metaRow}>
+      </Row>
+      <Row gap="sm" align="center">
         <IconSymbol name="calendar" size={18} color={palette.icon} />
         <ThemedText>
           {new Date(thread.scheduledFor).toLocaleString([], {
@@ -61,22 +62,22 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
             minute: '2-digit',
           })}
         </ThemedText>
-      </View>
-      <View style={styles.metaRow}>
+      </Row>
+      <Row gap="sm" align="center">
         <IconSymbol name="map.fill" size={18} color={palette.icon} />
         <ThemedText>{thread.location}</ThemedText>
-      </View>
+      </Row>
       {thread.pinnedObjectives?.length ? (
-        <View style={styles.objectivesRow}>
+        <Row wrap style={styles.objectivesRow}>
           {thread.pinnedObjectives.map((objective) => (
             <Chip key={objective} active>
               {objective}
             </Chip>
           ))}
-        </View>
+        </Row>
       ) : null}
       {isGroup && thread.memberCount ? (
-        <View style={styles.metaRow}>
+        <Row gap="sm" align="center">
           <IconSymbol name="person.3.fill" size={18} color={palette.icon} />
           <ThemedText>{thread.memberCount} members</ThemedText>
           {typeof thread.unreadMentions === 'number' && thread.unreadMentions > 0 ? (
@@ -84,18 +85,19 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
               <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>@{thread.unreadMentions}</ThemedText>
             </View>
           ) : null}
-        </View>
+        </Row>
       ) : null}
       {thread.lastMessageSnippet ? (
-        <View style={styles.metaRow}>
+        <Row gap="sm" align="center">
           <IconSymbol name="text.bubble" size={18} color={palette.icon} />
           <ThemedText numberOfLines={1} style={{ flex: 1 }}>
             {thread.lastMessageSender ? `${thread.lastMessageSender}: ` : ''}
             {thread.lastMessageSnippet}
           </ThemedText>
-        </View>
+        </Row>
       ) : null}
-      <View
+      <Row
+        gap="sm"
         style={[
           styles.safetyBanner,
           { backgroundColor: withAlpha(palette.warning, 0.15) },
@@ -103,7 +105,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
         accessibilityRole="text">
         <IconSymbol name="shield.checkerboard" size={18} color={palette.secondary} />
         <ThemedText style={styles.safetyCopy}>{thread.safetyCopy}</ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -112,22 +114,12 @@ const styles = StyleSheet.create({
   card: {
     gap: Spacing.md,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
   avatar: {
     height: 48,
     width: 48,
     borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
   },
   subtitle: {
     opacity: 0.8,
@@ -146,22 +138,13 @@ const styles = StyleSheet.create({
   badgeLabel: {
     fontWeight: '600',
   },
-  metaRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
   safetyBanner: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radii.md,
   },
   safetyCopy: { ...Typography.small, flex: 1,
     lineHeight: 18 },
   objectivesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     marginTop: -Spacing.xs,
   },
 });

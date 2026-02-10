@@ -145,7 +145,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   clubItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

@@ -5,7 +5,7 @@
  * All state/logic in useWalletPromo hook.
  */
 
-import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -13,7 +13,9 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { PromoCodeInput } from '@/components/promo';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWalletPromo, formatTimeAgo } from '@/hooks/use-wallet-promo';
@@ -27,18 +29,18 @@ export default function PromoCodeScreen() {
 
   const renderUsageItem = ({ item, index }: { item: PromoCodeUsage; index: number }) => (
     <Animated.View entering={FadeInDown.delay(100 + index * 50).springify()}>
-      <View style={styles.usageItem}>
+      <Row align="center" gap="md" style={styles.usageItem}>
         <View style={[styles.usageIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="gift" size={18} color={palette.success} />
         </View>
-        <View style={styles.usageContent}>
+        <Row align="center" justify="space-between" flex style={styles.usageContent}>
           <View style={styles.usageRow}>
             <ThemedText style={[styles.codeLabel, { color: palette.tint }]}>{item.code}</ThemedText>
             <ThemedText style={[styles.usageTime, { color: palette.muted }]}>{formatTimeAgo(item.usedAt)}</ThemedText>
           </View>
           <ThemedText style={[styles.creditAmount, { color: palette.success }]}>+{promoService.formatCredit(item.creditAmount)}</ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
     </Animated.View>
   );
 
@@ -54,32 +56,32 @@ export default function PromoCodeScreen() {
             <ThemedText style={[styles.successMessage, { color: palette.muted }]}>
               {promoService.formatCredit(c.redeemSuccess.creditAmount)} has been added to your wallet
             </ThemedText>
-            <View style={styles.successBalance}>
+            <Row align="baseline" gap="xs" style={styles.successBalance}>
               <ThemedText style={[styles.balanceLabel, { color: palette.muted }]}>New Balance:</ThemedText>
               <ThemedText type="title" style={[styles.balanceValue, { color: palette.success }]}>
                 {walletService.formatAmount(c.redeemSuccess.newBalance)}
               </ThemedText>
-            </View>
+            </Row>
           </SurfaceCard>
         </Animated.View>
       )}
 
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <SurfaceCard style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
+          <Row align="center" gap="xs">
             <Ionicons name="wallet-outline" size={20} color={palette.muted} />
             <ThemedText style={[styles.balanceHeaderText, { color: palette.muted }]}>Current Balance</ThemedText>
-          </View>
+          </Row>
           <ThemedText type="title" style={styles.balanceAmount}>{walletService.formatAmount(c.balance)}</ThemedText>
         </SurfaceCard>
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(100).springify()}>
         <SurfaceCard style={styles.inputCard}>
-          <View style={styles.inputHeader}>
+          <Row align="center" gap="sm">
             <Ionicons name="pricetag-outline" size={20} color={palette.tint} />
             <ThemedText type="defaultSemiBold" style={styles.inputTitle}>Enter Promo Code</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.inputDescription, { color: palette.muted }]}>
             Enter a promotional code to receive credits in your wallet
           </ThemedText>
@@ -89,10 +91,10 @@ export default function PromoCodeScreen() {
 
       {c.userUsage.length > 0 && (
         <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <View style={styles.sectionHeader}>
+          <Row align="center" justify="space-between" style={styles.sectionHeader}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>Redemption History</ThemedText>
             <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>{c.userUsage.length} redeemed</ThemedText>
-          </View>
+          </Row>
         </Animated.View>
       )}
     </>
@@ -101,10 +103,7 @@ export default function PromoCodeScreen() {
   if (c.loading) {
     return (
       <PageContainer header={<PageHeader title="Promo Codes" subtitle="Redeem codes for credits" showBack />}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>Loading...</ThemedText>
-        </View>
+        <LoadingState variant="list" />
       </PageContainer>
     );
   }
@@ -137,23 +136,23 @@ const styles = StyleSheet.create({
   successIcon: { width: 64, height: 64, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   successTitle: { ...Typography.title, textAlign: 'center' },
   successMessage: { ...Typography.bodySmall, textAlign: 'center' },
-  successBalance: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.xs, marginTop: Spacing.xs },
+  successBalance: { marginTop: Spacing.xs },
   balanceLabel: { ...Typography.bodySmall },
   balanceValue: { ...Typography.display },
   balanceCard: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.md },
-  balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  balanceHeader: {},
   balanceHeaderText: { ...Typography.bodySmallSemiBold },
   balanceAmount: { ...Typography.display },
   inputCard: { gap: Spacing.md },
-  inputHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  inputHeader: {},
   inputTitle: { ...Typography.subheading },
   inputDescription: { ...Typography.small, marginTop: -Spacing.xs },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm },
+  sectionHeader: { marginTop: Spacing.sm },
   sectionTitle: { ...Typography.heading },
   sectionCount: { ...Typography.small },
-  usageItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
+  usageItem: { paddingVertical: Spacing.sm },
   usageIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  usageContent: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  usageContent: {},
   usageRow: { gap: Spacing.micro },
   codeLabel: { ...Typography.bodySmallSemiBold },
   usageTime: { ...Typography.caption },

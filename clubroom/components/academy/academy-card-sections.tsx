@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { Academy } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -35,7 +36,7 @@ export const CompactAcademyCard = memo(function CompactAcademyCard({
 }: CompactAcademyCardProps) {
   return (
     <SurfaceCard style={styles.compactCard} onPress={onPress}>
-      <View style={styles.compactMain}>
+      <Row style={styles.compactMain}>
         {academy.logoUrl ? (
           <Image source={{ uri: academy.logoUrl }} style={styles.compactLogo} />
         ) : (
@@ -49,26 +50,26 @@ export const CompactAcademyCard = memo(function CompactAcademyCard({
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
             {academy.name}
           </ThemedText>
-          <View style={styles.compactMeta}>
+          <Row style={styles.compactMeta}>
             <Ionicons name="location-outline" size={12} color={palette.muted} />
             <ThemedText style={[styles.compactLocation, { color: palette.muted }]}>
               {academy.city}
             </ThemedText>
-          </View>
+          </Row>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
 
 const styles = StyleSheet.create({
   compactCard: { padding: Spacing.md },
-  compactMain: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  compactMain: { alignItems: 'center', gap: Spacing.md },
   compactLogo: { width: 44, height: 44, borderRadius: Radii.xl },
   compactLogoPlaceholder: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   compactLogoText: { ...Typography.bodySmallSemiBold },
   compactInfo: { flex: 1 },
-  compactMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, marginTop: Spacing.micro },
+  compactMeta: { alignItems: 'center', gap: Spacing.micro, marginTop: Spacing.micro },
   compactLocation: { ...Typography.caption },
 });

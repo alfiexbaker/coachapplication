@@ -163,6 +163,6 @@ export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
   linkPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill },
-  errorPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  ctaButton: { marginTop: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.button, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start' },
+  errorPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, alignItems: 'center', gap: Spacing.xs },
+  ctaButton: { marginTop: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.button, borderWidth: 1, alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start' },
 });

@@ -55,8 +55,10 @@ export default function SessionRosterScreen() {
         </View>
         {registeredCount > 0 && (
           <Clickable style={[styles.rollCallBtn, { backgroundColor: colors.success }]} onPress={startRollCall}>
-            <Ionicons name="clipboard-outline" size={18} color={colors.onPrimary} />
-            <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>Roll Call</ThemedText>
+            <Row align="center" gap="xs">
+              <Ionicons name="clipboard-outline" size={18} color={colors.onPrimary} />
+              <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>Roll Call</ThemedText>
+            </Row>
           </Clickable>
         )}
       </Row>
@@ -138,7 +140,7 @@ export default function SessionRosterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  rollCallBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  rollCallBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   statsRow: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md },
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },

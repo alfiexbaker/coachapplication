@@ -13,6 +13,7 @@ import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { DrillCategory } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Category config
@@ -40,8 +41,8 @@ export const DrillSectionHeader = memo(function DrillSectionHeader({ category, c
   const info = CATEGORY_INFO[category];
 
   return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionHeaderLeft}>
+    <Row style={styles.sectionHeader}>
+      <Row style={styles.sectionHeaderLeft}>
         <View style={[styles.sectionIcon, { backgroundColor: withAlpha(info.color, 0.12) }]}>
           <Ionicons
             name={info.icon as keyof typeof Ionicons.glyphMap}
@@ -52,24 +53,22 @@ export const DrillSectionHeader = memo(function DrillSectionHeader({ category, c
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           {info.label}
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>
         {count} {count === 1 ? 'drill' : 'drills'}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.xs,
   },
   sectionHeaderLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },

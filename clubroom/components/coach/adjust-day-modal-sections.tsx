@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export const LOCATION_OPTIONS: { id: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'hyde_park', label: 'Hyde Park', icon: 'leaf-outline' },
@@ -38,7 +39,7 @@ export const LocationPicker = memo(function LocationPicker({
         Location
       </ThemedText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.locationScroll}>
-        <View style={styles.locationChipsRow}>
+        <Row style={styles.locationChipsRow}>
           {LOCATION_OPTIONS.map((opt) => {
             const isCustom = opt.id === 'custom';
             const isSelected = isCustom ? showCustomInput : location === opt.label;
@@ -76,10 +77,10 @@ export const LocationPicker = memo(function LocationPicker({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </ScrollView>
       {showCustomInput && (
-        <View style={[styles.customInput, { borderColor: palette.border, backgroundColor: palette.background }]}>
+        <Row style={[styles.customInput, { borderColor: palette.border, backgroundColor: palette.background }]}>
           <Ionicons name="location-outline" size={18} color={palette.muted} />
           <TextInput
             style={[styles.customInputText, { color: palette.text }]}
@@ -89,7 +90,7 @@ export const LocationPicker = memo(function LocationPicker({
             onChangeText={onLocationChange}
             autoFocus
           />
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -107,11 +108,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   locationChipsRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   locationChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: 44,
@@ -124,7 +123,6 @@ const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   customInput: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,

@@ -13,6 +13,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MatchPlayer } from '@/constants/types';
@@ -36,7 +37,7 @@ export const LineupSummaryRow = memo(function LineupSummaryRow({
   palette,
 }: LineupSummaryRowProps) {
   return (
-    <View style={[styles.summaryRow, { backgroundColor: palette.surface }]}>
+    <Row style={[styles.summaryRow, { backgroundColor: palette.surface }]}>
       <View style={styles.summaryItem}>
         <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Available</ThemedText>
         <ThemedText type="title" style={{ color: palette.success }}>
@@ -57,7 +58,7 @@ export const LineupSummaryRow = memo(function LineupSummaryRow({
           {reserveCount}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -90,37 +91,39 @@ export const SelectablePlayerRow = memo(function SelectablePlayerRow({
       ]}
       onPress={onPress}
     >
-      <View style={styles.playerInfo}>
-        <View style={[styles.playerAvatar, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
-          <ThemedText style={[styles.avatarText, { color: statusColor }]}>
-            {player.athleteName.slice(0, 2).toUpperCase()}
-          </ThemedText>
-        </View>
-        <View style={styles.playerDetails}>
-          <ThemedText type="defaultSemiBold">{player.athleteName}</ThemedText>
-          {player.position && (
-            <ThemedText style={[styles.positionText, { color: palette.muted }]}>
-              {player.position}
+      <Row align="center" justify="between" flex>
+        <Row align="center" gap="sm" flex>
+          <View style={[styles.playerAvatar, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
+            <ThemedText style={[styles.avatarText, { color: statusColor }]}>
+              {player.athleteName.slice(0, 2).toUpperCase()}
             </ThemedText>
+          </View>
+          <View style={styles.playerDetails}>
+            <ThemedText type="defaultSemiBold">{player.athleteName}</ThemedText>
+            {player.position && (
+              <ThemedText style={[styles.positionText, { color: palette.muted }]}>
+                {player.position}
+              </ThemedText>
+            )}
+          </View>
+        </Row>
+
+        <View style={styles.selectionIndicator}>
+          {isSelected && (
+            <View style={[styles.checkCircle, { backgroundColor: palette.tint }]}>
+              <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
+            </View>
+          )}
+          {isReserve && (
+            <View style={[styles.checkCircle, { backgroundColor: palette.warning }]}>
+              <ThemedText style={[styles.reserveText, { color: palette.onPrimary }]}>R</ThemedText>
+            </View>
+          )}
+          {!isSelected && !isReserve && (
+            <View style={[styles.emptyCircle, { borderColor: palette.border }]} />
           )}
         </View>
-      </View>
-
-      <View style={styles.selectionIndicator}>
-        {isSelected && (
-          <View style={[styles.checkCircle, { backgroundColor: palette.tint }]}>
-            <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
-          </View>
-        )}
-        {isReserve && (
-          <View style={[styles.checkCircle, { backgroundColor: palette.warning }]}>
-            <ThemedText style={[styles.reserveText, { color: palette.onPrimary }]}>R</ThemedText>
-          </View>
-        )}
-        {!isSelected && !isReserve && (
-          <View style={[styles.emptyCircle, { borderColor: palette.border }]} />
-        )}
-      </View>
+      </Row>
     </Clickable>
   );
 });
@@ -143,8 +146,8 @@ export const DisabledPlayerRow = memo(function DisabledPlayerRow({
   const subtitle = variant === 'pending' ? 'Waiting for response' : player.parentNote;
 
   return (
-    <View style={[styles.playerRow, styles.disabledRow, { borderColor: palette.border }]}>
-      <View style={styles.playerInfo}>
+    <Row align="center" justify="between" style={[styles.playerRow, styles.disabledRow, { borderColor: palette.border }]}>
+      <Row align="center" gap="sm" flex>
         <View style={[styles.playerAvatar, { backgroundColor: withAlpha(color, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color }]}>
             {player.athleteName.slice(0, 2).toUpperCase()}
@@ -158,9 +161,9 @@ export const DisabledPlayerRow = memo(function DisabledPlayerRow({
             </ThemedText>
           )}
         </View>
-      </View>
+      </Row>
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={color} />
-    </View>
+    </Row>
   );
 });
 
@@ -197,12 +200,12 @@ export const SubmitLineupButton = memo(function SubmitLineupButton({
         {isLoading ? (
           <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>Setting Lineup...</ThemedText>
         ) : (
-          <>
+          <Row align="center" justify="center" gap="sm">
             <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
             <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
               Confirm Lineup ({selectedCount} players, {reserveCount} reserves)
             </ThemedText>
-          </>
+          </Row>
         )}
       </Clickable>
     </View>
@@ -213,7 +216,6 @@ export const SubmitLineupButton = memo(function SubmitLineupButton({
 
 const styles = StyleSheet.create({
   summaryRow: {
-    flexDirection: 'row',
     padding: Spacing.md,
     borderRadius: Radii.md,
     marginBottom: Spacing.md,
@@ -222,21 +224,12 @@ const styles = StyleSheet.create({
   summaryLabel: { ...Typography.caption, marginBottom: Spacing.micro },
   summaryDivider: { width: 1, height: '100%' },
   playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
     marginBottom: Spacing.xs,
   },
   disabledRow: { opacity: 0.6 },
-  playerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
   playerAvatar: {
     width: 40,
     height: 40,
@@ -264,10 +257,6 @@ const styles = StyleSheet.create({
   },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
   submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
   },

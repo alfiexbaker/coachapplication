@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { RatingStars } from './rating-stars';
@@ -17,10 +18,10 @@ export function ReviewCard({ name, role, rating, text, date, response }: ReviewC
   const { colors: palette } = useTheme();
   return (
     <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-      <View style={styles.header}>
+      <Row justify="space-between">
         <ThemedText type="defaultSemiBold">{name}</ThemedText>
         <ThemedText style={{ color: palette.muted }}>{role === 'coach' ? 'Coach' : 'Player'}</ThemedText>
-      </View>
+      </Row>
       <RatingStars rating={rating} />
       {text ? <ThemedText style={{ marginTop: Spacing.xs }}>{text}</ThemedText> : null}
       {date ? <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{date}</ThemedText> : null}
@@ -40,10 +41,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     gap: Spacing.xs / 2,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   response: {
     marginTop: Spacing.xs,

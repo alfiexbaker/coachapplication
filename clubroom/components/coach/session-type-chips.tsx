@@ -14,6 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // Session type colors — resolved from theme at render time via getTypeMeta()
 type ThemePalette = ReturnType<typeof useTheme>['colors'];
@@ -55,7 +56,7 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Session Types</ThemedText>
         <Clickable
           onPress={() => { hapticTap(); onAdd(); }}
@@ -64,7 +65,7 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
           <Ionicons name="add" size={16} color={palette.tint} />
           <ThemedText style={[styles.headerAddBtnText, { color: palette.tint }]}>New</ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {templates.map((template) => {
@@ -121,7 +122,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmallSemiBold,
   },
   headerAddBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
     paddingHorizontal: Spacing.sm,
@@ -144,7 +143,6 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   chip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
@@ -171,7 +169,6 @@ const styles = StyleSheet.create({
     ...Typography.micro,
   },
   addChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
@@ -184,7 +181,6 @@ const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   emptyState: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,

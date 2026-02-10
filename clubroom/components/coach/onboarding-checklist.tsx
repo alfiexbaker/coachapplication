@@ -15,6 +15,7 @@ export type { ChecklistItem, ChecklistItemRowProps, ProgressTrackProps } from '.
 
 import { ChecklistItemRow, ProgressTrack } from './onboarding-checklist-sections';
 import type { ChecklistItem } from './onboarding-checklist-sections';
+import { Row } from '@/components/primitives';
 
 // ============================================================================
 // TYPES
@@ -88,7 +89,7 @@ export function CoachOnboardingChecklist({
   return (
     <View style={[styles.container, { backgroundColor: palette.surface }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={styles.headerTextGroup}>
           <ThemedText style={[styles.title, { color: palette.text }]}>Complete your setup</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
@@ -98,7 +99,7 @@ export function CoachOnboardingChecklist({
         <Clickable accessibilityLabel="Close" onPress={handleDismiss} hitSlop={12}>
           <Ionicons name="close" size={20} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
 
       <ProgressTrack progress={progress} palette={palette} />
 
@@ -128,7 +129,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },

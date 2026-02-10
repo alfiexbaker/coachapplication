@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { WeekRow } from './multi-week-picker';
+import { Row } from '@/components/primitives';
 
 interface MultiWeekConfirmationProps {
   selectedWeeks: WeekRow[];
@@ -54,7 +55,7 @@ const WeekSummaryRow = memo(function WeekSummaryRow({
   palette: ReturnType<typeof useTheme>['colors'];
 }) {
   return (
-    <View style={[styles.weekSummaryRow, { borderBottomColor: palette.border }]}>
+    <Row style={[styles.weekSummaryRow, { borderBottomColor: palette.border }]}>
       <View style={styles.weekSummaryLeft}>
         <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
           {formatWeekDate(week.weekDate)}
@@ -66,7 +67,7 @@ const WeekSummaryRow = memo(function WeekSummaryRow({
       <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
         {currency}{week.price}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -105,12 +106,12 @@ export function MultiWeekConfirmation({
 
       {/* Location */}
       {location ? (
-        <View style={[styles.locationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <Row style={[styles.locationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="location-outline" size={16} color={palette.tint} />
           <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
             {location}
           </ThemedText>
-        </View>
+        </Row>
       ) : null}
 
       {/* Week list */}
@@ -126,17 +127,17 @@ export function MultiWeekConfirmation({
       </View>
 
       {/* Total */}
-      <View style={[styles.totalRow, { borderTopColor: palette.border }]}>
+      <Row style={[styles.totalRow, { borderTopColor: palette.border }]}>
         <ThemedText type="defaultSemiBold" style={{ color: palette.text }}>
           Total
         </ThemedText>
         <ThemedText type="defaultSemiBold" style={{ color: palette.text }}>
           {currency}{totalCost.toFixed(0)}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <Row style={styles.actions}>
         <Button
           variant="outline"
           onPress={onCancel}
@@ -152,7 +153,7 @@ export function MultiWeekConfirmation({
         >
           {loading ? 'Booking...' : `Confirm ${selectedWeeks.length} Week${selectedWeeks.length !== 1 ? 's' : ''}`}
         </Button>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -165,7 +166,6 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   locationBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.xs,
@@ -176,7 +176,6 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   weekSummaryRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.xs,
@@ -186,14 +185,12 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   totalRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
   actions: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     paddingTop: Spacing.xs,
   },

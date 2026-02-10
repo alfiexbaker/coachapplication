@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
@@ -43,14 +44,14 @@ export function SessionFeedbackCard({
   return (
     <SurfaceCard style={styles.card} onPress={onPress} tactile={Boolean(onPress)}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row justify="space-between" align="flex-start">
         <View style={styles.headerLeft}>
           <ThemedText type="defaultSemiBold" style={styles.date}>{formatDate(feedback.createdAt)}</ThemedText>
           {showCoachName && (
-            <View style={styles.coachRow}>
+            <Row align="center" gap="xxs">
               <Ionicons name="person" size={12} color={palette.muted} />
               <ThemedText style={[styles.coachName, { color: palette.muted }]}>{feedback.coachName}</ThemedText>
-            </View>
+            </Row>
           )}
         </View>
         <View style={styles.headerRight}>
@@ -60,10 +61,10 @@ export function SessionFeedbackCard({
             </ThemedText>
           </View>
         </View>
-      </View>
+      </Row>
 
       {/* Ratings Row */}
-      <View style={styles.ratingsRow}>
+      <Row gap="lg">
         <View style={styles.ratingItem}>
           <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>Performance</ThemedText>
           <RatingStars rating={feedback.overallPerformance} />
@@ -72,7 +73,7 @@ export function SessionFeedbackCard({
           <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>Effort</ThemedText>
           <RatingStars rating={feedback.effortRating} />
         </View>
-      </View>
+      </Row>
 
       {/* Summary */}
       {feedback.publicSummary && (
@@ -85,11 +86,11 @@ export function SessionFeedbackCard({
       {feedback.skillsWorkedOn.length > 0 && (
         <View style={styles.section}>
           <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skills covered</ThemedText>
-          <View style={styles.skillsRow}>
+          <Row gap="xxs" wrap>
             {feedback.skillsWorkedOn.map((skill, index) => (
               <Chip key={index} dense>{skill}</Chip>
             ))}
-          </View>
+          </Row>
         </View>
       )}
 
@@ -148,21 +149,17 @@ export function FeedbackList({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm, position: 'relative' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerLeft: { gap: Spacing.xxs },
   headerRight: {},
   date: { ...Typography.body },
-  coachRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   coachName: { ...Typography.caption },
   performanceBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   performanceText: { ...Typography.caption },
-  ratingsRow: { flexDirection: 'row', gap: Spacing.lg },
   ratingItem: { gap: Spacing.xxs },
   ratingLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3 },
   section: { gap: Spacing.xxs },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '600' },
   summaryText: { ...Typography.bodySmall, lineHeight: 20 },
-  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xxs },
   chevron: { position: 'absolute', top: Spacing.md, right: Spacing.sm },
   list: { gap: Spacing.sm },
   emptyContainer: { alignItems: 'center', padding: Spacing.lg, gap: Spacing.sm },

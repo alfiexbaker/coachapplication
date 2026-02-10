@@ -166,7 +166,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   roleOption: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,

@@ -19,6 +19,7 @@ import type { Goal } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── GoalCompactCard ─────────────────────────────────────────────────────────
 
@@ -42,16 +43,16 @@ export const GoalCompactCard = memo(function GoalCompactCard({
       <CompactProgressRing progress={goal.progress} color={categoryColor} />
 
       <View style={styles.compactContent}>
-        <View style={styles.compactHeader}>
+        <Row style={styles.compactHeader}>
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
             {goal.title}
           </ThemedText>
           <CategoryBadge category={goal.category} size="small" iconOnly />
-        </View>
+        </Row>
 
-        <View style={styles.compactMeta}>
+        <Row style={styles.compactMeta}>
           {goal.targetDate && (
-            <View style={styles.metaItem}>
+            <Row style={styles.metaItem}>
               <Ionicons
                 name="calendar-outline"
                 size={12}
@@ -65,15 +66,15 @@ export const GoalCompactCard = memo(function GoalCompactCard({
               >
                 {progressService.formatTargetDate(goal.targetDate)}
               </ThemedText>
-            </View>
+            </Row>
           )}
-          <View style={styles.metaItem}>
+          <Row style={styles.metaItem}>
             <Ionicons name="flag-outline" size={12} color={palette.muted} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {completedMilestones}/{goal.milestones.length}
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
 
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
@@ -107,8 +108,8 @@ export const GoalFeaturedCard = memo(function GoalFeaturedCard({
       onPress={onPress}
       outlineGradient={goal.progress === 100 ? [palette.success, palette.tint] : undefined}
     >
-      <View style={styles.featuredHeader}>
-        <View style={styles.headerLeft}>
+      <Row style={styles.featuredHeader}>
+        <Row style={styles.headerLeft}>
           <CategoryBadge category={goal.category} />
           {goal.status !== 'ACTIVE' && (
             <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
@@ -117,9 +118,9 @@ export const GoalFeaturedCard = memo(function GoalFeaturedCard({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
         <ProgressRing progress={goal.progress} size={72} progressColor={categoryColor} />
-      </View>
+      </Row>
 
       <ThemedText type="subtitle" style={styles.featuredTitle}>
         {goal.title}
@@ -131,9 +132,9 @@ export const GoalFeaturedCard = memo(function GoalFeaturedCard({
         </ThemedText>
       )}
 
-      <View style={styles.metaRow}>
+      <Row style={styles.metaRow}>
         {goal.targetDate && (
-          <View style={styles.metaItem}>
+          <Row style={styles.metaItem}>
             <Ionicons
               name="calendar-outline"
               size={16}
@@ -148,15 +149,15 @@ export const GoalFeaturedCard = memo(function GoalFeaturedCard({
               {isOverdue ? 'Overdue: ' : 'Target: '}
               {progressService.formatTargetDate(goal.targetDate)}
             </ThemedText>
-          </View>
+          </Row>
         )}
-        <View style={styles.metaItem}>
+        <Row style={styles.metaItem}>
           <Ionicons name="flag-outline" size={16} color={palette.icon} />
           <ThemedText style={styles.metaLabel}>
             {completedMilestones} of {goal.milestones.length} milestones
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {showMilestones && goal.milestones.length > 0 && (
         <View style={[styles.milestonesPreview, { borderTopColor: palette.border }]}>
@@ -176,7 +177,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: Spacing.md,
@@ -194,7 +194,6 @@ export const styles = StyleSheet.create({
     lineHeight: scaleFont(20),
   },
   footer: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: Spacing.sm,
@@ -202,11 +201,9 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   footerLeft: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   metaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -224,7 +221,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   compactCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -235,7 +231,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   compactHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -245,7 +240,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(15),
   },
   compactMeta: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   metaText: {
@@ -257,12 +251,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   featuredHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   headerLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     flex: 1,
@@ -273,7 +265,6 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   metaRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.xs,

@@ -13,15 +13,17 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { ThemedView } from '@/components/themed-view';
 import { SubscribeForm } from '@/components/recurring';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useSubscribe, type CoachOption } from '@/hooks/use-subscribe';
 
 export default function SubscribeScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useSubscribe();
 
   if (!c.selectedCoach) {
@@ -37,31 +39,31 @@ export default function SubscribeScreen() {
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.coachList} showsVerticalScrollIndicator={false}>
           {c.coaches.map((coach: CoachOption) => (
             <SurfaceCard key={coach.id} style={styles.coachCard} onPress={() => c.setSelectedCoach(coach)}>
-              <View style={styles.coachRow}>
+              <Row style={styles.coachRow}>
                 <Image source={{ uri: coach.photoUrl }} style={styles.coachAvatar} contentFit="cover" />
                 <View style={styles.coachInfo}>
                   <ThemedText type="defaultSemiBold">{coach.name}</ThemedText>
-                  <View style={styles.coachMeta}>
+                  <Row style={styles.coachMeta}>
                     <Ionicons name="star" size={14} color={palette.warning} />
                     <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>{coach.rating.toFixed(1)} ({coach.totalSessions} sessions)</ThemedText>
-                  </View>
-                  <View style={styles.coachMeta}>
+                  </Row>
+                  <Row style={styles.coachMeta}>
                     <Ionicons name="location-outline" size={14} color={palette.muted} />
                     <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>{coach.location}</ThemedText>
-                  </View>
+                  </Row>
                 </View>
                 <View style={styles.coachPrice}>
                   <ThemedText type="defaultSemiBold" style={{ color: palette.tint }}>${coach.pricePerSession}</ThemedText>
                   <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>/session</ThemedText>
                 </View>
-              </View>
-              <View style={styles.specialtiesRow}>
+              </Row>
+              <Row style={styles.specialtiesRow}>
                 {coach.sessionTypes.slice(0, 3).map((specialty, index) => (
                   <View key={index} style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
                     <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>{specialty}</ThemedText>
                   </View>
                 ))}
-              </View>
+              </Row>
             </SurfaceCard>
           ))}
         </ScrollView>
@@ -95,14 +97,14 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   coachList: { padding: Spacing.md, gap: Spacing.sm },
   coachCard: { gap: Spacing.sm },
-  coachRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  coachRow: { alignItems: 'center', gap: Spacing.sm },
   coachAvatar: { width: 56, height: 56, borderRadius: Radii['2xl'] },
   coachInfo: { flex: 1, gap: Spacing.micro },
-  coachMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  coachMeta: { alignItems: 'center', gap: Spacing.xxs },
   coachMetaText: { ...Typography.small },
   coachPrice: { alignItems: 'flex-end' },
   priceLabel: { ...Typography.caption },
-  specialtiesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  specialtiesRow: { flexWrap: 'wrap', gap: Spacing.xs },
   specialtyBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   specialtyText: { ...Typography.caption },
 });

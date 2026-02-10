@@ -19,11 +19,12 @@ import { MemberSquadAssignments } from '@/components/club/member-squad-assignmen
 import { MemberRoleManagement } from '@/components/club/member-role-management';
 import { MemberDangerZone } from '@/components/club/member-danger-zone';
 import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useMemberManagement } from '@/hooks/use-member-management';
 
 export default function MemberManagementScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     member, club, squads, loading, canManage,
     showRolePicker, setShowRolePicker, assignableRoles,

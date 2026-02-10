@@ -9,6 +9,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionInvite } from '@/constants/types';
 import { formatExpiresIn } from '@/hooks/use-invites';
+import { Row } from '@/components/primitives';
 
 interface InviteCardProps {
   invite: SessionInvite;
@@ -39,8 +40,8 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
   return (
     <SurfaceCard style={styles.card}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.coachInfo}>
+      <Row style={styles.header}>
+        <Row style={styles.coachInfo}>
           {invite.coachPhotoUrl ? (
             <Image source={{ uri: invite.coachPhotoUrl }} style={styles.coachPhoto} contentFit="cover" />
           ) : (
@@ -52,55 +53,55 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
             <ThemedText type="defaultSemiBold">{invite.coachName}</ThemedText>
             {invite.clubName && <ThemedText style={[styles.clubName, { color: palette.muted }]}>{invite.clubName}</ThemedText>}
           </View>
-        </View>
+        </Row>
         <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusBadge.color, 0.09) }]}>
           <ThemedText style={[styles.statusText, { color: statusBadge.color }]}>{statusBadge.text}</ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Athletes */}
-      <View style={styles.athleteRow}>
+      <Row style={styles.athleteRow}>
         <Ionicons name="person-outline" size={16} color={palette.icon} />
         <ThemedText style={[styles.athleteNames, { color: palette.muted }]}>For: {invite.athleteNames.join(', ')}</ThemedText>
-      </View>
+      </Row>
 
       {/* Session Info */}
-      <View style={styles.sessionInfo}>
+      <Row style={styles.sessionInfo}>
         <ThemedText type="defaultSemiBold" style={styles.sessionType}>{invite.sessionType}</ThemedText>
         {invite.focus && (
           <View style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.focusText, { color: palette.tint }]}>{invite.focus}</ThemedText>
           </View>
         )}
-      </View>
+      </Row>
       {invite.notes && <ThemedText style={[styles.notes, { color: palette.muted }]} numberOfLines={2}>&quot;{invite.notes}&quot;</ThemedText>}
 
       {/* Slots */}
       <View style={styles.slotsSection}>
         <ThemedText style={[styles.slotsLabel, { color: palette.muted }]}>Proposed time{invite.proposedSlots.length > 1 ? 's' : ''}:</ThemedText>
-        <View style={styles.slotsList}>
+        <Row style={styles.slotsList}>
           {invite.proposedSlots.slice(0, 3).map((slot, index) => (
-            <View key={index} style={[styles.slotChip, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row key={index} style={[styles.slotChip, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <Ionicons name="calendar-outline" size={14} color={palette.icon} />
               <ThemedText style={styles.slotText}>{new Date(slot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} {slot.startTime}</ThemedText>
-            </View>
+            </Row>
           ))}
           {invite.proposedSlots.length > 3 && <ThemedText style={[styles.moreSlots, { color: palette.muted }]}>+{invite.proposedSlots.length - 3} more</ThemedText>}
-        </View>
+        </Row>
       </View>
 
       {/* Price & Expiry */}
-      <View style={styles.metaRow}>
+      <Row style={styles.metaRow}>
         {invite.priceUsd !== undefined && invite.priceUsd > 0 && <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>£{invite.priceUsd}</ThemedText>}
         {isPending && !isExpired && <ThemedText style={[styles.expires, { color: palette.warning }]}>{formatExpiresIn(invite.expiresAt)}</ThemedText>}
-      </View>
+      </Row>
 
       {/* RSVP */}
       {(isPending || invite.status === 'MAYBE') && !isExpired && (
         <View style={styles.rsvpSection}>
           <RsvpButtonGroup currentStatus={invite.status === 'MAYBE' ? 'maybe' : undefined} onRespond={(s) => onRsvp(invite.id, s)} disabled={isResponding} compact />
           {isPending && (
-            <View style={styles.actions}>
+            <Row style={styles.actions}>
               <Pressable style={[styles.declineButton, { borderColor: palette.border }]} onPress={() => onDecline(invite)} disabled={isResponding}>
                 <ThemedText style={[styles.declineText, { color: palette.muted }]}>Decline</ThemedText>
               </Pressable>
@@ -111,19 +112,19 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
                   <><Ionicons name="checkmark" size={18} color={palette.onPrimary} /><ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept</ThemedText></>
                 )}
               </Pressable>
-            </View>
+            </Row>
           )}
         </View>
       )}
 
       {/* Accepted slot */}
       {invite.status === 'ACCEPTED' && invite.selectedSlot && (
-        <View style={[styles.confirmedSlot, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+        <Row style={[styles.confirmedSlot, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
           <Ionicons name="checkmark-circle" size={18} color={palette.success} />
           <ThemedText style={[styles.confirmedText, { color: palette.success }]}>
             Booked: {new Date(invite.selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at {invite.selectedSlot.startTime}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -131,8 +132,8 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  coachInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 },
+  header: { alignItems: 'flex-start', justifyContent: 'space-between' },
+  coachInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1 },
   coachPhoto: { width: 44, height: 44, borderRadius: Radii.xl },
   placeholder: { alignItems: 'center', justifyContent: 'center' },
   initial: { ...Typography.heading },
@@ -140,28 +141,28 @@ const styles = StyleSheet.create({
   clubName: { ...Typography.small },
   statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   statusText: { ...Typography.caption },
-  athleteRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  athleteRow: { alignItems: 'center', gap: Spacing.xs },
   athleteNames: { ...Typography.small },
-  sessionInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  sessionInfo: { alignItems: 'center', gap: Spacing.sm },
   sessionType: { ...Typography.subheading },
   focusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   focusText: { ...Typography.caption },
   notes: { ...Typography.bodySmall, fontStyle: 'italic', lineHeight: 20 },
   slotsSection: { gap: Spacing.xs },
   slotsLabel: { ...Typography.caption },
-  slotsList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, alignItems: 'center' },
-  slotChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, borderWidth: 1 },
+  slotsList: { flexWrap: 'wrap', gap: Spacing.xs, alignItems: 'center' },
+  slotChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, borderWidth: 1 },
   slotText: { ...Typography.small },
   moreSlots: { ...Typography.caption },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  metaRow: { alignItems: 'center', justifyContent: 'space-between' },
   price: { ...Typography.heading },
   expires: { ...Typography.smallSemiBold },
   rsvpSection: { gap: Spacing.sm },
-  actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  actions: { gap: Spacing.sm, marginTop: Spacing.xs },
   declineButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center' },
   declineText: { ...Typography.bodySemiBold },
-  acceptButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  acceptButton: { flex: 2, alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   acceptText: { ...Typography.bodySemiBold },
-  confirmedSlot: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, marginTop: Spacing.xs },
+  confirmedSlot: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, marginTop: Spacing.xs },
   confirmedText: { ...Typography.bodySmallSemiBold },
 });

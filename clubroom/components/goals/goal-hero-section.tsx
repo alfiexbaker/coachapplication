@@ -38,7 +38,7 @@ export const GoalHeroSection = memo(function GoalHeroSection({ goal }: GoalHeroS
 });
 
 const styles = StyleSheet.create({
-  hero: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md, gap: Spacing.md },
+  hero: { alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md, gap: Spacing.md },
   content: { flex: 1, gap: Spacing.xs },
   title: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), marginTop: Spacing.xs },
   description: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22) },

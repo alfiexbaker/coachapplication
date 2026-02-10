@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { SCREEN_WIDTH, COVER_HEIGHT } from '@/hooks/use-coach-detail';
 import type { Coach } from '@/services/coach-service';
 import { renderStars } from '@/components/coach/coach-detail-reviews';
+import { Row } from '@/components/primitives';
 
 interface CoachDetailHeroProps {
   coach: Coach;
@@ -48,25 +49,25 @@ export const CoachDetailHero = memo(function CoachDetailHero({ coach, isOwnProfi
       <View style={styles.profileInfo}>
         <ThemedText type="title" style={styles.name}>{coach.name}</ThemedText>
         {coach.location && (
-          <View style={styles.locationRow}>
+          <Row style={styles.locationRow}>
             <Ionicons name="location-outline" size={16} color={palette.muted} />
             <ThemedText style={{ color: palette.muted }}>{coach.location.city}{coach.location.state ? `, ${coach.location.state}` : ''}</ThemedText>
-          </View>
+          </Row>
         )}
         {coach.badges && coach.badges.length > 0 && (
-          <View style={styles.badgesRow}>
+          <Row style={styles.badgesRow}>
             {coach.badges.slice(0, 3).map((badge, index) => (
-              <View key={index} style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <Row key={index} style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={12} color={palette.success} />
                 <ThemedText style={{ color: palette.success, ...Typography.caption }}>{badge}</ThemedText>
-              </View>
+              </Row>
             ))}
-          </View>
+          </Row>
         )}
-        <View style={styles.statsRow}>
+        <Row style={styles.statsRow}>
           <View style={styles.statBlock}>
             <ThemedText type="defaultSemiBold">{coach.rating.toFixed(1)}</ThemedText>
-            <View style={styles.starsRow}>{renderStars(coach.rating, palette.warning)}</View>
+            <Row style={styles.starsRow}>{renderStars(coach.rating, palette.warning)}</Row>
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
           <View style={styles.statBlock}>
@@ -78,9 +79,9 @@ export const CoachDetailHero = memo(function CoachDetailHero({ coach, isOwnProfi
             <ThemedText type="defaultSemiBold">{coach.totalSessions}</ThemedText>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Sessions</ThemedText>
           </View>
-        </View>
+        </Row>
         {!isOwnProfile && (
-          <View style={styles.actionButtons}>
+          <Row style={styles.actionButtons}>
             <Clickable onPress={onFollow} style={[styles.followButton, { backgroundColor: isFollowing ? palette.surface : palette.tint, borderColor: isFollowing ? palette.border : palette.tint }]}>
               <Ionicons name={isFollowing ? 'checkmark' : 'add'} size={18} color={isFollowing ? palette.text : palette.onPrimary} />
               <ThemedText style={{ color: isFollowing ? palette.text : palette.onPrimary, fontWeight: '600' }}>{isFollowing ? 'Following' : 'Follow'}</ThemedText>
@@ -88,7 +89,7 @@ export const CoachDetailHero = memo(function CoachDetailHero({ coach, isOwnProfi
             <Clickable onPress={onMessage} style={[styles.messageButton, { borderColor: palette.border }]}>
               <Ionicons name="chatbubble-outline" size={18} color={palette.text} />
             </Clickable>
-          </View>
+          </Row>
         )}
       </View>
     </>
@@ -106,14 +107,14 @@ const styles = StyleSheet.create({
   avatarText: { ...Typography.display },
   profileInfo: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm },
   name: { ...Typography.display },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
-  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
-  statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, gap: Spacing.lg },
+  locationRow: { alignItems: 'center', gap: Spacing.xxs },
+  badgesRow: { flexWrap: 'wrap', gap: Spacing.xs },
+  badge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  statsRow: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, gap: Spacing.lg },
   statBlock: { alignItems: 'center', gap: Spacing.micro },
   statDivider: { width: 1, height: 30 },
-  starsRow: { flexDirection: 'row', gap: Spacing.micro },
-  actionButtons: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
-  followButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  starsRow: { gap: Spacing.micro },
+  actionButtons: { gap: Spacing.sm, marginTop: Spacing.sm },
+  followButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
   messageButton: { width: 44, height: 44, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

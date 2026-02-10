@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,7 +167,7 @@ export const DeclineActionButtons = memo(function DeclineActionButtons({
   palette,
 }: DeclineActionButtonsProps) {
   return (
-    <View style={styles.buttonRow}>
+    <Row style={styles.buttonRow}>
       <Clickable
         style={[
           styles.cancelButton,
@@ -196,7 +197,7 @@ export const DeclineActionButtons = memo(function DeclineActionButtons({
           {isSubmitting ? 'Declining...' : 'Decline'}
         </ThemedText>
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -212,7 +213,6 @@ const styles = StyleSheet.create({
   inviteSummaryText: { ...Typography.bodySemiBold },
   inviteSummaryMuted: { ...Typography.small },
   reasonItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
@@ -232,7 +232,6 @@ const styles = StyleSheet.create({
   reasonLabel: { ...Typography.body, flex: 1 },
   reasonLabelSelected: { ...Typography.bodySemiBold },
   counterOfferButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
@@ -245,7 +244,6 @@ const styles = StyleSheet.create({
   },
   counterOfferText: { ...Typography.bodySemiBold, flex: 1 },
   buttonRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.xs,
   },

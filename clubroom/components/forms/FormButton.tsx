@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -183,7 +184,7 @@ export function FormButton({
           color={variantStyles.iconColor}
         />
       ) : (
-        <View style={styles.content}>
+        <Row style={styles.content}>
           {leftIcon && (
             <IconSymbol
               name={leftIcon as React.ComponentProps<typeof IconSymbol>['name']}
@@ -210,7 +211,7 @@ export function FormButton({
               style={styles.rightIcon}
             />
           )}
-        </View>
+        </Row>
       )}
     </Pressable>
   );
@@ -218,7 +219,6 @@ export function FormButton({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -226,7 +226,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   content: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },

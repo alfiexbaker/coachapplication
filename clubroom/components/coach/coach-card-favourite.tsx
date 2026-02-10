@@ -16,6 +16,7 @@ import { LocationDisplay } from './coach-card-availability';
 import { InlinePrice, formatPrice } from './coach-card-services';
 import { InlineFavouriteIcon, BookButton } from './coach-card-cta';
 import type { FavouriteVariantProps } from './coach-card-shared';
+import { Row } from '@/components/primitives';
 
 function FavouriteCardInner({ coach, onPress, onBook, onToggleFavourite, toggleLoading = false, isFavourite = true, index = 0 }: FavouriteVariantProps) {
   const { colors: palette } = useTheme();
@@ -25,14 +26,14 @@ function FavouriteCardInner({ coach, onPress, onBook, onToggleFavourite, toggleL
   return (
     <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify()}>
       <SurfaceCard accessibilityHint="View coach profile" accessibilityLabel={`${coach.fullName}, favourited coach`} onPress={onPress} style={styles.card}>
-        <View style={styles.content}>
+        <Row style={styles.content}>
           <CoachAvatar profilePhotoUrl={coach.profilePhotoUrl} size="lg" />
           <View style={styles.info}>
-            <View style={styles.nameRow}>
+            <Row style={styles.nameRow}>
               <ThemedText type="subtitle" style={styles.name} numberOfLines={1}>{coach.fullName}</ThemedText>
               <InlineFavouriteIcon isFavourite={isFavourite} onPress={() => onToggleFavourite?.()} loading={toggleLoading} />
-            </View>
-            <View style={styles.metaRow}>
+            </Row>
+            <Row style={styles.metaRow}>
               {coach.rating !== undefined && <CompactRating rating={coach.rating} />}
               {coach.city && (
                 <>
@@ -40,13 +41,13 @@ function FavouriteCardInner({ coach, onPress, onBook, onToggleFavourite, toggleL
                   <LocationDisplay city={coach.city} />
                 </>
               )}
-            </View>
-            <View style={styles.actionRow}>
+            </Row>
+            <Row style={styles.actionRow}>
               {priceStr && <InlinePrice pricePerHour={coach.pricePerHour} priceMin={coach.priceMin} priceMax={coach.priceMax} />}
               <BookButton coachName={coach.fullName} onPress={handleBook} variant="primary" />
-            </View>
+            </Row>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -56,10 +57,10 @@ export const FavouriteCard = memo(FavouriteCardInner);
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.sm, marginBottom: Spacing.sm },
-  content: { flexDirection: 'row', gap: Spacing.sm },
+  content: { gap: Spacing.sm },
   info: { flex: 1, gap: Spacing.xs },
-  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.xs },
+  nameRow: { alignItems: 'center', justifyContent: 'space-between', gap: Spacing.xs },
   name: { ...Typography.heading, letterSpacing: -0.2, flex: 1 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
+  metaRow: { alignItems: 'center', gap: Spacing.sm },
+  actionRow: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
 });

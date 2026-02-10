@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface ConfirmBookingPaymentProps {
   cardNumber: string;
@@ -33,7 +34,7 @@ export const ConfirmBookingPayment = memo(function ConfirmBookingPayment({
             <TextInput value={cardNumber} onChangeText={onCardChange} placeholder="1234 5678 9012 3456" placeholderTextColor={palette.muted} keyboardType="number-pad" editable={!isProcessing} style={[styles.input, { color: palette.text }]} />
           </View>
         </View>
-        <View style={styles.inputRow}>
+        <Row style={styles.inputRow}>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <ThemedText style={styles.label}>Expiry Date</ThemedText>
             <View style={containerStyle}>
@@ -46,16 +47,16 @@ export const ConfirmBookingPayment = memo(function ConfirmBookingPayment({
               <TextInput value={cvv} onChangeText={onCvvChange} placeholder="123" placeholderTextColor={palette.muted} keyboardType="number-pad" secureTextEntry editable={!isProcessing} style={[styles.input, { color: palette.text }]} />
             </View>
           </View>
-        </View>
-        <View style={[styles.securityNote, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        </Row>
+        <Row style={[styles.securityNote, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="lock-closed" size={16} color={palette.tint} />
           <ThemedText style={[styles.securityText, { color: palette.tint }]}>Your payment information is secure and encrypted</ThemedText>
-        </View>
+        </Row>
       </SurfaceCard>
-      <View style={styles.testNotice}>
+      <Row style={styles.testNotice}>
         <Ionicons name="information-circle-outline" size={20} color={palette.muted} />
         <ThemedText style={[styles.testNoticeText, { color: palette.muted }]}>This is a demo. No actual payment will be processed.</ThemedText>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -66,11 +67,11 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
   inputGroup: { gap: Spacing.xs },
   label: { ...Typography.bodySmallSemiBold },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 2, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
+  inputContainer: { alignItems: 'center', gap: Spacing.sm, borderWidth: 2, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
   input: { flex: 1, ...Typography.subheading, paddingVertical: 0 },
-  inputRow: { flexDirection: 'row', gap: Spacing.md },
-  securityNote: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.sm, marginTop: Spacing.xs },
+  inputRow: { gap: Spacing.md },
+  securityNote: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.sm, marginTop: Spacing.xs },
   securityText: { ...Typography.caption, flex: 1 },
-  testNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.md, padding: Spacing.md },
+  testNotice: { alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.md, padding: Spacing.md },
   testNoticeText: { ...Typography.small, flex: 1, lineHeight: 18 },
 });

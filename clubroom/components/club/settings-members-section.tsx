@@ -61,8 +61,8 @@ export const SettingsMembersSection = memo(function SettingsMembersSection({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
-  inviteBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.full, borderWidth: 1.5 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  inviteBtn: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.full, borderWidth: 1.5 },
+  row: { alignItems: 'center', gap: Spacing.md, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   roleBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm, alignSelf: 'flex-start' },
 });

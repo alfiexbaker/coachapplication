@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { CredentialCard } from '@/components/verification/credential-card';
 import { CredentialForm } from '@/components/verification/credential-form';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCredentials } from '@/hooks/use-credentials';
@@ -25,9 +26,7 @@ export default function CredentialsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.tint} />
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
@@ -94,8 +93,10 @@ export default function CredentialsScreen() {
               Add your coaching qualifications to build trust with parents
             </ThemedText>
             <Clickable onPress={() => setShowForm(true)} style={[styles.emptyButton, { borderColor: colors.tint }]}>
-              <Ionicons name="add" size={18} color={colors.tint} />
-              <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Add Credential</ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons name="add" size={18} color={colors.tint} />
+                <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Add Credential</ThemedText>
+              </Row>
             </Clickable>
           </SurfaceCard>
         )}
@@ -121,7 +122,6 @@ const styles = StyleSheet.create({
   credentialsList: { gap: Spacing.sm },
   emptyCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   emptyButton: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
     paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md,
     borderRadius: Radii.button, borderWidth: 1.5, marginTop: Spacing.sm,
   },

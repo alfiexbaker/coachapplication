@@ -40,8 +40,7 @@ export const WizardNavButtons = memo(function WizardNavButtons({
   submitting,
   onNext,
   onPrev,
-  onComplete,
-}: WizardNavButtonsProps) {
+  onComplete }: WizardNavButtonsProps) {
   return (
     <Row gap="sm" style={styles.container}>
       {currentStepIndex > 0 && (
@@ -51,8 +50,10 @@ export const WizardNavButtons = memo(function WizardNavButtons({
           accessibilityLabel="Go to previous step"
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-          <ThemedText style={[styles.secondaryText, { color: colors.text }]}>Back</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+            <ThemedText style={[styles.secondaryText, { color: colors.text }]}>Back</ThemedText>
+          </Row>
         </Pressable>
       )}
 
@@ -66,10 +67,12 @@ export const WizardNavButtons = memo(function WizardNavButtons({
           accessibilityLabel="Go to next step"
           accessibilityRole="button"
         >
-          <ThemedText style={[styles.primaryText, { color: colors.onPrimary }]}>
-            {currentStep === 'badges' ? 'Review' : 'Next'}
-          </ThemedText>
-          <Ionicons name="chevron-forward" size={18} color={colors.onPrimary} />
+          <Row align="center" justify="center" gap="xs">
+            <ThemedText style={[styles.primaryText, { color: colors.onPrimary }]}>
+              {currentStep === 'badges' ? 'Review' : 'Next'}
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={18} color={colors.onPrimary} />
+          </Row>
         </Pressable>
       ) : (
         <Pressable
@@ -79,14 +82,16 @@ export const WizardNavButtons = memo(function WizardNavButtons({
           accessibilityLabel="Complete session"
           accessibilityRole="button"
         >
-          {submitting ? (
-            <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>Saving...</ThemedText>
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={22} color={colors.onPrimary} />
-              <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>Complete Session</ThemedText>
-            </>
-          )}
+          <Row align="center" justify="center" gap="sm">
+            {submitting ? (
+              <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>Saving...</ThemedText>
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={22} color={colors.onPrimary} />
+                <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>Complete Session</ThemedText>
+              </>
+            )}
+          </Row>
         </Pressable>
       )}
     </Row>
@@ -99,43 +104,23 @@ export const WizardNavButtons = memo(function WizardNavButtons({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: Spacing.md,
-  },
+    marginTop: Spacing.md },
   primaryButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     height: Components.button.height,
-    borderRadius: Components.button.borderRadius,
-  },
+    borderRadius: Components.button.borderRadius },
   primaryText: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     height: Components.button.height,
     paddingHorizontal: Spacing.md,
     borderRadius: Components.button.borderRadius,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   secondaryText: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   submitButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
     height: Components.button.height,
-    borderRadius: Components.button.borderRadius,
-  },
+    borderRadius: Components.button.borderRadius },
   submitText: {
-    ...Typography.heading,
-  },
-});
+    ...Typography.heading } });

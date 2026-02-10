@@ -8,6 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Radii, Spacing, Typography, Components } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ export const MiniCoachCard = memo(function MiniCoachCard({
       onPress={onPress}
       style={[styles.card, isSelected && { borderColor: palette.tint, borderWidth: 2 }]}
     >
-      <View style={styles.row}>
+      <Row style={styles.row}>
         {/* Avatar placeholder */}
         <View style={[styles.avatar, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="person" size={Components.icon.lg} color={palette.muted} />
@@ -44,7 +45,7 @@ export const MiniCoachCard = memo(function MiniCoachCard({
           <ThemedText style={[styles.name, { color: palette.text }]} numberOfLines={1}>
             {coach.fullName}
           </ThemedText>
-          <View style={styles.metaRow}>
+          <Row style={styles.metaRow}>
             <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
             <ThemedText style={[styles.metaText, { color: palette.text }]}>
               {coach.rating.toFixed(1)}
@@ -54,7 +55,7 @@ export const MiniCoachCard = memo(function MiniCoachCard({
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {coach.distanceMiles.toFixed(1)} mi
             </ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.price, { color: palette.text }]}>
             {'\u00A3'}{coach.pricePerHour}/hr
           </ThemedText>
@@ -71,7 +72,7 @@ export const MiniCoachCard = memo(function MiniCoachCard({
         >
           <ThemedText style={[styles.bookText, { color: palette.onPrimary }]}>Book</ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -80,11 +81,11 @@ export const MiniCoachCard = memo(function MiniCoachCard({
 
 const styles = StyleSheet.create({
   card: { width: 260, padding: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  row: { alignItems: 'center', gap: Spacing.sm },
   avatar: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, gap: Spacing.xs / 2 },
   name: { ...Typography.bodySemiBold },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  metaRow: { alignItems: 'center', gap: Spacing.xs / 2 },
   metaText: { ...Typography.caption },
   dot: { width: 3, height: 3, borderRadius: Radii.pill },
   price: { ...Typography.bodySemiBold, fontWeight: '700' },

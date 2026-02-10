@@ -20,6 +20,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterNote, FootballObjective } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -114,12 +115,12 @@ export const PrimaryFocusSection = memo(function PrimaryFocusSection({
         </Clickable>
       </Row>
 
-      <View style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+      <Row style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name="football-outline" size={18} color={palette.tint} />
         <ThemedText style={{ color: palette.tint, ...Typography.bodySemiBold }}>
           {primaryFocus ?? 'Not set'}
         </ThemedText>
-      </View>
+      </Row>
 
       {showPicker && (
         <Column gap="xs">
@@ -157,7 +158,7 @@ export const NoteSearchBar = memo(function NoteSearchBar({
   palette,
 }: NoteSearchBarProps) {
   return (
-    <View style={[styles.searchContainer, { backgroundColor: palette.background }]}>
+    <Row style={[styles.searchContainer, { backgroundColor: palette.background }]}>
       <Ionicons name="search" size={16} color={palette.muted} />
       <TextInput
         style={[styles.searchInput, { color: palette.text }]}
@@ -172,7 +173,7 @@ export const NoteSearchBar = memo(function NoteSearchBar({
           <Ionicons name="close-circle" size={16} color={palette.muted} />
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -187,7 +188,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   focusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     alignSelf: 'flex-start',
@@ -196,7 +196,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   focusOption: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
@@ -219,7 +218,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   searchContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,

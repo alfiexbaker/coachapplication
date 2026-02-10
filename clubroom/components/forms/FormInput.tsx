@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type BlurEvent = NativeSyntheticEvent<TargetedEvent>;
 
@@ -124,12 +125,12 @@ export function FormInput({
   return (
     <View style={styles.container}>
       {label && (
-        <View style={styles.labelRow}>
+        <Row style={styles.labelRow}>
           <ThemedText style={[styles.label, { color: palette.text }]}>
             {label}
             {required && <ThemedText style={{ color: palette.error }}> *</ThemedText>}
           </ThemedText>
-        </View>
+        </Row>
       )}
 
       <View
@@ -205,7 +206,7 @@ export function FormInput({
         )}
       </View>
 
-      <View style={styles.bottomRow}>
+      <Row style={styles.bottomRow}>
         {error ? (
           <ThemedText style={[styles.errorText, { color: palette.error }]}>
             {error}
@@ -223,7 +224,7 @@ export function FormInput({
             {value.length}/{maxLength}
           </ThemedText>
         )}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -233,14 +234,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   labelRow: {
-    flexDirection: 'row',
     marginBottom: Spacing.xs,
   },
   label: {
     ...Typography.bodySemiBold,
   },
   inputContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radii.md,
     minHeight: Components.input.height,
@@ -274,7 +273,6 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
   },
   bottomRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: Spacing.xs / 2,
     minHeight: 18,

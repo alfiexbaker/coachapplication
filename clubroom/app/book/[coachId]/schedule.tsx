@@ -5,6 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -13,7 +14,8 @@ import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilitySlot } from '@/constants/types';
@@ -23,7 +25,7 @@ const logger = createLogger('ScheduleScreen');
 export default function ScheduleScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   const [allSlots, setAllSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -199,8 +201,10 @@ export default function ScheduleScreen() {
           ]}
           disabled={!draft.date || !draft.slot}
         >
-          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          <Row justify="center" align="center" gap="sm">
+            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          </Row>
         </Clickable>
       </View>
     </SafeAreaView>
@@ -221,10 +225,6 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.button,
   },

@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ function ProfilePostCardInner({
 
   return (
     <SurfaceCard style={styles.postCard}>
-      <View style={styles.postHeader}>
+      <Row style={styles.postHeader}>
         <Image source={{ uri: coachAvatar }} style={styles.postAvatar} />
         <View style={styles.postHeaderText}>
           <ThemedText type="subtitle">{coachName}</ThemedText>
@@ -49,7 +50,7 @@ function ProfilePostCardInner({
             })}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <ThemedText style={styles.postContent}>{post.content}</ThemedText>
 
@@ -62,7 +63,7 @@ function ProfilePostCardInner({
         </View>
       )}
 
-      <View style={styles.postActions}>
+      <Row style={styles.postActions}>
         <Clickable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={20} color={palette.foreground} />
           <ThemedText style={styles.actionText}>{post.likes}</ThemedText>
@@ -74,7 +75,7 @@ function ProfilePostCardInner({
         <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
           <Ionicons name="share-outline" size={20} color={palette.foreground} />
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -86,7 +87,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   postHeader: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
   postAvatar: {
@@ -115,12 +115,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   postActions: {
-    flexDirection: 'row',
     gap: Spacing.lg,
     paddingTop: Spacing.xs,
   },
   actionButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

@@ -17,7 +17,8 @@ import { SessionJournal } from '@/components/development/session-journal';
 import type { JournalEntry } from '@/components/development/session-journal';
 import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useMyProgress, PROGRESS_TABS, type ProgressTab } from '@/hooks/use-my-progress';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -25,7 +26,7 @@ import { MOCK_JOURNAL_ENTRIES } from '@/constants/mock-data';
 import * as Haptics from 'expo-haptics';
 
 export default function MyProgressScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     currentUser, loading, refreshing, progress, feedback, badges,
     activeTab, setActiveTab, trendInfo,
@@ -95,10 +96,10 @@ export default function MyProgressScreen() {
         <View style={styles.headerCenter}>
           <ThemedText type="title" style={Typography.heading}>My Progress</ThemedText>
           {trendInfo && (
-            <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
+            <Row align="center" gap="xxs" style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
               <Ionicons name={trendInfo.icon as keyof typeof Ionicons.glyphMap} size={12} color={trendColor} />
               <ThemedText style={[Typography.caption, { color: trendColor }]}>{trendInfo.label}</ThemedText>
-            </View>
+            </Row>
           )}
         </View>
         <View style={{ width: 24 }} />
@@ -132,10 +133,10 @@ export default function MyProgressScreen() {
         )}
         {activeTab === 'skills' && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row justify="space-between" align="center" style={styles.sectionHeader}>
               <ThemedText type="heading" style={Typography.heading}>My Skills</ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted }]}>Based on coach assessments</ThemedText>
-            </View>
+            </Row>
             {progress.skills.length > 0 ? (
               <SkillLevelGrid skills={progress.skills} groupByCategory showUpdatedBy />
             ) : (
@@ -154,10 +155,10 @@ export default function MyProgressScreen() {
         )}
         {activeTab === 'feedback' && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row justify="space-between" align="center" style={styles.sectionHeader}>
               <ThemedText type="heading" style={Typography.heading}>Coach Feedback</ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted }]}>Notes from your coaches</ThemedText>
-            </View>
+            </Row>
             <FeedbackList feedback={feedback} showCoachName emptyMessage="No feedback yet. Complete sessions to receive feedback from coaches." />
           </View>
         )}
@@ -173,10 +174,10 @@ export default function MyProgressScreen() {
         )}
         {activeTab === 'radar' && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row justify="space-between" align="center" style={styles.sectionHeader}>
               <ThemedText type="heading" style={Typography.heading}>Skills Radar</ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted }]}>Visual breakdown of skill levels</ThemedText>
-            </View>
+            </Row>
             <SkillRadar skills={(progress?.skills ?? []).map((s) => ({
               skillName: s.skill, category: '', currentLevel: s.level,
               previousLevel: s.previousLevel ?? s.level, changePercent: 0, history: s.history.map((h) => ({ date: h.date, level: h.level })),
@@ -193,13 +194,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   headerCenter: { alignItems: 'center', gap: Spacing.xxs },
-  trendBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  trendBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   tabBar: { borderBottomWidth: 1, paddingHorizontal: Spacing.sm },
   tab: { flex: 1, alignItems: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   activeTab: { borderBottomWidth: 2 },
   tabIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
   section: { gap: Spacing.md },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeader: {},
   empty: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.sm },
 });

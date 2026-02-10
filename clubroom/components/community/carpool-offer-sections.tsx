@@ -20,6 +20,7 @@ import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { CarpoolOffer } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -69,7 +70,7 @@ export const CompactCarpoolCard = memo(function CompactCarpoolCard({
         <Ionicons name="car-outline" size={20} color={palette.tint} />
       </View>
       <View style={styles.compactContent}>
-        <View style={styles.compactHeader}>
+        <Row style={styles.compactHeader}>
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
             {offer.sessionName}
           </ThemedText>
@@ -78,21 +79,21 @@ export const CompactCarpoolCard = memo(function CompactCarpoolCard({
               {getStatusText(offer)}
             </ThemedText>
           </View>
-        </View>
-        <View style={styles.compactDetails}>
-          <View style={styles.detailItem}>
+        </Row>
+        <Row style={styles.compactDetails}>
+          <Row style={styles.detailItem}>
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.detailText, { color: palette.muted }]}>
               {formatDate(offer.sessionDate)}
             </ThemedText>
-          </View>
-          <View style={styles.detailItem}>
+          </Row>
+          <Row style={styles.detailItem}>
             <Ionicons name="time-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.detailText, { color: palette.muted }]}>
               {offer.pickupTime}
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </SurfaceCard>
@@ -115,7 +116,7 @@ export const CarpoolHeader = memo(function CarpoolHeader({
   const statusColor = getStatusColor(offer, palette);
 
   return (
-    <View style={styles.header}>
+    <Row style={styles.header}>
       <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name="car" size={24} color={palette.tint} />
       </View>
@@ -132,7 +133,7 @@ export const CarpoolHeader = memo(function CarpoolHeader({
           {getStatusText(offer)}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -149,30 +150,30 @@ export const CarpoolDetails = memo(function CarpoolDetails({
 }: CarpoolDetailsProps) {
   return (
     <View style={styles.detailsContainer}>
-      <View style={styles.detailRow}>
+      <Row style={styles.detailRow}>
         <Ionicons name="calendar-outline" size={18} color={palette.icon} />
         <ThemedText style={styles.detailLabel}>{formatDate(offer.sessionDate)}</ThemedText>
-      </View>
-      <View style={styles.detailRow}>
+      </Row>
+      <Row style={styles.detailRow}>
         <Ionicons name="time-outline" size={18} color={palette.icon} />
         <ThemedText style={styles.detailLabel}>
           Pickup at {offer.pickupTime}
           {offer.returnOffered && offer.returnTime && ` - Return at ${offer.returnTime}`}
         </ThemedText>
-      </View>
-      <View style={styles.detailRow}>
+      </Row>
+      <Row style={styles.detailRow}>
         <Ionicons name="location-outline" size={18} color={palette.icon} />
         <ThemedText style={styles.detailLabel} numberOfLines={2}>
           {offer.pickupLocation}
         </ThemedText>
-      </View>
+      </Row>
       {offer.returnOffered && (
-        <View style={styles.detailRow}>
+        <Row style={styles.detailRow}>
           <Ionicons name="return-up-back-outline" size={18} color={palette.success} />
           <ThemedText style={[styles.detailLabel, { color: palette.success }]}>
             Return trip included
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -194,13 +195,13 @@ export const CarpoolSeatsInfo = memo(function CarpoolSeatsInfo({
   palette,
 }: CarpoolSeatsInfoProps) {
   return (
-    <View style={[styles.seatsSection, { borderTopColor: palette.border }]}>
-      <View style={styles.seatsInfo}>
+    <Row style={[styles.seatsSection, { borderTopColor: palette.border }]}>
+      <Row style={styles.seatsInfo}>
         <Ionicons name="people-outline" size={18} color={palette.icon} />
         <ThemedText style={styles.seatsText}>
           {offer.seatsTaken}/{offer.seatsAvailable} seats taken
         </ThemedText>
-      </View>
+      </Row>
       {isOwnOffer && pendingRequests > 0 && (
         <View style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <ThemedText style={[styles.pendingText, { color: palette.warning }]}>
@@ -208,7 +209,7 @@ export const CarpoolSeatsInfo = memo(function CarpoolSeatsInfo({
           </ThemedText>
         </View>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -239,10 +240,10 @@ export const CarpoolActions = memo(function CarpoolActions({
     return (
       <View style={styles.actions}>
         <Button onPress={onManageRequests ?? (() => {})} variant="secondary" style={styles.actionButton}>
-          <View style={styles.buttonContent}>
+          <Row style={styles.buttonContent}>
             <Ionicons name="settings-outline" size={18} color={palette.text} />
             <ThemedText style={styles.buttonText}>Manage Requests</ThemedText>
-          </View>
+          </Row>
         </Button>
       </View>
     );
@@ -251,12 +252,12 @@ export const CarpoolActions = memo(function CarpoolActions({
   if (userRequestAccepted) {
     return (
       <View style={styles.actions}>
-        <View style={[styles.confirmedBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+        <Row style={[styles.confirmedBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="checkmark-circle" size={20} color={palette.success} />
           <ThemedText style={[styles.confirmedText, { color: palette.success }]}>
             Your seat is confirmed!
           </ThemedText>
-        </View>
+        </Row>
       </View>
     );
   }
@@ -264,12 +265,12 @@ export const CarpoolActions = memo(function CarpoolActions({
   if (hasUserRequested) {
     return (
       <View style={styles.actions}>
-        <View style={[styles.pendingBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+        <Row style={[styles.pendingBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <Ionicons name="hourglass-outline" size={20} color={palette.warning} />
           <ThemedText style={[styles.pendingBannerText, { color: palette.warning }]}>
             Request pending
           </ThemedText>
-        </View>
+        </Row>
       </View>
     );
   }
@@ -291,7 +292,6 @@ export const CarpoolActions = memo(function CarpoolActions({
 
 const styles = StyleSheet.create({
   compactCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -306,7 +306,6 @@ const styles = StyleSheet.create({
   },
   compactContent: { flex: 1, gap: Spacing.xxs },
   compactHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -318,10 +317,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   statusText: { fontSize: scaleFont(11), fontWeight: '600' },
-  compactDetails: { flexDirection: 'row', gap: Spacing.md },
-  detailItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  compactDetails: { gap: Spacing.md },
+  detailItem: { alignItems: 'center', gap: Spacing.xxs },
   detailText: { fontSize: scaleFont(12) },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { alignItems: 'center', gap: Spacing.sm },
   avatarLarge: {
     width: 48,
     height: 48,
@@ -335,26 +334,24 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.sm },
   statusBadgeText: { fontSize: scaleFont(12), fontWeight: '600' },
   detailsContainer: { gap: Spacing.xs, marginTop: Spacing.xs },
-  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs },
+  detailRow: { alignItems: 'flex-start', gap: Spacing.xs },
   detailLabel: { flex: 1, fontSize: scaleFont(14), lineHeight: scaleFont(20) },
   seatsSection: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
     marginTop: Spacing.xs,
   },
-  seatsInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  seatsInfo: { alignItems: 'center', gap: Spacing.xxs },
   seatsText: { fontSize: scaleFont(14), fontWeight: '500' },
   pendingBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   pendingText: { fontSize: scaleFont(12), fontWeight: '600' },
   actions: { marginTop: Spacing.xs },
   actionButton: { width: '100%' },
-  buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  buttonContent: { alignItems: 'center', gap: 8 },
   buttonText: { fontWeight: '600', fontSize: scaleFont(15) },
   confirmedBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -363,7 +360,6 @@ const styles = StyleSheet.create({
   },
   confirmedText: { fontWeight: '600', fontSize: scaleFont(14) },
   pendingBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -25,11 +26,11 @@ export const StatsRow = memo(function StatsRow({ stats }: { stats: { sessions: n
     { icon: 'trophy' as const, color: palette.success, value: `Lv.${stats.level}`, label: 'Level' },
   ];
   return (
-    <View style={[styles.statsRow, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12) }]}>
+    <Row align="center" justify="space-around" style={[styles.statsRow, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12) }]}>
       {items.map((item, i) => (
-        <View key={item.label} style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Row key={item.label} align="center">
           {i > 0 && <View style={[styles.statDivider, { backgroundColor: palette.border }]} />}
-          <View style={styles.statItem}>
+          <Row align="center" gap="sm">
             <View style={[styles.statIcon, { backgroundColor: withAlpha(item.color, 0.09) }]}>
               <Ionicons name={item.icon} size={18} color={item.color} />
             </View>
@@ -37,10 +38,10 @@ export const StatsRow = memo(function StatsRow({ stats }: { stats: { sessions: n
               <ThemedText type="defaultSemiBold" style={styles.statValue}>{item.value}</ThemedText>
               <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{item.label}</ThemedText>
             </View>
-          </View>
-        </View>
+          </Row>
+        </Row>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -50,24 +51,24 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
   const { colors: palette } = useTheme();
   return (
     <Clickable style={[styles.streakCard, { backgroundColor: withAlpha(palette.warning, 0.12), borderColor: withAlpha(palette.warning, 0.25) }]} onPress={() => router.push(Routes.BADGES_INDEX)}>
-      <View style={styles.streakContent}>
+      <Row align="center" gap="md">
         <View style={[styles.streakIconContainer, { backgroundColor: withAlpha(palette.warning, 0.19) }]}>
           <Ionicons name="flame" size={28} color={palette.warning} />
         </View>
         <View style={styles.streakInfo}>
-          <View style={styles.streakHeader}>
+          <Row align="baseline" gap="xs">
             <ThemedText style={[styles.streakNumber, { color: palette.warning }]}>{streakInfo.currentStreak}</ThemedText>
             <ThemedText style={[styles.streakWeeks, { color: palette.warning }]}>week streak</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.streakLabel, { color: palette.text }]}>{streakInfo.streakLabel}</ThemedText>
         </View>
-        <View style={styles.streakProgress}>
+        <Row align="center" gap={4}>
           <ThemedText style={[styles.streakProgressText, { color: palette.muted }]} numberOfLines={1}>
             {streakInfo.daysToNextMilestone > 0 ? `${streakInfo.daysToNextMilestone} to next badge` : 'Max streak!'}
           </ThemedText>
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-        </View>
-      </View>
+        </Row>
+      </Row>
     </Clickable>
   );
 });
@@ -82,7 +83,7 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
     { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', color: palette.tint },
   ];
   return (
-    <View style={styles.quickActionsGrid}>
+    <Row wrap gap="sm">
       {actions.map((action, index) => (
         <Clickable key={index} style={[styles.quickAction, { backgroundColor: withAlpha(action.color, 0.06), borderColor: withAlpha(action.color, 0.15) }]}
           onPress={() => router.push(action.route as Href)}>
@@ -92,7 +93,7 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
           <ThemedText style={[styles.quickActionLabel, { color: action.color }]} numberOfLines={1}>{action.label}</ThemedText>
         </Clickable>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -118,7 +119,7 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
   }
   return (
     <SurfaceCard style={styles.nextSession} onPress={() => router.push(Routes.booking(booking.id))}>
-      <View style={styles.sessionHeader}>
+      <Row align="center" gap="sm">
         <View style={[styles.sessionIconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="time" size={20} color={palette.tint} />
         </View>
@@ -127,10 +128,10 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
           <ThemedText type="subtitle" style={styles.coachName} numberOfLines={1}>{booking.coachName}</ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-      </View>
+      </Row>
       <View style={styles.sessionDetails}>
-        <View style={styles.sessionDetail}><Ionicons name="calendar-outline" size={16} color={palette.muted} /><ThemedText style={{ color: palette.muted }} numberOfLines={1}>{formatDate(booking.scheduledAt)}</ThemedText></View>
-        <View style={styles.sessionDetail}><Ionicons name="location-outline" size={16} color={palette.muted} /><ThemedText style={{ color: palette.muted }} numberOfLines={1}>{booking.location}</ThemedText></View>
+        <Row align="center" gap="sm"><Ionicons name="calendar-outline" size={16} color={palette.muted} /><ThemedText style={{ color: palette.muted }} numberOfLines={1}>{formatDate(booking.scheduledAt)}</ThemedText></Row>
+        <Row align="center" gap="sm"><Ionicons name="location-outline" size={16} color={palette.muted} /><ThemedText style={{ color: palette.muted }} numberOfLines={1}>{booking.location}</ThemedText></Row>
       </View>
     </SurfaceCard>
   );
@@ -142,10 +143,10 @@ export const RecentBadgesSection = memo(function RecentBadgesSection({ badges }:
   if (badges.length === 0) return null;
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <Row justify="space-between" align="center">
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Badges</ThemedText>
         <Clickable onPress={() => router.push(Routes.BADGES_INDEX)}><ThemedText style={{ ...Typography.small, color: palette.tint }}>View All</ThemedText></Clickable>
-      </View>
+      </Row>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgesScroll}>
         {badges.map((badge) => (
           <View key={badge.id} style={[styles.badgeCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
@@ -169,10 +170,10 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
   if (clubs.length === 0) return null;
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <Row justify="space-between" align="center">
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>My Clubs</ThemedText>
         <Clickable onPress={() => router.push(Routes.CLUB_HUB)}><ThemedText style={{ ...Typography.small, color: palette.tint }}>View All</ThemedText></Clickable>
-      </View>
+      </Row>
       {clubs.slice(0, 2).map((club) => (
         <SurfaceCard key={club.id} style={styles.clubCard} onPress={() => router.push(Routes.club(club.id))}>
           <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -190,37 +191,37 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
 });
 
 const styles = StyleSheet.create({
-  statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1 },
-  statItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  statsRow: { padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1 },
+  statItem: { /* layout moved to Row */ },
   statIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   statValue: { ...Typography.subheading },
   statLabel: { ...Typography.caption },
   statDivider: { width: 1, height: 32, marginHorizontal: Spacing.sm },
   streakCard: { padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 1 },
-  streakContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  streakContent: { /* layout moved to Row */ },
   streakIconContainer: { width: 52, height: 52, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   streakInfo: { flex: 1, gap: Spacing.micro },
-  streakHeader: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.xs },
+  streakHeader: { /* layout moved to Row */ },
   streakNumber: { ...Typography.display },
   streakWeeks: { ...Typography.bodySmallSemiBold },
   streakLabel: { ...Typography.smallSemiBold },
-  streakProgress: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  streakProgress: { /* layout moved to Row */ },
   streakProgressText: { ...Typography.caption },
-  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  quickActionsGrid: { /* layout moved to Row */ },
   quickAction: { width: '47%', flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   quickActionIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   quickActionLabel: { ...Typography.smallSemiBold },
   nextSession: { padding: Spacing.md, gap: Spacing.md },
-  sessionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  sessionHeader: { /* layout moved to Row */ },
   sessionIconCircle: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   coachName: { ...Typography.subheading },
   sessionDetails: { gap: Spacing.xs, marginLeft: 44 + Spacing.sm },
-  sessionDetail: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  sessionDetail: { /* layout moved to Row */ },
   noSessionCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
   noSessionIcon: { width: 52, height: 52, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   bookButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeader: { /* layout moved to Row */ },
   sectionTitle: { ...Typography.subheading },
   badgesScroll: { gap: Spacing.sm },
   badgeCard: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, minWidth: 100, gap: Spacing.xs },

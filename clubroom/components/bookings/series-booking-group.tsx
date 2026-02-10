@@ -24,6 +24,7 @@ export { getStatusColor, formatBookingDate, SeriesWeekRow } from './series-booki
 export type { SeriesWeekRowProps } from './series-booking-group-sections';
 
 import { formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
+import { Row } from '@/components/primitives';
 
 interface SeriesBookingGroupProps {
   seriesId: string;
@@ -73,8 +74,8 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
 
   return (
     <SurfaceCard style={styles.card} onPress={toggleExpanded}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row style={styles.header}>
+        <Row style={styles.headerLeft}>
           <View style={[styles.seriesBadge, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
             <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
               {totalWeeks}w
@@ -88,9 +89,9 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
               {nextLabel}
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={palette.muted} />
-      </View>
+      </Row>
 
       <View style={styles.progressContainer}>
         <View style={[styles.progressTrack, { backgroundColor: withAlpha(palette.muted, 0.1) }]}>
@@ -121,8 +122,8 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { alignItems: 'center', justifyContent: 'space-between' },
+  headerLeft: { flex: 1, alignItems: 'center', gap: Spacing.sm },
   seriesBadge: { width: 40, height: 40, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1, gap: Spacing.micro },
   progressContainer: { gap: Spacing.xxs },

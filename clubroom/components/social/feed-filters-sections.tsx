@@ -15,6 +15,7 @@ import { router, type Href } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -93,7 +94,7 @@ export const ClubPillRow = memo(function ClubPillRow({
   if (clubs.length === 0) return null;
 
   return (
-    <View style={styles.clubsRow}>
+    <Row wrap gap="xs">
       {clubs.slice(0, 3).map((club) => (
         <Clickable
           key={club.id}
@@ -126,7 +127,7 @@ export const ClubPillRow = memo(function ClubPillRow({
           </ThemedText>
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -154,7 +155,7 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
           ? 'Join a club or create your own to share updates'
           : 'Join a club or follow coaches to see updates here'}
       </ThemedText>
-      <View style={styles.emptyStateActions}>
+      <Row gap="sm" style={styles.emptyStateActions}>
         <Clickable
           style={[styles.emptyStateButton, { backgroundColor: palette.tint }]}
           onPress={() => router.push(Routes.CLUB_HUB)}
@@ -179,7 +180,7 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
             {isCoach ? 'Create Club' : 'Find Coach'}
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -227,11 +228,7 @@ export const styles = StyleSheet.create({
     ...Typography.small,
     fontWeight: '500',
   },
-  clubsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+  // clubsRow replaced by Row primitive
   clubPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -285,8 +282,6 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
   },
   emptyStateActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     marginTop: Spacing.sm,
   },
   emptyStateButton: {

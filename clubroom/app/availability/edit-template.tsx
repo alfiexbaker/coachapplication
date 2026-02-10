@@ -10,12 +10,14 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState } from '@/components/ui/screen-states';
+import { ok } from '@/types/result';
 import { useEditTemplate, TIME_OPTIONS, BUFFER_OPTIONS, MAX_SLOTS_OPTIONS } from '@/hooks/use-edit-template';
 
 export default function EditTemplateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading, saving, template,
     dayOfWeek, startTime, endTime, maxSlots, bufferMinutes,
@@ -143,9 +145,9 @@ const styles = StyleSheet.create({
   timeOption: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5 },
   optionRow: { gap: Spacing.sm, paddingVertical: Spacing.sm },
   optionButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5, minWidth: 50, alignItems: 'center' },
-  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
+  deleteButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   deleteBtnText: { ...Typography.bodySemiBold },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
-  saveButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md },
+  saveButton: { paddingVertical: Spacing.md, borderRadius: Radii.md },
   saveText: { ...Typography.heading },
 });

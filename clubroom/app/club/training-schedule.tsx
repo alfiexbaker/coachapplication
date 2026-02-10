@@ -19,7 +19,8 @@ import { TrainingCard } from '@/components/club/training-card';
 import { WeeklyCalendarView } from '@/components/club/weekly-calendar-view';
 import { TrainingAttendanceCard } from '@/components/club/training-attendance-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useTrainingSchedule, type ViewMode } from '@/hooks/use-training-schedule';
 
 const VIEW_MODES: { key: ViewMode; label: string; icon: 'list' | 'calendar' }[] = [
@@ -28,7 +29,7 @@ const VIEW_MODES: { key: ViewMode; label: string; icon: 'list' | 'calendar' }[] 
 ];
 
 export default function TrainingScheduleScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading, viewMode, setViewMode,
     selectedSquadId, setSelectedSquadId,
@@ -55,20 +56,22 @@ export default function TrainingScheduleScreen() {
       </Row>
 
       {/* View mode toggle */}
-      <View style={[styles.viewToggle, { backgroundColor: colors.surface }]}>
+      <Row style={[styles.viewToggle, { backgroundColor: colors.surface }]}>
         {VIEW_MODES.map((mode) => (
           <Clickable
             key={mode.key}
             style={[styles.toggleOption, viewMode === mode.key ? { backgroundColor: colors.tint } : undefined]}
             onPress={() => setViewMode(mode.key)}
           >
-            <Ionicons name={mode.icon} size={18} color={viewMode === mode.key ? colors.onPrimary : colors.muted} />
-            <ThemedText style={[Typography.small, { color: viewMode === mode.key ? colors.onPrimary : colors.muted }]}>
-              {mode.label}
-            </ThemedText>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name={mode.icon} size={18} color={viewMode === mode.key ? colors.onPrimary : colors.muted} />
+              <ThemedText style={[Typography.small, { color: viewMode === mode.key ? colors.onPrimary : colors.muted }]}>
+                {mode.label}
+              </ThemedText>
+            </Row>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       {/* Squad filter */}
       {squads.length > 0 && (
@@ -123,8 +126,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   addButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  viewToggle: { flexDirection: 'row', marginHorizontal: Spacing.lg, borderRadius: Radii.md, padding: Spacing.xxs },
-  toggleOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
+  viewToggle: { marginHorizontal: Spacing.lg, borderRadius: Radii.md, padding: Spacing.xxs },
+  toggleOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
   filterScroll: { marginTop: Spacing.md, flexGrow: 0 },
   filterContainer: { paddingHorizontal: Spacing.lg, gap: Spacing.xs },
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.full, borderWidth: 1 },

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { RecurringBooking } from '@/constants/types';
 import { getFrequencyLabel } from '@/services/recurring-booking-service';
@@ -70,27 +71,27 @@ export function RecurringCard({ recurring, onPause, onResume, onCancel, onPress,
         <ScheduleRow recurring={recurring} />
 
         {/* Location */}
-        <View style={styles.locationRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="location-outline" size={16} color={palette.icon} />
           <ThemedText style={styles.locationText} numberOfLines={1}>{recurring.location}</ThemedText>
-        </View>
+        </Row>
 
         {/* Athlete Badge */}
         {recurring.athleteName && recurring.athleteName !== recurring.userName && (
-          <View style={[styles.athleteBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
+          <Row align="center" gap="xxs" style={[styles.athleteBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
             <Ionicons name="person" size={14} color={palette.tint} />
             <ThemedText style={[styles.athleteText, { color: palette.tint }]}>For: {recurring.athleteName}</ThemedText>
-          </View>
+          </Row>
         )}
 
         <StatsRow recurring={recurring} startDateLabel={startDateLabel} />
 
         {/* Pause Reason */}
         {recurring.status === 'PAUSED' && recurring.pauseReason && (
-          <View style={[styles.reasonBox, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
+          <Row align="center" gap="xs" style={[styles.reasonBox, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
             <Ionicons name="information-circle" size={16} color={palette.warning} />
             <ThemedText style={[styles.reasonText, { color: palette.warning }]}>Paused: {recurring.pauseReason}</ThemedText>
-          </View>
+          </Row>
         )}
 
         <ActionsRow status={recurring.status} onPause={onPause ? () => setShowPauseModal(true) : undefined}
@@ -114,10 +115,9 @@ export function RecurringCard({ recurring, onPause, onResume, onCancel, onPress,
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, gap: Spacing.sm },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   locationText: { ...Typography.small, flex: 1 },
-  athleteBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, alignSelf: 'flex-start' },
+  athleteBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, alignSelf: 'flex-start' },
   athleteText: { ...Typography.caption, fontWeight: '600' },
-  reasonBox: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.sm },
+  reasonBox: { padding: Spacing.sm, borderRadius: Radii.sm },
   reasonText: { ...Typography.small, flex: 1 },
 });

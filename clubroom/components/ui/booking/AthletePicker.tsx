@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -58,19 +59,21 @@ export function AthletePicker({
         haptics
         tactile
       >
-        <Ionicons
-          name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-          size={24}
-          color={isSelected ? palette.tint : palette.muted}
-        />
-        <View style={styles.textContainer}>
-          <ThemedText type="defaultSemiBold">{name}</ThemedText>
-          {subtitle && (
-            <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-              {subtitle}
-            </ThemedText>
-          )}
-        </View>
+        <Row align="center" gap="sm">
+          <Ionicons
+            name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+            size={24}
+            color={isSelected ? palette.tint : palette.muted}
+          />
+          <View style={styles.textContainer}>
+            <ThemedText type="defaultSemiBold">{name}</ThemedText>
+            {subtitle && (
+              <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+                {subtitle}
+              </ThemedText>
+            )}
+          </View>
+        </Row>
       </SurfaceCard>
     );
   };
@@ -90,9 +93,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
   },

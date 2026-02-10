@@ -10,6 +10,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { MutedCoach } from '@/constants/types';
@@ -38,7 +39,7 @@ export function MutedCoachesList({
   return (
     <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="sm" style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
           <Ionicons name="volume-mute" size={22} color={palette.muted} />
         </View>
@@ -55,7 +56,7 @@ export function MutedCoachesList({
             <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>{mutedCoaches.length}</ThemedText>
           </View>
         )}
-      </View>
+      </Row>
 
       {/* List or Empty State */}
       {mutedCoaches.length === 0 ? (
@@ -94,10 +95,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.md,
-    gap: Spacing.sm,
   },
   iconContainer: {
     width: 40,

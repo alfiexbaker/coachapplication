@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { View, StyleSheet, Image, Pressable, Animated } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 
@@ -73,7 +74,7 @@ export function AthleteRow({
       onLongPress={onLongPress}
       delayLongPress={500}
     >
-      <View style={styles.main}>
+      <Row align="center" gap="md">
         {/* Avatar */}
         {entry.athletePhotoUrl ? (
           <Image source={{ uri: entry.athletePhotoUrl }} style={styles.avatar} />
@@ -87,7 +88,7 @@ export function AthleteRow({
 
         {/* Info */}
         <View style={styles.info}>
-          <View style={styles.nameRow}>
+          <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
               {entry.athleteName}
             </ThemedText>
@@ -95,17 +96,17 @@ export function AthleteRow({
               <Ionicons name="accessibility-outline" size={14} color={palette.tint} />
             )}
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          </View>
+          </Row>
           <ThemedText style={[styles.parentName, { color: palette.muted }]}>
             {entry.parentName} | {entry.athleteAge} yrs
           </ThemedText>
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
+          <Row align="center" gap="sm" style={styles.metaRow}>
+            <Row align="center" gap="micro">
               <Ionicons name="calendar-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {entry.totalSessions} sessions
               </ThemedText>
-            </View>
+            </Row>
             {entry.primaryFocus && (
               <View style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <ThemedText style={[styles.focusText, { color: palette.tint }]}>
@@ -113,16 +114,16 @@ export function AthleteRow({
                 </ThemedText>
               </View>
             )}
-          </View>
+          </Row>
         </View>
 
         {/* Chevron */}
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-      </View>
+      </Row>
 
       {/* Tags */}
       {entry.tags.length > 0 && (
-        <View style={[styles.tagsSection, { borderTopColor: palette.border }]}>
+        <Row wrap gap="xxs" style={[styles.tagsSection, { borderTopColor: palette.border }]}>
           {entry.tags.slice(0, 4).map((tag) => (
             <View key={tag} style={[styles.tag, { backgroundColor: palette.surfaceSecondary }]}>
               <ThemedText style={[styles.tagText, { color: palette.muted }]}>{tag}</ThemedText>
@@ -135,7 +136,7 @@ export function AthleteRow({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -162,11 +163,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: 0,
   },
-  main: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
   avatar: {
     width: 48,
     height: 48,
@@ -183,11 +179,6 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   name: {
     flex: 1,
   },
@@ -198,15 +189,7 @@ const styles = StyleSheet.create({
   },
   parentName: { ...Typography.caption, marginTop: Spacing.micro },
   metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     marginTop: Spacing.xxs,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.micro,
   },
   metaText: { ...Typography.caption },
   focusBadge: {
@@ -216,9 +199,6 @@ const styles = StyleSheet.create({
   },
   focusText: { ...Typography.micro },
   tagsSection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xxs,
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,

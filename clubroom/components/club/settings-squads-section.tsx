@@ -60,5 +60,5 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   addBtn: { width: 44, height: 44, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.md },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  row: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
 });

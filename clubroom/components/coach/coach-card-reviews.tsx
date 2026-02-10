@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -51,7 +52,7 @@ export function RatingDisplay({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.ratingContainer}>
+    <Row style={styles.ratingContainer}>
       <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
       <ThemedText style={[styles.ratingValue, { color: palette.text }]}>
         {rating.toFixed(1)}
@@ -61,7 +62,7 @@ export function RatingDisplay({
           ({reviewCount})
         </ThemedText>
       )}
-    </View>
+    </Row>
   );
 }
 
@@ -77,12 +78,12 @@ export function CompactRating({ rating }: CompactRatingProps) {
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.compactRatingContainer}>
+    <Row style={styles.compactRatingContainer}>
       <Ionicons name="star" size={14} color={palette.premium} />
       <ThemedText style={[styles.compactRatingText, { color: palette.text }]}>
         {rating.toFixed(1)}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -99,7 +100,7 @@ export function ReviewQuote({ quote, author }: ReviewQuoteProps) {
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.quoteContainer, { backgroundColor: palette.surfaceSecondary }]}>
+    <Row style={[styles.quoteContainer, { backgroundColor: palette.surfaceSecondary }]}>
       <Ionicons name="chatbubble-outline" size={Components.icon.sm} color={palette.muted} />
       <View style={styles.quoteTextContainer}>
         <ThemedText
@@ -114,7 +115,7 @@ export function ReviewQuote({ quote, author }: ReviewQuoteProps) {
           </ThemedText>
         )}
       </View>
-    </View>
+    </Row>
   );
 }
 
@@ -166,7 +167,6 @@ export function CoachCardReviews({
 
 const styles = StyleSheet.create({
   ratingContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -179,13 +179,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   compactRatingContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   compactRatingText: { ...Typography.smallSemiBold },
   quoteContainer: {
-    flexDirection: 'row',
     gap: Spacing.xs,
     padding: Spacing.sm,
     borderRadius: Radii.sm,

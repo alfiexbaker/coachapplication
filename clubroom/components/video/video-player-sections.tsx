@@ -9,6 +9,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -82,14 +83,14 @@ export function AnnotationTimeline({
               >
                 <View style={[styles.annotationDot, { backgroundColor: markerColor }]} />
                 <View style={styles.annotationContent}>
-                  <View style={styles.annotationHeader}>
+                  <Row align="center" justify="between">
                     <ThemedText type="defaultSemiBold" style={styles.annotationLabel}>
                       {annotation.label}
                     </ThemedText>
                     <ThemedText style={[styles.annotationTime, { color: palette.muted }]}>
                       {formatTime(annotation.timestamp)}
                     </ThemedText>
-                  </View>
+                  </Row>
                   {annotation.note && (
                     <ThemedText style={[styles.annotationNote, { color: palette.muted }]}>
                       {annotation.note}
@@ -122,7 +123,6 @@ const styles = StyleSheet.create({
   },
   annotationDot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: Spacing.xxs },
   annotationContent: { flex: 1, gap: Spacing.xxs },
-  annotationHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   annotationLabel: { ...Typography.bodySmall },
   annotationTime: { ...Typography.caption },
   annotationNote: { ...Typography.small },

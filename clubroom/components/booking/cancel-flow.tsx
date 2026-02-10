@@ -13,6 +13,7 @@ import { createModalStyles } from '@/constants/styles';
 import { useCancelFlow } from '@/hooks/use-cancel-flow';
 import { SessionInfoCard, RefundBanner, ReasonCard } from './cancel-flow-cards';
 import type { Booking } from '@/constants/app-types';
+import { Row } from '@/components/primitives';
 
 export type { CancellationReason } from '@/hooks/use-cancel-flow';
 
@@ -39,12 +40,12 @@ export default function CancelFlow({ visible, onClose, bookingId, booking, userR
         <View style={ModalStyles.handle} />
 
         {/* Header */}
-        <View style={styles.modalHeader}>
+        <Row style={styles.modalHeader}>
           <ThemedText style={[styles.modalTitle, { color: colors.text }]}>Cancel session</ThemedText>
           <Clickable accessibilityLabel="Close" onPress={onClose} style={[styles.closeButton, { backgroundColor: colors.surface }]}>
             <Ionicons name="close" size={22} color={colors.text} />
           </Clickable>
-        </View>
+        </Row>
 
         {loading ? (
           <View style={styles.loadingArea}><ActivityIndicator size="large" color={colors.text} /></View>
@@ -53,24 +54,24 @@ export default function CancelFlow({ visible, onClose, bookingId, booking, userR
             <SessionInfoCard booking={booking} colors={colors} scheme={scheme} />
 
             {/* Time context */}
-            <View style={styles.timeContext}>
+            <Row style={styles.timeContext}>
               <Ionicons name="time-outline" size={16} color={colors.muted} />
               <ThemedText style={[styles.timeContextText, { color: colors.muted }]}>
                 {hoursUntil < 1 ? 'Less than 1 hour until session' : hoursUntil < 24 ? `${Math.round(hoursUntil)} hours until session` : `${Math.round(hoursUntil / 24)} days until session`}
               </ThemedText>
-            </View>
+            </Row>
 
             {/* Refund banner (parent only) */}
             {!isCoachCancelling && refundCalc && <RefundBanner calculation={refundCalc} colors={colors} />}
 
             {/* Coach cancellation warning */}
             {isCoachCancelling && (
-              <View style={[styles.coachNote, { backgroundColor: withAlpha(colors.warning, 0.07) }]}>
+              <Row style={[styles.coachNote, { backgroundColor: withAlpha(colors.warning, 0.07) }]}>
                 <Ionicons name="information-circle-outline" size={18} color={colors.warning} />
                 <ThemedText style={[styles.coachNoteText, { color: colors.muted }]}>
                   Cancelling as a coach will issue a full refund to the parent. Frequent cancellations may affect your profile rating.
                 </ThemedText>
-              </View>
+              </Row>
             )}
 
             {/* Reason selection */}
@@ -92,7 +93,7 @@ export default function CancelFlow({ visible, onClose, bookingId, booking, userR
             />
 
             {/* Action buttons */}
-            <View style={styles.buttonsRow}>
+            <Row style={styles.buttonsRow}>
               <Clickable style={[styles.keepButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={onClose}>
                 <ThemedText style={[styles.keepButtonText, { color: colors.text }]}>Keep Session</ThemedText>
               </Clickable>
@@ -106,7 +107,7 @@ export default function CancelFlow({ visible, onClose, bookingId, booking, userR
                   <ThemedText style={[styles.confirmButtonText, { color: colors.surface }]}>Confirm Cancel</ThemedText>
                 )}
               </Clickable>
-            </View>
+            </Row>
 
             <View style={styles.bottomSpacer} />
           </ScrollView>
@@ -118,20 +119,20 @@ export default function CancelFlow({ visible, onClose, bookingId, booking, userR
 
 const styles = StyleSheet.create({
   modalContainer: { flex: 1 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
+  modalHeader: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
   modalTitle: { ...Typography.title },
   closeButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   loadingArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   modalScroll: { flex: 1 },
   modalScrollContent: { paddingHorizontal: Spacing.sm },
-  timeContext: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.sm },
+  timeContext: { alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.sm },
   timeContextText: { ...Typography.small },
-  coachNote: { flexDirection: 'row', gap: Spacing.xs, borderRadius: Radii.card, padding: Spacing.sm, marginBottom: Spacing.md },
+  coachNote: { gap: Spacing.xs, borderRadius: Radii.card, padding: Spacing.sm, marginBottom: Spacing.md },
   coachNoteText: { flex: 1, ...Typography.small },
   sectionLabel: { ...Typography.bodySemiBold, marginBottom: Spacing.xs },
   reasonsGrid: { gap: Spacing.xs, marginBottom: Spacing.md },
   noteInput: { borderRadius: Radii.md, borderWidth: 1, padding: Spacing.sm, minHeight: 80, ...Typography.body, marginBottom: Spacing.md },
-  buttonsRow: { flexDirection: 'row', gap: Spacing.sm },
+  buttonsRow: { gap: Spacing.sm },
   keepButton: { flex: 1, height: Components.button.height, borderRadius: Components.button.borderRadius, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   keepButtonText: { ...Typography.bodySemiBold },
   confirmButton: { flex: 1, height: Components.button.height, borderRadius: Components.button.borderRadius, alignItems: 'center', justifyContent: 'center' },

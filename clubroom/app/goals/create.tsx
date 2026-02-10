@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { createLogger } from '@/utils/logger';
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { GoalForm } from '@/components/goals';
 import { Spacing, Typography } from '@/constants/theme';
@@ -162,11 +163,13 @@ function Header({
 }) {
   return (
     <Clickable onPress={onBack} style={styles.header} hitSlop={8}>
-      <Ionicons name="close" size={24} color={palette.text} />
-      <ThemedText type="subtitle" style={styles.headerTitle}>
-        {title}
-      </ThemedText>
-      <Ionicons name="close" size={24} color="transparent" />
+      <Row align="center" justify="space-between">
+        <Ionicons name="close" size={24} color={palette.text} />
+        <ThemedText type="subtitle" style={styles.headerTitle}>
+          {title}
+        </ThemedText>
+        <Ionicons name="close" size={24} color="transparent" />
+      </Row>
     </Clickable>
   );
 }
@@ -176,9 +179,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },

@@ -8,6 +8,7 @@
 
 import React, { memo } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +56,7 @@ export const FindCoachSearchBar = memo(function FindCoachSearchBar({
   palette,
 }: FindCoachSearchBarProps) {
   return (
-    <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row align="center" gap="md" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <Ionicons name="search" size={22} color={palette.icon} />
       <TextInput
         value={postcode}
@@ -71,7 +72,7 @@ export const FindCoachSearchBar = memo(function FindCoachSearchBar({
           <Ionicons name="close-circle" size={22} color={palette.icon} />
         </Clickable>
       ) : null}
-    </View>
+    </Row>
   );
 });
 
@@ -132,7 +133,7 @@ export const CoachResultCard = memo(function CoachResultCard({
       ]}
     >
       <SurfaceCard style={styles.cardContent} tactile={false}>
-        <View style={styles.coachHeader}>
+        <Row align="center" gap="md">
           <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
               {coach.avatar || coach.name.charAt(0)}
@@ -142,31 +143,31 @@ export const CoachResultCard = memo(function CoachResultCard({
             <ThemedText type="defaultSemiBold" style={styles.coachName}>
               {coach.name}
             </ThemedText>
-            <View style={styles.coachMeta}>
-              <View style={styles.metaItem}>
+            <Row gap="md">
+              <Row align="center" gap={4}>
                 <Ionicons name="location" size={14} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   {coach.distance.toFixed(1)} miles
                 </ThemedText>
-              </View>
-              <View style={styles.metaItem}>
+              </Row>
+              <Row align="center" gap={4}>
                 <Ionicons name="star" size={14} color={palette.rating} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews})
                 </ThemedText>
-              </View>
-            </View>
+              </Row>
+            </Row>
           </View>
           <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
             {formatGBP(coach.profile.sessionRate)}
           </ThemedText>
-        </View>
+        </Row>
 
         <ThemedText style={[styles.bio, { color: palette.muted }]} numberOfLines={2}>
           {coach.profile.bio}
         </ThemedText>
 
-        <View style={styles.specialties}>
+        <Row wrap gap="sm" align="center">
           {coach.profile.specialties.slice(0, 3).map((specialty) => (
             <View key={specialty} style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
@@ -179,9 +180,9 @@ export const CoachResultCard = memo(function CoachResultCard({
               +{coach.profile.specialties.length - 3} more
             </ThemedText>
           )}
-        </View>
+        </Row>
 
-        <View style={styles.actionsRow}>
+        <Row justify="flex-end">
           <Clickable
             onPress={() => {
               logger.press('BookCoach', { coachId: coach.id });
@@ -199,7 +200,7 @@ export const CoachResultCard = memo(function CoachResultCard({
               Book coach
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
       </SurfaceCard>
     </Clickable>
   );
@@ -229,9 +230,6 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
     borderWidth: 2,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.lg,
@@ -280,11 +278,7 @@ export const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
   },
-  coachHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
+  coachHeader: { /* layout moved to Row */ },
   avatar: {
     width: 56,
     height: 56,
@@ -298,24 +292,12 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   coachName: { ...Typography.heading },
-  coachMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
+  coachMeta: { /* layout moved to Row */ },
+  metaItem: { /* layout moved to Row */ },
   metaText: { ...Typography.small },
   price: { ...Typography.heading },
   bio: { ...Typography.bodySmall, lineHeight: 20 },
-  specialties: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
+  specialties: { /* layout moved to Row */ },
   specialtyBadge: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs / 2,
@@ -323,10 +305,7 @@ export const styles = StyleSheet.create({
   },
   specialtyText: { ...Typography.caption },
   moreText: { ...Typography.caption },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
+  actionsRow: { /* layout moved to Row */ },
   bookButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,

@@ -5,6 +5,7 @@
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Components, Radii, Spacing, Typography } from '@/constants/theme';
@@ -35,12 +36,12 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
       </ScrollView>
 
       <View style={[styles.bottomBar, { borderTopColor: palette.border }]}>
-        <View style={styles.dotsRow}>
+        <Row justify="center" align="center" gap="xs">
           {Array.from({ length: TOTAL_SCREENS }).map((_, i) => (
             <View key={i} style={[styles.dot, { backgroundColor: i === w.currentPage ? palette.tint : palette.border, width: i === w.currentPage ? Spacing.sm : Spacing.xs }]} />
           ))}
-        </View>
-        <View style={styles.buttonsRow}>
+        </Row>
+        <Row align="center" justify="space-between">
           {onSkip && w.currentPage < TOTAL_SCREENS - 1 ? (
             <Clickable onPress={onSkip} style={styles.skipButton}>
               <ThemedText style={[Typography.bodySemiBold, { color: palette.muted }]}>Skip</ThemedText>
@@ -50,7 +51,7 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
             <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>{w.isLastPage ? 'Done' : 'Next'}</ThemedText>
             {!w.isLastPage && <Ionicons name="arrow-forward" size={Components.icon.md} color={palette.onPrimary} />}
           </Clickable>
-        </View>
+        </Row>
       </View>
     </View>
   );
@@ -59,9 +60,9 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   bottomBar: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderTopWidth: 1, gap: Spacing.sm },
-  dotsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: Spacing.xs },
+  dotsRow: { /* layout moved to Row */ },
   dot: { height: Spacing.xs, borderRadius: Radii.pill },
-  buttonsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  buttonsRow: { /* layout moved to Row */ },
   skipButton: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, minWidth: 60 },
   nextButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: Components.button.height, paddingHorizontal: Spacing.lg, borderRadius: Radii.button, gap: Spacing.xs },
 });

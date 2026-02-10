@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { RatingStars } from './rating-stars';
 import { Radii, Spacing, Typography } from '@/constants/theme';
@@ -69,42 +70,42 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
     <ScrollView contentContainerStyle={styles.content}>
       {/* Overall Rating Section */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold">Overall rating</ThemedText>
           {rating === 0 && (
             <ThemedText style={[styles.required, { color: palette.error }]}>Required</ThemedText>
           )}
-        </View>
-        <View style={styles.ratingContainer}>
+        </Row>
+        <Row align="center" gap="md">
           <RatingStars rating={rating} onRate={setRating} />
           {rating > 0 && (
             <ThemedText style={[styles.ratingHint, { color: palette.muted }]}>
               {rating === 5 ? 'Excellent' : rating === 4 ? 'Great' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : 'Poor'}
             </ThemedText>
           )}
-        </View>
+        </Row>
       </View>
 
       {/* Category Ratings */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold">Category ratings</ThemedText>
           <ThemedText style={[styles.optional, { color: palette.muted }]}>Optional</ThemedText>
-        </View>
+        </Row>
         {categoryFields.map((field) => (
-          <View key={field.key} style={styles.categoryRow}>
+          <Row key={field.key} justify="space-between" align="center" style={styles.categoryRow}>
             <ThemedText style={[styles.categoryLabel, { color: palette.text }]}>{field.label}</ThemedText>
             <RatingStars rating={categories[field.key] || 0} onRate={(value) => updateCategory(field.key, value)} />
-          </View>
+          </Row>
         ))}
       </View>
 
       {/* Review Text */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold">Written review</ThemedText>
           <ThemedText style={[styles.optional, { color: palette.muted }]}>Optional</ThemedText>
-        </View>
+        </Row>
         <TextInput
           placeholder="Share specific feedback that would be helpful..."
           placeholderTextColor={palette.muted}
@@ -145,10 +146,12 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
           },
         ]}
       >
-        <Ionicons name="send" size={18} color={palette.onPrimary} />
-        <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
-          {submitting ? 'Submitting...' : 'Submit review'}
-        </ThemedText>
+        <Row align="center" justify="center" gap="sm">
+          <Ionicons name="send" size={18} color={palette.onPrimary} />
+          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
+            {submitting ? 'Submitting...' : 'Submit review'}
+          </ThemedText>
+        </Row>
       </Clickable>
     </ScrollView>
   );
@@ -162,23 +165,10 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   required: { ...Typography.caption },
   optional: { ...Typography.caption },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
   ratingHint: { ...Typography.bodySmallSemiBold },
   categoryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: Spacing.xs,
   },
   categoryLabel: { ...Typography.bodySmall, flex: 1 },
@@ -192,10 +182,6 @@ const styles = StyleSheet.create({
   },
   charCountText: { ...Typography.caption },
   submit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.button,
   },

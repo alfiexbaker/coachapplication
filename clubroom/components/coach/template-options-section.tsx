@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { COMMON_LOCATIONS } from '@/hooks/use-recurring-template-form';
 import type { SessionTemplate } from '@/constants/session-types';
+import { Row } from '@/components/primitives';
 
 interface TemplateOptionsSectionProps {
   location: string;
@@ -45,7 +46,7 @@ function TemplateOptionsSectionInner({
       {/* Location */}
       <View style={styles.section}>
         <ThemedText style={styles.sectionTitle}>Location (Optional)</ThemedText>
-        <View style={styles.chipRow}>
+        <Row style={styles.chipRow}>
           {COMMON_LOCATIONS.map((loc) => {
             const isSelected = location === loc;
             return (
@@ -66,9 +67,9 @@ function TemplateOptionsSectionInner({
             <Ionicons name="add" size={14} color={showLocationInput ? palette.tint : palette.muted} />
             <ThemedText style={[styles.chipText, { color: showLocationInput ? palette.tint : palette.text }]}>Custom</ThemedText>
           </Clickable>
-        </View>
+        </Row>
         {showLocationInput && (
-          <View style={[styles.customInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <Row style={[styles.customInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
             <Ionicons name="location-outline" size={18} color={palette.muted} />
             <TextInput
               style={[styles.textInput, { color: palette.text }]}
@@ -78,7 +79,7 @@ function TemplateOptionsSectionInner({
               onChangeText={onSetLocation}
               autoFocus
             />
-          </View>
+          </Row>
         )}
       </View>
 
@@ -87,7 +88,7 @@ function TemplateOptionsSectionInner({
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Session Template (Optional)</ThemedText>
           <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Link this slot to a specific session type</ThemedText>
-          <View style={styles.chipRow}>
+          <Row style={styles.chipRow}>
             <Clickable
               onPress={() => onSelectSessionTemplate(undefined)}
               style={[styles.chip, { backgroundColor: !sessionTemplateId ? withAlpha(palette.tint, 0.09) : palette.surface, borderColor: !sessionTemplateId ? palette.tint : palette.border }]}
@@ -108,7 +109,7 @@ function TemplateOptionsSectionInner({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
       )}
 
@@ -116,7 +117,7 @@ function TemplateOptionsSectionInner({
       <View style={styles.section}>
         <ThemedText style={styles.sectionTitle}>Session Type</ThemedText>
         <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Choose between individual or group sessions</ThemedText>
-        <View style={styles.typeRow}>
+        <Row style={styles.typeRow}>
           <Clickable
             onPress={() => onSelectMaxConcurrent(1)}
             style={[styles.typeOption, {
@@ -145,12 +146,12 @@ function TemplateOptionsSectionInner({
             <ThemedText style={[styles.typeLabel, { color: maxConcurrent > 1 ? palette.info : palette.text }]}>Group Session</ThemedText>
             <ThemedText style={[styles.typeDesc, { color: palette.muted }]}>Multiple athletes</ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         {maxConcurrent > 1 && (
-          <View style={[styles.groupSizeRow, { backgroundColor: withAlpha(palette.info, 0.03), borderColor: palette.border }]}>
+          <Row style={[styles.groupSizeRow, { backgroundColor: withAlpha(palette.info, 0.03), borderColor: palette.border }]}>
             <ThemedText style={[styles.groupSizeLabel, { color: palette.text }]}>Max group size</ThemedText>
-            <View style={styles.stepper}>
+            <Row style={styles.stepper}>
               <Clickable accessibilityLabel="Decrease max group size" onPress={() => onSelectMaxConcurrent(Math.max(2, maxConcurrent - 1))} style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.surface }]}>
                 <Ionicons name="remove" size={18} color={palette.text} />
               </Clickable>
@@ -158,8 +159,8 @@ function TemplateOptionsSectionInner({
               <Clickable accessibilityLabel="Increase max group size" onPress={() => onSelectMaxConcurrent(maxConcurrent + 1)} style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.surface }]}>
                 <Ionicons name="add" size={18} color={palette.text} />
               </Clickable>
-            </View>
-          </View>
+            </Row>
+          </Row>
         )}
       </View>
 
@@ -168,7 +169,7 @@ function TemplateOptionsSectionInner({
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Buffer Time</ThemedText>
           <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Break between sessions</ThemedText>
-          <View style={styles.bufferRow}>
+          <Row style={styles.bufferRow}>
             {[0, 15, 30].map((mins) => {
               const isSelected = bufferMinutes === mins;
               return (
@@ -183,7 +184,7 @@ function TemplateOptionsSectionInner({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
       )}
 
@@ -204,23 +205,23 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading },
   sectionHint: { ...Typography.small, marginBottom: Spacing.xs },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
+  chipRow: { flexWrap: 'wrap', gap: Spacing.xs },
+  chip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
   chipText: { ...Typography.smallSemiBold },
-  customInput: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  customInput: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
   textInput: { flex: 1, ...Typography.body, padding: 0 },
-  typeRow: { flexDirection: 'row', gap: Spacing.sm },
+  typeRow: { gap: Spacing.sm },
   typeOption: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
   typeIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   typeLabel: { ...Typography.bodySmallSemiBold, fontWeight: '700' },
   typeDesc: { ...Typography.caption, textAlign: 'center' },
-  groupSizeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  groupSizeRow: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
   groupSizeLabel: { ...Typography.bodySmallSemiBold },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  stepper: { alignItems: 'center', gap: Spacing.sm },
   stepperButton: { width: 44, height: 44, borderRadius: Radii.xl, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   stepperValue: { ...Typography.heading, fontWeight: '700', minWidth: 28, textAlign: 'center' },
-  bufferRow: { flexDirection: 'row', gap: Spacing.sm },
+  bufferRow: { gap: Spacing.sm },
   bufferOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center' },
   bufferText: { ...Typography.smallSemiBold },
-  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, marginTop: Spacing.md },
+  deleteButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, marginTop: Spacing.md },
 });

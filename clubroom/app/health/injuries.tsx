@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { InjuryCard } from '@/components/health';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -36,25 +37,25 @@ export default function InjuryHistoryScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row align="center" justify="space-between" style={styles.header}>
+        <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
           <ThemedText type="title" style={styles.headerTitle}>Injury History</ThemedText>
-        </View>
+        </Row>
         <Clickable accessibilityLabel="Log injury" onPress={c.handleLogInjury} style={[styles.addButton, { backgroundColor: palette.tint }]}>
           <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
-      </View>
+      </Row>
 
       <View style={[styles.filterContainer, { borderBottomColor: palette.border }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.filterRow}>
+          <Row gap="xs" style={styles.filterRow}>
             {FILTERS.map((filter) => {
               const isActive = c.statusFilter === filter.value;
               const color = palette[filter.colorKey];
               return (
                 <Clickable key={filter.value} onPress={() => c.handleFilterChange(filter.value)}>
-                  <View style={[styles.filterTab, {
+                  <Row align="center" gap="xs" style={[styles.filterTab, {
                     backgroundColor: isActive ? color : 'transparent',
                     borderColor: isActive ? color : palette.border,
                   }]}>
@@ -64,11 +65,11 @@ export default function InjuryHistoryScreen() {
                         {c.counts[filter.value]}
                       </ThemedText>
                     </View>
-                  </View>
+                  </Row>
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </ScrollView>
       </View>
 
@@ -104,13 +105,13 @@ export default function InjuryHistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  headerLeft: {},
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   filterContainer: { paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: 'transparent' },
-  filterRow: { flexDirection: 'row', gap: Spacing.xs, paddingHorizontal: Spacing.lg },
-  filterTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1, gap: Spacing.xs },
+  filterRow: { paddingHorizontal: Spacing.lg },
+  filterTab: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
   filterLabel: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   filterCount: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.md, minWidth: 20, alignItems: 'center' },
   filterCountText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },

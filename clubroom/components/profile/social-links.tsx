@@ -1,5 +1,6 @@
 import React from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { createLogger } from '@/utils/logger';
@@ -117,18 +118,20 @@ export function SocialLinks({
                 },
               ]}
               onPress={() => handlePress(platform, value!)}>
-              <View style={[styles.listIconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
-                <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
-              </View>
-              <View style={styles.listContent}>
-                <ThemedText type="defaultSemiBold" style={styles.listLabel}>
-                  {config.label}
-                </ThemedText>
-                <ThemedText style={[styles.listValue, { color: palette.muted }]} numberOfLines={1}>
-                  {value}
-                </ThemedText>
-              </View>
-              <Ionicons name="open-outline" size={16} color={palette.muted} />
+              <Row align="center" gap="sm">
+                <View style={[styles.listIconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
+                  <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
+                </View>
+                <View style={styles.listContent}>
+                  <ThemedText type="defaultSemiBold" style={styles.listLabel}>
+                    {config.label}
+                  </ThemedText>
+                  <ThemedText style={[styles.listValue, { color: palette.muted }]} numberOfLines={1}>
+                    {value}
+                  </ThemedText>
+                </View>
+                <Ionicons name="open-outline" size={16} color={palette.muted} />
+              </Row>
             </Pressable>
           );
         })}
@@ -137,7 +140,7 @@ export function SocialLinks({
   }
 
   return (
-    <View style={styles.iconsContainer}>
+    <Row wrap gap="xs">
       {activePlatforms.map(([platform, value]) => {
         const config = SOCIAL_PLATFORMS[platform];
         return (
@@ -161,7 +164,7 @@ export function SocialLinks({
           </Pressable>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
@@ -170,11 +173,6 @@ export { SOCIAL_PLATFORMS };
 export type { SocialLinkConfig };
 
 const styles = StyleSheet.create({
-  iconsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
   iconButton: {
     borderRadius: Radii.md,
     alignItems: 'center',
@@ -185,9 +183,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,

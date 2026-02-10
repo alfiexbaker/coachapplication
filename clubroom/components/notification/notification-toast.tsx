@@ -6,6 +6,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Clickable } from '@/components/primitives/clickable';
@@ -101,7 +102,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
         ]}
       >
         <Clickable onPress={handlePress}>
-          <View style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             {/* Icon */}
             <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
@@ -123,7 +124,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
                 <Ionicons name="close" size={18} color={palette.muted} />
               </View>
             </Clickable>
-          </View>
+          </Row>
         </Clickable>
       </Animated.View>
     </>
@@ -148,7 +149,7 @@ export function NotificationToast({
 
   return (
     <Clickable onPress={onPress}>
-      <View style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
         </View>
@@ -169,7 +170,7 @@ export function NotificationToast({
             </View>
           </Clickable>
         )}
-      </View>
+      </Row>
     </Clickable>
   );
 }
@@ -183,9 +184,6 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,

@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Academy } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface AcademyBannerProps {
   academy: Academy;
@@ -68,14 +69,14 @@ export const AcademyBanner = memo(function AcademyBanner({
         <ThemedText type="title" style={styles.academyName}>
           {academy.name}
         </ThemedText>
-        <View style={styles.locationRow}>
+        <Row style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={colors.muted} />
           <ThemedText style={[styles.location, { color: colors.muted }]}>
             {academy.city}
           </ThemedText>
-        </View>
+        </Row>
         {academy.rating && (
-          <View style={styles.ratingRow}>
+          <Row style={styles.ratingRow}>
             <Ionicons name="star" size={14} color={colors.warning} />
             <ThemedText style={styles.ratingText}>
               {academy.rating.average.toFixed(1)}
@@ -83,7 +84,7 @@ export const AcademyBanner = memo(function AcademyBanner({
             <ThemedText style={[styles.reviewCount, { color: colors.muted }]}>
               ({academy.rating.reviewCount} reviews)
             </ThemedText>
-          </View>
+          </Row>
         )}
       </View>
     </>
@@ -113,9 +114,9 @@ const styles = StyleSheet.create({
   },
   logoText: { ...Typography.display },
   academyName: { marginTop: Spacing.sm, textAlign: 'center' },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xxs },
+  locationRow: { alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xxs },
   location: { ...Typography.small },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xs },
+  ratingRow: { alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xs },
   ratingText: { ...Typography.bodySmallSemiBold },
   reviewCount: { ...Typography.small },
 });

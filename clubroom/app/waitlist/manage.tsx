@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/screen-states';
 import { WaitlistManage } from '@/components/waitlist/WaitlistManage';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -158,9 +160,7 @@ export default function ManageWaitlistScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+        <LoadingState variant="list" />
       </SafeAreaView>
     );
   }
@@ -169,7 +169,7 @@ export default function ManageWaitlistScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -181,7 +181,7 @@ export default function ManageWaitlistScreen() {
               : `${totalWaiting} ${totalWaiting === 1 ? 'person' : 'people'} across ${summaries.length} ${summaries.length === 1 ? 'session' : 'sessions'}`}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -224,17 +224,19 @@ export default function ManageWaitlistScreen() {
             <ThemedText type="defaultSemiBold" style={styles.quickActionsTitle}>
               Quick Actions
             </ThemedText>
-            <View style={styles.actionButtons}>
+            <Row gap="sm" style={styles.actionButtons}>
               <Clickable
                 onPress={() => summaries.forEach((s) => handleNotifyNext(s.sessionId))}
                 style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
               >
-                <Ionicons name="notifications-outline" size={18} color={palette.tint} />
-                <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>
-                  Notify All Next
-                </ThemedText>
+                <Row align="center" gap="xs">
+                  <Ionicons name="notifications-outline" size={18} color={palette.tint} />
+                  <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>
+                    Notify All Next
+                  </ThemedText>
+                </Row>
               </Clickable>
-            </View>
+            </Row>
           </View>
         )}
       </ScrollView>
@@ -252,11 +254,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
   },
   headerTitle: {
     flex: 1,
@@ -281,14 +280,8 @@ const styles = StyleSheet.create({
   quickActionsTitle: {
     marginBottom: Spacing.sm,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+  actionButtons: {},
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,

@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── ShareUrlBox ─────────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ interface ShareUrlBoxProps {
 
 export const ShareUrlBox = memo(function ShareUrlBox({ url, palette }: ShareUrlBoxProps) {
   return (
-    <View style={[styles.urlBox, { backgroundColor: palette.background, borderColor: palette.border }]}>
+    <Row style={[styles.urlBox, { backgroundColor: palette.background, borderColor: palette.border }]}>
       <Ionicons name="link-outline" size={Components.icon.md} color={palette.muted} />
       <ThemedText
         style={[Typography.body, { color: palette.text, flex: 1 }]}
@@ -33,7 +34,7 @@ export const ShareUrlBox = memo(function ShareUrlBox({ url, palette }: ShareUrlB
       >
         {url}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -144,7 +145,7 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
       <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.xs / 2, marginBottom: Spacing.sm }]}>
         Personalise your profile URL for easier sharing
       </ThemedText>
-      <View style={styles.slugInputRow}>
+      <Row style={styles.slugInputRow}>
         <ThemedText style={[Typography.body, { color: palette.muted }]}>
           clubroom.app/coach/
         </ThemedText>
@@ -173,9 +174,9 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
             <Ionicons name="pencil-outline" size={Components.icon.sm} color={palette.muted} />
           </Clickable>
         )}
-      </View>
+      </Row>
       {editing && (
-        <View style={styles.slugActions}>
+        <Row style={styles.slugActions}>
           <Clickable
             onPress={onCancel}
             style={[styles.slugCancelBtn, { borderColor: palette.border }]}
@@ -190,7 +191,7 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
               Save
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -200,7 +201,6 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
 
 const styles = StyleSheet.create({
   urlBox: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -210,7 +210,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   actionRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.sm,
@@ -240,7 +239,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   slugInputRow: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   slugInput: {
@@ -253,7 +251,6 @@ const styles = StyleSheet.create({
   },
   slugDisplay: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     height: Components.input.height,
@@ -262,7 +259,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   slugActions: {
-    flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: Spacing.xs,
     marginTop: Spacing.sm,

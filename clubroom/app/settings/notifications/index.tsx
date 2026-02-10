@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -51,7 +52,7 @@ export default function NotificationSettingsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -59,7 +60,7 @@ export default function NotificationSettingsScreen() {
           Notifications
         </ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -198,9 +199,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },

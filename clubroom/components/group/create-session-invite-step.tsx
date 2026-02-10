@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface CreateSessionInviteStepProps {
   selectedSquadIds: string[];
@@ -38,7 +39,7 @@ function CreateSessionInviteStepInner({
 
       {selectedSquadIds.length > 0 ? (
         <SurfaceCard style={styles.inviteCard}>
-          <View style={styles.inviteCardHeader}>
+          <Row style={styles.inviteCardHeader}>
             <Ionicons name="people" size={24} color={palette.tint} />
             <View style={{ flex: 1 }}>
               <ThemedText type="defaultSemiBold">Invite Squad Members</ThemedText>
@@ -46,15 +47,15 @@ function CreateSessionInviteStepInner({
                 Send session invites to all athletes in your linked squad
               </ThemedText>
             </View>
-          </View>
+          </Row>
 
           {squadInviteSent ? (
-            <View style={[styles.inviteSentBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row style={[styles.inviteSentBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               <ThemedText style={[styles.inviteSentText, { color: palette.success }]}>
                 Invites sent successfully!
               </ThemedText>
-            </View>
+            </Row>
           ) : (
             <Clickable
               onPress={onInvitePress}
@@ -69,12 +70,12 @@ function CreateSessionInviteStepInner({
         </SurfaceCard>
       ) : (
         <SurfaceCard style={styles.inviteCard}>
-          <View style={styles.noSquadMessage}>
+          <Row style={styles.noSquadMessage}>
             <Ionicons name="information-circle-outline" size={24} color={palette.muted} />
             <ThemedText style={{ color: palette.muted, flex: 1 }}>
               No squad linked. You can still invite athletes individually from the session page.
             </ThemedText>
-          </View>
+          </Row>
         </SurfaceCard>
       )}
 
@@ -116,12 +117,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   inviteCardHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
   inviteButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -132,7 +131,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
   },
   inviteSentBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -143,7 +141,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
   },
   noSquadMessage: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },

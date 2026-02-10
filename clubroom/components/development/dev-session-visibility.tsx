@@ -52,5 +52,5 @@ export const DevSessionVisibility = memo(function DevSessionVisibility({
 });
 
 const styles = StyleSheet.create({
-  option: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  option: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
 });

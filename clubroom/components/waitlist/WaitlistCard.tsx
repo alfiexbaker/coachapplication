@@ -1,4 +1,5 @@
 import { View, StyleSheet, Switch, Alert } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -57,53 +58,53 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       ]}
     >
       {isNotified && (
-        <View style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+        <Row align="center" gap="xs" style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="checkmark-circle" size={16} color={palette.success} />
           <ThemedText style={[styles.notificationText, { color: palette.success }]}>
             A spot is available! Book now before it expires.
           </ThemedText>
-        </View>
+        </Row>
       )}
 
-      <View style={styles.header}>
+      <Row justify="space-between" align="flex-start" style={styles.header}>
         <View style={styles.sessionInfo}>
           <ThemedText type="defaultSemiBold" style={styles.sessionTitle} numberOfLines={2}>
             {entry.sessionTitle || 'Session'}
           </ThemedText>
           {entry.coachName && (
-            <View style={styles.coachRow}>
+            <Row align="center" gap="xxs">
               <Ionicons name="person-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.coachName, { color: palette.muted }]}>
                 {entry.coachName}
               </ThemedText>
-            </View>
+            </Row>
           )}
         </View>
 
         <WaitlistPosition position={entry.position} size="medium" />
-      </View>
+      </Row>
 
       <View style={styles.details}>
-        <View style={styles.detailRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="calendar-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.detailText, { color: palette.muted }]}>
             {formatSessionDate(entry.sessionScheduledAt)}
           </ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.detailRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="time-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.detailText, { color: palette.muted }]}>
             Joined {timeAgo}
           </ThemedText>
-        </View>
+        </Row>
       </View>
 
       <Divider style={{ marginHorizontal: Components.card.padding }} />
 
       <View style={styles.footer}>
         <Clickable onPress={onToggleAutoBook} style={styles.autoBookRow}>
-          <View style={styles.autoBookInfo}>
+          <Row align="flex-start" gap="sm" flex style={styles.autoBookInfo}>
             <Ionicons
               name={entry.autoBook ? 'flash' : 'flash-outline'}
               size={16}
@@ -122,7 +123,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
                   : 'Manual booking required'}
               </ThemedText>
             </View>
-          </View>
+          </Row>
           <Switch
             value={entry.autoBook}
             onValueChange={onToggleAutoBook}
@@ -144,7 +145,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       </View>
 
       {entry.expiresAt && isNotified && (
-        <View style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+        <Row align="center" gap="xs" style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
           <Ionicons name="alarm-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
             Expires {new Date(entry.expiresAt).toLocaleString('en-GB', {
@@ -153,7 +154,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
               minute: '2-digit',
             })}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -165,16 +166,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   notificationBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     padding: Spacing.sm,
   },
   notificationText: { ...Typography.smallSemiBold, flex: 1 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     padding: Components.card.padding,
     paddingBottom: 0,
   },
@@ -184,22 +179,14 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   sessionTitle: { ...Typography.subheading },
-  coachRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  coachRow: { /* layout moved to Row */ },
   coachName: { ...Typography.caption },
   details: {
     padding: Components.card.padding,
     paddingTop: Spacing.sm,
     gap: Spacing.xxs,
   },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  detailRow: { /* layout moved to Row */ },
   detailText: { ...Typography.small },
   footer: {
     padding: Components.card.padding,
@@ -210,12 +197,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  autoBookInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    flex: 1,
-  },
+  autoBookInfo: { /* layout moved to Row */ },
   autoBookText: {
     flex: 1,
     gap: Spacing.micro,
@@ -232,9 +214,6 @@ const styles = StyleSheet.create({
   },
   leaveButtonText: { ...Typography.bodySmallSemiBold },
   expiryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     padding: Spacing.sm,
     marginTop: 0,
   },

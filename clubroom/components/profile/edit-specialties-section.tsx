@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { FootballObjective } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -26,7 +27,7 @@ export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
       <ThemedText type="subtitle">Coaching Specialties</ThemedText>
       <ThemedText style={styles.subtitle}>Select the areas you specialize in</ThemedText>
 
-      <View style={styles.focusGrid}>
+      <Row wrap gap="xs">
         {objectives.map((focus) => {
           const isSelected = selectedFocuses.includes(focus);
           return (
@@ -49,7 +50,7 @@ export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
             </Pressable>
           );
         })}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -57,7 +58,6 @@ export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
   subtitle: { opacity: 0.6, ...Typography.bodySmall },
-  focusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   focusChip: {
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
     borderRadius: Radii.pill, borderWidth: 1,

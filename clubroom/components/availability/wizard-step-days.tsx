@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS_SHORT } from '@/hooks/use-availability-wizard';
+import { Row } from '@/components/primitives';
 
 interface WizardStepDaysProps {
   selectedDays: boolean[];
@@ -34,16 +35,16 @@ function WizardStepDaysInner({ selectedDays, selectedCount, onToggleDay, onApply
         </ThemedText>
       </View>
 
-      <View style={styles.presetRow}>
+      <Row style={styles.presetRow}>
         <Clickable onPress={() => onApplyPreset('weekdays')} style={[styles.presetBtn, { borderColor: palette.border }]}>
           <ThemedText style={[styles.presetText, { color: palette.tint }]}>Weekdays</ThemedText>
         </Clickable>
         <Clickable onPress={() => onApplyPreset('weekends')} style={[styles.presetBtn, { borderColor: palette.border }]}>
           <ThemedText style={[styles.presetText, { color: palette.tint }]}>Weekends</ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
-      <View style={styles.dayGrid}>
+      <Row style={styles.dayGrid}>
         {DAYS_SHORT.map((day, index) => (
           <Clickable
             key={day}
@@ -62,7 +63,7 @@ function WizardStepDaysInner({ selectedDays, selectedCount, onToggleDay, onApply
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       <Clickable
         onPress={() => selectedCount > 0 && onNext()}
@@ -86,12 +87,12 @@ const styles = StyleSheet.create({
   stepBadgeText: { ...Typography.caption, fontWeight: '600' },
   stepTitle: { marginTop: Spacing.xs },
   stepSubtitle: { ...Typography.body },
-  presetRow: { flexDirection: 'row', gap: Spacing.sm },
+  presetRow: { gap: Spacing.sm },
   presetBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44 },
   presetText: { ...Typography.smallSemiBold },
-  dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  dayGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   dayCell: { width: '13%', minWidth: 42, aspectRatio: 1, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   dayCellText: { ...Typography.smallSemiBold },
-  nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, minHeight: 52 },
+  nextBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, minHeight: 52 },
   nextBtnText: { fontWeight: '600', fontSize: Typography.body.fontSize },
 });

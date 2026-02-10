@@ -21,6 +21,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupChatMessage } from './group-chat';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export const PinnedBanner = memo(function PinnedBanner({
   palette,
 }: PinnedBannerProps) {
   return (
-    <View style={[styles.pinnedBanner, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+    <Row style={[styles.pinnedBanner, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
       <Ionicons name="pin" size={Components.icon.sm} color={palette.tint} />
       <View style={styles.pinnedContent}>
         <ThemedText style={[styles.pinnedSender, { color: palette.tint }]} numberOfLines={1}>
@@ -58,7 +59,7 @@ export const PinnedBanner = memo(function PinnedBanner({
           <Ionicons name="close" size={Components.icon.md} color={palette.muted} />
         </Pressable>
       ) : null}
-    </View>
+    </Row>
   );
 });
 
@@ -95,7 +96,7 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
   palette,
 }: ChatMessageBubbleProps) {
   return (
-    <View style={[styles.messageLine, isOwn ? styles.messageLineOwn : styles.messageLineOther]}>
+    <Row style={[styles.messageLine, isOwn ? styles.messageLineOwn : styles.messageLineOther]}>
       {!isOwn ? (
         <View style={[styles.avatarSmall, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
           <ThemedText style={[styles.avatarInitial, { color: palette.tint }]}>
@@ -122,7 +123,7 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
           {formatChatTime(message.createdAt)}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -144,7 +145,7 @@ export const GroupChatInputBar = memo(function GroupChatInputBar({
   palette,
 }: GroupChatInputBarProps) {
   return (
-    <View style={[styles.inputBar, { backgroundColor: palette.surface, borderTopColor: palette.border }]}>
+    <Row style={[styles.inputBar, { backgroundColor: palette.surface, borderTopColor: palette.border }]}>
       <Pressable
         style={styles.attachButton}
         onPress={onAttachPhoto}
@@ -187,7 +188,7 @@ export const GroupChatInputBar = memo(function GroupChatInputBar({
       >
         <Ionicons name="send" size={Components.icon.md} color={palette.onPrimary} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -198,7 +199,6 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   pinnedBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -231,7 +231,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   messageLine: {
-    flexDirection: 'row',
     marginBottom: Spacing.xs / 2,
   },
   messageLineOwn: {
@@ -279,7 +278,6 @@ export const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   inputBar: {
-    flexDirection: 'row',
     alignItems: 'flex-end',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,

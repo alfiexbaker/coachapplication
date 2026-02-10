@@ -37,7 +37,7 @@ export const MedicalConsentToggle = memo(function MedicalConsentToggle({ consent
 });
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
+  row: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
   toggle: { width: 48, height: 28, borderRadius: Radii.lg, justifyContent: 'center' },
   toggleKnob: { width: 24, height: 24, borderRadius: Radii.md },
 });

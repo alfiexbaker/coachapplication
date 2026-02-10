@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -40,25 +41,26 @@ export interface MedicalItemChipsProps {
 export const MedicalItemChips = memo(function MedicalItemChips({
   topItems,
   remainingCount,
-  palette,
-}: MedicalItemChipsProps) {
+  palette }: MedicalItemChipsProps) {
   if (topItems.length === 0) return null;
 
   return (
     <View style={styles.summarySection}>
-      <View style={styles.itemsRow}>
+      <Row wrap gap="xs">
         {topItems.map((item, index) => {
           const color = getItemColor(item.type, palette);
           return (
-            <View
+            <Row
               key={`${item.type}-${index}`}
+              align="center"
+              gap="xxs"
               style={[styles.itemChip, { backgroundColor: withAlpha(color, 0.06) }]}
             >
               <Ionicons name={getItemIcon(item.type)} size={12} color={color} />
               <ThemedText style={[styles.itemText, { color }]} numberOfLines={1}>
                 {item.label}
               </ThemedText>
-            </View>
+            </Row>
           );
         })}
         {remainingCount > 0 && (
@@ -68,7 +70,7 @@ export const MedicalItemChips = memo(function MedicalItemChips({
             </ThemedText>
           </View>
         )}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -84,10 +86,9 @@ export interface EmergencyCallSectionProps {
 export const EmergencyCallSection = memo(function EmergencyCallSection({
   contact,
   onCall,
-  palette,
-}: EmergencyCallSectionProps) {
+  palette }: EmergencyCallSectionProps) {
   return (
-    <View style={[styles.callSection, { borderTopColor: palette.border }]}>
+    <Row align="center" gap="md" style={[styles.callSection, { borderTopColor: palette.border }]}>
       <View style={styles.contactInfo}>
         <ThemedText style={[styles.contactLabel, { color: palette.muted }]}>
           Emergency Contact
@@ -105,7 +106,7 @@ export const EmergencyCallSection = memo(function EmergencyCallSection({
       >
         <Ionicons name="call" size={22} color={palette.onSuccess} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -117,12 +118,12 @@ export interface NoContactWarningProps {
 
 export const NoContactWarning = memo(function NoContactWarning({ palette }: NoContactWarningProps) {
   return (
-    <View style={[styles.warningSection, { backgroundColor: withAlpha(palette.warning, 0.03) }]}>
+    <Row align="center" gap="sm" style={[styles.warningSection, { backgroundColor: withAlpha(palette.warning, 0.03) }]}>
       <Ionicons name="warning" size={16} color={palette.warning} />
       <ThemedText style={[styles.warningText, { color: palette.warning }]}>
         No emergency contact on file
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -131,54 +132,32 @@ export const NoContactWarning = memo(function NoContactWarning({ palette }: NoCo
 const styles = StyleSheet.create({
   summarySection: {
     paddingHorizontal: Components.card.padding,
-    paddingBottom: Components.card.padding,
-  },
-  itemsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    paddingBottom: Components.card.padding },
   itemChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   itemText: { ...Typography.caption, maxWidth: 100 },
   moreChip: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   moreText: { ...Typography.caption },
   callSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
     padding: Components.card.padding,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   contactInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   contactLabel: { ...Typography.caption, marginBottom: Spacing.micro },
   callButton: {
     width: 52,
     height: 52,
     borderRadius: Radii['2xl'],
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   warningSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Components.card.padding,
     marginHorizontal: Components.card.padding,
     marginBottom: Components.card.padding,
-    borderRadius: Radii.md,
-  },
-  warningText: { ...Typography.smallSemiBold },
-});
+    borderRadius: Radii.md },
+  warningText: { ...Typography.smallSemiBold } });

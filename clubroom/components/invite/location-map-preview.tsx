@@ -14,6 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface LocationMapPreviewProps {
   location: string;
@@ -55,12 +56,12 @@ function LocationMapPreviewComponent({ location, coordinates }: LocationMapPrevi
       </View>
 
       {/* Location text */}
-      <View style={styles.locationRow}>
+      <Row style={styles.locationRow}>
         <Ionicons name="location-outline" size={18} color={palette.muted} />
         <ThemedText style={styles.locationText} numberOfLines={2}>
           {location}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Get Directions button */}
       <Clickable
@@ -92,7 +93,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   directionsButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

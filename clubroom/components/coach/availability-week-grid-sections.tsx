@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -26,11 +27,11 @@ export interface GridLegendProps {
 
 export const GridLegend = memo(function GridLegend({ palette }: GridLegendProps) {
   return (
-    <View style={styles.legendRow}>
+    <Row style={styles.legendRow}>
       <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
       <ThemedText style={[styles.legendLabel, { color: palette.muted }]}>Available</ThemedText>
       <ThemedText style={[styles.legendHint, { color: palette.muted }]}>Tap to toggle</ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -48,7 +49,7 @@ export const DayColumnHeaders = memo(function DayColumnHeaders({
   palette,
 }: DayColumnHeadersProps) {
   return (
-    <View style={styles.dayHeaderRow}>
+    <Row style={styles.dayHeaderRow}>
       <View style={styles.hourLabel} />
       {DAYS_SHORT.map((day, i) => {
         const isToday = i === todayIndex;
@@ -72,7 +73,7 @@ export const DayColumnHeaders = memo(function DayColumnHeaders({
           </View>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -80,7 +81,6 @@ export const DayColumnHeaders = memo(function DayColumnHeaders({
 
 const styles = StyleSheet.create({
   legendRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
   legendLabel: { ...Typography.caption },
   legendHint: { ...Typography.micro, fontStyle: 'italic' },
   dayHeaderRow: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   dayHeaderCell: {

@@ -32,8 +32,8 @@ const logger = (0, logger_1.createLogger)('EventCrudService');
 const MOCK_EVENTS = [
     {
         id: 'event_1',
-        clubId: 'club_1',
-        clubName: 'Bradwell Boys FC',
+        clubId: 'club_lions',
+        clubName: 'Lions FC Academy',
         createdBy: 'coach1',
         createdByName: 'Director Kelly',
         title: 'End of Season Presentation',
@@ -74,8 +74,8 @@ const MOCK_EVENTS = [
     },
     {
         id: 'event_2',
-        clubId: 'club_1',
-        clubName: 'Bradwell Boys FC',
+        clubId: 'club_lions',
+        clubName: 'Lions FC Academy',
         createdBy: 'coach1',
         createdByName: 'Director Kelly',
         title: 'Summer Tournament',
@@ -109,8 +109,8 @@ const MOCK_EVENTS = [
     },
     {
         id: 'event_3',
-        clubId: 'club_1',
-        clubName: 'Bradwell Boys FC',
+        clubId: 'club_lions',
+        clubName: 'Lions FC Academy',
         createdBy: 'coach1',
         createdByName: 'Director Kelly',
         title: 'Parents Meeting',
@@ -150,8 +150,8 @@ const MOCK_EVENTS = [
     },
     {
         id: 'event_4',
-        clubId: 'club_1',
-        clubName: 'Bradwell Boys FC',
+        clubId: 'club_lions',
+        clubName: 'Lions FC Academy',
         createdBy: 'coach_2',
         createdByName: 'Sarah Mitchell',
         title: 'Club BBQ Social',

@@ -8,6 +8,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createCardStyles } from '@/constants/styles';
@@ -17,8 +18,7 @@ import {
   formatSessionDate,
   formatSessionTime,
   getTimeUntilDeadline,
-  ResponseButton,
-} from './rsvp-flow-sections';
+  ResponseButton } from './rsvp-flow-sections';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -47,8 +47,7 @@ export function RSVPFlow({
   childName,
   rsvpId,
   onRespond,
-  responseDeadline,
-}: RSVPFlowProps) {
+  responseDeadline }: RSVPFlowProps) {
   const { colors } = useTheme();
   const CardStyles = createCardStyles(colors);
 
@@ -80,26 +79,26 @@ export function RSVPFlow({
         </ThemedText>
         <ThemedText style={[styles.sessionTitle, { color: colors.text }]}>{sessionTitle}</ThemedText>
 
-        <View style={styles.detailRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="calendar-outline" size={18} color={colors.muted} />
           <ThemedText style={[styles.detailText, { color: colors.muted }]}>{formatSessionDate(sessionDate)}</ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.detailRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="time-outline" size={18} color={colors.muted} />
           <ThemedText style={[styles.detailText, { color: colors.muted }]}>{formatSessionTime(sessionDate)}</ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.detailRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="location-outline" size={18} color={colors.muted} />
           <ThemedText style={[styles.detailText, { color: colors.muted }]}>{location}</ThemedText>
-        </View>
+        </Row>
 
         {deadlineLabel && (
-          <View style={[styles.deadlineBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+          <Row align="center" gap="xs" style={[styles.deadlineBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
             <Ionicons name="hourglass-outline" size={14} color={colors.warning} />
             <ThemedText style={[styles.deadlineText, { color: colors.warning }]}>{deadlineLabel}</ThemedText>
-          </View>
+          </Row>
         )}
       </View>
 
@@ -153,46 +152,29 @@ export function RSVPFlow({
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   infoCard: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   childLabel: {
     ...Typography.micro,
-    letterSpacing: 0.6,
-  },
+    letterSpacing: 0.6 },
   sessionTitle: {
-    ...Typography.title,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    ...Typography.title },
+  detailRow: {},
   detailText: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   deadlineBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   deadlineText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   responseSection: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   responseLabel: {
     ...Typography.heading,
     textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-});
+    marginBottom: Spacing.xs } });
 
 export default RSVPFlow;

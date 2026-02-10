@@ -55,7 +55,7 @@ export const MemberSquadAssignments = memo(function MemberSquadAssignments({ squ
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   list: { gap: Spacing.xs },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  row: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   icon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   toggle: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
 });

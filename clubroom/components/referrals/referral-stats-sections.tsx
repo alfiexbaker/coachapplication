@@ -10,6 +10,7 @@ import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -55,7 +56,7 @@ export const CompactStatItem = memo(function CompactStatItem({
   palette,
 }: StatItemProps) {
   return (
-    <View style={styles.compactStatItem}>
+    <Row align="center" gap="xxs">
       <Ionicons name={icon} size={16} color={iconColor} />
       <ThemedText type="defaultSemiBold" style={styles.compactValue}>
         {value}
@@ -63,7 +64,7 @@ export const CompactStatItem = memo(function CompactStatItem({
       <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
         {label}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -121,9 +122,7 @@ export const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   horizontalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
+    // flexDirection/alignItems/justifyContent moved to Row props
   },
   statItem: {
     alignItems: 'center',
@@ -140,13 +139,10 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   compactRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
+    // layout moved to Row props
   },
   compactStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
+    // layout moved to Row props
   },
   compactValue: {
     fontSize: scaleFont(15),
@@ -158,8 +154,7 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   defaultRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+    // layout moved to Row props
   },
   statCard: {
     padding: Spacing.md,

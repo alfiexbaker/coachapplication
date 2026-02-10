@@ -9,6 +9,7 @@ import { View, StyleSheet, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { CodeUsageList, CodeUsageSummary } from '@/components/promo';
@@ -32,7 +33,7 @@ export const PromoUsageModal = memo(function PromoUsageModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="flex-start" justify="space-between" style={styles.header}>
           <View>
             <ThemedText type="title" style={styles.title}>Usage History</ThemedText>
             {selectedCode && (
@@ -42,7 +43,7 @@ export const PromoUsageModal = memo(function PromoUsageModal({
           <Clickable accessibilityLabel="Close" style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]} onPress={onClose}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
 
         <View style={styles.content}>
           {selectedCode && (
@@ -64,7 +65,7 @@ export const PromoUsageModal = memo(function PromoUsageModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: Spacing.md, paddingTop: Spacing.lg },
+  header: { padding: Spacing.md, paddingTop: Spacing.lg },
   title: { ...Typography.title },
   subtitle: { ...Typography.bodySmallSemiBold, marginTop: Spacing.micro },
   closeButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },

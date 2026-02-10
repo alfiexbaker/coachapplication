@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,7 +72,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
       }
     >
       <SurfaceCard style={styles.athleteCard}>
-        <View style={styles.athleteRow}>
+        <Row align="center" gap="md">
           {/* Avatar */}
           <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             {athlete.athletePhotoUrl ? (
@@ -88,7 +89,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
 
           {/* Info */}
           <View style={styles.athleteInfo}>
-            <View style={styles.nameRow}>
+            <Row align="center" gap="sm">
               <ThemedText type="defaultSemiBold" style={styles.athleteName}>
                 {athlete.athleteName}
               </ThemedText>
@@ -99,9 +100,9 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
                   </ThemedText>
                 </View>
               )}
-            </View>
+            </Row>
 
-            <View style={styles.metaRow}>
+            <Row align="center" gap="xxs">
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {athlete.totalSessions} sessions
               </ThemedText>
@@ -109,27 +110,27 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 Last: {formatRelativeDate(athlete.lastSessionDate)}
               </ThemedText>
-            </View>
+            </Row>
 
             {upcomingSession ? (
-              <View style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <Row align="center" gap="xxs" style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="calendar" size={12} color={palette.success} />
                 <ThemedText style={[styles.upcomingText, { color: palette.success }]}>
                   Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
                 </ThemedText>
-              </View>
+              </Row>
             ) : needsAttention ? (
-              <View style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+              <Row align="center" gap="xxs" style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="alert-circle" size={12} color={palette.warning} />
                 <ThemedText style={[styles.upcomingText, { color: palette.warning }]}>
                   No upcoming session
                 </ThemedText>
-              </View>
+              </Row>
             ) : null}
           </View>
 
           {/* Actions */}
-          <View style={styles.actions}>
+          <Row align="center" gap="sm">
             <Clickable
               style={[styles.actionButton, { backgroundColor: palette.tint }]}
               onPress={() =>
@@ -139,8 +140,8 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
               <Ionicons name="add" size={18} color={palette.onPrimary} />
             </Clickable>
             <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-          </View>
-        </View>
+          </Row>
+        </Row>
       </SurfaceCard>
     </Clickable>
   );
@@ -157,11 +158,6 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.sm,
     padding: Spacing.md,
-  },
-  athleteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
   },
   avatar: {
     width: 52,
@@ -192,11 +188,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xxs,
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
   athleteName: {
     ...Typography.subheading,
   },
@@ -209,11 +200,6 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     textTransform: 'capitalize',
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
   metaText: {
     ...Typography.small,
   },
@@ -221,9 +207,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   upcomingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
@@ -232,11 +215,6 @@ const styles = StyleSheet.create({
   },
   upcomingText: {
     ...Typography.caption,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
   },
   actionButton: {
     width: 32,

@@ -30,6 +30,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Components, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
@@ -252,7 +253,7 @@ function ButtonInner({
       {loading ? (
         <ActivityIndicator size="small" color={variantColors.text} />
       ) : (
-        <>
+        <Row align="center" justify="center" gap={sizeConfig.gap}>
           {iconPosition === 'left' && iconElement}
           <Text
             style={[
@@ -269,7 +270,7 @@ function ButtonInner({
             {title}
           </Text>
           {iconPosition === 'right' && iconElement}
-        </>
+        </Row>
       )}
     </AnimatedPressable>
   );
@@ -283,7 +284,6 @@ export const Button = React.memo(ButtonInner);
 
 const styles = StyleSheet.create({
   base: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: Components.button.minWidth,

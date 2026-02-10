@@ -61,10 +61,10 @@ export default function InjuryDetailScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
+        <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
           <Ionicons name={statusInfo.icon as keyof typeof Ionicons.glyphMap} size={14} color={statusInfo.color} />
           <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</ThemedText>
-        </View>
+        </Row>
       </Row>
 
       <ScrollView
@@ -112,7 +112,7 @@ export default function InjuryDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, gap: Spacing.xxs },
+  statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   statusText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachProfile } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -39,14 +40,14 @@ export const MapClusterOverlay = memo(function MapClusterOverlay({
     <View style={[styles.clusterOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       <SurfaceCard style={styles.clusterCard}>
-        <View style={styles.clusterHeader}>
+        <Row style={styles.clusterHeader}>
           <ThemedText type="defaultSemiBold">
             {cluster.coaches.length} Coaches
           </ThemedText>
           <Clickable accessibilityLabel="Close" onPress={onClose}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
         <ScrollView style={styles.clusterList}>
           {cluster.coaches.map((coach) => (
             <CoachCard
@@ -79,7 +80,6 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   clusterHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,

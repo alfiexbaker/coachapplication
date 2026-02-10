@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 const DAY_BUTTONS: { label: string; short: string; value: number }[] = [
   { label: 'Monday', short: 'Mon', value: 1 },
@@ -46,8 +47,8 @@ function CreateSessionScheduleStepInner({
       </ThemedText>
 
       {/* Recurring Toggle */}
-      <View style={[styles.recurringToggle, { backgroundColor: palette.surface }]}>
-        <View style={styles.recurringToggleLeft}>
+      <Row style={[styles.recurringToggle, { backgroundColor: palette.surface }]}>
+        <Row style={styles.recurringToggleLeft}>
           <Ionicons name="repeat" size={20} color={palette.tint} />
           <View>
             <ThemedText type="defaultSemiBold">Recurring Session</ThemedText>
@@ -55,21 +56,21 @@ function CreateSessionScheduleStepInner({
               Repeat weekly on a set day
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <Switch
           value={isRecurring}
           onValueChange={(v) => onFieldChange('isRecurring', v)}
           trackColor={{ false: palette.border, true: withAlpha(palette.tint, 0.4) }}
           thumbColor={isRecurring ? palette.tint : palette.muted}
         />
-      </View>
+      </Row>
 
       {isRecurring ? (
         <>
           {/* Day of Week Picker */}
           <View style={styles.inputGroup}>
             <ThemedText style={styles.inputLabel}>Day of Week *</ThemedText>
-            <View style={styles.dayGrid}>
+            <Row style={styles.dayGrid}>
               {DAY_BUTTONS.map((day) => {
                 const selected = recurringDayOfWeek === day.value;
                 return (
@@ -97,7 +98,7 @@ function CreateSessionScheduleStepInner({
                   </Pressable>
                 );
               })}
-            </View>
+            </Row>
           </View>
 
           {/* Runs Until */}
@@ -118,7 +119,7 @@ function CreateSessionScheduleStepInner({
         />
       )}
 
-      <View style={styles.rowInputs}>
+      <Row style={styles.rowInputs}>
         <DateTimeField
           mode="time"
           label="Start Time"
@@ -133,7 +134,7 @@ function CreateSessionScheduleStepInner({
           onChange={(v) => onFieldChange('scheduleEndTime', v)}
           style={{ flex: 1 }}
         />
-      </View>
+      </Row>
     </Animated.View>
   );
 }
@@ -148,14 +149,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   recurringToggle: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
     borderRadius: Radii.md,
   },
   recurringToggleLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
@@ -173,11 +172,9 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   rowInputs: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   dayGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

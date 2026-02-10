@@ -9,6 +9,7 @@ import type { Injury } from '@/constants/types';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 import type { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -30,7 +31,7 @@ export const CompactInjuryRow = memo(function CompactInjuryRow({
 
   return (
     <Clickable onPress={onPress} disabled={!onPress}>
-      <View style={[styles.compactContainer, { borderColor: palette.border }]}>
+      <Row style={[styles.compactContainer, { borderColor: palette.border }]}>
         <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
         <View style={styles.compactContent}>
           <ThemedText style={styles.compactTitle}>{bodyPartLabel}</ThemedText>
@@ -39,7 +40,7 @@ export const CompactInjuryRow = memo(function CompactInjuryRow({
           </ThemedText>
         </View>
         {onPress && <Ionicons name="chevron-forward" size={20} color={palette.muted} />}
-      </View>
+      </Row>
     </Clickable>
   );
 });
@@ -59,14 +60,14 @@ export const InjuryRecoveryBar = memo(function InjuryRecoveryBar({
 }: InjuryRecoveryBarProps) {
   return (
     <View style={styles.progressSection}>
-      <View style={styles.progressHeader}>
+      <Row style={styles.progressHeader}>
         <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
           Recovery Progress
         </ThemedText>
         <ThemedText style={[styles.progressPercent, { color: statusColor }]}>
           {recoveryPercent}%
         </ThemedText>
-      </View>
+      </Row>
       <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
         <View
           style={[
@@ -93,30 +94,30 @@ export const InjuryFooterMeta = memo(function InjuryFooterMeta({
   const daysUntilRecovery = injuryService.getDaysUntilRecovery(injury);
 
   return (
-    <View style={styles.footer}>
-      <View style={styles.footerItem}>
+    <Row style={styles.footer}>
+      <Row style={styles.footerItem}>
         <Ionicons name="calendar-outline" size={14} color={palette.muted} />
         <ThemedText style={[styles.footerText, { color: palette.muted }]}>
           {injuryService.formatDate(injury.occurredAt)}
         </ThemedText>
-      </View>
+      </Row>
       {daysUntilRecovery !== null && daysUntilRecovery > 0 && (
-        <View style={styles.footerItem}>
+        <Row style={styles.footerItem}>
           <Ionicons name="time-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.footerText, { color: palette.muted }]}>
             {daysUntilRecovery} days to recovery
           </ThemedText>
-        </View>
+        </Row>
       )}
       {injury.notes.length > 0 && (
-        <View style={styles.footerItem}>
+        <Row style={styles.footerItem}>
           <Ionicons name="document-text-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.footerText, { color: palette.muted }]}>
             {injury.notes.length} note{injury.notes.length !== 1 ? 's' : ''}
           </ThemedText>
-        </View>
+        </Row>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -124,7 +125,6 @@ export const InjuryFooterMeta = memo(function InjuryFooterMeta({
 
 const styles = StyleSheet.create({
   compactContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -151,7 +151,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   progressHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.xxs,
@@ -173,12 +172,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   footer: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
   },
   footerItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

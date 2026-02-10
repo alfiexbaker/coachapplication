@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   dateButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs + Spacing.xxs,
     borderWidth: 1,

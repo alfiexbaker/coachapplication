@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -32,8 +33,8 @@ export const ReviewHeader = memo(function ReviewHeader({
   palette,
 }: ReviewHeaderProps) {
   return (
-    <View style={styles.reviewHeader}>
-      <View style={styles.reviewerInfo}>
+    <Row style={styles.reviewHeader}>
+      <Row style={styles.reviewerInfo}>
         <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
             {reviewerName.charAt(0).toUpperCase()}
@@ -47,8 +48,8 @@ export const ReviewHeader = memo(function ReviewHeader({
             {formattedDate}
           </ThemedText>
         </View>
-      </View>
-      <View style={styles.starsRow}>
+      </Row>
+      <Row style={styles.starsRow}>
         {[1, 2, 3, 4, 5].map((star) => (
           <Ionicons
             key={star}
@@ -57,8 +58,8 @@ export const ReviewHeader = memo(function ReviewHeader({
             color={rating >= star ? palette.warning : palette.border}
           />
         ))}
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -74,12 +75,12 @@ export interface ExistingReplyCardProps {
 export const ExistingReplyCard = memo(function ExistingReplyCard({ reply, palette }: ExistingReplyCardProps) {
   return (
     <View style={[styles.existingReply, { backgroundColor: palette.surfaceSecondary }]}>
-      <View style={styles.replyHeader}>
+      <Row style={styles.replyHeader}>
         <Ionicons name="return-down-forward" size={Components.icon.sm} color={palette.muted} />
         <ThemedText style={[Typography.caption, { color: palette.muted }]}>
           Your Reply
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={[Typography.body, { color: palette.text }]}>
         {reply}
       </ThemedText>
@@ -93,12 +94,10 @@ export const ExistingReplyCard = memo(function ExistingReplyCard({ reply, palett
 
 const styles = StyleSheet.create({
   reviewHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   reviewerInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -113,7 +112,6 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   starsRow: {
-    flexDirection: 'row',
     gap: Spacing.micro,
   },
   existingReply: {
@@ -122,7 +120,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   replyHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

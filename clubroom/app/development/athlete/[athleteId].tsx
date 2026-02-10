@@ -13,7 +13,8 @@ import { DevProgressionCard } from '@/components/development/dev-progression-car
 import { DevSessionCard } from '@/components/development/dev-session-card';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAthleteDevelopment } from '@/hooks/use-athlete-development';
 import { Routes } from '@/navigation/routes';
 import { router } from 'expo-router';
@@ -21,7 +22,7 @@ import { Clickable } from '@/components/primitives/clickable';
 
 export default function AthleteDetailScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     athlete,
     currentUser,

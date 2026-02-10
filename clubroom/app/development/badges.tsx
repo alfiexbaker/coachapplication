@@ -18,11 +18,12 @@ import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 import { BadgeSessionSelector } from '@/components/badges/badge-session-selector';
 import { BadgeListSection } from '@/components/badges/badge-list-section';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useDevBadges, BADGE_TABS } from '@/hooks/use-dev-badges';
 
 export default function BadgesScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     activeTab, setActiveTab,
     sessionQuery, setSessionQuery,
@@ -39,23 +40,25 @@ export default function BadgesScreen() {
       <PageContainer gap={Spacing.md} header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}>
         {/* Tabs */}
         <SurfaceCard style={styles.tabRow}>
-          {BADGE_TABS.map((tab) => {
-            const isActive = tab.key === activeTab;
-            return (
-              <Clickable
-                key={tab.key}
-                onPress={() => setActiveTab(tab.key)}
-                style={[styles.tabButton, isActive ? { backgroundColor: withAlpha(colors.tint, 0.07), borderColor: colors.tint } : undefined].filter(Boolean) as ViewStyle[]}
-              >
-                <Row gap="xs" align="center" justify="center">
-                  <Ionicons name={tab.icon as any} size={16} color={isActive ? colors.tint : colors.icon} />
-                  <ThemedText type="defaultSemiBold" style={[Typography.small, { color: isActive ? colors.tint : colors.icon }]}>
-                    {tab.label}
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            );
-          })}
+          <Row gap="xs">
+            {BADGE_TABS.map((tab) => {
+              const isActive = tab.key === activeTab;
+              return (
+                <Clickable
+                  key={tab.key}
+                  onPress={() => setActiveTab(tab.key)}
+                  style={[styles.tabButton, isActive ? { backgroundColor: withAlpha(colors.tint, 0.07), borderColor: colors.tint } : undefined].filter(Boolean) as ViewStyle[]}
+                >
+                  <Row gap="xs" align="center" justify="center">
+                    <Ionicons name={tab.icon as any} size={16} color={isActive ? colors.tint : colors.icon} />
+                    <ThemedText type="defaultSemiBold" style={[Typography.small, { color: isActive ? colors.tint : colors.icon }]}>
+                      {tab.label}
+                    </ThemedText>
+                  </Row>
+                </Clickable>
+              );
+            })}
+          </Row>
         </SurfaceCard>
 
         <BadgeSessionSelector
@@ -88,6 +91,6 @@ export default function BadgesScreen() {
 }
 
 const styles = StyleSheet.create({
-  tabRow: { flexDirection: 'row', gap: Spacing.xs, padding: Spacing.xs },
+  tabRow: { padding: Spacing.xs },
   tabButton: { flex: 1, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderWidth: 1, borderColor: 'transparent', borderRadius: Radii.md },
 });

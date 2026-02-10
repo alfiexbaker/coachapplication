@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -24,21 +25,25 @@ export const SquadQuickActions = memo(function SquadQuickActions({
         onPress={onGroupChat}
         disabled={openingGroupChat}
       >
-        {openingGroupChat ? (
-          <>
-            <ActivityIndicator size="small" color={colors.tint} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Opening...</ThemedText>
-          </>
-        ) : (
-          <>
-            <Ionicons name="chatbubbles-outline" size={18} color={colors.tint} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Group Chat</ThemedText>
-          </>
-        )}
+        <Row align="center" justify="center" gap="sm">
+          {openingGroupChat ? (
+            <>
+              <ActivityIndicator size="small" color={colors.tint} />
+              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Opening...</ThemedText>
+            </>
+          ) : (
+            <>
+              <Ionicons name="chatbubbles-outline" size={18} color={colors.tint} />
+              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Group Chat</ThemedText>
+            </>
+          )}
+        </Row>
       </Clickable>
       <Clickable style={[styles.inviteBtn, { backgroundColor: colors.tint }]} onPress={onInvite}>
-        <Ionicons name="paper-plane-outline" size={18} color={colors.surface} />
-        <ThemedText style={[Typography.bodySemiBold, { color: colors.surface }]}>Send Squad Invite</ThemedText>
+        <Row align="center" justify="center" gap="sm">
+          <Ionicons name="paper-plane-outline" size={18} color={colors.surface} />
+          <ThemedText style={[Typography.bodySemiBold, { color: colors.surface }]}>Send Squad Invite</ThemedText>
+        </Row>
       </Clickable>
     </View>
   );
@@ -46,6 +51,6 @@ export const SquadQuickActions = memo(function SquadQuickActions({
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
-  chatBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, minHeight: 48, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
-  inviteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md },
+  chatBtn: { minHeight: 48, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  inviteBtn: { paddingVertical: Spacing.md, borderRadius: Radii.md },
 });

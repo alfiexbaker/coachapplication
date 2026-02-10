@@ -17,6 +17,7 @@ import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { CommentCard } from '@/components/social/comment-card';
 import { CommentInput } from '@/components/social/comment-input';
 import { PostDetailCard } from '@/components/social/post-detail-card';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { usePostDetail } from '@/hooks/use-post-detail';
@@ -37,13 +38,13 @@ export default function PostDetailScreen() {
   if (!p.post) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
           <Clickable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
             <Ionicons name="chevron-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText style={styles.headerTitle}>Post</ThemedText>
           <View style={styles.headerSpacer} />
-        </View>
+        </Row>
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={48} color={palette.muted} />
           <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>Post not found</ThemedText>
@@ -80,13 +81,13 @@ export default function PostDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+      <Row style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText style={styles.headerTitle}>Post</ThemedText>
         <View style={styles.headerSpacer} />
-      </View>
+      </Row>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList<FlatItem>
@@ -108,7 +109,7 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderBottomWidth: 1 },
+  header: { justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderBottomWidth: 1 },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
   headerTitle: { ...Typography.heading },
   headerSpacer: { width: 44 },

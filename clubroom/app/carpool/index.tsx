@@ -16,14 +16,16 @@ import { CarpoolCreateModal } from '@/components/community/carpool-create-modal'
 import { CarpoolRequestModal } from '@/components/community/carpool-request-modal';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCarpool } from '@/hooks/use-carpool';
 import { scaleFont } from '@/utils/scale';
 
 export default function CarpoolScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useCarpool();
 
   const renderEmptyState = (
@@ -75,29 +77,31 @@ export default function CarpoolScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row style={styles.header}>
+        <Row style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
           <ThemedText type="title" style={styles.headerTitle}>Carpool</ThemedText>
-        </View>
+        </Row>
         <Clickable accessibilityLabel="Create carpool offer" onPress={c.openCreateModal} style={[styles.addButton, { backgroundColor: palette.tint }]}>
           <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
-      </View>
+      </Row>
 
       {/* Tabs */}
-      <View style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
+      <Row style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
         {c.tabs.map((tab) => (
           <Clickable key={tab.key} onPress={() => c.setActiveTab(tab.key)} style={[styles.tab, c.activeTab === tab.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 }].filter(Boolean) as ViewStyle[]}>
-            <ThemedText style={[styles.tabLabel, { color: c.activeTab === tab.key ? palette.tint : palette.muted }]}>{tab.label}</ThemedText>
-            {tab.count !== undefined && tab.count > 0 && (
-              <View style={[styles.tabBadge, { backgroundColor: c.activeTab === tab.key ? palette.tint : palette.surfaceSecondary }]}>
-                <ThemedText style={[styles.tabBadgeText, { color: c.activeTab === tab.key ? palette.onPrimary : palette.muted }]}>{tab.count}</ThemedText>
-              </View>
-            )}
+            <Row align="center" justify="center" gap="xxs">
+              <ThemedText style={[styles.tabLabel, { color: c.activeTab === tab.key ? palette.tint : palette.muted }]}>{tab.label}</ThemedText>
+              {tab.count !== undefined && tab.count > 0 && (
+                <View style={[styles.tabBadge, { backgroundColor: c.activeTab === tab.key ? palette.tint : palette.surfaceSecondary }]}>
+                  <ThemedText style={[styles.tabBadgeText, { color: c.activeTab === tab.key ? palette.onPrimary : palette.muted }]}>{tab.count}</ThemedText>
+                </View>
+              )}
+            </Row>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       {/* Content */}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}>
@@ -112,12 +116,12 @@ export default function CarpoolScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  headerLeft: { alignItems: 'center', gap: Spacing.md },
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, marginBottom: -1 },
+  tabsContainer: { borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
+  tab: { flex: 1, paddingVertical: Spacing.sm, marginBottom: -1 },
   tabLabel: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   tabBadge: { minWidth: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxs },
   tabBadgeText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },

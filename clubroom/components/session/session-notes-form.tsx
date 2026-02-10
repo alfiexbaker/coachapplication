@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
@@ -15,8 +16,7 @@ const ATTENDANCE = ['Present', 'Late', 'No-show'];
 export function SessionNotesForm({
   onSubmit,
   initialValues,
-  submitting,
-}: {
+  submitting }: {
   onSubmit: (payload: SessionNoteFields) => void;
   initialValues?: Partial<SessionNoteFields>;
   submitting?: boolean;
@@ -58,7 +58,7 @@ export function SessionNotesForm({
 
       <View style={{ gap: Spacing.sm }}>
         <ThemedText type="defaultSemiBold">Focus areas</ThemedText>
-        <View style={styles.rowWrap}>
+        <Row wrap gap="xs">
           {FOCUS_OPTIONS.map((item) => {
             const active = focus.includes(item);
             return (
@@ -69,15 +69,14 @@ export function SessionNotesForm({
                   styles.chip,
                   {
                     backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
-                    borderColor: active ? palette.tint : palette.border,
-                  },
+                    borderColor: active ? palette.tint : palette.border },
                 ]}
               >
                 <ThemedText style={{ color: active ? palette.tint : palette.text }}>{item}</ThemedText>
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       <View style={{ gap: Spacing.sm }}>
@@ -111,7 +110,7 @@ export function SessionNotesForm({
 
       <View style={{ gap: Spacing.sm }}>
         <ThemedText type="defaultSemiBold">Attendance</ThemedText>
-        <View style={styles.rowWrap}>
+        <Row wrap gap="xs">
           {ATTENDANCE.map((item) => {
             const active = attendance === item;
             return (
@@ -122,15 +121,14 @@ export function SessionNotesForm({
                   styles.chip,
                   {
                     backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
-                    borderColor: active ? palette.tint : palette.border,
-                  },
+                    borderColor: active ? palette.tint : palette.border },
                 ]}
               >
                 <ThemedText style={{ color: active ? palette.tint : palette.text }}>{item}</ThemedText>
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       <Clickable
@@ -138,14 +136,16 @@ export function SessionNotesForm({
         style={[styles.submit, { backgroundColor: submitting ? palette.border : palette.tint }]}
         disabled={submitting}
       >
-        {submitting ? (
-          <ActivityIndicator color={palette.text} />
-        ) : (
-          <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
-        )}
-        <ThemedText style={{ color: submitting ? palette.text : palette.onPrimary, fontWeight: '700' }}>
-          {submitting ? 'Saving…' : 'Submit Notes'}
-        </ThemedText>
+        <Row align="center" justify="center" gap="xs">
+          {submitting ? (
+            <ActivityIndicator color={palette.text} />
+          ) : (
+            <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
+          )}
+          <ThemedText style={{ color: submitting ? palette.text : palette.onPrimary, fontWeight: '700' }}>
+            {submitting ? 'Saving...' : 'Submit Notes'}
+          </ThemedText>
+        </Row>
       </Clickable>
     </ScrollView>
   );
@@ -154,33 +154,19 @@ export function SessionNotesForm({
 const styles = StyleSheet.create({
   content: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   textArea: {
     minHeight: 80,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     padding: Spacing.sm,
     lineHeight: 20,
-    textAlignVertical: 'top',
-  },
-  rowWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    textAlignVertical: 'top' },
   chip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   submit: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: Spacing.sm,
-    borderRadius: Radii.button,
-  },
-});
+    borderRadius: Radii.button } });

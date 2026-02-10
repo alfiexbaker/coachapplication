@@ -59,7 +59,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   primaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -70,7 +69,6 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
   },
   secondaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,

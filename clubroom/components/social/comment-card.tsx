@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThreadedComment } from '@/constants/comment-types';
@@ -76,14 +77,14 @@ function CommentCardInner({
       </View>
 
       <View style={styles.body}>
-        <View style={styles.headerRow}>
+        <Row align="center" gap="xs">
           <ThemedText style={[styles.authorName, isDeleted && { color: palette.muted }]}>
             {isDeleted ? 'Deleted' : comment.authorName}
           </ThemedText>
           <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
             {formatTimeAgo(comment.createdAt)}
           </ThemedText>
-        </View>
+        </Row>
 
         <ThemedText style={[styles.content, isDeleted && { color: palette.muted, fontStyle: 'italic' }]}>
           {isDeleted ? 'This comment was deleted.' : comment.content}
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   avatar: { width: 32, height: 32, borderRadius: Radii.full, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   avatarText: { ...Typography.smallSemiBold },
   body: { flex: 1, gap: Spacing.micro },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  // headerRow replaced by Row primitive
   authorName: { ...Typography.bodySmallSemiBold },
   timestamp: { ...Typography.caption },
   content: { ...Typography.bodySmall },

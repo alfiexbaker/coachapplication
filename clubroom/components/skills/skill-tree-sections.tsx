@@ -9,6 +9,7 @@
 
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -47,8 +48,8 @@ export const TreeHeader = memo(function TreeHeader({
   palette,
 }: TreeHeaderProps) {
   return (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
+    <Row align="center" justify="space-between">
+      <Row align="center" gap="sm" flex>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(themeColor, 0.09) }]}>
           <Ionicons
             name={icon as keyof typeof Ionicons.glyphMap}
@@ -64,7 +65,7 @@ export const TreeHeader = memo(function TreeHeader({
             {description}
           </ThemedText>
         </View>
-      </View>
+      </Row>
       <View style={styles.statsContainer}>
         <View style={[styles.statBadge, { backgroundColor: withAlpha(themeColor, 0.09) }]}>
           <ThemedText style={[styles.statValue, { color: themeColor }]}>
@@ -75,7 +76,7 @@ export const TreeHeader = memo(function TreeHeader({
           </ThemedText>
         </View>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -134,12 +135,12 @@ interface ZoomHintProps {
 
 export const ZoomHint = memo(function ZoomHint({ palette }: ZoomHintProps) {
   return (
-    <View style={[styles.zoomHint, { backgroundColor: withAlpha(palette.surface, 0.56) }]}>
+    <Row align="center" gap="xxs" style={[styles.zoomHint, { backgroundColor: withAlpha(palette.surface, 0.56) }]}>
       <Ionicons name="expand-outline" size={14} color={palette.muted} />
       <ThemedText style={[styles.zoomText, { color: palette.muted }]}>
         Pinch to zoom
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -152,12 +153,12 @@ interface TreeLegendProps {
 
 export const TreeLegend = memo(function TreeLegend({ themeColor, palette }: TreeLegendProps) {
   return (
-    <View style={styles.legend}>
-      <View style={styles.legendItem}>
+    <Row justify="center" gap="md" style={styles.legend}>
+      <Row align="center" gap="xxs">
         <View style={[styles.legendDot, { backgroundColor: themeColor }]} />
         <ThemedText style={[styles.legendText, { color: palette.muted }]}>Unlocked</ThemedText>
-      </View>
-      <View style={styles.legendItem}>
+      </Row>
+      <Row align="center" gap="xxs">
         <View
           style={[
             styles.legendDot,
@@ -169,29 +170,20 @@ export const TreeLegend = memo(function TreeLegend({ themeColor, palette }: Tree
           ]}
         />
         <ThemedText style={[styles.legendText, { color: palette.muted }]}>Available</ThemedText>
-      </View>
-      <View style={styles.legendItem}>
+      </Row>
+      <Row align="center" gap="xxs">
         <View style={[styles.legendDot, { backgroundColor: palette.border }]} />
         <ThemedText style={[styles.legendText, { color: palette.muted }]}>Locked</ThemedText>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
+  header: { /* layout moved to Row */ },
+  headerLeft: { /* layout moved to Row */ },
   iconContainer: {
     width: 44,
     height: 44,
@@ -231,25 +223,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Spacing.xs,
     left: Spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   zoomText: { ...Typography.micro },
   legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.md,
     paddingTop: Spacing.xs,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  legendItem: { /* layout moved to Row */ },
   legendDot: {
     width: 12,
     height: 12,

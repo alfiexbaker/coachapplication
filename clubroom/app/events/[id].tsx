@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,11 +51,11 @@ export default function EventDetailScreen() {
 
         <View style={styles.content}>
           {/* Badges */}
-          <View style={styles.badgeRow}>
-            <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
+          <Row align="center" gap="xs" wrap style={styles.badgeRow}>
+            <Row align="center" gap="xxs" style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
               <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={16} color={typeColor} />
               <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>{eventService.formatEventType(event.eventType)}</ThemedText>
-            </View>
+            </Row>
             {event.status === 'DRAFT' && (
               <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <ThemedText style={[styles.statusText, { color: palette.warning }]}>DRAFT</ThemedText>
@@ -66,12 +67,12 @@ export default function EventDetailScreen() {
               </View>
             )}
             {event.isVirtual && (
-              <View style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+              <Row align="center" gap="xxs" style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
                 <Ionicons name="videocam" size={14} color={palette.accent} />
                 <ThemedText style={[styles.virtualText, { color: palette.accent }]}>Virtual</ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
 
           <ThemedText type="title" style={styles.title}>{event.title}</ThemedText>
           <ThemedText style={[styles.clubName, { color: palette.muted }]}>{event.clubName} - Posted by {event.createdByName}</ThemedText>
@@ -79,40 +80,42 @@ export default function EventDetailScreen() {
           {/* Detail cards */}
           <View style={styles.detailsSection}>
             <SurfaceCard style={styles.detailCard}>
-              <View style={styles.detailRow}>
+              <Row align="center" gap="md" style={styles.detailRow}>
                 <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}><Ionicons name="calendar" size={20} color={palette.tint} /></View>
                 <View style={styles.detailContent}>
                   <ThemedText type="defaultSemiBold">{eventService.formatEventDate(event.date)}</ThemedText>
                   <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>{eventService.formatEventTime(event.startTime, event.endTime)}</ThemedText>
                 </View>
-              </View>
+              </Row>
             </SurfaceCard>
 
             <SurfaceCard style={styles.detailCard}>
-              <View style={styles.detailRow}>
+              <Row align="center" gap="md" style={styles.detailRow}>
                 <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}><Ionicons name="location" size={20} color={palette.tint} /></View>
                 <View style={styles.detailContent}>
                   <ThemedText type="defaultSemiBold">{event.venue}</ThemedText>
                   {event.address && <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>{event.address}</ThemedText>}
                 </View>
-              </View>
+              </Row>
               {event.isVirtual && event.meetingLink && (
                 <Clickable style={[styles.linkButton, { borderColor: palette.tint }]}>
-                  <Ionicons name="videocam" size={16} color={palette.tint} />
-                  <ThemedText style={[styles.linkText, { color: palette.tint }]}>Join Meeting</ThemedText>
+                  <Row align="center" justify="center" gap="xxs">
+                    <Ionicons name="videocam" size={16} color={palette.tint} />
+                    <ThemedText style={[styles.linkText, { color: palette.tint }]}>Join Meeting</ThemedText>
+                  </Row>
                 </Clickable>
               )}
             </SurfaceCard>
 
             {event.price > 0 && (
               <SurfaceCard style={styles.detailCard}>
-                <View style={styles.detailRow}>
+                <Row align="center" gap="md" style={styles.detailRow}>
                   <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}><Ionicons name="cash" size={20} color={palette.success} /></View>
                   <View style={styles.detailContent}>
                     <ThemedText type="defaultSemiBold">{eventService.formatPrice(event.price, event.currency)}</ThemedText>
                     <ThemedText style={[styles.detailSubtext, { color: palette.muted }]}>per person</ThemedText>
                   </View>
-                </View>
+                </Row>
               </SurfaceCard>
             )}
           </View>
@@ -126,10 +129,10 @@ export default function EventDetailScreen() {
           {/* Audience */}
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Who can attend</ThemedText>
-            <View style={[styles.audienceBadge, { backgroundColor: palette.surface }]}>
+            <Row align="center" gap="xs" style={[styles.audienceBadge, { backgroundColor: palette.surface }]}>
               <Ionicons name="people" size={16} color={palette.icon} />
               <ThemedText>{eventService.formatAudience(event.targetAudience)}</ThemedText>
-            </View>
+            </Row>
           </View>
 
           {/* RSVP */}
@@ -166,27 +169,27 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, zIndex: 10 },
   backButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flexWrap: 'wrap' },
-  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  badgeRow: {},
+  typeBadge: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   typeBadgeText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.sm },
   statusText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), letterSpacing: 0.5 },
-  virtualBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.sm },
+  virtualBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.sm },
   virtualText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   title: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), lineHeight: scaleFont(32) },
   clubName: { ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize), marginTop: -Spacing.sm },
   detailsSection: { gap: Spacing.sm },
   detailCard: { padding: Spacing.md, gap: Spacing.sm },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  detailRow: {},
   detailIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   detailContent: { flex: 1 },
   detailSubtext: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize), marginTop: Spacing.micro },
-  linkButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  linkButton: { paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
   linkText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   description: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(23) },
-  audienceBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, alignSelf: 'flex-start' },
+  audienceBadge: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, alignSelf: 'flex-start' },
   rsvpDeadline: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize), marginTop: -Spacing.xs },
   actionSection: { marginTop: Spacing.md },
 });

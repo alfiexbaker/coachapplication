@@ -7,6 +7,7 @@
 
 import { ScrollView, View, StyleSheet } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { FilterChip } from './FilterChip';
 import { Spacing } from '@/constants/theme';
 
@@ -116,7 +117,7 @@ function HorizontalContainer({ children }: { children: React.ReactNode }) {
 }
 
 function WrapContainer({ children }: { children: React.ReactNode }) {
-  return <View style={styles.wrapContent}>{children}</View>;
+  return <Row wrap gap="xs">{children}</Row>;
 }
 
 const styles = StyleSheet.create({
@@ -124,9 +125,5 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
   },
-  wrapContent: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+  // wrapContent replaced by Row primitive
 });

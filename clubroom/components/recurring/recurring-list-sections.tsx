@@ -11,6 +11,7 @@ import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import type { RecurringBooking, RecurringBookingStatus } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -115,7 +116,7 @@ export const RecurringSummaryCard = memo(function RecurringSummaryCard({
   const totalSessions = bookings.reduce((sum, b) => sum + b.sessionsCompleted, 0);
 
   return (
-    <View style={[styles.summaryContainer, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row align="center" justify="around" style={[styles.summaryContainer, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={styles.summaryItem}>
         <ThemedText style={[styles.summaryValue, { color: palette.success }]}>
           {activeCount}
@@ -142,7 +143,7 @@ export const RecurringSummaryCard = memo(function RecurringSummaryCard({
           Total Sessions
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -150,9 +151,6 @@ export const RecurringSummaryCard = memo(function RecurringSummaryCard({
 
 const styles = StyleSheet.create({
   summaryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
     marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
     padding: Spacing.md,

@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatFullDate, formatTime } from '@/utils/format';
 
 import { athleteProfile, type DayAvailability, type SlotInstance } from './booking-flow-types';
+import { Row } from '@/components/primitives';
 
 interface BookingFlowSummaryProps {
   coach?: CoachProfile;
@@ -22,10 +23,10 @@ interface BookingFlowSummaryProps {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.summaryRow}>
+    <Row style={styles.summaryRow}>
       <ThemedText style={styles.summaryLabel}>{label}</ThemedText>
       <ThemedText type="defaultSemiBold">{value}</ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   summaryCard: { gap: Spacing.sm },
   summaryIntro: { opacity: 0.75 },
   summaryGrid: { gap: Spacing.sm },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryRow: { justifyContent: 'space-between', alignItems: 'center' },
   summaryLabel: { opacity: 0.7 },
   cta: { marginTop: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, alignItems: 'center' },
   ctaLabel: { fontWeight: '600' },

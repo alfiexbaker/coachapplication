@@ -14,6 +14,7 @@ import { StyleSheet, View, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
@@ -51,7 +52,7 @@ export const AnnotationSearchBar = memo(function AnnotationSearchBar({
   palette,
 }: AnnotationSearchBarProps) {
   return (
-    <View style={[styles.searchContainer, { borderColor: palette.border }]}>
+    <Row align="center" gap="xs" style={[styles.searchContainer, { borderColor: palette.border }]}>
       <Ionicons name="search" size={18} color={palette.muted} />
       <TextInput
         style={[styles.searchInput, { color: palette.text }]}
@@ -65,7 +66,7 @@ export const AnnotationSearchBar = memo(function AnnotationSearchBar({
           <Ionicons name="close-circle" size={18} color={palette.muted} />
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -87,7 +88,7 @@ export const AnnotationTypeFilters = memo(function AnnotationTypeFilters({
   return (
     <View style={styles.filtersContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.filters}>
+        <Row gap="xs">
           {ANNOTATION_TYPES.map((type) => {
             const config = ANNOTATION_TYPE_CONFIG[type];
             const isSelected = selectedTypes.includes(type);
@@ -121,7 +122,7 @@ export const AnnotationTypeFilters = memo(function AnnotationTypeFilters({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </ScrollView>
     </View>
   );
@@ -164,8 +165,8 @@ export const AnnotationListItem = memo(function AnnotationListItem({
       <View style={[styles.typeIndicator, { backgroundColor: config.color }]} />
 
       <View style={styles.annotationContent}>
-        <View style={styles.annotationHeader}>
-          <View style={styles.annotationMeta}>
+        <Row align="center" justify="between">
+          <Row align="center" gap="xs">
             <View
               style={[styles.typeBadge, { backgroundColor: withAlpha(config.color, 0.12) }]}
             >
@@ -178,10 +179,10 @@ export const AnnotationListItem = memo(function AnnotationListItem({
             <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
               {formatTimestamp(annotation.timestamp)}
             </ThemedText>
-          </View>
+          </Row>
 
           {isEditable && (
-            <View style={styles.actions}>
+            <Row gap="xs">
               {onEdit && (
                 <Clickable onPress={onEdit} hitSlop={8} style={styles.actionButton}>
                   <Ionicons name="pencil" size={16} color={palette.muted} />
@@ -192,9 +193,9 @@ export const AnnotationListItem = memo(function AnnotationListItem({
                   <Ionicons name="trash-outline" size={16} color={palette.error} />
                 </Clickable>
               )}
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
 
         <ThemedText style={styles.annotationLabel}>
           {annotation.label}
@@ -250,15 +251,12 @@ export const styles = StyleSheet.create({
   },
   title: { ...Typography.subheading },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    gap: Spacing.xs,
   },
   searchInput: {
     ...Typography.bodySmall,
@@ -268,10 +266,6 @@ export const styles = StyleSheet.create({
   filtersContainer: {
     paddingHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
-  },
-  filters: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
   },
   filterChip: {
     flexDirection: 'row',
@@ -305,16 +299,6 @@ export const styles = StyleSheet.create({
     padding: Spacing.sm,
     gap: Spacing.xxs,
   },
-  annotationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  annotationMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   typeBadge: {
     width: 22,
     height: 22,
@@ -323,10 +307,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timestamp: { ...Typography.caption },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
   actionButton: {
     padding: Spacing.xxs,
   },

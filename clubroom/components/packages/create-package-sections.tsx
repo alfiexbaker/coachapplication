@@ -5,6 +5,7 @@ import { memo } from 'react';
 import { View, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -20,14 +21,14 @@ interface OptionPickerProps<T extends string | number> {
 export const OptionPicker = memo(function OptionPicker<T extends string | number>({ options, selected, onSelect }: OptionPickerProps<T>) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.optionsRow}>
+    <Row wrap gap="xs">
       {options.map((opt) => (
         <Pressable key={String(opt.value)} onPress={() => onSelect(opt.value)}
           style={[styles.optionButton, { backgroundColor: selected === opt.value ? palette.tint : palette.surface, borderColor: selected === opt.value ? palette.tint : palette.border }]}>
           <ThemedText style={[styles.optionText, { color: selected === opt.value ? palette.onPrimary : palette.text }]}>{opt.label}</ThemedText>
         </Pressable>
       ))}
-    </View>
+    </Row>
   );
 }) as <T extends string | number>(props: OptionPickerProps<T>) => React.JSX.Element;
 
@@ -36,7 +37,7 @@ interface FocusAreaPickerProps { options: FootballObjective[]; selected: Footbal
 export const FocusAreaPicker = memo(function FocusAreaPicker({ options, selected, onToggle }: FocusAreaPickerProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.focusGrid}>
+    <Row wrap gap="xs">
       {options.map((focus) => {
         const isSelected = selected.includes(focus);
         return (
@@ -47,7 +48,7 @@ export const FocusAreaPicker = memo(function FocusAreaPicker({ options, selected
           </Pressable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -57,10 +58,10 @@ export const PricePreview = memo(function PricePreview({ pricePerSession }: Pric
   const { colors: palette } = useTheme();
   return (
     <SurfaceCard style={[styles.previewCard, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
-      <View style={styles.previewRow}>
+      <Row align="center" gap="xs">
         <Ionicons name="calculator-outline" size={16} color={palette.success} />
         <ThemedText style={[styles.previewText, { color: palette.success }]}>{'\u00A3'}{pricePerSession.toFixed(2)} per session</ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -73,7 +74,7 @@ interface FormFooterProps {
 export const PackageFormFooter = memo(function PackageFormFooter({ onCancel, onSubmit, submitting, isEditing }: FormFooterProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+    <Row gap="sm" style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
       {onCancel && (
         <Pressable style={[styles.cancelButton, { borderColor: palette.border }]} onPress={onCancel} disabled={submitting}>
           <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
@@ -89,21 +90,18 @@ export const PackageFormFooter = memo(function PackageFormFooter({ onCancel, onS
           </>
         )}
       </Pressable>
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
-  optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   optionButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, minWidth: 60, alignItems: 'center' },
   optionText: { ...Typography.bodySmallSemiBold },
-  focusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   focusChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1.5 },
   focusChipText: { ...Typography.smallSemiBold },
   previewCard: { padding: Spacing.sm, marginBottom: Spacing.md },
-  previewRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   previewText: { ...Typography.bodySmallSemiBold },
-  footer: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'transparent' },
+  footer: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'transparent' },
   cancelButton: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
   cancelButtonText: { ...Typography.subheading },
   submitButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg },

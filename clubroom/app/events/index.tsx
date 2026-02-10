@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -110,15 +111,15 @@ export default function EventsListScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row align="center" justify="between" style={styles.header}>
+        <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>
             Club Events
           </ThemedText>
-        </View>
+        </Row>
         {isCoach && (
           <Clickable
             accessibilityLabel="Create event"
@@ -128,10 +129,10 @@ export default function EventsListScreen() {
             <Ionicons name="add" size={24} color={palette.onPrimary} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Filter tabs */}
-      <View style={styles.filterRow}>
+      <Row gap="xs" style={styles.filterRow}>
         {(['upcoming', 'past', 'all'] as EventFilter[]).map((f) => (
           <Clickable
             key={f}
@@ -153,7 +154,7 @@ export default function EventsListScreen() {
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       {/* Events list */}
       <FlatList
@@ -175,15 +176,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md },
+  headerLeft: {},
   headerTitle: {
     ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: {
@@ -193,10 +188,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center' },
   filterRow: {
-    flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    gap: Spacing.xs },
+    paddingBottom: Spacing.md },
   filterTab: {
     paddingHorizontal: 16,
     paddingVertical: 8,

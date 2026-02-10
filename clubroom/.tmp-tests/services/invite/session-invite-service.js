@@ -173,7 +173,7 @@ exports.sessionInviteService = {
                     .join(', ');
                 logger.warn('Some proposed slots are no longer available', { takenDesc });
                 if (validationResults.validSlots.length === 0) {
-                    throw new Error('All proposed time slots are no longer available. Please select new times.');
+                    return (0, result_1.err)((0, result_1.serviceError)('VALIDATION', 'All proposed time slots are no longer available. Please select new times.'));
                 }
                 // Proceed with only valid slots
                 input = {
@@ -182,7 +182,8 @@ exports.sessionInviteService = {
                 };
             }
         }
-        return this._createSingleInvite(input);
+        const invite = await this._createSingleInvite(input);
+        return (0, result_1.ok)(invite);
     },
     /**
      * Validate proposed slots against current availability

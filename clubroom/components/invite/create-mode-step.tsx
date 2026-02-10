@@ -113,7 +113,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   modeItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

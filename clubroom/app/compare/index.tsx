@@ -13,14 +13,16 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { comparisonService } from '@/services/comparison-service';
 
 export default function CompareScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   const [coachCount, setCoachCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -75,8 +77,8 @@ export default function CompareScreen() {
         edges={['bottom']}
       >
         {/* Status bar */}
-        <View style={[styles.statusBar, { borderBottomColor: palette.border }]}>
-          <View style={styles.statusInfo}>
+        <Row style={[styles.statusBar, { borderBottomColor: palette.border }]}>
+          <Row style={styles.statusInfo}>
             <Ionicons name="git-compare" size={18} color={palette.icon} />
             <ThemedText style={styles.statusText}>
               {coachCount === 0
@@ -85,7 +87,7 @@ export default function CompareScreen() {
                 ? '1 coach selected'
                 : `${coachCount} coaches selected`}
             </ThemedText>
-          </View>
+          </Row>
           {coachCount < comparisonService.getMaxCoaches() && coachCount > 0 && (
             <Clickable
               accessibilityLabel="Add more coaches to comparison"
@@ -97,13 +99,15 @@ export default function CompareScreen() {
                   borderColor: palette.border },
               ]}
             >
-              <Ionicons name="add" size={16} color={palette.tint} />
-              <ThemedText style={[styles.addMoreText, { color: palette.tint }]}>
-                Add More
-              </ThemedText>
+              <Row align="center" gap="xxs">
+                <Ionicons name="add" size={16} color={palette.tint} />
+                <ThemedText style={[styles.addMoreText, { color: palette.tint }]}>
+                  Add More
+                </ThemedText>
+              </Row>
             </Clickable>
           )}
-        </View>
+        </Row>
 
         {/* Comparison table */}
         <ComparisonTable key={refreshKey} onCoachRemoved={handleCoachRemoved} />
@@ -129,8 +133,10 @@ export default function CompareScreen() {
                   backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
             >
-              <Ionicons name="search" size={18} color={palette.onPrimary} />
-              <ThemedText style={[styles.browseButtonText, { color: palette.onPrimary }]}>Browse Coaches</ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons name="search" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.browseButtonText, { color: palette.onPrimary }]}>Browse Coaches</ThemedText>
+              </Row>
             </Clickable>
           </View>
         )}
@@ -148,22 +154,17 @@ const styles = StyleSheet.create({
   headerButtonText: {
     ...Typography.bodySemiBold },
   statusBar: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1 },
   statusInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs },
   statusText: {
     ...Typography.bodySmallSemiBold },
   addMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
@@ -191,9 +192,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     maxWidth: 280 },
   browseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radii.button },

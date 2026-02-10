@@ -17,11 +17,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { EmergencyContactCard } from '@/components/child/emergency-contact-card';
 import { EmergencyContactForm } from '@/components/child/emergency-contact-form';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 
 export default function EmergencyContactsScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading, contacts, showForm, editingContact,
     handleAddContact, handleUpdateContact, handleDeleteContact, handleSetPrimary,

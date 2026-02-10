@@ -12,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SkillLevel } from '@/services/auth-service';
 import { SPORTS, SKILL_LEVELS } from './onboarding-types';
+import { Row } from '@/components/primitives';
 
 interface StepAthleteDetailsProps {
   sport: string;
@@ -53,7 +54,7 @@ function StepAthleteDetailsInner({
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Sport *</ThemedText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-          <View style={styles.chipRow}>
+          <Row style={styles.chipRow}>
             {SPORTS.map((s) => {
               const isSelected = sport === s;
               return (
@@ -77,14 +78,14 @@ function StepAthleteDetailsInner({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </ScrollView>
       </View>
 
       {/* Skill level grid */}
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Skill Level *</ThemedText>
-        <View style={styles.skillGrid}>
+        <Row style={styles.skillGrid}>
           {SKILL_LEVELS.map((level) => {
             const isSelected = skillLevel === level.value;
             return (
@@ -108,7 +109,7 @@ function StepAthleteDetailsInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       {/* Position */}
@@ -188,7 +189,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   chipRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   chip: {
@@ -202,7 +202,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   skillGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
@@ -217,7 +216,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   toggleCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.card,

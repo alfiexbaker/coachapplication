@@ -7,6 +7,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { useTheme } from '@/hooks/useTheme';
@@ -21,7 +22,7 @@ function SubscribeCoachHeaderInner({ coach }: Props) {
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.row}>
+      <Row align="center" gap="sm">
         {coach.photoUrl ? (
           <Image source={{ uri: coach.photoUrl }} style={styles.avatar} contentFit="cover" />
         ) : (
@@ -37,7 +38,7 @@ function SubscribeCoachHeaderInner({ coach }: Props) {
             </ThemedText>
           )}
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -46,7 +47,6 @@ export const SubscribeCoachHeader = memo(SubscribeCoachHeaderInner);
 
 const styles = StyleSheet.create({
   card: { marginBottom: 0 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   avatar: { width: 56, height: 56, borderRadius: Radii['2xl'] },
   placeholder: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },

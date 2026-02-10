@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -78,7 +79,8 @@ export function VerificationBadge({
   const color = palette[config.colorKey];
 
   return (
-    <View
+    <Row
+      align="center"
       style={[
         styles.container,
         {
@@ -103,7 +105,7 @@ export function VerificationBadge({
           {size === 'small' ? config.shortLabel : config.label}
         </ThemedText>
       )}
-    </View>
+    </Row>
   );
 }
 
@@ -152,9 +154,9 @@ export function VerificationStatusDisplay({
       <View style={styles.badgeRow}>
         <VerificationBadge level={status.overallLevel} size="large" />
       </View>
-      <View style={styles.itemsGrid}>
+      <Row wrap gap="sm">
         {items.map((item) => (
-          <View key={item.label} style={styles.statusItem}>
+          <Row key={item.label} align="center" gap="xxs" style={styles.statusItem}>
             <Ionicons
               name={item.verified ? 'checkmark-circle' : 'ellipse-outline'}
               size={16}
@@ -168,17 +170,15 @@ export function VerificationStatusDisplay({
             >
               {item.label}
             </ThemedText>
-          </View>
+          </Row>
         ))}
-      </View>
+      </Row>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: Radii.pill,
   },
   label: {
@@ -190,15 +190,8 @@ const styles = StyleSheet.create({
   badgeRow: {
     alignItems: 'flex-start',
   },
-  itemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  itemsGrid: { /* layout moved to Row */ },
   statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     minWidth: 90,
   },
   statusItemLabel: { ...Typography.small },

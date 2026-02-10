@@ -18,11 +18,12 @@ import { Row } from '@/components/primitives/row';
 import { ChildLevelCard } from '@/components/badges/child-level-card';
 import { ChildBadgeCard } from '@/components/badges/child-badge-card';
 import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useChildBadges } from '@/hooks/use-child-badges';
 
 export default function ChildBadgesScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { child, awards, progressionData, loading, highlightBadge, loadData } = useChildBadges();
 
   if (!child) {

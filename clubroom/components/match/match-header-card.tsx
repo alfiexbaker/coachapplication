@@ -31,10 +31,10 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({ match, isUpcoming
         <View style={[styles.badge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
           <ThemedText style={[styles.badgeText, { color: statusColor }]}>{matchService.formatStatus(match.status)}</ThemedText>
         </View>
-        <View style={[styles.badge, { backgroundColor: colors.surface, flexDirection: 'row', gap: Spacing.xxs, alignItems: 'center' }]}>
+        <Row align="center" gap="xxs" style={[styles.badge, { backgroundColor: colors.surface }]}>
           <Ionicons name={match.isHome ? 'home' : 'airplane'} size={12} color={colors.muted} />
           <ThemedText style={[styles.badgeText, { color: colors.muted }]}>{match.isHome ? 'Home' : 'Away'}</ThemedText>
-        </View>
+        </Row>
       </Row>
 
       <ThemedText type="title" style={{ marginTop: Spacing.xs }}>{match.title}</ThemedText>

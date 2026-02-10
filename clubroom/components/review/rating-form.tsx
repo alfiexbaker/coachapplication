@@ -9,6 +9,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { RatingStars } from '@/components/review/rating-stars';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -55,7 +56,7 @@ export const RatingForm = memo(function RatingForm({
       {/* Quick Feedback Chips */}
       <View style={styles.quickFeedback}>
         <ThemedText type="defaultSemiBold" style={styles.feedbackLabel}>What stood out? (optional)</ThemedText>
-        <View style={styles.chipContainer}>
+        <Row gap="xs" wrap>
           {FEEDBACK_CHIPS.map((label) => {
             const isSelected = reviewText.includes(label);
             return (
@@ -68,7 +69,7 @@ export const RatingForm = memo(function RatingForm({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       {/* Submit Button */}
@@ -77,10 +78,12 @@ export const RatingForm = memo(function RatingForm({
           backgroundColor: rating > 0 ? palette.tint : palette.muted,
           opacity: submitting ? 0.6 : 1,
         }]}>
-        <Ionicons name="star" size={20} color={palette.onPrimary} />
-        <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
-          {submitting ? 'Submitting...' : 'Submit Rating'}
-        </ThemedText>
+        <Row align="center" justify="center" gap="sm">
+          <Ionicons name="star" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
+            {submitting ? 'Submitting...' : 'Submit Rating'}
+          </ThemedText>
+        </Row>
       </Clickable>
     </View>
   );
@@ -98,9 +101,8 @@ const styles = StyleSheet.create({
   ratingHint: { ...Typography.bodySmall },
   quickFeedback: { gap: Spacing.sm },
   feedbackLabel: { ...Typography.bodySmall },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
   chipText: { ...Typography.smallSemiBold },
-  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: 'auto' },
+  submitButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: 'auto' },
   submitText: { ...Typography.subheading },
 });

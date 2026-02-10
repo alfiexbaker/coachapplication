@@ -16,6 +16,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── MilestoneItem ───────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
 
   return (
     <SurfaceCard style={styles.summaryCard}>
-      <View style={styles.summaryHeader}>
+      <Row style={styles.summaryHeader}>
         <ThemedText type="defaultSemiBold">Goals</ThemedText>
         {onViewAll && (
           <Clickable onPress={onViewAll}>
@@ -98,9 +99,9 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
             </ThemedText>
           </Clickable>
         )}
-      </View>
+      </Row>
 
-      <View style={styles.summaryStats}>
+      <Row style={styles.summaryStats}>
         <View style={styles.summaryItem}>
           <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="flag" size={20} color={palette.tint} />
@@ -122,7 +123,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
             Completed
           </ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -131,7 +132,6 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
 
 const styles = StyleSheet.create({
   milestoneItem: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -155,13 +155,11 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   summaryHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   viewAllText: { ...Typography.smallSemiBold },
   summaryStats: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
   },

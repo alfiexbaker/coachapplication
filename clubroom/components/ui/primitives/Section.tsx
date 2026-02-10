@@ -16,6 +16,7 @@
 
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Row } from '@/components/primitives/row';
 
 import { Fonts, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -65,7 +66,7 @@ function SectionInner({
   return (
     <View style={[styles.container, style]}>
       {hasHeader ? (
-        <View style={[styles.header, !noPadding && styles.headerPadded]}>
+        <Row align="center" justify="between" style={!noPadding ? styles.headerPadded : undefined}>
           <View style={styles.headerText}>
             {title ? (
               <Text style={[styles.title, themedStyles.title]} numberOfLines={1}>
@@ -79,7 +80,7 @@ function SectionInner({
             ) : null}
           </View>
           {action ? <View>{action}</View> : null}
-        </View>
+        </Row>
       ) : null}
 
       <View style={noPadding ? undefined : styles.content}>
@@ -99,11 +100,7 @@ const styles = StyleSheet.create({
   container: {
     gap: Spacing.sm,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  // header replaced by Row primitive
   headerPadded: {
     paddingHorizontal: Spacing.sm,
   },

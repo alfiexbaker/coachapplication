@@ -23,6 +23,7 @@ import { Spacing, Radii } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export const CompactMilestoneList = memo(function CompactMilestoneList({
   return (
     <View style={styles.compactContainer}>
       {sorted.slice(0, 3).map((milestone) => (
-        <View key={milestone.id} style={styles.compactItem}>
+        <Row key={milestone.id} style={styles.compactItem}>
           <Ionicons
             name={milestone.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
             size={14}
@@ -156,7 +157,7 @@ export const CompactMilestoneList = memo(function CompactMilestoneList({
           >
             {milestone.title}
           </ThemedText>
-        </View>
+        </Row>
       ))}
       {milestones.length > 3 && (
         <ThemedText style={[styles.moreText, { color: palette.muted }]}>
@@ -171,7 +172,6 @@ export const CompactMilestoneList = memo(function CompactMilestoneList({
 
 const styles = StyleSheet.create({
   milestoneItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs,
@@ -206,7 +206,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   compactItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

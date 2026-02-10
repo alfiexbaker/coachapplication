@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ClubEventType, EventTargetAudience } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface CreateEventReviewStepProps {
   eventType: ClubEventType;
@@ -50,7 +51,7 @@ function CreateEventReviewStepInner({
       </ThemedText>
 
       <SurfaceCard style={styles.reviewCard}>
-        <View style={[styles.reviewTypeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
+        <Row style={[styles.reviewTypeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
           <Ionicons
             name={eventService.getEventTypeIcon(eventType) as keyof typeof Ionicons.glyphMap}
             size={16}
@@ -59,7 +60,7 @@ function CreateEventReviewStepInner({
           <ThemedText style={[styles.reviewTypeText, { color: typeColor }]}>
             {eventService.formatEventType(eventType)}
           </ThemedText>
-        </View>
+        </Row>
 
         <ThemedText type="subtitle" style={styles.reviewTitle}>
           {title}
@@ -73,17 +74,17 @@ function CreateEventReviewStepInner({
 
         <View style={[styles.reviewDivider, { backgroundColor: palette.border }]} />
 
-        <View style={styles.reviewRow}>
+        <Row style={styles.reviewRow}>
           <Ionicons name="calendar-outline" size={18} color={palette.icon} />
           <ThemedText>{date} at {startTime}{endTime && ` - ${endTime}`}</ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.reviewRow}>
+        <Row style={styles.reviewRow}>
           <Ionicons name="location-outline" size={18} color={palette.icon} />
           <ThemedText>{isVirtual ? 'Online (Virtual)' : venue}</ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.reviewRow}>
+        <Row style={styles.reviewRow}>
           <Ionicons name="people-outline" size={18} color={palette.icon} />
           <ThemedText>
             {targetAudience === 'SQUADS'
@@ -92,12 +93,12 @@ function CreateEventReviewStepInner({
                 ? `Specific Athletes (${selectedAthleteIds.length} selected)`
                 : eventService.formatAudience(targetAudience as EventTargetAudience)}
           </ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.reviewRow}>
+        <Row style={styles.reviewRow}>
           <Ionicons name="cash-outline" size={18} color={palette.icon} />
           <ThemedText>{eventService.formatPrice(parseFloat(price) || 0, 'GBP')}</ThemedText>
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -117,7 +118,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reviewTypeBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -143,7 +143,6 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.sm,
   },
   reviewRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.xxs,

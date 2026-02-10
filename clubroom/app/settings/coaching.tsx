@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Stepper, ToggleRow, NavigationRow, SectionHeader, Separator } from '@/components/settings/coaching-rows';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Shadows, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCoachingSettings } from '@/hooks/use-coaching-settings';
@@ -19,7 +21,7 @@ export default function CoachingSettingsScreen() {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Coaching Settings' }} />
-        <ActivityIndicator size="large" color={colors.text} />
+        <LoadingState variant="form" />
       </View>
     );
   }
@@ -80,8 +82,10 @@ function ToastView({ toastOpacity, colors, scheme }: { toastOpacity: import('rea
   const animStyle = useAnimatedStyle(() => ({ opacity: toastOpacity.value }));
   return (
     <Animated.View style={[styles.toast, Shadows[scheme].card, { backgroundColor: colors.surface }, animStyle]} pointerEvents="none">
-      <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-      <ThemedText style={[styles.toastText, { color: colors.success }]}>Saved</ThemedText>
+      <Row align="center" gap="xs">
+        <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+        <ThemedText style={[styles.toastText, { color: colors.success }]}>Saved</ThemedText>
+      </Row>
     </Animated.View>
   );
 }
@@ -92,7 +96,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs },
   card: { borderRadius: Radii.card, overflow: 'hidden' },
-  toast: { position: 'absolute', bottom: Spacing.xl, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
+  toast: { position: 'absolute', bottom: Spacing.xl, alignSelf: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
   toastText: { ...Typography.bodySemiBold },
   bottomSpacer: { height: Spacing.lg },
 });

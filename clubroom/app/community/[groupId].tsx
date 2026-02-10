@@ -6,12 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { GroupChatSection } from '@/components/community/group-chat-section';
 import { GroupMembersModal } from '@/components/community/group-members-modal';
 import { GroupRolePicker } from '@/components/community/group-role-picker';
 import { Spacing, Typography } from '@/constants/theme';
 import type { ParentGroup, GroupMessage, GroupMember, GroupMemberRole } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { communityGroupService } from '@/services/community/community-group-service';
@@ -22,7 +24,7 @@ const logger = createLogger('GroupChatScreen');
 
 export default function GroupChatScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const parentId = currentUser?.id ?? 'parent1';
   const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
@@ -187,7 +189,7 @@ export default function GroupChatScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+      <Row style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -208,7 +210,7 @@ export default function GroupChatScreen() {
             <Ionicons name="exit-outline" size={22} color={palette.error} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Chat */}
       <GroupChatSection
@@ -257,7 +259,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,

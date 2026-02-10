@@ -13,17 +13,19 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CompareScreen');
 
 export default function DynamicCompareScreen() {
   const { ids } = useLocalSearchParams<{ ids: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   // Parse coach IDs from comma-separated string
   const coachIds = useMemo(() => ids ? ids.split(',').filter(Boolean) : [], [ids]);
@@ -87,8 +89,10 @@ export default function DynamicCompareScreen() {
                   backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
-              <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+              </Row>
             </Clickable>
           </View>
         </SafeAreaView>
@@ -129,8 +133,10 @@ export default function DynamicCompareScreen() {
                   backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
-              <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+              </Row>
             </Clickable>
           </View>
         </SafeAreaView>
@@ -162,19 +168,19 @@ export default function DynamicCompareScreen() {
         edges={['bottom']}
       >
         {/* Status bar */}
-        <View style={[styles.statusBar, { borderBottomColor: palette.border }]}>
-          <View style={styles.statusInfo}>
+        <Row style={[styles.statusBar, { borderBottomColor: palette.border }]}>
+          <Row style={styles.statusInfo}>
             <Ionicons name="git-compare" size={18} color={palette.icon} />
             <ThemedText style={styles.statusText}>
               Comparing {coachIds.length} {coachIds.length === 1 ? 'coach' : 'coaches'}
             </ThemedText>
-          </View>
+          </Row>
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <ThemedText style={[styles.badgeText, { color: palette.success }]}>
               Shared Comparison
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         {/* Comparison table with specific IDs */}
         <ComparisonTable coachIds={coachIds} onCoachRemoved={handleCoachRemoved} />
@@ -190,14 +196,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs },
   statusBar: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1 },
   statusInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs },
   statusText: {
@@ -229,9 +233,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     maxWidth: 280 },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radii.button },

@@ -11,6 +11,7 @@ export { StarRow, BadgeBanner, RecapActions } from './session-recap-card-section
 export type { StarRowProps, BadgeBannerProps, RecapActionsProps } from './session-recap-card-sections';
 
 import { StarRow, BadgeBanner, RecapActions } from './session-recap-card-sections';
+import { Row } from '@/components/primitives';
 
 /* ---------- Types ---------- */
 
@@ -43,7 +44,7 @@ export function SessionRecapCard({
   return (
     <SurfaceCard style={styles.card}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={[styles.iconCircle, { backgroundColor: palette.tint }]}>
           <Ionicons name="football" size={20} color={palette.surface} />
         </View>
@@ -55,19 +56,19 @@ export function SessionRecapCard({
             {recap.date} &middot; Coach {recap.coachName}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Focus area */}
       <View style={styles.section}>
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
           FOCUS AREA
         </ThemedText>
-        <View style={[styles.focusPill, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}>
+        <Row style={[styles.focusPill, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}>
           <Ionicons name="flash-outline" size={14} color={palette.tint} />
           <ThemedText type="defaultSemiBold" style={[styles.focusText, { color: palette.tint }]}>
             {recap.focusArea}
           </ThemedText>
-        </View>
+        </Row>
       </View>
 
       {/* Effort rating */}
@@ -85,10 +86,10 @@ export function SessionRecapCard({
             IMPROVEMENTS
           </ThemedText>
           {recap.improvements.map((item, idx) => (
-            <View key={idx} style={styles.bulletRow}>
+            <Row key={idx} style={styles.bulletRow}>
               <Ionicons name="checkmark-circle" size={16} color={palette.success} />
               <ThemedText style={styles.bulletText}>{item}</ThemedText>
-            </View>
+            </Row>
           ))}
         </View>
       )}
@@ -100,10 +101,10 @@ export function SessionRecapCard({
             NEXT STEPS
           </ThemedText>
           {recap.nextSteps.map((item, idx) => (
-            <View key={idx} style={styles.bulletRow}>
+            <Row key={idx} style={styles.bulletRow}>
               <Ionicons name="arrow-forward-circle-outline" size={16} color={palette.tint} />
               <ThemedText style={styles.bulletText}>{item}</ThemedText>
-            </View>
+            </Row>
           ))}
         </View>
       )}
@@ -121,12 +122,12 @@ export function SessionRecapCard({
       />
 
       {/* Branding */}
-      <View style={[styles.branding, { borderTopColor: palette.border }]}>
+      <Row style={[styles.branding, { borderTopColor: palette.border }]}>
         <Ionicons name="football-outline" size={14} color={palette.muted} />
         <ThemedText style={[styles.brandText, { color: palette.muted }]}>
           Clubroom
         </ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -139,7 +140,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -167,7 +167,6 @@ const styles = StyleSheet.create({
     ...Typography.micro,
   },
   focusPill: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: Spacing.xs / 2,
@@ -180,7 +179,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   bulletRow: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.xs,
   },
@@ -189,7 +187,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   branding: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs / 2,

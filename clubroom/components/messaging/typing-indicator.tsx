@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -7,19 +8,16 @@ export function TypingIndicator() {
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row align="center" gap="xs" style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       {[0, 1, 2].map((dot) => (
         <View key={dot} style={[styles.dot, { backgroundColor: palette.icon }]} />
       ))}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,

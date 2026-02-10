@@ -9,6 +9,7 @@ import { StaffRolePicker } from '@/components/academy/staff-role-picker';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AcademyMembership } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface StaffEditModalProps {
   member: AcademyMembership | null;
@@ -27,12 +28,12 @@ export const StaffEditModal = memo(function StaffEditModal({
     <Modal visible={!!member} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="title">Edit Member</ThemedText>
             <Clickable accessibilityLabel="Close" onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text} />
             </Clickable>
-          </View>
+          </Row>
 
           {member && (
             <>
@@ -56,7 +57,7 @@ export const StaffEditModal = memo(function StaffEditModal({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   content: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { alignItems: 'center', justifyContent: 'space-between' },
   memberName: { ...Typography.bodySmall, marginTop: -Spacing.xs },
   label: { ...Typography.smallSemiBold, marginTop: Spacing.sm },
   actions: { gap: Spacing.sm, marginTop: Spacing.md },

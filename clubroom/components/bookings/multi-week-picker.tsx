@@ -20,6 +20,7 @@ export { formatTimeDisplay, WeekSeparator, WeekRowItem } from './multi-week-pick
 export type { WeekRowItemProps } from './multi-week-picker-sections';
 
 import { WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
+import { Row } from '@/components/primitives';
 
 export interface WeekRow {
   weekDate: string;
@@ -71,17 +72,17 @@ export function MultiWeekPicker({
   return (
     <View style={styles.container}>
       {/* Selection summary */}
-      <View style={[styles.summaryRow, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-        <View style={styles.summaryLeft}>
+      <Row style={[styles.summaryRow, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <Row style={styles.summaryLeft}>
           <Ionicons name="calendar-outline" size={16} color={palette.tint} />
           <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
             {selectedCount} week{selectedCount !== 1 ? 's' : ''} selected
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
           {currency}{totalCost.toFixed(0)}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Week rows */}
       <FlatList
@@ -101,7 +102,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   summaryRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
@@ -109,7 +109,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   summaryLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

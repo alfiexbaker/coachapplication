@@ -17,6 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { CoachCardData } from '@/components/coach';
 import { FeaturedCard, CARD_WIDTH } from './featured-coach-card';
 import { MOCK_FEATURED_COACHES, MIN_FEATURED_RATING } from './featured-coaches-data';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -70,20 +71,20 @@ export function FeaturedCoaches({
   return (
     <View style={styles.container}>
       {/* Section header */}
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.headerLeft}>
           <Ionicons name="location" size={Components.icon.lg} color={palette.tint} />
           <ThemedText style={[styles.headerTitle, { color: palette.text }]}>Featured Near You</ThemedText>
-        </View>
+        </Row>
         {onSeeAll && (
           <Clickable onPress={onSeeAll} accessibilityLabel="See all featured coaches">
-            <View style={styles.seeAllRow}>
+            <Row style={styles.seeAllRow}>
               <ThemedText style={[styles.seeAllText, { color: palette.tint }]}>See all</ThemedText>
               <Ionicons name="chevron-forward" size={Components.icon.sm} color={palette.tint} />
-            </View>
+            </Row>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Horizontal scroll */}
       <ScrollView
@@ -117,10 +118,10 @@ export function FeaturedCoaches({
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flex: 1 },
+  headerRow: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md },
+  headerLeft: { alignItems: 'center', gap: Spacing.xs, flex: 1 },
   headerTitle: { ...Typography.title, flexShrink: 1 },
-  seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  seeAllRow: { alignItems: 'center', gap: Spacing.xs / 2 },
   seeAllText: { ...Typography.bodySemiBold },
   scrollContent: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
 });

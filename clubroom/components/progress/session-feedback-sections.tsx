@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -38,11 +39,11 @@ export const RatingStars = memo(function RatingStars({ rating, size = 14 }: { ra
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.starsRow}>
+    <Row gap="micro">
       {[1, 2, 3, 4, 5].map((star) => (
         <Ionicons key={star} name={star <= rating ? 'star' : 'star-outline'} size={size} color={star <= rating ? palette.rating : palette.muted} />
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -63,7 +64,7 @@ export const CompactFeedbackCard = memo(function CompactFeedbackCard({
 
   return (
     <SurfaceCard style={styles.compactCard} onPress={onPress} tactile={Boolean(onPress)}>
-      <View style={styles.compactHeader}>
+      <Row justify="space-between" align="center">
         <View style={styles.compactLeft}>
           <ThemedText type="defaultSemiBold" style={styles.compactDate}>{formatDate(feedback.createdAt)}</ThemedText>
           {showCoachName && <ThemedText style={[styles.compactCoach, { color: palette.muted }]}>{feedback.coachName}</ThemedText>}
@@ -71,7 +72,7 @@ export const CompactFeedbackCard = memo(function CompactFeedbackCard({
         <View style={styles.compactRight}>
           <RatingStars rating={feedback.overallPerformance} size={12} />
         </View>
-      </View>
+      </Row>
       {feedback.publicSummary && (
         <ThemedText style={[styles.compactSummary, { color: palette.muted }]} numberOfLines={2}>{feedback.publicSummary}</ThemedText>
       )}
@@ -91,11 +92,11 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({ ratings }: { ra
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skill ratings</ThemedText>
-      <View style={styles.skillRatingsGrid}>
+      <Row gap="sm" wrap>
         {ratings.slice(0, 4).map((sr, index) => (
-          <View key={index} style={styles.skillRatingItem}>
+          <Row key={index} align="center" gap="xxs" style={styles.skillRatingItem}>
             <ThemedText style={styles.skillRatingName}>{sr.skill}</ThemedText>
-            <View style={styles.skillRatingValue}>
+            <Row align="baseline">
               <ThemedText type="defaultSemiBold" style={[styles.skillRatingNumber, { color: palette.tint }]}>{sr.rating}</ThemedText>
               <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>/10</ThemedText>
               {sr.previousRating !== undefined && sr.rating !== sr.previousRating && (
@@ -106,10 +107,10 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({ ratings }: { ra
                   style={{ marginLeft: Spacing.micro }}
                 />
               )}
-            </View>
-          </View>
+            </Row>
+          </Row>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -123,38 +124,38 @@ export const FeedbackCardDetails = memo(function FeedbackCardDetails({ feedback 
     <>
       {feedback.improvements && (
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <Row align="center" gap="xxs">
             <Ionicons name="trending-up" size={14} color={palette.success} />
             <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Improvements noted</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.sectionContent, { color: palette.text }]}>{feedback.improvements}</ThemedText>
         </View>
       )}
 
       {feedback.homework && (
         <View style={[styles.section, styles.homeworkSection, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
-          <View style={styles.sectionHeader}>
+          <Row align="center" gap="xxs">
             <Ionicons name="clipboard-outline" size={14} color={palette.tint} />
             <ThemedText style={[styles.sectionLabel, { color: palette.tint }]}>Homework</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.sectionContent, { color: palette.text }]}>{feedback.homework}</ThemedText>
         </View>
       )}
 
       {feedback.videoClipUrls && feedback.videoClipUrls.length > 0 && (
-        <View style={styles.mediaRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="videocam" size={14} color={palette.tint} />
           <ThemedText style={[styles.mediaText, { color: palette.tint }]}>
             {feedback.videoClipUrls.length} video{feedback.videoClipUrls.length > 1 ? 's' : ''} attached
           </ThemedText>
-        </View>
+        </Row>
       )}
 
       {feedback.badgeAwarded && (
-        <View style={[styles.badgeRow, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+        <Row align="center" gap="xs" style={[styles.badgeRow, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="ribbon" size={16} color={palette.success} />
           <ThemedText style={[styles.badgeText, { color: palette.success }]}>Badge awarded: {feedback.badgeAwarded}</ThemedText>
-        </View>
+        </Row>
       )}
     </>
   );
@@ -163,27 +164,21 @@ export const FeedbackCardDetails = memo(function FeedbackCardDetails({ feedback 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  starsRow: { flexDirection: 'row', gap: Spacing.micro },
   compactCard: { padding: Spacing.sm, gap: Spacing.xxs },
-  compactHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   compactLeft: { gap: Spacing.micro },
   compactRight: {},
   compactDate: { ...Typography.bodySmall },
   compactCoach: { ...Typography.caption },
   compactSummary: { ...Typography.small, lineHeight: 18 },
   section: { gap: Spacing.xxs },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '600' },
   sectionContent: { ...Typography.bodySmall, lineHeight: 20 },
-  skillRatingsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  skillRatingItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, minWidth: '45%' },
+  skillRatingItem: { minWidth: '45%' },
   skillRatingName: { ...Typography.small, flex: 1 },
-  skillRatingValue: { flexDirection: 'row', alignItems: 'baseline' },
   skillRatingNumber: { ...Typography.body, fontVariant: ['tabular-nums'] },
   skillRatingMax: { ...Typography.caption },
   homeworkSection: { padding: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.xs },
-  mediaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   mediaText: { ...Typography.smallSemiBold },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
+  badgeRow: { padding: Spacing.sm, borderRadius: Radii.md },
   badgeText: { ...Typography.smallSemiBold },
 });

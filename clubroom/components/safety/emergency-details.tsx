@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -27,31 +28,31 @@ export const EmergencyDetails = memo(function EmergencyDetails({ data, onCallCon
       {data.hasAlerts && (
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <SurfaceCard style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row align="center" gap="sm">
               <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                 <Ionicons name="alert-circle" size={20} color={palette.error} />
               </View>
               <ThemedText type="defaultSemiBold">Medical Alerts</ThemedText>
-            </View>
-            <View style={styles.alertsGrid}>
+            </Row>
+            <Row wrap gap="xs">
               {data.allergies.map((a, i) => <MedicalAlertBadge key={`allergy-${i}`} type="allergy" label={a} />)}
               {data.conditions.map((c, i) => <MedicalAlertBadge key={`condition-${i}`} type="condition" label={c} />)}
               {data.medications.map((m, i) => <MedicalAlertBadge key={`medication-${i}`} type="medication" label={m} />)}
-            </View>
+            </Row>
             {data.restrictions.length > 0 && (
-              <View style={[styles.restrictionsBox, { backgroundColor: withAlpha(palette.warning, 0.03) }]}>
+              <Row align="start" gap="sm" style={[styles.restrictionsBox, { backgroundColor: withAlpha(palette.warning, 0.03) }]}>
                 <Ionicons name="ban" size={16} color={palette.warning} />
                 <View style={{ flex: 1 }}>
                   <ThemedText style={[styles.restrictionsLabel, { color: palette.warning }]}>Restrictions</ThemedText>
                   <ThemedText style={styles.restrictionsText}>{data.restrictions.join('; ')}</ThemedText>
                 </View>
-              </View>
+              </Row>
             )}
             {data.medicalNotes && (
-              <View style={[styles.notesBox, { backgroundColor: palette.surfaceSecondary }]}>
+              <Row align="start" gap="sm" style={[styles.notesBox, { backgroundColor: palette.surfaceSecondary }]}>
                 <Ionicons name="document-text" size={14} color={palette.muted} />
                 <ThemedText style={[styles.notesText, { color: palette.muted }]}>{data.medicalNotes}</ThemedText>
-              </View>
+              </Row>
             )}
           </SurfaceCard>
         </Animated.View>
@@ -60,13 +61,13 @@ export const EmergencyDetails = memo(function EmergencyDetails({ data, onCallCon
       {/* Emergency Contacts */}
       <Animated.View entering={FadeInDown.delay(100).springify()}>
         <SurfaceCard style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <Row align="center" gap="sm">
             <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
               <Ionicons name="call" size={20} color={palette.success} />
             </View>
             <ThemedText type="defaultSemiBold">Emergency Contacts</ThemedText>
             <ThemedText style={[styles.contactCount, { color: palette.muted }]}>{data.allContacts.length}</ThemedText>
-          </View>
+          </Row>
           {data.allContacts.length > 0 ? (
             <View style={styles.contactsList}>
               {data.allContacts.map((contact) => (
@@ -87,13 +88,13 @@ export const EmergencyDetails = memo(function EmergencyDetails({ data, onCallCon
       {(data.doctorName || data.doctorPhone) && (
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <SurfaceCard style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row align="center" gap="sm">
               <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <Ionicons name="medkit" size={20} color={palette.tint} />
               </View>
               <ThemedText type="defaultSemiBold">Doctor Information</ThemedText>
-            </View>
-            <View style={styles.doctorInfo}>
+            </Row>
+            <Row align="center" gap="md">
               <View style={{ flex: 1 }}>
                 {data.doctorName && <ThemedText type="defaultSemiBold">{data.doctorName}</ThemedText>}
                 {data.doctorPhone && <ThemedText style={{ color: palette.muted }}>{data.doctorPhone}</ThemedText>}
@@ -103,7 +104,7 @@ export const EmergencyDetails = memo(function EmergencyDetails({ data, onCallCon
                   <Ionicons name="call" size={18} color={palette.onPrimary} />
                 </Clickable>
               )}
-            </View>
+            </Row>
           </SurfaceCard>
         </Animated.View>
       )}
@@ -111,21 +112,21 @@ export const EmergencyDetails = memo(function EmergencyDetails({ data, onCallCon
       {/* Consent Status */}
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <SurfaceCard style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <Row align="center" gap="sm">
             <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons name="shield-checkmark" size={20} color={palette.muted} />
             </View>
             <ThemedText type="defaultSemiBold">Consent Status</ThemedText>
-          </View>
-          <View style={styles.consentRow}>
+          </Row>
+          <Row align="center" justify="between">
             <ThemedText>Emergency Treatment Consent</ThemedText>
-            <View style={[styles.consentBadge, { backgroundColor: withAlpha(data.emergencyTreatmentConsent ? palette.success : palette.error, 0.06) }]}>
+            <Row align="center" gap="xxs" style={[styles.consentBadge, { backgroundColor: withAlpha(data.emergencyTreatmentConsent ? palette.success : palette.error, 0.06) }]}>
               <Ionicons name={data.emergencyTreatmentConsent ? 'checkmark-circle' : 'close-circle'} size={16} color={data.emergencyTreatmentConsent ? palette.success : palette.error} />
               <ThemedText style={[styles.consentText, { color: data.emergencyTreatmentConsent ? palette.success : palette.error }]}>
                 {data.emergencyTreatmentConsent ? 'Granted' : 'Not Granted'}
               </ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
         </SurfaceCard>
       </Animated.View>
 
@@ -144,22 +145,17 @@ export const EmergencyDetails = memo(function EmergencyDetails({ data, onCallCon
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   sectionIcon: { width: 36, height: 36, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
   contactCount: { marginLeft: 'auto', ...Typography.bodySmallSemiBold },
-  alertsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  restrictionsBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.xs },
+  restrictionsBox: { padding: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.xs },
   restrictionsLabel: { ...Typography.caption, marginBottom: Spacing.micro },
   restrictionsText: { ...Typography.bodySmall },
-  notesBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md },
+  notesBox: { padding: Spacing.sm, borderRadius: Radii.md },
   notesText: { flex: 1, ...Typography.small },
   contactsList: { gap: Spacing.sm },
   noContactsBox: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.lg },
   noContactsSubtext: { ...Typography.small, textAlign: 'center' },
-  doctorInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   callButton: { width: 44, height: 44, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
-  consentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  consentBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  consentBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   consentText: { ...Typography.caption },
-  lastUpdated: { textAlign: 'center', ...Typography.caption, marginTop: Spacing.sm },
-});
+  lastUpdated: { textAlign: 'center', ...Typography.caption, marginTop: Spacing.sm } });

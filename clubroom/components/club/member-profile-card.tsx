@@ -8,6 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { Row } from '@/components/primitives';
 
 interface MemberProfileCardProps {
   member: ClubMember;
@@ -31,10 +32,10 @@ export const MemberProfileCard = memo(function MemberProfileCard({ member }: Mem
         )}
         <View style={{ flex: 1, gap: Spacing.xs }}>
           <ThemedText type="title">{member.userName}</ThemedText>
-          <View style={[styles.roleBadge, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
+          <Row style={[styles.roleBadge, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
             <View style={[styles.roleDot, { backgroundColor: roleColor }]} />
             <ThemedText style={[Typography.caption, { color: roleColor }]}>{clubService.formatRole(member.role)}</ThemedText>
-          </View>
+          </Row>
         </View>
       </Row>
 
@@ -65,7 +66,7 @@ export const MemberProfileCard = memo(function MemberProfileCard({ member }: Mem
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   avatar: { width: Components.avatar.lg, height: Components.avatar.lg, borderRadius: Components.avatar.lg / 2, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-  roleBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill, alignSelf: 'flex-start' },
+  roleBadge: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill, alignSelf: 'flex-start' },
   roleDot: { width: 8, height: 8, borderRadius: Radii.xs },
   details: { borderTopWidth: 1, paddingTop: Spacing.md, gap: Spacing.sm },
 });

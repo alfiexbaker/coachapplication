@@ -5,7 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
+
 import { VideoCard } from '@/components/video/video-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -17,7 +19,7 @@ export default function VideosScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
@@ -29,14 +31,14 @@ export default function VideosScreen() {
             <Ionicons name="cloud-upload-outline" size={20} color={colors.onPrimary} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {isCoach && videos.length > 0 && (
-        <View style={styles.statsRow}>
+        <Row gap="sm" style={styles.statsRow}>
           <StatCard label="Videos" value={stats.totalVideos} colors={colors} />
           <StatCard label="Views" value={stats.totalViews} colors={colors} />
           <StatCard label="Shared" value={stats.sharedCount} colors={colors} />
-        </View>
+        </Row>
       )}
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -65,10 +67,10 @@ function StatCard({ label, value, colors }: { label: string; value: number; colo
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { flex: 1 },
   uploadButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
+  statsRow: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md },
   statValue: { ...Typography.title },
   statLabel: { ...Typography.caption },

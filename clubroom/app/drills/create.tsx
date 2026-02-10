@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -18,7 +19,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { DrillForm } from '@/components/drills';
 import { Spacing, Typography } from '@/constants/theme';
 import type { CreateDrillInput } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
@@ -30,7 +32,7 @@ const logger = createLogger('CreateDrillScreen');
  * Screen for creating a new drill in the coach's library.
  */
 export default function CreateDrillScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,7 +96,7 @@ export default function CreateDrillScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+      <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable accessibilityLabel="Close" onPress={handleCancel} hitSlop={8}>
           <Ionicons name="close" size={24} color={palette.text} />
         </Clickable>
@@ -102,7 +104,7 @@ export default function CreateDrillScreen() {
           Create Drill
         </ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       {/* Form */}
       <DrillForm
@@ -119,9 +121,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1 },

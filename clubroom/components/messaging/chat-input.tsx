@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -17,7 +18,7 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
   const placeholderColor = useMemo(() => (scheme === 'dark' ? palette.muted : palette.muted), [scheme]);
 
   return (
-    <View style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
+    <Row align="flex-end" gap="sm" style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
       accessibilityRole="none">
       <Pressable accessibilityRole="button" style={styles.iconButton} onPress={onAttach}>
         <IconSymbol name="paperclip" size={22} color={palette.icon} />
@@ -53,18 +54,15 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
           <IconSymbol name="mic.fill" size={20} color={palette.icon} />
         )}
       </Pressable>
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
     borderWidth: 1,
     borderRadius: Radii.lg,
     padding: Spacing.sm,
-    gap: Spacing.sm,
   },
   iconButton: {
     height: 36,

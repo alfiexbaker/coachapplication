@@ -4,6 +4,7 @@
 
 import React, { memo } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -26,7 +27,7 @@ export const EditChildrenSection = memo(function EditChildrenSection({
 
   return (
     <SurfaceCard style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <Row justify="between" align="center">
         <ThemedText type="subtitle">Children</ThemedText>
         <Pressable
           onPress={onAddChild}
@@ -34,14 +35,16 @@ export const EditChildrenSection = memo(function EditChildrenSection({
           accessibilityLabel="Add child"
           accessibilityRole="button"
         >
-          <Ionicons name="add-circle" size={22} color={colors.tint} />
-          <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
+          <Row align="center" gap="xs">
+            <Ionicons name="add-circle" size={22} color={colors.tint} />
+            <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
+          </Row>
         </Pressable>
-      </View>
+      </Row>
 
       {children.map((child, index) => (
-        <View key={`child-${index}`} style={[styles.childRow, { borderColor: colors.border }]}>
-          <View style={styles.childFields}>
+        <Row key={`child-${index}`} align="center" gap="sm" style={[styles.childRow, { borderColor: colors.border }]}>
+          <Row gap="sm" flex>
             <TextInput
               value={child.name}
               onChangeText={(text) => onUpdateChild(index, 'name', text)}
@@ -59,7 +62,7 @@ export const EditChildrenSection = memo(function EditChildrenSection({
               style={[...inputStyle, styles.childAgeInput]}
               accessibilityLabel={`Child ${index + 1} age`}
             />
-          </View>
+          </Row>
           <Pressable
             onPress={() => onRemoveChild(index)}
             accessibilityLabel={`Remove child ${index + 1}`}
@@ -68,7 +71,7 @@ export const EditChildrenSection = memo(function EditChildrenSection({
           >
             <Ionicons name="trash-outline" size={24} color={colors.destructive} />
           </Pressable>
-        </View>
+        </Row>
       ))}
     </SurfaceCard>
   );
@@ -76,14 +79,11 @@ export const EditChildrenSection = memo(function EditChildrenSection({
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  inlineAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  inlineAction: {},
   inlineActionText: { fontWeight: '700' },
   childRow: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     paddingBottom: Spacing.sm, borderBottomWidth: 1,
   },
-  childFields: { flex: 1, flexDirection: 'row', gap: Spacing.sm },
   childNameInput: { flex: 2 },
   childAgeInput: { flex: 1 },
   input: {

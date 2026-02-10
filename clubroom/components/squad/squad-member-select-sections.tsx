@@ -10,6 +10,7 @@ import React, { memo } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -38,11 +39,11 @@ export const SelectAllHeader = memo(function SelectAllHeader({
   palette,
 }: SelectAllHeaderProps) {
   return (
-    <View style={styles.headerRow}>
+    <Row align="center" justify="between">
       <ThemedText type="defaultSemiBold">
         {selectedCount} of {totalCount} selected
       </ThemedText>
-      <View style={styles.headerActions}>
+      <Row gap="xs">
         <Clickable
           onPress={allSelected ? onSelectNone : onSelectAll}
           disabled={disabled}
@@ -55,23 +56,25 @@ export const SelectAllHeader = memo(function SelectAllHeader({
             },
           ]}
         >
-          <Ionicons
-            name={allSelected ? 'checkmark-done' : 'checkbox-outline'}
-            size={14}
-            color={allSelected ? palette.tint : palette.muted}
-          />
-          <ThemedText
-            style={{
-              ...Typography.caption,
-              color: allSelected ? palette.tint : palette.text,
-              fontWeight: '600',
-            }}
-          >
-            {allSelected ? 'Deselect All' : 'Select All'}
-          </ThemedText>
+          <Row align="center" gap="xs">
+            <Ionicons
+              name={allSelected ? 'checkmark-done' : 'checkbox-outline'}
+              size={14}
+              color={allSelected ? palette.tint : palette.muted}
+            />
+            <ThemedText
+              style={{
+                ...Typography.caption,
+                color: allSelected ? palette.tint : palette.text,
+                fontWeight: '600',
+              }}
+            >
+              {allSelected ? 'Deselect All' : 'Select All'}
+            </ThemedText>
+          </Row>
         </Clickable>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -87,12 +90,12 @@ export const NotificationBanner = memo(function NotificationBanner({
   palette,
 }: NotificationBannerProps) {
   return (
-    <View style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+    <Row align="center" gap="sm" style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
       <Ionicons name="notifications-outline" size={16} color={palette.tint} />
       <ThemedText style={[styles.notificationText, { color: palette.tint }]}>
         {parentCount} parent{parentCount !== 1 ? 's' : ''} will receive notifications
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -128,65 +131,67 @@ export const MemberCard = memo(function MemberCard({
         },
       ]}
     >
-      <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-        <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-          {member.athleteName.charAt(0)}
-        </ThemedText>
-      </View>
-
-      <View style={styles.memberInfo}>
-        <ThemedText type="defaultSemiBold">{member.athleteName}</ThemedText>
-        <View style={styles.memberMeta}>
-          {member.athleteAge && (
-            <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-              Age {member.athleteAge}
-            </ThemedText>
-          )}
-          {member.position && (
-            <>
-              <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
-                {' '}{'\u2022'}{' '}
-              </ThemedText>
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                {member.position}
-              </ThemedText>
-            </>
-          )}
-          {member.jerseyNumber && (
-            <>
-              <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
-                {' '}{'\u2022'}{' '}
-              </ThemedText>
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                #{member.jerseyNumber}
-              </ThemedText>
-            </>
-          )}
-        </View>
-        <ThemedText style={[styles.parentText, { color: palette.muted }]}>
-          Parent: {member.parentName}
-        </ThemedText>
-      </View>
-
-      {member.hasPendingInvite ? (
-        <View style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
-          <ThemedText style={[styles.pendingText, { color: palette.warning }]}>
-            Invited
+      <Row align="center" gap="md">
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+            {member.athleteName.charAt(0)}
           </ThemedText>
         </View>
-      ) : (
-        <View
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: isSelected ? palette.tint : 'transparent',
-              borderColor: isSelected ? palette.tint : palette.border,
-            },
-          ]}
-        >
-          {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
+
+        <View style={styles.memberInfo}>
+          <ThemedText type="defaultSemiBold">{member.athleteName}</ThemedText>
+          <Row align="center">
+            {member.athleteAge && (
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                Age {member.athleteAge}
+              </ThemedText>
+            )}
+            {member.position && (
+              <>
+                <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
+                  {' '}{'\u2022'}{' '}
+                </ThemedText>
+                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                  {member.position}
+                </ThemedText>
+              </>
+            )}
+            {member.jerseyNumber && (
+              <>
+                <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
+                  {' '}{'\u2022'}{' '}
+                </ThemedText>
+                <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                  #{member.jerseyNumber}
+                </ThemedText>
+              </>
+            )}
+          </Row>
+          <ThemedText style={[styles.parentText, { color: palette.muted }]}>
+            Parent: {member.parentName}
+          </ThemedText>
         </View>
-      )}
+
+        {member.hasPendingInvite ? (
+          <View style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+            <ThemedText style={[styles.pendingText, { color: palette.warning }]}>
+              Invited
+            </ThemedText>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.checkbox,
+              {
+                backgroundColor: isSelected ? palette.tint : 'transparent',
+                borderColor: isSelected ? palette.tint : palette.border,
+              },
+            ]}
+          >
+            {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
+          </View>
+        )}
+      </Row>
     </Clickable>
   );
 });
@@ -238,37 +243,22 @@ export function MemberSelectEmpty({ palette }: { palette: ThemeColors }) {
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerActions: { flexDirection: 'row', gap: Spacing.xs },
   selectAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   notificationBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
   notificationText: { ...Typography.smallSemiBold },
   memberItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    gap: Spacing.md,
   },
   avatar: {
     width: 44,
@@ -279,7 +269,6 @@ const styles = StyleSheet.create({
   },
   avatarText: { ...Typography.heading },
   memberInfo: { flex: 1, gap: Spacing.micro },
-  memberMeta: { flexDirection: 'row', alignItems: 'center' },
   metaText: { ...Typography.caption },
   metaDot: { ...Typography.caption },
   parentText: { ...Typography.caption, marginTop: Spacing.micro },

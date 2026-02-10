@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface StatsRowProps {
   stats: {
@@ -25,7 +26,7 @@ export function StatsRow({ stats }: StatsRowProps) {
 
   return (
     <SurfaceCard style={styles.statsRowCard}>
-      <View style={styles.statsRow}>
+      <Row style={styles.statsRow}>
         {stats.map((stat, index) => {
           const trendColor = stat.trend ? (stat.trend > 0 ? palette.success : stat.trend < 0 ? palette.error : palette.muted) : null;
           return (
@@ -40,30 +41,30 @@ export function StatsRow({ stats }: StatsRowProps) {
                 </View>
               )}
               <View style={styles.statsRowValueContainer}>
-                <View style={styles.statsRowValueRow}>
+                <Row style={styles.statsRowValueRow}>
                   <ThemedText style={styles.statsRowValue}>{stat.value}</ThemedText>
                   {stat.trend !== undefined && (
                     <Ionicons name={stat.trend > 0 ? 'caret-up' : stat.trend < 0 ? 'caret-down' : 'remove'} size={12} color={trendColor || palette.muted} />
                   )}
-                </View>
+                </Row>
                 <ThemedText style={[styles.statsRowLabel, { color: palette.muted }]}>{stat.label}</ThemedText>
               </View>
             </Animated.View>
           );
         })}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
 
 const styles = StyleSheet.create({
   statsRowCard: { padding: Spacing.md },
-  statsRow: { flexDirection: 'row' },
+  statsRow: {  },
   statsRowItem: { flex: 1, alignItems: 'center', gap: Spacing.xs },
   statsRowItemBorder: { borderRightWidth: 1 },
   statsRowIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   statsRowValueContainer: { alignItems: 'center', gap: Spacing.micro },
-  statsRowValueRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro },
+  statsRowValueRow: { alignItems: 'center', gap: Spacing.micro },
   statsRowValue: { ...Typography.heading, letterSpacing: -0.3 },
   statsRowLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3 },
 });

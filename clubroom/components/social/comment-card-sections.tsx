@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -76,7 +77,7 @@ export const CommentActions = memo(function CommentActions({
   }, [isReply, onReply, commentId, authorName]);
 
   return (
-    <View style={styles.actionsRow}>
+    <Row gap="sm" style={styles.actionsRow}>
       <Clickable
         onPress={handleLike}
         hitSlop={10}
@@ -110,14 +111,12 @@ export const CommentActions = memo(function CommentActions({
           </ThemedText>
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
   actionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     marginTop: Spacing.xxs,
   },
   actionButton: {

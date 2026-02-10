@@ -11,6 +11,7 @@ import { memo, useCallback } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -81,7 +82,7 @@ export const SkillLevelRow = memo(function SkillLevelRow({
   palette,
 }: SkillLevelRowProps) {
   return (
-    <View style={styles.levelRow}>
+    <Row wrap gap="xs">
       {levels.map((level) => {
         const selected = selectedLevel === level;
         return (
@@ -104,7 +105,7 @@ export const SkillLevelRow = memo(function SkillLevelRow({
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -124,7 +125,7 @@ export const ImprovementAreaGrid = memo(function ImprovementAreaGrid({
   palette,
 }: ImprovementAreaGridProps) {
   return (
-    <View style={styles.areasGrid}>
+    <Row wrap gap="xs">
       {areas.map((area) => {
         const selected = selectedAreas.includes(area.label);
         return (
@@ -160,7 +161,7 @@ export const ImprovementAreaGrid = memo(function ImprovementAreaGrid({
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -177,7 +178,7 @@ export const CoachPreviewCard = memo(function CoachPreviewCard({
 }: CoachPreviewCardProps) {
   return (
     <SurfaceCard style={styles.coachCard} tactile={false}>
-      <View style={styles.coachRow}>
+      <Row align="center" gap="sm">
         <View style={[styles.coachAvatar, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="person-outline" size={Components.icon.lg} color={palette.muted} />
         </View>
@@ -190,17 +191,17 @@ export const CoachPreviewCard = memo(function CoachPreviewCard({
           </ThemedText>
         </View>
         <View style={styles.coachMeta}>
-          <View style={styles.ratingRow}>
+          <Row align="center" gap="xxs">
             <Ionicons name="star" size={14} color={palette.warning} />
             <ThemedText style={[Typography.small, { color: palette.text }]}>
               {coach.rating}
             </ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[Typography.caption, { color: palette.muted }]}>
             {coach.distance}
           </ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -239,9 +240,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   levelRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
+    // layout moved to Row
   },
   levelChip: {
     paddingHorizontal: Spacing.sm,
@@ -250,9 +249,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
   },
   areasGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
+    // layout moved to Row
   },
   areaCard: {
     width: '48%',
@@ -282,9 +279,7 @@ export const styles = StyleSheet.create({
     width: '100%',
   },
   coachRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+    // layout moved to Row
   },
   coachAvatar: {
     width: Components.avatar.md,
@@ -302,8 +297,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
+    // layout moved to Row
   },
 });

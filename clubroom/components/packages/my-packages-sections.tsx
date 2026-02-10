@@ -2,6 +2,8 @@ import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
+
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -64,7 +66,7 @@ export const PurchaseListItem = memo(function PurchaseListItem({
         style={styles.purchaseCard}
         onPress={onPress ? () => onPress(purchase) : undefined}
       >
-        <View style={styles.purchaseContent}>
+        <Row justify="space-between" align="center">
           <View style={styles.purchaseInfo}>
             <ThemedText type="defaultSemiBold" style={styles.purchaseName} numberOfLines={1}>
               {purchase.packageName}
@@ -73,7 +75,7 @@ export const PurchaseListItem = memo(function PurchaseListItem({
               {purchase.coachName}
             </ThemedText>
 
-            <View style={styles.progressRow}>
+            <Row align="center" gap="sm" style={styles.progressRow}>
               <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
                 <View
                   style={[
@@ -88,7 +90,7 @@ export const PurchaseListItem = memo(function PurchaseListItem({
               <ThemedText style={[styles.progressText, { color: palette.muted }]}>
                 {purchase.sessionsRemaining}/{purchase.sessionsTotal} left
               </ThemedText>
-            </View>
+            </Row>
           </View>
 
           <View style={styles.purchaseStatus}>
@@ -108,7 +110,7 @@ export const PurchaseListItem = memo(function PurchaseListItem({
               </ThemedText>
             )}
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -120,11 +122,6 @@ const styles = StyleSheet.create({
   purchaseCard: {
     padding: Spacing.md,
   },
-  purchaseContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   purchaseInfo: {
     flex: 1,
     gap: Spacing.xxs,
@@ -132,9 +129,6 @@ const styles = StyleSheet.create({
   purchaseName: { ...Typography.body },
   coachName: { ...Typography.caption },
   progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     marginTop: Spacing.xxs,
   },
   progressBar: {

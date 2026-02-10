@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -46,15 +47,15 @@ export const PromoStatsRow = memo(function PromoStatsRow({
   palette,
 }: PromoStatsRowProps) {
   return (
-    <View style={styles.statsRow}>
-      <View style={styles.statItem}>
+    <Row gap="md" wrap>
+      <Row align="center" gap="xxs">
         <Ionicons name="calendar-outline" size={14} color={palette.muted} />
         <ThemedText style={[styles.statText, { color: palette.muted }]}>
           Created {promoService.formatDate(createdAt)}
         </ThemedText>
-      </View>
+      </Row>
       {expiresAt && (
-        <View style={styles.statItem}>
+        <Row align="center" gap="xxs">
           <Ionicons
             name="time-outline"
             size={14}
@@ -68,17 +69,17 @@ export const PromoStatsRow = memo(function PromoStatsRow({
           >
             {formatExpiryDate(expiresAt)}
           </ThemedText>
-        </View>
+        </Row>
       )}
       {onePerUser && (
-        <View style={styles.statItem}>
+        <Row align="center" gap="xxs">
           <Ionicons name="person-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.statText, { color: palette.muted }]}>
             One per user
           </ThemedText>
-        </View>
+        </Row>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -102,14 +103,16 @@ export const PromoActionButtons = memo(function PromoActionButtons({
   if (!onViewUsage && !onToggleActive) return null;
 
   return (
-    <View style={styles.actions}>
+    <Row gap="sm" style={styles.actions}>
       {onViewUsage && (
         <Clickable
           style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
           onPress={() => onViewUsage(codeId)}
         >
-          <Ionicons name="analytics-outline" size={16} color={palette.text} />
-          <ThemedText style={styles.actionButtonText}>Usage</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="analytics-outline" size={16} color={palette.text} />
+            <ThemedText style={styles.actionButtonText}>Usage</ThemedText>
+          </Row>
         </Clickable>
       )}
       {onToggleActive && (
@@ -123,50 +126,36 @@ export const PromoActionButtons = memo(function PromoActionButtons({
           ]}
           onPress={() => onToggleActive(codeId, isActive)}
         >
-          <Ionicons
-            name={isActive ? 'pause-circle-outline' : 'play-circle-outline'}
-            size={16}
-            color={isActive ? palette.error : palette.success}
-          />
-          <ThemedText
-            style={[
-              styles.actionButtonText,
-              { color: isActive ? palette.error : palette.success },
-            ]}
-          >
-            {isActive ? 'Deactivate' : 'Activate'}
-          </ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons
+              name={isActive ? 'pause-circle-outline' : 'play-circle-outline'}
+              size={16}
+              color={isActive ? palette.error : palette.success}
+            />
+            <ThemedText
+              style={[
+                styles.actionButtonText,
+                { color: isActive ? palette.error : palette.success },
+              ]}
+            >
+              {isActive ? 'Deactivate' : 'Activate'}
+            </ThemedText>
+          </Row>
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
 /* ---------- Styles ---------- */
 
 const styles = StyleSheet.create({
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
   statText: { ...Typography.caption },
   actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     marginTop: Spacing.xs,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,

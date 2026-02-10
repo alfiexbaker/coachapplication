@@ -94,7 +94,6 @@ export const ProgressTrack = memo(function ProgressTrack({
 
 const styles = StyleSheet.create({
   item: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.xs,

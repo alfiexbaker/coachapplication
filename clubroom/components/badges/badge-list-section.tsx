@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatDate } from '@/constants/mock-data';
 import { BADGE_TABS, type BadgeItem, type BadgeCategory } from '@/hooks/use-dev-badges';
 import type { Session } from '@/constants/app-types';
+import { Row } from '@/components/primitives';
 
 interface BadgeListSectionProps {
   activeTab: BadgeCategory;
@@ -32,10 +33,10 @@ export const BadgeListSection = memo(function BadgeListSection({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.sectionHeader}>
+      <Row style={styles.sectionHeader}>
         <ThemedText type="defaultSemiBold">{tabConfig?.label}</ThemedText>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>{subtitle}</ThemedText>
-      </View>
+      </Row>
 
       {visibleBadges.length === 0 ? (
         <View style={styles.emptyState}>
@@ -63,10 +64,10 @@ export const BadgeListSection = memo(function BadgeListSection({
               <ThemedText style={{ lineHeight: 20, color: colors.foreground }}>{badge.detail}</ThemedText>
 
               {badge.sharedWith && (
-                <View style={[styles.infoPill, { backgroundColor: withAlpha(colors.icon, 0.06) }]}>
+                <Row style={[styles.infoPill, { backgroundColor: withAlpha(colors.icon, 0.06) }]}>
                   <Ionicons name="share-social" size={14} color={colors.icon} />
                   <ThemedText style={[Typography.caption, { color: colors.icon }]}>{badge.sharedWith}</ThemedText>
-                </View>
+                </Row>
               )}
 
               {activeTab === 'toAward' && (
@@ -92,11 +93,11 @@ export const BadgeListSection = memo(function BadgeListSection({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm, padding: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  sectionHeader: { alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   emptyState: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.lg },
   badgeCard: { gap: Spacing.sm, padding: Spacing.sm },
   badgeIcon: { width: Components.avatar.sm, height: Components.avatar.sm, borderRadius: Components.avatar.sm / 2, alignItems: 'center', justifyContent: 'center' },
   badgeTitleGroup: { flex: 1, gap: Spacing.micro },
-  infoPill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  infoPill: { alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   awardButton: { paddingHorizontal: Spacing.md, paddingVertical: 10, borderRadius: Radii.pill },
 });

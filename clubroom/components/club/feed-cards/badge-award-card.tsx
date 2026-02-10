@@ -1,8 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -44,22 +45,22 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
       onPress={onPress}
     >
       {/* Header */}
-      <View style={styles.headerRow}>
-        <View style={styles.typeRow}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.typeRow}>
           <Ionicons name="ribbon-outline" size={Components.icon.sm} color={palette.warning} />
           <ThemedText style={[styles.typeLabel, { color: palette.warning }]}>Badge Awarded</ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.dateText, { color: palette.muted }]}>
           {formatDate(data.awardedAt)}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Badge display */}
-      <View style={styles.badgeContainer}>
-        <View style={[styles.trophyCircle, { backgroundColor: withAlpha(palette.warning, 0.12) }]}>
+      <Row style={styles.badgeContainer}>
+        <Row style={[styles.trophyCircle, { backgroundColor: withAlpha(palette.warning, 0.12) }]}>
           <Ionicons name="trophy" size={Components.icon.xl} color={palette.warning} />
-        </View>
-        <View style={styles.badgeInfo}>
+        </Row>
+        <Row style={styles.badgeInfo}>
           <ThemedText style={[styles.badgeName, { color: palette.text }]}>
             {data.badgeName}
           </ThemedText>
@@ -70,21 +71,21 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
           <ThemedText style={[styles.coachLabel, { color: palette.muted }]}>
             by {data.coachName}
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {/* Reason */}
       {data.reason ? (
-        <View style={[styles.reasonContainer, { backgroundColor: palette.surface }]}>
+        <Row style={[styles.reasonContainer, { backgroundColor: palette.surface }]}>
           <Ionicons name="chatbubble-ellipses-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.reasonText, { color: palette.text }]}>
             {data.reason}
           </ThemedText>
-        </View>
+        </Row>
       ) : null}
 
       {/* Footer: likes + comments */}
-      <View style={styles.footer}>
+      <Row style={styles.footer}>
         <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
@@ -93,7 +94,7 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -103,12 +104,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   typeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -120,7 +119,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   badgeContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -148,7 +146,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   reasonContainer: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.xs,
     padding: Spacing.sm,
@@ -159,7 +156,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footer: {
-    flexDirection: 'row',
     gap: Spacing.lg,
     paddingTop: Spacing.xs,
   },

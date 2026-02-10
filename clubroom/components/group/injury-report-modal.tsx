@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { BodyPart, InjurySeverity } from '@/constants/types';
 import { BODY_PART_CATEGORIES, SEVERITY_OPTIONS } from '@/hooks/use-group-roster';
+import { Row } from '@/components/primitives';
 
 export interface InjuryReportModalProps {
   visible: boolean;
@@ -33,14 +34,14 @@ export const InjuryReportModal = memo(function InjuryReportModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Row style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <ThemedText type="defaultSemiBold" style={Typography.heading}>Report Injury</ThemedText>
             {athleteName && <ThemedText style={[Typography.small, { color: colors.muted }]}>{athleteName}</ThemedText>}
           </View>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
 
         <ScrollView style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }} showsVerticalScrollIndicator={false}>
           {/* Severity */}
@@ -70,7 +71,7 @@ export const InjuryReportModal = memo(function InjuryReportModal({
             {BODY_PART_CATEGORIES.map(cat => (
               <View key={cat.label} style={{ marginBottom: Spacing.md }}>
                 <ThemedText style={[styles.catLabel, { color: colors.muted }]}>{cat.label}</ThemedText>
-                <View style={styles.partGrid}>
+                <Row style={styles.partGrid}>
                   {cat.parts.map(({ part, label }) => (
                     <Pressable
                       key={part}
@@ -85,7 +86,7 @@ export const InjuryReportModal = memo(function InjuryReportModal({
                       </ThemedText>
                     </Pressable>
                   ))}
-                </View>
+                </Row>
               </View>
             ))}
           </View>
@@ -106,12 +107,12 @@ export const InjuryReportModal = memo(function InjuryReportModal({
           </View>
 
           {/* Info */}
-          <View style={[styles.info, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
+          <Row style={[styles.info, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
             <Ionicons name="information-circle" size={20} color={colors.tint} />
             <ThemedText style={[Typography.small, { color: colors.muted, flex: 1 }]}>
               This injury will be logged to the athlete&apos;s health records and automatically shared with their parent/guardian.
             </ThemedText>
-          </View>
+          </Row>
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -128,13 +129,13 @@ export const InjuryReportModal = memo(function InjuryReportModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   section: { marginBottom: Spacing.lg },
   severityOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center' },
   catLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: Spacing.xs },
-  partGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  partGrid: { flexWrap: 'wrap', gap: Spacing.xs },
   partChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1 },
   input: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body, minHeight: 100 },
-  info: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
+  info: { alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
 });

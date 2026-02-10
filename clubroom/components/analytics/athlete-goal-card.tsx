@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Goal } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface AthleteGoalCardProps {
   goal: Goal;
@@ -25,7 +26,7 @@ export const AthleteGoalCard = memo(function AthleteGoalCard({ goal, index, onCo
   return (
     <Animated.View entering={FadeInDown.delay(index * 75).springify()}>
       <SurfaceCard style={styles.card}>
-        <View style={styles.header}>
+        <Row style={styles.header}>
           <View style={styles.titleSection}>
             <ThemedText type="defaultSemiBold" style={styles.title}>{goal.title}</ThemedText>
             {goal.targetDate && (
@@ -37,7 +38,7 @@ export const AthleteGoalCard = memo(function AthleteGoalCard({ goal, index, onCo
           <View style={[styles.progressCircle, { borderColor: colors.border }]}>
             <ThemedText style={[styles.progressText, { color: colors.tint }]}>{goal.progress}%</ThemedText>
           </View>
-        </View>
+        </Row>
 
         {goal.description && (
           <ThemedText style={[styles.description, { color: colors.muted }]}>{goal.description}</ThemedText>
@@ -66,7 +67,7 @@ export const AthleteGoalCard = memo(function AthleteGoalCard({ goal, index, onCo
           ))}
         </View>
 
-        <View style={styles.footer}>
+        <Row style={styles.footer}>
           <ThemedText style={[styles.milestoneCount, { color: colors.muted }]}>
             {completedMilestones}/{totalMilestones} milestones
           </ThemedText>
@@ -79,7 +80,7 @@ export const AthleteGoalCard = memo(function AthleteGoalCard({ goal, index, onCo
               {goal.createdBy === 'COACH' ? 'Coach goal' : 'Self-set'}
             </ThemedText>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -87,7 +88,7 @@ export const AthleteGoalCard = memo(function AthleteGoalCard({ goal, index, onCo
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.xs },
+  header: { alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.xs },
   titleSection: { flex: 1, marginRight: Spacing.sm },
   title: { ...Typography.body },
   date: { ...Typography.caption, marginTop: Spacing.micro },
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   milestone: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xxs },
   milestoneCheck: { width: 20, height: 20, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   milestoneText: { ...Typography.small, flex: 1 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm, paddingTop: Spacing.sm },
+  footer: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm, paddingTop: Spacing.sm },
   milestoneCount: { ...Typography.caption },
   creatorBadge: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   creatorText: { ...Typography.micro },

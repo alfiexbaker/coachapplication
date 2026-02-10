@@ -115,7 +115,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Components.card.padding,
     gap: Spacing.sm,
@@ -138,7 +137,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   option: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,

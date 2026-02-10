@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { InviteRsvpResponse } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── AttendeeRow ────────────────────────────────────────────────
 
@@ -17,7 +18,7 @@ export const AttendeeRow = memo(function AttendeeRow({ response }: AttendeeRowPr
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.attendeeRow}>
+    <Row style={styles.attendeeRow}>
       {response.userPhotoUrl ? (
         <Image source={{ uri: response.userPhotoUrl }} style={styles.attendeeAvatar} contentFit="cover" />
       ) : (
@@ -35,7 +36,7 @@ export const AttendeeRow = memo(function AttendeeRow({ response }: AttendeeRowPr
           </ThemedText>
         )}
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -43,7 +44,6 @@ export const AttendeeRow = memo(function AttendeeRow({ response }: AttendeeRowPr
 
 const styles = StyleSheet.create({
   attendeeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.xs,

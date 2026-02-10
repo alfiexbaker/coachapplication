@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useIdVerification, ID_TYPES } from '@/hooks/use-id-verification';
@@ -23,7 +24,7 @@ export default function IdUploadScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.tint} /></View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
@@ -72,12 +73,14 @@ export default function IdUploadScreen() {
                 <ThemedText type="defaultSemiBold">Upload Document</ThemedText>
                 {uploaded ? (
                   <SurfaceCard style={styles.uploadedCard}>
-                    <Ionicons name="document" size={32} color={colors.success} />
-                    <View style={{ flex: 1 }}>
-                      <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                      <ThemedText style={{ color: colors.muted, ...Typography.small }}>{ID_TYPES.find((t) => t.id === selectedType)?.label}</ThemedText>
-                    </View>
-                    <Clickable accessibilityLabel="Remove uploaded ID" onPress={() => setUploaded(false)}><Ionicons name="close-circle" size={24} color={colors.muted} /></Clickable>
+                    <Row align="center" gap="md">
+                      <Ionicons name="document" size={32} color={colors.success} />
+                      <View style={{ flex: 1 }}>
+                        <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
+                        <ThemedText style={{ color: colors.muted, ...Typography.small }}>{ID_TYPES.find((t) => t.id === selectedType)?.label}</ThemedText>
+                      </View>
+                      <Clickable accessibilityLabel="Remove uploaded ID" onPress={() => setUploaded(false)}><Ionicons name="close-circle" size={24} color={colors.muted} /></Clickable>
+                    </Row>
                   </SurfaceCard>
                 ) : (
                   <Clickable onPress={handleUpload} style={[styles.uploadArea, { borderColor: colors.border }]}>
@@ -133,6 +136,6 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   typeCard: { flex: 1, alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   uploadArea: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.xl, borderRadius: Radii.md, borderWidth: 2, borderStyle: 'dashed' },
-  uploadedCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  uploadedCard: {},
   requirements: { gap: Spacing.sm },
 });

@@ -16,6 +16,7 @@ import type { EventRSVP, EventAttendance } from '@/constants/types';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
         )}
       </View>
 
-      <View style={styles.compactInfo}>
+      <Row style={styles.compactInfo}>
         <ThemedText style={styles.compactName} numberOfLines={1}>
           {userName}
         </ThemedText>
@@ -79,7 +80,7 @@ export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
             +{guestCount} guest{guestCount > 1 ? 's' : ''}
           </ThemedText>
         )}
-      </View>
+      </Row>
 
       {showCheckInStatus && (
         <View
@@ -127,7 +128,7 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
   palette,
 }: AttendeeDetailContentProps) {
   return (
-    <View style={styles.content}>
+    <Row style={styles.content}>
       <View style={[styles.avatar, { backgroundColor: palette.border }]}>
         {userPhotoUrl ? (
           <Image source={{ uri: userPhotoUrl }} style={styles.avatarImage} />
@@ -144,7 +145,7 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
       </View>
 
       <View style={styles.info}>
-        <View style={styles.nameRow}>
+        <Row style={styles.nameRow}>
           <ThemedText type="defaultSemiBold" style={styles.name}>{userName}</ThemedText>
           {rsvp && (
             <View
@@ -165,27 +166,27 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
 
-        <View style={styles.detailsRow}>
-          <View style={styles.roleTag}>
+        <Row style={styles.detailsRow}>
+          <Row style={styles.roleTag}>
             <Ionicons name={getRoleIcon(userRole)} size={12} color={palette.muted} />
             <ThemedText style={[styles.roleText, { color: palette.muted }]}>
               {getRoleLabel(userRole)}
             </ThemedText>
-          </View>
+          </Row>
           {guestCount > 0 && (
-            <View style={styles.guestTag}>
+            <Row style={styles.guestTag}>
               <Ionicons name="people" size={12} color={palette.muted} />
               <ThemedText style={[styles.guestText, { color: palette.muted }]}>
                 +{guestCount} guest{guestCount > 1 ? 's' : ''}
               </ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
 
         {attendance && (
-          <View style={styles.checkInInfo}>
+          <Row style={styles.checkInInfo}>
             <Ionicons name="time-outline" size={12} color={palette.success} />
             <ThemedText style={[styles.checkInTime, { color: palette.success }]}>
               Checked in {eventService.formatTimeAgo(attendance.checkedInAt)}
@@ -195,7 +196,7 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
                 <Ionicons name="location" size={12} color={palette.success} />
               </View>
             )}
-          </View>
+          </Row>
         )}
 
         {rsvp && !attendance && (
@@ -205,15 +206,15 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
         )}
 
         {rsvp?.note && (
-          <View style={[styles.noteContainer, { backgroundColor: palette.surface }]}>
+          <Row style={[styles.noteContainer, { backgroundColor: palette.surface }]}>
             <Ionicons name="chatbubble-outline" size={12} color={palette.muted} />
             <ThemedText style={[styles.noteText, { color: palette.muted }]} numberOfLines={2}>
               {rsvp.note}
             </ThemedText>
-          </View>
+          </Row>
         )}
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -221,7 +222,6 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
 
 const styles = StyleSheet.create({
   content: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
@@ -248,14 +248,12 @@ const styles = StyleSheet.create({
   },
   info: { flex: 1, gap: Spacing.xxs },
   nameRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
   },
   name: { fontSize: scaleFont(15), flex: 1 },
   statusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
@@ -264,16 +262,14 @@ const styles = StyleSheet.create({
   },
   statusBadgeText: { fontSize: scaleFont(11), fontWeight: '600' },
   detailsRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  roleTag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  roleTag: { alignItems: 'center', gap: Spacing.xxs },
   roleText: { fontSize: scaleFont(12) },
-  guestTag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  guestTag: { alignItems: 'center', gap: Spacing.xxs },
   guestText: { fontSize: scaleFont(12) },
   checkInInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.micro,
@@ -282,7 +278,6 @@ const styles = StyleSheet.create({
   locationVerified: { marginLeft: Spacing.micro },
   rsvpTime: { fontSize: scaleFont(12), marginTop: Spacing.micro },
   noteContainer: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.xxs,
     padding: Spacing.xs,
@@ -309,7 +304,6 @@ const styles = StyleSheet.create({
   compactAvatarInitial: { fontSize: scaleFont(14), fontWeight: '600' },
   compactInfo: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

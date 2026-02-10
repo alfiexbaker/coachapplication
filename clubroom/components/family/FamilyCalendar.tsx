@@ -10,6 +10,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS, MONTHS, ChildFilterRow, CalendarDayGrid, EventListSection } from './family-calendar-sections';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export function FamilyCalendar({
 
       <SurfaceCard style={styles.calendarCard}>
         {/* Month navigation */}
-        <View style={styles.header}>
+        <Row style={styles.header}>
           <Clickable accessibilityLabel="Go back" onPress={goToPreviousMonth} style={styles.navButton}>
             <Ionicons name="chevron-back" size={24} color={palette.text} />
           </Clickable>
@@ -108,16 +109,16 @@ export function FamilyCalendar({
           <Clickable accessibilityLabel="Next" onPress={goToNextMonth} style={styles.navButton}>
             <Ionicons name="chevron-forward" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
 
         {/* Day headers */}
-        <View style={styles.dayHeaders}>
+        <Row style={styles.dayHeaders}>
           {DAYS.map((day) => (
             <View key={day} style={styles.dayHeaderCell}>
               <ThemedText style={[styles.dayHeaderText, { color: palette.muted }]}>{day}</ThemedText>
             </View>
           ))}
-        </View>
+        </Row>
 
         <CalendarDayGrid
           calendarData={calendarData}
@@ -139,10 +140,10 @@ export function FamilyCalendar({
 const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   calendarCard: { padding: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: Spacing.sm },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingBottom: Spacing.sm },
   navButton: { padding: Spacing.xs },
   monthTitle: { ...Typography.subheading },
-  dayHeaders: { flexDirection: 'row', marginBottom: Spacing.xs },
+  dayHeaders: { marginBottom: Spacing.xs },
   dayHeaderCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs },
   dayHeaderText: { ...Typography.caption },
 });

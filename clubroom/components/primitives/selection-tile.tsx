@@ -3,6 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -39,25 +41,46 @@ export function SelectionTile({
           borderColor: selected ? palette.tint : palette.border,
           backgroundColor: selected ? withAlpha(palette.tint, 0.07) : palette.surface,
           opacity: pressed ? 0.85 : 1,
-          flexDirection: layout === 'row' ? 'row' : 'column',
         },
       ]}
     >
-      <View style={[styles.content, layout === 'row' ? styles.rowContent : undefined]}>
-        {iconName && (
-          <View style={[styles.icon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-            <Ionicons name={iconName} size={22} color={palette.tint} />
+      {layout === 'row' ? (
+        <Row align="center" justify="between" gap="xs">
+          <Row align="center" gap="sm" flex style={styles.content}>
+            {iconName && (
+              <View style={[styles.icon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                <Ionicons name={iconName} size={22} color={palette.tint} />
+              </View>
+            )}
+            <View style={styles.copy}>
+              <ThemedText type="defaultSemiBold">{title}</ThemedText>
+              {description ? <ThemedText style={{ color: palette.muted }}>{description}</ThemedText> : null}
+              {meta ? (
+                <ThemedText style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}>{meta}</ThemedText>
+              ) : null}
+            </View>
+          </Row>
+          {rightAdornment}
+        </Row>
+      ) : (
+        <Column align="center" gap="xs">
+          <View style={styles.content}>
+            {iconName && (
+              <View style={[styles.icon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                <Ionicons name={iconName} size={22} color={palette.tint} />
+              </View>
+            )}
+            <View style={styles.copy}>
+              <ThemedText type="defaultSemiBold">{title}</ThemedText>
+              {description ? <ThemedText style={{ color: palette.muted }}>{description}</ThemedText> : null}
+              {meta ? (
+                <ThemedText style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}>{meta}</ThemedText>
+              ) : null}
+            </View>
           </View>
-        )}
-        <View style={styles.copy}>
-          <ThemedText type="defaultSemiBold">{title}</ThemedText>
-          {description ? <ThemedText style={{ color: palette.muted }}>{description}</ThemedText> : null}
-          {meta ? (
-            <ThemedText style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}>{meta}</ThemedText>
-          ) : null}
-        </View>
-      </View>
-      {rightAdornment}
+          {rightAdornment}
+        </Column>
+      )}
     </Clickable>
   );
 }
@@ -67,19 +90,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.25,
     borderRadius: Radii.lg,
     padding: Spacing.sm,
-    gap: Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   content: {
     gap: Spacing.xs / 2,
     alignSelf: 'stretch',
-  },
-  rowContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
   },
   copy: {
     flex: 1,

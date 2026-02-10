@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CancellationReason } from '@/hooks/use-booking-cancel';
+import { Row } from '@/components/primitives';
 
 interface CancelReasonPickerProps {
   isCoach: boolean;
@@ -70,12 +71,12 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
       </View>
 
       {isCoach && !selectedReason && (
-        <View style={[styles.notice, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
+        <Row style={[styles.notice, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
           <ThemedText style={[styles.noticeText, { color: palette.error }]}>
             A reason is required for coach cancellations
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -85,8 +86,8 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   title: { marginBottom: Spacing.xxs },
   options: { gap: Spacing.xs },
-  option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5 },
+  option: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5 },
   iconCircle: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, padding: Spacing.xs, borderRadius: Radii.sm },
+  notice: { alignItems: 'center', gap: Spacing.xxs, padding: Spacing.xs, borderRadius: Radii.sm },
   noticeText: { ...Typography.caption },
 });

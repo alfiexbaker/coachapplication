@@ -9,6 +9,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, ActivityIndicator, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -44,7 +45,9 @@ export const OnWaitlistCard = memo(function OnWaitlistCard({
 }: OnWaitlistCardProps) {
   return (
     <View style={styles.container}>
-      <View
+      <Row
+        align="center"
+        justify="space-between"
         style={[
           styles.onWaitlistCard,
           compact ? styles.onWaitlistCardCompact : undefined,
@@ -52,13 +55,13 @@ export const OnWaitlistCard = memo(function OnWaitlistCard({
         ]}
       >
         <View style={styles.waitlistInfo}>
-          <View style={styles.positionBadge}>
+          <Row align="center" gap="xxs">
             <Ionicons name="time" size={14} color={palette.warning} />
             <ThemedText style={[styles.positionText, { color: palette.warning }]}>
               {position ? `#${position}` : 'On waitlist'}
               {totalWaiting && totalWaiting > 1 ? ` of ${totalWaiting}` : ''}
             </ThemedText>
-          </View>
+          </Row>
           {!compact && (
             <ThemedText style={[styles.waitlistLabel, { color: palette.muted }]}>
               You&apos;re on the waitlist
@@ -66,9 +69,9 @@ export const OnWaitlistCard = memo(function OnWaitlistCard({
           )}
         </View>
 
-        <View style={styles.waitlistActions}>
+        <Row align="center" gap="sm">
           {showAutoBookToggle && onToggleAutoBook && (
-            <View style={styles.autoBookToggle}>
+            <Row align="center" gap="xxs">
               <Ionicons
                 name={localAutoBook ? 'flash' : 'flash-outline'}
                 size={14}
@@ -90,7 +93,7 @@ export const OnWaitlistCard = memo(function OnWaitlistCard({
                 ios_backgroundColor={palette.border}
                 style={styles.switch}
               />
-            </View>
+            </Row>
           )}
 
           <Clickable
@@ -114,8 +117,8 @@ export const OnWaitlistCard = memo(function OnWaitlistCard({
               </>
             )}
           </Clickable>
-        </View>
-      </View>
+        </Row>
+      </Row>
     </View>
   );
 });
@@ -150,7 +153,7 @@ export const WaitlistOptionsCard = memo(function WaitlistOptionsCard({
           onPress={() => onToggleAutoBook(!localAutoBook)}
           style={styles.autoBookOption}
         >
-          <View style={styles.autoBookOptionContent}>
+          <Row align="flex-start" gap="sm">
             <Ionicons
               name={localAutoBook ? 'checkbox' : 'square-outline'}
               size={20}
@@ -162,10 +165,10 @@ export const WaitlistOptionsCard = memo(function WaitlistOptionsCard({
                 Automatically book the spot when one opens up
               </ThemedText>
             </View>
-          </View>
+          </Row>
         </Clickable>
 
-        <View style={styles.optionsButtons}>
+        <Row gap="sm">
           <Clickable
             onPress={onCancel}
             style={[styles.cancelButton, { borderColor: palette.border }]}
@@ -183,7 +186,7 @@ export const WaitlistOptionsCard = memo(function WaitlistOptionsCard({
               <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Join Waitlist</ThemedText>
             )}
           </Clickable>
-        </View>
+        </Row>
       </View>
     </View>
   );
@@ -268,9 +271,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
     padding: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   onWaitlistCardCompact: {
     padding: Spacing.xs,
@@ -278,23 +278,11 @@ export const styles = StyleSheet.create({
   waitlistInfo: {
     gap: Spacing.micro,
   },
-  positionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  positionBadge: { /* layout moved to Row */ },
   positionText: { ...Typography.smallSemiBold },
   waitlistLabel: { ...Typography.caption },
-  waitlistActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  autoBookToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  waitlistActions: { /* layout moved to Row */ },
+  autoBookToggle: { /* layout moved to Row */ },
   autoBookLabel: { ...Typography.caption },
   switch: {
     transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }],
@@ -321,20 +309,13 @@ export const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
   },
-  autoBookOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
+  autoBookOptionContent: { /* layout moved to Row */ },
   autoBookOptionText: {
     flex: 1,
     gap: Spacing.micro,
   },
   autoBookDescription: { ...Typography.caption, lineHeight: 16 },
-  optionsButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+  optionsButtons: { /* layout moved to Row */ },
   cancelButton: {
     flex: 1,
     alignItems: 'center',

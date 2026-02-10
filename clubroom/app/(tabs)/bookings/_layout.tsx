@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function BookingsLayout() {
   const { colors: palette } = useTheme();
 
   return (
+    <ErrorBoundary>
     <Stack
       screenOptions={{
         headerShown: true,
@@ -55,5 +57,6 @@ export default function BookingsLayout() {
         }}
       />
     </Stack>
+    </ErrorBoundary>
   );
 }

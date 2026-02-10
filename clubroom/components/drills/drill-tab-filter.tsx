@@ -54,7 +54,7 @@ export const DrillTabFilter = memo(function DrillTabFilter({ activeTab, stats, c
 const styles = StyleSheet.create({
   row: { marginBottom: Spacing.md },
   tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    flex: 1, alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingVertical: 10, borderRadius: Radii.md, borderWidth: 1,
   },
   tabText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },

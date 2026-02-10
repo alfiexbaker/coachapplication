@@ -1,7 +1,7 @@
 /**
  * Extracted sub-components for MedicalAlertBadge.
  *
- * getAlertConfig — shared config helper for alert type → icon/color mapping.
+ * getAlertConfig — shared config helper for alert type -> icon/color mapping.
  * MedicalAlertRow — full-width alert item for lists.
  * AlertSeverityDot — severity indicator dot.
  * AlertCountBadge — count badge for showing number of alerts.
@@ -9,6 +9,7 @@
 
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -47,8 +48,7 @@ export function MedicalAlertRow({
   type,
   label,
   description,
-  onPress,
-}: {
+  onPress }: {
   type: AlertType;
   label: string;
   description?: string;
@@ -58,7 +58,7 @@ export function MedicalAlertRow({
   const config = getAlertConfig(type, palette);
 
   const content = (
-    <View style={styles.row}>
+    <Row align="center" gap="sm" style={styles.row}>
       <View style={[styles.rowIcon, { backgroundColor: config.bgColor }]}>
         <Ionicons name={config.icon} size={16} color={config.color} />
       </View>
@@ -76,7 +76,7 @@ export function MedicalAlertRow({
       {onPress && (
         <Ionicons name="chevron-forward" size={16} color={palette.muted} />
       )}
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -95,8 +95,7 @@ export function MedicalAlertRow({
  */
 export function AlertSeverityDot({
   level,
-  size = 8,
-}: {
+  size = 8 }: {
   level: 'none' | 'low' | 'medium' | 'high';
   size?: number;
 }) {
@@ -124,8 +123,7 @@ export function AlertSeverityDot({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: getColor(),
-        },
+          backgroundColor: getColor() },
       ]}
     />
   );
@@ -140,8 +138,7 @@ export function AlertSeverityDot({
  */
 export function AlertCountBadge({
   count,
-  type = 'allergy',
-}: {
+  type = 'allergy' }: {
   count: number;
   type?: 'allergy' | 'condition' | 'medication' | 'total';
 }) {
@@ -180,21 +177,15 @@ export function AlertCountBadge({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
+    paddingVertical: Spacing.sm },
   rowIcon: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   rowContent: {
-    flex: 1,
-  },
+    flex: 1 },
   rowTypeLabel: { ...Typography.micro, textTransform: 'uppercase',
     letterSpacing: 0.5 },
   rowDescription: { ...Typography.caption, marginTop: Spacing.micro },
@@ -205,7 +196,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 5,
-  },
-  countText: { ...Typography.caption },
-});
+    paddingHorizontal: 5 },
+  countText: { ...Typography.caption } });

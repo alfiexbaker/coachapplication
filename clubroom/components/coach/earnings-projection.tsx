@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,7 +59,7 @@ export function EarningsProjection({
   return (
     <SurfaceCard style={styles.card}>
       {/* Header */}
-      <View style={styles.headerRow}>
+      <Row style={styles.headerRow}>
         <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="trending-up" size={Components.icon.md} color={palette.success} />
         </View>
@@ -70,11 +71,11 @@ export function EarningsProjection({
             {formatCurrency(projectedTotal, currencySymbol)}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Bar visualisation */}
       <View style={styles.barSection}>
-        <View style={[styles.barTrack, { backgroundColor: palette.border }]}>
+        <Row style={[styles.barTrack, { backgroundColor: palette.border }]}>
           <View
             style={[
               styles.barSegment,
@@ -95,27 +96,27 @@ export function EarningsProjection({
               },
             ]}
           />
-        </View>
+        </Row>
 
         {/* Legend */}
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
+        <Row style={styles.legendRow}>
+          <Row style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
               Confirmed {formatCurrency(confirmedEarnings, currencySymbol)}
             </ThemedText>
-          </View>
-          <View style={styles.legendItem}>
+          </Row>
+          <Row style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
               Pending {formatCurrency(pendingEarnings, currencySymbol)}
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
 
       {/* Stats row */}
-      <View style={[styles.statsRow, { borderTopColor: palette.border }]}>
+      <Row style={[styles.statsRow, { borderTopColor: palette.border }]}>
         {bestSessionType ? (
           <View style={styles.statItem}>
             <ThemedText style={[Typography.caption, { color: palette.muted }]}>
@@ -148,7 +149,7 @@ export function EarningsProjection({
             </ThemedText>
           </View>
         ) : null}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -163,7 +164,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -184,18 +184,15 @@ const styles = StyleSheet.create({
   barTrack: {
     height: Spacing.xs,
     borderRadius: Radii.sm,
-    flexDirection: 'row',
     overflow: 'hidden',
   },
   barSegment: {
     height: '100%',
   },
   legendRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
   legendItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -205,7 +202,6 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.xs / 2,
   },
   statsRow: {
-    flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: Spacing.sm,
     gap: Spacing.sm,

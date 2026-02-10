@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { FootballObjective } from '@/constants/types';
@@ -21,7 +22,7 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
         What do you want to work on?
       </ThemedText>
       <ThemedText style={[styles.helper, { color: palette.muted }]}>Select up to 3 focus areas</ThemedText>
-      <View style={styles.grid}>
+      <Row wrap gap="sm" style={styles.grid}>
         {objectives.map((objective) => {
           const isSelected = selectedObjectives.includes(objective);
           return (
@@ -36,18 +37,20 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
                 },
               ]}
             >
-              <Ionicons
-                name={isSelected ? 'checkmark-circle' : 'radio-button-off-outline'}
-                size={20}
-                color={isSelected ? palette.onPrimary : palette.muted}
-              />
-              <ThemedText style={[styles.label, { color: isSelected ? palette.onPrimary : palette.text }]}>
-                {objective}
-              </ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons
+                  name={isSelected ? 'checkmark-circle' : 'radio-button-off-outline'}
+                  size={20}
+                  color={isSelected ? palette.onPrimary : palette.muted}
+                />
+                <ThemedText style={[styles.label, { color: isSelected ? palette.onPrimary : palette.text }]}>
+                  {objective}
+                </ThemedText>
+              </Row>
             </Pressable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -60,15 +63,9 @@ const styles = StyleSheet.create({
   title: { ...Typography.subheading, paddingHorizontal: Spacing.lg },
   helper: { ...Typography.small, paddingHorizontal: Spacing.lg },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,

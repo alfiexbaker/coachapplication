@@ -7,6 +7,7 @@
 import { View, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -96,18 +97,20 @@ export function BulkInviteButton({
           fullWidth && styles.fullWidth,
         ].filter(Boolean) as ViewStyle[]}
       >
-        {loading ? (
-          <ActivityIndicator size="small" color={variantStyles.textColor} />
-        ) : showIcon ? (
-          <Ionicons name="paper-plane" size={sizeStyles.iconSize} color={variantStyles.textColor} />
-        ) : null}
-        <ThemedText style={[styles.buttonText, { color: variantStyles.textColor, fontSize: sizeStyles.fontSize }]}>
-          {buttonLabel}
-        </ThemedText>
+        <Row align="center" justify="center" gap="sm">
+          {loading ? (
+            <ActivityIndicator size="small" color={variantStyles.textColor} />
+          ) : showIcon ? (
+            <Ionicons name="paper-plane" size={sizeStyles.iconSize} color={variantStyles.textColor} />
+          ) : null}
+          <ThemedText style={[styles.buttonText, { color: variantStyles.textColor, fontSize: sizeStyles.fontSize }]}>
+            {buttonLabel}
+          </ThemedText>
+        </Row>
       </Clickable>
 
       {selectedCount > 0 && !loading && (
-        <View style={styles.summaryRow}>
+        <Row align="center" justify="center" gap="xs">
           <Ionicons name="people" size={14} color={palette.muted} />
           <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
             {selectedCount} athlete{selectedCount !== 1 ? 's' : ''} selected
@@ -117,7 +120,7 @@ export function BulkInviteButton({
               </ThemedText>
             )}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -126,9 +129,8 @@ export function BulkInviteButton({
 const styles = StyleSheet.create({
   container: { gap: Spacing.xs },
   fullWidth: { width: '100%' },
-  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  button: { borderRadius: Radii.md, borderWidth: 1.5 },
   outlineButton: { borderWidth: 1.5 },
   buttonText: { fontWeight: '700' },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
   summaryText: { ...Typography.caption },
 });

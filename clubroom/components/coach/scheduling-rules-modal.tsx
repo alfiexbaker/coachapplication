@@ -16,6 +16,7 @@ import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
 
 import { ChipSection, ToggleCard, CancellationSection, SettingsSummary } from './scheduling-rules-sections';
+import { Row } from '@/components/primitives';
 
 const logger = createLogger('SchedulingRulesModal');
 
@@ -111,19 +112,19 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={onClose} disabled={saving}><ThemedText style={{ color: palette.muted }}>Cancel</ThemedText></Clickable>
           <ThemedText type="subtitle">Scheduling Rules</ThemedText>
           <Clickable onPress={handleSave} disabled={saving || loading}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.summaryBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
+          <Row style={[styles.summaryBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
             <Ionicons name="information-circle" size={20} color={palette.tint} />
             <ThemedText style={[styles.summaryText, { color: palette.muted }]}>These rules control how athletes can book sessions with you</ThemedText>
-          </View>
+          </Row>
 
           <ChipSection icon="time-outline" iconColor={palette.warning} title="Minimum Notice" hint="Required time before session" options={NOTICE_OPTIONS} selected={minimumAdvanceHours} onSelect={setMinimumAdvanceHours} compact />
           <ChipSection icon="pause-outline" iconColor={palette.tint} title="Buffer Between Sessions" hint="Break time between bookings" options={BUFFER_OPTIONS} selected={bufferMinutes} onSelect={setBufferMinutes} compact />
@@ -144,8 +145,8 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
-  summaryBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: 12 },
+  summaryBanner: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: 12 },
   summaryText: { fontSize: 13, lineHeight: 20, flex: 1 },
 });

@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PageHeader } from '@/components/primitives/page-header';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { QuickActions } from '@/components/bookings/QuickActions';
 import { BookingsList } from '@/components/bookings/BookingsList';
 import { PendingInvitesSection } from '@/components/bookings/pending-invites-section';
@@ -38,15 +38,75 @@ export default function BookingsScreen() {
     handleDeclineInvite,
   } = useBookings();
 
+  // ─── Loading ───────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader
+          title="Bookings"
+          subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+        />
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Error ─────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader
+          title="Bookings"
+          subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+        />
+        <ErrorState message={error} onRetry={handleModalUpdate} />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Empty ─────────────────────────────────────────────────────
+  if (displayItems.length === 0 && pendingInvitesList.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader
+          title="Bookings"
+          subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+        />
+        <QuickActions
+          userRole={userRole}
+          onRateCoachPress={handleRateCoachPress}
+          onFindCoachPress={handleFindCoachPress}
+          onCalendarPress={handleCalendarPress}
+          onSettingsPress={handleSettingsPress}
+          onGroupSessionsPress={handleGroupSessionsPress}
+          onDiscoverSessionsPress={handleDiscoverSessionsPress}
+          onInvitesPress={handleInvitesPress}
+          pendingInvites={pendingInvites}
+          showCoachActions={true}
+        />
+        <EmptyState
+          icon="calendar-outline"
+          title="No bookings yet"
+          message={
+            userRole === 'COACH'
+              ? 'Your upcoming sessions will appear here once athletes book with you.'
+              : 'Find a coach and book your first session to get started.'
+          }
+          actionLabel={userRole === 'COACH' ? 'Create Session' : 'Find a Coach'}
+          onPressAction={userRole === 'COACH' ? handleCreateSessionPress : handleFindCoachPress}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Success ───────────────────────────────────────────────────
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
       <PageHeader
         title="Bookings"
         subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
       />
 
-      {/* Quick Actions - Role-based */}
       <QuickActions
         userRole={userRole}
         onRateCoachPress={handleRateCoachPress}
@@ -60,7 +120,6 @@ export default function BookingsScreen() {
         showCoachActions={true}
       />
 
-      {/* Action Required - Pending Invites (non-coach users) */}
       {userRole !== 'COACH' && (
         <PendingInvitesSection
           invites={pendingInvitesList}
@@ -69,31 +128,16 @@ export default function BookingsScreen() {
         />
       )}
 
-      {/* Loading State */}
-      {loading && <LoadingState variant="list" />}
+      <BookingsList
+        items={displayItems}
+        timeFilter={timeFilter}
+        onTimeFilterChange={setTimeFilter}
+        userRole={userRole}
+        onOfferingPress={handleOfferingPress}
+        onFindCoachPress={handleFindCoachPress}
+        onCreateSessionPress={handleCreateSessionPress}
+      />
 
-      {/* Error State */}
-      {error && !loading && (
-        <ErrorState
-          message={error}
-          onRetry={handleModalUpdate}
-        />
-      )}
-
-      {/* Bookings List */}
-      {!loading && (
-        <BookingsList
-          items={displayItems}
-          timeFilter={timeFilter}
-          onTimeFilterChange={setTimeFilter}
-          userRole={userRole}
-          onOfferingPress={handleOfferingPress}
-          onFindCoachPress={handleFindCoachPress}
-          onCreateSessionPress={handleCreateSessionPress}
-        />
-      )}
-
-      {/* Session Detail Modal */}
       <SessionDetailModal
         visible={showDetailModal}
         offering={selectedOffering}

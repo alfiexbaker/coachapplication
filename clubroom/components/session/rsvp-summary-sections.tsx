@@ -2,13 +2,14 @@ import React, { memo, useState } from 'react';
 import { StyleSheet, View, ActivityIndicator, Alert } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionRsvp } from '@/constants/types';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// --- Helpers ----------------------------------------------------------------
 
 export function computeRSVPNames(rsvps: SessionRsvp[]) {
   const getName = (r: SessionRsvp) => r.childName || `User ${r.userId.slice(-4)}`;
@@ -16,11 +17,10 @@ export function computeRSVPNames(rsvps: SessionRsvp[]) {
     goingNames: rsvps.filter((r) => r.status === 'going').map(getName),
     cantNames: rsvps.filter((r) => r.status === 'not_going').map(getName),
     maybeNames: rsvps.filter((r) => r.status === 'maybe').map(getName),
-    pendingNames: rsvps.filter((r) => r.status === 'pending').map(getName),
-  };
+    pendingNames: rsvps.filter((r) => r.status === 'pending').map(getName) };
 }
 
-// ─── CountBadge ─────────────────────────────────────────────────────────────
+// --- CountBadge -------------------------------------------------------------
 
 type CountBadgeProps = {
   count: number;
@@ -31,15 +31,15 @@ type CountBadgeProps = {
 
 export const CountBadge = memo(function CountBadge({ count, label, color, icon }: CountBadgeProps) {
   return (
-    <View style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.07) }]}>
+    <Row align="center" justify="center" gap="xs" style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.07) }]}>
       <Ionicons name={icon} size={18} color={color} />
       <ThemedText style={[styles.countNumber, { color }]}>{count}</ThemedText>
       <ThemedText style={[styles.countLabel, { color }]}>{label}</ThemedText>
-    </View>
+    </Row>
   );
 });
 
-// ─── ExpandableList ─────────────────────────────────────────────────────────
+// --- ExpandableList ---------------------------------------------------------
 
 type ExpandableListProps = {
   title: string;
@@ -61,20 +61,22 @@ export function ExpandableList({ title, names, color, icon, mutedColor }: Expand
         onPress={() => setExpanded(!expanded)}
         accessibilityLabel={`${title} (${names.length})`}
       >
-        <View style={styles.expandableLeft}>
-          <Ionicons name={icon} size={18} color={color} />
-          <ThemedText style={styles.expandableTitle}>{title} ({names.length})</ThemedText>
-        </View>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={mutedColor} />
+        <Row align="center" justify="between">
+          <Row align="center" gap="xs">
+            <Ionicons name={icon} size={18} color={color} />
+            <ThemedText style={styles.expandableTitle}>{title} ({names.length})</ThemedText>
+          </Row>
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={mutedColor} />
+        </Row>
       </Clickable>
 
       {expanded && (
         <View style={styles.namesList}>
           {names.map((name, index) => (
-            <View key={index} style={styles.nameRow}>
+            <Row key={index} align="center" gap="xs">
               <View style={[styles.statusDot, { backgroundColor: color }]} />
               <ThemedText style={styles.nameText}>{name}</ThemedText>
-            </View>
+            </Row>
           ))}
         </View>
       )}
@@ -82,7 +84,7 @@ export function ExpandableList({ title, names, color, icon, mutedColor }: Expand
   );
 }
 
-// ─── ProgressIndicator ──────────────────────────────────────────────────────
+// --- ProgressIndicator ------------------------------------------------------
 
 type ProgressIndicatorProps = {
   confirmed: number;
@@ -105,7 +107,7 @@ export const ProgressIndicator = memo(function ProgressIndicator({ confirmed, to
   );
 });
 
-// ─── ReminderButton ─────────────────────────────────────────────────────────
+// --- ReminderButton ---------------------------------------------------------
 
 type ReminderButtonProps = {
   pendingCount: number;
@@ -143,36 +145,35 @@ export const ReminderButton = memo(function ReminderButton({ pendingCount, sessi
       disabled={sending}
       accessibilityLabel={`Send reminder to ${pendingCount} pending`}
     >
-      {sending ? (
-        <ActivityIndicator size="small" color={palette.tint} />
-      ) : (
-        <>
-          <Ionicons name="notifications-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.reminderButtonText, { color: palette.tint }]}>Send Reminder ({pendingCount} pending)</ThemedText>
-        </>
-      )}
+      <Row align="center" justify="center" gap="xs">
+        {sending ? (
+          <ActivityIndicator size="small" color={palette.tint} />
+        ) : (
+          <>
+            <Ionicons name="notifications-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.reminderButtonText, { color: palette.tint }]}>Send Reminder ({pendingCount} pending)</ThemedText>
+          </>
+        )}
+      </Row>
     </Clickable>
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// --- Styles -----------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  countBadge: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs, borderRadius: Radii.sm },
+  countBadge: { flex: 1, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs, borderRadius: Radii.sm },
   countNumber: { ...Typography.bodySemiBold },
   countLabel: { ...Typography.smallSemiBold },
   expandableContainer: { borderRadius: Radii.sm, overflow: 'hidden' },
-  expandableHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs },
-  expandableLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  expandableHeader: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs },
   expandableTitle: { ...Typography.bodySemiBold },
   namesList: { paddingLeft: Spacing.lg, paddingBottom: Spacing.xs, gap: Spacing.xs },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   statusDot: { width: 8, height: 8, borderRadius: Radii.xs },
   nameText: { ...Typography.body },
   progressContainer: { gap: Spacing.xs },
   progressBar: { height: 6, borderRadius: Radii.sm, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.sm },
   progressText: { ...Typography.caption },
-  reminderButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, height: Components.button.height, borderRadius: Components.button.borderRadius, borderWidth: 1.5, backgroundColor: 'transparent', marginTop: Spacing.xs },
-  reminderButtonText: { ...Typography.bodySemiBold },
-});
+  reminderButton: { height: Components.button.height, borderRadius: Components.button.borderRadius, borderWidth: 1.5, backgroundColor: 'transparent', marginTop: Spacing.xs },
+  reminderButtonText: { ...Typography.bodySemiBold } });

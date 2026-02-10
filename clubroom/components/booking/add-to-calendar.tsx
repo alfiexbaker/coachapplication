@@ -210,7 +210,6 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

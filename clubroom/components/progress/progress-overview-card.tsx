@@ -5,6 +5,7 @@ import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -25,31 +26,31 @@ function OverviewCardInner({ progress }: { progress: AthleteProgress; viewerRole
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row justify="space-between" align="flex-start">
         <View style={styles.left}>
-          <View style={[styles.levelBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <Row align="center" gap="xxs" style={[styles.levelBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="trophy" size={16} color={palette.tint} />
             <ThemedText style={[styles.levelText, { color: palette.tint }]}>Level {progress.currentLevel.level}</ThemedText>
-          </View>
+          </Row>
           <ThemedText type="defaultSemiBold" style={styles.levelName}>{progress.currentLevel.name}</ThemedText>
         </View>
-        <View style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+        <Row align="center" gap="xxs" style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
           <Ionicons name={trend.name as keyof typeof Ionicons.glyphMap} size={14} color={trend.color} />
           <ThemedText style={[styles.trendText, { color: trend.color }]}>{trend.label}</ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       <View style={styles.progressSection}>
-        <View style={styles.progressHeader}>
+        <Row justify="space-between">
           <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>{progress.totalPoints} points</ThemedText>
           <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>{progress.progressToNextLevel}% to next level</ThemedText>
-        </View>
+        </Row>
         <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <View style={[styles.progressFill, { width: `${progress.progressToNextLevel}%`, backgroundColor: palette.tint }]} />
         </View>
       </View>
 
-      <View style={styles.statsGrid}>
+      <Row align="center" justify="space-around">
         <View style={styles.statItem}>
           <ThemedText type="heading" style={styles.statValue}>{progress.totalSessions}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sessions</ThemedText>
@@ -64,7 +65,7 @@ function OverviewCardInner({ progress }: { progress: AthleteProgress; viewerRole
           <ThemedText type="heading" style={styles.statValue}>{progress.totalBadges}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Badges</ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -73,19 +74,19 @@ export const OverviewCard = memo(OverviewCardInner);
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.md },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  header: { /* layout moved to Row */ },
   left: { gap: Spacing.xxs },
-  levelBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, alignSelf: 'flex-start' },
+  levelBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, alignSelf: 'flex-start' },
   levelText: { ...Typography.smallSemiBold },
   levelName: { ...Typography.heading },
-  trendBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  trendBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   trendText: { ...Typography.caption },
   progressSection: { gap: Spacing.xxs },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  progressHeader: { /* layout moved to Row */ },
   progressLabel: { ...Typography.caption },
   progressBar: { height: 6, borderRadius: Radii.xs, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.xs },
-  statsGrid: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  statsGrid: { /* layout moved to Row */ },
   statItem: { alignItems: 'center', flex: 1 },
   statDivider: { width: 1, height: 32 },
   statValue: { ...Typography.title },

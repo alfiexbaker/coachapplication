@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
@@ -20,8 +21,7 @@ import { RemovalConfirmationModal } from '@/components/roster/removal-confirmati
 import { FeedPost } from '@/components/club/FeedPost';
 import { ClubFeedListHeader } from '@/components/club/club-feed-list-header';
 import { ClubNoMembership } from '@/components/club/club-no-membership';
-import { LoadingScreen } from '@/components/ui/primitives/LoadingScreen';
-import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubHub } from '@/hooks/use-club-hub';
@@ -71,7 +71,7 @@ export default function ClubHubScreen() {
   if (hub.initialLoading) {
     return (
       <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
-        <LoadingScreen title="Loading club..." />
+        <LoadingState variant="list" />
       </PageContainer>
     );
   }
@@ -80,17 +80,7 @@ export default function ClubHubScreen() {
   if (hub.loadError) {
     return (
       <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
-        <View style={styles.errorContainer}>
-          <StatusBanner variant="error" message={hub.loadError} />
-          <Clickable
-            style={[styles.retryButton, { borderColor: colors.tint }]}
-            onPress={hub.loadAllData}
-            accessibilityLabel="Retry loading club data"
-          >
-            <Ionicons name="refresh" size={18} color={colors.tint} />
-            <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>Retry</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState message={hub.loadError} onRetry={hub.loadAllData} />
       </PageContainer>
     );
   }
@@ -167,8 +157,10 @@ const FeedEmptyState = memo(function FeedEmptyState({
           onPress={onCreatePost}
           accessibilityLabel="Create first post"
         >
-          <Ionicons name="add" size={18} color={colors.onPrimary} />
-          <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>Create Post</ThemedText>
+          <Row align="center" gap="xs">
+            <Ionicons name="add" size={18} color={colors.onPrimary} />
+            <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>Create Post</ThemedText>
+          </Row>
         </Clickable>
       )}
     </View>
@@ -183,24 +175,10 @@ const styles = StyleSheet.create({
   feedPostItem: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
   emptyFeed: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.md },
   emptyFeedCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     marginTop: Spacing.sm,
-    minHeight: 44,
-  },
-  errorContainer: { flex: 1, padding: Spacing.md, gap: Spacing.md, justifyContent: 'center' },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
     minHeight: 44,
   },
 });

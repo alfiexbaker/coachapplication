@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { toDateStr } from '@/utils/format';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
@@ -28,7 +29,7 @@ export function CalendarPicker({
   });
 
   return (
-    <View style={styles.row}>
+    <Row wrap gap="sm">
       {days.map((date) => {
         const iso = toDateStr(date);
         const active = selectedDate === iso;
@@ -60,7 +61,7 @@ export function CalendarPicker({
             </ThemedText>
             <ThemedText style={{ color: palette.muted }}>{date.getDate()}</ThemedText>
             {availabilityByDate && (
-              <View style={styles.indicator}>
+              <Row align="center" gap="xxs" style={styles.indicator}>
                 {hasAvailableSlots ? (
                   <View style={[styles.dot, { backgroundColor: palette.tint }]} />
                 ) : (
@@ -71,21 +72,17 @@ export function CalendarPicker({
                     {totalAvailableSlots}
                   </ThemedText>
                 )}
-              </View>
+              </Row>
             )}
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  // row replaced by Row primitive
   day: {
     width: '22%',
     padding: Spacing.md,
@@ -94,9 +91,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   indicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     marginTop: Spacing.micro,
   },
   dot: {

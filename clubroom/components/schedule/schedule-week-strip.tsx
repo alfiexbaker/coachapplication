@@ -4,6 +4,7 @@
 
 import React, { memo, useCallback } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -100,7 +101,7 @@ export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
           showsHorizontalScrollIndicator={false}
           style={styles.strip}
         >
-          <View style={styles.days}>
+          <Row gap="xs" style={styles.days}>
             {weekData.map((day, index) => (
               <DayPill
                 key={day.dateStr}
@@ -110,7 +111,7 @@ export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
                 onPress={onDayPress}
               />
             ))}
-          </View>
+          </Row>
         </ScrollView>
       </Column>
     </Animated.View>
@@ -125,8 +126,6 @@ const styles = StyleSheet.create({
     marginHorizontal: -Spacing.lg,
   },
   days: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
   },
   pill: {

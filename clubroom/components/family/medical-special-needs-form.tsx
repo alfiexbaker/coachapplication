@@ -14,6 +14,7 @@ export { DisabilitySelector } from './medical-special-needs-form-sections';
 export type { DisabilitySelectorProps } from './medical-special-needs-form-sections';
 
 import { DisabilitySelector } from './medical-special-needs-form-sections';
+import { Row } from '@/components/primitives';
 
 interface SpecialNeedsFormProps {
   firstName: string;
@@ -64,7 +65,7 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
         <ThemedText style={styles.label}>
           Does {firstName || 'your child'} have any disabilities or special needs? *
         </ThemedText>
-        <View style={styles.yesNoRow}>
+        <Row style={styles.yesNoRow}>
           <Clickable
             onPress={() => onHasSpecialNeedsChange(true)}
             style={[
@@ -103,7 +104,7 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
               No
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
       </View>
 
       {hasSpecialNeeds === true && (
@@ -161,7 +162,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   infoCard: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -190,7 +190,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   yesNoRow: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   yesNoButton: {

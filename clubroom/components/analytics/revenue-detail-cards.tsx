@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachAnalytics } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface RevenueMainCardProps {
   analytics: CoachAnalytics;
@@ -26,12 +27,12 @@ export const RevenueMainCard = memo(function RevenueMainCard({ analytics, format
         </View>
         <ThemedText style={styles.mainCardLabel}>Total Revenue</ThemedText>
         <ThemedText style={styles.mainCardValue}>{formatCurrency(analytics.totalRevenue)}</ThemedText>
-        <View style={[styles.mainCardTrend, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
+        <Row style={[styles.mainCardTrend, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
           <Ionicons name={trendIcon as keyof typeof Ionicons.glyphMap} size={16} color={trendColor} />
           <ThemedText style={[styles.mainCardTrendText, { color: trendColor }]}>
             {analytics.revenueChangePercent >= 0 ? '+' : ''}{analytics.revenueChangePercent.toFixed(1)}% from last period
           </ThemedText>
-        </View>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -50,19 +51,19 @@ export const RevenueBreakdownCard = memo(function RevenueBreakdownCard({ analyti
 
   return (
     <SurfaceCard style={styles.breakdownCard}>
-      <View style={styles.breakdownHeader}>
+      <Row style={styles.breakdownHeader}>
         <Ionicons name="pie-chart" size={20} color={palette.tint} />
         <ThemedText style={styles.breakdownTitle}>Revenue by Session Type</ThemedText>
-      </View>
+      </Row>
       <View style={styles.breakdownList}>
         {analytics.sessions.bySessionType.map((sessionType, index) => {
           const barColor = barColors[index % barColors.length];
           return (
             <View key={sessionType.type} style={styles.breakdownRow}>
-              <View style={styles.breakdownInfo}>
+              <Row style={styles.breakdownInfo}>
                 <View style={[styles.breakdownDot, { backgroundColor: barColor }]} />
                 <ThemedText style={styles.breakdownName}>{sessionType.type}</ThemedText>
-              </View>
+              </Row>
               <View style={[styles.breakdownBarContainer, { backgroundColor: palette.background }]}>
                 <View style={[styles.breakdownBar, { width: `${sessionType.percentage}%`, backgroundColor: barColor }]} />
               </View>
@@ -85,38 +86,38 @@ export const RevenueInsightsCard = memo(function RevenueInsightsCard({ analytics
 
   return (
     <SurfaceCard style={styles.insightsCard}>
-      <View style={styles.insightsHeader}>
+      <Row style={styles.insightsHeader}>
         <Ionicons name="bulb" size={20} color={palette.warning} />
         <ThemedText style={styles.insightsTitle}>Revenue Insights</ThemedText>
-      </View>
+      </Row>
       <View style={styles.insightsList}>
-        <View style={styles.insightItem}>
+        <Row style={styles.insightItem}>
           <Ionicons name="checkmark-circle" size={18} color={palette.success} />
           <ThemedText style={styles.insightText}>
             Your best day is <ThemedText style={styles.insightBold}>{analytics.busiestDay.dayName}</ThemedText> with {analytics.busiestDay.sessionCount} sessions
           </ThemedText>
-        </View>
-        <View style={styles.insightItem}>
+        </Row>
+        <Row style={styles.insightItem}>
           <Ionicons name="time" size={18} color={palette.tint} />
           <ThemedText style={styles.insightText}>
             Peak booking hour: <ThemedText style={styles.insightBold}>{analytics.busiestHour.hour}:00</ThemedText>
           </ThemedText>
-        </View>
+        </Row>
         {analytics.cancellations.revenueLost > 0 && (
-          <View style={styles.insightItem}>
+          <Row style={styles.insightItem}>
             <Ionicons name="alert-circle" size={18} color={palette.error} />
             <ThemedText style={styles.insightText}>
               {formatCurrency(analytics.cancellations.revenueLost)} lost to cancellations ({analytics.cancellations.cancellationRate.toFixed(1)}% rate)
             </ThemedText>
-          </View>
+          </Row>
         )}
         {analytics.topSkills[0] && (
-          <View style={styles.insightItem}>
+          <Row style={styles.insightItem}>
             <Ionicons name="trophy" size={18} color={palette.warning} />
             <ThemedText style={styles.insightText}>
               Top skill: <ThemedText style={styles.insightBold}>{analytics.topSkills[0].skill}</ThemedText> ({formatCurrency(analytics.topSkills[0].revenue)})
             </ThemedText>
-          </View>
+          </Row>
         )}
       </View>
     </SurfaceCard>
@@ -129,24 +130,24 @@ const styles = StyleSheet.create({
   mainCardIcon: { width: 64, height: 64, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },
   mainCardLabel: { ...Typography.bodySmallSemiBold, marginBottom: Spacing.xs },
   mainCardValue: { ...Typography.display, letterSpacing: -1, marginBottom: Spacing.sm },
-  mainCardTrend: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
+  mainCardTrend: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
   mainCardTrendText: { ...Typography.smallSemiBold },
   breakdownCard: { padding: Spacing.md },
-  breakdownHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
+  breakdownHeader: { alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
   breakdownTitle: { ...Typography.subheading },
   breakdownList: { gap: Spacing.md },
   breakdownRow: { gap: Spacing.xs },
-  breakdownInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  breakdownInfo: { alignItems: 'center', gap: Spacing.xs },
   breakdownDot: { width: 10, height: 10, borderRadius: Radii.sm },
   breakdownName: { ...Typography.bodySmallSemiBold, flex: 1 },
   breakdownBarContainer: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
   breakdownBar: { height: '100%', borderRadius: Radii.xs },
   breakdownRevenue: { ...Typography.bodySmallSemiBold, textAlign: 'right' },
   insightsCard: { padding: Spacing.md },
-  insightsHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
+  insightsHeader: { alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
   insightsTitle: { ...Typography.subheading },
   insightsList: { gap: Spacing.md },
-  insightItem: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  insightItem: { alignItems: 'flex-start', gap: Spacing.sm },
   insightText: { ...Typography.bodySmall, flex: 1 },
   insightBold: { fontWeight: '600' },
 });

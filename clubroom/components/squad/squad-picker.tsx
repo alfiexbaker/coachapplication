@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii } from '@/constants/theme';
@@ -123,7 +124,7 @@ export function SquadPicker({
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row align="center" justify="between" style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={handleClose}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
@@ -138,7 +139,7 @@ export function SquadPicker({
               Done
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         {multiSelect && squads.length > 1 && (
           <QuickActionBar onSelectAll={handleSelectAll} onClear={handleClear} />
@@ -181,9 +182,6 @@ export function SquadPicker({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,

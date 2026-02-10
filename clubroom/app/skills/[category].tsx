@@ -15,6 +15,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SkillTreeView } from '@/components/skills/SkillTreeView';
 import { SkillNodeDetailModal } from '@/components/skills/skill-node-detail-modal';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSkillCategory } from '@/hooks/use-skill-category';
@@ -38,9 +39,7 @@ export default function SkillTreeDetailScreen() {
         scrollable={false}
       >
         {isLoading ? (
-          <SurfaceCard style={styles.centerCard}>
-            <ThemedText style={{ color: colors.muted }}>Loading...</ThemedText>
-          </SurfaceCard>
+          <LoadingState variant="detail" />
         ) : tree ? (
           <View style={styles.treeWrapper}>
             <SkillTreeView tree={tree} onNodePress={handleNodePress} canUnlockNodes={canUnlockNodes} animateUnlocks={animateUnlocks} />

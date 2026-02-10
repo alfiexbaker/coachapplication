@@ -29,6 +29,7 @@ export { validateTrialForm, TrialFormFields } from './trial-session-editor-secti
 export type { TrialFormValues, TrialFormFieldsProps } from './trial-session-editor-sections';
 
 import { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,7 +136,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
       </View>
 
       <SurfaceCard style={styles.toggleCard}>
-        <View style={styles.toggleRow}>
+        <Row style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
             <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
               Enable Trial Sessions
@@ -150,7 +151,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
             trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.5) }}
             thumbColor={enabled ? palette.success : palette.surface}
           />
-        </View>
+        </Row>
       </SurfaceCard>
 
       {enabled && (
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerArea: { paddingHorizontal: Spacing.xs, marginBottom: Spacing.md },
   toggleCard: { marginBottom: Spacing.sm },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  toggleRow: { alignItems: 'center', gap: Spacing.sm },
   saveButton: {
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,

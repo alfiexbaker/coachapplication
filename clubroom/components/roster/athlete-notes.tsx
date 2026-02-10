@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -41,7 +42,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
 
   return (
     <SurfaceCard style={styles.container}>
-      <View style={styles.header}>
+      <Row align="center" justify="between">
         <ThemedText type="defaultSemiBold">Coach Notes</ThemedText>
         <Clickable onPress={() => setShowInput(!showInput)}>
           <Ionicons
@@ -50,7 +51,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
             color={palette.tint}
           />
         </Clickable>
-      </View>
+      </Row>
 
       {/* Add Note Input */}
       {showInput && (
@@ -65,7 +66,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
             numberOfLines={3}
             autoFocus
           />
-          <View style={styles.inputActions}>
+          <Row justify="end" gap="sm">
             <Clickable
               onPress={() => {
                 setNewNote('');
@@ -78,7 +79,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
             <Button onPress={handleAddNote} disabled={!newNote.trim()}>
               Save Note
             </Button>
-          </View>
+          </Row>
         </View>
       )}
 
@@ -96,14 +97,14 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .map((note) => (
               <View key={note.id} style={[styles.noteCard, { backgroundColor: palette.surfaceSecondary }]}>
-                <View style={styles.noteHeader}>
+                <Row align="center" justify="between">
                   <ThemedText style={[styles.noteDate, { color: palette.muted }]}>
                     {formatDate(note.createdAt)}
                   </ThemedText>
                   <Clickable accessibilityLabel="Delete note" onPress={() => onDeleteNote(note.id)} hitSlop={8}>
                     <Ionicons name="trash-outline" size={16} color={palette.error} />
                   </Clickable>
-                </View>
+                </Row>
                 <ThemedText style={styles.noteContent}>{note.content}</ThemedText>
               </View>
             ))}
@@ -117,11 +118,6 @@ const styles = StyleSheet.create({
   container: {
     gap: Spacing.md,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   inputSection: {
     gap: Spacing.sm,
   },
@@ -129,11 +125,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     padding: Spacing.md,
     textAlignVertical: 'top' },
-  inputActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.sm,
-  },
   cancelButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -154,11 +145,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.md,
     gap: Spacing.xs,
-  },
-  noteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   noteDate: { ...Typography.caption },
   noteContent: { ...Typography.bodySmall, lineHeight: 20 },

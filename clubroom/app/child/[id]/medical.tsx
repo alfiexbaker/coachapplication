@@ -18,11 +18,12 @@ import { Row } from '@/components/primitives/row';
 import { MedicalTagInput } from '@/components/child/medical-tag-input';
 import { MedicalConsentToggle } from '@/components/child/medical-consent-toggle';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useMedicalInfo } from '@/hooks/use-medical-info';
 
 export default function MedicalInfoScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading, saving,
     conditions, allergies, medications, restrictions,

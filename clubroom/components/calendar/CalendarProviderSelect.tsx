@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
   },
   providerOption: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

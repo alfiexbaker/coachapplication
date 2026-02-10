@@ -11,15 +11,17 @@ import { MessageBubble } from '@/components/messaging/message-bubble';
 import { ChatInput } from '@/components/messaging/chat-input';
 import { TypingIndicator } from '@/components/messaging/typing-indicator';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { Chip } from '@/components/primitives/chip';
 
 export default function ChatScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const [thread, setThread] = useState<ChatThreadSummary | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
@@ -86,7 +88,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-      <View style={[styles.chatHeader, { borderBottomColor: palette.border }]}>
+      <Row align="center" gap="md" style={[styles.chatHeader, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -97,9 +99,9 @@ export default function ChatScreen() {
         {isGroup && thread.groupType ? (
           <Chip dense>{thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'}</Chip>
         ) : null}
-      </View>
+      </Row>
       {showSafetyBanner && (
-        <View style={[styles.safetyBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.border }]}>
+        <Row align="center" gap="sm" style={[styles.safetyBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.border }]}>
           <Ionicons name="shield-checkmark" size={18} color={palette.warning} />
           <View style={{ flex: 1, gap: Spacing.micro }}>
             <ThemedText type="defaultSemiBold">Stay safe</ThemedText>
@@ -110,7 +112,7 @@ export default function ChatScreen() {
           <Clickable onPress={() => setShowSafetyBanner(false)}>
             <Ionicons name="close" size={16} color={palette.icon} />
           </Clickable>
-        </View>
+        </Row>
       )}
       {isGroup && thread.postingAsOptions?.length ? (
         <ScrollView
@@ -128,14 +130,16 @@ export default function ChatScreen() {
                   borderColor: postingAs === option ? palette.tint : palette.border,
                 },
               ]}>
-              <Ionicons
-                name={postingAs === option ? 'checkmark-circle' : 'person-circle-outline'}
-                size={16}
-                color={postingAs === option ? palette.tint : palette.icon}
-              />
-              <ThemedText style={{ color: postingAs === option ? palette.text : palette.muted }}>
-                Post as {option}
-              </ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons
+                  name={postingAs === option ? 'checkmark-circle' : 'person-circle-outline'}
+                  size={16}
+                  color={postingAs === option ? palette.tint : palette.icon}
+                />
+                <ThemedText style={{ color: postingAs === option ? palette.text : palette.muted }}>
+                  Post as {option}
+                </ThemedText>
+              </Row>
             </Clickable>
           ))}
         </ScrollView>
@@ -161,9 +165,6 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   chatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
     borderBottomWidth: 1,
@@ -188,17 +189,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   postingAsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     marginTop: Spacing.sm,
     borderBottomWidth: 1,
   },
   postingAsChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
@@ -206,9 +202,6 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   safetyBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.sm,
     padding: Spacing.md,

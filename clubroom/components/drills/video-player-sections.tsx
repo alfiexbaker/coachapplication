@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -75,14 +76,14 @@ export const VideoBottomControls = memo(function VideoBottomControls({
           />
         </View>
       </View>
-      <View style={styles.timeContainer}>
+      <Row style={styles.timeContainer}>
         <ThemedText style={[styles.timeText, { color: palette.onPrimary }]}>
           {formatTime(currentTime)}
         </ThemedText>
         <ThemedText style={[styles.timeText, { color: palette.onPrimary }]}>
           {formatTime(totalDuration)}
         </ThemedText>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -99,7 +100,7 @@ export const VideoTitleOverlay = memo(function VideoTitleOverlay({
   duration,
 }: VideoTitleOverlayProps) {
   return (
-    <View style={styles.titleOverlay}>
+    <Row style={styles.titleOverlay}>
       <ThemedText style={styles.titleText} numberOfLines={1}>
         {title}
       </ThemedText>
@@ -108,7 +109,7 @@ export const VideoTitleOverlay = memo(function VideoTitleOverlay({
           {duration} min
         </ThemedText>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -239,7 +240,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   timeContainer: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
   },
   timeText: {
@@ -253,7 +253,6 @@ export const styles = StyleSheet.create({
     right: 0,
     padding: Spacing.md,
     backgroundColor: 'rgba(0, 0, 0, 0.6)', // Decorative: title overlay
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
@@ -35,11 +36,11 @@ export default function CreateMatchScreen() {
           header={<PageHeader title="Create Match" subtitle={`Step ${currentStepIndex + 1} of ${totalSteps}`} showBack onBackPress={handleBack} />}
           gap={0} horizontalSpacing={0}
         >
-          <View style={styles.progress}>
+          <Row justify="center" gap="xs" style={styles.progress}>
             {Array.from({ length: totalSteps }, (_, i) => (
               <View key={i} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? colors.tint : colors.border }]} />
             ))}
-          </View>
+          </Row>
 
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             {step === 'details' && (
@@ -75,16 +76,18 @@ export default function CreateMatchScreen() {
                 {isSubmitting ? (
                   <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Creating...</ThemedText>
                 ) : (
-                  <>
+                  <Row align="center" justify="center" gap="sm">
                     <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
                     <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Create Match</ThemedText>
-                  </>
+                  </Row>
                 )}
               </Clickable>
             ) : (
               <Clickable style={[styles.primaryBtn, { backgroundColor: colors.tint }]} onPress={handleNext}>
-                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Continue</ThemedText>
-                <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
+                <Row align="center" justify="center" gap="sm">
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Continue</ThemedText>
+                  <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
+                </Row>
               </Clickable>
             )}
           </View>
@@ -95,10 +98,10 @@ export default function CreateMatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  progress: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.xs, padding: Spacing.md },
+  progress: { padding: Spacing.md },
   progressDot: { width: 32, height: 4, borderRadius: Radii.xs },
   scrollView: { flex: 1 },
   scrollContent: { padding: Spacing.md, paddingBottom: Spacing.xl * 2 },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
+  primaryBtn: { padding: Spacing.md, borderRadius: Radii.md },
 });

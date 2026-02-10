@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MOCK_DISCOVERY_COACHES = exports.activeObjectives = exports.bookings = exports.inviteCodes = exports.schools = exports.athleteSkillLevels = exports.sessionHistory = exports.upcomingBookings = exports.coachProfiles = exports.mockUserProfile = exports.chatMessages = exports.chatThreads = exports.coachParentSessions = exports.clubSessions = exports.clubFeedPosts = exports.clubInvites = exports.clubSquads = exports.clubMemberships = exports.clubs = exports.MOCK_INVITE_CODES = exports.MOCK_PAYMENTS = exports.MOCK_NOTIFICATIONS = exports.MOCK_SESSION_RECAPS = exports.MOCK_SESSION_PLANS = exports.MOCK_ATHLETE_DIRECTORY = exports.MOCK_SESSION_REQUESTS = exports.MOCK_GUEST_ATHLETES = exports.MOCK_COACH_SESSIONS = exports.UK_VENUES = exports.MOCK_SESSION_TEMPLATES = exports.MOCK_REVIEWS = exports.MOCK_COMMENTS = exports.MOCK_POSTS = exports.MOCK_MESSAGES = exports.MOCK_CONVERSATIONS = exports.MOCK_SESSIONS = exports.badgeAwards = exports.badgeCatalog = exports.MOCK_BOOKINGS = exports.MOCK_RELATIONSHIPS = exports.MOCK_USER_PROFILES = exports.MOCK_COACH_PROFILES = exports.MOCK_USERS = void 0;
+exports.MOCK_JOURNAL_ENTRIES = exports.MOCK_CHALLENGE_SUBMISSIONS = exports.MOCK_CHALLENGES = exports.MOCK_DISCOVERY_COACHES = exports.activeObjectives = exports.bookings = exports.inviteCodes = exports.schools = exports.athleteSkillLevels = exports.sessionHistory = exports.upcomingBookings = exports.coachProfiles = exports.mockUserProfile = exports.chatMessages = exports.chatThreads = exports.coachParentSessions = exports.clubSessions = exports.clubFeedPosts = exports.clubInvites = exports.clubSquads = exports.clubMemberships = exports.clubs = exports.MOCK_INVITE_CODES = exports.MOCK_PAYMENTS = exports.MOCK_NOTIFICATIONS = exports.MOCK_SESSION_RECAPS = exports.MOCK_SESSION_PLANS = exports.MOCK_ATHLETE_DIRECTORY = exports.MOCK_SESSION_REQUESTS = exports.MOCK_GUEST_ATHLETES = exports.MOCK_COACH_SESSIONS = exports.UK_VENUES = exports.MOCK_SESSION_TEMPLATES = exports.MOCK_REVIEWS = exports.MOCK_COMMENTS = exports.MOCK_POSTS = exports.MOCK_MESSAGES = exports.MOCK_CONVERSATIONS = exports.MOCK_SESSIONS = exports.badgeAwards = exports.badgeCatalog = exports.MOCK_BOOKINGS = exports.MOCK_RELATIONSHIPS = exports.MOCK_USER_PROFILES = exports.MOCK_COACH_PROFILES = exports.MOCK_USERS = void 0;
 exports.getUserById = getUserById;
 exports.getCoachProfile = getCoachProfile;
 exports.getUserProfile = getUserProfile;
@@ -3385,8 +3385,8 @@ exports.upcomingBookings = exports.MOCK_BOOKINGS.filter((b) => new Date(b.schedu
 // Session history for StatisticsScreen
 exports.sessionHistory = exports.MOCK_SESSIONS.map((session) => ({
     id: session.id,
-    coachName: session.coachName,
-    athleteName: session.athleteName,
+    coachName: session.coachName ?? 'Unknown Coach',
+    athleteName: session.athleteName ?? 'Unknown Athlete',
     focus: session.skillsWorkedOn[0] || 'General Training',
     durationMinutes: 60, // Standard session duration
     rating: session.performanceRating,
@@ -3572,5 +3572,115 @@ exports.MOCK_DISCOVERY_COACHES = [
         specialties: ['Dribbling', 'Shooting'],
         nextAvailable: 'Wed, 3:00 PM',
         trialAvailable: false,
+    },
+];
+exports.MOCK_CHALLENGES = [
+    {
+        id: 'chal_1',
+        squadId: 'squad_1',
+        createdBy: 'coach1',
+        createdByName: 'Sarah Mitchell',
+        title: 'Rainbow Flick Challenge',
+        description: 'Perform a clean rainbow flick over a cone. Upload your best attempt!',
+        demoVideoUrl: 'https://example.com/demo/rainbow-flick.mp4',
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        totalParticipants: 4,
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'chal_2',
+        squadId: 'squad_1',
+        createdBy: 'coach1',
+        createdByName: 'Sarah Mitchell',
+        title: 'Juggling Record',
+        description: 'How many consecutive juggles can you do? Beat the squad record of 42!',
+        deadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        totalParticipants: 6,
+        createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'chal_3',
+        squadId: 'squad_1',
+        createdBy: 'coach1',
+        createdByName: 'Sarah Mitchell',
+        title: '10 Consecutive Keepy-Ups',
+        description: 'Keep the ball in the air for 10 touches without it hitting the ground. Use any body part except hands!',
+        deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        totalParticipants: 2,
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+];
+exports.MOCK_CHALLENGE_SUBMISSIONS = [
+    {
+        id: 'sub_1',
+        challengeId: 'chal_1',
+        athleteId: 'user2',
+        athleteName: 'Tommy Williams',
+        videoUrl: 'https://example.com/submissions/tommy-rainbow.mp4',
+        submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        awardedBadge: true,
+    },
+    {
+        id: 'sub_2',
+        challengeId: 'chal_1',
+        athleteId: 'user3',
+        athleteName: 'Lucy Evans',
+        videoUrl: 'https://example.com/submissions/lucy-rainbow.mp4',
+        submittedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+        awardedBadge: false,
+    },
+    {
+        id: 'sub_3',
+        challengeId: 'chal_2',
+        athleteId: 'user2',
+        athleteName: 'Tommy Williams',
+        videoUrl: 'https://example.com/submissions/tommy-juggling.mp4',
+        submittedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        awardedBadge: true,
+    },
+    {
+        id: 'sub_4',
+        challengeId: 'chal_2',
+        athleteId: 'user4',
+        athleteName: 'Mia Johnson',
+        videoUrl: 'https://example.com/submissions/mia-juggling.mp4',
+        submittedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+        awardedBadge: false,
+    },
+];
+// ===== SESSION JOURNAL =====
+exports.MOCK_JOURNAL_ENTRIES = [
+    {
+        id: 'journal_1',
+        sessionId: 'session_1',
+        athleteId: 'user2',
+        coachNotes: 'Great footwork today. Focus on weak-foot passing next time.',
+        personalNotes: 'Felt really good today! The drills were challenging but fun. Need to work on my left foot more.',
+        mood: 4,
+        energyLevel: 4,
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'journal_2',
+        sessionId: 'session_2',
+        athleteId: 'user2',
+        coachNotes: 'Improved weak-foot accuracy. Keep it up!',
+        personalNotes: 'My left foot passing was better this week. Still need to practice more at home.',
+        mood: 5,
+        energyLevel: 3,
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: 'journal_3',
+        sessionId: 'session_3',
+        athleteId: 'user2',
+        coachNotes: 'Good effort in shooting drills. Need to follow through more on shots.',
+        personalNotes: 'Tired after school but pushed through. Scored 3 goals in practice match!',
+        mood: 3,
+        energyLevel: 2,
+        createdAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000).toISOString(),
     },
 ];

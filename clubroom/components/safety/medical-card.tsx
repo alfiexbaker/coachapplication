@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -12,8 +13,7 @@ import {
   getSeverityBadge,
   MedicalInfoRow,
   MedicalSummaryRowInner,
-  MedicalInfoEmptyStateInner,
-} from './medical-card-sections';
+  MedicalInfoEmptyStateInner } from './medical-card-sections';
 
 type MedicalCardProps = {
   athleteName: string;
@@ -30,8 +30,7 @@ export function MedicalCard({
   contacts = [],
   onPress,
   onPressContacts,
-  showContacts = true,
-}: MedicalCardProps) {
+  showContacts = true }: MedicalCardProps) {
   const { colors: palette } = useTheme();
 
   const hasAllergies = medical.allergies.length > 0;
@@ -47,21 +46,21 @@ export function MedicalCard({
 
   return (
     <SurfaceCard onPress={onPress} style={styles.card}>
-      <View style={styles.header}>
+      <Row align="center" gap="sm" style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="medical" size={20} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
-          <View style={styles.nameRow}>
+          <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
             {severityBadge && <Badge label={severityBadge.label} tone={severityBadge.tone} />}
-          </View>
+          </Row>
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>
             {hasAnyMedicalInfo ? 'Medical information on file' : 'No medical alerts'}
           </ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-      </View>
+      </Row>
 
       {hasAnyMedicalInfo && (
         <View style={[styles.content, { borderTopColor: palette.border }]}>
@@ -82,10 +81,10 @@ export function MedicalCard({
               label="Restrictions" value={medical.restrictions.join(', ')} palette={palette} />
           )}
           {hasNotes && (
-            <View style={[styles.notesBox, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row align="start" gap="sm" style={[styles.notesBox, { backgroundColor: palette.surfaceSecondary }]}>
               <Ionicons name="document-text" size={14} color={palette.muted} />
               <ThemedText style={[styles.notes, { color: palette.muted }]}>{medical.notes}</ThemedText>
-            </View>
+            </Row>
           )}
         </View>
       )}
@@ -95,22 +94,24 @@ export function MedicalCard({
           onPress={onPressContacts}
           style={[styles.contactRow, { borderTopColor: palette.border }]}
         >
-          <MedicalInfoRow icon="call" iconColor={palette.success}
-            label="Emergency Contact"
-            value={`${primaryContact.name} - ${primaryContact.phone}`}
-            palette={palette} />
-          {contacts.length > 1 && <Badge label={`+${contacts.length - 1}`} tone="neutral" />}
+          <Row align="center" gap="sm">
+            <MedicalInfoRow icon="call" iconColor={palette.success}
+              label="Emergency Contact"
+              value={`${primaryContact.name} - ${primaryContact.phone}`}
+              palette={palette} />
+            {contacts.length > 1 && <Badge label={`+${contacts.length - 1}`} tone="neutral" />}
+          </Row>
         </Clickable>
       )}
 
       {hasDoctor && (
-        <View style={[styles.doctorRow, { borderTopColor: palette.border }]}>
+        <Row align="center" gap="xs" style={[styles.doctorRow, { borderTopColor: palette.border }]}>
           <Ionicons name="person" size={14} color={palette.muted} />
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {medical.doctorName}
             {medical.doctorPhone && ` - ${medical.doctorPhone}`}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -129,47 +130,24 @@ export function MedicalInfoEmptyState({ onAddPress }: { onAddPress?: () => void 
 const styles = StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    alignItems: 'center' },
   content: { borderTopWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   notesBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
     marginTop: Spacing.xs,
     padding: Spacing.sm,
     backgroundColor: 'transparent',
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   notes: { ...Typography.small, flex: 1, lineHeight: 18 },
   contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   doctorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     padding: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderTopWidth: 1,
-  },
-});
+    borderTopWidth: 1 } });

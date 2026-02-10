@@ -11,6 +11,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface SlotRowData {
   dayLabel: string;
@@ -63,12 +64,12 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
 
       <View style={styles.dayTimeCol}>
         {isBlocked ? (
-          <View style={styles.timeOffRow}>
+          <Row style={styles.timeOffRow}>
             <Ionicons name="airplane-outline" size={14} color={palette.error} />
             <ThemedText style={[styles.dayTime, { color: palette.error, fontWeight: '600' }]}>
               {blockReason || 'Time Off'}
             </ThemedText>
-          </View>
+          </Row>
         ) : (
           <ThemedText style={[styles.dayTime, { color: hasTemplates ? palette.text : palette.muted }]}>
             {timeDisplay}
@@ -78,21 +79,21 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
 
       <View style={styles.dayLocationCol}>
         {!isBlocked && locationDisplay ? (
-          <View style={[styles.locationPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+          <Row style={[styles.locationPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name="location-outline" size={10} color={palette.tint} />
             <ThemedText style={[styles.locationPillText, { color: palette.tint }]} numberOfLines={1}>
               {locationDisplay}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
       </View>
 
-      <View style={styles.dayIndicators}>
+      <Row style={styles.dayIndicators}>
         {hasOverride && !isBlocked && (
           <View style={[styles.indicatorDot, { backgroundColor: palette.warning }]} />
         )}
         <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-      </View>
+      </Row>
     </Clickable>
   );
 }
@@ -123,10 +124,10 @@ function AddBlockRowInner({ dayIndex, showSeparator, onPress }: AddBlockRowProps
   return (
     <Clickable key={`add-block-${dayIndex}`} onPress={handlePress} style={rowStyle}>
       <View style={styles.dayLabelCol} />
-      <View style={styles.addBlockContent}>
+      <Row style={styles.addBlockContent}>
         <Ionicons name="add" size={14} color={palette.muted} />
         <ThemedText style={[styles.addBlockText, { color: palette.muted }]}>Add time block</ThemedText>
-      </View>
+      </Row>
     </Clickable>
   );
 }
@@ -134,21 +135,21 @@ function AddBlockRowInner({ dayIndex, showSeparator, onPress }: AddBlockRowProps
 export const WeekPatternAddBlockRow = memo(AddBlockRowInner);
 
 const styles = StyleSheet.create({
-  dayRow: { flexDirection: 'row', alignItems: 'center', minHeight: 56, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  dayRow: { alignItems: 'center', minHeight: 56, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   dayLabelCol: { width: 44 },
   dayLabel: { ...Typography.smallSemiBold },
   dayTimeCol: { flex: 1, paddingHorizontal: Spacing.xs },
   dayTime: { ...Typography.bodySmall },
-  timeOffRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  timeOffRow: { alignItems: 'center', gap: Spacing.xxs },
   dayLocationCol: { flex: 1, alignItems: 'flex-end', paddingRight: Spacing.xs },
   locationPill: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.micro,
+    alignItems: 'center', gap: Spacing.micro,
     paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.pill, maxWidth: 120,
   },
   locationPillText: { ...Typography.micro, textTransform: 'none', letterSpacing: 0 },
-  dayIndicators: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, width: 36, justifyContent: 'flex-end' },
+  dayIndicators: { alignItems: 'center', gap: Spacing.xxs, width: 36, justifyContent: 'flex-end' },
   indicatorDot: { width: 6, height: 6, borderRadius: 3 },
-  addBlockRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
-  addBlockContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  addBlockRow: { alignItems: 'center', minHeight: 44, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
+  addBlockContent: { alignItems: 'center', gap: Spacing.xxs },
   addBlockText: { ...Typography.small },
 });

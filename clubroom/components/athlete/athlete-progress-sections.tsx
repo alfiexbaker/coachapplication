@@ -14,6 +14,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -170,7 +171,7 @@ export const BadgeItem = memo(function BadgeItem({ badge }: { badge: BadgeSummar
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.badgeItem, { backgroundColor: withAlpha(colors.rating, 0.09) }]}>
+    <Row style={[styles.badgeItem, { backgroundColor: withAlpha(colors.rating, 0.09) }]}>
       <Ionicons name={badge.icon as 'ribbon'} size={20} color={colors.rating} />
       <Column gap="micro">
         <ThemedText style={styles.badgeName}>{badge.name}</ThemedText>
@@ -182,7 +183,7 @@ export const BadgeItem = memo(function BadgeItem({ badge }: { badge: BadgeSummar
           })}
         </ThemedText>
       </Column>
-    </View>
+    </Row>
   );
 });
 
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   goalTrack: { height: 6, borderRadius: Radii.xs, overflow: 'hidden' },
   goalFill: { height: '100%', borderRadius: Radii.xs },
   goalDue: { ...Typography.caption },
-  badgeItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
+  badgeItem: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
   badgeName: { ...Typography.bodySemiBold },
   badgeDate: { ...Typography.caption },
 });

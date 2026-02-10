@@ -309,7 +309,7 @@ class FamilyMemberService {
         };
         members.push(newMember);
         await this.saveMembers(members);
-        event_bus_1.eventBus.emit(event_bus_1.ServiceEvents.FAMILY_MEMBER_ADDED, {
+        (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.FAMILY_MEMBER_ADDED, {
             familyId: parentId,
             memberId: newMember.id,
         });
@@ -370,7 +370,7 @@ class FamilyMemberService {
         }
         members[index].isActive = false;
         await this.saveMembers(members);
-        event_bus_1.eventBus.emit(event_bus_1.ServiceEvents.FAMILY_MEMBER_REMOVED, { memberId: childId });
+        (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.FAMILY_MEMBER_REMOVED, { familyId: '', memberId: childId });
         logger.info('family_member_removed', { childId });
         return true;
     }

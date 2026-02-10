@@ -1,9 +1,10 @@
 import { memo } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
@@ -28,22 +29,26 @@ export const ValidationMessage = memo(function ValidationMessage({
 }: ValidationMessageProps) {
   if (isValid && creditAmount !== undefined) {
     return (
-      <Animated.View entering={FadeIn} style={styles.validationMessage}>
-        <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-        <ThemedText style={[styles.validText, { color: palette.success }]}>
-          Code valid! You will receive {promoService.formatCredit(creditAmount)}
-        </ThemedText>
+      <Animated.View entering={FadeIn}>
+        <Row align="center" gap="xs" style={styles.validationMessage}>
+          <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+          <ThemedText style={[styles.validText, { color: palette.success }]}>
+            Code valid! You will receive {promoService.formatCredit(creditAmount)}
+          </ThemedText>
+        </Row>
       </Animated.View>
     );
   }
 
   if (isInvalid && errorMessage) {
     return (
-      <Animated.View entering={FadeIn} style={styles.validationMessage}>
-        <Ionicons name="alert-circle" size={16} color={palette.error} />
-        <ThemedText style={[styles.errorText, { color: palette.error }]}>
-          {errorMessage}
-        </ThemedText>
+      <Animated.View entering={FadeIn}>
+        <Row align="center" gap="xs" style={styles.validationMessage}>
+          <Ionicons name="alert-circle" size={16} color={palette.error} />
+          <ThemedText style={[styles.errorText, { color: palette.error }]}>
+            {errorMessage}
+          </ThemedText>
+        </Row>
       </Animated.View>
     );
   }
@@ -83,7 +88,7 @@ export const RedeemButton = memo(function RedeemButton({
       {isLoading ? (
         <ActivityIndicator size="small" color={palette.onPrimary} />
       ) : (
-        <>
+        <Row align="center" justify="center" gap="sm">
           <Ionicons
             name={isValid ? 'gift-outline' : 'checkmark-circle-outline'}
             size={20}
@@ -92,7 +97,7 @@ export const RedeemButton = memo(function RedeemButton({
           <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
             {isValid ? 'Redeem Code' : 'Apply Code'}
           </ThemedText>
-        </>
+        </Row>
       )}
     </Clickable>
   );
@@ -128,18 +133,11 @@ export const LoadingStateMessage = memo(function LoadingStateMessage({
 
 const styles = StyleSheet.create({
   validationMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.xs,
   },
   validText: { ...Typography.smallSemiBold },
   errorText: { ...Typography.smallSemiBold },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
     marginTop: Spacing.xs,

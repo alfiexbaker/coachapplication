@@ -16,22 +16,25 @@ import { BookingStepper } from '@/components/ui/booking/booking-stepper';
 import { CoachSummaryCard } from '@/components/ui/booking/coach-summary-card';
 import { ObjectiveSelector } from '@/components/ui/booking/objective-selector';
 import { ServiceSelectionList } from '@/components/ui/booking/service-selection-list';
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { ok } from '@/types/result';
 import { useBookCoach, TOTAL_STEPS } from '@/hooks/use-book-coach';
 
 export default function BookCoachScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useBookCoach();
 
   if (!c.coach || !c.coachProfile) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="center" justify="between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
-        </View>
+        </Row>
         <View style={styles.errorContainer}><ThemedText>Coach not found</ThemedText></View>
       </SafeAreaView>
     );
@@ -39,11 +42,11 @@ export default function BookCoachScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" justify="between" style={styles.header}>
         <Clickable onPress={c.handleBack} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
         <ThemedText type="subtitle">{c.stepTitle}</ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       <BookingStepper step={c.step} totalSteps={TOTAL_STEPS[c.userHasChildren ? 'parent' : 'athlete']} isParent={c.userHasChildren} />
 
@@ -102,7 +105,7 @@ export default function BookCoachScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   continueButton: { paddingVertical: Spacing.md, borderRadius: Spacing.md, alignItems: 'center' },

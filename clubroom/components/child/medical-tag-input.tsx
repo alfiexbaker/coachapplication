@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface MedicalTagInputProps {
   label: string;
@@ -47,16 +48,16 @@ export const MedicalTagInput = memo(function MedicalTagInput({
         </Clickable>
       </Row>
       {items.length > 0 && (
-        <View style={styles.tagList}>
+        <Row style={styles.tagList}>
           {items.map((item, index) => (
-            <View key={index} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border }]}>
+            <Row key={index} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border }]}>
               <ThemedText style={Typography.small}>{item}</ThemedText>
               <Clickable onPress={() => onRemove(index)}>
                 <Ionicons name="close" size={16} color={colors.muted} />
               </Clickable>
-            </View>
+            </Row>
           ))}
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -66,6 +67,6 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.xs },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
   addButton: { width: 44, height: 44, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
-  tagList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  tag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  tagList: { flexWrap: 'wrap', gap: Spacing.xs },
+  tag: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
 });

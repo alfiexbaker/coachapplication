@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface CashPaymentBannerProps {
   amount: number;
@@ -22,7 +23,7 @@ export function CashPaymentBanner({ amount, coachName, sessionDate }: CashPaymen
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.banner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+    <Row style={[styles.banner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
       <View style={styles.iconContainer}>
         <Ionicons name="cash-outline" size={22} color={palette.warning} />
       </View>
@@ -40,13 +41,12 @@ export function CashPaymentBanner({ amount, coachName, sessionDate }: CashPaymen
           Please bring exact change
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   banner: {
-    flexDirection: 'row',
     padding: Spacing.md,
     borderRadius: Radii.md,
     gap: Spacing.md,

@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -26,8 +27,7 @@ export function SafetyChecklist({
   hasEmergencyContact,
   hasEmergencyConsent,
   hasMedicalInfo,
-  onPressIncomplete,
-}: SafetyChecklistProps) {
+  onPressIncomplete }: SafetyChecklistProps) {
   const { colors: palette } = useTheme();
 
   const items: ChecklistItem[] = [
@@ -36,22 +36,19 @@ export function SafetyChecklist({
       label: 'Emergency Contact',
       description: 'At least one emergency contact on file',
       isComplete: hasEmergencyContact,
-      icon: 'call',
-    },
+      icon: 'call' },
     {
       key: 'consent',
       label: 'Emergency Treatment Consent',
       description: 'Parent has granted emergency treatment consent',
       isComplete: hasEmergencyConsent,
-      icon: 'shield-checkmark',
-    },
+      icon: 'shield-checkmark' },
     {
       key: 'medical',
       label: 'Medical Information',
       description: 'Allergies, conditions, or medications documented',
       isComplete: hasMedicalInfo,
-      icon: 'medical',
-    },
+      icon: 'medical' },
   ];
 
   const completedCount = items.filter(i => i.isComplete).length;
@@ -59,15 +56,14 @@ export function SafetyChecklist({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row align="center" gap="sm">
         <View
           style={[
             styles.headerIcon,
             {
               backgroundColor: isAllComplete
                 ? withAlpha(palette.success, 0.09)
-                : withAlpha(palette.warning, 0.09),
-            },
+                : withAlpha(palette.warning, 0.09) },
           ]}
         >
           <Ionicons
@@ -90,8 +86,7 @@ export function SafetyChecklist({
             {
               backgroundColor: isAllComplete
                 ? withAlpha(palette.success, 0.09)
-                : withAlpha(palette.warning, 0.09),
-            },
+                : withAlpha(palette.warning, 0.09) },
           ]}
         >
           <ThemedText
@@ -103,12 +98,14 @@ export function SafetyChecklist({
             {completedCount}/{items.length}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <View style={styles.itemsList}>
         {items.map((item, index) => (
-          <View
+          <Row
             key={item.key}
+            align="center"
+            gap="sm"
             style={[
               styles.item,
               index < items.length - 1 ? { borderBottomColor: palette.border } : undefined,
@@ -120,8 +117,7 @@ export function SafetyChecklist({
                 {
                   backgroundColor: item.isComplete
                     ? withAlpha(palette.success, 0.06)
-                    : withAlpha(palette.muted, 0.06),
-                },
+                    : withAlpha(palette.muted, 0.06) },
               ]}
             >
               <Ionicons
@@ -148,7 +144,7 @@ export function SafetyChecklist({
               size={20}
               color={item.isComplete ? palette.success : palette.error}
             />
-          </View>
+          </Row>
         ))}
       </View>
 
@@ -157,10 +153,12 @@ export function SafetyChecklist({
           onPress={onPressIncomplete}
           style={[styles.actionButton, { borderColor: palette.warning }]}
         >
-          <Ionicons name="alert" size={16} color={palette.warning} />
-          <ThemedText style={[styles.actionText, { color: palette.warning }]}>
-            Request Missing Information
-          </ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="alert" size={16} color={palette.warning} />
+            <ThemedText style={[styles.actionText, { color: palette.warning }]}>
+              Request Missing Information
+            </ThemedText>
+          </Row>
         </Clickable>
       )}
     </SurfaceCard>
@@ -169,49 +167,35 @@ export function SafetyChecklist({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   headerIcon: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   headerSubtext: { ...Typography.caption, marginTop: Spacing.micro },
   progressBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   progressText: { ...Typography.caption },
   itemsList: { gap: 0 },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent',
-  },
+    borderBottomColor: 'transparent' },
   itemIcon: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   itemContent: { flex: 1 },
   itemLabel: { ...Typography.bodySmallSemiBold },
   itemDescription: { ...Typography.caption, marginTop: 1 },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     borderWidth: 1.5,
     borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
-  actionText: { ...Typography.bodySmallSemiBold },
-});
+    marginTop: Spacing.xs },
+  actionText: { ...Typography.bodySmallSemiBold } });

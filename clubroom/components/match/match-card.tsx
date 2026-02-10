@@ -5,6 +5,7 @@ import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Match } from '@/constants/types';
@@ -48,14 +49,14 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
     const resultColor = isWin ? palette.success : isDraw ? palette.warning : palette.error;
 
     return (
-      <View style={[styles.resultBadge, { backgroundColor: withAlpha(resultColor, 0.09) }]}>
+      <Row align="center" gap="xs" style={[styles.resultBadge, { backgroundColor: withAlpha(resultColor, 0.09) }]}>
         <ThemedText style={[styles.resultText, { color: resultColor }]}>
           {match.isHome ? `${home} - ${away}` : `${away} - ${home}`}
         </ThemedText>
         <ThemedText style={[styles.resultLabel, { color: resultColor }]}>
           {isWin ? 'W' : isDraw ? 'D' : 'L'}
         </ThemedText>
-      </View>
+      </Row>
     );
   };
 
@@ -66,13 +67,13 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
       outlineGradient={isUpcoming ? [typeColor, withAlpha(typeColor, 0.38)] : undefined}
     >
       {/* Header row with type badge */}
-      <View style={styles.headerRow}>
+      <Row align="center" gap="xs">
         <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
           <ThemedText style={[styles.typeText, { color: typeColor }]}>
             {matchService.formatMatchType(match.matchType)}
           </ThemedText>
         </View>
-        <View style={[styles.homeAwayBadge, { backgroundColor: palette.surface }]}>
+        <Row align="center" gap="xxs" style={[styles.homeAwayBadge, { backgroundColor: palette.surface }]}>
           <Ionicons
             name={match.isHome ? 'home' : 'airplane'}
             size={12}
@@ -81,28 +82,28 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
           <ThemedText style={[styles.homeAwayText, { color: palette.muted }]}>
             {match.isHome ? 'Home' : 'Away'}
           </ThemedText>
-        </View>
+        </Row>
         {match.result && getResultDisplay()}
-      </View>
+      </Row>
 
       {/* Match title and opponent */}
       <View style={styles.titleSection}>
         <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={1}>
           {match.title}
         </ThemedText>
-        <View style={styles.opponentRow}>
+        <Row align="center" gap="xs">
           <ThemedText style={[styles.vsText, { color: palette.muted }]}>vs</ThemedText>
           <ThemedText style={styles.opponent}>{match.opponent}</ThemedText>
-        </View>
+        </Row>
       </View>
 
       {/* Date and time */}
-      <View style={styles.scheduleRow}>
-        <View style={styles.scheduleItem}>
+      <Row gap="lg" style={styles.scheduleRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="calendar-outline" size={16} color={palette.tint} />
           <ThemedText style={styles.scheduleText}>{dateLabel}</ThemedText>
-        </View>
-        <View style={styles.scheduleItem}>
+        </Row>
+        <Row align="center" gap="xs">
           <Ionicons name="time-outline" size={16} color={palette.tint} />
           <ThemedText style={styles.scheduleText}>
             KO {match.kickoffTime}
@@ -112,25 +113,25 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
               </ThemedText>
             )}
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {/* Location */}
-      <View style={styles.locationRow}>
+      <Row align="center" gap="xs">
         <Ionicons name="location-outline" size={16} color={palette.muted} />
         <ThemedText style={[styles.locationText, { color: palette.muted }]} numberOfLines={1}>
           {match.venue}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Club name if showing */}
       {showClub && (
-        <View style={styles.clubRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="shield-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.clubText, { color: palette.muted }]}>
             {match.clubName}
           </ThemedText>
-        </View>
+        </Row>
       )}
 
       {/* Status and availability (coach view) */}
@@ -147,11 +148,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     gap: Spacing.xs,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -159,18 +155,12 @@ const styles = StyleSheet.create({
   },
   typeText: { ...Typography.caption, textTransform: 'uppercase' },
   homeAwayBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   homeAwayText: { ...Typography.caption },
   resultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
@@ -182,35 +172,13 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   title: { ...Typography.subheading },
-  opponentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   vsText: { ...Typography.caption },
   opponent: { ...Typography.bodySmallSemiBold },
   scheduleRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
     marginTop: Spacing.xs,
-  },
-  scheduleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
   },
   scheduleText: { ...Typography.small },
   meetTime: { ...Typography.caption },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   locationText: { ...Typography.small, flex: 1 },
-  clubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   clubText: { ...Typography.caption },
 });

@@ -8,6 +8,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -47,26 +48,25 @@ export const ReviewStep = memo(function ReviewStep({
   shareNotesWithParents,
   onShareNotesChange,
   shareAttendance,
-  onShareAttendanceChange,
-}: ReviewStepProps) {
+  onShareAttendanceChange }: ReviewStepProps) {
   return (
     <>
       {/* Review Summary */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
           <Ionicons name="eye" size={20} color={colors.tint} />
           <ThemedText type="subtitle">Review &amp; Share</ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.summaryHint, { color: colors.muted }]}>
           Review what will be shared with parents when you complete this session.
         </ThemedText>
 
         {/* Attendance summary */}
         <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
-          <View style={styles.summaryLabel}>
+          <Row align="center" gap="xs">
             <Ionicons name="people-outline" size={18} color={colors.tint} />
             <ThemedText type="defaultSemiBold">Attendance</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={{ color: colors.muted }}>
             {presentCount} present, {absentCount} absent
           </ThemedText>
@@ -74,10 +74,10 @@ export const ReviewStep = memo(function ReviewStep({
 
         {/* Notes summary */}
         <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
-          <View style={styles.summaryLabel}>
+          <Row align="center" gap="xs">
             <Ionicons name="document-text-outline" size={18} color={colors.tint} />
             <ThemedText type="defaultSemiBold">Session Notes</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={{ color: colors.muted }} numberOfLines={2}>
             {sessionSummary || 'No notes added'}
           </ThemedText>
@@ -86,10 +86,10 @@ export const ReviewStep = memo(function ReviewStep({
         {/* Skills */}
         {skillsFocused.length > 0 && (
           <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
-            <View style={styles.summaryLabel}>
+            <Row align="center" gap="xs">
               <Ionicons name="football-outline" size={18} color={colors.tint} />
               <ThemedText type="defaultSemiBold">Skills</ThemedText>
-            </View>
+            </Row>
             <ThemedText style={{ color: colors.muted }}>
               {skillsFocused.join(', ')}
             </ThemedText>
@@ -99,10 +99,10 @@ export const ReviewStep = memo(function ReviewStep({
         {/* Badges */}
         {totalBadgesAwarded > 0 && (
           <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
-            <View style={styles.summaryLabel}>
+            <Row align="center" gap="xs">
               <Ionicons name="ribbon-outline" size={18} color={colors.warning} />
               <ThemedText type="defaultSemiBold">Badges</ThemedText>
-            </View>
+            </Row>
             <ThemedText style={{ color: colors.muted }}>
               {totalBadgesAwarded} badge{totalBadgesAwarded !== 1 ? 's' : ''} awarded
             </ThemedText>
@@ -111,22 +111,22 @@ export const ReviewStep = memo(function ReviewStep({
 
         {/* Effort */}
         <View style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
-          <View style={styles.summaryLabel}>
+          <Row align="center" gap="xs">
             <Ionicons name="fitness-outline" size={18} color={colors.tint} />
             <ThemedText type="defaultSemiBold">Group Effort</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={{ color: colors.muted }}>{overallEffort}/5</ThemedText>
         </View>
       </SurfaceCard>
 
       {/* Sharing toggles */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
           <Ionicons name="share-social" size={20} color={colors.tint} />
           <ThemedText type="subtitle">Sharing Preferences</ThemedText>
-        </View>
+        </Row>
 
-        <View style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
+        <Row align="center" justify="between" style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
           <View style={styles.toggleInfo}>
             <ThemedText type="defaultSemiBold">Share notes with parents</ThemedText>
             <ThemedText style={[styles.toggleHint, { color: colors.muted }]}>
@@ -140,9 +140,9 @@ export const ReviewStep = memo(function ReviewStep({
             thumbColor={shareNotesWithParents ? colors.success : colors.muted}
             accessibilityLabel="Share notes with parents"
           />
-        </View>
+        </Row>
 
-        <View style={styles.toggleRow}>
+        <Row align="center" justify="between" style={styles.toggleRow}>
           <View style={styles.toggleInfo}>
             <ThemedText type="defaultSemiBold">Share attendance</ThemedText>
             <ThemedText style={[styles.toggleHint, { color: colors.muted }]}>
@@ -156,7 +156,7 @@ export const ReviewStep = memo(function ReviewStep({
             thumbColor={shareAttendance ? colors.success : colors.muted}
             accessibilityLabel="Share attendance with parents"
           />
-        </View>
+        </Row>
       </SurfaceCard>
     </>
   );
@@ -169,42 +169,23 @@ export const ReviewStep = memo(function ReviewStep({
 const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   summaryHint: {
     ...Typography.small,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   summaryRow: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    gap: Spacing.xxs,
-  },
-  summaryLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xxs },
   toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent',
-  },
+    borderBottomColor: 'transparent' },
   toggleInfo: {
     flex: 1,
     gap: Spacing.micro,
-    marginRight: Spacing.sm,
-  },
+    marginRight: Spacing.sm },
   toggleHint: {
-    ...Typography.caption,
-  },
-});
+    ...Typography.caption } });

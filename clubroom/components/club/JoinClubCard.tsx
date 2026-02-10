@@ -10,6 +10,7 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface JoinClubCardProps {
   isCoach: boolean;
@@ -27,7 +28,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
 
   return (
     <SurfaceCard style={styles.joinCard}>
-      <View style={styles.joinHeader}>
+      <Row style={styles.joinHeader}>
         <View style={[styles.clubAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="people" size={24} color={palette.tint} />
         </View>
@@ -41,9 +42,9 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
               : 'Join your coach\'s club for exclusive content'}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
-      <View style={styles.joinForm}>
+      <Row style={styles.joinForm}>
         <TextInput
           placeholder="Enter invite code"
           placeholderTextColor={palette.muted}
@@ -58,7 +59,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         >
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Join</ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       {isCoach && (
         <>
@@ -84,7 +85,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   joinHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
@@ -96,7 +96,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   joinForm: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     alignItems: 'center',
   },
@@ -120,7 +119,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   createButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,

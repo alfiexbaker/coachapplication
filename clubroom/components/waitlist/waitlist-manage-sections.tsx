@@ -10,6 +10,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -38,30 +39,30 @@ export const WaitlistHeader = memo(function WaitlistHeader({
 
   return (
     <Clickable onPress={onToggleExpand} style={styles.header}>
-      <View style={styles.headerContent}>
+      <Row align="center" justify="space-between">
         <View style={styles.sessionInfo}>
           <ThemedText type="defaultSemiBold" style={styles.sessionTitle} numberOfLines={1}>
             {summary.sessionTitle}
           </ThemedText>
-          <View style={styles.statsRow}>
-            <View style={[styles.statBadge, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
+          <Row gap="xs">
+            <Row align="center" gap="xxs" style={[styles.statBadge, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
               <Ionicons name="people" size={12} color={palette.warning} />
               <ThemedText style={[styles.statText, { color: palette.warning }]}>
                 {summary.totalWaiting} waiting
               </ThemedText>
-            </View>
+            </Row>
             {hasAutoBookers && (
-              <View style={[styles.statBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+              <Row align="center" gap="xxs" style={[styles.statBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="flash" size={12} color={palette.success} />
                 <ThemedText style={[styles.statText, { color: palette.success }]}>
                   {summary.autoBookCount} auto
                 </ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
         </View>
 
-        <View style={styles.headerRight}>
+        <Row align="center" gap="sm">
           {summary.nextInLine && (
             <WaitlistPosition position={1} size="small" compact />
           )}
@@ -70,8 +71,8 @@ export const WaitlistHeader = memo(function WaitlistHeader({
             size={20}
             color={palette.muted}
           />
-        </View>
-      </View>
+        </Row>
+      </Row>
     </Clickable>
   );
 });
@@ -92,7 +93,7 @@ export const WaitlistActions = memo(function WaitlistActions({
   palette,
 }: WaitlistActionsProps) {
   return (
-    <View style={[styles.actions, { borderTopColor: palette.border }]}>
+    <Row gap="sm" style={[styles.actions, { borderTopColor: palette.border }]}>
       <Clickable
         onPress={onNotifyNext}
         disabled={isLoading}
@@ -126,7 +127,7 @@ export const WaitlistActions = memo(function WaitlistActions({
           </>
         )}
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -146,20 +147,22 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
   palette,
 }: WaitlistEntryRowProps) {
   return (
-    <View
+    <Row
+      align="center"
+      justify="space-between"
       style={[
         styles.entryRow,
         !isLast ? { borderBottomColor: palette.border, borderBottomWidth: 1 } : undefined,
       ]}
     >
-      <View style={styles.entryInfo}>
+      <Row align="center" gap="sm" flex>
         <View style={[styles.positionCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <ThemedText style={[styles.positionNumber, { color: palette.warning }]}>
             {entry.position}
           </ThemedText>
         </View>
 
-        <View style={styles.userInfo}>
+        <Row align="center" gap="sm" flex>
           {entry.userPhotoUrl ? (
             <Image source={{ uri: entry.userPhotoUrl }} style={styles.userPhoto} />
           ) : (
@@ -171,30 +174,30 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
             <ThemedText type="defaultSemiBold" style={styles.userName}>
               {entry.userName}
             </ThemedText>
-            <View style={styles.entryMeta}>
+            <Row align="center" gap="xxs">
               <ThemedText style={[styles.joinedTime, { color: palette.muted }]}>
                 {waitlistService.formatTimeAgo(entry.joinedAt)}
               </ThemedText>
               {entry.autoBook && (
-                <View style={[styles.autoBookBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                <Row align="center" gap="micro" style={[styles.autoBookBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                   <Ionicons name="flash" size={10} color={palette.success} />
                   <ThemedText style={[styles.autoBookText, { color: palette.success }]}>
                     Auto
                   </ThemedText>
-                </View>
+                </Row>
               )}
               {entry.status === 'NOTIFIED' && (
-                <View style={[styles.notifiedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                <Row align="center" gap="micro" style={[styles.notifiedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="notifications" size={10} color={palette.tint} />
                   <ThemedText style={[styles.notifiedText, { color: palette.tint }]}>
                     Notified
                   </ThemedText>
-                </View>
+                </Row>
               )}
-            </View>
+            </Row>
           </View>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       <Clickable
         accessibilityLabel="Remove from waitlist"
@@ -204,7 +207,7 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
       >
         <Ionicons name="close-circle" size={20} color={palette.error} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -236,39 +239,22 @@ export const styles = StyleSheet.create({
   header: {
     padding: Spacing.md,
   },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  headerContent: { /* layout moved to Row */ },
   sessionInfo: {
     flex: 1,
     marginRight: Spacing.md,
     gap: Spacing.xxs,
   },
   sessionTitle: { ...Typography.body },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+  statsRow: { /* layout moved to Row */ },
   statBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: 8,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.md,
-    // backgroundColor applied inline via palette.warning
   },
   statText: { ...Typography.caption },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+  headerRight: { /* layout moved to Row */ },
   actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     padding: Spacing.md,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
@@ -297,17 +283,9 @@ export const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   entryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
   },
-  entryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: Spacing.sm,
-  },
+  entryInfo: { /* layout moved to Row */ },
   positionCircle: {
     width: 24,
     height: 24,
@@ -316,12 +294,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   positionNumber: { ...Typography.caption },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
+  userInfo: { /* layout moved to Row */ },
   userPhoto: {
     width: 32,
     height: 32,
@@ -339,25 +312,15 @@ export const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   userName: { ...Typography.bodySmall },
-  entryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  entryMeta: { /* layout moved to Row */ },
   joinedTime: { ...Typography.caption },
   autoBookBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.micro,
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   autoBookText: { ...Typography.micro },
   notifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.micro,
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,

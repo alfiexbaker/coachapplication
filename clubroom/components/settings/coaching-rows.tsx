@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { View, StyleSheet, Switch, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,12 +24,12 @@ export const Stepper = memo(function Stepper({ label, value, onValueChange, min,
   const canIncrement = value + step <= max;
 
   return (
-    <View style={styles.rowContainer}>
+    <Row align="center" justify="space-between" style={styles.rowContainerPadding}>
       <View style={styles.rowLabelArea}>
         <ThemedText style={[styles.rowLabel, { color: colors.text }]}>{label}</ThemedText>
         {helperText ? <ThemedText style={[styles.rowHelper, { color: colors.muted }]}>{helperText}</ThemedText> : null}
       </View>
-      <View style={styles.stepperControl}>
+      <Row align="center" gap="xs">
         <Pressable onPress={() => canDecrement && onValueChange(value - step)}
           style={[styles.stepperButton, { backgroundColor: colors.background }, !canDecrement && styles.stepperButtonDisabled]}
           accessibilityLabel={`Decrease ${label}`}>
@@ -40,8 +41,8 @@ export const Stepper = memo(function Stepper({ label, value, onValueChange, min,
           accessibilityLabel={`Increase ${label}`}>
           <Ionicons name="add" size={18} color={canIncrement ? colors.text : colors.border} />
         </Pressable>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -55,13 +56,13 @@ interface ToggleRowProps {
 export const ToggleRow = memo(function ToggleRow({ label, value, onValueChange, helperText }: ToggleRowProps) {
   const { colors } = useTheme();
   return (
-    <View style={styles.rowContainer}>
+    <Row align="center" justify="space-between" style={styles.rowContainerPadding}>
       <View style={styles.rowLabelArea}>
         <ThemedText style={[styles.rowLabel, { color: colors.text }]}>{label}</ThemedText>
         {helperText ? <ThemedText style={[styles.rowHelper, { color: colors.muted }]}>{helperText}</ThemedText> : null}
       </View>
       <Switch value={value} onValueChange={onValueChange} trackColor={{ false: colors.border, true: colors.success }} thumbColor={colors.surface} />
-    </View>
+    </Row>
   );
 });
 
@@ -80,10 +81,10 @@ export const NavigationRow = memo(function NavigationRow({ label, value, onPress
         {icon && <View style={styles.navIconContainer}><Ionicons name={icon} size={18} color={colors.muted} /></View>}
         <ThemedText style={[styles.rowLabel, { color: colors.text }]} numberOfLines={1}>{label}</ThemedText>
       </View>
-      <View style={styles.navRight}>
+      <Row align="center" gap={4}>
         {value ? <ThemedText style={[styles.navValue, { color: colors.muted }]} numberOfLines={1}>{value}</ThemedText> : null}
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-      </View>
+      </Row>
     </Pressable>
   );
 });
@@ -104,16 +105,17 @@ export function Separator() {
 
 const styles = StyleSheet.create({
   rowContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, minHeight: 52 },
-  rowLabelArea: { flex: 1, flexDirection: 'column', marginRight: Spacing.sm },
+  rowContainerPadding: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, minHeight: 52 },
+  rowLabelArea: { flex: 1, marginRight: Spacing.sm },
   rowLabel: { ...Typography.body },
   rowHelper: { ...Typography.small, marginTop: Spacing.micro },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.sm },
-  stepperControl: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  stepperControl: { /* layout moved to Row */ },
   stepperButton: { width: 44, height: 44, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
   stepperButtonDisabled: { opacity: 0.4 },
   stepperValue: { ...Typography.bodySemiBold, minWidth: 48, textAlign: 'center' },
   navIconContainer: { marginBottom: Spacing.micro },
-  navRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  navRight: { /* layout moved to Row */ },
   navValue: { ...Typography.small },
   sectionHeader: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.md, paddingBottom: Spacing.xs },
   sectionHeaderText: { ...Typography.caption, letterSpacing: 0.8 },

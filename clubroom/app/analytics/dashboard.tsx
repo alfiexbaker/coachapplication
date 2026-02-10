@@ -14,26 +14,22 @@ import {
   CancellationChart } from '@/components/analytics';
 import { AnalyticsTopSkills } from '@/components/analytics/analytics-top-skills';
 import { AnalyticsSessionTypes } from '@/components/analytics/analytics-session-types';
-import { LoadingState } from '@/components/ui/screen-states';
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ok } from '@/types/result';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useAnalyticsDashboard, PERIOD_OPTIONS } from '@/hooks/use-analytics-dashboard';
 
 export default function AnalyticsDashboardScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     analytics, period, loading, refreshing,
     handleRefresh, handlePeriodChange, formatCurrency,
     navigateToRevenue, navigateToRetention,
   } = useAnalyticsDashboard();
 
-  if (loading && !analytics) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <LoadingState variant="card" />
-      </SafeAreaView>
-    );
-  }
+  if (loading && !analytics) return <LoadingState variant="card" />;
+  if (!analytics) return <EmptyState icon="analytics-outline" title="No analytics yet" message="Complete sessions to see your insights" />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

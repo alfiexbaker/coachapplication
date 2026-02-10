@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { type Milestone, PROGRESS_STEPS } from './goal-editor-helpers';
+import { Row } from '@/components/primitives';
 
 // ─── Progress Section ───────────────────────────────────────────────────────
 
@@ -29,13 +30,13 @@ export const ProgressSection = memo(function ProgressSection({ progress, onProgr
         <View style={[styles.progressFill, { backgroundColor: palette.success, width: `${progress}%` }]} />
       </View>
 
-      <View style={styles.sliderRow}>
+      <Row style={styles.sliderRow}>
         {PROGRESS_STEPS.map((step) => (
           <Clickable key={step} onPress={() => onProgressChange(step)} accessibilityLabel={`${step}%`}>
             <View style={[styles.stepDot, { backgroundColor: step <= progress ? palette.success : palette.surfaceSecondary }]} />
           </Clickable>
         ))}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -66,7 +67,7 @@ export const MilestonesSection = memo(function MilestonesSection({
       <ThemedText style={[styles.label, { color: palette.foreground }]}>Milestones</ThemedText>
 
       {milestones.map((ms) => (
-        <View key={ms.id} style={styles.milestoneRow}>
+        <Row key={ms.id} style={styles.milestoneRow}>
           <Clickable onPress={() => onToggleMilestone(ms.id)} accessibilityLabel={`Toggle ${ms.title}`}>
             <Ionicons
               name={ms.completed ? 'checkmark-circle' : 'ellipse-outline'}
@@ -83,10 +84,10 @@ export const MilestonesSection = memo(function MilestonesSection({
           <Clickable onPress={() => onRemoveMilestone(ms.id)} accessibilityLabel={`Remove ${ms.title}`}>
             <Ionicons name="close-circle-outline" size={Components.icon.md} color={palette.error} />
           </Clickable>
-        </View>
+        </Row>
       ))}
 
-      <View style={styles.addRow}>
+      <Row style={styles.addRow}>
         <TextInput
           style={[styles.input, styles.addInput, { color: palette.foreground, backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}
           value={newMilestone}
@@ -101,7 +102,7 @@ export const MilestonesSection = memo(function MilestonesSection({
             <Ionicons name="add" size={Components.icon.md} color={palette.surface} />
           </View>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -126,10 +127,10 @@ export const SuggestionsSection = memo(function SuggestionsSection({ suggestions
       </ThemedText>
       {suggestions.map((sug) => (
         <Clickable key={sug} onPress={() => onPickSuggestion(sug)} accessibilityLabel={`Use suggestion: ${sug}`}>
-          <View style={[styles.suggestionRow, { borderColor: palette.border }]}>
+          <Row style={[styles.suggestionRow, { borderColor: palette.border }]}>
             <Ionicons name="bulb-outline" size={Components.icon.sm} color={palette.warning} />
             <ThemedText style={[styles.suggestionText, { color: palette.foreground }]}>{sug}</ThemedText>
-          </View>
+          </Row>
         </Clickable>
       ))}
     </SurfaceCard>
@@ -144,14 +145,14 @@ const styles = StyleSheet.create({
   input: { height: Components.input.height, borderRadius: Radii.md, borderWidth: 1, paddingHorizontal: Spacing.sm, ...Typography.body },
   progressTrack: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
   progressFill: { height: 8, borderRadius: Radii.xs },
-  sliderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.xs / 2 },
+  sliderRow: { justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.xs / 2 },
   stepDot: { width: 16, height: 16, borderRadius: Radii.sm },
-  milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  milestoneRow: { alignItems: 'center', gap: Spacing.xs },
   milestoneText: { ...Typography.body, flex: 1 },
   milestoneCompleted: { textDecorationLine: 'line-through', opacity: 0.6 },
-  addRow: { flexDirection: 'row', gap: Spacing.xs, alignItems: 'center' },
+  addRow: { gap: Spacing.xs, alignItems: 'center' },
   addInput: { flex: 1 },
   addButton: { width: Components.button.height, height: Components.button.height, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
-  suggestionRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
+  suggestionRow: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
   suggestionText: { ...Typography.body, flex: 1 },
 });

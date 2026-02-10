@@ -5,6 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -138,7 +139,7 @@ export function AttachmentPicker({
         <View style={[styles.sheet, { backgroundColor: palette.background }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
           <ThemedText type="subtitle" style={styles.title}>Add Attachment</ThemedText>
-          <View style={styles.optionsGrid}>
+          <Row gap="md" wrap>
             {availableOptions.map((option) => {
               const optionColor = palette[option.colorKey];
               return (
@@ -151,7 +152,7 @@ export function AttachmentPicker({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
           <Clickable onPress={onClose} style={[styles.cancelButton, { borderColor: palette.border }]}>
             <ThemedText style={{ fontWeight: '600' }}>Cancel</ThemedText>
           </Clickable>
@@ -169,7 +170,6 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
   handle: { width: 40, height: 4, borderRadius: Radii.xs, alignSelf: 'center', marginBottom: Spacing.md },
   title: { textAlign: 'center', marginBottom: Spacing.lg },
-  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
   option: { width: '47%', padding: Spacing.lg, borderRadius: Radii.lg, alignItems: 'center', gap: Spacing.sm },
   iconCircle: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   optionLabel: { ...Typography.body },

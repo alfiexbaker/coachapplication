@@ -15,6 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface RecurringSessionActionsProps {
   /** Which occurrence this is, e.g. 4 */
@@ -62,12 +63,12 @@ export function RecurringSessionActions({
   return (
     <View style={styles.container}>
       {/* Series badge */}
-      <View style={[styles.seriesBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+      <Row style={[styles.seriesBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <Ionicons name="repeat" size={14} color={palette.tint} />
         <ThemedText style={[styles.seriesText, { color: palette.tint }]}>
           Part of weekly series ({occurrenceNumber} of {totalOccurrences})
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Actions */}
       {isSkipped ? (
@@ -84,7 +85,7 @@ export function RecurringSessionActions({
           </ThemedText>
         </Clickable>
       ) : (
-        <View style={styles.actionRow}>
+        <Row style={styles.actionRow}>
           <Clickable
             onPress={handleSkip}
             style={[styles.actionBtn, { borderColor: palette.border, flex: 1 }]}
@@ -103,7 +104,7 @@ export function RecurringSessionActions({
               Change Time
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -114,7 +115,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   seriesBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.xs,
@@ -126,11 +126,9 @@ const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   actionRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
   actionBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

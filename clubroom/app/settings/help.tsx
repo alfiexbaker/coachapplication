@@ -59,14 +59,16 @@ export default function HelpSettingsScreen() {
         </SettingsSection>
 
         <SurfaceCard style={styles.contactCard}>
-          <View style={[styles.contactIcon, { backgroundColor: withAlpha(colors.accent, 0.09) }]}>
-            <Ionicons name="mail" size={24} color={colors.accent} />
-          </View>
-          <View style={styles.contactInfo}>
-            <ThemedText type="defaultSemiBold">Still need help?</ThemedText>
-            <ThemedText style={[styles.contactText, { color: colors.muted }]}>Email us at support@clubroom.app</ThemedText>
-            <ThemedText style={[styles.contactText, { color: colors.muted }]}>Response time: Within 24 hours</ThemedText>
-          </View>
+          <Row align="center" gap="md">
+            <View style={[styles.contactIcon, { backgroundColor: withAlpha(colors.accent, 0.09) }]}>
+              <Ionicons name="mail" size={24} color={colors.accent} />
+            </View>
+            <View style={styles.contactInfo}>
+              <ThemedText type="defaultSemiBold">Still need help?</ThemedText>
+              <ThemedText style={[styles.contactText, { color: colors.muted }]}>Email us at support@clubroom.app</ThemedText>
+              <ThemedText style={[styles.contactText, { color: colors.muted }]}>Response time: Within 24 hours</ThemedText>
+            </View>
+          </Row>
         </SurfaceCard>
 
         <View style={styles.debugInfo}>
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
   faqCard: { gap: Spacing.sm },
   faqQuestion: { flex: 1, ...Typography.body },
   faqAnswer: { ...Typography.bodySmall },
-  contactCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  contactCard: { gap: Spacing.md },
   contactIcon: { width: 48, height: 48, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
   contactInfo: { flex: 1, gap: Spacing.micro },
   contactText: { ...Typography.small },

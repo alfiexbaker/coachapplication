@@ -23,18 +23,20 @@ import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
 import { CancelRefundPreview } from '@/components/booking/cancel-refund-preview';
 import { CancelPolicyTiers } from '@/components/booking/cancel-policy-tiers';
 import { CancelReasonPicker } from '@/components/booking/cancel-reason-picker';
 import { CancelRescheduleStep } from '@/components/booking/cancel-reschedule-step';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useBookingCancel } from '@/hooks/use-booking-cancel';
 
 export default function CancelBookingScreen() {
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: 'coach' | 'parent' }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const cancel = useBookingCancel(id, mode);
 
   // Loading
@@ -76,7 +78,7 @@ export default function CancelBookingScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {cancel.isCoach && (
-          <View style={[styles.coachBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: withAlpha(palette.warning, 0.19) }]}>
+          <Row style={[styles.coachBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: withAlpha(palette.warning, 0.19) }]}>
             <Ionicons name="shield-outline" size={20} color={palette.warning} />
             <View style={styles.bannerText}>
               <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>Coach Cancellation</ThemedText>
@@ -84,7 +86,7 @@ export default function CancelBookingScreen() {
                 The parent will be automatically notified. A reason is required.
               </ThemedText>
             </View>
-          </View>
+          </Row>
         )}
 
         <CancelRefundPreview isCoach={cancel.isCoach} bookingAmount={cancel.bookingAmount} refundCalc={cancel.refundCalc} />
@@ -109,8 +111,8 @@ export default function CancelBookingScreen() {
 
         {/* Waitlist toggle */}
         <SurfaceCard style={styles.waitlistCard}>
-          <View style={styles.waitlistRow}>
-            <View style={styles.waitlistInfo}>
+          <Row style={styles.waitlistRow}>
+            <Row style={styles.waitlistInfo}>
               <View style={[styles.waitlistIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="people-outline" size={16} color={palette.success} />
               </View>
@@ -120,14 +122,14 @@ export default function CancelBookingScreen() {
                   Alert athletes on the waitlist that a slot has opened
                 </ThemedText>
               </View>
-            </View>
+            </Row>
             <Switch
               value={cancel.notifyWaitlist}
               onValueChange={(v) => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); cancel.setNotifyWaitlist(v); }}
               trackColor={{ false: palette.border, true: palette.success }}
               thumbColor={palette.surface}
             />
-          </View>
+          </Row>
         </SurfaceCard>
 
         {/* Reschedule CTA */}
@@ -135,14 +137,16 @@ export default function CancelBookingScreen() {
           onPress={cancel.handleRescheduleSuggest}
           style={[styles.rescheduleCta, { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.02) }]}
         >
-          <View style={[styles.rescheduleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="swap-horizontal" size={20} color={palette.tint} />
-          </View>
-          <View style={styles.rescheduleText}>
-            <ThemedText type="defaultSemiBold" style={{ color: palette.tint, ...Typography.bodySmall }}>Reschedule instead?</ThemedText>
-            <ThemedText style={[styles.rescheduleDesc, { color: palette.muted }]}>Move to a different time instead of cancelling</ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={palette.tint} />
+          <Row align="center" gap="sm">
+            <View style={[styles.rescheduleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+              <Ionicons name="swap-horizontal" size={20} color={palette.tint} />
+            </View>
+            <View style={styles.rescheduleText}>
+              <ThemedText type="defaultSemiBold" style={{ color: palette.tint, ...Typography.bodySmall }}>Reschedule instead?</ThemedText>
+              <ThemedText style={[styles.rescheduleDesc, { color: palette.muted }]}>Move to a different time instead of cancelling</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={palette.tint} />
+          </Row>
         </Clickable>
       </ScrollView>
 
@@ -162,12 +166,12 @@ export default function CancelBookingScreen() {
             {cancel.processing ? (
               <ActivityIndicator size="small" color={palette.onPrimary} />
             ) : (
-              <>
+              <Row align="center" justify="center" gap="sm">
                 <Ionicons name="close-circle" size={20} color={palette.onPrimary} />
                 <ThemedText style={[styles.cancelBtnText, { color: palette.onPrimary }]}>
                   {cancel.isCoach ? 'Cancel Session' : 'Confirm Cancellation'}
                 </ThemedText>
-              </>
+              </Row>
             )}
           </Clickable>
         </View>
@@ -180,25 +184,25 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.md, paddingBottom: 140, gap: Spacing.md },
-  coachBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
+  coachBanner: { alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
   bannerText: { flex: 1 },
   bannerDesc: { ...Typography.caption, marginTop: Spacing.micro, lineHeight: 16 },
   messageCard: { padding: Spacing.md, gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xxs },
   textArea: { minHeight: 100, borderRadius: Radii.md, borderWidth: 1.5, padding: Spacing.md, textAlignVertical: 'top', ...Typography.body },
   waitlistCard: { padding: Spacing.sm },
-  waitlistRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  waitlistInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1, marginRight: Spacing.sm },
+  waitlistRow: { alignItems: 'center', justifyContent: 'space-between' },
+  waitlistInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1, marginRight: Spacing.sm },
   waitlistIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   waitlistTextWrap: { flex: 1 },
   waitlistHelper: { ...Typography.caption, marginTop: 1 },
-  rescheduleCta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.card, borderWidth: 1.5 },
+  rescheduleCta: { padding: Spacing.sm, borderRadius: Radii.card, borderWidth: 1.5 },
   rescheduleIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   rescheduleText: { flex: 1 },
   rescheduleDesc: { ...Typography.caption, marginTop: 1 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.md, borderTopWidth: 1 },
   footerContent: { gap: Spacing.xs },
   footerRefund: { textAlign: 'center', ...Typography.small },
-  cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 44, borderRadius: Radii.card },
+  cancelBtn: { height: 44, borderRadius: Radii.card },
   cancelBtnText: { ...Typography.subheading },
 });

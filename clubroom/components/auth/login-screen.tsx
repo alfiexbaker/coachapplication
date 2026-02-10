@@ -28,6 +28,7 @@ export { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sec
 export type { SignupCardProps, InviteCodeCardProps, DemoAccountsCardProps } from './login-screen-sections';
 
 import { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
+import { Row } from '@/components/primitives';
 
 type ScreenMode = 'login' | 'signup' | 'coach-signup';
 
@@ -111,14 +112,14 @@ export default function LoginScreen() {
           />
 
           <View style={styles.fieldGroup}>
-            <View style={styles.labelRow}>
+            <Row style={styles.labelRow}>
               <View />
               <Clickable onPress={() => setScreenMode('login')}>
                 <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
                   Forgot password?
                 </ThemedText>
               </Clickable>
-            </View>
+            </Row>
             <FormInput
               label="Password"
               placeholder="••••••••"
@@ -176,7 +177,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   labelRow: {
-    flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: -Spacing.sm,

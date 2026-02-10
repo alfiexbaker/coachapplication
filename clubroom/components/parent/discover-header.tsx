@@ -3,6 +3,7 @@
  */
 import { memo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -100,7 +101,7 @@ function DiscoverHeaderInner({
       </View>
 
       {children.length > 0 && (
-        <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Row align="center" gap="sm" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Ionicons name="search" size={20} color={palette.icon} />
           <TextInput
             value={postcode}
@@ -117,7 +118,7 @@ function DiscoverHeaderInner({
               <Ionicons name="close-circle" size={20} color={palette.icon} />
             </Clickable>
           ) : null}
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -141,9 +142,6 @@ const styles = StyleSheet.create({
   childTab: { paddingBottom: Spacing.sm, borderBottomWidth: 2, minHeight: 44 },
   tabText: { ...Typography.body, letterSpacing: 0.2 },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
     borderRadius: Radii.md,

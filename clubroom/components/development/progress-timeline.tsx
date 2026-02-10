@@ -12,6 +12,7 @@ export type { TimelineEntryType, TimelineEntry, TimelineEntryRowProps } from './
 
 import { groupByMonth, TimelineEntryRow } from './progress-timeline-sections';
 import type { TimelineEntry } from './progress-timeline-sections';
+import { Row } from '@/components/primitives';
 
 export interface ProgressTimelineProps {
   entries: TimelineEntry[];
@@ -41,12 +42,12 @@ export function ProgressTimeline({ entries }: ProgressTimelineProps) {
     >
       {grouped.map((group) => (
         <View key={group.month} style={styles.monthGroup}>
-          <View style={styles.monthHeader}>
+          <Row style={styles.monthHeader}>
             <View style={[styles.monthDot, { backgroundColor: palette.tint }]} />
             <ThemedText type="defaultSemiBold" style={[styles.monthTitle, { color: palette.text }]}>
               {group.month}
             </ThemedText>
-          </View>
+          </Row>
           {group.items.map((entry, idx) => (
             <TimelineEntryRow
               key={entry.id}
@@ -81,7 +82,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   monthHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.sm,

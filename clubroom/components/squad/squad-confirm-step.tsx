@@ -6,6 +6,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -41,19 +42,19 @@ function SquadConfirmStepInner({ inviteType, targetTitle, preview, totalMembers,
         </ThemedText>
 
         <SurfaceCard style={styles.summary}>
-          <View style={styles.row}>
+          <Row align="center" gap="sm">
             <Ionicons name="calendar-outline" size={18} color={palette.muted} />
             <ThemedText style={{ flex: 1 }}>{targetTitle}</ThemedText>
-          </View>
-          <View style={styles.row}>
+          </Row>
+          <Row align="center" gap="sm">
             <Ionicons name="people-outline" size={18} color={palette.muted} />
             <ThemedText style={{ flex: 1 }}>{preview.map((p) => p.squadName).join(', ')}</ThemedText>
-          </View>
+          </Row>
           {inviteType === 'SESSION' && sessionProps?.focus && (
-            <View style={styles.row}>
+            <Row align="center" gap="sm">
               <Ionicons name="football-outline" size={18} color={palette.muted} />
               <ThemedText style={{ flex: 1 }}>{sessionProps.focus}</ThemedText>
-            </View>
+            </Row>
           )}
         </SurfaceCard>
 
@@ -76,6 +77,5 @@ const styles = StyleSheet.create({
   title: { textAlign: 'center', marginBottom: Spacing.sm },
   text: { textAlign: 'center', marginBottom: Spacing.lg, paddingHorizontal: Spacing.lg },
   summary: { width: '100%', gap: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   disclaimer: { ...Typography.small, textAlign: 'center', paddingHorizontal: Spacing.lg, marginTop: Spacing.lg },
 });

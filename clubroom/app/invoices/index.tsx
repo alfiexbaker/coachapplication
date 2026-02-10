@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -98,16 +99,16 @@ export default function InvoicesScreen() {
     return (
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <SurfaceCard style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
+          <Row justify="between" align="center" style={styles.summaryHeader}>
             <ThemedText type="subtitle">Summary</ThemedText>
             <ThemedText style={[styles.summaryTotal, { color: palette.muted }]}>
               {summary.totalInvoices} invoices
             </ThemedText>
-          </View>
+          </Row>
 
-          <View style={styles.summaryStats}>
+          <Row gap="lg" style={styles.summaryStats}>
             {/* Total Paid */}
-            <View style={styles.statItem}>
+            <Row align="start" gap="sm" style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               </View>
@@ -120,10 +121,10 @@ export default function InvoicesScreen() {
                   {summary.paidCount} invoices
                 </ThemedText>
               </View>
-            </View>
+            </Row>
 
             {/* Pending */}
-            <View style={styles.statItem}>
+            <Row align="start" gap="sm" style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="time" size={18} color={palette.warning} />
               </View>
@@ -136,17 +137,17 @@ export default function InvoicesScreen() {
                   {summary.pendingCount} invoices
                 </ThemedText>
               </View>
-            </View>
-          </View>
+            </Row>
+          </Row>
 
           {/* Draft indicator */}
           {summary.draftCount > 0 && (
-            <View style={[styles.draftBanner, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row align="center" gap="xs" style={[styles.draftBanner, { backgroundColor: palette.surfaceSecondary }]}>
               <Ionicons name="document-outline" size={16} color={palette.muted} />
               <ThemedText style={[styles.draftText, { color: palette.muted }]}>
                 {summary.draftCount} draft{summary.draftCount > 1 ? 's' : ''} pending
               </ThemedText>
-            </View>
+            </Row>
           )}
         </SurfaceCard>
       </Animated.View>
@@ -190,22 +191,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     gap: Spacing.md,
   },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  summaryHeader: {},
   summaryTotal: {
     ...Typography.small,
   },
-  summaryStats: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
+  summaryStats: {},
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
     flex: 1,
   },
   statIcon: {
@@ -223,9 +214,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.micro,
   },
   draftBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,

@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface FeedPostProps {
   post: ClubFeedPost;
@@ -38,26 +39,26 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
     <SurfaceCard style={[styles.feedCard, post.isPinned ? { borderColor: palette.tint, borderWidth: 1 } : undefined]}>
       {/* Pinned indicator */}
       {post.isPinned && (
-        <View style={[styles.pinnedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+        <Row style={[styles.pinnedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="pin" size={12} color={palette.tint} />
           <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>Pinned</ThemedText>
-        </View>
+        </Row>
       )}
 
       {/* Post header */}
-      <View style={styles.feedHeader}>
+      <Row style={styles.feedHeader}>
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border, borderWidth: 1 }]}>
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
         </View>
         <View style={{ flex: 1 }}>
-          <View style={styles.authorRow}>
+          <Row style={styles.authorRow}>
             <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
             {post.postAs === 'club' && (
               <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>Club</ThemedText>
               </View>
             )}
-          </View>
+          </Row>
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {formatDate(post.createdAt)} · {post.audienceLabel || post.audience}
           </ThemedText>
@@ -74,7 +75,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
             />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Post content */}
       <View style={styles.postContent}>
@@ -94,7 +95,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
       {/* Event details */}
       {post.postType === 'event' && post.eventDate && (
         <View style={[styles.eventDetails, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border }]}>
-          <View style={styles.eventRow}>
+          <Row style={styles.eventRow}>
             <Ionicons name="calendar" size={16} color={palette.tint} />
             <ThemedText style={{ color: palette.text }}>
               {new Date(post.eventDate).toLocaleDateString('en-GB', {
@@ -103,12 +104,12 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
                 day: 'numeric'
               })}
             </ThemedText>
-          </View>
+          </Row>
           {post.eventLocation && (
-            <View style={styles.eventRow}>
+            <Row style={styles.eventRow}>
               <Ionicons name="location" size={16} color={palette.tint} />
               <ThemedText style={{ color: palette.text }}>{post.eventLocation}</ThemedText>
-            </View>
+            </Row>
           )}
         </View>
       )}
@@ -120,18 +121,18 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Attachments */}
       {post.attachments && post.attachments.length > 0 && (
-        <View style={styles.attachments}>
+        <Row style={styles.attachments}>
           {post.attachments.map((attachment, idx) => (
-            <View key={idx} style={[styles.attachmentChip, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row key={idx} style={[styles.attachmentChip, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <Ionicons name="attach" size={14} color={palette.muted} />
               <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{attachment}</ThemedText>
-            </View>
+            </Row>
           ))}
-        </View>
+        </Row>
       )}
 
       {/* Post actions */}
-      <View style={styles.feedFooter}>
+      <Row style={styles.feedFooter}>
         <Clickable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.reactionCount ?? 0}</ThemedText>
@@ -143,7 +144,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
         <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -153,7 +154,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   pinnedBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: Spacing.xxs,
@@ -164,7 +164,6 @@ const styles = StyleSheet.create({
   },
   pinnedText: { ...Typography.caption },
   feedHeader: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     alignItems: 'flex-start',
   },
@@ -177,7 +176,6 @@ const styles = StyleSheet.create({
   },
   avatarText: { ...Typography.bodySmallSemiBold },
   authorRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -202,17 +200,14 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   eventRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   attachments: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
   attachmentChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -221,12 +216,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   feedFooter: {
-    flexDirection: 'row',
     gap: Spacing.lg,
     paddingTop: Spacing.xs,
   },
   actionButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

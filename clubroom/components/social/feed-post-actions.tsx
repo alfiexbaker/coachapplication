@@ -4,6 +4,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -53,7 +54,7 @@ export const FeedPostActions = memo(function FeedPostActions({
   }, [onShare, postId]);
 
   return (
-    <View style={styles.feedFooter}>
+    <Row gap="lg" style={styles.feedFooter}>
       <Clickable
         style={styles.actionButton}
         onPress={handleLike}
@@ -84,7 +85,7 @@ export const FeedPostActions = memo(function FeedPostActions({
       >
         <Ionicons name="share-outline" size={18} color={palette.muted} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -92,8 +93,6 @@ export const FeedPostActions = memo(function FeedPostActions({
 
 const styles = StyleSheet.create({
   feedFooter: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
     paddingTop: Spacing.xs,
   },
   actionButton: {

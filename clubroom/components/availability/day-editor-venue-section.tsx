@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha, Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachVenue } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface DayEditorVenueSectionProps {
   venues: CoachVenue[];
@@ -57,13 +58,13 @@ function DayEditorVenueSectionInner({
         </Clickable>
       </ScrollView>
       {showAddVenueInput && (
-        <View style={[styles.addRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
+        <Row style={[styles.addRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
           <Ionicons name="location-outline" size={16} color={palette.muted} />
           <TextInput style={[styles.addInput, { color: palette.text }]} placeholder="New venue name" placeholderTextColor={palette.muted} value={newVenueLabel} onChangeText={onNewVenueLabelChange} onSubmitEditing={onAddVenue} autoFocus returnKeyType="done" />
           <Clickable onPress={onAddVenue} style={[styles.addBtn, { backgroundColor: palette.tint }]} accessibilityLabel="Confirm add venue">
             <Ionicons name="checkmark" size={16} color={palette.onPrimary} />
           </Clickable>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -75,9 +76,9 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   chipsScroll: { gap: Spacing.xs, paddingVertical: Spacing.micro },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1 },
+  chip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1 },
   chipText: { ...Typography.smallSemiBold },
-  addRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1 },
+  addRow: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1 },
   addInput: { flex: 1, ...Typography.body, padding: 0, minHeight: 44 },
   addBtn: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
 });

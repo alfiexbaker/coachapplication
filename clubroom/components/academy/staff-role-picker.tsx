@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   roleCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

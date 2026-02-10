@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 import type { SlotSuggestion } from './smart-slots-data';
 import { MOCK_STATS } from './smart-slots-data';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // SuggestionCard
@@ -25,17 +26,17 @@ function SuggestionCardInner({ suggestion, onAction }: { suggestion: SlotSuggest
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].subtle]}>
-      <View style={styles.cardHeader}>
+      <Row style={styles.cardHeader}>
         <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
           <Ionicons name={iconName} size={18} color={iconColor} />
         </View>
-        <View style={styles.cardHeaderText}>
+        <Row style={styles.cardHeaderText}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>{suggestion.day} {suggestion.time}</Text>
           <View style={[styles.metricBadge, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
             <Text style={[styles.metricText, { color: iconColor }]}>{suggestion.metric}</Text>
           </View>
-        </View>
-      </View>
+        </Row>
+      </Row>
       <Text style={[styles.cardDescription, { color: colors.muted }]}>{suggestion.description}</Text>
       <Clickable
         style={[styles.actionButton, { backgroundColor: isAdd ? colors.tint : colors.surface }, !isAdd && { borderWidth: 1, borderColor: colors.border }]}
@@ -59,7 +60,7 @@ export const SuggestionCard = memo(SuggestionCardInner);
 function StatsSummaryInner() {
   const { colors, scheme } = useTheme();
   return (
-    <View style={[styles.statsContainer, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
+    <Row style={[styles.statsContainer, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
       <View style={styles.stat}>
         <Text style={[styles.statValue, { color: colors.text }]}>{MOCK_STATS.totalSessionsLastMonth}</Text>
         <Text style={[styles.statLabel, { color: colors.muted }]}>Sessions (30d)</Text>
@@ -74,7 +75,7 @@ function StatsSummaryInner() {
         <Text style={[styles.statValue, { color: colors.text }]}>{MOCK_STATS.waitlistCount}</Text>
         <Text style={[styles.statLabel, { color: colors.muted }]}>On waitlist</Text>
       </View>
-    </View>
+    </Row>
   );
 }
 
@@ -83,17 +84,17 @@ export const StatsSummary = memo(StatsSummaryInner);
 const styles = StyleSheet.create({
   // Suggestion card
   card: { borderRadius: Radii.card, padding: Spacing.sm },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.xs },
+  cardHeader: { alignItems: 'center', marginBottom: Spacing.xs },
   iconCircle: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.xs },
-  cardHeaderText: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardHeaderText: { flex: 1, alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { ...Typography.bodySemiBold },
   metricBadge: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
   metricText: { ...Typography.caption, fontWeight: '600' },
   cardDescription: { ...Typography.small, marginBottom: Spacing.sm },
-  actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, height: 36, borderRadius: Radii.sm, paddingHorizontal: Spacing.sm, alignSelf: 'flex-end' },
+  actionButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, height: 36, borderRadius: Radii.sm, paddingHorizontal: Spacing.sm, alignSelf: 'flex-end' },
   actionButtonText: { ...Typography.caption, fontWeight: '600' },
   // Stats
-  statsContainer: { flexDirection: 'row', borderRadius: Radii.card, padding: Spacing.sm },
+  statsContainer: { borderRadius: Radii.card, padding: Spacing.sm },
   stat: { flex: 1, alignItems: 'center' },
   statValue: { ...Typography.title },
   statLabel: { ...Typography.caption, marginTop: Spacing.micro },

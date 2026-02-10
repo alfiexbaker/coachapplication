@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -35,32 +36,32 @@ export const VideoCard = memo(function VideoCard({ video, index, onPress, colors
           </View>
         </View>
         <View style={styles.info}>
-          <View style={styles.titleRow}>
+          <Row align="start" gap="sm">
             <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>{video.title}</ThemedText>
             <Ionicons name={visibilityIcon} size={16} color={colors.muted} />
-          </View>
+          </Row>
           <ThemedText style={[styles.athletes, { color: colors.muted }]} numberOfLines={1}>{video.athleteNames.join(', ')}</ThemedText>
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
+          <Row align="center" gap="md">
+            <Row align="center" gap="xxs">
               <Ionicons name="eye-outline" size={14} color={colors.muted} />
               <ThemedText style={[styles.metaText, { color: colors.muted }]}>{video.viewCount} views</ThemedText>
-            </View>
-            <View style={styles.metaItem}>
+            </Row>
+            <Row align="center" gap="xxs">
               <Ionicons name="bookmark-outline" size={14} color={colors.muted} />
               <ThemedText style={[styles.metaText, { color: colors.muted }]}>{video.annotations.length} notes</ThemedText>
-            </View>
+            </Row>
             <ThemedText style={[styles.metaText, { color: colors.muted }]}>
               {new Date(video.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </ThemedText>
-          </View>
+          </Row>
           {video.tags.length > 0 && (
-            <View style={styles.tagsRow}>
+            <Row gap="xxs" style={styles.tagsRow}>
               {video.tags.slice(0, 3).map(tag => (
                 <View key={tag} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
                   <ThemedText style={[styles.tagText, { color: colors.tint }]}>{tag}</ThemedText>
                 </View>
               ))}
-            </View>
+            </Row>
           )}
         </View>
       </SurfaceCard>
@@ -76,13 +77,10 @@ const styles = StyleSheet.create({
   durationText: { ...Typography.caption },
   playButton: { position: 'absolute', top: '50%', left: '50%', marginLeft: -24, marginTop: -24, width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
   info: { padding: Spacing.md, gap: Spacing.xxs },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   title: { flex: 1, ...Typography.body },
   athletes: { ...Typography.small },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   metaText: { ...Typography.caption },
-  tagsRow: { flexDirection: 'row', gap: Spacing.xxs, marginTop: Spacing.xxs },
+  tagsRow: { marginTop: Spacing.xxs },
   tag: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   tagText: { ...Typography.caption },
 });

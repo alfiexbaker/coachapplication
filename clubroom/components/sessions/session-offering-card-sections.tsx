@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
@@ -22,18 +23,18 @@ export const SessionTypeBadge = memo(function SessionTypeBadge({
 }: SessionTypeBadgeProps) {
   if (sessionType === 'group') {
     return (
-      <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+      <Row align="center" gap="xxs" style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
         <Ionicons name="people" size={12} color={palette.accent} />
         <ThemedText style={[styles.typeBadgeText, { color: palette.accent }]}>Group</ThemedText>
-      </View>
+      </Row>
     );
   }
   if (sessionType === '1on1') {
     return (
-      <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+      <Row align="center" gap="xxs" style={[styles.typeBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name="person" size={12} color={palette.tint} />
         <ThemedText style={[styles.typeBadgeText, { color: palette.tint }]}>1:1</ThemedText>
-      </View>
+      </Row>
     );
   }
   return null;
@@ -69,7 +70,7 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
   palette,
 }: SessionFooterBadgesProps) {
   return (
-    <View style={styles.footer}>
+    <Row wrap align="center" gap={10} style={styles.footer}>
       {ageMin && ageMax && (
         <View style={[styles.ageBadge, { backgroundColor: palette.border }]}>
           <ThemedText style={styles.ageText}>Ages {ageMin}-{ageMax}</ThemedText>
@@ -91,7 +92,7 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
           <ThemedText style={styles.priceText}>£{priceUsd}</ThemedText>
         </View>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -99,9 +100,6 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
 
 const styles = StyleSheet.create({
   typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radii.sm,
@@ -112,11 +110,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
     marginTop: 10,
-    flexWrap: 'wrap',
   },
   ageBadge: {
     paddingHorizontal: Spacing.xs + Spacing.xxs,

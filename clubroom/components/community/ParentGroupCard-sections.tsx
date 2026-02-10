@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ParentGroup, GroupType } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ export const CompactGroupCardContent = memo(function CompactGroupCardContent({
         <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
       </View>
       <View style={styles.compactContent}>
-        <View style={styles.compactHeader}>
+        <Row style={styles.compactHeader}>
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
             {group.name}
           </ThemedText>
@@ -88,8 +89,8 @@ export const CompactGroupCardContent = memo(function CompactGroupCardContent({
               {formatTimeAgo(group.lastMessageAt)}
             </ThemedText>
           )}
-        </View>
-        <View style={styles.compactDetails}>
+        </Row>
+        <Row style={styles.compactDetails}>
           <ThemedText
             style={[styles.previewText, { color: palette.muted }]}
             numberOfLines={1}
@@ -103,7 +104,7 @@ export const CompactGroupCardContent = memo(function CompactGroupCardContent({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
       </View>
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </SurfaceCard>
@@ -129,7 +130,7 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={28} color={palette.tint} />
         </View>
@@ -137,19 +138,19 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
           <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={1}>
             {group.name}
           </ThemedText>
-          <View style={styles.metaRow}>
+          <Row style={styles.metaRow}>
             <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <ThemedText style={[styles.typeBadgeText, { color: palette.accent }]}>
                 {typeLabel}
               </ThemedText>
             </View>
-            <View style={styles.memberInfo}>
+            <Row style={styles.memberInfo}>
               <Ionicons name="people-outline" size={14} color={palette.muted} />
               <ThemedText style={[styles.memberCount, { color: palette.muted }]}>
                 {group.members.length}
               </ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
         </View>
         {hasUnread && (
           <View style={[styles.unreadBadgeLarge, { backgroundColor: palette.tint }]}>
@@ -158,7 +159,7 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
             </ThemedText>
           </View>
         )}
-      </View>
+      </Row>
 
       {group.description && (
         <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>
@@ -171,7 +172,7 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
           <ThemedText style={[styles.lastMessageLabel, { color: palette.muted }]}>
             Last message
           </ThemedText>
-          <View style={styles.lastMessageRow}>
+          <Row style={styles.lastMessageRow}>
             <ThemedText
               style={[styles.lastMessageText, { color: palette.text }]}
               numberOfLines={1}
@@ -183,7 +184,7 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
                 {formatTimeAgo(group.lastMessageAt)}
               </ThemedText>
             )}
-          </View>
+          </Row>
         </View>
       )}
     </SurfaceCard>
@@ -198,7 +199,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -218,7 +218,6 @@ export const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -232,7 +231,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   memberInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -253,7 +251,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   lastMessageRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -278,7 +275,6 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   compactCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -296,7 +292,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   compactHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -306,7 +301,6 @@ export const styles = StyleSheet.create({
     ...Typography.body,
   },
   compactDetails: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,

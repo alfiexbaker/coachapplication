@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, Components, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,12 +42,12 @@ export const CoachListRow = memo(function CoachListRow({
         </View>
         <View style={styles.info}>
           <ThemedText style={[styles.name, { color: palette.text }]}>{coach.fullName}</ThemedText>
-          <View style={styles.meta}>
+          <Row style={styles.meta}>
             <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {coach.rating.toFixed(1)} · {coach.distanceMiles.toFixed(1)} mi
             </ThemedText>
-          </View>
+          </Row>
         </View>
         <View style={styles.priceCol}>
           <ThemedText style={[styles.price, { color: palette.text }]}>
@@ -70,11 +71,11 @@ export const CoachListRow = memo(function CoachListRow({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderBottomWidth: 1 },
+  row: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderBottomWidth: 1 },
   avatar: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, gap: Spacing.xs / 2 },
   name: { ...Typography.bodySemiBold },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  meta: { alignItems: 'center', gap: Spacing.xs / 2 },
   metaText: { ...Typography.caption },
   priceCol: { alignItems: 'flex-end', gap: Spacing.xs },
   price: { ...Typography.bodySemiBold, fontWeight: '700' },

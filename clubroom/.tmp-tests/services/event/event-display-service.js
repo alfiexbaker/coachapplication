@@ -67,8 +67,8 @@ exports.eventDisplayService = {
         const labels = {
             ALL: 'Everyone',
             COACHES: 'Coaches Only',
-            PARENTS: 'Parents Only',
-            ATHLETES: 'Athletes Only',
+            PARENTS: 'Parents',
+            ATHLETES: 'Athletes',
             SQUAD: 'Specific Squads',
         };
         return labels[audience] || audience;

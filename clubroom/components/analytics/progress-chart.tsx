@@ -11,6 +11,7 @@ export { COLORS, Sparkline, ChartLegend } from './progress-chart-sections';
 export type { SparklineProps, ChartLegendProps } from './progress-chart-sections';
 
 import { COLORS, ChartLegend } from './progress-chart-sections';
+import { Row } from '@/components/primitives';
 
 const CHART_HEIGHT = 180;
 
@@ -55,7 +56,7 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
         </ThemedText>
       )}
 
-      <View style={styles.chartContainer}>
+      <Row style={styles.chartContainer}>
         {/* Y-Axis Labels */}
         <View style={styles.yAxis}>
           <ThemedText style={[styles.axisLabel, { color: palette.muted }]}>100</ThemedText>
@@ -79,7 +80,7 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
             ))}
           </View>
 
-          <View style={styles.barsContainer}>
+          <Row style={styles.barsContainer}>
             {skills.slice(0, 4).map((skill, skillIndex) => {
               const currentLevel = skill.currentLevel;
               const color = COLORS[skillIndex % COLORS.length];
@@ -100,9 +101,9 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
                 </View>
               );
             })}
-          </View>
+          </Row>
 
-          <View style={styles.valuesRow}>
+          <Row style={styles.valuesRow}>
             {skills.slice(0, 4).map((skill, index) => {
               const color = COLORS[index % COLORS.length];
               return (
@@ -113,9 +114,9 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
                 </View>
               );
             })}
-          </View>
+          </Row>
         </View>
-      </View>
+      </Row>
 
       {showLegend && <ChartLegend skills={skills} palette={palette} />}
     </View>
@@ -134,7 +135,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   chartContainer: {
-    flexDirection: 'row',
     height: CHART_HEIGHT,
   },
   yAxis: {
@@ -163,7 +163,6 @@ const styles = StyleSheet.create({
   },
   barsContainer: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
     paddingHorizontal: Spacing.md,
@@ -183,7 +182,6 @@ const styles = StyleSheet.create({
     bottom: -24,
     left: 0,
     right: 0,
-    flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: Spacing.md,
   },

@@ -4,6 +4,7 @@
  */
 import { StyleSheet, View, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -47,26 +48,26 @@ export function CreatePackageForm({ onSuccess, onError, onCancel, editPackage }:
           <OptionPicker options={sessionOptions} selected={form.sessionCount} onSelect={form.setSessionCount} />
         </View>
 
-        <View style={styles.row}>
+        <Row gap="md">
           <View style={[styles.field, { flex: 1 }]}>
             <ThemedText type="defaultSemiBold" style={styles.label}>Package Price *</ThemedText>
-            <View style={[styles.inputWithPrefix, { backgroundColor: palette.surface, borderColor: form.errors.price ? palette.error : palette.border }]}>
+            <Row align="center" style={[styles.inputWithPrefix, { backgroundColor: palette.surface, borderColor: form.errors.price ? palette.error : palette.border }]}>
               <ThemedText style={styles.currencyPrefix}>{'\u00A3'}</ThemedText>
               <TextInput style={[styles.inputNoBorder, { color: palette.text }]} placeholder="0.00" placeholderTextColor={palette.muted}
                 value={form.price} onChangeText={form.setPrice} keyboardType="decimal-pad" />
-            </View>
+            </Row>
             {form.errors.price && <ThemedText style={[styles.errorText, { color: palette.error }]}>{form.errors.price}</ThemedText>}
           </View>
           <View style={[styles.field, { flex: 1 }]}>
             <ThemedText type="defaultSemiBold" style={styles.label}>Discount %</ThemedText>
-            <View style={[styles.inputWithSuffix, { backgroundColor: palette.surface, borderColor: form.errors.discountPercent ? palette.error : palette.border }]}>
+            <Row align="center" style={[styles.inputWithSuffix, { backgroundColor: palette.surface, borderColor: form.errors.discountPercent ? palette.error : palette.border }]}>
               <TextInput style={[styles.inputNoBorder, { color: palette.text }]} placeholder="0" placeholderTextColor={palette.muted}
                 value={form.discountPercent} onChangeText={form.setDiscountPercent} keyboardType="number-pad" />
               <ThemedText style={styles.percentSuffix}>%</ThemedText>
-            </View>
+            </Row>
             {form.errors.discountPercent && <ThemedText style={[styles.errorText, { color: palette.error }]}>{form.errors.discountPercent}</ThemedText>}
           </View>
-        </View>
+        </Row>
 
         {form.priceNum > 0 && <PricePreview pricePerSession={form.pricePerSession} />}
 
@@ -97,9 +98,8 @@ const styles = StyleSheet.create({
   label: { ...Typography.bodySmall, marginBottom: Spacing.xs },
   input: { ...Typography.subheading, borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: Spacing.md },
-  inputWithPrefix: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
-  inputWithSuffix: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
+  inputWithPrefix: { borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
+  inputWithSuffix: { borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
   inputNoBorder: { ...Typography.subheading, flex: 1, paddingVertical: Spacing.sm },
   currencyPrefix: { ...Typography.heading, marginRight: Spacing.xxs },
   percentSuffix: { ...Typography.subheading, marginLeft: Spacing.xxs },

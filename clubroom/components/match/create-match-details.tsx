@@ -35,7 +35,7 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
 
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>Match Type</ThemedText>
-        <View style={styles.typeGrid}>
+        <Row wrap gap="sm">
           {MATCH_TYPES.map((t) => {
             const isSelected = matchType === t.type;
             const color = matchService.getMatchTypeColor(t.type);
@@ -45,12 +45,14 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
                 style={[styles.typeBtn, { borderColor: isSelected ? color : colors.border }, isSelected && { backgroundColor: withAlpha(color, 0.09) }]}
                 onPress={() => onMatchTypeChange(t.type)}
               >
-                <Ionicons name={t.icon as keyof typeof Ionicons.glyphMap} size={20} color={isSelected ? color : colors.muted} />
-                <ThemedText style={[Typography.bodySmallSemiBold, { color: isSelected ? color : colors.text }]}>{t.label}</ThemedText>
+                <Row align="center" gap="xs">
+                  <Ionicons name={t.icon as keyof typeof Ionicons.glyphMap} size={20} color={isSelected ? color : colors.muted} />
+                  <ThemedText style={[Typography.bodySmallSemiBold, { color: isSelected ? color : colors.text }]}>{t.label}</ThemedText>
+                </Row>
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       <View style={styles.fieldGroup}>
@@ -70,8 +72,10 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
               style={[styles.toggleBtn, { flex: 1, borderColor: isHome === val ? colors.tint : colors.border }, isHome === val && { backgroundColor: withAlpha(colors.tint, 0.09) }]}
               onPress={() => onIsHomeChange(val)}
             >
-              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={isHome === val ? colors.tint : colors.muted} />
-              <ThemedText style={{ color: isHome === val ? colors.tint : colors.text }}>{label}</ThemedText>
+              <Row align="center" justify="center" gap="xs">
+                <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={isHome === val ? colors.tint : colors.muted} />
+                <ThemedText style={{ color: isHome === val ? colors.tint : colors.text }}>{label}</ThemedText>
+              </Row>
             </Clickable>
           ))}
         </Row>
@@ -102,7 +106,6 @@ const styles = StyleSheet.create({
   fieldGroup: { gap: Spacing.xs },
   fieldLabel: { ...Typography.smallSemiBold },
   input: { borderRadius: Radii.md, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.body },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  typeBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  toggleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  typeBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  toggleBtn: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
 });

@@ -9,6 +9,7 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { COLOR_OPTIONS } from '@/hooks/use-academy-branding';
+import { Row } from '@/components/primitives';
 
 interface BrandingColorPickerProps {
   colors: ThemeColors;
@@ -61,7 +62,7 @@ const ColorRow = memo(function ColorRow({ label, selected, canEdit, onSelect, co
   return (
     <View style={styles.colorSection}>
       <ThemedText style={styles.colorLabel}>{label}</ThemedText>
-      <View style={styles.colorGrid}>
+      <Row style={styles.colorGrid}>
         {COLOR_OPTIONS.map((color) => (
           <Clickable
             key={color}
@@ -76,7 +77,7 @@ const ColorRow = memo(function ColorRow({ label, selected, canEdit, onSelect, co
             {selected === color && <Ionicons name="checkmark" size={18} color={colors.onPrimary} />}
           </Clickable>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
   title: { marginBottom: Spacing.sm },
   colorSection: { gap: Spacing.xs },
   colorLabel: { ...Typography.smallSemiBold },
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  colorGrid: { flexWrap: 'wrap', gap: Spacing.xs },
   colorOption: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   colorSelected: { borderWidth: 3 },
 });

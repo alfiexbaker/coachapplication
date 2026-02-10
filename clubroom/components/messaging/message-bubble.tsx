@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -19,7 +20,9 @@ interface MessageBubbleProps {
 function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string }) {
   const { colors: palette, scheme } = useTheme();
   return (
-    <View
+    <Row
+      align="center"
+      gap="sm"
       style={[styles.attachment, { borderColor: palette.border, backgroundColor: palette.surface }]}
       accessibilityRole="button"
       accessibilityLabel={`${title}${subtitle ? `, ${subtitle}` : ''}`}>
@@ -29,7 +32,7 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
         {subtitle ? <ThemedText style={[styles.attachmentSubtitle, { color: palette.muted }]}>{subtitle}</ThemedText> : null}
       </View>
       <IconSymbol name="chevron.right" size={18} color={palette.icon} />
-    </View>
+    </Row>
   );
 }
 
@@ -66,7 +69,7 @@ function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSender
           <AttachmentCard key={attachment.id} title={attachment.title} subtitle={attachment.subtitle} />
         ))}
       </View>
-      <View style={[styles.footerRow, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}> 
+      <Row align="center" gap="xs" style={[styles.footerRow, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}>
         <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
           {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </ThemedText>
@@ -75,7 +78,7 @@ function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSender
             <ThemedText style={[styles.statusText, { color: palette.muted }]}>{message.status}</ThemedText>
           </SurfaceCard>
         )}
-      </View>
+      </Row>
     </Animated.View>
   );
 }
@@ -112,9 +115,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     marginHorizontal: Spacing.md,
   },
   statusPill: {
@@ -127,9 +127,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   attachment: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,

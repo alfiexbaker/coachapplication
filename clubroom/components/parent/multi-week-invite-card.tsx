@@ -7,7 +7,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { View, Platform, FlatList } from 'react-native';
+import { Platform, FlatList } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -113,12 +114,12 @@ export function MultiWeekInviteCard({
         palette={palette}
       />
 
-      <View style={styles.athleteRow}>
+      <Row align="center" gap="xs">
         <Ionicons name="person-outline" size={16} color={palette.muted} />
         <ThemedText style={[Typography.small, { color: palette.text }]}>
           For: {invite.athleteNames.join(', ')}
         </ThemedText>
-      </View>
+      </Row>
 
       <Divider />
 

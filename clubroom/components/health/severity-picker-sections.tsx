@@ -9,6 +9,7 @@ import type { InjurySeverity } from '@/constants/types';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 import type { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -66,7 +67,7 @@ export const SeverityOptionCard = memo(function SeverityOptionCard({
           },
         ]}
       >
-        <View style={styles.optionHeader}>
+        <Row style={styles.optionHeader}>
           <View style={[styles.iconContainer, { backgroundColor: withAlpha(info.color, 0.12) }]}>
             <Ionicons
               name={info.icon as keyof typeof Ionicons.glyphMap}
@@ -75,7 +76,7 @@ export const SeverityOptionCard = memo(function SeverityOptionCard({
             />
           </View>
           <View style={styles.optionTextContainer}>
-            <View style={styles.labelRow}>
+            <Row style={styles.labelRow}>
               <ThemedText style={[styles.optionLabel, isSelected && { color: info.color }]}>
                 {info.label}
               </ThemedText>
@@ -84,12 +85,12 @@ export const SeverityOptionCard = memo(function SeverityOptionCard({
                   <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
                 </View>
               )}
-            </View>
+            </Row>
             <ThemedText style={[styles.optionDescription, { color: palette.muted }]}>
               {option.description}
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <View style={[styles.examplesContainer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
           <ThemedText style={[styles.examplesLabel, { color: palette.muted }]}>
             Examples:
@@ -116,7 +117,7 @@ export const SeverityScale = memo(function SeverityScale({
 }: SeverityScaleProps) {
   return (
     <View style={styles.scaleContainer}>
-      <View style={styles.scaleBar}>
+      <Row style={styles.scaleBar}>
         {SEVERITY_OPTIONS.map((option, index) => {
           const info = injuryService.getSeverityInfo(option.value);
           const isSelected = selectedSeverity === option.value;
@@ -133,11 +134,11 @@ export const SeverityScale = memo(function SeverityScale({
             />
           );
         })}
-      </View>
-      <View style={styles.scaleLabels}>
+      </Row>
+      <Row style={styles.scaleLabels}>
         <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>Minor</ThemedText>
         <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>Severe</ThemedText>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -151,7 +152,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   optionHeader: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     padding: Spacing.md,
     gap: Spacing.sm,
@@ -167,7 +167,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   labelRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.micro,
@@ -208,7 +207,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   scaleBar: {
-    flexDirection: 'row',
     height: 8,
     borderRadius: Radii.xs,
     overflow: 'hidden',
@@ -230,7 +228,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: Radii.xs,
   },
   scaleLabels: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
   },
   scaleLabel: {

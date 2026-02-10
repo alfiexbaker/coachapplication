@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { commentService } from '@/services/comment-service';
@@ -64,14 +65,14 @@ function CommentPreviewInner({ postId, commentCount, onPress }: CommentPreviewPr
 
       {/* Latest comment preview */}
       {latestComment && (
-        <View style={styles.previewRow}>
+        <Row gap="xxs" align="baseline">
           <ThemedText style={styles.previewAuthor} numberOfLines={1}>
             {latestComment.authorName}
           </ThemedText>
           <ThemedText style={[styles.previewContent, { color: palette.text }]} numberOfLines={1}>
             {latestComment.isDeleted ? 'This comment was deleted.' : latestComment.content}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </Clickable>
   );
@@ -89,11 +90,7 @@ const styles = StyleSheet.create({
   viewAll: {
     ...Typography.caption,
   },
-  previewRow: {
-    flexDirection: 'row',
-    gap: Spacing.xxs,
-    alignItems: 'baseline',
-  },
+  // previewRow replaced by Row primitive
   previewAuthor: {
     ...Typography.bodySmallSemiBold,
     flexShrink: 0,

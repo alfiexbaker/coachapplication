@@ -12,6 +12,7 @@ import { clubService } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubRole } from '@/constants/types';
 import type { InviteCodeItem } from '@/hooks/use-club-settings';
+import { Row } from '@/components/primitives';
 
 interface SettingsInvitesSectionProps {
   inviteCodes: InviteCodeItem[];
@@ -31,7 +32,7 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
         <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>Share codes to invite coaches and members</ThemedText>
 
         {inviteCodes.map((invite) => (
-          <View key={invite.code} style={[styles.inviteRow, { borderColor: colors.border }]}>
+          <Row key={invite.code} style={[styles.inviteRow, { borderColor: colors.border }]}>
             <View style={{ flex: 1, gap: Spacing.xs }}>
               <ThemedText type="defaultSemiBold" style={[Typography.subheading, { fontFamily: 'monospace' }]}>{invite.code}</ThemedText>
               <Row gap="sm" align="center">
@@ -49,7 +50,7 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
                 <Ionicons name="share-outline" size={18} color={colors.tint} />
               </Clickable>
             </Row>
-          </View>
+          </Row>
         ))}
 
         <Row gap="sm">
@@ -67,8 +68,8 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
-  inviteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  inviteRow: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   roleBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   iconBtn: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  genBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  genBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
 });

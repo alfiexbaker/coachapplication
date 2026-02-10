@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { AvailabilityOverride } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface TimeOffRemoveStepProps {
   removeDate: string;
@@ -26,7 +27,7 @@ function TimeOffRemoveStepInner({ removeDate, existingOverride, removing, onConf
   return (
     <View style={styles.content}>
       <SurfaceCard style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
+        <Row style={styles.summaryRow}>
           <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
             <Ionicons name="airplane-outline" size={22} color={palette.error} />
           </View>
@@ -36,15 +37,15 @@ function TimeOffRemoveStepInner({ removeDate, existingOverride, removing, onConf
               <ThemedText style={[styles.reason, { color: palette.muted }]}>{existingOverride.reason}</ThemedText>
             ) : null}
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
 
-      <View style={[styles.warning, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+      <Row style={[styles.warning, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
         <Ionicons name="information-circle-outline" size={18} color={palette.warning} />
         <ThemedText style={[styles.warningText, { color: palette.warning }]}>
           This day will become available for bookings again.
         </ThemedText>
-      </View>
+      </Row>
 
       <Clickable onPress={onConfirmRemove} disabled={removing} style={[styles.primaryBtn, { backgroundColor: palette.error }]} accessibilityLabel="Confirm remove time off">
         {removing ? (
@@ -70,14 +71,14 @@ export const TimeOffRemoveStep = memo(TimeOffRemoveStepInner);
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },
   summaryCard: { padding: Spacing.md },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  summaryRow: { alignItems: 'center', gap: Spacing.md },
   iconCircle: { width: Spacing['2xl'], height: Spacing['2xl'], borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   details: { flex: 1, gap: Spacing.micro },
   reason: { ...Typography.bodySmall },
-  warning: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
+  warning: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
   warningText: { ...Typography.bodySmall, flex: 1 },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 52, borderRadius: Radii.md, marginTop: Spacing.xs },
+  primaryBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 52, borderRadius: Radii.md, marginTop: Spacing.xs },
   primaryBtnText: { ...Typography.bodySemiBold },
-  backBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 44 },
+  backBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 44 },
   backBtnText: { ...Typography.bodySmall },
 });

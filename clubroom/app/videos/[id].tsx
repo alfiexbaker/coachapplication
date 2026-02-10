@@ -7,11 +7,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
 import { AddAnnotationModal, QuickAnnotationBar } from '@/components/video/video-annotation';
 import { VideoInfoSection } from '@/components/video/video-info-section';
 import { VideoDetailActions } from '@/components/video/video-detail-actions';
 import { VideoDetailsCard } from '@/components/video/video-details-card';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVideoDetail } from '@/hooks/use-video-detail';
@@ -29,20 +31,21 @@ export default function VideoDetailScreen() {
   if (loading || !video) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
+          <ThemedText type="title">Video</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
@@ -55,7 +58,7 @@ export default function VideoDetailScreen() {
             <Ionicons name="trash-outline" size={22} color={colors.error} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.springify()}>
@@ -130,11 +133,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
   },
   content: {
     padding: Spacing.lg,

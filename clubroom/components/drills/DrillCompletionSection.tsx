@@ -131,7 +131,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.body.fontSize),
   },
   addFeedbackButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.md,
@@ -149,7 +148,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   undoButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,

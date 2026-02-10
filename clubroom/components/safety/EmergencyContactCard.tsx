@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -24,79 +25,75 @@ export function EmergencyContactCard({ contact, onCall, onEmail, compact = false
 
   if (compact) {
     return (
-      <View style={styles.compactCard}>
+      <Row align="center" gap="sm">
         <View style={styles.compactInfo}>
-          <View style={styles.compactNameRow}>
+          <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" numberOfLines={1} style={{ flex: 1 }}>{contact.name}</ThemedText>
             {contact.isPrimary && <Badge label="Primary" tone="success" />}
-          </View>
+          </Row>
           <ThemedText style={[styles.compactPhone, { color: palette.muted }]}>{contact.phone}</ThemedText>
         </View>
         <Clickable onPress={onCall} style={[styles.compactCallButton, { backgroundColor: palette.success }]}>
           <Ionicons name="call" size={16} color={palette.onSuccess} />
         </Clickable>
-      </View>
+      </Row>
     );
   }
 
   return (
     <View style={[styles.card, { backgroundColor: palette.surfaceSecondary }]}>
-      <View style={styles.mainContent}>
+      <Row align="center" gap="md" style={styles.mainContent}>
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{contact.name.slice(0, 2).toUpperCase()}</ThemedText>
         </View>
 
         <View style={styles.info}>
-          <View style={styles.nameRow}>
+          <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" numberOfLines={1} style={{ flex: 1 }}>{contact.name}</ThemedText>
             {contact.isPrimary && <Badge label="Primary" tone="success" />}
-          </View>
+          </Row>
           <ThemedText style={[styles.relationship, { color: palette.muted }]}>{contact.relationship}</ThemedText>
-          <View style={styles.phoneRow}>
+          <Row align="center" gap="xxs" style={styles.phoneRow}>
             <Ionicons name="call" size={14} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, fontWeight: '500' }}>{contact.phone}</ThemedText>
-          </View>
+          </Row>
           {contact.email && (
-            <View style={styles.emailRow}>
+            <Row align="center" gap="xxs" style={styles.emailRow}>
               <Ionicons name="mail" size={14} color={palette.muted} />
               <ThemedText style={{ ...Typography.small, color: palette.muted }} numberOfLines={1}>{contact.email}</ThemedText>
-            </View>
+            </Row>
           )}
-          <View style={styles.permissionsRow}>
+          <Row wrap gap="xxs" style={styles.permissionsRow}>
             {contact.canPickup && (
-              <View style={[styles.permissionBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+              <Row align="center" gap="micro" style={[styles.permissionBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="checkmark-circle" size={12} color={palette.success} />
                 <ThemedText style={[styles.permissionText, { color: palette.success }]}>Can pickup</ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
         </View>
 
         <Clickable onPress={onCall} style={[styles.callButton, { backgroundColor: palette.success }]}>
           <Ionicons name="call" size={22} color={palette.onSuccess} />
         </Clickable>
-      </View>
+      </Row>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: { borderRadius: Radii.md, overflow: 'hidden' },
-  mainContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Components.card.padding },
+  mainContent: { padding: Components.card.padding },
   avatar: { width: 44, height: 44, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
   avatarText: { ...Typography.subheading },
   info: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   relationship: { ...Typography.caption, marginTop: Spacing.micro },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xxs },
-  emailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.micro },
-  permissionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xxs, marginTop: Spacing.xxs },
-  permissionBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  phoneRow: { marginTop: Spacing.xxs },
+  emailRow: { marginTop: Spacing.micro },
+  permissionsRow: { marginTop: Spacing.xxs },
+  permissionBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   permissionText: { ...Typography.micro },
   callButton: { width: 48, height: 48, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
-  compactCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   compactInfo: { flex: 1 },
-  compactNameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   compactPhone: { ...Typography.caption, marginTop: Spacing.micro },
-  compactCallButton: { width: 36, height: 36, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
-});
+  compactCallButton: { width: 36, height: 36, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' } });

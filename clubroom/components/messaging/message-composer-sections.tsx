@@ -12,6 +12,7 @@ import { Platform, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -46,7 +47,7 @@ export const ReplyPreview = memo(function ReplyPreview({
   palette,
 }: ReplyPreviewProps) {
   return (
-    <View style={[styles.replyPreview, { backgroundColor: palette.surface, borderLeftColor: palette.tint }]}>
+    <Row align="center" gap="sm" style={[styles.replyPreview, { backgroundColor: palette.surface, borderLeftColor: palette.tint }]}>
       <View style={styles.replyContent}>
         <ThemedText style={[styles.replyLabel, { color: palette.tint }]}>
           Replying to
@@ -58,7 +59,7 @@ export const ReplyPreview = memo(function ReplyPreview({
       <Clickable accessibilityLabel="Close" onPress={onCancelReply}>
         <Ionicons name="close" size={20} color={palette.muted} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -78,10 +79,12 @@ export const AttachmentsPreview = memo(function AttachmentsPreview({
   if (attachments.length === 0) return null;
 
   return (
-    <View style={styles.attachmentsRow}>
+    <Row gap="xs" wrap style={styles.attachmentsRow}>
       {attachments.map((attachment, index) => (
-        <View
+        <Row
           key={index}
+          align="center"
+          gap="xs"
           style={[styles.attachmentPreview, { backgroundColor: palette.surface, borderColor: palette.border }]}
         >
           <Ionicons
@@ -97,9 +100,9 @@ export const AttachmentsPreview = memo(function AttachmentsPreview({
               <Ionicons name="close-circle" size={16} color={palette.muted} />
             </Clickable>
           )}
-        </View>
+        </Row>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -141,9 +144,9 @@ export const ComposerInputRow = memo(function ComposerInputRow({
   palette,
 }: ComposerInputRowProps) {
   return (
-    <View style={[styles.composerRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
+    <Row align="flex-end" gap="xs" style={[styles.composerRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
       {/* Action Buttons */}
-      <View style={styles.actionsRow}>
+      <Row align="center" gap="xxs" style={styles.actionsRow}>
         <Clickable onPress={onAttachPress} style={styles.actionButton} hitSlop={8}>
           <Ionicons name="attach" size={22} color={palette.icon} />
         </Clickable>
@@ -152,7 +155,7 @@ export const ComposerInputRow = memo(function ComposerInputRow({
             <Ionicons name="camera-outline" size={22} color={palette.icon} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Text Input */}
       <View style={styles.inputWrapper}>
@@ -205,7 +208,7 @@ export const ComposerInputRow = memo(function ComposerInputRow({
       ) : (
         <View style={styles.sendPlaceholder} />
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -221,22 +224,24 @@ export const QuickActionsBarInner = memo(function QuickActionsBarInner({
   palette,
 }: QuickActionsBarProps) {
   return (
-    <View style={styles.quickActionsContainer}>
+    <Row gap="xs" wrap style={styles.quickActionsContainer}>
       {actions.map((action, index) => (
         <Clickable
           key={index}
           onPress={action.onPress}
           style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
         >
-          {action.icon && (
-            <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={14} color={palette.tint} />
-          )}
-          <ThemedText style={[styles.quickActionText, { color: palette.text }]}>
-            {action.label}
-          </ThemedText>
+          <Row align="center" gap="xs">
+            {action.icon && (
+              <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={14} color={palette.tint} />
+            )}
+            <ThemedText style={[styles.quickActionText, { color: palette.text }]}>
+              {action.label}
+            </ThemedText>
+          </Row>
         </Clickable>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -247,13 +252,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   replyPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.sm,
     marginHorizontal: Spacing.md,
     borderRadius: Radii.sm,
     borderLeftWidth: 3,
-    gap: Spacing.sm,
   },
   replyContent: {
     flex: 1,
@@ -265,15 +267,9 @@ export const styles = StyleSheet.create({
   },
   replyText: { ...Typography.small, marginTop: Spacing.micro },
   attachmentsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
   },
   attachmentPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
@@ -282,17 +278,11 @@ export const styles = StyleSheet.create({
   },
   attachmentName: { ...Typography.caption, flex: 1 },
   composerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
-    gap: Spacing.xs,
   },
   actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingBottom: 8,
   },
   actionButton: {
@@ -330,16 +320,10 @@ export const styles = StyleSheet.create({
     width: 40,
   },
   quickActionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
   quickAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.full,

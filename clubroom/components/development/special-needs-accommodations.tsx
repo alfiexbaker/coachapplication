@@ -8,6 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
+import { Row } from '@/components/primitives';
 
 interface SpecialNeedsAccommodationsProps {
   specialNeeds: ChildProfile['specialNeeds'];
@@ -62,10 +63,10 @@ export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodatio
             )}
 
             {need.coachNotes && (
-              <View style={[styles.coachNote, { backgroundColor: withAlpha(colors.warning, 0.03), borderColor: withAlpha(colors.warning, 0.19) }]}>
+              <Row style={[styles.coachNote, { backgroundColor: withAlpha(colors.warning, 0.03), borderColor: withAlpha(colors.warning, 0.19) }]}>
                 <Ionicons name="bulb" size={Components.icon.sm} color={colors.warning} />
                 <ThemedText style={[Typography.small, { flex: 1, fontStyle: 'italic' }]}>{need.coachNotes}</ThemedText>
-              </View>
+              </Row>
             )}
           </SurfaceCard>
         );
@@ -80,5 +81,5 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.sm, gap: Spacing.sm },
   badge: { paddingHorizontal: Spacing.xs, paddingVertical: Components.pill.paddingVertical, borderRadius: Radii.sm },
   list: { gap: Spacing.xs },
-  coachNote: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  coachNote: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
 });

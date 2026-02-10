@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   slotItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

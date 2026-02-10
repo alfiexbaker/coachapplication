@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -42,24 +43,26 @@ function DevChildSelectorInner({ children, selectedChildId, onSelectChild }: Dev
                 isSelected ? [styles.tabActive, { backgroundColor: palette.tint }] : undefined,
               ]}
             >
-              <View style={[
-                styles.avatar,
-                { backgroundColor: isSelected ? withAlpha(palette.onPrimary, 0.2) : palette.border }
-              ]}>
-                <ThemedText style={[
-                  styles.avatarText,
-                  { color: isSelected ? palette.onPrimary : palette.tint }
+              <Row align="center" gap="sm">
+                <Row align="center" justify="center" style={[
+                  styles.avatar,
+                  { backgroundColor: isSelected ? withAlpha(palette.onPrimary, 0.2) : palette.border }
                 ]}>
-                  {child.name.charAt(0)}
+                  <ThemedText style={[
+                    styles.avatarText,
+                    { color: isSelected ? palette.onPrimary : palette.tint }
+                  ]}>
+                    {child.name.charAt(0)}
+                  </ThemedText>
+                </Row>
+                <ThemedText style={[
+                  styles.name,
+                  { color: isSelected ? palette.onPrimary : palette.text },
+                  isSelected && styles.nameActive,
+                ]}>
+                  {child.name}
                 </ThemedText>
-              </View>
-              <ThemedText style={[
-                styles.name,
-                { color: isSelected ? palette.onPrimary : palette.text },
-                isSelected && styles.nameActive,
-              ]}>
-                {child.name}
-              </ThemedText>
+              </Row>
             </Pressable>
           );
         })}
@@ -79,9 +82,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.sm,
@@ -91,8 +91,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   avatarText: { ...Typography.caption },
   name: { ...Typography.bodySmallSemiBold },

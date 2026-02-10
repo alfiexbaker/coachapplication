@@ -7,6 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { TrialOffering } from '@/services/trial-service';
+import { Row } from '@/components/primitives';
 
 export function FieldLabel({ label, hint, palette }: { label: string; hint?: string; palette: ThemeColors }) {
   return (
@@ -34,7 +35,7 @@ export function TrialDiscoveryPreview({
         Discovery Preview
       </ThemedText>
       <SurfaceCard style={styles.previewCard}>
-        <View style={styles.previewHeader}>
+        <Row style={styles.previewHeader}>
           <View style={[styles.previewAvatar, { backgroundColor: palette.tint }]}>
             <ThemedText style={{ ...Typography.subheading, color: palette.onPrimary }}>
               {coachName.split(' ').map((n) => n[0]).join('')}
@@ -48,18 +49,18 @@ export function TrialDiscoveryPreview({
               Football Coach
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         {offering.enabled ? (
-          <View style={[styles.previewTrialBadge, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+          <Row style={[styles.previewTrialBadge, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
             <Ionicons name="flash-outline" size={Components.icon.sm} color={palette.success} />
             <ThemedText style={[Typography.bodySemiBold, { color: palette.success }]}>
               Trial Session Available
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
 
-        <View style={styles.previewPricing}>
+        <Row style={styles.previewPricing}>
           {offering.enabled ? (
             <>
               <ThemedText style={[Typography.title, { color: palette.tint }]}>
@@ -90,7 +91,7 @@ export function TrialDiscoveryPreview({
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
             / {offering.durationMinutes ?? 60} min
           </ThemedText>
-        </View>
+        </Row>
 
         {offering.description ? (
           <ThemedText style={[Typography.small, { color: palette.muted }]} numberOfLines={2}>
@@ -114,7 +115,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   previewHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -126,7 +126,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewTrialBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: Spacing.xs / 2,
@@ -135,7 +134,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   previewPricing: {
-    flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.xs,
   },

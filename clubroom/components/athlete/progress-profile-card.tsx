@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface ProgressProfileCardProps {
   athleteName: string;
@@ -32,7 +33,7 @@ function ProgressProfileCardInner({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {avatar || athleteName.charAt(0)}
@@ -40,20 +41,20 @@ function ProgressProfileCardInner({
         </View>
         <View style={styles.info}>
           <ThemedText type="subtitle" style={styles.name}>{athleteName}</ThemedText>
-          <View style={styles.badgeRow}>
-            <View style={[styles.levelBadge, { backgroundColor: withAlpha(level.color, 0.12) }]}>
+          <Row style={styles.badgeRow}>
+            <Row style={[styles.levelBadge, { backgroundColor: withAlpha(level.color, 0.12) }]}>
               <Ionicons name={level.icon} size={12} color={level.color} />
               <ThemedText style={[styles.levelText, { color: level.color }]}>{level.name}</ThemedText>
-            </View>
-            <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
+            </Row>
+            <Row style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
               <Ionicons name={trendIcon} size={12} color={trendColor} />
               <ThemedText style={[styles.trendText, { color: trendColor }]}>{trendText}</ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
         </View>
-      </View>
+      </Row>
 
-      <View style={[styles.stats, { borderTopColor: palette.border }]}>
+      <Row style={[styles.stats, { borderTopColor: palette.border }]}>
         <QuickStat label="Sessions" value={String(sessionCount)} />
         <View style={[styles.divider, { backgroundColor: palette.border }]} />
         <QuickStat label="Avg Rating" value={avgRating} icon="star" iconColor={palette.warning} />
@@ -61,7 +62,7 @@ function ProgressProfileCardInner({
         <QuickStat label="Badges" value={String(badgeCount)} />
         <View style={[styles.divider, { backgroundColor: palette.border }]} />
         <QuickStat label="Goals" value={String(activeGoalCount)} />
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -76,10 +77,10 @@ function QuickStat({ label, value, icon, iconColor }: {
   return (
     <View style={styles.stat}>
       {icon ? (
-        <View style={styles.statValueRow}>
+        <Row style={styles.statValueRow}>
           <ThemedText type="defaultSemiBold" style={styles.statValue}>{value}</ThemedText>
           <Ionicons name={icon} size={14} color={iconColor} />
-        </View>
+        </Row>
       ) : (
         <ThemedText type="defaultSemiBold" style={styles.statValue}>{value}</ThemedText>
       )}
@@ -92,7 +93,7 @@ export const ProgressProfileCard = memo(ProgressProfileCardInner);
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  header: { alignItems: 'center', gap: Spacing.md },
   avatar: {
     width: Components.avatar.lg,
     height: Components.avatar.lg,
@@ -103,20 +104,20 @@ const styles = StyleSheet.create({
   avatarText: { ...Typography.display },
   info: { flex: 1, gap: Spacing.xs },
   name: { ...Typography.heading },
-  badgeRow: { flexDirection: 'row', gap: Spacing.xs },
+  badgeRow: { gap: Spacing.xs },
   levelBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs,
+    alignItems: 'center', gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm,
   },
   levelText: { ...Typography.caption },
   trendBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs,
+    alignItems: 'center', gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm,
   },
   trendText: { ...Typography.caption },
-  stats: { flexDirection: 'row', paddingTop: Spacing.md, borderTopWidth: 1 },
+  stats: { paddingTop: Spacing.md, borderTopWidth: 1 },
   stat: { flex: 1, alignItems: 'center', gap: Spacing.micro },
-  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  statValueRow: { alignItems: 'center', gap: Spacing.xxs },
   statValue: { ...Typography.heading },
   statLabel: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.3 },
   divider: { width: 1, alignSelf: 'stretch', marginVertical: Spacing.xxs },

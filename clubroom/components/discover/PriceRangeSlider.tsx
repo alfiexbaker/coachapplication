@@ -17,6 +17,7 @@ import Animated, {
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface PriceRangeSliderProps {
   min: number;
@@ -130,12 +131,12 @@ export function PriceRangeSlider({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <ThemedText style={[styles.label, { color: palette.text }]}>Price Range</ThemedText>
         <ThemedText style={[styles.value, { color: palette.tint }]}>
           {formatValue(currentMin)} - {formatValue(currentMax)}
         </ThemedText>
-      </View>
+      </Row>
 
       <View
         style={styles.sliderContainer}
@@ -182,14 +183,14 @@ export function PriceRangeSlider({
         </GestureDetector>
       </View>
 
-      <View style={styles.rangeLabels}>
+      <Row style={styles.rangeLabels}>
         <ThemedText style={[styles.rangeLabel, { color: palette.muted }]}>
           {formatValue(min)}
         </ThemedText>
         <ThemedText style={[styles.rangeLabel, { color: palette.muted }]}>
           {formatValue(max)}
         </ThemedText>
-      </View>
+      </Row>
     </View>
   );
 }
@@ -199,7 +200,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -240,7 +240,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   rangeLabels: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: Spacing.sm,
     paddingHorizontal: SLIDER_PADDING,

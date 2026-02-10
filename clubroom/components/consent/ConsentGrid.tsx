@@ -6,6 +6,7 @@ import { Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Consent, ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
+import { Row } from '@/components/primitives';
 
 interface ConsentGridProps {
   consents: Consent[];
@@ -89,7 +90,7 @@ export function ConsentGrid({
   const consentTypes = consentService.getConsentTypes();
 
   return (
-    <View style={[styles.grid, { gap: compact ? 4 : Spacing.xs }]}>
+    <Row style={[styles.grid, { gap: compact ? 4 : Spacing.xs }]}>
       {consentTypes.map((type) => {
         const consent = consents.find((c) => c.type === type);
         return (
@@ -102,17 +103,15 @@ export function ConsentGrid({
           />
         );
       })}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   grid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
   },
   item: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radii.sm,
     gap: Spacing.xxs,

@@ -15,6 +15,7 @@ import {
   formatBadgeDate,
   CompactBadgeCardInner,
 } from './badge-card-sections';
+import { Row } from '@/components/primitives';
 
 interface BadgeCardProps {
   badge: AllBadgeWithProgress;
@@ -44,7 +45,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       onPress={onPress}
       tactile={!!onPress}
     >
-      <View style={styles.iconRow}>
+      <Row style={styles.iconRow}>
         <View
           style={[
             styles.iconContainer,
@@ -75,7 +76,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
             </ThemedText>
           </View>
         )}
-      </View>
+      </Row>
 
       <View style={styles.infoSection}>
         <ThemedText
@@ -106,29 +107,29 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       )}
 
       {isLocked && badge.progress === 0 && (
-        <View style={styles.requirementSection}>
+        <Row style={styles.requirementSection}>
           <Ionicons name="lock-closed" size={12} color={palette.muted} />
           <ThemedText style={[styles.requirementText, { color: palette.muted }]}>
             {badge.progressLabel}
           </ThemedText>
-        </View>
+        </Row>
       )}
 
       {!isLocked && (
-        <View style={styles.earnedSection}>
-          <View style={styles.earnedRow}>
+        <Row style={styles.earnedSection}>
+          <Row style={styles.earnedRow}>
             <Ionicons name="checkmark-circle" size={14} color={palette.success} />
             <ThemedText style={[styles.earnedText, { color: palette.success }]}>Earned</ThemedText>
-          </View>
+          </Row>
           {badge.earnedAt && (
             <ThemedText style={[styles.dateText, { color: palette.muted }]}>
               {formatBadgeDate(badge.earnedAt)}
             </ThemedText>
           )}
-        </View>
+        </Row>
       )}
 
-      <View style={styles.pointsSection}>
+      <Row style={styles.pointsSection}>
         {categoryIcon && (
           <View style={[styles.categoryPill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name={categoryIcon} size={12} color={palette.tint} />
@@ -137,7 +138,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
         <ThemedText style={[styles.pointsText, { color: palette.tint }]}>
           +{badge.pointValue} pts
         </ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -146,7 +147,6 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.sm, gap: Spacing.xs, minHeight: 160 },
   lockedCard: { opacity: 0.6 },
   iconRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -179,18 +179,16 @@ const styles = StyleSheet.create({
   progressBar: { height: 6, borderRadius: Radii.xs, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.xs },
   progressLabel: { ...Typography.caption },
-  requirementSection: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  requirementSection: { alignItems: 'center', gap: Spacing.xxs },
   requirementText: { ...Typography.caption },
   earnedSection: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  earnedRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  earnedRow: { alignItems: 'center', gap: Spacing.xxs },
   earnedText: { ...Typography.caption },
   dateText: { ...Typography.caption },
   pointsSection: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginTop: 'auto',

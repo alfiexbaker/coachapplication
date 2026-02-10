@@ -10,6 +10,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { StatCard } from '@/components/primitives/stat-card';
 import { TransactionListItem } from '@/components/earnings/transaction-list-item';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -46,14 +47,14 @@ export default function EarningsScreen() {
 
         {/* Period Stats */}
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Period Stats</ThemedText>
-        <View style={styles.statsRow}>
+        <Row gap="md" style={styles.statsRow}>
           <View style={styles.statWrapper}><StatCard label="This Week" value={e.formatCurrency(e.earnings?.thisWeek || 0).replace(/^[+-]/, '')} variant="compact" /></View>
           <View style={styles.statWrapper}><StatCard label="This Month" value={e.formatCurrency(e.earnings?.thisMonth || 0).replace(/^[+-]/, '')} variant="compact" /></View>
-        </View>
-        <View style={styles.statsRow}>
+        </Row>
+        <Row gap="md" style={styles.statsRow}>
           <View style={styles.statWrapper}><StatCard label="Last Month" value={e.formatCurrency(e.earnings?.lastMonth || 0).replace(/^[+-]/, '')} variant="compact" /></View>
           <View style={styles.statWrapper}><StatCard label="Avg Session" value={e.formatCurrency(e.earnings?.averageSessionValue || 0).replace(/^[+-]/, '')} variant="compact" /></View>
-        </View>
+        </Row>
 
         {/* Pending Withdrawals */}
         {e.pendingWithdrawals.length > 0 && (
@@ -63,7 +64,7 @@ export default function EarningsScreen() {
               {e.pendingWithdrawals.map((w, i) => (
                 <View key={w.id}>
                   {i > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
-                  <View style={styles.withdrawalItem}>
+                  <Row justify="space-between" align="center" style={styles.withdrawalItem}>
                     <View style={styles.withdrawalInfo}>
                       <ThemedText type="defaultSemiBold">{e.formatCurrency(w.amount).replace(/^[+-]/, '')}</ThemedText>
                       <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
@@ -73,7 +74,7 @@ export default function EarningsScreen() {
                     <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                       <ThemedText style={{ color: palette.warning, ...Typography.caption }}>{e.getWithdrawalStatusLabel(w.status)}</ThemedText>
                     </View>
-                  </View>
+                  </Row>
                 </View>
               ))}
             </SurfaceCard>
@@ -92,19 +93,19 @@ export default function EarningsScreen() {
             e.payoutMethods.map((method, i) => (
               <View key={method.id}>
                 {i > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
-                <View style={styles.payoutItem}>
+                <Row align="center" gap="sm" style={styles.payoutItem}>
                   <View style={[styles.payoutIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <Ionicons name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'} size={20} color={palette.tint} />
                   </View>
                   <View style={styles.payoutInfo}>
-                    <View style={styles.payoutHeader}>
+                    <Row align="center" gap="xs" style={styles.payoutHeader}>
                       <ThemedText type="defaultSemiBold">{method.nickname || method.type}</ThemedText>
                       {method.isDefault && (
                         <View style={[styles.defaultBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                           <ThemedText style={{ color: palette.success, ...Typography.micro }}>DEFAULT</ThemedText>
                         </View>
                       )}
-                    </View>
+                    </Row>
                     <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                       {method.type === 'BANK_ACCOUNT' ? `${method.bankName} ****${method.accountLastFour}` : method.type === 'PAYPAL' ? method.paypalEmail : 'Stripe Connect'}
                     </ThemedText>
@@ -116,21 +117,21 @@ export default function EarningsScreen() {
                       <ThemedText style={{ color: palette.warning, ...Typography.micro }}>UNVERIFIED</ThemedText>
                     </View>
                   )}
-                </View>
+                </Row>
               </View>
             ))
           )}
           <Clickable onPress={e.handleAddPayoutMethod}>
-            <View style={[styles.addMethodBtn, { borderColor: palette.border }]}>
+            <Row align="center" justify="center" gap="xs" style={[styles.addMethodBtn, { borderColor: palette.border }]}>
               <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
               <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Payout Method</ThemedText>
-            </View>
+            </Row>
           </Clickable>
         </SurfaceCard>
 
         {/* Transaction History */}
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Transaction History</ThemedText>
-        <View style={styles.filterRow}>
+        <Row gap="xs" wrap style={styles.filterRow}>
           {FILTER_OPTIONS.map((opt) => (
             <Clickable key={opt.value} onPress={() => e.setTransactionFilter(opt.value)}>
               <View style={[styles.filterChip, { backgroundColor: e.transactionFilter === opt.value ? withAlpha(palette.tint, 0.09) : 'transparent', borderColor: e.transactionFilter === opt.value ? palette.tint : palette.border }]}>
@@ -138,7 +139,7 @@ export default function EarningsScreen() {
               </View>
             </Clickable>
           ))}
-        </View>
+        </Row>
         <SurfaceCard style={styles.listCard}>
           {e.transactions.length === 0 ? (
             <View style={styles.emptyState}>
@@ -174,21 +175,21 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing['2xl'] },
   sectionTitle: { marginTop: Spacing.sm },
-  statsRow: { flexDirection: 'row', gap: Spacing.md },
+  statsRow: {},
   statWrapper: { flex: 1 },
   listCard: { padding: Spacing.md, gap: Spacing.xs },
   listDivider: { height: 1, marginVertical: Spacing.sm },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.lg },
-  withdrawalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  withdrawalItem: {},
   withdrawalInfo: { gap: Spacing.micro },
   statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
-  payoutItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  payoutItem: { paddingVertical: Spacing.xs },
   payoutIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   payoutInfo: { flex: 1, gap: Spacing.micro },
-  payoutHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  payoutHeader: {},
   defaultBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   unverifiedBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
-  addMethodBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, borderStyle: 'dashed', marginTop: Spacing.sm },
-  filterRow: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap' },
+  addMethodBtn: { paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, borderStyle: 'dashed', marginTop: Spacing.sm },
+  filterRow: {},
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
 });

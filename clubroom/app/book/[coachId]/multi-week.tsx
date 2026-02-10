@@ -10,22 +10,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { MultiWeekPicker } from '@/components/bookings/multi-week-picker';
 import { MultiWeekConfirmation } from '@/components/bookings/multi-week-confirmation';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useMultiWeek } from '@/hooks/use-multi-week';
 
 export default function MultiWeekScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useMultiWeek();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+      <Row style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Clickable>
@@ -33,7 +35,7 @@ export default function MultiWeekScreen() {
           <ThemedText type="defaultSemiBold">Book Multiple Weeks</ThemedText>
           <ThemedText style={[Typography.small, { color: palette.muted }]}>{c.coachName} - {c.sessionType}</ThemedText>
         </View>
-      </View>
+      </Row>
 
       {c.loading ? (
         <View style={styles.loadingContainer}>
@@ -49,12 +51,12 @@ export default function MultiWeekScreen() {
       ) : (
         <>
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={[styles.infoBanner, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
+            <Row style={[styles.infoBanner, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
               <Ionicons name="information-circle-outline" size={18} color={palette.info} />
               <ThemedText style={[Typography.small, { color: palette.info, flex: 1 }]}>
                 Select the weeks you want to book. Each session is at the same time and location.
               </ThemedText>
-            </View>
+            </Row>
             <MultiWeekPicker weeks={c.weeks} selectedWeeks={c.selectedWeeks} onToggleWeek={c.handleToggleWeek} />
           </ScrollView>
           <View style={[styles.footer, { borderTopColor: palette.border, backgroundColor: palette.surface }]}>
@@ -70,13 +72,13 @@ export default function MultiWeekScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.xs },
+  header: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.xs },
   backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1, gap: Spacing.micro },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   scrollView: { flex: 1 },
   scrollContent: { padding: Spacing.md, gap: Spacing.md },
-  infoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
+  infoBanner: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
   footer: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   footerButton: { width: '100%' },
 });

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { getPasswordStrength } from './onboarding-types';
+import { Row } from '@/components/primitives';
 
 interface StepBasicInfoProps {
   firstName: string;
@@ -46,7 +47,7 @@ function StepBasicInfoInner({
         Enter your details to get started.
       </ThemedText>
 
-      <View style={styles.formRow}>
+      <Row style={styles.formRow}>
         <View style={[styles.fieldGroup, { flex: 1 }]}>
           <ThemedText style={styles.label}>First Name *</ThemedText>
           <TextInput
@@ -69,7 +70,7 @@ function StepBasicInfoInner({
             style={inputStyle}
           />
         </View>
-      </View>
+      </Row>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Email *</ThemedText>
@@ -110,8 +111,8 @@ function StepBasicInfoInner({
           style={inputStyle}
         />
         {password.length > 0 && (
-          <View style={styles.strengthContainer}>
-            <View style={styles.strengthBars}>
+          <Row style={styles.strengthContainer}>
+            <Row style={styles.strengthBars}>
               {[1, 2, 3, 4].map((level) => {
                 const strength = getPasswordStrength(password, palette);
                 const isActive = level <= strength.level;
@@ -125,11 +126,11 @@ function StepBasicInfoInner({
                   />
                 );
               })}
-            </View>
+            </Row>
             <ThemedText style={[styles.strengthLabel, { color: getPasswordStrength(password, palette).color }]}>
               {getPasswordStrength(password, palette).label}
             </ThemedText>
-          </View>
+          </Row>
         )}
       </View>
 
@@ -177,7 +178,6 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.xs,
   },
   formRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
   fieldGroup: {
@@ -195,13 +195,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   strengthContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     marginTop: Spacing.xs,
   },
   strengthBars: {
-    flexDirection: 'row',
     gap: Spacing.xxs,
     flex: 1,
   },

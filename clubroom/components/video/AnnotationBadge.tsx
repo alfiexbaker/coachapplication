@@ -5,10 +5,11 @@
  * Can be used in lists, cards, and as filter indicators.
  */
 
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
@@ -87,7 +88,9 @@ export function AnnotationBadge({
   const currentVariant = variantStyles[variant];
 
   const content = (
-    <View
+    <Row
+      align="center"
+      gap={currentSize.gap}
       style={[
         styles.badge,
         {
@@ -95,7 +98,6 @@ export function AnnotationBadge({
           borderColor: currentVariant.borderColor,
           paddingHorizontal: currentSize.paddingHorizontal,
           paddingVertical: currentSize.paddingVertical,
-          gap: currentSize.gap,
         },
       ]}
     >
@@ -116,7 +118,7 @@ export function AnnotationBadge({
           {config.label}
         </ThemedText>
       )}
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -132,8 +134,6 @@ export function AnnotationBadge({
 
 const styles = StyleSheet.create({
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: Radii.sm,
     borderWidth: 1,
   },

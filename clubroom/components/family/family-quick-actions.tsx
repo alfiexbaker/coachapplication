@@ -47,7 +47,7 @@ export const FamilyQuickActions = memo(function FamilyQuickActions({
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
-  card: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.lg, gap: Spacing.md },
+  card: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.lg, gap: Spacing.md },
   icon: { width: 48, height: 48, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: Spacing.micro },
 });

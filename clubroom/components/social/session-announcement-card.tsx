@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { AggregatedFeedPost } from '@/services/social-feed-service';
@@ -49,17 +50,17 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
       ]}
     >
       {/* Session type chip */}
-      <View style={styles.sessionCardHeader}>
-        <View style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+      <Row align="center" justify="between">
+        <Row align="center" gap="xxs" style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
           <Ionicons name="fitness" size={14} color={palette.tint} />
           <ThemedText style={[styles.sessionTypeBadgeText, { color: palette.tint }]}>
             {post.sessionType?.replace('_', ' ') || 'Open Session'}
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.priceLabel, { color: palette.success }]}>
           {priceLabel}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Session title */}
       <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>
@@ -67,25 +68,25 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
       </ThemedText>
 
       {/* Compact details row */}
-      <View style={styles.sessionDetailsGrid}>
+      <Row wrap gap="sm">
         {dateLabel ? (
-          <View style={styles.sessionDetailItem}>
+          <Row align="center" gap="xxs">
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.detailText, { color: palette.text }]}>
               {dateLabel}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
         {post.sessionTime ? (
-          <View style={styles.sessionDetailItem}>
+          <Row align="center" gap="xxs">
             <Ionicons name="time-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.detailText, { color: palette.text }]}>
               {post.sessionTime}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
         {post.eventLocation ? (
-          <View style={styles.sessionDetailItem}>
+          <Row align="center" gap="xxs">
             <Ionicons name="location-outline" size={14} color={palette.muted} />
             <ThemedText
               style={[styles.detailText, { color: palette.text }]}
@@ -93,9 +94,9 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
             >
               {post.eventLocation}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
-      </View>
+      </Row>
 
       {/* Book Now CTA */}
       <Clickable
@@ -120,15 +121,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     gap: Spacing.xs,
   },
-  sessionCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   sessionTypeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
@@ -143,16 +136,6 @@ const styles = StyleSheet.create({
   },
   sessionTitle: {
     ...Typography.subheading,
-  },
-  sessionDetailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  sessionDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
   },
   detailText: {
     ...Typography.small,

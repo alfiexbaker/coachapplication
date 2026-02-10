@@ -7,6 +7,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { getTierColour } from '@/hooks/use-booking-cancel';
 import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface CancelPolicyTiersProps {
   policy: CancellationPolicy;
@@ -23,7 +24,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <Ionicons name="document-text-outline" size={20} color={palette.tint} />
         <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
         <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -31,7 +32,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
             {policy.name}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <View style={styles.tiers}>
         {sortedTiers.map((tier, index) => {
@@ -62,7 +63,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
                   ]}
                 />
                 <View style={styles.tierContent}>
-                  <View style={styles.tierTopRow}>
+                  <Row style={styles.tierTopRow}>
                     <ThemedText
                       type="defaultSemiBold"
                       style={[styles.tierPercent, { color: tierColor }]}
@@ -74,7 +75,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
                         <ThemedText style={[styles.activeText, { color: palette.onPrimary }]}>Current</ThemedText>
                       </View>
                     )}
-                  </View>
+                  </Row>
                   <ThemedText style={[styles.tierDesc, { color: palette.muted }]}>
                     {tier.description}
                   </ThemedText>
@@ -90,17 +91,17 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { alignItems: 'center', gap: Spacing.sm },
   badge: { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   badgeText: { ...Typography.caption },
   tiers: { marginTop: Spacing.xs },
   tierContainer: { position: 'relative' },
   connector: { position: 'absolute', left: 11, top: -6, width: 2, height: 12 },
-  tierRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  tierRow: { alignItems: 'flex-start', gap: Spacing.sm, paddingVertical: Spacing.xs },
   dot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: 5 },
   dotActive: { width: 14, height: 14, borderRadius: Radii.sm, marginTop: Spacing.micro, marginLeft: -2, marginRight: -2 },
   tierContent: { flex: 1 },
-  tierTopRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  tierTopRow: { alignItems: 'center', gap: Spacing.xs },
   tierPercent: { ...Typography.bodySmall },
   activeBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.xs },
   activeText: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },

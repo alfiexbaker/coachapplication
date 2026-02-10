@@ -15,6 +15,7 @@ import { Button } from '@/components/primitives/button';
 import { AddChildBasicStep } from '@/components/family/add-child-basic-step';
 import { AddChildMedicalStep } from '@/components/family/add-child-medical-step';
 import { AddChildEmergencyStep, AddChildConsentsStep } from '@/components/family/add-child-emergency-step';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAddChild, STEPS, STEP_TITLES } from '@/hooks/use-add-child';
@@ -36,27 +37,27 @@ export default function AddChildScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+      <Row style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={c.goBack} hitSlop={8}>
           <Ionicons name={c.isFirstStep ? 'close' : 'arrow-back'} size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="subtitle">Add Child</ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       {/* Step Indicator */}
-      <View style={styles.stepIndicator}>
+      <Row style={styles.stepIndicator}>
         {STEPS.map((step, index) => (
-          <View key={step} style={styles.stepDotContainer}>
+          <Row key={step} style={styles.stepDotContainer}>
             <View style={[styles.stepDot, { backgroundColor: index <= c.stepIndex ? palette.tint : palette.border }]}>
               {index < c.stepIndex && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
             </View>
             {index < STEPS.length - 1 && (
               <View style={[styles.stepLine, { backgroundColor: index < c.stepIndex ? palette.tint : palette.border }]} />
             )}
-          </View>
+          </Row>
         ))}
-      </View>
+      </Row>
 
       {/* Step Title */}
       <View style={styles.stepHeader}>
@@ -86,9 +87,9 @@ export default function AddChildScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
-  stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg },
-  stepDotContainer: { flexDirection: 'row', alignItems: 'center' },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  stepIndicator: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg },
+  stepDotContainer: { alignItems: 'center' },
   stepDot: { width: 24, height: 24, borderRadius: Radii.full, alignItems: 'center', justifyContent: 'center' },
   stepLine: { width: 40, height: 2, marginHorizontal: Spacing.xxs },
   stepHeader: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm },

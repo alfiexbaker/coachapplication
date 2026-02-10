@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Gender, Relationship } from '@/services/child-service';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export const NameFieldsRow = memo(function NameFieldsRow({
 }: NameFieldsRowProps) {
   return (
     <>
-      <View style={styles.row}>
+      <Row style={styles.row}>
         <View style={styles.halfField}>
           <ThemedText style={styles.label}>First Name *</ThemedText>
           <TextInput
@@ -116,7 +117,7 @@ export const NameFieldsRow = memo(function NameFieldsRow({
             autoCapitalize="words"
           />
         </View>
-      </View>
+      </Row>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Nickname (optional)</ThemedText>
@@ -204,7 +205,7 @@ export const OptionChipGrid = memo(function OptionChipGrid<T extends string>({
   return (
     <View style={styles.field}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      <View style={styles.optionGrid}>
+      <Row style={styles.optionGrid}>
         {options.map((opt) => (
           <Clickable
             key={opt.id}
@@ -227,7 +228,7 @@ export const OptionChipGrid = memo(function OptionChipGrid<T extends string>({
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
     </View>
   );
 }) as <T extends string>(props: OptionChipGridProps<T>) => React.ReactElement;
@@ -272,7 +273,6 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   row: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   halfField: {
@@ -292,17 +292,14 @@ export const styles = StyleSheet.create({
     ...Typography.body,
   },
   dateInput: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   optionGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
   optionChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,

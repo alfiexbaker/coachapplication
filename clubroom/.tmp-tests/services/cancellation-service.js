@@ -17,7 +17,6 @@ exports.cancellationService = void 0;
 const api_client_1 = require("./api-client");
 const scheduling_rules_service_1 = require("@/services/scheduling-rules-service");
 const logger_1 = require("@/utils/logger");
-const event_bus_1 = require("@/services/event-bus");
 const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('CancellationService');
@@ -44,18 +43,6 @@ async function loadNoShowCounts() {
         logger.error('Failed to load no-show counts', error);
         return {};
     }
-}
-async function loadNoShowRecords() {
-    try {
-        return await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.NO_SHOW_RECORDS, []);
-    }
-    catch (error) {
-        logger.error('Failed to load no-show records', error);
-        return [];
-    }
-}
-async function saveNoShowRecords(records) {
-    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.NO_SHOW_RECORDS, records);
 }
 async function saveNoShowCounts(counts) {
     await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.NO_SHOW_COUNTS, counts);
@@ -231,64 +218,5 @@ exports.cancellationService = {
             topReasons,
             avgHoursBeforeSession: Math.round(avgHours * 10) / 10,
         };
-    },
-    // ---------------------------------------------------------------------------
-    // No-Show Record Methods
-    // ---------------------------------------------------------------------------
-    /**
-     * Record a no-show with a structured category.
-     * Persists a full NoShowRecord, increments the family counter, and emits an event.
-     */
-    async recordNoShow(params) {
-        const record = {
-            id: `noshow_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-            bookingId: params.bookingId,
-            coachId: params.coachId,
-            familyId: params.familyId,
-            athleteId: params.athleteId,
-            athleteName: params.athleteName,
-            category: params.category,
-            note: params.note,
-            sessionDate: params.sessionDate,
-            markedAt: new Date().toISOString(),
-        };
-        try {
-            const records = await loadNoShowRecords();
-            records.push(record);
-            await saveNoShowRecords(records);
-            // Increment the family-level counter
-            await this.incrementNoShow(params.familyId);
-            // Emit event
-            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.NO_SHOW_RECORDED, {
-                bookingId: params.bookingId,
-                coachId: params.coachId,
-                familyId: params.familyId,
-                category: params.category,
-            });
-            logger.info('No-show recorded', {
-                bookingId: params.bookingId,
-                athleteName: params.athleteName,
-                category: params.category,
-            });
-            return (0, result_1.ok)(record);
-        }
-        catch (error) {
-            logger.error('Failed to record no-show', error);
-            return (0, result_1.err)((0, result_1.storageError)('Failed to record no-show'));
-        }
-    },
-    /**
-     * Get all no-show records for a coach.
-     */
-    async getNoShowRecords(coachId) {
-        const records = await loadNoShowRecords();
-        return records.filter((r) => r.coachId === coachId);
-    },
-    /**
-     * Get all no-show records for a family.
-     */
-    async getNoShowRecordsForFamily(familyId) {
-        const records = await loadNoShowRecords();
-        return records.filter((r) => r.familyId === familyId);
     },
 };

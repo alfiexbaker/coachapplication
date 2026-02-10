@@ -11,6 +11,7 @@ import { Spacing, Radii, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── Re-export ──────────────────────────────────────────────────────────────
 
@@ -59,20 +60,20 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
 
         <View style={styles.content}>
           {/* Header with category and priority */}
-          <View style={styles.header}>
+          <Row style={styles.header}>
             {categoryInfo && (
-              <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
+              <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
                 <Ionicons name={categoryInfo.icon as keyof typeof Ionicons.glyphMap} size={12} color={categoryInfo.color} />
                 <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>{categoryInfo.label}</ThemedText>
-              </View>
+              </Row>
             )}
             {!assignment.isCompleted && assignment.priority === 1 && (
-              <View style={[styles.priorityBadgeFull, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+              <Row style={[styles.priorityBadgeFull, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="alert-circle" size={12} color={palette.error} />
                 <ThemedText style={[styles.priorityText, { color: palette.error }]}>Priority</ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
 
           {/* Title */}
           <ThemedText
@@ -85,43 +86,43 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
 
           {/* Coach notes */}
           {assignment.notes && (
-            <View style={[styles.notesContainer, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row style={[styles.notesContainer, { backgroundColor: palette.surfaceSecondary }]}>
               <Ionicons name="chatbubble-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.notesText, { color: palette.muted }]} numberOfLines={2}>
                 {assignment.notes}
               </ThemedText>
-            </View>
+            </Row>
           )}
 
           {/* Footer with due date and actions */}
-          <View style={[styles.footer, { borderTopColor: palette.border }]}>
-            <View style={styles.dueDateContainer}>
+          <Row style={[styles.footer, { borderTopColor: palette.border }]}>
+            <Row style={styles.dueDateContainer}>
               <Ionicons name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'} size={16} color={statusColor} />
               <ThemedText style={[styles.dueDateText, { color: statusColor }]}>
                 {getDueDateText(assignment, isOverdue, isDueSoon)}
               </ThemedText>
-            </View>
-            <View style={styles.footerRight}>
+            </Row>
+            <Row style={styles.footerRight}>
               {drill && <DifficultyBadge difficulty={drill.difficulty} size="small" />}
               {drill?.duration && (
-                <View style={styles.durationBadge}>
+                <Row style={styles.durationBadge}>
                   <Ionicons name="time-outline" size={12} color={palette.muted} />
                   <ThemedText style={[styles.durationText, { color: palette.muted }]}>
                     {drillService.formatDuration(drill.duration)}
                   </ThemedText>
-                </View>
+                </Row>
               )}
-            </View>
-          </View>
+            </Row>
+          </Row>
 
           {/* Repetitions indicator */}
           {assignment.repetitions && assignment.repetitions > 1 && (
-            <View style={[styles.repetitionsContainer, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row style={[styles.repetitionsContainer, { backgroundColor: palette.surfaceSecondary }]}>
               <Ionicons name="repeat" size={14} color={palette.tint} />
               <ThemedText style={[styles.repetitionsText, { color: palette.tint }]}>
                 {assignment.repetitions} sets
               </ThemedText>
-            </View>
+            </Row>
           )}
 
           {/* Complete button */}
@@ -149,23 +150,23 @@ const styles = StyleSheet.create({
   playOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.3)', alignItems: 'center', justifyContent: 'center' },
   playButton: { width: 44, height: 44, borderRadius: Radii.xl, backgroundColor: 'rgba(0, 0, 0, 0.6)', alignItems: 'center', justifyContent: 'center' },
   content: { padding: Components.card.padding, gap: Spacing.xs },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  header: { alignItems: 'center', gap: Spacing.xs },
+  categoryBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   categoryText: { fontSize: scaleFont(11), fontWeight: '600' },
-  priorityBadgeFull: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  priorityBadgeFull: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   priorityText: { fontSize: scaleFont(11), fontWeight: '600' },
   title: { fontSize: scaleFont(17), fontWeight: '700', letterSpacing: -0.3, lineHeight: scaleFont(24) },
   completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
-  notesContainer: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: Spacing.sm, borderRadius: Radii.sm, marginTop: Spacing.xxs },
+  notesContainer: { alignItems: 'flex-start', gap: 8, padding: Spacing.sm, borderRadius: Radii.sm, marginTop: Spacing.xxs },
   notesText: { flex: 1, fontSize: scaleFont(13), lineHeight: scaleFont(18), fontStyle: 'italic' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs, paddingTop: Spacing.sm, borderTopWidth: 1 },
-  dueDateContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  footer: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs, paddingTop: Spacing.sm, borderTopWidth: 1 },
+  dueDateContainer: { alignItems: 'center', gap: Spacing.xxs },
   dueDateText: { fontSize: scaleFont(13), fontWeight: '600' },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  durationBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  footerRight: { alignItems: 'center', gap: Spacing.sm },
+  durationBadge: { alignItems: 'center', gap: Spacing.xxs },
   durationText: { fontSize: scaleFont(12) },
-  repetitionsContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, marginTop: Spacing.xxs },
+  repetitionsContainer: { alignItems: 'center', gap: Spacing.xxs, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, marginTop: Spacing.xxs },
   repetitionsText: { fontSize: scaleFont(13), fontWeight: '600' },
-  completeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, marginTop: Spacing.sm },
+  completeButton: { alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, marginTop: Spacing.sm },
   completeButtonText: { fontSize: scaleFont(15), fontWeight: '600' },
 });

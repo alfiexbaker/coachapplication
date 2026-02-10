@@ -15,6 +15,7 @@ export { ROLE_LABELS, getRoleBadgeColor, MemberRowItem } from './group-members-m
 export type { MemberRowItemProps } from './group-members-modal-sections';
 
 import { MemberRowItem } from './group-members-modal-sections';
+import { Row } from '@/components/primitives';
 
 interface GroupMembersModalProps {
   visible: boolean;
@@ -66,12 +67,12 @@ function GroupMembersModalInner({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]}>
-        <View style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
           <ThemedText type="title" style={styles.modalTitle}>Members ({members.length})</ThemedText>
           <Clickable accessibilityLabel="Close" onPress={onClose}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
 
         <View style={[styles.roleBreakdownBar, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
           <ThemedText style={[styles.roleBreakdownText, { color: palette.muted }]}>
@@ -80,10 +81,10 @@ function GroupMembersModalInner({
         </View>
 
         {isAdmin && (
-          <View style={styles.manageMembersHeader}>
+          <Row style={styles.manageMembersHeader}>
             <Ionicons name="shield-checkmark-outline" size={18} color={palette.tint} />
             <ThemedText style={[styles.manageMembersLabel, { color: palette.tint }]}>Manage Members</ThemedText>
-          </View>
+          </Row>
         )}
 
         <FlatList
@@ -103,7 +104,6 @@ export const GroupMembersModal = React.memo(GroupMembersModalInner);
 const styles = StyleSheet.create({
   modalContainer: { flex: 1 },
   modalHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
@@ -118,7 +118,6 @@ const styles = StyleSheet.create({
   },
   roleBreakdownText: { ...Typography.caption },
   manageMembersHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,

@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import type { AttendanceStatus } from '@/hooks/use-group-roster';
+import { Row } from '@/components/primitives';
 
 export interface RollCallModalProps {
   visible: boolean;
@@ -33,7 +34,7 @@ export const RollCallModal = memo(function RollCallModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Row style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <ThemedText type="defaultSemiBold" style={Typography.heading}>Roll Call</ThemedText>
@@ -46,7 +47,7 @@ export const RollCallModal = memo(function RollCallModal({
           >
             <ThemedText style={{ color: stats.unmarked === 0 ? colors.onPrimary : colors.muted, fontWeight: '600' }}>Save</ThemedText>
           </Pressable>
-        </View>
+        </Row>
 
         <Animated.View entering={FadeIn.delay(100)} style={[styles.stats, { backgroundColor: colors.surface }]}>
           {[
@@ -102,7 +103,7 @@ export const RollCallModal = memo(function RollCallModal({
           <View style={{ height: 40 }} />
         </ScrollView>
 
-        <View style={[styles.quickActions, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        <Row style={[styles.quickActions, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
           <Pressable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.success, 0.09) }]} onPress={onMarkAllPresent}>
             <Ionicons name="checkmark-done" size={18} color={colors.success} />
             <ThemedText style={[Typography.smallSemiBold, { color: colors.success }]}>All Present</ThemedText>
@@ -111,7 +112,7 @@ export const RollCallModal = memo(function RollCallModal({
             <Ionicons name="refresh" size={18} color={colors.muted} />
             <ThemedText style={[Typography.smallSemiBold, { color: colors.muted }]}>Reset</ThemedText>
           </Pressable>
-        </View>
+        </Row>
       </SafeAreaView>
     </Modal>
   );
@@ -119,15 +120,15 @@ export const RollCallModal = memo(function RollCallModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   saveBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
-  stats: { flexDirection: 'row', justifyContent: 'space-around', padding: Spacing.md, marginHorizontal: Spacing.lg, marginVertical: Spacing.md, borderRadius: Radii.md },
+  stats: { justifyContent: 'space-around', padding: Spacing.md, marginHorizontal: Spacing.lg, marginVertical: Spacing.md, borderRadius: Radii.md },
   statItem: { alignItems: 'center', gap: Spacing.xxs },
   dot: { width: 10, height: 10, borderRadius: Radii.sm },
   item: { padding: Spacing.md, borderRadius: Radii.md, marginBottom: Spacing.sm },
   avatar: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   actionBtn: { width: 44, height: 44, borderRadius: Radii.xl, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   injuryBtn: { width: 44, height: 44, borderRadius: Radii.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: Spacing.xxs },
-  quickActions: { flexDirection: 'row', justifyContent: 'space-around', padding: Spacing.md, borderTopWidth: 1, paddingBottom: Spacing.lg },
-  quickBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  quickActions: { justifyContent: 'space-around', padding: Spacing.md, borderTopWidth: 1, paddingBottom: Spacing.lg },
+  quickBtn: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
 });

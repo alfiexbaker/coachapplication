@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -37,44 +38,44 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
 
   return (
     <SurfaceCard style={styles.card} onPress={handlePress}>
-      <View style={styles.header}>
+      <Row justify="space-between" align="flex-start">
         <View style={styles.headerLeft}>
-          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
+          <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <Ionicons name={getStatusIcon(invoice.status)} size={14} color={statusColor} />
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
               {invoiceService.getStatusLabel(invoice.status)}
             </ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.invoiceNumber, { color: palette.muted }]}>{invoice.invoiceNumber}</ThemedText>
         </View>
         <ThemedText type="subtitle" style={styles.amount}>{invoiceService.formatAmount(invoice.total)}</ThemedText>
-      </View>
+      </Row>
 
       <View style={styles.details}>
-        <View style={styles.detailRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="person-outline" size={16} color={palette.muted} />
           <ThemedText style={styles.detailText}>{invoice.athleteName}</ThemedText>
-        </View>
-        <View style={styles.detailRow}>
+        </Row>
+        <Row align="center" gap="xs">
           <Ionicons name="fitness-outline" size={16} color={palette.muted} />
           <ThemedText style={styles.detailText} numberOfLines={1}>{invoice.sessionType || 'Training Session'}</ThemedText>
-        </View>
-        <View style={styles.detailRow}>
+        </Row>
+        <Row align="center" gap="xs">
           <Ionicons name="calendar-outline" size={16} color={palette.muted} />
           <ThemedText style={styles.detailText}>{formatDate(invoice.sessionDate)}</ThemedText>
-        </View>
+        </Row>
       </View>
 
-      <View style={[styles.coachRow, { borderTopColor: palette.border }]}>
+      <Row justify="space-between" align="center" style={[styles.coachRow, { borderTopColor: palette.border }]}>
         <ThemedText style={[styles.coachLabel, { color: palette.muted }]}>Coach</ThemedText>
         <ThemedText type="defaultSemiBold">{invoice.coachName}</ThemedText>
-      </View>
+      </Row>
 
       {invoice.status === 'SENT' && invoice.dueDate && (
-        <View style={[styles.dueWarning, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+        <Row align="center" gap="xs" style={[styles.dueWarning, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
           <Ionicons name="time-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.dueText, { color: palette.warning }]}>Due by {formatDate(invoice.dueDate)}</ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -82,25 +83,20 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerLeft: { gap: Spacing.xxs },
   statusBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, alignSelf: 'flex-start',
   },
   statusText: { ...Typography.caption },
   invoiceNumber: { ...Typography.caption },
   amount: { ...Typography.title },
   details: { gap: Spacing.xxs },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   detailText: { ...Typography.bodySmall, flex: 1 },
   coachRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, marginTop: Spacing.xs,
   },
   coachLabel: { ...Typography.small },
   dueWarning: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
     paddingVertical: Spacing.xxs, paddingHorizontal: Spacing.xs, borderRadius: Radii.sm,
   },
   dueText: { ...Typography.caption },

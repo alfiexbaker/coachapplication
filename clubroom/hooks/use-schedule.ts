@@ -45,6 +45,7 @@ export function useSchedule() {
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
 
   // Availability segment state
@@ -74,6 +75,7 @@ export function useSchedule() {
   // Load all data
   const loadData = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
+    setError(null);
     try {
       const results = await Promise.allSettled([
         availabilityService.getTemplates(coachId),
@@ -125,6 +127,7 @@ export function useSchedule() {
       }
     } catch (err) {
       logger.error('Failed to load schedule', err);
+      setError('Failed to load schedule. Pull down to retry.');
     } finally {
       if (showSpinner) setLoading(false);
     }
@@ -470,6 +473,8 @@ export function useSchedule() {
   return {
     // State
     loading,
+    error,
+    retry: loadData,
     segment,
     weekData,
     todayData,

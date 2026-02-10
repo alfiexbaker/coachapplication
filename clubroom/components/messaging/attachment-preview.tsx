@@ -3,6 +3,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -46,7 +47,7 @@ export const AttachmentPreview = memo(function AttachmentPreview({
 
   if (compact) {
     return (
-      <View style={[styles.compactPreview, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Row align="center" gap="xs" style={[styles.compactPreview, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <Ionicons name={iconName} size={14} color={palette.tint} />
         <ThemedText style={styles.compactName} numberOfLines={1}>{attachment.name}</ThemedText>
         {onRemove && (
@@ -54,12 +55,12 @@ export const AttachmentPreview = memo(function AttachmentPreview({
             <Ionicons name="close-circle" size={16} color={palette.muted} />
           </Clickable>
         )}
-      </View>
+      </Row>
     );
   }
 
   return (
-    <View style={[styles.previewCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row align="center" gap="md" style={[styles.previewCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       {attachment.type === 'IMAGE' && attachment.thumbnailUrl ? (
         <Image source={{ uri: attachment.thumbnailUrl }} style={styles.previewImage} />
       ) : (
@@ -78,16 +79,16 @@ export const AttachmentPreview = memo(function AttachmentPreview({
           <Ionicons name="trash-outline" size={18} color={palette.error} />
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  compactPreview: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1, maxWidth: 150 },
+  compactPreview: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1, maxWidth: 150 },
   compactName: { ...Typography.caption, flex: 1 },
-  previewCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.md },
+  previewCard: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   previewImage: { width: 48, height: 48, borderRadius: Radii.sm },
   previewPlaceholder: { width: 48, height: 48, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
   previewInfo: { flex: 1, gap: Spacing.micro },

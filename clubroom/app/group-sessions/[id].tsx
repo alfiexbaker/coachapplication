@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistBanner } from '@/components/group/waitlist-banner';
@@ -34,12 +35,12 @@ export default function GroupSessionDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
           <ThemedText type="title">Loading...</ThemedText>
-        </View>
+        </Row>
       </SafeAreaView>
     );
   }
@@ -61,7 +62,7 @@ export default function GroupSessionDetailScreen() {
 
         <View style={styles.content}>
           {/* Title & Price */}
-          <View style={styles.titleSection}>
+          <Row justify="between" align="start" style={styles.titleSection}>
             <View style={{ flex: 1 }}>
               <ThemedText type="title">{session.title}</ThemedText>
               {session.clubName && (
@@ -74,7 +75,7 @@ export default function GroupSessionDetailScreen() {
               </ThemedText>
               {!isFree && <ThemedText style={[Typography.caption, { color: colors.muted }]}>per person</ThemedText>}
             </View>
-          </View>
+          </Row>
 
           {/* Waitlist */}
           {isFull && session.waitlistEnabled && (
@@ -82,12 +83,12 @@ export default function GroupSessionDetailScreen() {
           )}
 
           {/* Capacity */}
-          <View style={[styles.capacityBadge, { backgroundColor: withAlpha(capacityColor, 0.09) }]}>
+          <Row align="center" gap="xs" style={[styles.capacityBadge, { backgroundColor: withAlpha(capacityColor, 0.09) }]}>
             <Ionicons name={isFull ? 'warning' : 'people'} size={18} color={capacityColor} />
             <ThemedText style={{ color: capacityColor, fontWeight: '600' }}>
               {isFull ? `Full - ${session.waitlistCount} on waitlist` : `${spotsLeft} of ${session.maxParticipants} spots left`}
             </ThemedText>
-          </View>
+          </Row>
 
           <GroupSessionDetails session={session} />
           {isCoach && <GroupSessionCoachActions sessionId={id} rosterCount={roster.length} onCancel={handleCancel} />}
@@ -98,7 +99,7 @@ export default function GroupSessionDetailScreen() {
 
       {/* Registration Footer */}
       {userHasChildren && !isFull && (
-        <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <Row align="center" justify="between" style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
           <View>
             <ThemedText type="heading" style={{ color: colors.tint }}>
               {isFree ? 'Free' : groupSessionService.formatPrice(session.pricePerParticipant, session.currency)}
@@ -108,7 +109,7 @@ export default function GroupSessionDetailScreen() {
           <Button onPress={handleRegister} disabled={registering}>
             {registering ? 'Registering...' : 'Register Now'}
           </Button>
-        </View>
+        </Row>
       )}
     </SafeAreaView>
   );
@@ -116,10 +117,10 @@ export default function GroupSessionDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   content: { padding: Spacing.lg, gap: Spacing.md },
-  titleSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  titleSection: {},
   priceSection: { alignItems: 'flex-end' },
-  capacityBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, alignSelf: 'flex-start' },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.lg, borderTopWidth: 1 },
+  capacityBadge: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, alignSelf: 'flex-start' },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.lg, borderTopWidth: 1 },
 });

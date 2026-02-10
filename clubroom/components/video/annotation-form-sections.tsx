@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -36,7 +37,7 @@ export const TimestampControl = memo(function TimestampControl({
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Timestamp</ThemedText>
-      <View style={styles.timestampControl}>
+      <Row align="center" gap="sm">
         <Clickable
           accessibilityLabel="Rewind 5 seconds"
           onPress={() => onAdjust(-5)}
@@ -44,7 +45,7 @@ export const TimestampControl = memo(function TimestampControl({
         >
           <Ionicons name="remove" size={20} color={palette.text} />
         </Clickable>
-        <View style={[styles.timestampDisplay, { backgroundColor: palette.background }]}>
+        <Row flex align="center" justify="center" gap="xs" style={[styles.timestampDisplay, { backgroundColor: palette.background }]}>
           <Ionicons name="time-outline" size={18} color={palette.tint} />
           <ThemedText type="defaultSemiBold" style={styles.timestampText}>
             {formatTimestamp(timestamp)}
@@ -52,7 +53,7 @@ export const TimestampControl = memo(function TimestampControl({
           <ThemedText style={[styles.timestampTotal, { color: palette.muted }]}>
             / {formatTimestamp(videoDuration)}
           </ThemedText>
-        </View>
+        </Row>
         <Clickable
           accessibilityLabel="Forward 5 seconds"
           onPress={() => onAdjust(5)}
@@ -60,7 +61,7 @@ export const TimestampControl = memo(function TimestampControl({
         >
           <Ionicons name="add" size={20} color={palette.text} />
         </Clickable>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -83,7 +84,7 @@ export const TypeSelectorGrid = memo(function TypeSelectorGrid({
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Type</ThemedText>
-      <View style={styles.typesGrid}>
+      <Row gap="xs" wrap>
         {FORM_ANNOTATION_TYPES.map((annotationType) => {
           const config = ANNOTATION_TYPE_CONFIG[annotationType];
           const isSelected = selectedType === annotationType;
@@ -108,7 +109,7 @@ export const TypeSelectorGrid = memo(function TypeSelectorGrid({
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -131,24 +132,24 @@ export const AnnotationPreview = memo(function AnnotationPreview({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.preview, { backgroundColor: withAlpha(typeColor, 0.06), borderColor: typeColor }]}>
+    <Row align="start" gap="sm" style={[styles.preview, { backgroundColor: withAlpha(typeColor, 0.06), borderColor: typeColor }]}>
       <View style={[styles.previewDot, { backgroundColor: typeColor }]} />
       <View style={styles.previewContent}>
-        <View style={styles.previewHeader}>
+        <Row align="center" justify="between">
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
             {label || 'Enter a label...'}
           </ThemedText>
           <ThemedText style={[styles.previewTime, { color: palette.muted }]}>
             {formatTimestamp(timestamp)}
           </ThemedText>
-        </View>
+        </Row>
         {note ? (
           <ThemedText style={[styles.previewNote, { color: palette.muted }]} numberOfLines={1}>
             {note}
           </ThemedText>
         ) : null}
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -166,10 +167,10 @@ export const ErrorDisplay = memo(function ErrorDisplay({ errors }: ErrorDisplayP
   return (
     <Animated.View entering={FadeIn} style={styles.errorsContainer}>
       {errors.map((error, index) => (
-        <View key={index} style={styles.errorRow}>
+        <Row key={index} align="center" gap="xxs">
           <Ionicons name="alert-circle" size={14} color={palette.error} />
           <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
-        </View>
+        </Row>
       ))}
     </Animated.View>
   );
@@ -180,22 +181,18 @@ export const ErrorDisplay = memo(function ErrorDisplay({ errors }: ErrorDisplayP
 const styles = StyleSheet.create({
   section: { gap: Spacing.xs },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
-  timestampControl: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   timestampButton: { width: 40, height: 40, borderRadius: Radii.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  timestampDisplay: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
+  timestampDisplay: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
   timestampText: { ...Typography.heading },
   timestampTotal: { ...Typography.bodySmall },
-  typesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   typeOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs },
   typeIcon: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   typeLabel: { ...Typography.smallSemiBold },
-  preview: { flexDirection: 'row', alignItems: 'flex-start', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
+  preview: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   previewDot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: Spacing.xxs },
   previewContent: { flex: 1, gap: Spacing.micro },
-  previewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   previewTime: { ...Typography.caption },
   previewNote: { ...Typography.small },
   errorsContainer: { gap: Spacing.xxs },
-  errorRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   errorText: { ...Typography.caption },
 });

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export const TimelineEntryRow = memo(function TimelineEntryRow({
   const dotColor = getDotColor(entry.type, palette);
 
   return (
-    <View style={styles.entryRow}>
+    <Row style={styles.entryRow}>
       <View style={styles.spine}>
         <View style={[styles.dot, { backgroundColor: dotColor }]}>
           <Ionicons name={icon.name} size={12} color={palette.surface} />
@@ -112,7 +113,7 @@ export const TimelineEntryRow = memo(function TimelineEntryRow({
           {formatDate(entry.date)}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -120,7 +121,6 @@ export const TimelineEntryRow = memo(function TimelineEntryRow({
 
 const styles = StyleSheet.create({
   entryRow: {
-    flexDirection: 'row',
     marginLeft: Spacing.xs,
   },
   spine: {

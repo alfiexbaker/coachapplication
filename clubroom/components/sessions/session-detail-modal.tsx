@@ -4,6 +4,7 @@
  * Hook: useSessionDetailModal
  */
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -58,13 +59,13 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row align="center" justify="between" style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable accessibilityLabel="Close" onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>Session Details</ThemedText>
           <View style={{ width: 28 }} />
-        </View>
+        </Row>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <SessionInfoSection
@@ -126,10 +127,12 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               onPress={() => { onClose(); router.push(Routes.sessionComplete(offering.id)); }}
               style={[styles.completeButton, { backgroundColor: palette.success, ...Shadows[scheme].card }]}
             >
-              <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
-              <ThemedText style={[styles.completeButtonText, { color: palette.onSuccess }]}>
-                Complete Session
-              </ThemedText>
+              <Row align="center" justify="center" gap={10}>
+                <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
+                <ThemedText style={[styles.completeButtonText, { color: palette.onSuccess }]}>
+                  Complete Session
+                </ThemedText>
+              </Row>
             </Clickable>
           </View>
         )}
@@ -140,13 +143,13 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0 },
+  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0 },
   closeButton: { padding: 8 },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4 },
   content: { flex: 1, padding: 20 },
   footer: { padding: 20, borderTopWidth: 0 },
   bookButton: { paddingVertical: 18, borderRadius: Radii.md, alignItems: 'center' },
   bookButtonText: { fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4 },
-  completeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18, borderRadius: Radii.md },
+  completeButton: { paddingVertical: 18, borderRadius: Radii.md },
   completeButtonText: { fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4 },
 });

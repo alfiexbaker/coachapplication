@@ -14,6 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const SlotCard = memo(function SlotCard({ template, onEdit, onDelete }: SlotCard
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.slotCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row style={[styles.slotCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={[styles.slotTime, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
         <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
           {template.startTime}
@@ -46,28 +47,28 @@ const SlotCard = memo(function SlotCard({ template, onEdit, onDelete }: SlotCard
 
       <View style={styles.slotInfo}>
         {template.location && (
-          <View style={styles.slotDetail}>
+          <Row style={styles.slotDetail}>
             <Ionicons name="location-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.slotDetailText, { color: palette.text }]}>
               {template.location}
             </ThemedText>
-          </View>
+          </Row>
         )}
-        <View style={styles.slotDetail}>
+        <Row style={styles.slotDetail}>
           <Ionicons name="people-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.slotDetailText, { color: palette.muted }]}>
             Max {template.maxConcurrent} booking{template.maxConcurrent !== 1 ? 's' : ''}
           </ThemedText>
-        </View>
-        <View style={styles.slotDetail}>
+        </Row>
+        <Row style={styles.slotDetail}>
           <Ionicons name="time-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.slotDetailText, { color: palette.muted }]}>
             {template.bufferMinutes} min buffer
           </ThemedText>
-        </View>
+        </Row>
       </View>
 
-      <View style={styles.slotActions}>
+      <Row style={styles.slotActions}>
         <Clickable
           onPress={() => onEdit(template)}
           style={[styles.slotActionButton, { borderColor: palette.border }]}
@@ -81,8 +82,8 @@ const SlotCard = memo(function SlotCard({ template, onEdit, onDelete }: SlotCard
         >
           <Ionicons name="trash-outline" size={16} color={palette.error} />
         </Clickable>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -109,7 +110,7 @@ export function DayScheduleView({
 
   return (
     <View style={styles.daySchedule}>
-      <View style={styles.dayScheduleHeader}>
+      <Row style={styles.dayScheduleHeader}>
         <ThemedText type="subtitle">{FULL_DAYS[dayOfWeek]}</ThemedText>
         <Clickable
           onPress={onAddTemplate}
@@ -120,7 +121,7 @@ export function DayScheduleView({
             Add Slot
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       {dayTemplates.length === 0 ? (
         <View style={[styles.emptyDay, { backgroundColor: palette.surface }]}>
@@ -154,12 +155,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   dayScheduleHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   addButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
@@ -175,7 +174,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   slotCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
@@ -193,13 +191,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   slotDetail: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   slotDetailText: { ...Typography.small },
   slotActions: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   slotActionButton: {

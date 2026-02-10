@@ -5,11 +5,13 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader, SummaryRow } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
@@ -22,7 +24,7 @@ const PLATFORM_FEE_PERCENT = 0.15; // 15% platform fee
 export default function ReviewScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   const [coach, setCoach] = useState<Coach | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,20 +151,20 @@ export default function ReviewScreen() {
         <View style={[styles.card, { borderColor: palette.border }]}>
           <ThemedText type="defaultSemiBold">Promo code</ThemedText>
           {promoApplied ? (
-            <View style={styles.promoApplied}>
-              <View style={[styles.promoTag, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row style={styles.promoApplied}>
+              <Row style={[styles.promoTag, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={16} color={palette.success} />
                 <ThemedText style={[styles.promoTagText, { color: palette.success }]}>
                   {promoCode.toUpperCase()} applied
                 </ThemedText>
-              </View>
+              </Row>
               <Clickable onPress={handleRemovePromo}>
                 <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Remove</ThemedText>
               </Clickable>
-            </View>
+            </Row>
           ) : (
             <>
-              <View style={styles.promoInputRow}>
+              <Row style={styles.promoInputRow}>
                 <TextInput
                   value={promoCode}
                   onChangeText={setPromoCode}
@@ -181,7 +183,7 @@ export default function ReviewScreen() {
                 >
                   <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
                 </Clickable>
-              </View>
+              </Row>
               {promoError && (
                 <ThemedText style={{ color: palette.error, ...Typography.small }}>{promoError}</ThemedText>
               )}
@@ -217,8 +219,10 @@ export default function ReviewScreen() {
           }}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
-          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
+          <Row justify="center" align="center" gap="sm">
+            <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
+          </Row>
         </Clickable>
       </View>
     </SafeAreaView>
@@ -233,12 +237,12 @@ const styles = StyleSheet.create({
   divider: { height: 1, marginVertical: Spacing.xs },
   rateNote: { ...Typography.caption, textAlign: 'center' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
-  cta: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.button },
+  cta: { padding: Spacing.md, borderRadius: Radii.button },
   // Promo code styles
-  promoInputRow: { flexDirection: 'row', gap: Spacing.sm },
+  promoInputRow: { gap: Spacing.sm },
   promoInput: { flex: 1, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.bodySmall },
   promoApplyButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, justifyContent: 'center' },
-  promoApplied: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  promoTag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  promoApplied: { justifyContent: 'space-between', alignItems: 'center' },
+  promoTag: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   promoTagText: { ...Typography.smallSemiBold },
 });

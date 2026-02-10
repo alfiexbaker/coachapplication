@@ -3,6 +3,7 @@ import { View, StyleSheet, TextInput, Modal, ScrollView, Alert } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
@@ -75,7 +76,7 @@ export function AddAnnotationModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row align="center" justify="between" style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={handleClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
@@ -85,23 +86,23 @@ export function AddAnnotationModal({
               {saving ? 'Saving...' : 'Save'}
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Timestamp */}
-          <View style={[styles.timestampCard, { backgroundColor: palette.surface }]}>
+          <Row align="center" gap="md" style={[styles.timestampCard, { backgroundColor: palette.surface }]}>
             <Ionicons name="time-outline" size={24} color={palette.tint} />
             <View style={styles.timestampInfo}>
               <ThemedText style={[styles.timestampLabel, { color: palette.muted }]}>Timestamp</ThemedText>
               <ThemedText type="title">{formatTime(timestamp)}</ThemedText>
             </View>
             <ThemedText style={{ color: palette.muted }}>/ {formatTime(duration)}</ThemedText>
-          </View>
+          </Row>
 
           {/* Type Selection */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Type</ThemedText>
-            <View style={styles.typesRow}>
+            <Row gap="sm">
               {ANNOTATION_TYPES.map((annotationType) => {
                 const isSelected = type === annotationType.type;
                 return (
@@ -125,7 +126,7 @@ export function AddAnnotationModal({
                   </Clickable>
                 );
               })}
-            </View>
+            </Row>
           </View>
 
           {/* Label */}
@@ -161,16 +162,16 @@ export function AddAnnotationModal({
           {/* Preview */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Preview</ThemedText>
-            <View style={[styles.previewCard, { backgroundColor: withAlpha(selectedTypeConfig.color, 0.06), borderColor: selectedTypeConfig.color }]}>
+            <Row align="start" gap="md" style={[styles.previewCard, { backgroundColor: withAlpha(selectedTypeConfig.color, 0.06), borderColor: selectedTypeConfig.color }]}>
               <View style={[styles.previewDot, { backgroundColor: selectedTypeConfig.color }]} />
               <View style={styles.previewContent}>
-                <View style={styles.previewHeader}>
+                <Row align="center" justify="between">
                   <ThemedText type="defaultSemiBold">{label || 'Enter a label...'}</ThemedText>
                   <ThemedText style={[styles.previewTime, { color: palette.muted }]}>{formatTime(timestamp)}</ThemedText>
-                </View>
+                </Row>
                 {note ? <ThemedText style={{ ...Typography.small, color: palette.muted }}>{note}</ThemedText> : null}
               </View>
-            </View>
+            </Row>
           </View>
         </ScrollView>
       </View>
@@ -182,23 +183,21 @@ export function AddAnnotationModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  timestampCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg, borderRadius: Radii.lg, gap: Spacing.md },
+  timestampCard: { padding: Spacing.lg, borderRadius: Radii.lg },
   timestampInfo: { flex: 1 },
   timestampLabel: { ...Typography.caption },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.bodySmallSemiBold },
-  typesRow: { flexDirection: 'row', gap: Spacing.sm },
   typeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs },
   typeIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   typeLabel: { ...Typography.caption },
   input: { ...Typography.subheading, height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
   textArea: { ...Typography.body, height: 80, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md, textAlignVertical: 'top' },
   charCount: { ...Typography.caption, textAlign: 'right' },
-  previewCard: { flexDirection: 'row', alignItems: 'flex-start', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.md },
+  previewCard: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   previewDot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: Spacing.xxs },
   previewContent: { flex: 1, gap: Spacing.xxs },
-  previewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   previewTime: { ...Typography.caption },
 });

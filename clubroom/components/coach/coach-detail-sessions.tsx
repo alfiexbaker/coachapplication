@@ -8,6 +8,7 @@ import { Button } from '@/components/primitives/button';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Coach } from '@/services/coach-service';
+import { Row } from '@/components/primitives';
 
 interface CoachDetailSessionsProps { coach: Coach; onBook: () => void; }
 
@@ -19,7 +20,7 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
       {/* Pricing */}
       <SurfaceCard style={styles.section}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Pricing</ThemedText>
-        <View style={styles.pricingRow}>
+        <Row style={styles.pricingRow}>
           <View style={styles.priceBox}>
             <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>From</ThemedText>
             <ThemedText type="title" style={{ color: palette.tint }}>£{coach.minPriceUsd}</ThemedText>
@@ -32,14 +33,14 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
               <ThemedText style={{ color: palette.muted, ...Typography.caption }}>per session</ThemedText>
             </View>
           )}
-        </View>
+        </Row>
       </SurfaceCard>
 
       {/* Availability */}
       <SurfaceCard style={styles.section}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Availability</ThemedText>
         {coach.nextAvailable ? (
-          <View style={styles.availabilityRow}>
+          <Row style={styles.availabilityRow}>
             <Ionicons name="calendar-outline" size={20} color={palette.success} />
             <ThemedText>
               Next available:{' '}
@@ -47,7 +48,7 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
                 {new Date(coach.nextAvailable).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
               </ThemedText>
             </ThemedText>
-          </View>
+          </Row>
         ) : (
           <ThemedText style={{ color: palette.muted }}>Check availability when booking</ThemedText>
         )}
@@ -56,7 +57,7 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
       {/* Stats */}
       <SurfaceCard style={styles.section}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Stats</ThemedText>
-        <View style={styles.statsGrid}>
+        <Row style={styles.statsGrid}>
           <View style={styles.statItem}>
             <ThemedText type="title" style={{ color: palette.tint }}>{coach.totalSessions}</ThemedText>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Sessions</ThemedText>
@@ -69,7 +70,7 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
             <ThemedText type="title" style={{ color: palette.tint }}>{new Date().getFullYear() - new Date(coach.joinedAt || Date.now()).getFullYear()}+</ThemedText>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Years</ThemedText>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
 
       <Button onPress={onBook} style={styles.bookButton}>
@@ -84,11 +85,11 @@ const styles = StyleSheet.create({
   tabContent: { padding: Spacing.lg, gap: Spacing.md },
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xs },
-  pricingRow: { flexDirection: 'row', gap: Spacing.md },
+  pricingRow: { gap: Spacing.md },
   priceBox: { flex: 1, alignItems: 'center', padding: Spacing.md },
   priceLabel: { ...Typography.caption },
-  availabilityRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-around' },
+  availabilityRow: { alignItems: 'center', gap: Spacing.sm },
+  statsGrid: { justifyContent: 'space-around' },
   statItem: { alignItems: 'center', gap: Spacing.xxs },
-  bookButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.md },
+  bookButton: { alignItems: 'center', justifyContent: 'center', marginTop: Spacing.md },
 });

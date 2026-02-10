@@ -7,6 +7,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatTimeUntil } from '@/hooks/use-booking-cancel';
 import type { RefundCalculation } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface CancelRefundPreviewProps {
   isCoach: boolean;
@@ -23,7 +24,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <Ionicons
           name={refundCalc?.isEligible ? 'cash-outline' : 'close-circle-outline'}
           size={28}
@@ -32,7 +33,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
         <ThemedText type="subtitle" style={styles.title}>
           {isCoach ? 'Refund to Parent' : 'Refund Preview'}
         </ThemedText>
-      </View>
+      </Row>
 
       {refundCalc && (
         <>
@@ -66,38 +67,38 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
           </View>
 
           <View style={styles.breakdown}>
-            <View style={styles.row}>
+            <Row style={styles.row}>
               <ThemedText style={{ color: palette.muted }}>Original amount</ThemedText>
               <ThemedText>{'\u00A3'}{refundCalc.originalAmount.toFixed(2)}</ThemedText>
-            </View>
-            <View style={styles.row}>
+            </Row>
+            <Row style={styles.row}>
               <ThemedText style={{ color: palette.muted }}>
                 Refund ({refundCalc.refundPercentage}%)
               </ThemedText>
               <ThemedText>{'\u00A3'}{refundCalc.refundAmount.toFixed(2)}</ThemedText>
-            </View>
+            </Row>
             {refundCalc.platformFee > 0 && (
-              <View style={styles.row}>
+              <Row style={styles.row}>
                 <ThemedText style={{ color: palette.muted }}>Platform fee</ThemedText>
                 <ThemedText style={{ color: palette.error }}>
                   -{'\u00A3'}{refundCalc.platformFee.toFixed(2)}
                 </ThemedText>
-              </View>
+              </Row>
             )}
-            <View style={[styles.row, styles.total, { borderTopColor: palette.border }]}>
+            <Row style={[styles.row, styles.total, { borderTopColor: palette.border }]}>
               <ThemedText type="defaultSemiBold">Net refund</ThemedText>
               <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
                 {'\u00A3'}{refundCalc.netRefundAmount.toFixed(2)}
               </ThemedText>
-            </View>
+            </Row>
           </View>
 
-          <View style={[styles.timeNotice, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+          <Row style={[styles.timeNotice, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
             <Ionicons name="time-outline" size={18} color={palette.warning} />
             <ThemedText style={[styles.timeText, { color: palette.warning }]}>
               {formatTimeUntil(refundCalc.hoursUntilSession)} until session
             </ThemedText>
-          </View>
+          </Row>
         </>
       )}
     </SurfaceCard>
@@ -106,15 +107,15 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { alignItems: 'center', gap: Spacing.sm },
   title: { flex: 1 },
   amountBox: { padding: Spacing.lg, borderRadius: Radii.md, alignItems: 'center', gap: Spacing.xxs },
   label: { ...Typography.small },
   amount: { ...Typography.display, letterSpacing: -1 },
   percent: { ...Typography.small },
   breakdown: { gap: Spacing.xs },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.xxs },
+  row: { justifyContent: 'space-between', paddingVertical: Spacing.xxs },
   total: { borderTopWidth: 1, paddingTop: Spacing.sm, marginTop: Spacing.xs },
-  timeNotice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.sm },
+  timeNotice: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.sm },
   timeText: { ...Typography.smallSemiBold },
 });

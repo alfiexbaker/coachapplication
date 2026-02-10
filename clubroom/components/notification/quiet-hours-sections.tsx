@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
@@ -114,11 +115,11 @@ export const TimeRangeSection = memo(function TimeRangeSection({
 
   return (
     <View style={styles.timeSection}>
-      <View style={styles.timeRow}>
-        <View style={styles.timeLabelContainer}>
+      <Row align="center" justify="between">
+        <Row align="center" gap="xs">
           <Ionicons name="time-outline" size={18} color={palette.muted} />
           <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>From</ThemedText>
-        </View>
+        </Row>
         <Clickable
           onPress={onStartPress}
           disabled={disabled}
@@ -129,13 +130,13 @@ export const TimeRangeSection = memo(function TimeRangeSection({
           </ThemedText>
           <Ionicons name="chevron-down" size={16} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
 
-      <View style={styles.timeRow}>
-        <View style={styles.timeLabelContainer}>
+      <Row align="center" justify="between">
+        <Row align="center" gap="xs">
           <Ionicons name="sunny-outline" size={18} color={palette.muted} />
           <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>To</ThemedText>
-        </View>
+        </Row>
         <Clickable
           onPress={onEndPress}
           disabled={disabled}
@@ -146,16 +147,16 @@ export const TimeRangeSection = memo(function TimeRangeSection({
           </ThemedText>
           <Ionicons name="chevron-down" size={16} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
 
-      <View style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}>
+      <Row align="start" gap="xs" style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}>
         <Ionicons name="information-circle" size={16} color={palette.accent} />
         <ThemedText style={[styles.infoText, { color: palette.accent }]}>
           {isOvernight
             ? `Notifications paused from ${formatTimeForDisplay(startTime)} until ${formatTimeForDisplay(endTime)} the next day`
             : `Notifications paused between ${formatTimeForDisplay(startTime)} and ${formatTimeForDisplay(endTime)}`}
         </ThemedText>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -187,7 +188,7 @@ export const TimePickerModal = memo(function TimePickerModal({
     <Modal transparent animationType="slide" visible>
       <View style={styles.modalOverlay}>
         <View style={[styles.pickerContainer, { backgroundColor: palette.card }]}>
-          <View style={[styles.pickerHeader, { borderBottomColor: palette.border }]}>
+          <Row justify="between" align="center" style={[styles.pickerHeader, { borderBottomColor: palette.border }]}>
             <Clickable onPress={onCancel}>
               <ThemedText style={[styles.pickerButton, { color: palette.muted }]}>
                 Cancel
@@ -199,7 +200,7 @@ export const TimePickerModal = memo(function TimePickerModal({
                 Done
               </ThemedText>
             </Clickable>
-          </View>
+          </Row>
           <DateTimePicker
             value={value}
             mode="time"
@@ -251,16 +252,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
   },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  timeLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   timeLabel: { ...Typography.bodySmall },
   timeButton: {
     flexDirection: 'row',
@@ -272,11 +263,8 @@ const styles = StyleSheet.create({
   },
   timeValue: { ...Typography.subheading },
   infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
   infoText: { ...Typography.caption, flex: 1, lineHeight: 16 },
@@ -291,9 +279,6 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },

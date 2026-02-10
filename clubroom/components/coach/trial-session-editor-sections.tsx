@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
 import { FieldLabel } from './trial-discovery-preview';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -57,28 +58,28 @@ export const TrialFormFields = memo(function TrialFormFields({
   return (
     <SurfaceCard style={styles.fieldsCard}>
       <FieldLabel label="Trial Price" hint="What you charge for the trial" palette={palette} />
-      <View style={[styles.inputRow, { borderColor: palette.border }]}>
+      <Row style={[styles.inputRow, { borderColor: palette.border }]}>
         <ThemedText style={[Typography.body, { color: palette.muted }]}>{'\u00A3'}</ThemedText>
         <TextInput style={[styles.input, { color: palette.text }]} value={trialPrice} onChangeText={onTrialPriceChange} keyboardType="decimal-pad" placeholder="15" placeholderTextColor={palette.muted} />
-      </View>
+      </Row>
 
       <FieldLabel label="Normal Session Price" hint="Your regular rate for comparison" palette={palette} />
-      <View style={[styles.inputRow, { borderColor: palette.border }]}>
+      <Row style={[styles.inputRow, { borderColor: palette.border }]}>
         <ThemedText style={[Typography.body, { color: palette.muted }]}>{'\u00A3'}</ThemedText>
         <TextInput style={[styles.input, { color: palette.text }]} value={normalPrice} onChangeText={onNormalPriceChange} keyboardType="decimal-pad" placeholder="45" placeholderTextColor={palette.muted} />
-      </View>
+      </Row>
 
       <FieldLabel label="Duration" hint="Length of the trial session" palette={palette} />
-      <View style={[styles.inputRow, { borderColor: palette.border }]}>
+      <Row style={[styles.inputRow, { borderColor: palette.border }]}>
         <TextInput style={[styles.input, { color: palette.text }]} value={durationMinutes} onChangeText={onDurationChange} keyboardType="number-pad" placeholder="60" placeholderTextColor={palette.muted} />
         <ThemedText style={[Typography.body, { color: palette.muted }]}>minutes</ThemedText>
-      </View>
+      </Row>
 
       <FieldLabel label="Limit per Family" hint="How many trial sessions each family can book" palette={palette} />
-      <View style={[styles.inputRow, { borderColor: palette.border }]}>
+      <Row style={[styles.inputRow, { borderColor: palette.border }]}>
         <TextInput style={[styles.input, { color: palette.text }]} value={limitPerFamily} onChangeText={onLimitChange} keyboardType="number-pad" placeholder="1" placeholderTextColor={palette.muted} />
         <ThemedText style={[Typography.body, { color: palette.muted }]}>session(s)</ThemedText>
-      </View>
+      </Row>
 
       <FieldLabel label="Description" hint="What parents will see about the trial" palette={palette} />
       <TextInput
@@ -100,7 +101,6 @@ export const TrialFormFields = memo(function TrialFormFields({
 const styles = StyleSheet.create({
   fieldsCard: { gap: Spacing.sm, marginBottom: Spacing.sm },
   inputRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     height: Components.input.height,

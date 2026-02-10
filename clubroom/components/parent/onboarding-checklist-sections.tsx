@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import { type Href } from 'expo-router';
 
@@ -34,32 +35,31 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
 }: ChecklistItemRowProps) {
   return (
     <Clickable
-      style={styles.item}
       onPress={() => {
         if (!item.isComplete) onNavigate(item.route as Href);
       }}
       disabled={item.isComplete}
     >
-      <View
-        style={[
+      <Row align="center" gap="sm" style={styles.item}>
+        <Row align="center" justify="center" style={[
           styles.checkCircle,
           { borderColor: palette.border },
           item.isComplete ? { backgroundColor: palette.success, borderColor: palette.success } : undefined,
-        ]}
-      >
-        {item.isComplete && <Ionicons name="checkmark" size={14} color={palette.surface} />}
-      </View>
-      <ThemedText
-        style={[
-          styles.itemLabel,
-          { color: palette.text },
-          item.isComplete ? { color: palette.muted, textDecorationLine: 'line-through' } : undefined,
-        ]}
-        numberOfLines={1}
-      >
-        {item.label}
-      </ThemedText>
-      {!item.isComplete && <Ionicons name="chevron-forward" size={16} color={palette.muted} />}
+        ]}>
+          {item.isComplete && <Ionicons name="checkmark" size={14} color={palette.surface} />}
+        </Row>
+        <ThemedText
+          style={[
+            styles.itemLabel,
+            { color: palette.text },
+            item.isComplete ? { color: palette.muted, textDecorationLine: 'line-through' } : undefined,
+          ]}
+          numberOfLines={1}
+        >
+          {item.label}
+        </ThemedText>
+        {!item.isComplete && <Ionicons name="chevron-forward" size={16} color={palette.muted} />}
+      </Row>
     </Clickable>
   );
 });
@@ -68,9 +68,6 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
 
 const styles = StyleSheet.create({
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.xs,
   },
   checkCircle: {

@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -85,14 +86,14 @@ export function DeclineReasonSheet({
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
           {/* Header */}
-          <View style={styles.header}>
+          <Row justify="between" align="center">
             <ThemedText type="subtitle">
               {athleteName ? `Can't make it for ${athleteName}?` : "Why can't you make it?"}
             </ThemedText>
             <Clickable onPress={handleClose} accessibilityLabel="Close">
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             This helps the coach adjust future invites (optional)
@@ -191,11 +192,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: Spacing.xs,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   subtitle: {
     ...Typography.bodySmall,

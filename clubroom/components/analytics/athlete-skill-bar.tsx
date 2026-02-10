@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SkillProgress } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface AthleteSkillBarProps {
   skill: SkillProgress;
@@ -21,17 +22,17 @@ export const AthleteSkillBar = memo(function AthleteSkillBar({ skill, index }: A
 
   return (
     <Animated.View entering={FadeInRight.delay(index * 75).springify()} style={styles.item}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <ThemedText type="defaultSemiBold" style={styles.name}>{skill.skillName}</ThemedText>
-        <View style={styles.change}>
+        <Row style={styles.change}>
           {skill.changePercent !== 0 && (
             <Ionicons name={skill.changePercent > 0 ? 'arrow-up' : 'arrow-down'} size={12} color={changeColor} />
           )}
           <ThemedText style={[styles.changeText, { color: changeColor }]}>
             {skill.changePercent > 0 ? '+' : ''}{skill.changePercent.toFixed(1)}%
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
       <View style={[styles.barBg, { backgroundColor: colors.border }]}>
         <Animated.View
           style={[styles.barFill, {
@@ -40,23 +41,23 @@ export const AthleteSkillBar = memo(function AthleteSkillBar({ skill, index }: A
           }]}
         />
       </View>
-      <View style={styles.meta}>
+      <Row style={styles.meta}>
         <ThemedText style={[styles.category, { color: colors.muted }]}>{skill.category}</ThemedText>
         <ThemedText style={[styles.level, { color: colors.text }]}>{skill.currentLevel}/100</ThemedText>
-      </View>
+      </Row>
     </Animated.View>
   );
 });
 
 const styles = StyleSheet.create({
   item: { gap: Spacing.xxs },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { alignItems: 'center', justifyContent: 'space-between' },
   name: { ...Typography.bodySmall },
-  change: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro },
+  change: { alignItems: 'center', gap: Spacing.micro },
   changeText: { ...Typography.caption },
   barBg: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: Radii.xs },
-  meta: { flexDirection: 'row', justifyContent: 'space-between' },
+  meta: { justifyContent: 'space-between' },
   category: { ...Typography.caption },
   level: { ...Typography.caption },
 });

@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession, SessionInviteType } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: string }[] = [
   { key: 'CAMP', label: 'Camp', icon: 'sunny' },
@@ -42,7 +43,7 @@ function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChan
       <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
         Choose the format that best fits your training
       </ThemedText>
-      <View style={styles.typeGrid}>
+      <Row style={styles.typeGrid}>
         {SESSION_TYPES.map((type) => (
           <Clickable
             key={type.key}
@@ -79,7 +80,7 @@ function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChan
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       {/* Invite Type Selector */}
       <ThemedText type="defaultSemiBold" style={styles.inviteTypeTitle}>
@@ -150,7 +151,6 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.sm,
   },
   typeGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
     justifyContent: 'center',
@@ -181,7 +181,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   inviteTypeCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

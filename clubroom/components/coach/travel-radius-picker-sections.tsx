@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ export const UnitToggle = memo(function UnitToggle({
   palette,
 }: UnitToggleProps) {
   return (
-    <View style={[styles.unitToggle, { backgroundColor: palette.background }]}>
+    <Row style={[styles.unitToggle, { backgroundColor: palette.background }]}>
       <Clickable
         style={[styles.unitButton, unit === 'miles' ? { backgroundColor: palette.tint } : undefined]}
         onPress={onSetMiles}
@@ -67,7 +68,7 @@ export const UnitToggle = memo(function UnitToggle({
           km
         </Text>
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -95,10 +96,10 @@ export const RadiusDisplay = memo(function RadiusDisplay({
         <Text style={[styles.radiusUnit, { color: palette.muted }]}>{unitLabel}</Text>
       </View>
       {postcode ? (
-        <View style={styles.postcodeRow}>
+        <Row style={styles.postcodeRow}>
           <Ionicons name="location" size={14} color={palette.tint} />
           <Text style={[styles.locationLabel, { color: palette.muted }]}>{locationLabel}</Text>
-        </View>
+        </Row>
       ) : (
         <Text style={[styles.locationLabel, { color: palette.muted }]}>{locationLabel}</Text>
       )}
@@ -137,11 +138,11 @@ export const RadiusSlider = memo(function RadiusSlider({
         thumbTintColor={palette.tint}
         accessibilityLabel={`Travel radius: ${displayValue} ${unitLabel}`}
       />
-      <View style={styles.sliderLabels}>
+      <Row style={styles.sliderLabels}>
         <Text style={[styles.sliderLabel, { color: palette.muted }]}>{MIN_RADIUS} mi</Text>
         <Text style={[styles.sliderLabel, { color: palette.muted }]}>25 mi</Text>
         <Text style={[styles.sliderLabel, { color: palette.muted }]}>{MAX_RADIUS} mi</Text>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -160,7 +161,7 @@ export const QuickSetRow = memo(function QuickSetRow({
   palette,
 }: QuickSetRowProps) {
   return (
-    <View style={styles.quickSetRow}>
+    <Row style={styles.quickSetRow}>
       {QUICK_VALUES.map((val) => (
         <Clickable
           key={val}
@@ -183,7 +184,7 @@ export const QuickSetRow = memo(function QuickSetRow({
           </Text>
         </Clickable>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -197,13 +198,13 @@ export const RadiusHelperText = memo(function RadiusHelperText({
   palette,
 }: RadiusHelperTextProps) {
   return (
-    <View style={styles.helperArea}>
+    <Row style={styles.helperArea}>
       <Ionicons name="information-circle-outline" size={16} color={palette.muted} />
       <Text style={[styles.helperText, { color: palette.muted }]}>
         Parents searching for coaches will only see you if they are within your travel
         radius. This does not apply to sessions at your own venue.
       </Text>
-    </View>
+    </Row>
   );
 });
 
@@ -252,7 +253,6 @@ export const styles = StyleSheet.create({
     ...Typography.heading,
   },
   unitToggle: {
-    flexDirection: 'row',
     borderRadius: Radii.pill,
     padding: Spacing.micro,
   },
@@ -285,7 +285,6 @@ export const styles = StyleSheet.create({
     marginTop: -4,
   },
   postcodeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -297,7 +296,6 @@ export const styles = StyleSheet.create({
     height: 40,
   },
   sliderLabels: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xxs,
   },
@@ -305,7 +303,6 @@ export const styles = StyleSheet.create({
     ...Typography.caption,
   },
   quickSetRow: {
-    flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.xs,
   },
@@ -319,7 +316,6 @@ export const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   helperArea: {
-    flexDirection: 'row',
     gap: 8,
   },
   helperText: {
@@ -330,7 +326,6 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     alignSelf: 'center',
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,

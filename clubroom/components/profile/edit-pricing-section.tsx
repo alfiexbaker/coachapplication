@@ -7,6 +7,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
@@ -26,7 +27,7 @@ export const EditPricingSection = memo(function EditPricingSection({
   return (
     <SurfaceCard style={styles.section}>
       <ThemedText type="subtitle">Session Pricing</ThemedText>
-      <View style={styles.priceRow}>
+      <Row gap="md">
         <View style={[styles.fieldGroup, styles.priceField]}>
           <ThemedText style={styles.label}>Min Price (USD)</ThemedText>
           <TextInput
@@ -51,7 +52,7 @@ export const EditPricingSection = memo(function EditPricingSection({
             accessibilityLabel="Maximum price"
           />
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -60,7 +61,6 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
-  priceRow: { flexDirection: 'row', gap: Spacing.md },
   priceField: { flex: 1 },
   input: {
     borderWidth: 1, borderRadius: Radii.md,

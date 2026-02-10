@@ -9,6 +9,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -33,8 +34,7 @@ export interface ChecklistItem {
 export function SafetyStatusIndicator({
   hasEmergencyContact,
   hasEmergencyConsent,
-  onPress,
-}: {
+  onPress }: {
   hasEmergencyContact: boolean;
   hasEmergencyConsent: boolean;
   onPress?: () => void;
@@ -44,14 +44,15 @@ export function SafetyStatusIndicator({
   const isComplete = hasEmergencyContact && hasEmergencyConsent;
 
   const content = (
-    <View
+    <Row
+      align="center"
+      gap="xxs"
       style={[
         styles.statusIndicator,
         {
           backgroundColor: isComplete
             ? withAlpha(palette.success, 0.06)
-            : withAlpha(palette.warning, 0.06),
-        },
+            : withAlpha(palette.warning, 0.06) },
       ]}
     >
       <Ionicons
@@ -67,7 +68,7 @@ export function SafetyStatusIndicator({
       >
         {isComplete ? 'Safety OK' : 'Incomplete'}
       </ThemedText>
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -86,8 +87,7 @@ export function SessionSafetySummary({
   totalAthletes,
   athletesWithAlerts,
   missingInfoCount,
-  onPress,
-}: {
+  onPress }: {
   totalAthletes: number;
   athletesWithAlerts: number;
   missingInfoCount: number;
@@ -99,12 +99,12 @@ export function SessionSafetySummary({
 
   const content = (
     <View style={[styles.summaryCard, { borderColor: palette.border }]}>
-      <View style={styles.summaryHeader}>
+      <Row align="center" gap="xs">
         <Ionicons name="shield" size={18} color={palette.tint} />
         <ThemedText type="defaultSemiBold">Session Safety</ThemedText>
-      </View>
+      </Row>
 
-      <View style={styles.summaryStats}>
+      <Row align="center">
         <View style={styles.summaryStat}>
           <ThemedText style={styles.summaryStatValue}>{totalAthletes}</ThemedText>
           <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
@@ -139,15 +139,15 @@ export function SessionSafetySummary({
             Missing Info
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {hasMissingInfo && (
-        <View style={[styles.summaryWarning, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
+        <Row align="center" gap="xs" style={[styles.summaryWarning, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <Ionicons name="warning" size={14} color={palette.error} />
           <ThemedText style={[styles.summaryWarningText, { color: palette.error }]}>
             {missingInfoCount} athlete{missingInfoCount !== 1 ? 's' : ''} missing emergency contact
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -163,42 +163,22 @@ export function SessionSafetySummary({
 
 const styles = StyleSheet.create({
   statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   statusText: { ...Typography.caption },
   summaryCard: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  summaryStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+    gap: Spacing.md },
   summaryStat: {
     flex: 1,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   summaryStatValue: { ...Typography.title },
   summaryStatLabel: { ...Typography.caption, marginTop: Spacing.micro },
   summaryDivider: { width: 1, height: 32 },
   summaryWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  summaryWarningText: { ...Typography.caption },
-});
+    borderRadius: Radii.sm },
+  summaryWarningText: { ...Typography.caption } });

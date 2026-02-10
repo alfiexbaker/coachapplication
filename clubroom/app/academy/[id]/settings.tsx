@@ -1,49 +1,86 @@
-import { View, StyleSheet, ScrollView, TextInput, Alert, Switch } from 'react-native';
+import { useState } from 'react';
+import { View, StyleSheet, ScrollView, TextInput, Alert, Switch, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ok, err, notFound, serviceError } from '@/types/result';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import { useAcademySettings } from '@/hooks/use-academy-settings';
+import { useAuth } from '@/hooks/use-auth';
+import { academyService } from '@/services/academy-service';
+import { Routes } from '@/navigation/routes';
+import type { Academy } from '@/constants/types';
 
 export default function AcademySettingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: palette } = useTheme();
-  const {
-    academy, loading, saving, isOwner,
-    name, description, isPublic, requiresApproval,
-    setName, setDescription, setIsPublic, setRequiresApproval,
-    handleSave, navigateToBranding, navigateToStaff, handleDeleteAcademy,
-  } = useAcademySettings(id);
+  const { currentUser } = useAuth();
 
-  if (loading || !academy) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const { data: academy, status, error: loadError, refreshing, onRefresh, retry, colors: palette } = useScreen<Academy>({
+    load: async () => {
+      if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
+      try {
+        const result = await academyService.getAcademy(id);
+        if (!result) return err(notFound('Academy', id));
+        return ok(result);
+      } catch (e) {
+        return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load'));
+      }
+    },
+    deps: [id],
+  });
+
+  // Form state
+  const [name, setName] = useState(academy?.name ?? '');
+  const [description, setDescription] = useState(academy?.description ?? '');
+  const [isPublic, setIsPublic] = useState(academy?.isPublic ?? true);
+  const [requiresApproval, setRequiresApproval] = useState(academy?.requiresApproval ?? false);
+  const [saving, setSaving] = useState(false);
+
+  const isOwner = academy?.ownerId === currentUser?.id;
+
+  const handleSave = async () => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      await academyService.updateAcademy(id, { name, description, isPublic, requiresApproval });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const navigateToBranding = () => router.push(Routes.academyBranding(id!));
+  const navigateToStaff = () => router.push(Routes.academyStaff(id!));
+  const handleDeleteAcademy = () => {
+    Alert.alert('Delete Academy', 'This action cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        if (id) await academyService.deleteAcademy(id);
+        router.back();
+      }},
+    ]);
+  };
+
+  if (status === 'loading') return <LoadingState variant="detail" />;
+  if (status === 'error') return <ErrorState message={loadError!.message} onRetry={retry} />;
+  if (status === 'empty') return <EmptyState icon="business-outline" title="Academy not found" message="This academy may have been removed" />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="title" style={{ flex: 1 }}>Academy Settings</ThemedText>
-      </View>
+      </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <SurfaceCard style={styles.card}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Basic Information</ThemedText>
           <View style={styles.inputGroup}>
@@ -59,34 +96,38 @@ export default function AcademySettingsScreen() {
         <SurfaceCard style={styles.card}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Quick Actions</ThemedText>
           <Clickable onPress={navigateToBranding} style={styles.linkRow}>
-            <View style={[styles.linkIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}><Ionicons name="color-palette" size={20} color={palette.tint} /></View>
-            <View style={styles.linkContent}>
-              <ThemedText type="defaultSemiBold">Branding</ThemedText>
-              <ThemedText style={[styles.linkDescription, { color: palette.muted }]}>Logo, colors, and banner</ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            <Row align="center" gap="md">
+              <View style={[styles.linkIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}><Ionicons name="color-palette" size={20} color={palette.tint} /></View>
+              <View style={styles.linkContent}>
+                <ThemedText type="defaultSemiBold">Branding</ThemedText>
+                <ThemedText style={[styles.linkDescription, { color: palette.muted }]}>Logo, colors, and banner</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            </Row>
           </Clickable>
           <Clickable onPress={navigateToStaff} style={styles.linkRow}>
-            <View style={[styles.linkIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}><Ionicons name="people" size={20} color={palette.success} /></View>
-            <View style={styles.linkContent}>
-              <ThemedText type="defaultSemiBold">Staff Management</ThemedText>
-              <ThemedText style={[styles.linkDescription, { color: palette.muted }]}>Invite and manage coaches</ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            <Row align="center" gap="md">
+              <View style={[styles.linkIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}><Ionicons name="people" size={20} color={palette.success} /></View>
+              <View style={styles.linkContent}>
+                <ThemedText type="defaultSemiBold">Staff Management</ThemedText>
+                <ThemedText style={[styles.linkDescription, { color: palette.muted }]}>Invite and manage coaches</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            </Row>
           </Clickable>
         </SurfaceCard>
 
         {isOwner && (
           <SurfaceCard style={styles.card}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Privacy</ThemedText>
-            <View style={styles.toggleRow}>
+            <Row style={styles.toggleRow}>
               <View style={styles.toggleInfo}><ThemedText type="defaultSemiBold">Public Academy</ThemedText><ThemedText style={[styles.toggleDescription, { color: palette.muted }]}>Allow anyone to discover your academy</ThemedText></View>
               <Switch value={isPublic} onValueChange={setIsPublic} trackColor={{ true: palette.tint, false: palette.border }} />
-            </View>
-            <View style={styles.toggleRow}>
+            </Row>
+            <Row style={styles.toggleRow}>
               <View style={styles.toggleInfo}><ThemedText type="defaultSemiBold">Require Approval</ThemedText><ThemedText style={[styles.toggleDescription, { color: palette.muted }]}>Review membership requests before approving</ThemedText></View>
               <Switch value={requiresApproval} onValueChange={setRequiresApproval} trackColor={{ true: palette.tint, false: palette.border }} />
-            </View>
+            </Row>
           </SurfaceCard>
         )}
 
@@ -114,7 +155,7 @@ export default function AcademySettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
   content: { padding: Spacing.lg, gap: Spacing.md },
   card: { gap: Spacing.md },
   sectionTitle: { marginBottom: Spacing.xs },
@@ -122,11 +163,11 @@ const styles = StyleSheet.create({
   inputLabel: { ...Typography.smallSemiBold },
   input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body },
   textArea: { minHeight: 100, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body, textAlignVertical: 'top' },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
+  linkRow: { paddingVertical: Spacing.sm },
   linkIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   linkContent: { flex: 1 },
   linkDescription: { ...Typography.caption, marginTop: Spacing.micro },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.sm },
+  toggleRow: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.sm },
   toggleInfo: { flex: 1, marginRight: Spacing.md },
   toggleDescription: { ...Typography.caption, marginTop: Spacing.micro },
   dangerText: { ...Typography.small },

@@ -1,8 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -41,24 +42,24 @@ export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRe
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       {/* Header */}
-      <View style={styles.headerRow}>
-        <View style={styles.typeRow}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.typeRow}>
           <Ionicons name="clipboard-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.typeLabel, { color: palette.muted }]}>Session Recap</ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.dateText, { color: palette.muted }]}>{formatDate(data.date)}</ThemedText>
-      </View>
+      </Row>
 
       {/* Focus area title */}
       <ThemedText style={[styles.focusArea, { color: palette.text }]}>{data.focusArea}</ThemedText>
 
       {/* Attendance stat */}
-      <View style={[styles.attendanceRow, { backgroundColor: palette.surfaceSecondary }]}>
+      <Row style={[styles.attendanceRow, { backgroundColor: palette.surfaceSecondary }]}>
         <Ionicons name="people-outline" size={Components.icon.md} color={palette.tint} />
         <ThemedText style={[styles.attendanceText, { color: palette.text }]}>
           {data.attendanceCount}/{data.totalCount} attended
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Coach summary */}
       <ThemedText style={[styles.summary, { color: palette.text }]}>{data.coachSummary}</ThemedText>
@@ -71,7 +72,7 @@ export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRe
       ) : null}
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <Row style={styles.footer}>
         <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
@@ -80,7 +81,7 @@ export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRe
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -90,12 +91,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   typeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -109,7 +108,6 @@ const styles = StyleSheet.create({
     ...Typography.heading,
   },
   attendanceRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -127,7 +125,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   footer: {
-    flexDirection: 'row',
     gap: Spacing.lg,
     paddingTop: Spacing.xs,
   },

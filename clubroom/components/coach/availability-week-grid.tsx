@@ -14,6 +14,7 @@ export { DAYS_SHORT, HOURS, formatHourLabel, GridLegend, DayColumnHeaders } from
 export type { GridLegendProps, DayColumnHeadersProps } from './availability-week-grid-sections';
 
 import { DAYS_SHORT, HOURS, formatHourLabel, GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
+import { Row } from '@/components/primitives';
 
 interface AvailabilityWeekGridProps {
   templates: AvailabilityTemplate[];
@@ -69,16 +70,16 @@ export function AvailabilityWeekGrid({
 
   return (
     <SurfaceCard style={styles.container}>
-      <View style={styles.headerRow}>
+      <Row style={styles.headerRow}>
         <ThemedText type="defaultSemiBold">Weekly Overview</ThemedText>
         <GridLegend palette={palette} />
-      </View>
+      </Row>
 
       <DayColumnHeaders todayIndex={todayIndex} dayCounts={dayCounts} palette={palette} />
 
       <ScrollView style={styles.gridScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled>
         {HOURS.map((hour) => (
-          <View key={hour} style={styles.gridRow}>
+          <Row key={hour} style={styles.gridRow}>
             <View style={styles.hourLabel}>
               <ThemedText style={[styles.hourText, { color: palette.muted }]}>
                 {formatHourLabel(hour)}
@@ -106,7 +107,7 @@ export function AvailabilityWeekGrid({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         ))}
       </ScrollView>
     </SurfaceCard>
@@ -119,7 +120,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   headerRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.xs,
@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
     maxHeight: 280,
   },
   gridRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     height: 28,
   },

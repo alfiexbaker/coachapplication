@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { formatSessionDate, type ReasonOption } from '@/hooks/use-cancel-flow';
 import type { Booking } from '@/constants/app-types';
 import type { RefundCalculation } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface SessionInfoCardProps { booking: Booking; colors: Record<string, string>; scheme: 'light' | 'dark'; }
 
@@ -18,19 +19,19 @@ function SessionInfoCardInner({ booking, colors, scheme }: SessionInfoCardProps)
   const sessionDate = booking.scheduledAt || booking.start || '';
   return (
     <View style={[styles.sessionCard, Shadows[scheme].card, { backgroundColor: colors.surface }]}>
-      <View style={styles.sessionCardRow}>
+      <Row style={styles.sessionCardRow}>
         <Ionicons name="football-outline" size={18} color={colors.tint} />
         <View style={styles.sessionCardInfo}>
           <ThemedText style={[styles.sessionCardTitle, { color: colors.text }]} numberOfLines={1}>{booking.service || 'Coaching Session'}</ThemedText>
           <ThemedText style={[styles.sessionCardMeta, { color: colors.muted }]}>{sessionDate ? formatSessionDate(sessionDate) : 'Date not set'}</ThemedText>
           {(booking.location || booking.locationLabel) ? <ThemedText style={[styles.sessionCardMeta, { color: colors.muted }]} numberOfLines={1}>{booking.locationLabel || booking.location}</ThemedText> : null}
         </View>
-      </View>
-      <View style={[styles.sessionCardDetails, { borderTopColor: colors.border }]}>
-        <View style={styles.sessionDetailItem}><Ionicons name="person-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{booking.coachName || 'Coach'}</ThemedText></View>
-        <View style={styles.sessionDetailItem}><Ionicons name="people-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{booking.athleteName || 'Athlete'}</ThemedText></View>
-        {booking.duration ? <View style={styles.sessionDetailItem}><Ionicons name="time-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]}>{booking.duration} mins</ThemedText></View> : null}
-      </View>
+      </Row>
+      <Row style={[styles.sessionCardDetails, { borderTopColor: colors.border }]}>
+        <Row style={styles.sessionDetailItem}><Ionicons name="person-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{booking.coachName || 'Coach'}</ThemedText></Row>
+        <Row style={styles.sessionDetailItem}><Ionicons name="people-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>{booking.athleteName || 'Athlete'}</ThemedText></Row>
+        {booking.duration ? <Row style={styles.sessionDetailItem}><Ionicons name="time-outline" size={14} color={colors.muted} /><ThemedText style={[styles.sessionDetailText, { color: colors.muted }]}>{booking.duration} mins</ThemedText></Row> : null}
+      </Row>
     </View>
   );
 }
@@ -46,16 +47,16 @@ function RefundBannerInner({ calculation, colors }: RefundBannerProps) {
 
   return (
     <View style={[styles.refundBanner, { backgroundColor: withAlpha(bannerColor, 0.07) }]}>
-      <View style={styles.refundBannerHeader}>
+      <Row style={styles.refundBannerHeader}>
         <Ionicons name={isFullRefund ? 'checkmark-circle' : isNoRefund ? 'close-circle' : 'information-circle'} size={20} color={bannerColor} />
         <ThemedText style={[styles.refundBannerTitle, { color: bannerColor }]}>{isFullRefund ? 'Full refund' : isNoRefund ? 'No refund' : `${calculation.refundPercentage}% refund`}</ThemedText>
-      </View>
+      </Row>
       <ThemedText style={[styles.refundExplanation, { color: colors.muted }]}>{calculation.explanation}</ThemedText>
       {calculation.netRefundAmount > 0 && (
-        <View style={[styles.refundAmountRow, { borderTopColor: colors.border }]}>
+        <Row style={[styles.refundAmountRow, { borderTopColor: colors.border }]}>
           <ThemedText style={[styles.refundAmountLabel, { color: colors.text }]}>You will receive</ThemedText>
           <ThemedText style={[styles.refundAmount, { color: bannerColor }]}>{'\u00A3'}{calculation.netRefundAmount.toFixed(2)}</ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -79,20 +80,20 @@ export const ReasonCard = memo(ReasonCardInner);
 
 const styles = StyleSheet.create({
   sessionCard: { borderRadius: Radii.card, padding: Spacing.sm, marginBottom: Spacing.sm },
-  sessionCardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, marginBottom: Spacing.xs },
+  sessionCardRow: { alignItems: 'flex-start', gap: Spacing.xs, marginBottom: Spacing.xs },
   sessionCardInfo: { flex: 1 },
   sessionCardTitle: { ...Typography.bodySemiBold },
   sessionCardMeta: { ...Typography.small, marginTop: Spacing.micro },
-  sessionCardDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, paddingTop: Spacing.xs, borderTopWidth: StyleSheet.hairlineWidth },
-  sessionDetailItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  sessionCardDetails: { flexWrap: 'wrap', gap: Spacing.sm, paddingTop: Spacing.xs, borderTopWidth: StyleSheet.hairlineWidth },
+  sessionDetailItem: { alignItems: 'center', gap: Spacing.xs / 2 },
   sessionDetailText: { ...Typography.caption },
   refundBanner: { borderRadius: Radii.card, padding: Spacing.sm, marginBottom: Spacing.md },
-  refundBannerHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.xs },
+  refundBannerHeader: { alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.xs },
   refundBannerTitle: { ...Typography.bodySemiBold },
   refundExplanation: { ...Typography.small, marginBottom: Spacing.xs },
-  refundAmountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Spacing.xs, borderTopWidth: StyleSheet.hairlineWidth },
+  refundAmountRow: { alignItems: 'center', justifyContent: 'space-between', paddingTop: Spacing.xs, borderTopWidth: StyleSheet.hairlineWidth },
   refundAmountLabel: { ...Typography.body },
   refundAmount: { ...Typography.heading },
-  reasonCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.md, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderWidth: 1.5 },
+  reasonCard: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.md, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderWidth: 1.5 },
   reasonLabel: { flex: 1, ...Typography.body },
 });

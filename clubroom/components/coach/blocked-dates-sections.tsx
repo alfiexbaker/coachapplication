@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, Shadows, Components, withAlpha } from '@/constants/theme';
 import { formatDate, formatDateRange, type BlockedDateRange } from '@/hooks/use-blocked-dates';
 import { toDateStr } from '@/utils/format';
+import { Row } from '@/components/primitives';
 
 // ── Booking Warning Banner ───────────────────────────────────
 
@@ -18,7 +19,7 @@ interface BookingWarningBannerProps { count: number; dates: string[]; colors: Re
 function BookingWarningBannerInner({ count, dates, colors }: BookingWarningBannerProps) {
   if (count === 0) return null;
   return (
-    <View style={[styles.bookingWarning, { backgroundColor: withAlpha(colors.warning, 0.08), borderColor: withAlpha(colors.warning, 0.19) }]}>
+    <Row style={[styles.bookingWarning, { backgroundColor: withAlpha(colors.warning, 0.08), borderColor: withAlpha(colors.warning, 0.19) }]}>
       <Ionicons name="warning-outline" size={18} color={colors.warning} />
       <View style={styles.bookingWarningContent}>
         <Text style={[styles.bookingWarningTitle, { color: colors.warning }]}>
@@ -30,7 +31,7 @@ function BookingWarningBannerInner({ count, dates, colors }: BookingWarningBanne
           Blocking these dates will not automatically cancel them.
         </Text>
       </View>
-    </View>
+    </Row>
   );
 }
 
@@ -50,10 +51,10 @@ interface SelectionAreaProps {
 function SelectionAreaInner({ selectionLabel, reason, onReasonChange, onBlock, colors, scheme }: SelectionAreaProps) {
   return (
     <View style={[styles.selectionArea, { backgroundColor: colors.surface }, Shadows[scheme].subtle]}>
-      <View style={styles.selectionInfo}>
+      <Row style={styles.selectionInfo}>
         <Ionicons name="calendar" size={16} color={colors.tint} />
         <Text style={[styles.selectionLabel, { color: colors.text }]}>{selectionLabel}</Text>
-      </View>
+      </Row>
       <TextInput
         style={[styles.reasonInput, { borderColor: colors.border, color: colors.text }]}
         value={reason} onChangeText={onReasonChange} placeholder="Reason (optional)" placeholderTextColor={colors.border}
@@ -100,7 +101,7 @@ function BlockedDatesListInner({ blockedDates, onRemove, colors, scheme }: Block
           const isLast = idx === blockedDates.length - 1;
           const isPast = block.endDate < today;
           return (
-            <View key={block.id} style={[styles.listItem, !isLast ? [styles.listItemBorder, { borderBottomColor: colors.border }] : undefined]}>
+            <Row key={block.id} style={[styles.listItem, !isLast ? [styles.listItemBorder, { borderBottomColor: colors.border }] : undefined]}>
               <View style={styles.listItemInfo}>
                 <Text style={[styles.listItemDate, { color: colors.text }, isPast && { color: colors.muted }]}>{formatDateRange(block.startDate, block.endDate)}</Text>
                 {block.reason ? <Text style={[styles.listItemReason, { color: colors.muted }]}>{block.reason}</Text> : null}
@@ -108,7 +109,7 @@ function BlockedDatesListInner({ blockedDates, onRemove, colors, scheme }: Block
               <Clickable accessibilityLabel="Remove blocked date" onPress={() => onRemove(block.id)} hitSlop={12} style={styles.removeBtn}>
                 <Ionicons name="trash-outline" size={18} color={colors.error} />
               </Clickable>
-            </View>
+            </Row>
           );
         })}
       </View>
@@ -137,22 +138,22 @@ export const BlockedDatesEmpty = memo(BlockedDatesEmptyInner);
 // ── Styles ───────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  bookingWarning: { flexDirection: 'row', gap: Spacing.xs, borderRadius: Radii.card, padding: Spacing.sm, marginTop: Spacing.sm, borderWidth: 1 },
+  bookingWarning: { gap: Spacing.xs, borderRadius: Radii.card, padding: Spacing.sm, marginTop: Spacing.sm, borderWidth: 1 },
   bookingWarningContent: { flex: 1, gap: Spacing.xxs },
   bookingWarningTitle: { ...Typography.bodySemiBold },
   bookingWarningText: { ...Typography.small },
   selectionArea: { borderRadius: Radii.card, padding: Spacing.sm, marginTop: Spacing.sm },
-  selectionInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginBottom: Spacing.xs },
+  selectionInfo: { alignItems: 'center', gap: Spacing.xxs, marginBottom: Spacing.xs },
   selectionLabel: { ...Typography.bodySemiBold },
   reasonInput: { height: 40, borderRadius: Radii.sm, borderWidth: 1, paddingHorizontal: Spacing.xs, ...Typography.body, marginBottom: Spacing.xs },
-  blockButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, height: Components.button.height, borderRadius: Components.button.borderRadius },
+  blockButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, height: Components.button.height, borderRadius: Components.button.borderRadius },
   blockButtonText: { ...Typography.bodySemiBold },
   quickActions: { marginTop: Spacing.sm, marginBottom: Spacing.md },
-  quickAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.card, paddingHorizontal: Spacing.sm, paddingVertical: 14 },
+  quickAction: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.card, paddingHorizontal: Spacing.sm, paddingVertical: 14 },
   quickActionText: { ...Typography.bodySemiBold },
   listTitle: { ...Typography.heading, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs },
   listCard: { borderRadius: Radii.card, overflow: 'hidden' },
-  listItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 14 },
+  listItem: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 14 },
   listItemBorder: { borderBottomWidth: StyleSheet.hairlineWidth },
   listItemInfo: { flex: 1 },
   listItemDate: { ...Typography.body },

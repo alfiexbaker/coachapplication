@@ -7,6 +7,7 @@
  */
 
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { FormInput, FormButton } from '@/components/forms';
 import { useForm } from '@/hooks/use-form';
 import { validators, compose } from '@/utils/validation';
@@ -103,7 +104,7 @@ export function CardForm({ onSave, loading = false }: CardFormProps) {
         maxLength={19}
       />
 
-      <View style={styles.row}>
+      <Row gap="sm">
         <View style={styles.halfWidth}>
           <FormInput
             name="expiry"
@@ -130,7 +131,7 @@ export function CardForm({ onSave, loading = false }: CardFormProps) {
             maxLength={4}
           />
         </View>
-      </View>
+      </Row>
 
       <FormInput
         label="Cardholder name"
@@ -159,8 +160,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   row: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+    // layout moved to Row
   },
   halfWidth: {
     flex: 1,

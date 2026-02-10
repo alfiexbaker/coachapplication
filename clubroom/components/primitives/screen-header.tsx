@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -62,7 +63,7 @@ export function ScreenHeader({
       styles.container,
       bordered ? { borderBottomWidth: 1, borderBottomColor: palette.border } : undefined,
     ]}>
-      <View style={styles.content}>
+      <Row align="center" justify="between" gap="sm">
         <View style={styles.textContainer}>
           <ThemedText style={styles.title}>{title}</ThemedText>
           {subtitle && (
@@ -73,7 +74,7 @@ export function ScreenHeader({
         </View>
 
         {(rightElement || action) && (
-          <View style={styles.rightContainer}>
+          <Row align="center">
             {rightElement || (
               action && (
                 <Pressable
@@ -81,18 +82,20 @@ export function ScreenHeader({
                   style={[styles.actionButton, { backgroundColor: palette.tint }]}
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
-                  {action.icon && (
-                    <Ionicons name={action.icon} size={18} color={palette.onPrimary} />
-                  )}
-                  {action.label && (
-                    <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>{action.label}</ThemedText>
-                  )}
+                  <Row align="center" gap="xxs">
+                    {action.icon && (
+                      <Ionicons name={action.icon} size={18} color={palette.onPrimary} />
+                    )}
+                    {action.label && (
+                      <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>{action.label}</ThemedText>
+                    )}
+                  </Row>
                 </Pressable>
               )
             )}
-          </View>
+          </Row>
         )}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -104,12 +107,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
   },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
   textContainer: {
     flex: 1,
     gap: Spacing.xs / 2,
@@ -118,14 +115,7 @@ const styles = StyleSheet.create({
   title: { ...Typography.title, letterSpacing: -0.3 },
   // GLOBAL: Subtitle = 12px, weight 400
   subtitle: { ...Typography.caption, lineHeight: 18 },
-  rightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,

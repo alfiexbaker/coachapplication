@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,7 +95,7 @@ export function ProfileAnalytics({
       </View>
 
       {/* Grid */}
-      <View style={styles.grid}>
+      <Row style={styles.grid}>
         <StatTile
           icon="eye-outline"
           iconColor={palette.tint}
@@ -123,20 +124,20 @@ export function ProfileAnalytics({
           label="Bookings"
           palette={palette}
         />
-      </View>
+      </Row>
 
       {/* Conversion rate banner */}
-      <View style={[styles.conversionBanner, { backgroundColor: palette.surfaceSecondary }]}>
-        <View style={styles.conversionLeft}>
+      <Row style={[styles.conversionBanner, { backgroundColor: palette.surfaceSecondary }]}>
+        <Row style={styles.conversionLeft}>
           <Ionicons name="analytics-outline" size={Components.icon.md} color={palette.success} />
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
             View to Booking
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[Typography.heading, { color: palette.success }]}>
           {rate}
         </ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -154,7 +155,6 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   grid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
@@ -174,7 +174,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs / 2,
   },
   conversionBanner: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
@@ -182,7 +181,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   conversionLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

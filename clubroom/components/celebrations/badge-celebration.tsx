@@ -151,7 +151,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   primaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: Components.button.height,

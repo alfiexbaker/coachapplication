@@ -3,6 +3,7 @@ import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spacing, Typography } from '@/constants/theme';
@@ -76,11 +77,11 @@ export function MyPackages({
     return (
       <View style={styles.container}>
         {showHeader && (
-          <View style={styles.header}>
+          <Row align="center" justify="space-between">
             <ThemedText type="subtitle" style={styles.headerTitle}>
               My Packages
             </ThemedText>
-          </View>
+          </Row>
         )}
         <EmptyState
           icon="pricetags-outline"
@@ -96,7 +97,7 @@ export function MyPackages({
   return (
     <View style={styles.container}>
       {showHeader && (
-        <View style={styles.header}>
+        <Row align="center" justify="space-between">
           <ThemedText type="subtitle" style={styles.headerTitle}>
             My Packages
           </ThemedText>
@@ -107,7 +108,7 @@ export function MyPackages({
               </ThemedText>
             </Pressable>
           )}
-        </View>
+        </Row>
       )}
 
       <View style={styles.list}>
@@ -136,11 +137,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   loadingText: { ...Typography.bodySmall },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   headerTitle: { ...Typography.heading },
   viewAllText: { ...Typography.bodySmallSemiBold },
   list: {

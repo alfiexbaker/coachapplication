@@ -4,6 +4,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface SparklineProps {
   data: number[];
@@ -24,7 +25,7 @@ export function MiniSparkline({ data, color, width = 60, height = 24, showDots =
   const range = max - min || 1;
 
   return (
-    <View style={[styles.container, { width, height }]}>
+    <Row style={[styles.container, { width, height }]}>
       {data.map((value, index) => {
         const barHeight = ((value - min) / range) * height;
         const isLast = index === data.length - 1;
@@ -37,12 +38,12 @@ export function MiniSparkline({ data, color, width = 60, height = 24, showDots =
           </View>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.micro },
+  container: { alignItems: 'flex-end', gap: Spacing.micro },
   bar: { flex: 1, minWidth: 4 },
   dot: { position: 'absolute', top: -2, right: -2, width: 6, height: 6, borderRadius: Radii.xs },
 });

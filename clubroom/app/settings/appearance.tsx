@@ -14,6 +14,7 @@ import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/se
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppearance, type ThemeOption } from '@/hooks/use-appearance';
@@ -50,21 +51,21 @@ export default function AppearanceSettingsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
         <ThemedText type="title" style={styles.headerTitle}>Appearance</ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>THEME</ThemedText>
-          <View style={styles.themeGrid}>
+          <Row gap="sm" style={styles.themeGrid}>
             {THEME_OPTIONS.map((option) => (
               <ThemeCard key={option.value} option={option} selected={c.selectedTheme === option.value}
                 onSelect={() => c.handleThemeSelect(option.value)} />
             ))}
-          </View>
+          </Row>
         </View>
 
         <SettingsSection title="App Icon">
@@ -83,7 +84,7 @@ export default function AppearanceSettingsScreen() {
         <View style={styles.previewSection}>
           <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>PREVIEW</ThemedText>
           <SurfaceCard style={styles.previewCard}>
-            <View style={styles.previewHeader}>
+            <Row gap="md" align="start" style={styles.previewHeader}>
               <View style={[styles.previewAvatar, { backgroundColor: palette.accent }]}>
                 <Ionicons name="person" size={20} color={palette.onPrimary} />
               </View>
@@ -93,7 +94,7 @@ export default function AppearanceSettingsScreen() {
                   This is how content looks with your current theme settings.
                 </ThemedText>
               </View>
-            </View>
+            </Row>
             <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
               <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Sample Button</ThemedText>
             </View>
@@ -112,12 +113,12 @@ export default function AppearanceSettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.heading },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: Spacing.xs, marginBottom: Spacing.xs },
-  themeGrid: { flexDirection: 'row', gap: Spacing.sm },
+  themeGrid: {},
   themeCard: { flex: 1, alignItems: 'center', padding: Spacing.md, gap: Spacing.xs, position: 'relative' },
   themeIconContainer: { width: 56, height: 56, borderRadius: Radii['2xl'], justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.xs },
   themeLabel: { ...Typography.bodySmall },
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   selectedBadge: { position: 'absolute', top: Spacing.xs, right: Spacing.xs, width: 22, height: 22, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
   previewSection: { gap: Spacing.sm },
   previewCard: { gap: Spacing.md },
-  previewHeader: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
+  previewHeader: {},
   previewAvatar: { width: 40, height: 40, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
   previewText: { flex: 1, gap: Spacing.xxs },
   previewButton: { paddingVertical: Spacing.sm, borderRadius: Radii.md, alignItems: 'center' },

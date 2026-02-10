@@ -14,6 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
+import { Row } from '@/components/primitives';
 
 interface CompareButtonProps {
   coachId: string;
@@ -184,7 +185,7 @@ export function CompareButton({
       {isLoading ? (
         <ActivityIndicator size="small" color={palette.muted} />
       ) : (
-        <View style={styles.fullContent}>
+        <Row style={styles.fullContent}>
           <Ionicons
             name={isInComparison ? 'checkmark-circle' : 'git-compare-outline'}
             size={20}
@@ -207,7 +208,7 @@ export function CompareButton({
                 : 'Comparison list is full'}
             </ThemedText>
           </View>
-        </View>
+        </Row>
       )}
     </Pressable>
   );
@@ -223,7 +224,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   compactButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -238,7 +238,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   fullContent: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },

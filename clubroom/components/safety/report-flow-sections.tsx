@@ -14,9 +14,9 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  View,
-} from 'react-native';
+  View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -52,8 +52,7 @@ export const ReportTypeOption = memo(function ReportTypeOption({
   type,
   isSelected,
   onSelect,
-  palette,
-}: ReportTypeOptionProps) {
+  palette }: ReportTypeOptionProps) {
   return (
     <Pressable
       style={[
@@ -62,45 +61,45 @@ export const ReportTypeOption = memo(function ReportTypeOption({
           borderColor: isSelected ? palette.tint : palette.border,
           backgroundColor: isSelected
             ? withAlpha(palette.tint, 0.03)
-            : palette.surface,
-        },
+            : palette.surface },
       ]}
       onPress={() => onSelect(type.value)}
     >
-      <View
-        style={[
-          styles.optionIcon,
-          {
-            backgroundColor: isSelected
-              ? withAlpha(palette.tint, 0.09)
-              : withAlpha(palette.muted, 0.06),
-          },
-        ]}
-      >
-        <Ionicons
-          name={type.icon}
-          size={18}
-          color={isSelected ? palette.tint : palette.muted}
-        />
-      </View>
-      <ThemedText
-        style={[
-          styles.optionLabel,
-          isSelected ? { color: palette.tint, fontWeight: '600' } : undefined,
-        ]}
-      >
-        {type.label}
-      </ThemedText>
-      <View
-        style={[
-          styles.radio,
-          { borderColor: isSelected ? palette.tint : palette.border },
-        ]}
-      >
-        {isSelected && (
-          <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />
-        )}
-      </View>
+      <Row align="center" gap="sm">
+        <View
+          style={[
+            styles.optionIcon,
+            {
+              backgroundColor: isSelected
+                ? withAlpha(palette.tint, 0.09)
+                : withAlpha(palette.muted, 0.06) },
+          ]}
+        >
+          <Ionicons
+            name={type.icon}
+            size={18}
+            color={isSelected ? palette.tint : palette.muted}
+          />
+        </View>
+        <ThemedText
+          style={[
+            styles.optionLabel,
+            isSelected ? { color: palette.tint, fontWeight: '600' } : undefined,
+          ]}
+        >
+          {type.label}
+        </ThemedText>
+        <View
+          style={[
+            styles.radio,
+            { borderColor: isSelected ? palette.tint : palette.border },
+          ]}
+        >
+          {isSelected && (
+            <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />
+          )}
+        </View>
+      </Row>
     </Pressable>
   );
 });
@@ -134,8 +133,7 @@ export const ReportFormContent = memo(function ReportFormContent({
   palette,
   ModalStyles,
   ButtonStyles,
-  InputStyles,
-}: ReportFormContentProps) {
+  InputStyles }: ReportFormContentProps) {
   return (
     <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
       {/* Header */}
@@ -177,8 +175,7 @@ export const ReportFormContent = memo(function ReportFormContent({
             {
               borderColor: palette.border,
               backgroundColor: palette.surface,
-              color: palette.text,
-            },
+              color: palette.text },
           ]}
           placeholder="Tell us more about what happened..."
           placeholderTextColor={palette.muted}
@@ -227,8 +224,7 @@ interface ReportSuccessViewProps {
 export const ReportSuccessView = memo(function ReportSuccessView({
   onClose,
   palette,
-  ButtonStyles,
-}: ReportSuccessViewProps) {
+  ButtonStyles }: ReportSuccessViewProps) {
   return (
     <View style={styles.successContainer}>
       <View
@@ -261,27 +257,20 @@ export const ReportSuccessView = memo(function ReportSuccessView({
 export const styles = StyleSheet.create({
   subtitle: {
     ...Typography.bodySmall,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   optionsList: {
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radii.card,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   optionIcon: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   optionLabel: { ...Typography.bodySemiBold, flex: 1 },
   radio: {
     width: 22,
@@ -289,41 +278,32 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 2,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   descriptionSection: {
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   charCount: { ...Typography.caption, textAlign: 'right' },
   submitButton: {
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   successContainer: {
     alignItems: 'center',
     paddingVertical: Spacing.lg,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   successIcon: {
     width: 80,
     height: 80,
     borderRadius: Radii['3xl'],
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   successTitle: {
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   successMessage: {
     ...Typography.bodySmall,
     lineHeight: 20,
     textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-});
+    marginBottom: Spacing.md } });

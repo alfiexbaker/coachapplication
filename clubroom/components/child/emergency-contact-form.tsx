@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { EmergencyContact } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface EmergencyContactFormProps {
   contact?: EmergencyContact;
@@ -45,12 +46,12 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <ThemedText type="defaultSemiBold">{contact ? 'Edit Contact' : 'Add Emergency Contact'}</ThemedText>
         <Clickable accessibilityLabel="Close" onPress={onCancel}>
           <Ionicons name="close" size={24} color={colors.muted} />
         </Clickable>
-      </View>
+      </Row>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Full Name *</ThemedText>
@@ -90,7 +91,7 @@ function ToggleRow({ label, subtitle, value, onToggle, colors }: {
   colors: { success: string; border: string; muted: string; surface: string };
 }) {
   return (
-    <View style={styles.toggleRow}>
+    <Row style={styles.toggleRow}>
       <View style={{ flex: 1 }}>
         <ThemedText type="defaultSemiBold">{label}</ThemedText>
         <ThemedText style={{ color: colors.muted, ...Typography.small }}>{subtitle}</ThemedText>
@@ -100,17 +101,17 @@ function ToggleRow({ label, subtitle, value, onToggle, colors }: {
           <View style={[styles.toggleKnob, { backgroundColor: colors.surface, transform: [{ translateX: value ? 18 : 2 }] }]} />
         </View>
       </Clickable>
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { justifyContent: 'space-between', alignItems: 'center' },
   field: { gap: Spacing.xs },
   label: { ...Typography.bodySmallSemiBold },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
+  toggleRow: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },
   toggle: { width: 48, height: 28, borderRadius: Radii.lg, justifyContent: 'center' },
   toggleKnob: { width: 24, height: 24, borderRadius: Radii.md },
 });

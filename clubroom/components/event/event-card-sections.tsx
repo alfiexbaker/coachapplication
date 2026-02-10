@@ -16,6 +16,7 @@ import type { ClubEvent } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ export const CompactEventCard = memo(function CompactEventCard({
     <SurfaceCard style={styles.compactCard} onPress={onPress}>
       <View style={[styles.compactTypeIndicator, { backgroundColor: typeColor }]} />
       <View style={styles.compactContent}>
-        <View style={styles.compactHeader}>
+        <Row style={styles.compactHeader}>
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
             {event.title}
           </ThemedText>
@@ -56,15 +57,15 @@ export const CompactEventCard = memo(function CompactEventCard({
               {eventService.formatPrice(event.price, event.currency)}
             </ThemedText>
           )}
-        </View>
-        <View style={styles.compactDetails}>
-          <View style={styles.compactDetailItem}>
+        </Row>
+        <Row style={styles.compactDetails}>
+          <Row style={styles.compactDetailItem}>
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.compactDetailText, { color: palette.muted }]}>
               {formatEventDate(event.date)} at {event.startTime}
             </ThemedText>
-          </View>
-          <View style={styles.compactDetailItem}>
+          </Row>
+          <Row style={styles.compactDetailItem}>
             <Ionicons name="location-outline" size={14} color={palette.muted} />
             <ThemedText
               style={[styles.compactDetailText, { color: palette.muted }]}
@@ -72,8 +73,8 @@ export const CompactEventCard = memo(function CompactEventCard({
             >
               {event.venue}
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </SurfaceCard>
@@ -107,22 +108,22 @@ export const FullEventCardContent = memo(function FullEventCardContent({
 
       <View style={styles.content}>
         {/* Type badge */}
-        <View style={styles.header}>
-          <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
+        <Row style={styles.header}>
+          <Row style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
             <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={14} color={typeColor} />
             <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
               {eventService.formatEventType(event.eventType)}
             </ThemedText>
-          </View>
+          </Row>
           {event.isVirtual && (
-            <View style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+            <Row style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <Ionicons name="videocam" size={12} color={palette.accent} />
               <ThemedText style={[styles.virtualBadgeText, { color: palette.accent }]}>
                 Virtual
               </ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
 
         {/* Title */}
         <ThemedText type="defaultSemiBold" style={styles.title}>
@@ -136,32 +137,32 @@ export const FullEventCardContent = memo(function FullEventCardContent({
 
         {/* Details */}
         <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
+          <Row style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={16} color={palette.icon} />
             <ThemedText style={styles.detailText}>
               {formatEventDate(event.date)} at {event.startTime}
               {event.endTime && ` - ${event.endTime}`}
             </ThemedText>
-          </View>
-          <View style={styles.detailRow}>
+          </Row>
+          <Row style={styles.detailRow}>
             <Ionicons name="location-outline" size={16} color={palette.icon} />
             <ThemedText style={styles.detailText} numberOfLines={1}>
               {event.venue}
             </ThemedText>
-          </View>
+          </Row>
         </View>
 
         {/* Footer */}
-        <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          <View style={styles.attendanceInfo}>
+        <Row style={[styles.footer, { borderTopColor: palette.border }]}>
+          <Row style={styles.attendanceInfo}>
             <Ionicons name="people-outline" size={16} color={palette.muted} />
             <ThemedText style={[styles.attendanceText, { color: palette.muted }]}>
               {going + totalGuests} going
               {maybe > 0 && ` (${maybe} maybe)`}
             </ThemedText>
-          </View>
+          </Row>
 
-          <View style={styles.footerRight}>
+          <Row style={styles.footerRight}>
             {isFull && (
               <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <ThemedText style={[styles.statusText, { color: palette.error }]}>
@@ -188,8 +189,8 @@ export const FullEventCardContent = memo(function FullEventCardContent({
                 </ThemedText>
               </View>
             )}
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -211,12 +212,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   typeBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 10,
@@ -229,7 +228,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   virtualBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
@@ -255,7 +253,6 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   detailRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -264,7 +261,6 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   footer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.xs,
@@ -272,7 +268,6 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   attendanceInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -280,7 +275,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(13),
   },
   footerRight: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -310,7 +304,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   compactCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -327,7 +320,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   compactHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -341,11 +333,9 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   compactDetails: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   compactDetailItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -23,27 +24,26 @@ export const OriginalTimeCard = memo(function OriginalTimeCard({ originalTime }:
     const dateStr = date.toLocaleDateString('en-GB', {
       weekday: 'short',
       day: 'numeric',
-      month: 'short',
-    });
+      month: 'short' });
     return `${dateStr} at ${originalTime.startTime}`;
   })();
 
   return (
     <View style={[styles.originalTimeCard, { backgroundColor: palette.background }]}>
-      <View style={styles.originalTimeHeader}>
+      <Row align="center" gap="xxs">
         <Ionicons name="calendar-outline" size={16} color={palette.muted} />
         <ThemedText style={[styles.originalTimeLabel, { color: palette.muted }]}>
           Current booking
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={styles.originalTimeValue}>{formatted}</ThemedText>
       {originalTime.location && (
-        <View style={styles.locationRow}>
+        <Row align="center" gap="xxs" style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.locationText, { color: palette.muted }]}>
             {originalTime.location}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -60,8 +60,7 @@ interface DatePickerSectionProps {
 export const DatePickerSection = memo(function DatePickerSection({
   days,
   selectedDate,
-  onSelect,
-}: DatePickerSectionProps) {
+  onSelect }: DatePickerSectionProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -84,8 +83,7 @@ export const DatePickerSection = memo(function DatePickerSection({
                 styles.dateChip,
                 {
                   backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
+                  borderColor: isSelected ? palette.tint : palette.border },
               ]}
             >
               <ThemedText
@@ -115,8 +113,7 @@ interface TimeGridSectionProps {
 
 export const TimeGridSection = memo(function TimeGridSection({
   selectedTime,
-  onSelect,
-}: TimeGridSectionProps) {
+  onSelect }: TimeGridSectionProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -124,7 +121,7 @@ export const TimeGridSection = memo(function TimeGridSection({
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
         Select Time
       </ThemedText>
-      <View style={styles.timeGrid}>
+      <Row wrap gap="xs">
         {TIME_SLOTS.map((time) => {
           const isSelected = time === selectedTime;
           return (
@@ -135,8 +132,7 @@ export const TimeGridSection = memo(function TimeGridSection({
                 styles.timeChip,
                 {
                   backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
+                  borderColor: isSelected ? palette.tint : palette.border },
               ]}
             >
               <ThemedText
@@ -147,7 +143,7 @@ export const TimeGridSection = memo(function TimeGridSection({
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -161,8 +157,7 @@ interface DurationSectionProps {
 
 export const DurationSection = memo(function DurationSection({
   duration,
-  onSelect,
-}: DurationSectionProps) {
+  onSelect }: DurationSectionProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -170,7 +165,7 @@ export const DurationSection = memo(function DurationSection({
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
         Duration
       </ThemedText>
-      <View style={styles.durationRow}>
+      <Row gap="sm">
         {DURATION_OPTIONS.map((option) => {
           const isSelected = option.value === duration;
           return (
@@ -181,8 +176,7 @@ export const DurationSection = memo(function DurationSection({
                 styles.durationChip,
                 {
                   backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
+                  borderColor: isSelected ? palette.tint : palette.border },
               ]}
             >
               <ThemedText
@@ -193,7 +187,7 @@ export const DurationSection = memo(function DurationSection({
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -211,8 +205,7 @@ export const ProposalSummary = memo(function ProposalSummary({
   selectedDate,
   selectedTime,
   duration,
-  location,
-}: ProposalSummaryProps) {
+  location }: ProposalSummaryProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -223,27 +216,26 @@ export const ProposalSummary = memo(function ProposalSummary({
       ]}
     >
       <ThemedText style={[styles.summaryTitle, { color: palette.tint }]}>Your proposal</ThemedText>
-      <View style={styles.summaryRow}>
+      <Row align="center" gap="xs">
         <Ionicons name="calendar" size={16} color={palette.tint} />
         <ThemedText style={{ color: palette.tint }}>
           {new Date(selectedDate).toLocaleDateString('en-GB', {
             weekday: 'long',
             day: 'numeric',
-            month: 'short',
-          })}
+            month: 'short' })}
         </ThemedText>
-      </View>
-      <View style={styles.summaryRow}>
+      </Row>
+      <Row align="center" gap="xs">
         <Ionicons name="time" size={16} color={palette.tint} />
         <ThemedText style={{ color: palette.tint }}>
           {selectedTime} - {addMinutesToTime(selectedTime, duration)}
         </ThemedText>
-      </View>
+      </Row>
       {location ? (
-        <View style={styles.summaryRow}>
+        <Row align="center" gap="xs">
           <Ionicons name="location" size={16} color={palette.tint} />
           <ThemedText style={{ color: palette.tint }}>{location}</ThemedText>
-        </View>
+        </Row>
       ) : null}
     </View>
   );
@@ -255,97 +247,61 @@ const styles = StyleSheet.create({
   originalTimeCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
-    gap: Spacing.xxs,
-  },
-  originalTimeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
+  originalTimeHeader: {},
   originalTimeLabel: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   originalTimeValue: {
-    ...Typography.bodySemiBold,
-  },
+    ...Typography.bodySemiBold },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   locationText: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionTitle: {
-    marginBottom: Spacing.xxs,
-  },
+    marginBottom: Spacing.xxs },
   dateScrollContent: {
     gap: Spacing.sm,
-    paddingRight: Spacing.lg,
-  },
+    paddingRight: Spacing.lg },
   dateChip: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    minWidth: 70,
-  },
+    minWidth: 70 },
   dateDayName: {
     ...Typography.small,
-    fontWeight: '600',
-  },
+    fontWeight: '600' },
   dateLabel: {
-    ...Typography.small,
-  },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    ...Typography.small },
+  timeGrid: {},
   timeChip: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   timeLabel: {
     ...Typography.small,
-    fontWeight: '500',
-  },
-  durationRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    fontWeight: '500' },
+  durationRow: {},
   durationChip: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   durationLabel: {
     ...Typography.small,
-    fontWeight: '500',
-  },
+    fontWeight: '500' },
   summaryCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   summaryTitle: {
     ...Typography.small,
     fontWeight: '600',
-    marginBottom: Spacing.xxs,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-});
+    marginBottom: Spacing.xxs },
+  summaryRow: {} });

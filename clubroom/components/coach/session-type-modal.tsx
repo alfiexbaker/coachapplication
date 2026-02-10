@@ -21,6 +21,7 @@ import {
   CapacityStepper,
   PriceInput,
 } from './session-type-modal-sections';
+import { Row } from '@/components/primitives';
 
 interface SessionTypeModalProps {
   visible: boolean;
@@ -123,14 +124,14 @@ export function SessionTypeModal({
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
           {/* Header */}
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="subtitle">
               {existing ? 'Edit Session Type' : 'New Session Type'}
             </ThemedText>
             <Clickable accessibilityLabel="Close" onPress={onClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           {/* Name */}
           <View style={styles.field}>
@@ -164,7 +165,7 @@ export function SessionTypeModal({
           />
 
           {/* Capacity + Price row */}
-          <View style={styles.row}>
+          <Row style={styles.row}>
             <CapacityStepper
               value={capacity}
               onChange={setCapacity}
@@ -175,7 +176,7 @@ export function SessionTypeModal({
               onChange={setPrice}
               palette={palette}
             />
-          </View>
+          </Row>
 
           {/* Description */}
           <View style={styles.field}>
@@ -240,7 +241,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -264,9 +264,8 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     ...Typography.body,
   },
-  row: { flexDirection: 'row', gap: Spacing.md },
+  row: { gap: Spacing.md },
   saveBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
@@ -279,7 +278,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.body.fontSize,
   },
   deleteBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

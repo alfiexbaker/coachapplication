@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { GoalProgress, GoalsSummary } from '@/components/analytics/goal-progress';
 import type { Goal } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface ProgressGoalsTabProps {
   activeGoals: Goal[];
@@ -27,12 +28,12 @@ function ProgressGoalsTabInner({ activeGoals, completedGoals }: ProgressGoalsTab
 
       {/* Active Goals */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row style={styles.sectionHeader}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Active Goals</ThemedText>
-          <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <Row style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.badgeText, { color: palette.tint }]}>{activeGoals.length}</ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
 
         {activeGoals.length === 0 ? (
           <EmptyMetrics
@@ -54,13 +55,13 @@ function ProgressGoalsTabInner({ activeGoals, completedGoals }: ProgressGoalsTab
       {/* Completed Goals */}
       {completedGoals.length > 0 && (
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <Row style={styles.sectionHeader}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Completed Goals</ThemedText>
-            <View style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark" size={12} color={palette.success} />
               <ThemedText style={[styles.badgeText, { color: palette.success }]}>{completedGoals.length}</ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
 
           <View style={styles.list}>
             {completedGoals.slice(0, 3).map((goal, index) => (
@@ -80,9 +81,9 @@ export const ProgressGoalsTab = memo(ProgressGoalsTabInner);
 const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionHeader: { alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...Typography.subheading },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
+  badge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
   badgeText: { ...Typography.caption },
   list: { gap: Spacing.sm },
 });

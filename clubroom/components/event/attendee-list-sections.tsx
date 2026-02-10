@@ -16,6 +16,7 @@ import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { EventAttendanceStats, RSVPStatus } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export const AttendeeStatsCard = memo(function AttendeeStatsCard({
 
   return (
     <View style={[styles.statsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <View style={styles.statsRow}>
+      <Row style={styles.statsRow}>
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
             <Ionicons name="checkmark-circle" size={20} color={palette.success} />
@@ -75,18 +76,18 @@ export const AttendeeStatsCard = memo(function AttendeeStatsCard({
           <ThemedText style={styles.statValue}>{attendanceRate}%</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Rate</ThemedText>
         </View>
-      </View>
+      </Row>
 
       {capacity && (
         <View style={[styles.capacitySection, { borderTopColor: palette.border }]}>
-          <View style={styles.capacityHeader}>
+          <Row style={styles.capacityHeader}>
             <ThemedText style={[styles.capacityLabel, { color: palette.muted }]}>
               Capacity
             </ThemedText>
             <ThemedText style={[styles.capacityValue, { color: palette.text }]}>
               {totalGoing} / {capacity}
             </ThemedText>
-          </View>
+          </Row>
           <View style={[styles.capacityBar, { backgroundColor: palette.border }]}>
             <View
               style={[
@@ -188,7 +189,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   statsRow: {
-    flexDirection: 'row',
     justifyContent: 'space-around',
   },
   statItem: {
@@ -217,7 +217,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   capacityHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: Spacing.xxs,
   },
@@ -239,7 +238,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   filterChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingVertical: 8,

@@ -65,7 +65,6 @@ const styles = StyleSheet.create({
   },
   description: { ...Typography.small, lineHeight: 18 },
   button: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

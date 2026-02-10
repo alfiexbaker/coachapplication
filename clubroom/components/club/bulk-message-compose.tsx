@@ -6,6 +6,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RecipientScope } from './bulk-message';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ export const BulkMessageCompose = memo(function BulkMessageCompose({
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* Recipient selection */}
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Send to</ThemedText>
-      <View style={styles.scopeRow}>
+      <Row style={styles.scopeRow}>
         <Clickable
           onPress={() => onScopeChange('squad')}
           accessibilityRole="button"
@@ -87,11 +88,11 @@ export const BulkMessageCompose = memo(function BulkMessageCompose({
             Whole Club
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       {/* Squad picker */}
       {scope === 'squad' && squads.length > 0 ? (
-        <View style={styles.squadPicker}>
+        <Row style={styles.squadPicker}>
           {squads.map((squad) => (
             <Clickable
               key={squad.id}
@@ -120,7 +121,7 @@ export const BulkMessageCompose = memo(function BulkMessageCompose({
               </ThemedText>
             </Clickable>
           ))}
-        </View>
+        </Row>
       ) : null}
 
       {/* Message composer */}
@@ -184,11 +185,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs / 2,
   },
   scopeRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   squadPicker: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
     marginTop: Spacing.xs,

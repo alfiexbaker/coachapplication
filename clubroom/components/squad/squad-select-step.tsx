@@ -6,6 +6,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -46,21 +47,23 @@ function SquadSelectStepInner({ inviteType, multiSelect, squads, selectedSquadId
             const ageGroup = squadService.getAgeGroupLabel(squad);
             return (
               <Clickable key={squad.id} onPress={() => onToggleSquad(squad.id)} accessibilityLabel={`${squad.name} squad`} style={[styles.item, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
-                <View style={[styles.icon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                  <Ionicons name="people" size={24} color={palette.tint} />
-                </View>
-                <View style={styles.info}>
-                  <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
-                  <View style={styles.meta}>
-                    <View style={[styles.metaChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-                      <ThemedText style={{ ...Typography.caption, color: palette.tint }}>{ageGroup}</ThemedText>
-                    </View>
-                    <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{squad.memberCount} athletes</ThemedText>
+                <Row align="center" gap="md">
+                  <View style={[styles.icon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                    <Ionicons name="people" size={24} color={palette.tint} />
                   </View>
-                </View>
-                <View style={[styles.checkbox, { backgroundColor: isSelected ? palette.tint : 'transparent', borderColor: isSelected ? palette.tint : palette.border }]}>
-                  {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
-                </View>
+                  <View style={styles.info}>
+                    <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
+                    <Row align="center" gap="sm">
+                      <View style={[styles.metaChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                        <ThemedText style={{ ...Typography.caption, color: palette.tint }}>{ageGroup}</ThemedText>
+                      </View>
+                      <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{squad.memberCount} athletes</ThemedText>
+                    </Row>
+                  </View>
+                  <View style={[styles.checkbox, { backgroundColor: isSelected ? palette.tint : 'transparent', borderColor: isSelected ? palette.tint : palette.border }]}>
+                    {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
+                  </View>
+                </Row>
               </Clickable>
             );
           })}
@@ -77,10 +80,9 @@ const styles = StyleSheet.create({
   description: { ...Typography.bodySmall, marginBottom: Spacing.sm },
   loadingContainer: { paddingVertical: Spacing['2xl'], alignItems: 'center' },
   list: { gap: Spacing.sm },
-  item: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.md },
+  item: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   icon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, gap: Spacing.micro },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   metaChip: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   checkbox: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getBookingsForAthlete, getUserProfile, formatDate } from '@/constants/mock-data';
@@ -80,46 +81,48 @@ export function ParentKidsScreen() {
                   ]}
                 >
                   <SurfaceCard style={styles.cardContent}>
-                    <View style={styles.kidInfo}>
-                      <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                        <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                          {child.avatar || child.name.charAt(0)}
-                        </ThemedText>
-                      </View>
-                      <View style={styles.kidDetails}>
-                        <ThemedText type="defaultSemiBold" style={styles.kidName}>
-                          {child.name}
-                        </ThemedText>
-                        {profile && (
-                          <ThemedText style={[styles.kidMetadata, { color: palette.muted }]}>
-                            {profile.position} • {profile.skillLevel.toLowerCase()}
-                          </ThemedText>
-                        )}
-                      </View>
-                    </View>
-
-                    {nextSession ? (
-                      <View style={styles.nextSession}>
-                        <View style={styles.sessionBadge}>
-                          <Ionicons name="time" size={14} color={palette.tint} />
-                          <ThemedText style={[styles.sessionBadgeText, { color: palette.tint }]}>
-                            Upcoming
+                    <Row align="center" gap="md" flex>
+                      <Row align="center" gap="md" flex>
+                        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                            {child.avatar || child.name.charAt(0)}
                           </ThemedText>
                         </View>
-                        <ThemedText style={[styles.sessionInfo, { color: palette.muted }]}>
-                          {formatDate(nextSession.scheduledAt)}
-                        </ThemedText>
-                        <ThemedText style={[styles.sessionCoach, { color: palette.muted }]}>
-                          with {nextSession.coachName}
-                        </ThemedText>
-                      </View>
-                    ) : (
-                      <ThemedText style={[styles.noSessions, { color: palette.muted }]}>
-                        No upcoming sessions
-                      </ThemedText>
-                    )}
+                        <View style={styles.kidDetails}>
+                          <ThemedText type="defaultSemiBold" style={styles.kidName}>
+                            {child.name}
+                          </ThemedText>
+                          {profile && (
+                            <ThemedText style={[styles.kidMetadata, { color: palette.muted }]}>
+                              {profile.position} • {profile.skillLevel.toLowerCase()}
+                            </ThemedText>
+                          )}
+                        </View>
+                      </Row>
 
-                    <Ionicons name="chevron-forward" size={20} color={palette.icon} />
+                      {nextSession ? (
+                        <View style={styles.nextSession}>
+                          <Row align="center" gap={Spacing.xs / 2}>
+                            <Ionicons name="time" size={14} color={palette.tint} />
+                            <ThemedText style={[styles.sessionBadgeText, { color: palette.tint }]}>
+                              Upcoming
+                            </ThemedText>
+                          </Row>
+                          <ThemedText style={[styles.sessionInfo, { color: palette.muted }]}>
+                            {formatDate(nextSession.scheduledAt)}
+                          </ThemedText>
+                          <ThemedText style={[styles.sessionCoach, { color: palette.muted }]}>
+                            with {nextSession.coachName}
+                          </ThemedText>
+                        </View>
+                      ) : (
+                        <ThemedText style={[styles.noSessions, { color: palette.muted }]}>
+                          No upcoming sessions
+                        </ThemedText>
+                      )}
+
+                      <Ionicons name="chevron-forward" size={20} color={palette.icon} />
+                    </Row>
                   </SurfaceCard>
                 </Pressable>
               );
@@ -156,16 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  kidInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
   },
   avatar: {
     width: 48,
@@ -183,11 +177,6 @@ const styles = StyleSheet.create({
   kidMetadata: { ...Typography.small, textTransform: 'capitalize' },
   nextSession: {
     alignItems: 'flex-end',
-    gap: Spacing.xs / 2,
-  },
-  sessionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.xs / 2,
   },
   sessionBadgeText: { ...Typography.caption },

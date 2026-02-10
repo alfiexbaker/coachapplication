@@ -1,4 +1,5 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,7 +43,7 @@ export default function EventAttendeesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <Row align="center" style={[styles.header, { borderBottomColor: colors.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
@@ -51,16 +52,16 @@ export default function EventAttendeesScreen() {
           <ThemedText style={[styles.headerSubtitle, { color: colors.muted }]} numberOfLines={1}>{event.title}</ThemedText>
         </View>
         <View style={{ width: 40 }} />
-      </View>
+      </Row>
 
       {(isEventToday || checkInAvailable || currentAttendance) && currentUser && (
         <View style={styles.checkInSection}>
           <SurfaceCard style={styles.checkInCard}>
             {isEventToday && (
-              <View style={styles.todayBadge}>
+              <Row align="center" gap="xxs" style={styles.todayBadge}>
                 <Ionicons name="today" size={14} color={colors.success} />
                 <ThemedText style={[styles.todayText, { color: colors.success }]}>Event is today</ThemedText>
-              </View>
+              </Row>
             )}
             <CheckInButton event={event} userId={currentUser.id} userName={currentUser.name || 'Unknown'} userRole={isCoach ? 'COACH' : 'PARENT'} userPhotoUrl={currentUser.avatar} currentAttendance={currentAttendance} onCheckIn={handleCheckIn} onUndoCheckIn={handleUndoCheckIn} />
           </SurfaceCard>
@@ -72,16 +73,20 @@ export default function EventAttendeesScreen() {
       </View>
 
       {isCoach && (
-        <View style={[styles.coachActions, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <Row gap="sm" style={[styles.coachActions, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
           <Clickable style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleExport}>
-            <Ionicons name="download-outline" size={20} color={colors.text} />
-            <ThemedText style={styles.actionText}>Export List</ThemedText>
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons name="download-outline" size={20} color={colors.text} />
+              <ThemedText style={styles.actionText}>Export List</ThemedText>
+            </Row>
           </Clickable>
           <Clickable style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleSendReminder}>
-            <Ionicons name="notifications-outline" size={20} color={colors.text} />
-            <ThemedText style={styles.actionText}>Send Reminder</ThemedText>
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons name="notifications-outline" size={20} color={colors.text} />
+              <ThemedText style={styles.actionText}>Send Reminder</ThemedText>
+            </Row>
           </Clickable>
-        </View>
+        </Row>
       )}
     </SafeAreaView>
   );
@@ -91,16 +96,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, gap: Spacing.md },
   errorText: { ...Typography.subheading, textAlign: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerContent: { flex: 1, alignItems: 'center' },
   headerSubtitle: { ...Typography.caption },
   checkInSection: { padding: Spacing.md },
   checkInCard: { padding: Spacing.md, gap: Spacing.sm },
-  todayBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginBottom: Spacing.xs },
+  todayBadge: { marginBottom: Spacing.xs },
   todayText: { ...Typography.smallSemiBold },
   listContainer: { flex: 1, paddingHorizontal: Spacing.md },
-  coachActions: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderTopWidth: 1 },
-  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  coachActions: { padding: Spacing.md, borderTopWidth: 1 },
+  actionButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   actionText: { ...Typography.smallSemiBold },
 });

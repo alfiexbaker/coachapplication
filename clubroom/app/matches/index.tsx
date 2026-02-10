@@ -14,6 +14,7 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { MatchCard } from '@/components/match/match-card';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -43,7 +44,7 @@ export default function MatchesScreen() {
           {filter === 'past' && stats.total > 0 && (
             <SurfaceCard style={styles.statsCard}>
               <ThemedText type="defaultSemiBold" style={styles.statsTitle}>Season Record</ThemedText>
-              <View style={styles.statsRow}>
+              <Row align="center" style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <ThemedText type="title" style={[Typography.display, { color: palette.success }]}>{stats.wins}</ThemedText>
                   <ThemedText style={[Typography.caption, { color: palette.muted }]}>Wins</ThemedText>
@@ -63,7 +64,7 @@ export default function MatchesScreen() {
                   <ThemedText type="title" style={Typography.display}>{stats.total}</ThemedText>
                   <ThemedText style={[Typography.caption, { color: palette.muted }]}>Played</ThemedText>
                 </View>
-              </View>
+              </Row>
             </SurfaceCard>
           )}
 
@@ -71,8 +72,10 @@ export default function MatchesScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContainer}>
             {MATCH_FILTERS.map((f) => (
               <Clickable key={f.key} style={[styles.filterTab, filter === f.key ? { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint } : { borderColor: palette.border }]} onPress={() => setFilter(f.key)}>
-                <Ionicons name={f.icon as keyof typeof Ionicons.glyphMap} size={16} color={filter === f.key ? palette.tint : palette.muted} />
-                <ThemedText style={[Typography.smallSemiBold, { color: filter === f.key ? palette.tint : palette.muted }]}>{f.label}</ThemedText>
+                <Row align="center" gap="xs">
+                  <Ionicons name={f.icon as keyof typeof Ionicons.glyphMap} size={16} color={filter === f.key ? palette.tint : palette.muted} />
+                  <ThemedText style={[Typography.smallSemiBold, { color: filter === f.key ? palette.tint : palette.muted }]}>{f.label}</ThemedText>
+                </Row>
               </Clickable>
             ))}
           </ScrollView>
@@ -94,8 +97,10 @@ export default function MatchesScreen() {
                 </ThemedText>
                 {isCoach && filter === 'upcoming' && (
                   <Clickable style={[styles.createButton, { backgroundColor: palette.tint }]} onPress={() => router.push(Routes.MATCHES_CREATE)}>
-                    <Ionicons name="add" size={20} color={palette.onPrimary} />
-                    <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Create Match</ThemedText>
+                    <Row align="center" gap="xs">
+                      <Ionicons name="add" size={20} color={palette.onPrimary} />
+                      <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Create Match</ThemedText>
+                    </Row>
                   </Clickable>
                 )}
               </View>
@@ -119,15 +124,15 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: Spacing.xl * 2 },
   statsCard: { margin: Spacing.md, gap: Spacing.sm },
   statsTitle: { textAlign: 'center', marginBottom: Spacing.xs },
-  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  statsRow: {},
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, height: 32 },
   filterScroll: { marginTop: Spacing.sm },
   filterContainer: { paddingHorizontal: Spacing.md, gap: Spacing.xs },
-  filterTab: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  filterTab: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
   matchesList: { padding: Spacing.md },
   monthGroup: { marginBottom: Spacing.md },
   monthHeader: { ...Typography.small, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: Spacing.sm },
   emptyContainer: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.md },
-  createButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.sm },
+  createButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.sm },
 });

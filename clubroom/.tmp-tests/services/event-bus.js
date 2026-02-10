@@ -168,6 +168,10 @@ exports.ServiceEvents = {
     SYNC_STARTED: 'sync:started',
     SYNC_COMPLETED: 'sync:completed',
     SYNC_FAILED: 'sync:failed',
+    // Concern events
+    CONCERN_RAISED: 'concern:raised',
+    CONCERN_UPDATED: 'concern:updated',
+    CONCERN_RESOLVED: 'concern:resolved',
     // Connection & offline queue events
     CONNECTION_CHANGED: 'connection:changed',
     QUEUE_FLUSHED: 'queue:flushed',

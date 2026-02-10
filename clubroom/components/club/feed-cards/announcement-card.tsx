@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -49,33 +50,33 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
       onPress={onPress}
     >
       {/* Header: admin badge + dismiss */}
-      <View style={styles.headerRow}>
-        <View style={styles.authorRow}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.authorRow}>
           {data.isAdmin ? (
-            <View style={[styles.adminBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <Row style={[styles.adminBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={Components.icon.sm} color={palette.tint} />
               <ThemedText style={[styles.adminText, { color: palette.tint }]}>Admin</ThemedText>
-            </View>
+            </Row>
           ) : null}
           <ThemedText style={[styles.authorName, { color: palette.text }]}>{data.authorName}</ThemedText>
           <ThemedText style={[styles.dateText, { color: palette.muted }]}>
             {formatDate(data.createdAt)}
           </ThemedText>
-        </View>
+        </Row>
 
         {onDismiss ? (
           <Clickable accessibilityLabel="Close" onPress={onDismiss} hitSlop={8}>
             <Ionicons name="close" size={Components.icon.md} color={palette.muted} />
           </Clickable>
         ) : null}
-      </View>
+      </Row>
 
       {/* Pinned indicator */}
       {data.isPinned ? (
-        <View style={[styles.pinnedRow, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
+        <Row style={[styles.pinnedRow, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="pin" size={Components.icon.sm} color={palette.tint} />
           <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>Pinned Announcement</ThemedText>
-        </View>
+        </Row>
       ) : null}
 
       {/* Content */}
@@ -85,7 +86,7 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
       {/* RSVP integration */}
       {data.rsvp ? (
         <View style={[styles.rsvpContainer, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}>
-          <View style={styles.rsvpInfo}>
+          <Row style={styles.rsvpInfo}>
             <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.tint} />
             <View style={{ flex: 1 }}>
               <ThemedText style={[styles.rsvpTitle, { color: palette.text }]}>
@@ -95,7 +96,7 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
                 {data.rsvp.rsvpCount} attending
               </ThemedText>
             </View>
-          </View>
+          </Row>
           <Clickable
             onPress={onRsvp}
             accessibilityLabel={data.rsvp.hasRsvped ? 'Going' : 'RSVP'}
@@ -138,18 +139,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   headerRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   authorRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     flex: 1,
   },
   adminBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
     paddingHorizontal: Spacing.xs,
@@ -166,7 +164,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   pinnedRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
     alignSelf: 'flex-start',
@@ -191,7 +188,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   rsvpInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

@@ -44,11 +44,13 @@ export const AthleteStatusModal = memo(function AthleteStatusModal({
                 ? [styles.optionRow, { backgroundColor: withAlpha(rosterService.getStatusColor(s), 0.09) }]
                 : styles.optionRow}
             >
-              <View style={[styles.statusDot, { backgroundColor: rosterService.getStatusColor(s) }]} />
-              <ThemedText style={styles.flex1}>{rosterService.formatStatus(s)}</ThemedText>
-              {currentStatus === s && (
-                <Ionicons name="checkmark" size={20} color={rosterService.getStatusColor(s)} />
-              )}
+              <Row align="center" gap="md">
+                <View style={[styles.statusDot, { backgroundColor: rosterService.getStatusColor(s) }]} />
+                <ThemedText style={styles.flex1}>{rosterService.formatStatus(s)}</ThemedText>
+                {currentStatus === s && (
+                  <Ionicons name="checkmark" size={20} color={rosterService.getStatusColor(s)} />
+                )}
+              </Row>
             </Clickable>
           ))}
         </View>
@@ -74,9 +76,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,

@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ClubRole } from '@/constants/types';
 import { ROLE_OPTIONS } from '@/hooks/use-club-invite';
+import { Row } from '@/components/primitives';
 
 interface InviteRoleSelectorProps {
   selectedRole: ClubRole;
@@ -33,14 +34,14 @@ export const InviteRoleSelector = memo(function InviteRoleSelector({ selectedRol
             ]}
             onPress={() => onSelectRole(option.role)}
           >
-            <View style={styles.header}>
+            <Row style={styles.header}>
               <View style={[styles.radioOuter, { borderColor: selectedRole === option.role ? colors.tint : colors.border }]}>
                 {selectedRole === option.role && (
                   <View style={[styles.radioInner, { backgroundColor: colors.tint }]} />
                 )}
               </View>
               <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
-            </View>
+            </Row>
             <ThemedText style={[styles.description, { color: colors.muted }]}>
               {option.description}
             </ThemedText>
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   options: { gap: Spacing.sm },
   option: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { alignItems: 'center', gap: Spacing.sm },
   radioOuter: { width: 20, height: 20, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 10, height: 10, borderRadius: Radii.sm },
   description: { ...Typography.small, marginLeft: 32 },

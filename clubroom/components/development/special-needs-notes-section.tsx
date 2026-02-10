@@ -8,6 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
+import { Row } from '@/components/primitives';
 
 interface SpecialNeedsNotesSectionProps {
   childProfile: ChildProfile;
@@ -71,13 +72,13 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
                 <Ionicons name="warning" size={Components.icon.sm} color={colors.error} />
                 <ThemedText style={[Typography.caption, { color: colors.error }]}>Allergies</ThemedText>
               </Row>
-              <View style={styles.tagList}>
+              <Row style={styles.tagList}>
                 {childProfile.allergies.map((allergy, idx) => (
                   <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.error, 0.09) }]}>
                     <ThemedText style={[Typography.caption, { color: colors.error }]}>{allergy}</ThemedText>
                   </View>
                 ))}
-              </View>
+              </Row>
             </SurfaceCard>
           )}
 
@@ -87,13 +88,13 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
                 <Ionicons name="medical" size={Components.icon.sm} color={colors.warning} />
                 <ThemedText style={[Typography.caption, { color: colors.warning }]}>Medications</ThemedText>
               </Row>
-              <View style={styles.tagList}>
+              <Row style={styles.tagList}>
                 {childProfile.medications.map((med, idx) => (
                   <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
                     <ThemedText style={[Typography.caption, { color: colors.warning }]}>{med}</ThemedText>
                   </View>
                 ))}
-              </View>
+              </Row>
             </SurfaceCard>
           )}
         </View>
@@ -107,6 +108,6 @@ const styles = StyleSheet.create({
   sectionIcon: { width: Components.avatar.sm, height: Components.avatar.sm, borderRadius: Components.avatar.sm / 2, alignItems: 'center', justifyContent: 'center' },
   noteCard: { padding: Spacing.sm, gap: Spacing.xs },
   medicalCard: { padding: Spacing.sm, gap: Spacing.sm, borderWidth: 1 },
-  tagList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  tagList: { flexWrap: 'wrap', gap: Spacing.xs },
   tag: { paddingHorizontal: Spacing.sm, paddingVertical: Components.pill.paddingVertical, borderRadius: Radii.pill },
 });

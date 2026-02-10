@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -99,12 +100,12 @@ export function PurchaseButton({
 
   if (loading) {
     return (
-      <View style={[styles.button, styles.buttonLoading, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Row align="center" justify="center" gap="xs" style={[styles.button, styles.buttonLoading, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <ActivityIndicator size="small" color={palette.tint} />
         <ThemedText style={[styles.buttonText, { color: palette.muted }]}>
           Checking balance...
         </ThemedText>
-      </View>
+      </Row>
     );
   }
 
@@ -112,7 +113,7 @@ export function PurchaseButton({
     return (
       <View style={styles.container}>
         {/* Insufficient Balance Warning */}
-        <View style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+        <Row align="center" gap="sm" style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <Ionicons name="wallet-outline" size={16} color={palette.warning} />
           <View style={styles.warningTextContainer}>
             <ThemedText style={[styles.warningText, { color: palette.warning }]}>
@@ -122,7 +123,7 @@ export function PurchaseButton({
               You need {packageService.formatPrice(shortfall, pkg.currency || 'GBP')} more
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         {/* Top Up Button */}
         <Pressable
@@ -141,12 +142,12 @@ export function PurchaseButton({
   return (
     <View style={styles.container}>
       {/* Balance Info */}
-      <View style={styles.balanceInfo}>
+      <Row align="center" gap="xxs" style={styles.balanceInfo}>
         <Ionicons name="wallet-outline" size={14} color={palette.success} />
         <ThemedText style={[styles.balanceText, { color: palette.success }]}>
           Balance: {packageService.formatPrice(balance, pkg.currency || 'GBP')}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Purchase Button */}
       <Pressable
@@ -199,9 +200,6 @@ const styles = StyleSheet.create({
   buttonText: { ...Typography.subheading },
   buttonTextWhite: { ...Typography.subheading },
   warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
@@ -212,9 +210,6 @@ const styles = StyleSheet.create({
   warningText: { ...Typography.bodySmallSemiBold },
   warningSubtext: { ...Typography.caption },
   balanceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
   },
   balanceText: { ...Typography.smallSemiBold },

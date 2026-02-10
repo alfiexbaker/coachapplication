@@ -15,6 +15,7 @@ exports.initializeSubscribers = initializeSubscribers;
 exports.teardownSubscribers = teardownSubscribers;
 const event_bus_1 = require("@/services/event-bus");
 const logger_1 = require("@/utils/logger");
+const calendar_sync_subscriber_1 = require("./calendar-sync-subscriber");
 const logger = (0, logger_1.createLogger)('ServiceSubscribers');
 // ---------------------------------------------------------------------------
 // Unsubscribe registry — keeps references so we can tear down cleanly.
@@ -56,9 +57,13 @@ function getBookingService() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require('@/services/booking-service').bookingService;
 }
-function getCalendarSyncSubscriber() {
+function getSquadGroupService() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('@/services/calendar-sync-subscriber');
+    return require('@/services/squad-group-service').squadGroupService;
+}
+function getOfflineQueue() {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('@/services/offline-queue');
 }
 // ---------------------------------------------------------------------------
 // Subscriber wiring
@@ -104,33 +109,111 @@ function initializeSubscribers() {
             cancelledBy: data.cancelledBy,
         });
     });
-    // ---------- Calendar sync events -------------------------------------------
+    // ---------- Calendar sync events ------------------------------------------
     subscribe(event_bus_1.ServiceEvents.BOOKING_CREATED, (data) => {
-        try {
-            const calendarSync = getCalendarSyncSubscriber();
-            calendarSync.handleBookingCreated(data);
-        }
-        catch (err) {
+        (0, calendar_sync_subscriber_1.handleBookingCreated)(data).catch((err) => {
             logger.error('Calendar sync failed for BOOKING_CREATED', err);
-        }
+        });
     });
     subscribe(event_bus_1.ServiceEvents.BOOKING_UPDATED, (data) => {
-        try {
-            const calendarSync = getCalendarSyncSubscriber();
-            calendarSync.handleBookingUpdated(data);
-        }
-        catch (err) {
+        (0, calendar_sync_subscriber_1.handleBookingUpdated)(data).catch((err) => {
             logger.error('Calendar sync failed for BOOKING_UPDATED', err);
-        }
+        });
     });
     subscribe(event_bus_1.ServiceEvents.BOOKING_CANCELLED, (data) => {
+        (0, calendar_sync_subscriber_1.handleBookingCancelled)(data).catch((err) => {
+            logger.error('Calendar sync failed for BOOKING_CANCELLED', err);
+        });
+    });
+    // ---------- Reschedule events ----------------------------------------------
+    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_PROPOSED, (data) => {
+        logger.debug('Handling RESCHEDULE_PROPOSED', data);
+        // Notify respondent about new reschedule proposal
         try {
-            const calendarSync = getCalendarSyncSubscriber();
-            calendarSync.handleBookingCancelled(data);
+            const notifService = getNotificationService();
+            notifService.create({
+                id: `notif_resched_proposed_${data.proposalId}`,
+                type: 'booking',
+                title: 'Reschedule Request',
+                body: `A reschedule has been proposed for your booking.`,
+                timeLabel: 'Just now',
+                read: false,
+            });
         }
         catch (err) {
-            logger.error('Calendar sync failed for BOOKING_CANCELLED', err);
+            logger.error('Notification creation failed for RESCHEDULE_PROPOSED', err);
         }
+        logger.info('Reschedule proposed event processed', {
+            proposalId: data.proposalId,
+            bookingId: data.bookingId,
+            initiatedBy: data.initiatedBy,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_ACCEPTED, (data) => {
+        logger.debug('Handling RESCHEDULE_ACCEPTED', data);
+        // Notify initiator that reschedule was accepted
+        try {
+            const notifService = getNotificationService();
+            notifService.create({
+                id: `notif_resched_accepted_${data.proposalId}`,
+                type: 'booking',
+                title: 'Reschedule Accepted',
+                body: `Your reschedule request has been accepted.`,
+                timeLabel: 'Just now',
+                read: false,
+            });
+        }
+        catch (err) {
+            logger.error('Notification creation failed for RESCHEDULE_ACCEPTED', err);
+        }
+        logger.info('Reschedule accepted event processed', {
+            proposalId: data.proposalId,
+            bookingId: data.bookingId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_DECLINED, (data) => {
+        logger.debug('Handling RESCHEDULE_DECLINED', data);
+        // Notify initiator that reschedule was declined
+        try {
+            const notifService = getNotificationService();
+            notifService.create({
+                id: `notif_resched_declined_${data.proposalId}`,
+                type: 'booking',
+                title: 'Reschedule Declined',
+                body: `Your reschedule request has been declined.`,
+                timeLabel: 'Just now',
+                read: false,
+            });
+        }
+        catch (err) {
+            logger.error('Notification creation failed for RESCHEDULE_DECLINED', err);
+        }
+        logger.info('Reschedule declined event processed', {
+            proposalId: data.proposalId,
+            bookingId: data.bookingId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_COUNTERED, (data) => {
+        logger.debug('Handling RESCHEDULE_COUNTERED', data);
+        // Notify original initiator about the counter-proposal
+        try {
+            const notifService = getNotificationService();
+            notifService.create({
+                id: `notif_resched_countered_${data.proposalId}`,
+                type: 'booking',
+                title: 'Reschedule Counter-Proposal',
+                body: `A new time has been suggested for your reschedule request.`,
+                timeLabel: 'Just now',
+                read: false,
+            });
+        }
+        catch (err) {
+            logger.error('Notification creation failed for RESCHEDULE_COUNTERED', err);
+        }
+        logger.info('Reschedule countered event processed', {
+            proposalId: data.proposalId,
+            bookingId: data.bookingId,
+        });
     });
     // ---------- Session events ------------------------------------------------
     subscribe(event_bus_1.ServiceEvents.SESSION_COMPLETED, async (data) => {
@@ -309,59 +392,263 @@ function initializeSubscribers() {
             userId: data.userId,
         });
     });
-    // ---------- Reschedule events -----------------------------------------------
-    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_PROPOSED, (data) => {
-        logger.debug('Handling RESCHEDULE_PROPOSED', data);
-        logger.info('Reschedule proposed event processed', {
-            proposalId: data.proposalId,
-            bookingId: data.bookingId,
-            initiatedBy: data.initiatedBy,
+    // ---------- Invite RSVP events ---------------------------------------------
+    subscribe(event_bus_1.ServiceEvents.INVITE_RSVP_RESPONDED, (data) => {
+        logger.debug('Handling INVITE_RSVP_RESPONDED', data);
+        // Create a feed post for the RSVP response
+        try {
+            const feedService = getSocialFeedService();
+            const statusLabel = data.status === 'going' ? 'is going to' :
+                data.status === 'maybe' ? 'might attend' :
+                    "can't make it to";
+            const childDisplay = data.childName ? ` (${data.childName})` : '';
+            // TODO: Determine feed type from invite/squad context when club features are wired
+            const feedType = 'PERSONAL';
+            const clubId = '';
+            const postResult = feedService.createPost({
+                clubId,
+                authorId: data.userId,
+                authorName: data.userName,
+                title: 'RSVP Update',
+                body: `${data.userName}${childDisplay} ${statusLabel} a session invite.`,
+                postType: 'announcement',
+                feedType: 'PERSONAL',
+            });
+            if (!postResult.success) {
+                logger.error('Feed post creation returned error for INVITE_RSVP_RESPONDED', postResult.error);
+            }
+        }
+        catch (error) {
+            logger.error('Feed post creation failed for INVITE_RSVP_RESPONDED', error);
+        }
+        logger.info('Invite RSVP responded event processed', {
+            inviteId: data.inviteId,
+            userId: data.userId,
+            status: data.status,
         });
     });
-    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_ACCEPTED, (data) => {
-        logger.debug('Handling RESCHEDULE_ACCEPTED', data);
-        // Update calendar sync when reschedule is accepted
+    // ---------- Comment events -------------------------------------------------
+    subscribe(event_bus_1.ServiceEvents.COMMENT_CREATED, (data) => {
+        logger.debug('Handling COMMENT_CREATED', data);
+        logger.info('Comment created event processed', {
+            commentId: data.commentId,
+            postId: data.postId,
+            authorId: data.authorId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.COMMENT_REPLIED, (data) => {
+        logger.debug('Handling COMMENT_REPLIED', data);
+        logger.info('Comment reply event processed', {
+            commentId: data.commentId,
+            parentId: data.parentId,
+            postId: data.postId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.COMMENT_DELETED, (data) => {
+        logger.debug('Handling COMMENT_DELETED', data);
+        logger.info('Comment deleted event processed', {
+            commentId: data.commentId,
+            postId: data.postId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.COMMENT_LIKED, (data) => {
+        logger.debug('Handling COMMENT_LIKED', data);
+        logger.info('Comment liked event processed', {
+            commentId: data.commentId,
+            postId: data.postId,
+            liked: data.liked,
+        });
+    });
+    // ---------- Coach feed events -----------------------------------------------
+    subscribe(event_bus_1.ServiceEvents.COACH_POST_CREATED, (data) => {
+        logger.debug('Handling COACH_POST_CREATED', data);
+        // Note: analytics tracking for coach posts is a no-op until a dedicated
+        // tracking method is added to the analytics service (getAthleteAnalytics
+        // is a read method, not a side-effect tracker).
+        logger.debug('COACH_POST_CREATED analytics tracking pending implementation', {
+            coachId: data.coachId,
+            postId: data.postId,
+        });
+        logger.info('Coach post created event processed', {
+            postId: data.postId,
+            coachId: data.coachId,
+            feedType: data.feedType,
+            postType: data.postType,
+        });
+    });
+    // ---------- Invite booking events ---------------------------------------------
+    subscribe(event_bus_1.ServiceEvents.INVITE_ACCEPTED, (data) => {
+        logger.debug('Handling INVITE_ACCEPTED', data);
+        logger.info('Invite accepted with booking', {
+            inviteId: data.inviteId,
+            bookingId: data.bookingId,
+            coachId: data.coachId,
+            parentId: data.parentId,
+            athleteIds: data.athleteIds,
+            slot: `${data.selectedSlot.date} ${data.selectedSlot.startTime}`,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.INVITE_BOOKING_FAILED, (data) => {
+        logger.debug('Handling INVITE_BOOKING_FAILED', data);
+        // Create a notification for the parent about the booking failure
         try {
-            const calendarSync = getCalendarSyncSubscriber();
-            calendarSync.handleBookingUpdated({
-                bookingId: data.bookingId,
-                userId: '',
-                changes: { scheduledAt: data.newDateTime },
+            const notifService = getNotificationService();
+            notifService.create({
+                id: `notif_invite_booking_fail_${data.inviteId}`,
+                type: 'booking',
+                title: 'Booking Failed',
+                body: `We couldn't create the booking for your accepted invite. ${data.reason}`,
+                timeLabel: 'Just now',
+                read: false,
             });
         }
-        catch (calErr) {
-            logger.error('Calendar sync failed for RESCHEDULE_ACCEPTED', calErr);
+        catch (error) {
+            logger.error('Notification creation failed for INVITE_BOOKING_FAILED', error);
         }
-        logger.info('Reschedule accepted event processed', {
-            proposalId: data.proposalId,
-            bookingId: data.bookingId,
-            newDateTime: data.newDateTime,
-        });
-    });
-    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_DECLINED, (data) => {
-        logger.debug('Handling RESCHEDULE_DECLINED', data);
-        logger.info('Reschedule declined event processed', {
-            proposalId: data.proposalId,
-            bookingId: data.bookingId,
+        logger.info('Invite booking failed event processed', {
+            inviteId: data.inviteId,
+            coachId: data.coachId,
+            parentId: data.parentId,
             reason: data.reason,
         });
     });
-    subscribe(event_bus_1.ServiceEvents.RESCHEDULE_COUNTERED, (data) => {
-        logger.debug('Handling RESCHEDULE_COUNTERED', data);
-        logger.info('Reschedule countered event processed', {
-            proposalId: data.proposalId,
-            bookingId: data.bookingId,
-            counterDateTime: data.counterDateTime,
+    // ---------- Squad group events -----------------------------------------------
+    subscribe(event_bus_1.ServiceEvents.SQUAD_CREATED, (data) => {
+        logger.debug('Handling SQUAD_CREATED', data);
+        // Auto-provision a parent group chat for the new squad
+        try {
+            const squadGroupSvc = getSquadGroupService();
+            squadGroupSvc
+                .getOrCreateSquadGroup(data.squadId, data.createdBy, 'Coach')
+                .catch((error) => {
+                logger.error('Failed to auto-create squad group', error);
+            });
+        }
+        catch (error) {
+            logger.error('Squad group service unavailable for SQUAD_CREATED', error);
+        }
+        logger.info('Squad created event processed', {
+            squadId: data.squadId,
+            clubId: data.clubId,
         });
     });
-    // ---------- No-Show events -------------------------------------------------
-    subscribe(event_bus_1.ServiceEvents.NO_SHOW_RECORDED, (data) => {
-        logger.debug('Handling NO_SHOW_RECORDED', data);
-        logger.info('No-show recorded event processed', {
-            bookingId: data.bookingId,
-            coachId: data.coachId,
-            familyId: data.familyId,
-            category: data.category,
+    subscribe(event_bus_1.ServiceEvents.SQUAD_DELETED, (data) => {
+        logger.debug('Handling SQUAD_DELETED', data);
+        // Delete the associated parent group
+        try {
+            const squadGroupSvc = getSquadGroupService();
+            squadGroupSvc
+                .deleteSquadGroup(data.squadId)
+                .catch((error) => {
+                logger.error('Failed to delete squad group', error);
+            });
+        }
+        catch (error) {
+            logger.error('Squad group service unavailable for SQUAD_DELETED', error);
+        }
+        logger.info('Squad deleted event processed', {
+            squadId: data.squadId,
+            clubId: data.clubId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.SQUAD_MEMBER_ADDED, (data) => {
+        logger.debug('Handling SQUAD_MEMBER_ADDED', data);
+        // Sync member to squad group
+        try {
+            const squadGroupSvc = getSquadGroupService();
+            squadGroupSvc
+                .syncMemberToGroup(data.squadId, data.userId, data.userName)
+                .catch((error) => {
+                logger.error('Failed to sync member addition to squad group', error);
+            });
+        }
+        catch (error) {
+            logger.error('Squad group service unavailable for SQUAD_MEMBER_ADDED', error);
+        }
+        logger.info('Squad member added event processed', {
+            squadId: data.squadId,
+            userId: data.userId,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.SQUAD_MEMBER_REMOVED, (data) => {
+        logger.debug('Handling SQUAD_MEMBER_REMOVED', data);
+        // Remove member from squad group
+        try {
+            const squadGroupSvc = getSquadGroupService();
+            squadGroupSvc
+                .syncMemberRemovalFromGroup(data.squadId, data.userId)
+                .catch((error) => {
+                logger.error('Failed to sync member removal from squad group', error);
+            });
+        }
+        catch (error) {
+            logger.error('Squad group service unavailable for SQUAD_MEMBER_REMOVED', error);
+        }
+        logger.info('Squad member removed event processed', {
+            squadId: data.squadId,
+            userId: data.userId,
+        });
+    });
+    // ---------- Connection & offline queue events --------------------------------
+    subscribe(event_bus_1.ServiceEvents.CONNECTION_CHANGED, (data) => {
+        logger.debug('Handling CONNECTION_CHANGED', data);
+        if (data.isConnected && data.wasOffline) {
+            // Purge expired queue items when coming back online
+            try {
+                const offlineQueue = getOfflineQueue();
+                offlineQueue
+                    .purgeExpired()
+                    .then((result) => {
+                    if (result.success && result.data && result.data > 0) {
+                        logger.info(`Purged ${result.data} expired queue actions on reconnect`);
+                    }
+                })
+                    .catch((error) => {
+                    logger.error('Failed to purge expired queue items on reconnect', error);
+                });
+            }
+            catch (error) {
+                logger.error('Offline queue service unavailable for CONNECTION_CHANGED', error);
+            }
+        }
+        logger.info('Connection changed event processed', {
+            isConnected: data.isConnected,
+            wasOffline: data.wasOffline,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.QUEUE_FLUSHED, (data) => {
+        logger.debug('Handling QUEUE_FLUSHED', data);
+        if (data.failed > 0) {
+            // Create a notification about failed queue items
+            try {
+                const notifService = getNotificationService();
+                notifService.create({
+                    id: `notif_queue_flush_fail_${Date.now()}`,
+                    type: 'system',
+                    title: 'Sync Incomplete',
+                    body: `${data.failed} change${data.failed === 1 ? '' : 's'} could not be synced. They will be retried.`,
+                    timeLabel: 'Just now',
+                    read: false,
+                });
+            }
+            catch (error) {
+                logger.error('Notification creation failed for QUEUE_FLUSHED', error);
+            }
+        }
+        logger.info('Queue flushed event processed', {
+            processed: data.processed,
+            failed: data.failed,
+            remaining: data.remaining,
+        });
+    });
+    subscribe(event_bus_1.ServiceEvents.QUEUE_ACTION_FAILED, (data) => {
+        logger.debug('Handling QUEUE_ACTION_FAILED', data);
+        logger.info('Queue action failed event processed', {
+            actionId: data.actionId,
+            path: data.path,
+            method: data.method,
+            error: data.error,
+            willRetry: data.willRetry,
         });
     });
     logger.info(`Service subscribers initialized (${unsubscribers.length} subscriptions)`);

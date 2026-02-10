@@ -6,11 +6,13 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing  , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
@@ -21,7 +23,7 @@ const logger = createLogger('ConfirmationScreen');
 
 export default function ConfirmationScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { draft, reset } = useBookingFlow();
   const { currentUser } = useAuth();
 
@@ -112,31 +114,31 @@ export default function ConfirmationScreen() {
 
         {/* Show booking summary */}
         <View style={[styles.summaryCard, { borderColor: palette.border }]}>
-          <View style={styles.summaryRow}>
+          <Row align="center" gap="sm">
             <Ionicons name="calendar-outline" size={18} color={palette.muted} />
             <ThemedText style={{ color: palette.text }}>
               {draft.date ? formatDate(draft.date) : 'No date selected'}
             </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
+          </Row>
+          <Row align="center" gap="sm">
             <Ionicons name="time-outline" size={18} color={palette.muted} />
             <ThemedText style={{ color: palette.text }}>
               {draft.slot || 'No time selected'}
             </ThemedText>
-          </View>
+          </Row>
           {draft.locationText && (
-            <View style={styles.summaryRow}>
+            <Row align="center" gap="sm">
               <Ionicons name="location-outline" size={18} color={palette.muted} />
               <ThemedText style={{ color: palette.text }}>{draft.locationText}</ThemedText>
-            </View>
+            </Row>
           )}
         </View>
 
         {error && (
-          <View style={[styles.errorBox, { backgroundColor: withAlpha(palette.error, 0.08), borderColor: palette.error }]}>
+          <Row align="center" gap="sm" style={[styles.errorBox, { backgroundColor: withAlpha(palette.error, 0.08), borderColor: palette.error }]}>
             <Ionicons name="alert-circle" size={20} color={palette.error} />
             <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
-          </View>
+          </Row>
         )}
       </View>
 
@@ -194,15 +196,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: Spacing.sm,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+  summaryRow: {},
   errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,

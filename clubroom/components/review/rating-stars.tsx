@@ -1,13 +1,12 @@
-import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Spacing } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { useTheme } from '@/hooks/useTheme';
 
 export function RatingStars({ rating, onRate }: { rating: number; onRate?: (value: number) => void }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.row}>
+    <Row gap="xs">
       {[1, 2, 3, 4, 5].map((value) => {
         const active = rating >= value;
         return (
@@ -16,13 +15,6 @@ export function RatingStars({ rating, onRate }: { rating: number; onRate?: (valu
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-});

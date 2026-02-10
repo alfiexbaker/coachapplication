@@ -6,7 +6,7 @@
 import { StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import { ThemedView } from '@/components/themed-view';
+import { Row } from '@/components/primitives/row';
 import { Button } from '@/components/primitives/button';
 import { useSubscribeForm } from '@/hooks/use-subscribe-form';
 import type { CoachInfo, AthleteInfo } from '@/hooks/use-subscribe-form';
@@ -69,12 +69,12 @@ export function SubscribeForm({ coach, userId, userName, athletes, onSubmit, onC
         />
       </ScrollView>
 
-      <ThemedView style={[styles.footer, { borderTopColor: palette.border }]}>
+      <Row gap="sm" style={[styles.footer, { borderTopColor: palette.border }]}>
         {onCancel && <Button variant="outline" onPress={onCancel} style={styles.cancelButton}>Cancel</Button>}
         <Button onPress={form.handleSubmit} disabled={!form.isValid || submitting} style={styles.submitButton}>
           {submitting ? 'Creating...' : 'Start Subscription'}
         </Button>
-      </ThemedView>
+      </Row>
     </KeyboardAvoidingView>
   );
 }
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   scrollContent: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: 100 },
-  footer: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderTopWidth: 1 },
+  footer: { padding: Spacing.md, borderTopWidth: 1 },
   cancelButton: { flex: 1 },
   submitButton: { flex: 2 },
 });

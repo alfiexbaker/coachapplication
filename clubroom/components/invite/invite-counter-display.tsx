@@ -100,7 +100,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   slotSelectable: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

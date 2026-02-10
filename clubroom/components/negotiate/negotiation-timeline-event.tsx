@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -21,7 +22,7 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
   const iconConfig = getStatusIcon(event.type, palette);
 
   return (
-    <View style={styles.timelineItem}>
+    <Row gap="sm">
       {/* Timeline line */}
       <View style={styles.timelineLeft}>
         <View
@@ -42,7 +43,7 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
 
       {/* Event content */}
       <View style={styles.timelineContent}>
-        <View style={styles.eventHeader}>
+        <Row justify="between" align="center">
           <ThemedText type="defaultSemiBold" style={styles.eventTitle}>
             {event.type === 'original'
               ? 'Original Time'
@@ -53,7 +54,7 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
           <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
             {formatDateTime(event.timestamp)}
           </ThemedText>
-        </View>
+        </Row>
 
         <View
           style={[
@@ -74,7 +75,7 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
             },
           ]}
         >
-          <View style={styles.timeRow}>
+          <Row align="center" gap="xxs">
             <Ionicons
               name="calendar"
               size={14}
@@ -87,33 +88,33 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
               }
             />
             <ThemedText>{formatTimeSlot(event.time)}</ThemedText>
-          </View>
+          </Row>
           {event.time.location && (
-            <View style={styles.timeRow}>
+            <Row align="center" gap="xxs">
               <Ionicons name="location-outline" size={14} color={palette.muted} />
               <ThemedText style={{ color: palette.muted }}>{event.time.location}</ThemedText>
-            </View>
+            </Row>
           )}
         </View>
 
         {/* Message */}
         {event.message && (
-          <View style={[styles.messageBox, { backgroundColor: palette.background }]}>
+          <Row align="start" gap="xxs" style={[styles.messageBox, { backgroundColor: palette.background }]}>
             <Ionicons name="chatbubble-outline" size={12} color={palette.muted} />
             <ThemedText style={[styles.messageText, { color: palette.muted }]}>
               &quot;{event.message}&quot;
             </ThemedText>
-          </View>
+          </Row>
         )}
 
         {/* Rejection reason */}
         {event.rejectionReason && (
-          <View style={[styles.rejectionBox, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+          <Row align="start" gap="xxs" style={[styles.rejectionBox, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
             <Ionicons name="information-circle-outline" size={12} color={palette.error} />
             <ThemedText style={[styles.rejectionText, { color: palette.error }]}>
               {event.rejectionReason}
             </ThemedText>
-          </View>
+          </Row>
         )}
 
         {/* Status label */}
@@ -142,26 +143,26 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
           </View>
         )}
       </View>
-    </View>
+    </Row>
   );
 });
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  timelineItem: { flexDirection: 'row', gap: Spacing.sm },
+  timelineItem: {},
   timelineLeft: { alignItems: 'center', width: 24 },
   timelineDot: { width: 24, height: 24, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   timelineLine: { flex: 1, width: 2, marginVertical: Spacing.xxs },
   timelineContent: { flex: 1, paddingBottom: Spacing.md, gap: Spacing.xs },
-  eventHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  eventHeader: {},
   eventTitle: { ...Typography.sm },
   eventTime: { ...Typography.xs },
   timeCard: { padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1, gap: Spacing.xxs },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
-  messageBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xxs, padding: Spacing.xs, borderRadius: Radii.sm },
+  timeRow: {},
+  messageBox: { padding: Spacing.xs, borderRadius: Radii.sm },
   messageText: { ...Typography.sm, flex: 1, fontStyle: 'italic' },
-  rejectionBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xxs, padding: Spacing.xs, borderRadius: Radii.sm },
+  rejectionBox: { padding: Spacing.xs, borderRadius: Radii.sm },
   rejectionText: { ...Typography.sm, flex: 1 },
   statusRow: { marginTop: Spacing.micro },
   statusLabel: { ...Typography.sm, fontWeight: '500' },

@@ -120,7 +120,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
   },
   sentItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

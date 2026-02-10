@@ -1,8 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -58,50 +59,50 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       {/* Header row: type label + date */}
-      <View style={styles.headerRow}>
-        <View style={styles.typeRow}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.typeRow}>
           <Ionicons name="football-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.typeLabel, { color: palette.muted }]}>Match Result</ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.dateText, { color: palette.muted }]}>{formatDate(data.date)}</ThemedText>
-      </View>
+      </Row>
 
       {/* Score display */}
-      <View style={styles.scoreContainer}>
-        <View style={styles.teamColumn}>
+      <Row style={styles.scoreContainer}>
+        <Row style={styles.teamColumn}>
           <ThemedText style={[styles.teamName, { color: palette.text }]} numberOfLines={1}>
             {data.homeTeam}
           </ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.scoreCenter}>
+        <Row style={styles.scoreCenter}>
           <ThemedText style={[styles.scoreText, { color: palette.text }]}>
             {data.homeScore} - {data.awayScore}
           </ThemedText>
-          <View style={[styles.resultPill, { backgroundColor: resultColor }]}>
+          <Row style={[styles.resultPill, { backgroundColor: resultColor }]}>
             <ThemedText style={[styles.resultPillText, { color: palette.onPrimary }]}>{RESULT_LABELS[data.result]}</ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
 
-        <View style={[styles.teamColumn, styles.teamColumnRight]}>
+        <Row style={[styles.teamColumn, styles.teamColumnRight]}>
           <ThemedText style={[styles.teamName, { color: palette.text }]} numberOfLines={1}>
             {data.awayTeam}
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {/* Player of the match */}
       {data.playerOfTheMatch ? (
-        <View style={[styles.potmRow, { backgroundColor: palette.surfaceSecondary }]}>
+        <Row style={[styles.potmRow, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
           <ThemedText style={[styles.potmText, { color: palette.text }]}>
             Player of the Match: <ThemedText style={styles.potmName}>{data.playerOfTheMatch}</ThemedText>
           </ThemedText>
-        </View>
+        </Row>
       ) : null}
 
       {/* Footer: likes + comments */}
-      <View style={styles.footer}>
+      <Row style={styles.footer}>
         <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
@@ -110,7 +111,7 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -120,12 +121,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   typeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -136,7 +135,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   scoreContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.xs,
   },
@@ -168,7 +166,6 @@ const styles = StyleSheet.create({
     // color applied inline via palette.onPrimary
   },
   potmRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
@@ -182,7 +179,6 @@ const styles = StyleSheet.create({
     ...Typography.smallSemiBold,
   },
   footer: {
-    flexDirection: 'row',
     gap: Spacing.lg,
     paddingTop: Spacing.xs,
   },

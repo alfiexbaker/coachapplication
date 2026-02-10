@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { ROLE_INFO } from '@/hooks/use-family-sharing';
 import { RELATIONSHIP_OPTIONS } from '@/services/family';
 import type { GuardianRole } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface SharingInviteModalProps {
   visible: boolean;
@@ -32,13 +33,13 @@ export const SharingInviteModal = memo(function SharingInviteModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Row style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose} style={{ padding: Spacing.xxs }}>
             <Ionicons name="close" size={28} color={colors.text} />
           </Pressable>
           <ThemedText type="subtitle">Invite Guardian</ThemedText>
           <View style={{ width: 28 }} />
-        </View>
+        </Row>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
           <View style={styles.group}>
@@ -57,7 +58,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
 
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Relationship</ThemedText>
-            <View style={styles.chips}>
+            <Row style={styles.chips}>
               {RELATIONSHIP_OPTIONS.map((rel) => (
                 <Pressable key={rel} onPress={() => onRelationshipChange(rel)}
                   style={[styles.chip, { borderColor: inviteRelationship === rel ? colors.tint : colors.border,
@@ -65,7 +66,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
                   <ThemedText style={{ color: inviteRelationship === rel ? colors.tint : colors.text }}>{rel}</ThemedText>
                 </Pressable>
               ))}
-            </View>
+            </Row>
           </View>
 
           <View style={styles.group}>
@@ -111,16 +112,16 @@ export const SharingInviteModal = memo(function SharingInviteModal({
 
 const styles = StyleSheet.create({
   modal: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderBottomWidth: 1 },
   content: { padding: Spacing.md, gap: Spacing.lg },
   group: { gap: Spacing.sm },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, ...Typography.subheading },
   textArea: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, ...Typography.subheading, minHeight: 80, textAlignVertical: 'top' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  chips: { flexWrap: 'wrap', gap: Spacing.xs },
   chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1.5 },
-  roleOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
+  roleOption: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   radio: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 12, height: 12, borderRadius: Radii.sm },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
-  sendBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md },
+  sendBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md },
 });

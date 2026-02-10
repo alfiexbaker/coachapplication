@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
@@ -114,10 +115,10 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
       <ScrollView style={styles.playerList} showsVerticalScrollIndicator={false}>
         {availablePlayers.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row align="center" gap="xs" style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: palette.success }]} />
               <ThemedText type="defaultSemiBold">Available ({availablePlayers.length})</ThemedText>
-            </View>
+            </Row>
             {availablePlayers.map(player => (
               <SelectablePlayerRow
                 key={player.athleteId}
@@ -132,10 +133,10 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
 
         {pendingPlayers.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row align="center" gap="xs" style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: palette.warning }]} />
               <ThemedText type="defaultSemiBold">Awaiting Response ({pendingPlayers.length})</ThemedText>
-            </View>
+            </Row>
             {pendingPlayers.map(player => (
               <DisabledPlayerRow
                 key={player.athleteId}
@@ -149,10 +150,10 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
 
         {unavailablePlayers.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+            <Row align="center" gap="xs" style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: palette.error }]} />
               <ThemedText type="defaultSemiBold">Unavailable ({unavailablePlayers.length})</ThemedText>
-            </View>
+            </Row>
             {unavailablePlayers.map(player => (
               <DisabledPlayerRow
                 key={player.athleteId}
@@ -181,9 +182,6 @@ const styles = StyleSheet.create({
   playerList: { flex: 1 },
   section: { marginBottom: Spacing.md },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   sectionDot: {

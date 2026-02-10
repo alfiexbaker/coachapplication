@@ -3,6 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -83,7 +84,7 @@ export function DownloadButton({
 
   if (variant === 'icon') {
     return (
-      <View style={styles.iconContainer}>
+      <Row gap="xs">
         <Clickable
           style={[styles.iconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
           onPress={handleDownload}
@@ -107,7 +108,7 @@ export function DownloadButton({
             <Ionicons name="share-outline" size={iconSz} color={palette.tint} />
           )}
         </Clickable>
-      </View>
+      </Row>
     );
   }
 
@@ -116,7 +117,7 @@ export function DownloadButton({
   const fontSize = getFontSize(size);
 
   return (
-    <View style={styles.buttonContainer}>
+    <Row gap="sm">
       <Clickable
         style={[
           styles.button, btnSize,
@@ -159,7 +160,7 @@ export function DownloadButton({
           </>
         )}
       </Clickable>
-    </View>
+    </Row>
   );
 }
 
@@ -180,7 +181,6 @@ export function ShareOnlyButton({ invoice, size = 'medium' }: SingleButtonProps)
 }
 
 const styles = StyleSheet.create({
-  buttonContainer: { flexDirection: 'row', gap: Spacing.sm },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,7 +189,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   buttonText: { fontWeight: '600' },
-  iconContainer: { flexDirection: 'row', gap: Spacing.xs },
   iconButton: {
     width: 44,
     height: 44,

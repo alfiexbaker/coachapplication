@@ -196,7 +196,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   targetCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
@@ -221,7 +220,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   squadItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

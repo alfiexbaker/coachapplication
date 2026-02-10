@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import type { Challenge, ChallengeSubmission } from '@/services/challenge-service';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -90,30 +91,30 @@ export function ChallengeCard({
       </ThemedText>
 
       {/* Deadline */}
-      <View style={styles.metaRow}>
+      <Row style={styles.metaRow}>
         <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.muted} />
         <ThemedText style={[styles.metaText, { color: expired ? palette.error : palette.muted }]}>
           {expired ? 'Ended' : `Due ${formatDeadline(challenge.deadline)}`}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Progress */}
-      <View style={styles.metaRow}>
+      <Row style={styles.metaRow}>
         <Ionicons name="people-outline" size={Components.icon.sm} color={palette.muted} />
         <ThemedText style={[styles.metaText, { color: palette.muted }]}>
           {completedCount} of {totalAthletes} completed
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Submit CTA */}
       {!expired && (
         <Clickable onPress={onSubmitAttempt} accessibilityLabel="Submit My Attempt">
-          <View style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
+          <Row style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
             <Ionicons name="videocam-outline" size={Components.icon.md} color={palette.surface} />
             <ThemedText style={[styles.ctaText, { color: palette.surface }]}>
               Submit My Attempt
             </ThemedText>
-          </View>
+          </Row>
         </Clickable>
       )}
 
@@ -126,7 +127,7 @@ export function ChallengeCard({
           </ThemedText>
 
           {submissions.slice(0, 10).map((sub, index) => (
-            <View key={sub.id} style={styles.leaderboardRow}>
+            <Row key={sub.id} style={styles.leaderboardRow}>
               <View style={[styles.rankCircle, { backgroundColor: palette.surfaceSecondary }]}>
                 <ThemedText style={[styles.rankText, { color: palette.foreground }]}>
                   {index + 1}
@@ -138,7 +139,7 @@ export function ChallengeCard({
               {sub.awardedBadge && (
                 <Ionicons name="trophy" size={Components.icon.sm} color={palette.warning} />
               )}
-            </View>
+            </Row>
           ))}
         </View>
       )}
@@ -179,7 +180,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   ctaButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: Components.button.height,
@@ -204,7 +203,6 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
   },
   leaderboardRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.xs / 2,

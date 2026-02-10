@@ -4,6 +4,7 @@
  */
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -207,13 +208,13 @@ export function ParentDiscoverScreen() {
           </View>
         )}
         {invitesError && !loadingInvites && (
-          <View style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
+          <Row align="center" gap="sm" style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
             <Ionicons name="alert-circle" size={16} color={palette.error} />
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{invitesError}</ThemedText>
             <Clickable onPress={loadPendingInvites}>
               <ThemedText style={[styles.retryLink, { color: palette.tint }]}>Retry</ThemedText>
             </Clickable>
-          </View>
+          </Row>
         )}
 
         {!loadingInvites && <DiscoverPendingInvites invites={pendingInvites} />}
@@ -238,7 +239,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
   loadingContainer: { padding: Spacing.lg, alignItems: 'center' },
   errorContainer: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     marginHorizontal: Spacing.lg, padding: Spacing.md, borderRadius: 12, borderWidth: 1,
   },
   errorText: { ...Typography.small, flex: 1 },

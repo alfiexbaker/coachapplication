@@ -7,6 +7,7 @@
 
 import React, { memo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -96,7 +97,7 @@ export const IOSPickerModal = memo(function IOSPickerModal({
         onPress={onCancel}
       />
       <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-        <View style={styles.modalHeader}>
+        <Row justify="between" style={styles.modalHeader}>
           <Pressable onPress={onCancel} hitSlop={12}>
             <Text style={[styles.modalButtonText, { color: colors.muted }]}>
               Cancel
@@ -107,7 +108,7 @@ export const IOSPickerModal = memo(function IOSPickerModal({
               Done
             </Text>
           </Pressable>
-        </View>
+        </Row>
         <DateTimePicker
           value={tempDate ?? currentDate}
           mode={mode}
@@ -140,9 +141,6 @@ export const styles = StyleSheet.create({
     borderRadius: Components.input.borderRadius,
     paddingHorizontal: Components.input.paddingHorizontal,
     borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
   },
   valueText: {
     fontSize: Typography.body.fontSize,
@@ -163,8 +161,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
   },

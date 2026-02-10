@@ -14,6 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -35,12 +36,12 @@ function DrillInstructionsInner({ description, equipment }: DrillInstructionsPro
     <View>
       {/* Instructions */}
       <SurfaceCard style={styles.instructionsCard}>
-        <View style={styles.sectionHeader}>
+        <Row style={styles.sectionHeader}>
           <Ionicons name="document-text-outline" size={18} color={palette.tint} />
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Instructions
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.instructionsText, { color: palette.text }]}>
           {description}
         </ThemedText>
@@ -49,18 +50,18 @@ function DrillInstructionsInner({ description, equipment }: DrillInstructionsPro
       {/* Equipment */}
       {equipment && equipment.length > 0 && (
         <SurfaceCard style={styles.equipmentCard}>
-          <View style={styles.sectionHeader}>
+          <Row style={styles.sectionHeader}>
             <Ionicons name="football-outline" size={18} color={palette.tint} />
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
               Equipment Needed
             </ThemedText>
-          </View>
+          </Row>
           <View style={styles.equipmentList}>
             {equipment.map((item, index) => (
-              <View key={index} style={styles.equipmentItem}>
+              <Row key={index} style={styles.equipmentItem}>
                 <Ionicons name="checkmark" size={16} color={palette.success} />
                 <ThemedText style={styles.equipmentText}>{item}</ThemedText>
-              </View>
+              </Row>
             ))}
           </View>
         </SurfaceCard>
@@ -81,7 +82,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   equipmentItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

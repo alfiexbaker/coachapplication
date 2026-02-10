@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { FrequencyPicker } from './FrequencyPicker';
 import { useTheme } from '@/hooks/useTheme';
@@ -38,7 +39,7 @@ function SubscribeScheduleSectionInner({
       {/* Day Selector */}
       <View style={styles.section}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Day of Week</ThemedText>
-        <View style={styles.dayGrid}>
+        <Row gap="xs">
           {DAYS.map((day) => {
             const isSelected = dayOfWeek === day.value;
             return (
@@ -51,7 +52,7 @@ function SubscribeScheduleSectionInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       {/* Time Selector */}
@@ -81,7 +82,6 @@ export const SubscribeScheduleSection = memo(SubscribeScheduleSectionInner);
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xxs },
-  dayGrid: { flexDirection: 'row', gap: Spacing.xs },
   dayOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
   dayLabel: { ...Typography.smallSemiBold },
   timeSelector: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },

@@ -2,6 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
@@ -70,7 +71,9 @@ export function NotificationCard({
 
   return (
     <Clickable onPress={handlePress}>
-      <View
+      <Row
+        align="start"
+        gap="sm"
         style={[
           styles.card,
           {
@@ -99,12 +102,12 @@ export function NotificationCard({
 
         {/* Content */}
         <View style={styles.content}>
-          <View style={styles.headerRow}>
+          <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" style={styles.title}>
               {item.title}
             </ThemedText>
             {!item.read && <View style={[styles.unreadDot, { backgroundColor: palette.tint }]} />}
-          </View>
+          </Row>
 
           <ThemedText style={[styles.body, { color: palette.muted }]} numberOfLines={2}>
             {item.body}
@@ -112,43 +115,43 @@ export function NotificationCard({
 
           {/* Badge-specific content */}
           {item.type === 'badge' && item.badgeTitle ? (
-            <View style={styles.badgeInfo}>
+            <Row align="center" style={styles.badgeInfo}>
               <Ionicons name="ribbon" size={14} color={palette.tint} />
               <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint, marginLeft: Spacing.xxs }}>
                 {item.badgeTitle}
                 {item.athleteName ? ` - ${item.athleteName}` : ''}
               </ThemedText>
-            </View>
+            </Row>
           ) : null}
 
           {/* Action buttons for badge */}
           {item.type === 'badge' && !item.handled ? (
-            <View style={styles.actionRow}>
+            <Row gap="xs" style={styles.actionRow}>
               {onAddToFeed && (
                 <Clickable onPress={onAddToFeed}>
-                  <View style={[styles.actionChip, { backgroundColor: palette.tint, borderColor: palette.tint }]}>
+                  <Row align="center" gap="xs" style={[styles.actionChip, { backgroundColor: palette.tint, borderColor: palette.tint }]}>
                     <Ionicons name="add-circle-outline" size={14} color={palette.onPrimary} />
                     <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>
                       Add to Feed
                     </ThemedText>
-                  </View>
+                  </Row>
                 </Clickable>
               )}
               {onShare && (
                 <Clickable onPress={onShare}>
-                  <View style={[styles.actionChip, { borderColor: palette.border }]}>
+                  <Row align="center" gap="xs" style={[styles.actionChip, { borderColor: palette.border }]}>
                     <Ionicons name="eye-outline" size={14} color={palette.text} />
                     <ThemedText style={[styles.actionText, { color: palette.text }]}>
                       View
                     </ThemedText>
-                  </View>
+                  </Row>
                 </Clickable>
               )}
-            </View>
+            </Row>
           ) : null}
 
           {/* Time label */}
-          <View style={styles.footer}>
+          <Row align="center" justify="between" style={styles.footer}>
             <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {item.timeLabel || 'Just now'}
             </ThemedText>
@@ -161,7 +164,7 @@ export function NotificationCard({
                 </ThemedText>
               </View>
             )}
-          </View>
+          </Row>
         </View>
 
         {/* Chevron for navigation hint */}
@@ -173,16 +176,13 @@ export function NotificationCard({
             style={styles.chevron}
           />
         )}
-      </View>
+      </Row>
     </Clickable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
@@ -198,11 +198,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xxs,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   title: { ...Typography.body },
   unreadDot: {
     width: 8,
@@ -211,19 +206,12 @@ const styles = StyleSheet.create({
   },
   body: { ...Typography.bodySmall, lineHeight: 20 },
   badgeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginTop: Spacing.xxs,
   },
   actionRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
   actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
@@ -231,9 +219,6 @@ const styles = StyleSheet.create({
   },
   actionText: { ...Typography.caption },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginTop: Spacing.xxs,
   },
   typeTag: {

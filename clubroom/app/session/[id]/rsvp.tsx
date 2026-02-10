@@ -11,14 +11,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { RSVPFlow } from '@/components/session/rsvp-flow';
@@ -140,7 +140,7 @@ export default function RSVPScreen() {
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
         <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={colors.tint} />
+          <LoadingState variant="detail" />
         </View>
       </>
     );
@@ -152,11 +152,7 @@ export default function RSVPScreen() {
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
         <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-          <Text style={[styles.errorTitle, { color: colors.text }]}>RSVP Not Found</Text>
-          <Text style={[styles.errorMessage, { color: colors.muted }]}>
-            This RSVP may have expired or already been handled.
-          </Text>
+          <ErrorState message="This RSVP may have expired or already been handled." title="RSVP Not Found" onRetry={loadData} />
         </View>
       </>
     );
@@ -192,11 +188,11 @@ export default function RSVPScreen() {
         <Stack.Screen options={{ title: 'RSVP' }} />
         <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
           <Ionicons name={config.icon} size={64} color={config.color} />
-          <Text style={[styles.confirmedTitle, { color: config.color }]}>
+          <ThemedText style={[styles.confirmedTitle, { color: config.color }]}>
             {config.label}
-          </Text>
-          <Text style={[styles.confirmedMessage, { color: colors.muted }]}>{config.message}</Text>
-          <Text style={[styles.confirmedSession, { color: colors.text }]}>{sessionInfo.title}</Text>
+          </ThemedText>
+          <ThemedText style={[styles.confirmedMessage, { color: colors.muted }]}>{config.message}</ThemedText>
+          <ThemedText style={[styles.confirmedSession, { color: colors.text }]}>{sessionInfo.title}</ThemedText>
         </View>
       </>
     );

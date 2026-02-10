@@ -9,6 +9,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
@@ -19,8 +20,7 @@ import {
   CountBadge,
   ExpandableList,
   ProgressIndicator,
-  ReminderButton,
-} from './rsvp-summary-sections';
+  ReminderButton } from './rsvp-summary-sections';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -83,11 +83,11 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
       <ProgressIndicator confirmed={confirmed} total={total} palette={palette} />
 
       {/* Count badges */}
-      <View style={styles.badgeRow}>
+      <Row gap="xs">
         <CountBadge count={counts.going} label="Going" color={palette.success} icon="checkmark-circle" />
         <CountBadge count={counts.notGoing} label="Can't" color={palette.error} icon="close-circle" />
         <CountBadge count={counts.maybe} label="Maybe" color={palette.warning} icon="help-circle" />
-      </View>
+      </Row>
 
       {/* Expandable lists */}
       <View style={styles.listsContainer}>
@@ -113,6 +113,5 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 100 },
   emptyText: { ...Typography.small },
   sectionTitle: { ...Typography.subheading },
-  badgeRow: { flexDirection: 'row', gap: Spacing.xs },
-  listsContainer: { gap: Spacing.xs },
-});
+  badgeRow: {},
+  listsContainer: { gap: Spacing.xs } });

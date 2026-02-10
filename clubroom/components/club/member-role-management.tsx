@@ -64,8 +64,8 @@ export const MemberRoleManagement = memo(function MemberRoleManagement({
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   picker: { gap: Spacing.xs },
-  option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  option: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   dot: { width: 12, height: 12, borderRadius: Radii.sm },
   cancelBtn: { alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  actionRow: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
 });

@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 import { type AssignmentCardProps, getStatusColor, getDueDateText } from './assignment-card-helpers';
+import { Row } from '@/components/primitives';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export const AssignmentCardCompact = memo(function AssignmentCardCompact({
 
       {/* Content */}
       <View style={styles.compactContent}>
-        <View style={styles.compactHeader}>
+        <Row style={styles.compactHeader}>
           <ThemedText
             type="defaultSemiBold"
             style={[
@@ -59,9 +60,9 @@ export const AssignmentCardCompact = memo(function AssignmentCardCompact({
           {hasVideo && (
             <Ionicons name="videocam" size={14} color={palette.muted} />
           )}
-        </View>
-        <View style={styles.compactMeta}>
-          <View style={styles.metaItem}>
+        </Row>
+        <Row style={styles.compactMeta}>
+          <Row style={styles.metaItem}>
             <Ionicons
               name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'}
               size={12}
@@ -70,8 +71,8 @@ export const AssignmentCardCompact = memo(function AssignmentCardCompact({
             <ThemedText style={[styles.metaText, { color: statusColor }]}>
               {getDueDateText(assignment, isOverdue, isDueSoon)}
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
 
       {/* Priority indicator */}
@@ -89,15 +90,15 @@ export const AssignmentCardCompact = memo(function AssignmentCardCompact({
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  compactCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.sm, marginBottom: Spacing.sm, gap: Spacing.sm },
+  compactCard: { alignItems: 'center', padding: Spacing.sm, marginBottom: Spacing.sm, gap: Spacing.sm },
   checkbox: { width: 24, height: 24, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   checkboxCompleted: {},
   compactContent: { flex: 1, gap: Spacing.xxs },
-  compactHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.xs },
+  compactHeader: { alignItems: 'center', justifyContent: 'space-between', gap: Spacing.xs },
   compactTitle: { flex: 1, fontSize: scaleFont(15) },
   completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
-  compactMeta: { flexDirection: 'row', alignItems: 'center' },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  compactMeta: { alignItems: 'center' },
+  metaItem: { alignItems: 'center', gap: Spacing.xxs },
   metaText: { fontSize: scaleFont(12) },
   priorityBadge: { width: 24, height: 24, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
 });

@@ -15,6 +15,7 @@ import { useRecurringTemplateForm } from '@/hooks/use-recurring-template-form';
 import { TemplateDaySection } from './template-day-section';
 import { TemplateTimeSection } from './template-time-section';
 import { TemplateOptionsSection } from './template-options-section';
+import { Row } from '@/components/primitives';
 
 interface RecurringTemplateModalProps {
   visible: boolean;
@@ -47,7 +48,7 @@ export function RecurringTemplateModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView style={[styles.container, { backgroundColor: palette.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={onClose} disabled={form.saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
@@ -59,7 +60,7 @@ export function RecurringTemplateModal({
               {form.saving ? 'Saving...' : 'Save'}
             </ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <TemplateDaySection
@@ -108,6 +109,6 @@ export function RecurringTemplateModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   content: { padding: Spacing.lg, gap: Spacing.xl, paddingBottom: Spacing['2xl'] },
 });

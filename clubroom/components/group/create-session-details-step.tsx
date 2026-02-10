@@ -8,6 +8,7 @@ import { InlineSquadSelector } from '@/components/squad/squad-picker';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession, FootballObjective } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const SKILL_LEVELS: { key: GroupSession['skillLevel']; label: string }[] = [
   { key: 'ALL', label: 'All Levels' },
@@ -103,7 +104,7 @@ function CreateSessionDetailsStepInner({
         />
       </View>
 
-      <View style={styles.rowInputs}>
+      <Row style={styles.rowInputs}>
         <View style={[styles.inputGroup, { flex: 1 }]}>
           <ThemedText style={styles.inputLabel}>Age Min</ThemedText>
           <TextInput
@@ -126,11 +127,11 @@ function CreateSessionDetailsStepInner({
             keyboardType="number-pad"
           />
         </View>
-      </View>
+      </Row>
 
       <View style={styles.inputGroup}>
         <ThemedText style={styles.inputLabel}>Skill Level</ThemedText>
-        <View style={styles.chipRow}>
+        <Row style={styles.chipRow}>
           {SKILL_LEVELS.map((level) => (
             <Clickable
               key={level.key}
@@ -153,12 +154,12 @@ function CreateSessionDetailsStepInner({
               </ThemedText>
             </Clickable>
           ))}
-        </View>
+        </Row>
       </View>
 
       <View style={styles.inputGroup}>
         <ThemedText style={styles.inputLabel}>Focus Areas</ThemedText>
-        <View style={styles.chipRow}>
+        <Row style={styles.chipRow}>
           {FOCUS_OPTIONS.map((f) => (
             <Clickable
               key={f}
@@ -178,7 +179,7 @@ function CreateSessionDetailsStepInner({
               </ThemedText>
             </Clickable>
           ))}
-        </View>
+        </Row>
       </View>
 
       {isSquadSession && (
@@ -228,11 +229,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   rowInputs: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   chipRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

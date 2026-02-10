@@ -41,10 +41,10 @@ export const CreateMatchReview = memo(function CreateMatchReview({
           <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
             <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>{matchService.formatMatchType(matchType)}</ThemedText>
           </View>
-          <View style={[styles.homeAwayBadge, { backgroundColor: colors.surface }]}>
+          <Row align="center" gap="xxs" style={[styles.homeAwayBadge, { backgroundColor: colors.surface }]}>
             <Ionicons name={isHome ? 'home' : 'airplane'} size={12} color={colors.muted} />
             <ThemedText style={[Typography.caption, { color: colors.muted }]}>{isHome ? 'Home' : 'Away'}</ThemedText>
-          </View>
+          </Row>
         </Row>
 
         <ThemedText type="title" style={Typography.title}>{selectedSquad?.name || 'Team'} vs {opponent}</ThemedText>
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   reviewCard: { gap: Spacing.md },
   typeBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   typeBadgeText: { ...Typography.caption, textTransform: 'uppercase' },
-  homeAwayBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  homeAwayBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   details: { gap: Spacing.sm },
   notesBox: { padding: Spacing.sm, borderRadius: Radii.sm, gap: Spacing.xxs },
   inviteInfo: { padding: Spacing.sm, borderRadius: Radii.sm },

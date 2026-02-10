@@ -123,7 +123,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tab: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,

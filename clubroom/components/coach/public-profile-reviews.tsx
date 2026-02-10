@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { renderStars } from '@/hooks/use-public-profile';
 import type { Coach, PublicReview } from '@/services/coach-service';
+import { Row } from '@/components/primitives';
 
 interface PublicProfileReviewsProps {
   coach: Coach;
@@ -22,9 +23,9 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({ coach, 
     <Animated.View entering={FadeIn} style={styles.container}>
       <SurfaceCard style={[styles.section, { alignItems: 'center', paddingVertical: Spacing.lg }]}>
         <ThemedText style={[styles.ratingNumber, { color: palette.text }]}>{coach.rating.toFixed(1)}</ThemedText>
-        <View style={styles.starsRow}>
+        <Row style={styles.starsRow}>
           {summaryStars.map((s, i) => <Ionicons key={i} name={s.name} size={14} color={s.color} />)}
-        </View>
+        </Row>
         <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.xs }]}>
           {coach.reviewCount} review{coach.reviewCount !== 1 ? 's' : ''}
         </ThemedText>
@@ -36,20 +37,20 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({ coach, 
           return (
             <Animated.View key={review.id} entering={FadeInDown.delay(index * 50)}>
               <SurfaceCard style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
+                <Row style={styles.reviewHeader}>
                   <View style={[styles.reviewAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                     <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>{review.reviewerName.charAt(0)}</ThemedText>
                   </View>
                   <View style={{ flex: 1 }}>
                     <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>{review.reviewerName}</ThemedText>
-                    <View style={styles.starsRow}>
+                    <Row style={styles.starsRow}>
                       {reviewStars.map((s, i) => <Ionicons key={i} name={s.name} size={14} color={s.color} />)}
-                    </View>
+                    </Row>
                   </View>
                   <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                     {new Date(review.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </ThemedText>
-                </View>
+                </Row>
                 {review.comment ? <ThemedText style={[Typography.body, { color: palette.text }]}>{review.comment}</ThemedText> : null}
                 {review.sessionType ? (
                   <View style={[styles.sessionBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
@@ -73,10 +74,10 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({ coach, 
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },
   section: { gap: Spacing.sm },
-  starsRow: { flexDirection: 'row', gap: Spacing.micro },
+  starsRow: { gap: Spacing.micro },
   ratingNumber: { ...Typography.display },
   reviewCard: { gap: Spacing.sm },
-  reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  reviewHeader: { alignItems: 'center', gap: Spacing.sm },
   reviewAvatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   sessionBadge: { alignSelf: 'flex-start', paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xs / 2, borderRadius: Radii.sm },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['2xl'], gap: Spacing.sm },

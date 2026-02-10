@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { SessionNotesForm } from '@/components/session/session-notes-form';
 import { SessionNotesView } from '@/components/session/session-notes-view';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Clickable } from '@/components/primitives/clickable';
@@ -33,29 +35,36 @@ export default function SessionNotesScreen() {
     }
   };
 
-  const header = useMemo(() => {
-    if (loading && !note) {
-      return (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator color={palette.tint} />
-          <ThemedText style={{ color: palette.muted }}>Loading session notes…</ThemedText>
-        </View>
-      );
-    }
+  if (loading && !note) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
 
+  if (error && !note) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <ErrorState message={error} onRetry={refresh} />
+      </SafeAreaView>
+    );
+  }
+
+  const header = useMemo(() => {
     if (error) {
       return (
-        <View style={[styles.loadingRow, { justifyContent: 'space-between' }]}>
+        <Row align="center" gap="sm" justify="space-between" style={styles.loadingRow}>
           <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
           <Clickable onPress={refresh} style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm }}>
             <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Retry</ThemedText>
           </Clickable>
-        </View>
+        </Row>
       );
     }
 
     return null;
-  }, [error, loading, note, palette.error, palette.muted, palette.tint, refresh]);
+  }, [error, palette.error, palette.tint, refresh]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
@@ -94,9 +103,5 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
   },
-  loadingRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
+  loadingRow: {},
 });

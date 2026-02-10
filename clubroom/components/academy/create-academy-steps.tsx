@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { SPECIALTY_OPTIONS, type WizardStep } from '@/hooks/use-create-academy';
 import type { FootballObjective } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface Props {
   step: WizardStep;
@@ -80,7 +81,7 @@ export const CreateAcademyStepContent = memo(function CreateAcademyStepContent(p
         <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
           <ThemedText type="title" style={styles.stepTitle}>Your Specialties</ThemedText>
           <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>What areas do you focus on?</ThemedText>
-          <View style={styles.specialtiesGrid}>
+          <Row style={styles.specialtiesGrid}>
             {SPECIALTY_OPTIONS.map((specialty) => {
               const selected = props.specialties.includes(specialty);
               return (
@@ -95,7 +96,7 @@ export const CreateAcademyStepContent = memo(function CreateAcademyStepContent(p
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </Animated.View>
       );
 
@@ -104,16 +105,16 @@ export const CreateAcademyStepContent = memo(function CreateAcademyStepContent(p
         <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
           <ThemedText type="title" style={styles.stepTitle}>Review & Create</ThemedText>
           <SurfaceCard style={styles.reviewCard}>
-            <View style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Name</ThemedText><ThemedText type="defaultSemiBold">{props.name}</ThemedText></View>
-            <View style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Location</ThemedText><ThemedText>{props.city}, {props.postcode}</ThemedText></View>
-            {props.description ? <View style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Description</ThemedText><ThemedText numberOfLines={2}>{props.description}</ThemedText></View> : null}
-            {props.email ? <View style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Email</ThemedText><ThemedText>{props.email}</ThemedText></View> : null}
-            {props.specialties.length > 0 ? <View style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Specialties</ThemedText><ThemedText>{props.specialties.join(', ')}</ThemedText></View> : null}
+            <Row style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Name</ThemedText><ThemedText type="defaultSemiBold">{props.name}</ThemedText></Row>
+            <Row style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Location</ThemedText><ThemedText>{props.city}, {props.postcode}</ThemedText></Row>
+            {props.description ? <Row style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Description</ThemedText><ThemedText numberOfLines={2}>{props.description}</ThemedText></Row> : null}
+            {props.email ? <Row style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Email</ThemedText><ThemedText>{props.email}</ThemedText></Row> : null}
+            {props.specialties.length > 0 ? <Row style={styles.reviewRow}><ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Specialties</ThemedText><ThemedText>{props.specialties.join(', ')}</ThemedText></Row> : null}
           </SurfaceCard>
-          <View style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+          <Row style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name="information-circle" size={20} color={palette.tint} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>You can customize your branding (logo, colors) after creating your academy.</ThemedText>
-          </View>
+          </Row>
         </Animated.View>
       );
   }
@@ -129,13 +130,13 @@ const styles = StyleSheet.create({
   inputLabel: { ...Typography.smallSemiBold },
   input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body },
   textArea: { minHeight: 100, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body, textAlignVertical: 'top' },
-  specialtiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  specialtiesGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   specialtyCard: { width: '47%', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 2, position: 'relative' },
   checkIcon: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   specialtyText: { ...Typography.bodySmallSemiBold, textAlign: 'center' },
   reviewCard: { gap: Spacing.sm },
-  reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: Spacing.xs },
+  reviewRow: { justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: Spacing.xs },
   reviewLabel: { ...Typography.small, flex: 1 },
-  infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
+  infoBox: { alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
   infoText: { flex: 1, ...Typography.small },
 });

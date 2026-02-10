@@ -10,18 +10,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SessionOfferingCard } from '@/components/discover/session-offering-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useDiscoverSessions, SKILL_FILTERS, TYPE_FILTERS } from '@/hooks/use-discover-sessions';
 import type { FootballObjective } from '@/constants/types';
 
 export default function DiscoverSessionsScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useDiscoverSessions();
 
   return (
@@ -30,14 +32,14 @@ export default function DiscoverSessionsScreen() {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Row align="center" gap="sm" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Ionicons name="search" size={20} color={palette.muted} />
           <TextInput style={[styles.searchInput, { color: palette.text }]} placeholder="Search sessions, coaches, locations..."
             placeholderTextColor={palette.muted} value={c.searchQuery} onChangeText={c.setSearchQuery} />
           {c.searchQuery.length > 0 && (
             <Clickable accessibilityLabel="Clear search" onPress={c.clearSearch}><Ionicons name="close-circle" size={20} color={palette.muted} /></Clickable>
           )}
-        </View>
+        </Row>
       </View>
 
       {/* Type Filter Pills */}
@@ -103,7 +105,7 @@ export default function DiscoverSessionsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   searchContainer: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  searchBar: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   searchInput: { flex: 1, ...Typography.subheading, paddingVertical: Spacing.xxs },
   filters: { paddingBottom: Spacing.xs },
   filterList: { paddingHorizontal: Spacing.md, gap: Spacing.xs },

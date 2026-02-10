@@ -8,6 +8,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession, FootballObjective, SessionInviteType } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -57,25 +58,25 @@ function CreateSessionReviewStepInner({
       </ThemedText>
 
       <SurfaceCard style={styles.reviewCard}>
-        <View style={styles.reviewRow}>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Type</ThemedText>
           <ThemedText type="defaultSemiBold">
             {groupSessionService.formatSessionType(sessionType)}
           </ThemedText>
-        </View>
-        <View style={styles.reviewRow}>
+        </Row>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Visibility</ThemedText>
           <ThemedText type="defaultSemiBold">{INVITE_TYPE_LABELS[inviteType]}</ThemedText>
-        </View>
-        <View style={styles.reviewRow}>
+        </Row>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Title</ThemedText>
           <ThemedText type="defaultSemiBold">{title}</ThemedText>
-        </View>
-        <View style={styles.reviewRow}>
+        </Row>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Location</ThemedText>
           <ThemedText>{location}</ThemedText>
-        </View>
-        <View style={styles.reviewRow}>
+        </Row>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>
             {isRecurring ? 'Schedule' : 'Date'}
           </ThemedText>
@@ -96,22 +97,22 @@ function CreateSessionReviewStepInner({
               <ThemedText>{scheduleDate} ({scheduleStartTime} - {scheduleEndTime})</ThemedText>
             )}
           </View>
-        </View>
-        <View style={styles.reviewRow}>
+        </Row>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Capacity</ThemedText>
           <ThemedText>{maxParticipants} participants</ThemedText>
-        </View>
-        <View style={styles.reviewRow}>
+        </Row>
+        <Row style={styles.reviewRow}>
           <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Price</ThemedText>
           <ThemedText type="defaultSemiBold">
             {groupSessionService.formatPrice(parseFloat(price) || 0, 'GBP')}
           </ThemedText>
-        </View>
+        </Row>
         {focus.length > 0 && (
-          <View style={styles.reviewRow}>
+          <Row style={styles.reviewRow}>
             <ThemedText style={[styles.reviewLabel, { color: palette.muted }]}>Focus</ThemedText>
             <ThemedText>{focus.join(', ')}</ThemedText>
-          </View>
+          </Row>
         )}
       </SurfaceCard>
     </Animated.View>
@@ -131,7 +132,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reviewRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingVertical: Spacing.xs,

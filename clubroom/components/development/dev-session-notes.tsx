@@ -7,6 +7,7 @@ import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface DevSessionNotesProps {
   publicNotes: string;
@@ -31,10 +32,10 @@ export const DevSessionNotes = memo(function DevSessionNotes({
       <Column gap="sm">
         <Row justify="space-between" align="center">
           <ThemedText type="subtitle" style={[Typography.subheading, { flex: 1 }]}>Session Summary</ThemedText>
-          <View style={[styles.badge, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+          <Row style={[styles.badge, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
             <Ionicons name="eye" size={12} color={colors.success} />
             <ThemedText style={[Typography.micro, { color: colors.success }]}>Parents can see</ThemedText>
-          </View>
+          </Row>
         </Row>
         <SurfaceCard style={{ padding: Spacing.md }}>
           <TextInput
@@ -91,10 +92,10 @@ export const DevSessionNotes = memo(function DevSessionNotes({
       <Column gap="sm">
         <Row justify="space-between" align="center">
           <ThemedText type="subtitle" style={[Typography.subheading, { flex: 1 }]}>Private Notes</ThemedText>
-          <View style={[styles.badge, { backgroundColor: withAlpha(colors.muted, 0.09) }]}>
+          <Row style={[styles.badge, { backgroundColor: withAlpha(colors.muted, 0.09) }]}>
             <Ionicons name="lock-closed" size={12} color={colors.muted} />
             <ThemedText style={[Typography.micro, { color: colors.muted }]}>Coach only</ThemedText>
-          </View>
+          </Row>
         </Row>
         <SurfaceCard style={{ padding: Spacing.md }}>
           <TextInput
@@ -113,7 +114,7 @@ export const DevSessionNotes = memo(function DevSessionNotes({
 });
 
 const styles = StyleSheet.create({
-  badge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  badge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   inputLarge: { ...Typography.body, minHeight: 100, padding: 0 },
   inputSmall: { ...Typography.bodySmall, minHeight: 60, padding: 0 },
 });

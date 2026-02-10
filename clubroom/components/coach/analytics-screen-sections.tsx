@@ -14,6 +14,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── AnalyticsStatCard ───────────────────────────────────────────────────────
 
@@ -49,14 +50,14 @@ export const AnalyticsStatCard = memo(function AnalyticsStatCard({
       <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
         {label}
       </ThemedText>
-      <View style={styles.change}>
+      <Row style={styles.change}>
         {changeIcon && changeColor && (
           <Ionicons name={changeIcon} size={14} color={changeColor} />
         )}
         <ThemedText style={[styles.changeText, { color: palette.muted }]}>
           {changeText}
         </ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -76,30 +77,30 @@ export const TopSkillsSection = memo(function TopSkillsSection({
 
   return (
     <SurfaceCard style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <Row style={styles.sectionHeader}>
         <Ionicons name="football" size={20} color={palette.tint} />
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Top Skills Taught
         </ThemedText>
-      </View>
+      </Row>
       <View style={styles.skillsList}>
         {topSkills.map(([skill, count], index) => (
-          <View key={skill} style={styles.skillRow}>
-            <View style={styles.skillInfo}>
+          <Row key={skill} style={styles.skillRow}>
+            <Row style={styles.skillInfo}>
               <ThemedText type="defaultSemiBold" style={styles.skillRank}>
                 {index + 1}.
               </ThemedText>
               <ThemedText style={styles.skillName}>{skill}</ThemedText>
-            </View>
-            <View style={styles.skillCount}>
+            </Row>
+            <Row style={styles.skillCount}>
               <ThemedText type="defaultSemiBold" style={[styles.skillCountText, { color: palette.tint }]}>
                 {count}
               </ThemedText>
               <ThemedText style={[styles.skillCountLabel, { color: palette.muted }]}>
                 sessions
               </ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
         ))}
       </View>
     </SurfaceCard>
@@ -121,16 +122,16 @@ export const ScheduleInsightsSection = memo(function ScheduleInsightsSection({
 
   return (
     <SurfaceCard style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <Row style={styles.sectionHeader}>
         <Ionicons name="calendar-outline" size={20} color={palette.tint} />
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Schedule Insights
         </ThemedText>
-      </View>
-      <View style={styles.insightRow}>
+      </Row>
+      <Row style={styles.insightRow}>
         <ThemedText style={{ color: palette.muted }}>Busiest Day</ThemedText>
         <ThemedText type="defaultSemiBold">{busiestDay}</ThemedText>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -159,7 +160,6 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   statsGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
   },
@@ -184,7 +184,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   change: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
     marginTop: Spacing.xs / 2,
@@ -195,7 +194,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -204,12 +202,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   skillRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   skillInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
@@ -217,14 +213,12 @@ export const styles = StyleSheet.create({
   skillRank: { ...Typography.bodySmall, width: 24 },
   skillName: { ...Typography.body },
   skillCount: {
-    flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.xs / 2,
   },
   skillCountText: { ...Typography.heading },
   skillCountLabel: { ...Typography.caption },
   insightRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.sm,

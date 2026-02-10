@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -69,19 +70,19 @@ export const SeriesWeekRow = memo(function SeriesWeekRow({
         <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
           {day}
         </ThemedText>
-        <View style={styles.weekMeta}>
+        <Row style={styles.weekMeta}>
           <Ionicons name="time-outline" size={12} color={palette.muted} />
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
             {time}
           </ThemedText>
-        </View>
+        </Row>
         {booking.locationLabel ? (
-          <View style={styles.weekMeta}>
+          <Row style={styles.weekMeta}>
             <Ionicons name="location-outline" size={12} color={palette.tint} />
             <ThemedText style={[Typography.small, { color: palette.tint }]} numberOfLines={1}>
               {booking.locationLabel}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
       </View>
       <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
@@ -91,7 +92,6 @@ export const SeriesWeekRow = memo(function SeriesWeekRow({
 
 const styles = StyleSheet.create({
   weekRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.xs,
@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   weekMeta: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

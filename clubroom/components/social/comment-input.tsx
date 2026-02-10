@@ -4,6 +4,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -49,7 +50,7 @@ function CommentInputInner({
     <View style={[styles.wrapper, { backgroundColor: palette.surface, borderTopColor: palette.border }]}>
       {/* Reply indicator */}
       {replyingTo && (
-        <View style={[styles.replyIndicator, { backgroundColor: palette.background }]}>
+        <Row align="center" justify="between" style={[styles.replyIndicator, { backgroundColor: palette.background }]}>
           <ThemedText style={[styles.replyText, { color: palette.muted }]} numberOfLines={1}>
             Replying to <ThemedText style={styles.replyAuthor}>{replyingTo}</ThemedText>
           </ThemedText>
@@ -61,11 +62,11 @@ function CommentInputInner({
           >
             <Ionicons name="close-circle" size={18} color={palette.muted} />
           </Clickable>
-        </View>
+        </Row>
       )}
 
       {/* Input row */}
-      <View style={styles.inputRow}>
+      <Row align="flex-end" gap="xs">
         <TextInput
           style={[
             styles.input,
@@ -100,7 +101,7 @@ function CommentInputInner({
             color={palette.onPrimary}
           />
         </Clickable>
-      </View>
+      </Row>
     </View>
   );
 }
@@ -116,9 +117,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   replyIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
@@ -138,11 +136,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
-  },
+  // inputRow replaced by Row primitive
   input: {
     flex: 1,
     borderWidth: 1,

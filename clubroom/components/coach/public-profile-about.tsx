@@ -7,6 +7,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { MOCK_SESSION_TYPES } from '@/hooks/use-public-profile';
 import type { Coach } from '@/services/coach-service';
+import { Row } from '@/components/primitives';
 
 interface PublicProfileAboutProps {
   coach: Coach;
@@ -27,7 +28,7 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({ coach }: Pu
       <SurfaceCard style={styles.section}>
         <ThemedText style={[Typography.heading, { color: palette.text }]}>Available Sessions</ThemedText>
         {MOCK_SESSION_TYPES.map((session) => (
-          <View key={session.id} style={[styles.sessionRow, { borderBottomColor: palette.border }]}>
+          <Row key={session.id} style={[styles.sessionRow, { borderBottomColor: palette.border }]}>
             <View style={{ flex: 1 }}>
               <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>{session.name}</ThemedText>
               <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.micro }]}>{session.description}</ThemedText>
@@ -41,13 +42,13 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({ coach }: Pu
                 </View>
               )}
             </View>
-          </View>
+          </Row>
         ))}
       </SurfaceCard>
 
       <SurfaceCard style={styles.section}>
         <ThemedText style={[Typography.heading, { color: palette.text }]}>Stats</ThemedText>
-        <View style={styles.statsGrid}>
+        <Row style={styles.statsGrid}>
           <View style={styles.statItem}>
             <ThemedText style={[Typography.title, { color: palette.tint }]}>{coach.totalSessions}</ThemedText>
             <ThemedText style={[Typography.caption, { color: palette.muted }]}>Sessions</ThemedText>
@@ -62,7 +63,7 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({ coach }: Pu
             </ThemedText>
             <ThemedText style={[Typography.caption, { color: palette.muted }]}>Years</ThemedText>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -71,9 +72,9 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({ coach }: Pu
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },
   section: { gap: Spacing.sm },
-  sessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
+  sessionRow: { alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   priceBlock: { alignItems: 'flex-end', gap: Spacing.xs / 2 },
   trialBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-around', marginTop: Spacing.xs },
+  statsGrid: { justifyContent: 'space-around', marginTop: Spacing.xs },
   statItem: { alignItems: 'center', gap: Spacing.xs / 2 },
 });

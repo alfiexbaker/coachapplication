@@ -15,6 +15,7 @@ import { ProgressProfileCard } from './progress-profile-card';
 import { ProgressSkillsTab } from './progress-skills-tab';
 import { ProgressBadgesTab } from './progress-badges-tab';
 import { ProgressGoalsTab } from './progress-goals-tab';
+import { Row } from '@/components/primitives';
 
 const TABS: { key: ProgressTabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'progress', label: 'Progress', icon: 'stats-chart' },
@@ -66,7 +67,7 @@ export function AthleteProgressScreen() {
         />
 
         {/* Tab Selector */}
-        <View style={[styles.tabContainer, { backgroundColor: palette.surface }]}>
+        <Row style={[styles.tabContainer, { backgroundColor: palette.surface }]}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
@@ -91,7 +92,7 @@ export function AthleteProgressScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </Row>
 
         {activeTab === 'progress' && (
           <ProgressSkillsTab skills={skills} skillsByCategory={skillsByCategory} sortedSessions={sortedSessions} />
@@ -113,8 +114,8 @@ const styles = StyleSheet.create({
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20 },
-  tabContainer: { flexDirection: 'row', borderRadius: Radii.md, padding: Spacing.xxs, gap: Spacing.xxs },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
+  tabContainer: { borderRadius: Radii.md, padding: Spacing.xxs, gap: Spacing.xxs },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
   tabActive: {},
   tabLabel: { ...Typography.smallSemiBold },
   tabLabelActive: { fontWeight: '700' },

@@ -82,15 +82,17 @@ export default function GoalsDashboardScreen() {
         </Animated.View>
 
         {/* Tabs */}
-        <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.tabRow}>
-          {(['active', 'completed', 'all'] as TabFilter[]).map((tab) => (
-            <Clickable key={tab} onPress={() => handleTabChange(tab)}
-              style={[styles.tab, { backgroundColor: activeTab === tab ? colors.tint : 'transparent', borderColor: activeTab === tab ? colors.tint : colors.border }]}>
-              <ThemedText style={[styles.tabText, { color: activeTab === tab ? colors.onPrimary : colors.text }]}>
-                {tab === 'active' ? 'Active' : tab === 'completed' ? 'Completed' : 'All'}
-              </ThemedText>
-            </Clickable>
-          ))}
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <Row gap="xs" style={styles.tabRow}>
+            {(['active', 'completed', 'all'] as TabFilter[]).map((tab) => (
+              <Clickable key={tab} onPress={() => handleTabChange(tab)}
+                style={[styles.tab, { backgroundColor: activeTab === tab ? colors.tint : 'transparent', borderColor: activeTab === tab ? colors.tint : colors.border }]}>
+                <ThemedText style={[styles.tabText, { color: activeTab === tab ? colors.onPrimary : colors.text }]}>
+                  {tab === 'active' ? 'Active' : tab === 'completed' ? 'Completed' : 'All'}
+                </ThemedText>
+              </Clickable>
+            ))}
+          </Row>
         </Animated.View>
 
         {/* Category chips */}
@@ -103,8 +105,10 @@ export default function GoalsDashboardScreen() {
                 return (
                   <Clickable key={cat} onPress={() => handleCategoryToggle(cat)}
                     style={[styles.categoryChip, { backgroundColor: isSelected ? withAlpha(color, 0.12) : colors.surface, borderColor: isSelected ? color : colors.border }]}>
-                    <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={14} color={isSelected ? color : colors.muted} />
-                    <ThemedText style={[styles.categoryChipText, { color: isSelected ? color : colors.text }]}>{label}</ThemedText>
+                    <Row align="center" gap="xxs">
+                      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={14} color={isSelected ? color : colors.muted} />
+                      <ThemedText style={[styles.categoryChipText, { color: isSelected ? color : colors.text }]}>{label}</ThemedText>
+                    </Row>
                   </Clickable>
                 );
               })}
@@ -152,11 +156,11 @@ const styles = StyleSheet.create({
   statValue: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   statLabel: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   statDivider: { width: 1, height: 40 },
-  tabRow: { flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.md },
+  tabRow: { marginBottom: Spacing.md },
   tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radii.pill, borderWidth: 1 },
   tabText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   categoryRow: { marginBottom: Spacing.md, marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg },
-  categoryChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, borderWidth: 1, gap: Spacing.xxs },
+  categoryChip: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, borderWidth: 1 },
   categoryChipText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   loadingPlaceholder: { padding: Spacing.xl, alignItems: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },

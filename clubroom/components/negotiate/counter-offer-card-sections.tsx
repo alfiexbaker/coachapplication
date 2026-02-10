@@ -12,6 +12,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -25,8 +26,7 @@ export function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
-    month: 'short',
-  });
+    month: 'short' });
 }
 
 export function formatTime(time: string): string {
@@ -94,13 +94,12 @@ export const OfferHeader = memo(function OfferHeader({
   proposerName,
   proposedBy,
   status,
-  palette,
-}: OfferHeaderProps) {
+  palette }: OfferHeaderProps) {
   const statusConfig = getStatusConfig(status, palette);
 
   return (
-    <View style={styles.header}>
-      <View style={styles.proposerInfo}>
+    <Row justify="between" align="center">
+      <Row align="center" gap="sm">
         <View
           style={[
             styles.avatarPlaceholder,
@@ -119,9 +118,11 @@ export const OfferHeader = memo(function OfferHeader({
             {proposedBy === 'PARENT' ? 'Parent' : 'Coach'}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
-      <View
+      <Row
+        align="center"
+        gap="xxs"
         style={[
           styles.statusBadge,
           { backgroundColor: withAlpha(statusConfig.color, 0.09) },
@@ -131,8 +132,8 @@ export const OfferHeader = memo(function OfferHeader({
         <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>
           {statusConfig.label}
         </ThemedText>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -153,26 +154,25 @@ interface TimeChangeDisplayProps {
 export const TimeChangeDisplay = memo(function TimeChangeDisplay({
   originalTime,
   proposedTime,
-  palette,
-}: TimeChangeDisplayProps) {
+  palette }: TimeChangeDisplayProps) {
   return (
-    <View style={styles.timeChangeContainer}>
+    <Row align="center" gap="sm">
       <View style={styles.timeBlock}>
         <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>
           Original
         </ThemedText>
-        <View style={styles.timeRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="calendar-outline" size={16} color={palette.muted} />
           <ThemedText style={styles.timeValue}>
             {formatDate(originalTime.date)}
           </ThemedText>
-        </View>
-        <View style={styles.timeRow}>
+        </Row>
+        <Row align="center" gap="xxs">
           <Ionicons name="time-outline" size={16} color={palette.muted} />
           <ThemedText style={styles.timeValue}>
             {formatTime(originalTime.startTime)} - {formatTime(originalTime.endTime)}
           </ThemedText>
-        </View>
+        </Row>
       </View>
 
       <View style={styles.arrowContainer}>
@@ -189,20 +189,20 @@ export const TimeChangeDisplay = memo(function TimeChangeDisplay({
         <ThemedText style={[styles.timeLabel, { color: palette.tint }]}>
           Proposed
         </ThemedText>
-        <View style={styles.timeRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="calendar" size={16} color={palette.tint} />
           <ThemedText style={[styles.timeValue, { color: palette.tint }]}>
             {formatDate(proposedTime.date)}
           </ThemedText>
-        </View>
-        <View style={styles.timeRow}>
+        </Row>
+        <Row align="center" gap="xxs">
           <Ionicons name="time" size={16} color={palette.tint} />
           <ThemedText style={[styles.timeValue, { color: palette.tint }]}>
             {formatTime(proposedTime.startTime)} - {formatTime(proposedTime.endTime)}
           </ThemedText>
-        </View>
+        </Row>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -215,15 +215,14 @@ interface OfferMessageProps {
 
 export const OfferMessage = memo(function OfferMessage({
   message,
-  palette,
-}: OfferMessageProps) {
+  palette }: OfferMessageProps) {
   return (
-    <View style={[styles.messageContainer, { backgroundColor: palette.background }]}>
+    <Row align="start" gap="xs" style={[styles.messageContainer, { backgroundColor: palette.background }]}>
       <Ionicons name="chatbubble-outline" size={14} color={palette.muted} />
       <ThemedText style={[styles.messageText, { color: palette.text }]}>
         &quot;{message}&quot;
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -236,15 +235,14 @@ interface RejectionReasonProps {
 
 export const RejectionReason = memo(function RejectionReason({
   reason,
-  palette,
-}: RejectionReasonProps) {
+  palette }: RejectionReasonProps) {
   return (
-    <View style={[styles.rejectionContainer, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+    <Row align="start" gap="xs" style={[styles.rejectionContainer, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
       <Ionicons name="information-circle-outline" size={14} color={palette.error} />
       <ThemedText style={[styles.rejectionText, { color: palette.error }]}>
         {reason}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -257,15 +255,14 @@ interface ExpiryTimerProps {
 
 export const ExpiryTimer = memo(function ExpiryTimer({
   expiresAt,
-  palette,
-}: ExpiryTimerProps) {
+  palette }: ExpiryTimerProps) {
   return (
-    <View style={styles.expiryRow}>
+    <Row align="center" gap="xxs">
       <Ionicons name="hourglass-outline" size={14} color={palette.warning} />
       <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
         {getTimeRemaining(expiresAt)}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -274,99 +271,54 @@ export const ExpiryTimer = memo(function ExpiryTimer({
 export const styles = StyleSheet.create({
   card: {
     marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  proposerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
+  header: {},
+  proposerInfo: {},
   avatarPlaceholder: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   roleLabel: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   statusText: {
     ...Typography.small,
-    fontWeight: '600',
-  },
-  timeChangeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    fontWeight: '600' },
+  timeChangeContainer: {},
   timeBlock: {
     flex: 1,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   proposedTimeBlock: {
     padding: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   timeLabel: {
     ...Typography.small,
     fontWeight: '600',
-    marginBottom: Spacing.micro,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    marginBottom: Spacing.micro },
+  timeRow: {},
   timeValue: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   arrowContainer: {
-    paddingHorizontal: Spacing.xs,
-  },
+    paddingHorizontal: Spacing.xs },
   messageContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
     padding: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   messageText: {
     ...Typography.small,
     flex: 1,
-    fontStyle: 'italic',
-  },
+    fontStyle: 'italic' },
   rejectionContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
     padding: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   rejectionText: {
     ...Typography.small,
-    flex: 1,
-  },
-  expiryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    flex: 1 },
+  expiryRow: {},
   expiryText: {
     ...Typography.small,
-    fontWeight: '500',
-  },
-});
+    fontWeight: '500' } });

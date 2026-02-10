@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -11,7 +12,7 @@ export function BookingWizardHeader({ title, subtitle, step }: { title: string; 
         {title}
       </ThemedText>
       <ThemedText style={{ color: palette.muted }}>{subtitle}</ThemedText>
-      <View style={styles.progressTrack}>
+      <Row gap="xs" style={styles.progressTrack}>
         {[1, 2, 3, 4, 5].map((s) => (
           <View
             key={s}
@@ -21,7 +22,7 @@ export function BookingWizardHeader({ title, subtitle, step }: { title: string; 
             ]}
           />
         ))}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -29,17 +30,15 @@ export function BookingWizardHeader({ title, subtitle, step }: { title: string; 
 export function SummaryRow({ label, value }: { label: string; value: string }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.summaryRow}>
+    <Row justify="between" style={styles.summaryRow}>
       <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>{label}</ThemedText>
       <ThemedText type="defaultSemiBold">{value}</ThemedText>
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   progressTrack: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
     marginTop: Spacing.sm,
   },
   progressDot: {
@@ -48,8 +47,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
   },
   summaryLabel: { ...Typography.bodySmallSemiBold },

@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
@@ -18,11 +19,12 @@ import { SpecialNeedsDisabilities } from '@/components/development/special-needs
 import { SpecialNeedsAccommodations } from '@/components/development/special-needs-accommodations';
 import { SpecialNeedsNotesSection } from '@/components/development/special-needs-notes-section';
 import { Spacing, Components, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useSpecialNeeds } from '@/hooks/use-special-needs';
 
 export default function SpecialNeedsScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { athlete, childProfile, loading, disabilityCount, specialNeedsCount, allergyCount, totalCount } = useSpecialNeeds();
 
   if (!athlete) return null;
@@ -39,13 +41,13 @@ export default function SpecialNeedsScreen() {
     <PageContainer
       gap={Spacing.md}
       header={
-        <View style={styles.header}>
+        <Row align="center" justify="space-between" style={styles.header}>
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.foreground} />
           </Clickable>
           <ThemedText type="title" style={Typography.heading}>Special Needs</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
       }
     >
       <SpecialNeedsHero
@@ -78,7 +80,7 @@ export default function SpecialNeedsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   backButton: { padding: Spacing.xs },
   emptyCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
   emptyIcon: { width: Components.avatar.xl, height: Components.avatar.xl, borderRadius: Components.avatar.xl / 2, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },

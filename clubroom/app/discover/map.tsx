@@ -18,12 +18,14 @@ import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { MapView } from '@/components/discover/MapView';
 import { createLogger } from '@/utils/logger';
 import { FilterBar } from '@/components/discover/FilterBar';
 import { FilterModal } from '@/components/discover/FilterModal';
 import { Radii, Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { discoverService } from '@/services/discover-service';
 import type {
   CoachSearchFilters,
@@ -39,7 +41,7 @@ const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_RADIUS = 10; // km
 
 export default function MapScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const router = useRouter();
   const params = useLocalSearchParams<{ filters?: string }>();
 
@@ -134,7 +136,7 @@ export default function MapScreen() {
       edges={['top']}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="sm" style={styles.header}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
@@ -148,7 +150,9 @@ export default function MapScreen() {
         </Pressable>
 
         {/* Search Bar */}
-        <View
+        <Row
+          align="center"
+          gap="sm"
           style={[
             styles.searchBar,
             {
@@ -178,7 +182,7 @@ export default function MapScreen() {
               <Ionicons name="close-circle" size={18} color={palette.muted} />
             </Pressable>
           )}
-        </View>
+        </Row>
 
         {/* Toggle View Button */}
         <Pressable
@@ -192,7 +196,7 @@ export default function MapScreen() {
         >
           <Ionicons name="list" size={24} color={palette.text} />
         </Pressable>
-      </View>
+      </Row>
 
       {/* Filter Bar */}
       {filterOptions && (
@@ -241,24 +245,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
   },
   headerButton: {
     padding: Spacing.xs,
   },
   searchBar: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,

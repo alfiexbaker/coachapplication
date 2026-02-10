@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeOut, SlideInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -93,24 +94,24 @@ export function AnnotationForm({
       style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" justify="between">
         <ThemedText type="defaultSemiBold">
           {isEditing ? 'Edit Annotation' : 'Add Annotation'}
         </ThemedText>
         <Clickable accessibilityLabel="Close" onPress={onCancel} hitSlop={8}>
           <Ionicons name="close" size={24} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
 
       <TimestampControl timestamp={timestamp} videoDuration={videoDuration} onAdjust={handleTimestampAdjust} />
       <TypeSelectorGrid selectedType={type} onSelectType={setType} />
 
       {/* Label Input */}
       <View style={styles.section}>
-        <View style={styles.labelHeader}>
+        <Row justify="between" align="center">
           <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Label *</ThemedText>
           <ThemedText style={[styles.charCount, { color: palette.muted }]}>{label.length}/100</ThemedText>
-        </View>
+        </Row>
         <TextInput
           style={[styles.input, { color: palette.text, borderColor: errors.some((e) => e.includes('Label')) ? palette.error : palette.border, backgroundColor: palette.background }]}
           placeholder="e.g., Great technique on the turn"
@@ -123,10 +124,10 @@ export function AnnotationForm({
 
       {/* Note Input */}
       <View style={styles.section}>
-        <View style={styles.labelHeader}>
+        <Row justify="between" align="center">
           <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Note (optional)</ThemedText>
           <ThemedText style={[styles.charCount, { color: palette.muted }]}>{note.length}/500</ThemedText>
-        </View>
+        </Row>
         <TextInput
           style={[styles.textArea, { color: palette.text, borderColor: errors.some((e) => e.includes('Note')) ? palette.error : palette.border, backgroundColor: palette.background }]}
           placeholder="Add detailed feedback or instructions..."
@@ -144,7 +145,7 @@ export function AnnotationForm({
       <AnnotationPreview label={label} note={note} timestamp={timestamp} typeColor={selectedTypeConfig.color} />
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <Row gap="sm" style={styles.actions}>
         <Clickable onPress={onCancel} style={[styles.cancelButton, { borderColor: palette.border }]}>
           <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
         </Clickable>
@@ -158,7 +159,7 @@ export function AnnotationForm({
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add'}
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </Animated.View>
   );
 }
@@ -167,14 +168,12 @@ export function AnnotationForm({
 
 const styles = StyleSheet.create({
   container: { borderRadius: Radii.lg, borderWidth: 1, padding: Spacing.md, gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   section: { gap: Spacing.xs },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
-  labelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   charCount: { ...Typography.caption },
   input: { ...Typography.body, height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
   textArea: { ...Typography.body, minHeight: 80, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md },
-  actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  actions: { marginTop: Spacing.xs },
   cancelButton: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   saveButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
   saveButtonText: { fontWeight: '600' },

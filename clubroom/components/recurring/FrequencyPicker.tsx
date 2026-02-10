@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { RecurrenceFrequency } from '@/constants/types';
 import { getFrequencyLabel } from '@/services/recurring-booking-service';
@@ -34,7 +35,7 @@ export function FrequencyPicker({
 
   if (variant === 'pills') {
     return (
-      <View style={styles.pillsContainer}>
+      <Row gap="sm">
         {FREQUENCY_OPTIONS.map((option) => (
           <FrequencyPillOption
             key={option.value}
@@ -45,7 +46,7 @@ export function FrequencyPicker({
             palette={palette}
           />
         ))}
-      </View>
+      </Row>
     );
   }
 
@@ -76,11 +77,11 @@ export function FrequencyPickerCompact({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.compactContainer}>
+    <Row align="center" gap="sm">
       <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
         Frequency:
       </ThemedText>
-      <View style={styles.compactOptions}>
+      <Row gap="xxs">
         {FREQUENCY_OPTIONS.map((option) => {
           const isSelected = value === option.value;
           return (
@@ -108,26 +109,19 @@ export function FrequencyPickerCompact({
             </Clickable>
           );
         })}
-      </View>
+      </Row>
       <ThemedText style={[styles.compactValue, { color: palette.foreground }]}>
         {getFrequencyLabel(value)}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  pillsContainer: { flexDirection: 'row', gap: Spacing.sm },
   cardsContainer: { gap: Spacing.sm },
-  compactContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
   compactLabel: { ...Typography.small },
-  compactOptions: { flexDirection: 'row', gap: Spacing.xxs },
   compactOption: {
     width: 28,
     height: 28,

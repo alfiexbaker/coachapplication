@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { ClubEvent } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface Props {
   event: ClubEvent;
@@ -34,7 +35,7 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
         <Ionicons name={showAttendees ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
       </Clickable>
 
-      <View style={styles.stats}>
+      <Row style={styles.stats}>
         <View style={[styles.statBox, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <ThemedText style={[styles.statNumber, { color: palette.success }]}>{going}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.success }]}>Going</ThemedText>
@@ -53,12 +54,12 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Guests</ThemedText>
           </View>
         )}
-      </View>
+      </Row>
 
       {showAttendees && event.attendees.length > 0 && (
         <View style={styles.attendeeList}>
           {event.attendees.filter((a) => a.status === 'GOING').map((attendee) => (
-            <View key={attendee.userId} style={styles.attendeeRow}>
+            <Row key={attendee.userId} style={styles.attendeeRow}>
               <View style={[styles.avatar, { backgroundColor: palette.border }]}>
                 <ThemedText style={styles.avatarInitial}>{attendee.userName.charAt(0)}</ThemedText>
               </View>
@@ -71,7 +72,7 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
                 )}
               </View>
               <View style={[styles.statusDot, { backgroundColor: palette.success }]} />
-            </View>
+            </Row>
           ))}
         </View>
       )}
@@ -89,18 +90,18 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  stats: { flexDirection: 'row', gap: Spacing.sm },
+  header: { alignItems: 'center', justifyContent: 'space-between' },
+  stats: { gap: Spacing.sm },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md },
   statNumber: { ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
   statLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   attendeeList: { marginTop: Spacing.sm, gap: Spacing.xs },
-  attendeeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  attendeeRow: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
   avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   attendeeInfo: { flex: 1 },
   guestCount: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   statusDot: { width: 8, height: 8, borderRadius: Radii.xs },
-  viewAllButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  viewAllButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
   viewAllText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
 });

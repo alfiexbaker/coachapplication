@@ -12,6 +12,7 @@ import type { SkillProgress } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
 import { getSkillLevelInfo } from './skill-progress-helpers';
+import { Row } from '@/components/primitives';
 
 interface SkillProgressBarProps {
   skill: SkillProgress;
@@ -34,9 +35,9 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
       <Pressable onPress={() => setExpanded(!expanded)}>
         <View style={[styles.container, compact && styles.containerCompact]}>
           {/* Main Row */}
-          <View style={styles.mainRow}>
+          <Row style={styles.mainRow}>
             <View style={styles.skillInfo}>
-              <View style={styles.skillNameRow}>
+              <Row style={styles.skillNameRow}>
                 <ThemedText type={compact ? 'default' : 'defaultSemiBold'} style={[styles.skillName, compact && styles.skillNameCompact]}>
                   {skill.skillName}
                 </ThemedText>
@@ -45,25 +46,25 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
                     <ThemedText style={[styles.categoryText, { color: palette.tint }]}>{skill.category}</ThemedText>
                   </View>
                 )}
-              </View>
-              <View style={styles.levelRow}>
+              </Row>
+              <Row style={styles.levelRow}>
                 <View style={[styles.levelDot, { backgroundColor: levelInfo.color }]} />
                 <ThemedText style={[styles.levelLabel, { color: palette.muted }]}>{levelInfo.label}</ThemedText>
-              </View>
+              </Row>
             </View>
             <View style={styles.valueSection}>
-              <View style={styles.valueRow}>
+              <Row style={styles.valueRow}>
                 <ThemedText type="defaultSemiBold" style={styles.valueText}>{skill.currentLevel}</ThemedText>
                 <ThemedText style={[styles.maxValue, { color: palette.muted }]}>/100</ThemedText>
-              </View>
-              <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
+              </Row>
+              <Row style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
                 <Ionicons name={trendIcon} size={12} color={trendColor} />
                 <ThemedText style={[styles.trendText, { color: trendColor }]}>
                   {skill.changePercent > 0 ? '+' : ''}{skill.changePercent.toFixed(1)}%
                 </ThemedText>
-              </View>
+              </Row>
             </View>
-          </View>
+          </Row>
 
           {/* Progress Bar */}
           <View style={styles.barContainer}>
@@ -81,13 +82,13 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
               )}
             </View>
             {!compact && (
-              <View style={styles.scaleLabels}>
+              <Row style={styles.scaleLabels}>
                 <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>0</ThemedText>
                 <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>25</ThemedText>
                 <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>50</ThemedText>
                 <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>75</ThemedText>
                 <ThemedText style={[styles.scaleLabel, { color: palette.muted }]}>100</ThemedText>
-              </View>
+              </Row>
             )}
           </View>
 
@@ -96,7 +97,7 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
             <Animated.View entering={FadeIn} style={styles.historySection}>
               <View style={[styles.historyDivider, { backgroundColor: palette.border }]} />
               <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>Recent Progress</ThemedText>
-              <View style={styles.historyChart}>
+              <Row style={styles.historyChart}>
                 {skill.history.slice(-7).map((entry) => {
                   const barHeight = (entry.level / 100) * 40;
                   const entryLevelInfo = getSkillLevelInfo(entry.level);
@@ -107,7 +108,7 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
                     </View>
                   );
                 })}
-              </View>
+              </Row>
             </Animated.View>
           )}
 
@@ -126,33 +127,33 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm, paddingVertical: Spacing.sm },
   containerCompact: { paddingVertical: Spacing.xs, gap: Spacing.xs },
-  mainRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  mainRow: { justifyContent: 'space-between', alignItems: 'flex-start' },
   skillInfo: { flex: 1, gap: Spacing.xxs },
-  skillNameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  skillNameRow: { alignItems: 'center', gap: Spacing.xs },
   skillName: { ...Typography.body },
   skillNameCompact: { ...Typography.bodySmall },
   categoryBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   categoryText: { ...Typography.micro },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  levelRow: { alignItems: 'center', gap: Spacing.xxs },
   levelDot: { width: 6, height: 6, borderRadius: Radii.xs },
   levelLabel: { ...Typography.caption },
   valueSection: { alignItems: 'flex-end', gap: Spacing.xxs },
-  valueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  valueRow: { alignItems: 'baseline' },
   valueText: { ...Typography.heading, letterSpacing: -0.5 },
   maxValue: { ...Typography.caption },
-  trendBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  trendBadge: { alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   trendText: { ...Typography.caption },
   barContainer: { gap: Spacing.xxs },
   barBg: { height: 8, borderRadius: Radii.xs, overflow: 'hidden', position: 'relative' },
   barFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: Radii.xs },
   barPrevious: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: Radii.xs },
   levelMarker: { position: 'absolute', top: 0, bottom: 0, width: 2, opacity: 0.5 },
-  scaleLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  scaleLabels: { justifyContent: 'space-between' },
   scaleLabel: { ...Typography.micro },
   historySection: { marginTop: Spacing.sm },
   historyDivider: { height: 1, marginBottom: Spacing.sm },
   historyTitle: { ...Typography.caption, marginBottom: Spacing.xs },
-  historyChart: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 60 },
+  historyChart: { justifyContent: 'space-around', alignItems: 'flex-end', height: 60 },
   historyBarContainer: { alignItems: 'center', gap: Spacing.xxs },
   historyBar: { width: 20, borderRadius: Radii.xs, minHeight: 4 },
   historyDate: { ...Typography.micro },

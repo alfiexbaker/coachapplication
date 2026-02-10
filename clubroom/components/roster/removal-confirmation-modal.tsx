@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal, StyleSheet, TextInput, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -68,7 +69,7 @@ export function RemovalConfirmationModal({
       <View style={styles.overlay}>
         <SurfaceCard style={styles.modalCard}>
           {/* Header */}
-          <View style={styles.header}>
+          <Row align="start" gap="md">
             <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
               <Ionicons name="person-remove-outline" size={24} color={palette.error} />
             </View>
@@ -79,7 +80,7 @@ export function RemovalConfirmationModal({
             <Clickable accessibilityLabel="Close" onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.icon} />
             </Clickable>
-          </View>
+          </Row>
 
           {/* Reason Selection */}
           <View style={styles.section}>
@@ -119,7 +120,7 @@ export function RemovalConfirmationModal({
           <WarningBox archive={archive} />
 
           {/* Actions */}
-          <View style={styles.actions}>
+          <Row gap="sm" style={styles.actions}>
             <Clickable onPress={handleClose} style={styles.actionButton}>
               <View style={[styles.cancelButton, { borderColor: palette.border }]}>
                 <ThemedText style={{ fontWeight: '600' }}>Cancel</ThemedText>
@@ -143,7 +144,7 @@ export function RemovalConfirmationModal({
                 </ThemedText>
               </View>
             </Clickable>
-          </View>
+          </Row>
         </SurfaceCard>
       </View>
     </Modal>
@@ -162,11 +163,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     gap: Spacing.md,
   },
   iconContainer: {
@@ -190,8 +186,6 @@ const styles = StyleSheet.create({
     minHeight: 60,
     textAlignVertical: 'top' },
   actions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     marginTop: Spacing.xs,
   },
   actionButton: {

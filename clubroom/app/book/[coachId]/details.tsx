@@ -4,11 +4,13 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing  , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 
 const LOCATION_OPTIONS = [
@@ -21,7 +23,7 @@ const LOCATION_OPTIONS = [
 export default function DetailsScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -89,8 +91,10 @@ export default function DetailsScreen() {
           onPress={() => router.push(Routes.bookReview(coachId))}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          <Row justify="center" align="center" gap="sm">
+            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          </Row>
         </Clickable>
       </View>
     </SafeAreaView>
@@ -104,5 +108,5 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
   textArea: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, minHeight: 120, textAlignVertical: 'top' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
-  cta: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.button },
+  cta: { padding: Spacing.md, borderRadius: Radii.button },
 });

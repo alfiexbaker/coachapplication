@@ -47,22 +47,26 @@ export default function FamilyCalendarScreen() {
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <Row gap="sm">
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
-              <Ionicons name="calendar" size={20} color={palette.tint} />
-            </View>
-            <View style={styles.statText}>
-              <ThemedText style={Typography.title}>{monthStats.totalSessions}</ThemedText>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Upcoming</ThemedText>
-            </View>
+            <Row align="center" gap="sm">
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
+                <Ionicons name="calendar" size={20} color={palette.tint} />
+              </View>
+              <View style={styles.statText}>
+                <ThemedText style={Typography.title}>{monthStats.totalSessions}</ThemedText>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>Upcoming</ThemedText>
+              </View>
+            </Row>
           </SurfaceCard>
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
-              <Ionicons name="checkmark-circle" size={20} color={palette.success} />
-            </View>
-            <View style={styles.statText}>
-              <ThemedText style={Typography.title}>{monthStats.completedSessions}</ThemedText>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Completed</ThemedText>
-            </View>
+            <Row align="center" gap="sm">
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
+                <Ionicons name="checkmark-circle" size={20} color={palette.success} />
+              </View>
+              <View style={styles.statText}>
+                <ThemedText style={Typography.title}>{monthStats.completedSessions}</ThemedText>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>Completed</ThemedText>
+              </View>
+            </Row>
           </SurfaceCard>
         </Row>
       </Animated.View>
@@ -72,7 +76,7 @@ export default function FamilyCalendarScreen() {
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.legendCard}>
             <ThemedText style={[Typography.caption, { color: palette.muted }]}>Color Legend</ThemedText>
-            <Row gap="md" style={{ flexWrap: 'wrap' }}>
+            <Row gap="md" wrap>
               {members.map((member) => (
                 <Row key={member.id} gap="xxs" align="center">
                   <View style={[styles.legendDot, { backgroundColor: member.colorCode }]} />
@@ -99,12 +103,16 @@ export default function FamilyCalendarScreen() {
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <Row gap="sm">
           <Clickable onPress={() => router.push(Routes.MORE)} style={[styles.actionButton, { backgroundColor: palette.tint }]}>
-            <Ionicons name="add" size={20} color={palette.onPrimary} />
-            <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Book Session</ThemedText>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name="add" size={20} color={palette.onPrimary} />
+              <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Book Session</ThemedText>
+            </Row>
           </Clickable>
           <Clickable onPress={() => router.push(Routes.FAMILY_SPENDING)} style={[styles.actionButtonSecondary, { borderColor: palette.border }]}>
-            <Ionicons name="wallet-outline" size={20} color={palette.tint} />
-            <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>View Spending</ThemedText>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name="wallet-outline" size={20} color={palette.tint} />
+              <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>View Spending</ThemedText>
+            </Row>
           </Clickable>
         </Row>
       </Animated.View>
@@ -114,11 +122,11 @@ export default function FamilyCalendarScreen() {
 
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  statCard: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
+  statCard: { flex: 1, padding: Spacing.md },
   statIcon: { width: 40, height: 40, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   statText: { gap: Spacing.micro },
   legendCard: { padding: Spacing.sm, gap: Spacing.xs },
   legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
-  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg },
-  actionButtonSecondary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
+  actionButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  actionButtonSecondary: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
 });

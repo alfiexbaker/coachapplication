@@ -11,6 +11,7 @@
 
 import React, { memo, useCallback } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -65,38 +66,39 @@ export const WeekToggleRow = memo(function WeekToggleRow({
   return (
     <Clickable
       onPress={handlePress}
-      style={[
+    >
+      <Row align="center" justify="space-between" style={[
         styles.weekRow,
         {
           backgroundColor: week.accepted ? withAlpha(palette.success, 0.04) : withAlpha(palette.muted, 0.04),
           borderColor: week.accepted ? withAlpha(palette.success, 0.2) : palette.border,
         },
-      ]}
-    >
-      <View style={styles.weekRowLeft}>
+      ]}>
+        <View style={styles.weekRowLeft}>
         <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
           {formatWeekDate(week.weekDate)}
         </ThemedText>
-        <View style={styles.weekDetailRow}>
+        <Row align="center" gap="xxs">
           <Ionicons name="time-outline" size={12} color={palette.muted} />
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
             {formatTime(week.startTime)} - {formatTime(week.endTime)}
           </ThemedText>
-        </View>
+        </Row>
         {week.location ? (
-          <View style={styles.weekDetailRow}>
+          <Row align="center" gap="xxs">
             <Ionicons name="location-outline" size={12} color={palette.tint} />
             <ThemedText style={[Typography.small, { color: palette.tint }]} numberOfLines={1}>
               {week.location}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
       </View>
-      <Ionicons
-        name={week.accepted ? 'checkmark-circle' : 'close-circle-outline'}
-        size={24}
-        color={week.accepted ? palette.success : palette.muted}
-      />
+        <Ionicons
+          name={week.accepted ? 'checkmark-circle' : 'close-circle-outline'}
+          size={24}
+          color={week.accepted ? palette.success : palette.muted}
+        />
+      </Row>
     </Clickable>
   );
 });
@@ -122,12 +124,12 @@ export const InviteHeader = memo(function InviteHeader({
   const initials = coachName.split(' ').map((n) => n[0]).join('');
 
   return (
-    <View style={styles.header}>
-      <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+    <Row align="center" gap="md">
+      <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <ThemedText style={[Typography.heading, { color: palette.tint }]}>
           {initials}
         </ThemedText>
-      </View>
+      </Row>
       <View style={styles.headerContent}>
         <ThemedText type="defaultSemiBold">
           Coach {coachFirstName} - {totalWeeks} Weeks
@@ -136,7 +138,7 @@ export const InviteHeader = memo(function InviteHeader({
           {sessionType} - {focus}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -158,11 +160,11 @@ export const SelectionControls = memo(function SelectionControls({
   palette,
 }: SelectionControlsProps) {
   return (
-    <View style={styles.selectionControls}>
+    <Row align="center" justify="space-between">
       <ThemedText style={[Typography.smallSemiBold, { color: palette.muted }]}>
         {acceptedCount} of {totalCount} weeks selected
       </ThemedText>
-      <View style={styles.selectionButtons}>
+      <Row gap="sm">
         <Clickable onPress={onSelectAll} style={styles.selectAllButton}>
           <ThemedText style={[Typography.small, { color: palette.tint }]}>
             Select All
@@ -173,8 +175,8 @@ export const SelectionControls = memo(function SelectionControls({
             Clear
           </ThemedText>
         </Clickable>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -192,14 +194,14 @@ export const TotalRow = memo(function TotalRow({
   palette,
 }: TotalRowProps) {
   return (
-    <View style={styles.totalRow}>
+    <Row align="center" justify="space-between">
       <ThemedText style={[Typography.smallSemiBold, { color: palette.muted }]}>
         Total ({acceptedCount} week{acceptedCount !== 1 ? 's' : ''})
       </ThemedText>
       <ThemedText type="defaultSemiBold" style={{ color: palette.text }}>
         {'\u00A3'}{totalCost}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -210,35 +212,14 @@ export const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.sm,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerContent: {
     flex: 1,
     gap: Spacing.micro,
-  },
-  athleteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  selectionControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
   },
   selectAllButton: {
     paddingVertical: Spacing.xxs,
@@ -247,9 +228,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   weekRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
@@ -258,15 +236,5 @@ export const styles = StyleSheet.create({
   weekRowLeft: {
     flex: 1,
     gap: Spacing.micro,
-  },
-  weekDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
 });

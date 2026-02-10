@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 import type { DayHeatmapData } from './smart-slots-data';
 import { getHeatColor, getHeatTextColor } from './smart-slots-data';
+import { Row } from '@/components/primitives';
 
 function HeatmapGridInner({ data }: { data: DayHeatmapData[] }) {
   const { colors, scheme } = useTheme();
@@ -17,18 +18,18 @@ function HeatmapGridInner({ data }: { data: DayHeatmapData[] }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
       {/* Time header */}
-      <View style={styles.headerRow}>
+      <Row style={styles.headerRow}>
         <View style={styles.dayLabelCell} />
         {timeLabels.map((t) => (
           <View key={t} style={styles.timeCell}>
             <Text style={[styles.timeLabel, { color: colors.muted }]}>{t}</Text>
           </View>
         ))}
-      </View>
+      </Row>
 
       {/* Day rows */}
       {data.map((dayData) => (
-        <View key={dayData.day} style={styles.dayRow}>
+        <Row key={dayData.day} style={styles.dayRow}>
           <View style={styles.dayLabelCell}>
             <Text style={[styles.dayLabel, { color: colors.muted }]}>{dayData.shortDay}</Text>
           </View>
@@ -41,17 +42,17 @@ function HeatmapGridInner({ data }: { data: DayHeatmapData[] }) {
               )}
             </View>
           ))}
-        </View>
+        </Row>
       ))}
 
       {/* Legend */}
-      <View style={styles.legend}>
+      <Row style={styles.legend}>
         <Text style={[styles.legendLabel, { color: colors.muted }]}>Less busy</Text>
         {[0.1, 0.3, 0.6, 0.8, 0.95].map((rate) => (
           <View key={rate} style={[styles.legendSwatch, { backgroundColor: getHeatColor(rate, colors) }]} />
         ))}
         <Text style={[styles.legendLabel, { color: colors.muted }]}>More busy</Text>
-      </View>
+      </Row>
     </View>
   );
 }
@@ -60,15 +61,15 @@ export const HeatmapGrid = memo(HeatmapGridInner);
 
 const styles = StyleSheet.create({
   container: { borderRadius: Radii.card, padding: Spacing.sm },
-  headerRow: { flexDirection: 'row', marginBottom: Spacing.xxs },
+  headerRow: { marginBottom: Spacing.xxs },
   dayLabelCell: { width: 36, justifyContent: 'center' },
   timeCell: { flex: 1, alignItems: 'center' },
   timeLabel: { ...Typography.caption, fontSize: 10 },
-  dayRow: { flexDirection: 'row', marginBottom: Spacing.micro },
+  dayRow: { marginBottom: Spacing.micro },
   dayLabel: { ...Typography.caption },
   heatCell: { flex: 1, aspectRatio: 1.4, borderRadius: Radii.xs, alignItems: 'center', justifyContent: 'center', marginHorizontal: 1 },
   heatText: { ...Typography.micro },
-  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, marginTop: Spacing.xs },
+  legend: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, marginTop: Spacing.xs },
   legendLabel: { ...Typography.caption, fontSize: 10 },
   legendSwatch: { width: 16, height: 10, borderRadius: Radii.xs },
 });

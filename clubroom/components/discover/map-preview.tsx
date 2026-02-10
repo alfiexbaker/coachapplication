@@ -9,6 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
 import { formatDistance } from '@/utils/format';
+import { Row } from '@/components/primitives';
 
 interface MapPreviewProps {
   coaches: CoachProfile[];
@@ -43,7 +44,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
 
   return (
     <SurfaceCard style={styles.wrapper}>
-      <View style={styles.mapHeader}>
+      <Row style={styles.mapHeader}>
         <ThemedText type="defaultSemiBold">Live map preview</ThemedText>
         <Clickable
           style={[
@@ -54,7 +55,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
             Search this area
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
       <View style={styles.mapContainer}>
         <View
           style={[styles.map, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
@@ -113,7 +114,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   mapHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },

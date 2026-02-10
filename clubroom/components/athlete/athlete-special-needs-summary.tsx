@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
 import type { RosterEntry } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
   childData,
@@ -69,9 +70,9 @@ export const SenSummary = React.memo(function SenSummary({
       </Row>
       <Row gap="xs" wrap>
         {athlete.senInfo.conditions.map((c) => (
-          <View key={c} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+          <Row key={c} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
             <ThemedText style={[styles.tagText, { color: colors.tint }]}>{c}</ThemedText>
-          </View>
+          </Row>
         ))}
       </Row>
       {athlete.senInfo.supportNotes && (
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
   },
   tag: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 10,

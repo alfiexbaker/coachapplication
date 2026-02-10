@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -54,12 +55,12 @@ export function DistanceDisplay({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.distanceContainer}>
+    <Row style={styles.distanceContainer}>
       <Ionicons name="location" size={iconSize} color={palette.icon} />
       <ThemedText style={[styles.distanceText, { color: palette.muted }]}>
         {distanceMiles.toFixed(1)} mi
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -74,12 +75,12 @@ export function LocationDisplay({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.locationContainer}>
+    <Row style={styles.locationContainer}>
       <Ionicons name="location-outline" size={iconSize} color={palette.muted} />
       <ThemedText style={[styles.locationText, { color: palette.muted }]}>
         {city}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -91,12 +92,12 @@ export function NextAvailableDisplay({ nextAvailable }: NextAvailableDisplayProp
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.availabilityContainer}>
+    <Row style={styles.availabilityContainer}>
       <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.success} />
       <ThemedText style={[styles.availabilityText, { color: palette.success }]}>
         {nextAvailable}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -125,14 +126,14 @@ export function MetaRow({
   }
 
   return (
-    <View style={styles.metaRow}>
+    <Row style={styles.metaRow}>
       {hasDistance && (
-        <View style={styles.metaItem}>
+        <Row style={styles.metaItem}>
           <Ionicons name="location-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.metaText, { color: palette.muted }]}>
             {distanceMiles.toFixed(1)} mi
           </ThemedText>
-        </View>
+        </Row>
       )}
       {showDivider && hasDistance && hasPrice && (
         <View style={[styles.metaDot, { backgroundColor: palette.border }]} />
@@ -142,7 +143,7 @@ export function MetaRow({
           £{pricePerHour}/hr
         </ThemedText>
       )}
-    </View>
+    </Row>
   );
 }
 
@@ -160,12 +161,12 @@ export function CoachCardAvailability({
 
   if (variant === 'compact') {
     return (
-      <View style={styles.compactContainer}>
+      <Row style={styles.compactContainer}>
         {distanceMiles !== undefined && (
           <DistanceDisplay distanceMiles={distanceMiles} />
         )}
         {city && <LocationDisplay city={city} />}
-      </View>
+      </Row>
     );
   }
 
@@ -188,7 +189,6 @@ export function CoachCardAvailability({
 
 const styles = StyleSheet.create({
   compactContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -196,19 +196,16 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   distanceContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs + 2,
   },
   distanceText: { ...Typography.smallSemiBold },
   locationContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   locationText: { ...Typography.smallSemiBold },
   availabilityContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -217,12 +214,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   metaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

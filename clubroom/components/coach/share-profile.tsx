@@ -14,6 +14,7 @@ import {
   ShareQrSection,
   ShareSlugEditor,
 } from './share-profile-sections';
+import { Row } from '@/components/primitives';
 
 interface ShareProfileProps {
   coachId: string;
@@ -78,14 +79,14 @@ export function ShareProfile({
           style={[styles.sheet, { backgroundColor: palette.surface }]}
           onPress={(e) => e.stopPropagation()}
         >
-          <View style={styles.sheetHeader}>
+          <Row style={styles.sheetHeader}>
             <ThemedText style={[Typography.title, { color: palette.text }]}>
               Share Profile
             </ThemedText>
             <Clickable accessibilityLabel="Close" onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={Components.icon.lg} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           <ShareUrlBox url={shareUrl} palette={palette} />
 
@@ -142,7 +143,6 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   sheetHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,

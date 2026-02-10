@@ -7,6 +7,7 @@
 
 import { View, StyleSheet } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -45,14 +46,14 @@ export function ReferralHistory({
   const content = (
     <>
       {title && (
-        <View style={styles.header}>
+        <Row align="center" justify="space-between" style={styles.header}>
           <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
           {referrals.length > 0 && (
             <ThemedText style={[styles.count, { color: palette.muted }]}>
               {referrals.length} total
             </ThemedText>
           )}
-        </View>
+        </Row>
       )}
 
       {loading ? (
@@ -107,9 +108,6 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
   card: { padding: Spacing.md, gap: Spacing.sm },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
   title: { fontSize: scaleFont(16) },

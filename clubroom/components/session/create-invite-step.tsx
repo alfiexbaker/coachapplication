@@ -43,8 +43,7 @@ export const CreateInviteStep = memo(function CreateInviteStep({
   selectedAthletes,
   pastAthletes,
   onInviteTypeChange,
-  onToggleAthlete,
-}: CreateInviteStepProps) {
+  onToggleAthlete }: CreateInviteStepProps) {
   return (
     <Animated.View entering={FadeInRight.springify()}>
       <Column gap="lg">
@@ -63,22 +62,23 @@ export const CreateInviteStep = memo(function CreateInviteStep({
                 styles.inviteModeCard,
                 {
                   borderColor: inviteType === option.key ? colors.tint : colors.border,
-                  backgroundColor: inviteType === option.key ? withAlpha(colors.tint, 0.03) : colors.surface,
-                },
+                  backgroundColor: inviteType === option.key ? withAlpha(colors.tint, 0.03) : colors.surface },
               ]}
             >
-              <Center style={[styles.inviteModeIcon, { backgroundColor: withAlpha(colors[option.colorKey] as string, 0.09) }]}>
-                <Ionicons name={option.icon} size={24} color={colors[option.colorKey] as string} />
-              </Center>
-              <Column style={styles.inviteModeInfo} gap="micro">
-                <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
-                <ThemedText style={[styles.inviteModeDesc, { color: colors.muted }]}>
-                  {option.description}
-                </ThemedText>
-              </Column>
-              {inviteType === option.key && (
-                <Ionicons name="checkmark-circle" size={24} color={colors.tint} />
-              )}
+              <Row align="center" gap="md">
+                <Center style={[styles.inviteModeIcon, { backgroundColor: withAlpha(colors[option.colorKey] as string, 0.09) }]}>
+                  <Ionicons name={option.icon} size={24} color={colors[option.colorKey] as string} />
+                </Center>
+                <Column style={styles.inviteModeInfo} gap="micro">
+                  <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
+                  <ThemedText style={[styles.inviteModeDesc, { color: colors.muted }]}>
+                    {option.description}
+                  </ThemedText>
+                </Column>
+                {inviteType === option.key && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.tint} />
+                )}
+              </Row>
             </Clickable>
           ))}
         </Column>
@@ -99,29 +99,29 @@ export const CreateInviteStep = memo(function CreateInviteStep({
                   {
                     backgroundColor: selectedAthletes.includes(athlete.id)
                       ? withAlpha(colors.tint, 0.03)
-                      : 'transparent',
-                  },
+                      : 'transparent' },
                 ]}
               >
-                <Center style={[styles.athleteAvatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-                  <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
-                    {athlete.name.charAt(0)}
-                  </ThemedText>
-                </Center>
-                <ThemedText style={styles.athleteName}>{athlete.name}</ThemedText>
-                <Center
-                  style={[
-                    styles.checkbox,
-                    {
-                      borderColor: selectedAthletes.includes(athlete.id) ? colors.tint : colors.border,
-                      backgroundColor: selectedAthletes.includes(athlete.id) ? colors.tint : 'transparent',
-                    },
-                  ]}
-                >
-                  {selectedAthletes.includes(athlete.id) && (
-                    <Ionicons name="checkmark" size={14} color={colors.onPrimary} />
-                  )}
-                </Center>
+                <Row align="center" gap="sm">
+                  <Center style={[styles.athleteAvatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
+                    <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
+                      {athlete.name.charAt(0)}
+                    </ThemedText>
+                  </Center>
+                  <ThemedText style={styles.athleteName}>{athlete.name}</ThemedText>
+                  <Center
+                    style={[
+                      styles.checkbox,
+                      {
+                        borderColor: selectedAthletes.includes(athlete.id) ? colors.tint : colors.border,
+                        backgroundColor: selectedAthletes.includes(athlete.id) ? colors.tint : 'transparent' },
+                    ]}
+                  >
+                    {selectedAthletes.includes(athlete.id) && (
+                      <Ionicons name="checkmark" size={14} color={colors.onPrimary} />
+                    )}
+                  </Center>
+                </Row>
               </Clickable>
             ))}
           </SurfaceCard>
@@ -149,53 +149,35 @@ export const CreateInviteStep = memo(function CreateInviteStep({
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   inviteModeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 2,
-    gap: Spacing.md,
-  },
+    borderWidth: 2 },
   inviteModeIcon: {
     width: 48,
     height: 48,
-    borderRadius: Radii.xl,
-  },
+    borderRadius: Radii.xl },
   inviteModeInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   inviteModeDesc: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   athleteList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   athleteListTitle: {
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   athleteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   athleteAvatar: {
     width: 36,
     height: 36,
-    borderRadius: Radii.xl,
-  },
+    borderRadius: Radii.xl },
   athleteName: {
     flex: 1,
-    ...Typography.body,
-  },
+    ...Typography.body },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: Radii.sm,
-    borderWidth: 2,
-  },
-});
+    borderWidth: 2 } });

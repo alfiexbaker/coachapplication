@@ -8,8 +8,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/screen-states';
 import { AthleteRow } from '@/components/roster/athlete-row';
 import { AthleteFilters } from '@/components/roster/athlete-filters';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -90,10 +92,18 @@ export default function RosterScreen() {
     (v) => v !== undefined && (Array.isArray(v) ? v.length > 0 : true)
   ).length;
 
+  if (loading && roster.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -103,11 +113,11 @@ export default function RosterScreen() {
             {stats?.total || 0} athletes
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Stats Row */}
       {stats && (
-        <View style={styles.statsRow}>
+        <Row gap="xs" style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
             <ThemedText type="heading" style={{ color: palette.success }}>
               {stats.active}
@@ -132,12 +142,12 @@ export default function RosterScreen() {
             </ThemedText>
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Revenue</ThemedText>
           </View>
-        </View>
+        </Row>
       )}
 
       {/* Search & Filter Bar */}
-      <View style={styles.searchSection}>
-        <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
+      <Row gap="sm" style={styles.searchSection}>
+        <Row align="center" gap="xs" style={[styles.searchBar, { backgroundColor: palette.surface }]}>
           <Ionicons name="search" size={18} color={palette.muted} />
           <TextInput
             style={[styles.searchInput, { color: palette.text }]}
@@ -151,7 +161,7 @@ export default function RosterScreen() {
               <Ionicons name="close-circle" size={18} color={palette.muted} />
             </Clickable>
           )}
-        </View>
+        </Row>
         <Clickable
           onPress={() => setShowFilters(!showFilters)}
           style={[
@@ -171,7 +181,7 @@ export default function RosterScreen() {
             </View>
           )}
         </Clickable>
-      </View>
+      </Row>
 
       {/* Filters */}
       {showFilters && (
@@ -220,19 +230,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md },
+    paddingVertical: Spacing.md },
   headerTitle: {
     flex: 1 },
   subtitle: {
     ...Typography.small,
     marginTop: Spacing.micro },
   statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md },
   statCard: {
@@ -244,18 +249,13 @@ const styles = StyleSheet.create({
     ...Typography.micro,
     marginTop: Spacing.micro },
   searchSection: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md },
   searchBar: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     height: 44,
-    borderRadius: Radii.md,
-    gap: Spacing.xs },
+    borderRadius: Radii.md },
   searchInput: {
     flex: 1,
     ...Typography.body },

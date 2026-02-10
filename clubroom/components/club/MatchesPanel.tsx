@@ -10,6 +10,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface MatchesPanelProps {
   matches: Match[];
@@ -43,11 +44,11 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
 
   return (
     <SurfaceCard style={styles.matchesCard}>
-      <View style={styles.matchesSectionHeader}>
-        <View style={styles.matchesHeaderLeft}>
+      <Row style={styles.matchesSectionHeader}>
+        <Row style={styles.matchesHeaderLeft}>
           <Ionicons name="trophy" size={20} color={palette.tint} />
           <ThemedText type="defaultSemiBold">Upcoming Matches</ThemedText>
-        </View>
+        </Row>
         <Clickable
           style={styles.viewAllButton}
           onPress={handleViewAll}
@@ -55,7 +56,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
           <Ionicons name="chevron-forward" size={16} color={palette.tint} />
         </Clickable>
-      </View>
+      </Row>
 
       <View style={styles.matchesList}>
         {matches.map((match) => {
@@ -114,17 +115,14 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   matchesSectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   matchesHeaderLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   viewAllButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -133,7 +131,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   matchItem: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
@@ -153,7 +150,6 @@ const styles = StyleSheet.create({
   matchTypeText: { ...Typography.micro, textTransform: 'uppercase' },
   matchMeta: { ...Typography.caption },
   createMatchButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

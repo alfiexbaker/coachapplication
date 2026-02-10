@@ -59,25 +59,26 @@ const NavCard = memo(function NavCard({ link }: { link: NavLink }) {
 
   return (
     <SurfaceCard
-      style={styles.navCard}
       onPress={handlePress}
       accessibilityLabel={`Navigate to ${link.title}`}
       accessibilityRole="button"
     >
-      <Row
-        align="center"
-        justify="center"
-        style={[styles.navIcon, { backgroundColor: withAlpha(palette.accent, 0.07) }]}
-      >
-        <Ionicons name={link.icon as keyof typeof Ionicons.glyphMap} size={22} color={palette.accent} />
+      <Row align="center" gap="sm">
+        <Row
+          align="center"
+          justify="center"
+          style={[styles.navIcon, { backgroundColor: withAlpha(palette.accent, 0.07) }]}
+        >
+          <Ionicons name={link.icon as keyof typeof Ionicons.glyphMap} size={22} color={palette.accent} />
+        </Row>
+        <Column gap="micro" flex>
+          <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
+          {link.subtitle && (
+            <ThemedText style={{ color: palette.muted, ...Typography.small }}>{link.subtitle}</ThemedText>
+          )}
+        </Column>
+        <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
-      <Column gap="micro" flex>
-        <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
-        {link.subtitle && (
-          <ThemedText style={{ color: palette.muted, ...Typography.small }}>{link.subtitle}</ThemedText>
-        )}
-      </Column>
-      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
     </SurfaceCard>
   );
 });
@@ -105,9 +106,7 @@ export const SettingsNavHub = memo(function SettingsNavHub({ role }: SettingsNav
 
 const styles = StyleSheet.create({
   navCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+    // layout moved to inner Row
   },
   navIcon: {
     width: 40,

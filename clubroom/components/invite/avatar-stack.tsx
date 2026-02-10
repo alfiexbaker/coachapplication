@@ -13,6 +13,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface Attendee {
   id: string;
@@ -44,8 +45,8 @@ function AvatarStackComponent({
   const overflow = goingCount - maxVisible;
 
   const content = (
-    <View style={styles.row}>
-      <View style={styles.avatarRow}>
+    <Row style={styles.row}>
+      <Row style={styles.avatarRow}>
         {visible.map((attendee, index) => (
           <View
             key={attendee.id}
@@ -90,11 +91,11 @@ function AvatarStackComponent({
             </ThemedText>
           </View>
         )}
-      </View>
+      </Row>
       <ThemedText style={[styles.goingText, { color: palette.muted }]}>
         {goingCount} going
       </ThemedText>
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -112,12 +113,10 @@ export const AvatarStack = memo(AvatarStackComponent);
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   avatarRow: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   avatarWrap: {

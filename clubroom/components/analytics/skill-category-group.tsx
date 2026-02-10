@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 import { getSkillLevelInfo, getCategoryIcon } from './skill-progress-helpers';
 import { SkillProgressBar } from './skill-progress-item';
+import { Row } from '@/components/primitives';
 
 interface SkillCategoryGroupProps {
   category: string;
@@ -33,8 +34,8 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
   return (
     <SurfaceCard style={styles.card}>
       <Pressable onPress={() => setExpanded(!expanded)}>
-        <View style={styles.header}>
-          <View style={styles.left}>
+        <Row style={styles.header}>
+          <Row style={styles.left}>
             <View style={[styles.icon, { backgroundColor: withAlpha(levelInfo.color, 0.09) }]}>
               <Ionicons name={getCategoryIcon(category)} size={20} color={levelInfo.color} />
             </View>
@@ -44,8 +45,8 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
                 {skills.length} skill{skills.length !== 1 ? 's' : ''}
               </ThemedText>
             </View>
-          </View>
-          <View style={styles.right}>
+          </Row>
+          <Row style={styles.right}>
             <View style={styles.stats}>
               <ThemedText type="defaultSemiBold">{Math.round(avgLevel)}</ThemedText>
               <ThemedText style={[styles.avgLabel, { color: palette.muted }]}>avg</ThemedText>
@@ -54,8 +55,8 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
               <Ionicons name={avgChangeValue > 0 ? 'arrow-up' : avgChangeValue < 0 ? 'arrow-down' : 'remove'} size={10} color={trendColor} />
             </View>
             <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
-          </View>
-        </View>
+          </Row>
+        </Row>
       </Pressable>
 
       {expanded && (
@@ -73,12 +74,12 @@ export const SkillCategoryGroup = memo(SkillCategoryGroupInner);
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  left: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { justifyContent: 'space-between', alignItems: 'center' },
+  left: { alignItems: 'center', gap: Spacing.sm },
   icon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   name: { ...Typography.subheading },
   count: { ...Typography.caption },
-  right: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  right: { alignItems: 'center', gap: Spacing.sm },
   stats: { alignItems: 'center' },
   avgLabel: { ...Typography.micro },
   trendDot: { width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },

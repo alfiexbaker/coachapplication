@@ -136,7 +136,6 @@ export const CompactBadgeCardInner = memo(function CompactBadgeCardInner({
 
 const styles = StyleSheet.create({
   compactCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     gap: Spacing.sm,

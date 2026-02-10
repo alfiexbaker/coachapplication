@@ -16,6 +16,7 @@ import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { NotificationChannel } from '@/constants/types';
@@ -84,8 +85,10 @@ export function ChannelToggle({
         const isLast = index === CHANNELS.length - 1;
 
         return (
-          <View
+          <Row
             key={channel.key}
+            align="center"
+            gap="sm"
             style={[
               styles.row,
               !isLast && {
@@ -132,7 +135,7 @@ export function ChannelToggle({
               disabled={disabled || loading}
               style={loading ? styles.loadingSwitch : undefined}
             />
-          </View>
+          </Row>
         );
       })}
     </View>
@@ -146,10 +149,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.md,
-    gap: Spacing.sm,
   },
   iconContainer: {
     width: 40,

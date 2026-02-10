@@ -13,6 +13,7 @@ import { badgeService } from '@/services/badge-service';
 import { TierNames, CategoryInfo } from '@/constants/progression';
 import { getTierColor, getCategoryIcon, isRecent } from '@/hooks/use-child-badges';
 import type { BadgeAward } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface ChildBadgeCardProps {
   award: BadgeAward;
@@ -54,15 +55,15 @@ export const ChildBadgeCard = memo(function ChildBadgeCard({ award, highlighted,
           </Row>
           <Row gap="xs" align="center" wrap>
             {award.badgeTier && (
-              <View style={[styles.metaPill, { backgroundColor: withAlpha(tierColor, 0.12) }]}>
+              <Row style={[styles.metaPill, { backgroundColor: withAlpha(tierColor, 0.12) }]}>
                 <ThemedText style={[Typography.micro, { color: tierColor }]}>{TierNames[award.badgeTier]}</ThemedText>
-              </View>
+              </Row>
             )}
             {award.badgeCategory && (
-              <View style={[styles.metaPill, { backgroundColor: withAlpha(colors.tint, 0.07) }]}>
+              <Row style={[styles.metaPill, { backgroundColor: withAlpha(colors.tint, 0.07) }]}>
                 <Ionicons name={getCategoryIcon(award.badgeCategory)} size={12} color={colors.tint} />
                 <ThemedText style={[Typography.micro, { color: colors.tint }]}>{CategoryInfo[award.badgeCategory].label}</ThemedText>
-              </View>
+              </Row>
             )}
             <ThemedText style={[Typography.caption, { color: colors.tint }]}>+{award.badgePointValue ?? 0} pts</ThemedText>
           </Row>
@@ -102,10 +103,10 @@ export const ChildBadgeCard = memo(function ChildBadgeCard({ award, highlighted,
           <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>Share to Feed</ThemedText>
         </Clickable>
       ) : (
-        <View style={[styles.sharedIndicator, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+        <Row style={[styles.sharedIndicator, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
           <Ionicons name="checkmark-circle" size={14} color={colors.success} />
           <ThemedText style={[Typography.smallSemiBold, { color: colors.success }]}>Shared to feed</ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -116,9 +117,9 @@ const styles = StyleSheet.create({
   badgeIcon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   badgeInfo: { flex: 1, gap: Spacing.xs },
   recentPill: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
-  metaPill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  metaPill: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   noteSection: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.xs },
   footer: { paddingTop: Spacing.sm, borderTopWidth: 1 },
-  shareButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
-  sharedIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  shareButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  sharedIndicator: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
 });

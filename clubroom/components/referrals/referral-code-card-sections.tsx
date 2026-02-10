@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -34,7 +35,7 @@ export const CompactCodeCard = memo(function CompactCodeCard({
 }: CompactCodeCardProps) {
   return (
     <SurfaceCard style={styles.compactCard}>
-      <View style={styles.compactContent}>
+      <Row align="center" justify="space-between">
         <View style={styles.compactLeft}>
           <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
             Your code
@@ -43,7 +44,7 @@ export const CompactCodeCard = memo(function CompactCodeCard({
             {referralCode.code}
           </ThemedText>
         </View>
-        <View style={styles.compactActions}>
+        <Row gap="xs">
           <Clickable
             onPress={onCopy}
             style={[styles.iconButton, { backgroundColor: palette.surface }]}
@@ -61,8 +62,8 @@ export const CompactCodeCard = memo(function CompactCodeCard({
             variant="icon"
             onShare={onShare}
           />
-        </View>
-      </View>
+        </Row>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -87,7 +88,7 @@ export const CodeDisplay = memo(function CodeDisplay({
       <ThemedText style={[styles.codeLabel, { color: palette.muted }]}>
         Your referral code
       </ThemedText>
-      <View style={styles.codeRow}>
+      <Row align="center" justify="space-between" gap="md">
         <ThemedText type="title" style={styles.code}>
           {code}
         </ThemedText>
@@ -112,7 +113,7 @@ export const CodeDisplay = memo(function CodeDisplay({
             {copied ? 'Copied!' : 'Copy'}
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -123,11 +124,8 @@ const styles = StyleSheet.create({
   compactCard: {
     padding: Components.card.padding,
   },
-  compactContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  // compactContent: layout moved to Row props
+  // compactActions: layout moved to Row props
   compactLeft: {
     gap: Spacing.micro,
   },
@@ -141,10 +139,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     fontVariant: ['tabular-nums'],
   },
-  compactActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+  // compactActions removed — layout moved to Row
   iconButton: {
     width: 40,
     height: 40,
@@ -163,12 +158,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontWeight: '500',
   },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-  },
+  // codeRow removed — layout moved to Row props
   code: {
     fontSize: scaleFont(24),
     fontWeight: '700',

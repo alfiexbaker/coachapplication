@@ -12,6 +12,7 @@ import type { CoachProfile } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
 import { athleteProfile, bookingSteps } from './booking-flow-types';
+import { Row } from '@/components/primitives';
 
 interface BookingFlowStepperProps {
   coach?: CoachProfile;
@@ -22,13 +23,13 @@ function BookingFlowStepperInner({ coach }: BookingFlowStepperProps) {
 
   return (
     <SurfaceCard style={styles.flowCard}>
-      <View style={styles.flowHeader}>
+      <Row style={styles.flowHeader}>
         <ThemedText type="eyebrow">Booking flow</ThemedText>
-        <View style={[styles.liveBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+        <Row style={[styles.liveBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
           <Ionicons name="sparkles-outline" size={16} color={palette.tint} />
           <ThemedText style={[styles.badgeLabel, { color: palette.tint }]}>Coach-led</ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
       <ThemedText type="title" style={styles.flowTitle}>A coaching-first journey</ThemedText>
       <ThemedText style={styles.flowSubtitle}>
         Instead of generic sports marketplaces, families move through a bespoke coaching intake—context,
@@ -36,7 +37,7 @@ function BookingFlowStepperInner({ coach }: BookingFlowStepperProps) {
       </ThemedText>
 
       {/* Stepper */}
-      <View style={styles.stepper}>
+      <Row style={styles.stepper}>
         {bookingSteps.map((step, index) => (
           <View key={step.id} style={styles.stepItem}>
             <View style={[
@@ -61,10 +62,10 @@ function BookingFlowStepperInner({ coach }: BookingFlowStepperProps) {
             <ThemedText style={styles.stepDescription}>{step.description}</ThemedText>
           </View>
         ))}
-      </View>
+      </Row>
 
       {/* Context cards */}
-      <View style={styles.contextRow}>
+      <Row style={styles.contextRow}>
         <View style={[styles.contextCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
           <ThemedText type="defaultSemiBold">Selected coach</ThemedText>
           <ThemedText style={styles.contextPrimary}>{coach?.fullName ?? 'Tap a coach to preview'}</ThemedText>
@@ -79,10 +80,10 @@ function BookingFlowStepperInner({ coach }: BookingFlowStepperProps) {
             {athleteProfile.readiness} {'\u00B7'} {athleteProfile.cadence}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Callout */}
-      <View style={[styles.callout, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
+      <Row style={[styles.callout, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
         <Ionicons name="document-text-outline" size={20} color={palette.secondary} />
         <View style={styles.calloutCopy}>
           <ThemedText type="defaultSemiBold">Session blueprint ready</ThemedText>
@@ -90,7 +91,7 @@ function BookingFlowStepperInner({ coach }: BookingFlowStepperProps) {
             Once the slot is locked, Clubroom auto-generates prep docs, checklists, and shareable recaps.
           </ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -99,20 +100,20 @@ export const BookingFlowStepper = memo(BookingFlowStepperInner);
 
 const styles = StyleSheet.create({
   flowCard: { gap: Spacing.sm },
-  flowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  flowHeader: { justifyContent: 'space-between', alignItems: 'center' },
   flowTitle: { lineHeight: 32 },
   flowSubtitle: { opacity: 0.8 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
+  liveBadge: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
   badgeLabel: { ...Typography.caption, textTransform: 'uppercase' },
-  stepper: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  stepper: { flexWrap: 'wrap', gap: Spacing.sm },
   stepItem: { flex: 1, minWidth: 140, gap: Spacing.xs },
   stepIcon: { width: 36, height: 36, borderRadius: Radii.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   stepCount: { fontWeight: '600' },
   stepDescription: { opacity: 0.8 },
-  contextRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  contextRow: { flexWrap: 'wrap', gap: Spacing.sm },
   contextCard: { flex: 1, minWidth: 180, padding: Spacing.sm, borderRadius: Radii.lg, borderWidth: 1 },
   contextPrimary: { ...Typography.lg, fontWeight: '600' },
   contextMeta: { opacity: 0.75 },
-  callout: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radii.lg, padding: Spacing.sm, alignItems: 'center' },
+  callout: { gap: Spacing.sm, borderRadius: Radii.lg, padding: Spacing.sm, alignItems: 'center' },
   calloutCopy: { flex: 1, gap: Spacing.micro },
 });

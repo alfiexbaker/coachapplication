@@ -15,6 +15,7 @@ import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -53,17 +54,17 @@ export const InvoiceHeader = memo(function InvoiceHeader({
   const statusColor = invoiceService.getStatusColor(invoice.status);
 
   return (
-    <View style={styles.header}>
+    <Row justify="space-between" align="flex-start" style={styles.header}>
       <View>
         <ThemedText type="display" style={styles.invoiceNumber}>
           {invoice.invoiceNumber}
         </ThemedText>
-        <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
+        <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <ThemedText style={[styles.statusText, { color: statusColor }]}>
             {invoiceService.getStatusLabel(invoice.status)}
           </ThemedText>
-        </View>
+        </Row>
       </View>
       <View style={styles.amountContainer}>
         <ThemedText style={[styles.amountLabel, { color: palette.muted }]}>Total</ThemedText>
@@ -71,7 +72,7 @@ export const InvoiceHeader = memo(function InvoiceHeader({
           {invoiceService.formatAmount(invoice.total)}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -88,7 +89,7 @@ export const InvoiceDateCard = memo(function InvoiceDateCard({
 }: InvoiceDateCardProps) {
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.dateRow}>
+      <Row gap="lg">
         <View style={styles.dateItem}>
           <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>Issued</ThemedText>
           <ThemedText type="defaultSemiBold">{formatDate(invoice.createdAt)}</ThemedText>
@@ -109,7 +110,7 @@ export const InvoiceDateCard = memo(function InvoiceDateCard({
             </ThemedText>
           </View>
         )}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -126,7 +127,7 @@ export const InvoicePartiesRow = memo(function InvoicePartiesRow({
   palette,
 }: InvoicePartiesRowProps) {
   return (
-    <View style={styles.partiesContainer}>
+    <Row gap="sm">
       <SurfaceCard style={[styles.card, styles.partyCard]}>
         <ThemedText style={[styles.partyLabel, { color: palette.muted }]}>FROM</ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.partyName}>
@@ -155,7 +156,7 @@ export const InvoicePartiesRow = memo(function InvoicePartiesRow({
           </ThemedText>
         )}
       </SurfaceCard>
-    </View>
+    </Row>
   );
 });
 
@@ -177,23 +178,23 @@ export const InvoiceSessionDetails = memo(function InvoiceSessionDetails({
       </ThemedText>
 
       <View style={styles.sessionDetails}>
-        <View style={styles.detailRow}>
+        <Row align="flex-start" gap="sm">
           <Ionicons name="fitness-outline" size={18} color={palette.muted} />
           <View style={styles.detailContent}>
             <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Type</ThemedText>
             <ThemedText type="defaultSemiBold">{invoice.sessionType || 'Training Session'}</ThemedText>
           </View>
-        </View>
+        </Row>
 
-        <View style={styles.detailRow}>
+        <Row align="flex-start" gap="sm">
           <Ionicons name="person-outline" size={18} color={palette.muted} />
           <View style={styles.detailContent}>
             <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Athlete</ThemedText>
             <ThemedText type="defaultSemiBold">{invoice.athleteName}</ThemedText>
           </View>
-        </View>
+        </Row>
 
-        <View style={styles.detailRow}>
+        <Row align="flex-start" gap="sm">
           <Ionicons name="calendar-outline" size={18} color={palette.muted} />
           <View style={styles.detailContent}>
             <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Date</ThemedText>
@@ -201,26 +202,26 @@ export const InvoiceSessionDetails = memo(function InvoiceSessionDetails({
               {formatDate(invoice.sessionDate)} at {formatTime(invoice.sessionDate)}
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         {invoice.sessionLocation && (
-          <View style={styles.detailRow}>
+          <Row align="flex-start" gap="sm">
             <Ionicons name="location-outline" size={18} color={palette.muted} />
             <View style={styles.detailContent}>
               <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Location</ThemedText>
               <ThemedText type="defaultSemiBold">{invoice.sessionLocation}</ThemedText>
             </View>
-          </View>
+          </Row>
         )}
 
         {invoice.sessionDuration && (
-          <View style={styles.detailRow}>
+          <Row align="flex-start" gap="sm">
             <Ionicons name="time-outline" size={18} color={palette.muted} />
             <View style={styles.detailContent}>
               <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Duration</ThemedText>
               <ThemedText type="defaultSemiBold">{invoice.sessionDuration} minutes</ThemedText>
             </View>
-          </View>
+          </Row>
         )}
       </View>
     </SurfaceCard>
@@ -245,18 +246,18 @@ export const InvoicePricingCard = memo(function InvoicePricingCard({
       </ThemedText>
 
       <View style={styles.pricingRows}>
-        <View style={styles.pricingRow}>
+        <Row justify="space-between" align="center" style={styles.pricingRow}>
           <ThemedText>Subtotal</ThemedText>
           <ThemedText>{invoiceService.formatAmount(invoice.amount)}</ThemedText>
-        </View>
-        <View style={styles.pricingRow}>
+        </Row>
+        <Row justify="space-between" align="center" style={styles.pricingRow}>
           <ThemedText>VAT ({invoice.taxRate}%)</ThemedText>
           <ThemedText>{invoiceService.formatAmount(invoice.tax)}</ThemedText>
-        </View>
-        <View style={[styles.pricingRow, styles.totalRow, { borderTopColor: palette.border }]}>
+        </Row>
+        <Row justify="space-between" align="center" style={[styles.pricingRow, styles.totalRow, { borderTopColor: palette.border }]}>
           <ThemedText type="subtitle">Total</ThemedText>
           <ThemedText type="subtitle">{invoiceService.formatAmount(invoice.total)}</ThemedText>
-        </View>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -277,12 +278,12 @@ export const InvoiceVoidCard = memo(function InvoiceVoidCard({
 }: InvoiceVoidCardProps) {
   return (
     <SurfaceCard style={[styles.card, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
-      <View style={styles.voidHeader}>
+      <Row align="center" gap="xs" style={styles.voidHeader}>
         <Ionicons name="close-circle" size={18} color={palette.error} />
         <ThemedText style={[styles.sectionTitle, { color: palette.error, marginBottom: 0 }]}>
           VOIDED
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={[styles.voidReason, { color: palette.error }]}>
         {voidReason}
       </ThemedText>
@@ -309,12 +310,12 @@ export const InvoiceSentInfo = memo(function InvoiceSentInfo({
   palette,
 }: InvoiceSentInfoProps) {
   return (
-    <View style={styles.sentInfo}>
+    <Row align="center" gap="xs" justify="center" style={styles.sentInfo}>
       <Ionicons name="checkmark-circle" size={16} color={palette.success} />
       <ThemedText style={[styles.sentText, { color: palette.muted }]}>
         Sent to {sentTo} on {formatDate(sentAt)}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -330,16 +331,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: Spacing.sm,
   },
   invoiceNumber: { ...Typography.display, marginBottom: Spacing.xs },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
@@ -359,10 +354,6 @@ export const styles = StyleSheet.create({
   card: {
     padding: Spacing.md,
   },
-  dateRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
   dateItem: {
     gap: Spacing.micro,
   },
@@ -370,10 +361,6 @@ export const styles = StyleSheet.create({
     ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  partiesContainer: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
   },
   partyCard: {
     flex: 1,
@@ -395,11 +382,6 @@ export const styles = StyleSheet.create({
   sessionDetails: {
     gap: Spacing.sm,
   },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
   detailContent: {
     flex: 1,
     gap: Spacing.micro,
@@ -409,9 +391,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   pricingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: Spacing.xxs,
   },
   totalRow: {
@@ -420,18 +399,11 @@ export const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   voidHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
   voidReason: { ...Typography.bodySmall },
   voidDate: { ...Typography.caption, marginTop: Spacing.xs },
   sentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    justifyContent: 'center',
     paddingTop: Spacing.sm,
   },
   sentText: { ...Typography.small },

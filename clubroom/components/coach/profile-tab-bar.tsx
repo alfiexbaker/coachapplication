@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export type TabType = 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
 
@@ -27,7 +28,7 @@ const TABS: { key: TabType; label: string }[] = [
 function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabsProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
+    <Row style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
       {TABS.map((tab) => (
         <Clickable
           key={tab.key}
@@ -41,7 +42,7 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabsProps) {
           </ThemedText>
         </Clickable>
       ))}
-    </View>
+    </Row>
   );
 }
 
@@ -49,7 +50,7 @@ export const ProfileTabBar = React.memo(ProfileTabBarInner);
 export default ProfileTabBar;
 
 const styles = StyleSheet.create({
-  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
+  tabsContainer: { borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
   tabButton: { flex: 1, paddingVertical: Spacing.md, alignItems: 'center' },
   tabText: { ...Typography.bodySmall, fontWeight: Typography.subheading.fontWeight },
 });

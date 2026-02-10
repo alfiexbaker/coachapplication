@@ -18,6 +18,7 @@ import type { RecoveryNote } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── RecoveryProgressCard ────────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
 }: RecoveryProgressCardProps) {
   return (
     <SurfaceCard style={styles.progressCard}>
-      <View style={styles.progressHeader}>
+      <Row style={styles.progressHeader}>
         <View>
           <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
             Recovery Progress
@@ -51,7 +52,7 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
             {recoveryPercent}%
           </ThemedText>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
+        <Row style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
           <Ionicons
             name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
             size={16}
@@ -60,8 +61,8 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
           <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
             {statusInfo.label}
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       <View style={[styles.progressBarContainer, { backgroundColor: palette.border }]}>
         <View
@@ -80,7 +81,7 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
         )}
       </View>
 
-      <View style={styles.datesRow}>
+      <Row style={styles.datesRow}>
         <View style={styles.dateItem}>
           <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>
             Injury Date
@@ -104,7 +105,7 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
             )}
           </View>
         )}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -158,7 +159,7 @@ export const TimelineItem = memo(function TimelineItem({
       </View>
 
       <View style={[styles.noteCard, { backgroundColor: palette.surface }]}>
-        <View style={styles.noteHeader}>
+        <Row style={styles.noteHeader}>
           <View>
             <ThemedText style={styles.noteDate}>{formattedDate}</ThemedText>
             <ThemedText style={[styles.noteTime, { color: palette.muted }]}>
@@ -172,7 +173,7 @@ export const TimelineItem = memo(function TimelineItem({
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
         <ThemedText style={styles.noteContent}>{note.note}</ThemedText>
         {note.createdByName && (
           <ThemedText style={[styles.noteAuthor, { color: palette.muted }]}>
@@ -205,7 +206,6 @@ export function TimelineEmptyState({ palette }: { palette: ThemeColors }) {
 const styles = StyleSheet.create({
   progressCard: { padding: Spacing.md },
   progressHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: Spacing.md,
@@ -213,7 +213,6 @@ const styles = StyleSheet.create({
   progressLabel: { fontSize: scaleFont(13), marginBottom: Spacing.micro },
   progressValue: { fontSize: scaleFont(32), fontWeight: '700' },
   statusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -237,7 +236,7 @@ const styles = StyleSheet.create({
   },
   expectedLine: { width: 2, height: 20 },
   expectedLabel: { fontSize: scaleFont(10), marginTop: Spacing.micro },
-  datesRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  datesRow: { justifyContent: 'space-between' },
   dateItem: { flex: 1 },
   dateItemRight: { alignItems: 'flex-end' },
   dateLabel: {
@@ -260,7 +259,7 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: scaleFont(15), fontWeight: '600' },
   emptySubtext: { fontSize: scaleFont(13), textAlign: 'center' },
-  timelineItem: { flexDirection: 'row', gap: Spacing.sm },
+  timelineItem: { gap: Spacing.sm },
   timelineConnector: {
     width: 20,
     alignItems: 'center',
@@ -281,7 +280,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   noteHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: Spacing.xs,

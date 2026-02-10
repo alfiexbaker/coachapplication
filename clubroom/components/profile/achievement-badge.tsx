@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -16,12 +17,12 @@ export function AchievementBadge({ icon = 'trophy', label, description }: Achiev
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.container, { borderColor: palette.border, backgroundColor: palette.surface }]}> 
-      <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.premium, 0.09) }]}> 
+    <Row align="center" gap="sm" style={[styles.container, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+      <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.premium, 0.09) }]}>
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={palette.premium} />
       </View>
-      <View style={styles.copy}> 
-        <ThemedText type="defaultSemiBold" style={styles.label}> 
+      <View style={styles.copy}>
+        <ThemedText type="defaultSemiBold" style={styles.label}>
           {label}
         </ThemedText>
         {description ? (
@@ -30,15 +31,12 @@ export function AchievementBadge({ icon = 'trophy', label, description }: Achiev
           </ThemedText>
         ) : null}
       </View>
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,

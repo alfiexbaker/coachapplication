@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -80,10 +81,12 @@ export function InlineSquadSelector({
   if (error) {
     return (
       <Clickable onPress={loadSquads} style={styles.error}>
-        <Ionicons name="alert-circle" size={16} color={palette.error} />
-        <ThemedText style={{ ...Typography.small, color: palette.error }}>
-          {error}. Tap to retry.
-        </ThemedText>
+        <Row align="center" gap="xs">
+          <Ionicons name="alert-circle" size={16} color={palette.error} />
+          <ThemedText style={{ ...Typography.small, color: palette.error }}>
+            {error}. Tap to retry.
+          </ThemedText>
+        </Row>
       </Clickable>
     );
   }
@@ -93,7 +96,7 @@ export function InlineSquadSelector({
       {label && (
         <ThemedText style={styles.label}>{label}</ThemedText>
       )}
-      <View style={styles.chips}>
+      <Row wrap gap="xs">
         {squads.map((squad) => {
           const isSelected = selectedSquadIds.includes(squad.id);
           return (
@@ -108,25 +111,27 @@ export function InlineSquadSelector({
                 },
               ]}
             >
-              <Ionicons
-                name="people"
-                size={14}
-                color={isSelected ? palette.onPrimary : palette.muted}
-              />
-              <ThemedText
-                style={{ ...Typography.small, color: isSelected ? palette.onPrimary : palette.text }}
-              >
-                {squad.name}
-              </ThemedText>
-              <ThemedText
-                style={{ ...Typography.caption, color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted }}
-              >
-                ({squad.memberCount})
-              </ThemedText>
+              <Row align="center" gap="xs">
+                <Ionicons
+                  name="people"
+                  size={14}
+                  color={isSelected ? palette.onPrimary : palette.muted}
+                />
+                <ThemedText
+                  style={{ ...Typography.small, color: isSelected ? palette.onPrimary : palette.text }}
+                >
+                  {squad.name}
+                </ThemedText>
+                <ThemedText
+                  style={{ ...Typography.caption, color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted }}
+                >
+                  ({squad.memberCount})
+                </ThemedText>
+              </Row>
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -136,15 +141,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   label: { ...Typography.bodySmallSemiBold },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
@@ -154,9 +151,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   error: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.md,
   },
 });

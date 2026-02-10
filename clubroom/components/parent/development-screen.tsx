@@ -4,6 +4,7 @@
  * Hook: useParentDevelopment
  */
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -80,7 +81,7 @@ export function ParentDevelopmentScreen() {
             />
 
             {/* Tab Selector */}
-            <View style={[styles.tabContainer, { backgroundColor: palette.surface }]}>
+            <Row style={[styles.tabContainer, { backgroundColor: palette.surface }]} gap="xxs">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.key;
                 return (
@@ -92,6 +93,7 @@ export function ParentDevelopmentScreen() {
                       isActive ? [styles.tabActive, { backgroundColor: palette.tint }] : undefined,
                     ]}
                   >
+                    <Row align="center" justify="center" gap="xxs" flex>
                     <Ionicons name={tab.icon} size={16} color={isActive ? palette.onPrimary : palette.muted} />
                     <ThemedText
                       style={[
@@ -102,10 +104,11 @@ export function ParentDevelopmentScreen() {
                     >
                       {tab.label}
                     </ThemedText>
+                    </Row>
                   </Pressable>
                 );
               })}
-            </View>
+            </Row>
 
             {activeTab === 'progress' && (
               <DevProgressTab skills={skills} sessions={sessions} sortedSessions={sortedSessions} />
@@ -129,8 +132,8 @@ const styles = StyleSheet.create({
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20 },
-  tabContainer: { flexDirection: 'row', borderRadius: Radii.md, padding: Spacing.xxs, gap: Spacing.xxs },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
+  tabContainer: { borderRadius: Radii.md, padding: Spacing.xxs },
+  tab: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
   tabActive: {},
   tabLabel: { ...Typography.smallSemiBold },
   tabLabelActive: { ...Typography.bodySmallSemiBold },

@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -29,11 +30,11 @@ function SessionRegistrationsInner({ offering, registeredCount }: SessionRegistr
         offering.registrations
           .filter(r => r.status === 'confirmed')
           .map(reg => (
-            <View key={reg.id} style={[styles.registration, { borderBottomColor: palette.border }]}>
+            <Row key={reg.id} align="center" gap={12} style={[styles.registration, { borderBottomColor: palette.border }]}>
               <Ionicons name="person" size={20} color={palette.icon} />
               <ThemedText style={styles.regName}>{reg.userName}</ThemedText>
               <ThemedText style={styles.regDate}>{new Date(reg.bookedAt).toLocaleDateString()}</ThemedText>
-            </View>
+            </Row>
           ))
       )}
     </SurfaceCard>
@@ -45,7 +46,7 @@ export const SessionRegistrations = memo(SessionRegistrationsInner);
 const styles = StyleSheet.create({
   card: { marginBottom: 16, padding: 20, gap: 14 },
   emptyText: { fontSize: scaleFont(15), opacity: 0.5, fontStyle: 'italic', marginTop: 10, lineHeight: scaleFont(21) },
-  registration: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xs + Spacing.xxs, borderBottomWidth: 1 },
+  registration: { paddingVertical: Spacing.xs + Spacing.xxs, borderBottomWidth: 1 },
   regName: { flex: 1, fontWeight: '600', fontSize: scaleFont(15), lineHeight: scaleFont(21) },
   regDate: { fontSize: scaleFont(13), opacity: 0.5 },
 });

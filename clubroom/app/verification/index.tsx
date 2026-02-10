@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { VerificationBadge } from '@/components/verification/verification-badge';
 import { VerificationItemRow } from '@/components/verification/verification-item-row';
 import { Row } from '@/components/primitives/row';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVerificationHub } from '@/hooks/use-verification-hub';
@@ -21,10 +22,7 @@ export default function VerificationHubScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>Loading verification status...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
@@ -32,13 +30,7 @@ export default function VerificationHubScreen() {
   if (!status) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle" size={48} color={palette.error} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>Failed to load verification status</ThemedText>
-          <Clickable onPress={loadStatus} style={[styles.retryButton, { backgroundColor: palette.tint }]}>
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Retry</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState message="Failed to load verification status" onRetry={loadStatus} />
       </SafeAreaView>
     );
   }

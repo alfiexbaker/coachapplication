@@ -18,12 +18,13 @@ import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/pr
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { ChildProgressStats } from '@/components/development/child-progress-stats';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
 import { formatDate } from '@/constants/mock-data';
 
 export default function ChildProgressScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     loading, refreshing, child, progress, feedback, badges,
     activeTab, setActiveTab,
@@ -57,10 +58,10 @@ export default function ChildProgressScreen() {
         </Clickable>
         <View style={styles.headerCenter}>
           <ThemedText type="title" style={Typography.heading}>{child.name}</ThemedText>
-          <View style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+          <Row align="center" gap="xxs" style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
             <Ionicons name={trend.icon as keyof typeof Ionicons.glyphMap} size={12} color={trend.color} />
             <ThemedText style={[Typography.caption, { color: trend.color }]}>{trend.label}</ThemedText>
-          </View>
+          </Row>
         </View>
         <View style={{ width: 24 }} />
       </Row>
@@ -74,8 +75,10 @@ export default function ChildProgressScreen() {
               onPress={() => setActiveTab(tab.id)}
               style={[styles.tab, activeTab === tab.id ? { borderBottomColor: colors.tint, borderBottomWidth: 2 } : undefined].filter(Boolean) as ViewStyle[]}
             >
-              <Ionicons name={tab.icon as keyof typeof Ionicons.glyphMap} size={18} color={activeTab === tab.id ? colors.tint : colors.muted} />
-              <ThemedText style={[Typography.smallSemiBold, { color: activeTab === tab.id ? colors.tint : colors.muted }]}>{tab.label}</ThemedText>
+              <Row align="center" gap="xxs">
+                <Ionicons name={tab.icon as keyof typeof Ionicons.glyphMap} size={18} color={activeTab === tab.id ? colors.tint : colors.muted} />
+                <ThemedText style={[Typography.smallSemiBold, { color: activeTab === tab.id ? colors.tint : colors.muted }]}>{tab.label}</ThemedText>
+              </Row>
             </Clickable>
           ))}
         </ScrollView>
@@ -180,10 +183,10 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   backButton: { padding: Spacing.xs },
   headerCenter: { alignItems: 'center', gap: Spacing.xxs },
-  trendBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  trendBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   tabBar: { borderBottomWidth: 1 },
-  tabContent: { flexDirection: 'row', paddingHorizontal: Spacing.md, gap: Spacing.sm },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, marginBottom: -1 },
+  tabContent: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
+  tab: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, marginBottom: -1 },
   content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
   tabSection: { gap: Spacing.sm },
   sectionHeader: { gap: Spacing.xxs, marginBottom: Spacing.sm },

@@ -50,7 +50,7 @@ export const VideoInfoSection = memo(function VideoInfoSection({ video, colors }
         {video.tags.map((tag) => (
           <Chip key={tag} dense selected={false}>{tag}</Chip>
         ))}
-        <View style={[styles.visibilityBadge, { backgroundColor: withAlpha(visibilityColor, 0.09) }]}>
+        <Row align="center" gap="xxs" style={[styles.visibilityBadge, { backgroundColor: withAlpha(visibilityColor, 0.09) }]}>
           <Ionicons
             name={video.visibility === 'PRIVATE' ? 'lock-closed' : video.visibility === 'SHARED' ? 'people' : 'globe'}
             size={12}
@@ -59,7 +59,7 @@ export const VideoInfoSection = memo(function VideoInfoSection({ video, colors }
           <ThemedText style={[styles.visibilityText, { color: visibilityColor }]}>
             {video.visibility}
           </ThemedText>
-        </View>
+        </Row>
       </Row>
 
       {video.description && (
@@ -79,9 +79,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   visibilityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,

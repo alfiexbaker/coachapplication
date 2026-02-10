@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ export const StatsRow = memo(function StatsRow({ sessionsCount, attendanceRate }
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.statsRow}>
+    <Row style={styles.statsRow}>
       <View style={[styles.statBox, { backgroundColor: palette.surfaceSecondary }]}>
         <ThemedText style={[styles.statValue, { color: palette.foreground }]}>{sessionsCount}</ThemedText>
         <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sessions</ThemedText>
@@ -47,7 +48,7 @@ export const StatsRow = memo(function StatsRow({ sessionsCount, attendanceRate }
         <ThemedText style={[styles.statValue, { color: palette.foreground }]}>{attendanceRate}%</ThemedText>
         <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Attendance</ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -66,9 +67,9 @@ export const SkillsSection = memo(function SkillsSection({ skillImprovements }: 
     <View style={styles.section}>
       <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>Key Progress</ThemedText>
       {skillImprovements.map((item) => (
-        <View key={item.skill} style={styles.skillRow}>
+        <Row key={item.skill} style={styles.skillRow}>
           <ThemedText style={[styles.skillName, { color: palette.foreground }]}>{item.skill}</ThemedText>
-          <View style={styles.changeIndicator}>
+          <Row style={styles.changeIndicator}>
             <Ionicons
               name={item.change >= 0 ? 'arrow-up' : 'arrow-down'}
               size={Components.icon.sm}
@@ -77,8 +78,8 @@ export const SkillsSection = memo(function SkillsSection({ skillImprovements }: 
             <ThemedText style={[styles.changeText, { color: item.change >= 0 ? palette.success : palette.error }]}>
               {Math.abs(item.change)}%
             </ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       ))}
     </View>
   );
@@ -98,18 +99,18 @@ export const BadgesSection = memo(function BadgesSection({ badgesEarned }: Badge
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>Badges Earned</ThemedText>
-      <View style={styles.badgeList}>
+      <Row style={styles.badgeList}>
         {badgesEarned.map((badge) => (
-          <View key={badge.id} style={[styles.badgeChip, { backgroundColor: palette.surfaceSecondary }]}>
+          <Row key={badge.id} style={[styles.badgeChip, { backgroundColor: palette.surfaceSecondary }]}>
             <Ionicons
               name={(badge.icon as keyof typeof Ionicons.glyphMap) || 'ribbon'}
               size={Components.icon.sm}
               color={palette.warning}
             />
             <ThemedText style={[styles.badgeText, { color: palette.foreground }]}>{badge.name}</ThemedText>
-          </View>
+          </Row>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -130,12 +131,12 @@ export const GoalsSection = memo(function GoalsSection({ goals }: GoalsSectionPr
       <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>Goals Progress</ThemedText>
       {goals.map((goal) => (
         <View key={goal.id} style={styles.goalRow}>
-          <View style={styles.goalHeader}>
+          <Row style={styles.goalHeader}>
             <ThemedText style={[styles.goalTitle, { color: palette.foreground }]} numberOfLines={1}>
               {goal.title}
             </ThemedText>
             <ThemedText style={[styles.goalPercent, { color: palette.muted }]}>{goal.percent}%</ThemedText>
-          </View>
+          </Row>
           <View style={[styles.progressTrack, { backgroundColor: palette.surfaceSecondary }]}>
             <View style={[styles.progressFill, { backgroundColor: palette.success, width: `${Math.min(goal.percent, 100)}%` }]} />
           </View>
@@ -167,21 +168,21 @@ export const CoachNoteSection = memo(function CoachNoteSection({ coachNote }: Co
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  statsRow: { flexDirection: 'row', gap: Spacing.sm },
+  statsRow: { gap: Spacing.sm },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs / 2 },
   statValue: { ...Typography.title },
   statLabel: { ...Typography.caption },
   section: { gap: Spacing.xs },
   sectionTitle: { ...Typography.subheading },
-  skillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.xs / 2 },
+  skillRow: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.xs / 2 },
   skillName: { ...Typography.body },
-  changeIndicator: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  changeIndicator: { alignItems: 'center', gap: Spacing.xs / 2 },
   changeText: { ...Typography.bodySemiBold },
-  badgeList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  badgeChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill, gap: Spacing.xs / 2 },
+  badgeList: { flexWrap: 'wrap', gap: Spacing.xs },
+  badgeChip: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill, gap: Spacing.xs / 2 },
   badgeText: { ...Typography.small },
   goalRow: { gap: Spacing.xs / 2 },
-  goalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  goalHeader: { justifyContent: 'space-between', alignItems: 'center' },
   goalTitle: { ...Typography.body, flex: 1 },
   goalPercent: { ...Typography.caption },
   progressTrack: { height: 6, borderRadius: Radii.xs, overflow: 'hidden' },

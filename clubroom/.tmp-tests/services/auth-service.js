@@ -4,16 +4,14 @@
  *
  * Handles user authentication, registration, and session management.
  * Supports both mock (demo) and real API modes via USE_MOCK toggle.
- * Currently uses AsyncStorage for client-side persistence.
- * Ready for API integration.
+ * Uses apiClient for client-side persistence (never imports AsyncStorage directly).
+ * All methods return Result<T, ServiceError> for standardized error handling.
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authService = void 0;
-const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+const api_client_1 = require("./api-client");
 const logger_1 = require("@/utils/logger");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('AuthService');
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false'; // defaults to true
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
@@ -32,15 +30,15 @@ let currentUser = null;
 // UTILITY FUNCTIONS
 // ============================================================================
 function generateId() {
-    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `user_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 function generateToken() {
-    return `token_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+    return `token_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`;
 }
 function generateMockTokens() {
     return {
-        accessToken: `mock_access_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`,
-        refreshToken: `mock_refresh_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`,
+        accessToken: `mock_access_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`,
+        refreshToken: `mock_refresh_${Date.now()}_${Math.random().toString(36).substring(2, 18)}`,
         expiresAt: Date.now() + 3600 * 1000,
     };
 }
@@ -48,19 +46,31 @@ function generateMockTokens() {
 // API FETCH HELPER (for real API mode)
 // ============================================================================
 async function apiFetch(path, options) {
-    const url = `${API_URL}${path}`;
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options?.headers,
-        },
-    });
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.message || `API error: ${response.status}`);
+    try {
+        const url = `${API_URL}${path}`;
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers,
+            },
+        });
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            const message = errorBody.message;
+            const errorMessage = typeof message === 'string' ? message : `API error: ${response.status}`;
+            if (response.status === 401) {
+                return (0, result_1.err)((0, result_1.unauthorized)(errorMessage));
+            }
+            return (0, result_1.err)((0, result_1.networkError)(errorMessage));
+        }
+        const data = await response.json();
+        return (0, result_1.ok)(data);
     }
-    return response.json();
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Network request failed';
+        return (0, result_1.err)((0, result_1.networkError)(message));
+    }
 }
 // ============================================================================
 // SERVICE METHODS
@@ -71,49 +81,43 @@ exports.authService = {
         if (USE_MOCK) {
             return this._mockLogin(email, password);
         }
-        try {
-            const result = await apiFetch('/api/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({ email, password }),
-            });
-            await this.storeTokens(result.tokens);
-            await async_storage_1.default.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
-            currentUser = result.user;
-            logger.success('Login successful', { userId: result.user.id });
-            return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
+        const result = await apiFetch('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+        });
+        if (!result.success) {
+            logger.warn('Login failed', { email, error: result.error.message });
+            return result;
         }
-        catch (error) {
-            const message = error instanceof Error ? error.message : 'Invalid email or password';
-            logger.warn('Login failed', { email, error: message });
-            return { success: false, error: message };
-        }
+        await this.storeTokens(result.data.tokens);
+        await api_client_1.apiClient.set(STORAGE_KEYS.USER, result.data.user);
+        currentUser = result.data.user;
+        logger.success('Login successful', { userId: result.data.user.id });
+        return (0, result_1.ok)({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
     },
     async register(input) {
         logger.info('Registration attempt', { email: input.email, accountType: input.accountType });
         if (USE_MOCK) {
             return this._mockRegister(input);
         }
-        try {
-            const result = await apiFetch('/api/auth/register', {
-                method: 'POST',
-                body: JSON.stringify(input),
-            });
-            await this.storeTokens(result.tokens);
-            await async_storage_1.default.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
-            currentUser = result.user;
-            logger.success('Registration successful', { userId: result.user.id });
-            return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
+        const result = await apiFetch('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        });
+        if (!result.success) {
+            logger.warn('Registration failed', { email: input.email, error: result.error.message });
+            return result;
         }
-        catch (error) {
-            const message = error instanceof Error ? error.message : 'Registration failed';
-            logger.warn('Registration failed', { email: input.email, error: message });
-            return { success: false, error: message };
-        }
+        await this.storeTokens(result.data.tokens);
+        await api_client_1.apiClient.set(STORAGE_KEYS.USER, result.data.user);
+        currentUser = result.data.user;
+        logger.success('Registration successful', { userId: result.data.user.id });
+        return (0, result_1.ok)({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
     },
     async storeTokens(tokens) {
         try {
-            await async_storage_1.default.setItem(STORAGE_KEYS.TOKENS, JSON.stringify(tokens));
-            await async_storage_1.default.setItem(STORAGE_KEYS.TOKEN, tokens.accessToken);
+            await api_client_1.apiClient.set(STORAGE_KEYS.TOKENS, tokens);
+            await api_client_1.apiClient.set(STORAGE_KEYS.TOKEN, tokens.accessToken);
         }
         catch (error) {
             logger.error('Failed to store tokens', error);
@@ -121,10 +125,8 @@ exports.authService = {
     },
     async getTokens() {
         try {
-            const stored = await async_storage_1.default.getItem(STORAGE_KEYS.TOKENS);
-            if (stored) {
-                return JSON.parse(stored);
-            }
+            const stored = await api_client_1.apiClient.get(STORAGE_KEYS.TOKENS, null);
+            return stored;
         }
         catch (error) {
             logger.error('Failed to get tokens', error);
@@ -147,9 +149,12 @@ exports.authService = {
             method: 'POST',
             body: JSON.stringify({ refreshToken: currentTokens.refreshToken }),
         });
-        await this.storeTokens(result.tokens);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        await this.storeTokens(result.data.tokens);
         logger.success('Token refreshed');
-        return result.tokens;
+        return result.data.tokens;
     },
     async logout() {
         logger.info('Logout');
@@ -167,26 +172,25 @@ exports.authService = {
                 logger.warn('Server logout failed, continuing local cleanup', error);
             }
         }
-        await async_storage_1.default.removeItem(STORAGE_KEYS.USER);
-        await async_storage_1.default.removeItem(STORAGE_KEYS.TOKEN);
-        await async_storage_1.default.removeItem(STORAGE_KEYS.TOKENS);
+        await api_client_1.apiClient.remove(STORAGE_KEYS.USER);
+        await api_client_1.apiClient.remove(STORAGE_KEYS.TOKEN);
+        await api_client_1.apiClient.remove(STORAGE_KEYS.TOKENS);
         currentUser = null;
     },
     async checkAuth() {
         logger.info('Checking auth state');
         try {
             const tokens = await this.getTokens();
-            const storedUser = await async_storage_1.default.getItem(STORAGE_KEYS.USER);
+            const storedUser = await api_client_1.apiClient.get(STORAGE_KEYS.USER, null);
             if (!tokens || !storedUser) {
                 return { isAuthenticated: false, user: null, tokens: null };
             }
-            const user = JSON.parse(storedUser);
             if (tokens.expiresAt < Date.now()) {
                 logger.info('Token expired, attempting refresh');
                 try {
                     const newTokens = await this.refreshToken();
-                    currentUser = user;
-                    return { isAuthenticated: true, user, tokens: newTokens };
+                    currentUser = storedUser;
+                    return { isAuthenticated: true, user: storedUser, tokens: newTokens };
                 }
                 catch {
                     logger.warn('Token refresh failed during auth check');
@@ -194,9 +198,9 @@ exports.authService = {
                     return { isAuthenticated: false, user: null, tokens: null };
                 }
             }
-            currentUser = user;
-            logger.success('Auth state restored', { userId: user.id });
-            return { isAuthenticated: true, user, tokens };
+            currentUser = storedUser;
+            logger.success('Auth state restored', { userId: storedUser.id });
+            return { isAuthenticated: true, user: storedUser, tokens };
         }
         catch (error) {
             logger.error('Auth check failed', error);
@@ -223,10 +227,14 @@ exports.authService = {
             logger.info('Password reset would be processed');
             return;
         }
-        await apiFetch('/api/auth/reset-password', {
+        const result = await apiFetch('/api/auth/reset-password', {
             method: 'POST',
             body: JSON.stringify({ token, newPassword }),
         });
+        if (!result.success) {
+            logger.warn('Password reset failed', { error: result.error.message });
+            return;
+        }
         logger.success('Password reset successful');
     },
     // ============================================================================
@@ -236,9 +244,9 @@ exports.authService = {
         if (currentUser)
             return currentUser;
         try {
-            const stored = await async_storage_1.default.getItem(STORAGE_KEYS.USER);
+            const stored = await api_client_1.apiClient.get(STORAGE_KEYS.USER, null);
             if (stored) {
-                currentUser = JSON.parse(stored);
+                currentUser = stored;
                 return currentUser;
             }
         }
@@ -249,12 +257,12 @@ exports.authService = {
     },
     async updateProfile(updates) {
         if (!currentUser) {
-            return { success: false, error: 'Not authenticated' };
+            return (0, result_1.err)((0, result_1.unauthorized)('Not authenticated'));
         }
         if (USE_MOCK) {
             const userIndex = usersCache.findIndex(u => u.id === currentUser.id);
             if (userIndex === -1) {
-                return { success: false, error: 'User not found' };
+                return (0, result_1.err)({ code: 'NOT_FOUND', message: 'User not found' });
             }
             const updatedUser = {
                 ...usersCache[userIndex],
@@ -263,25 +271,23 @@ exports.authService = {
             };
             usersCache[userIndex] = updatedUser;
             const { password, ...userWithoutPassword } = updatedUser;
-            await async_storage_1.default.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+            await api_client_1.apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
             currentUser = userWithoutPassword;
             logger.info('Profile updated', { userId: currentUser.id });
-            return { success: true, user: userWithoutPassword };
+            return (0, result_1.ok)({ user: userWithoutPassword });
         }
-        try {
-            const tokens = await this.getTokens();
-            const result = await apiFetch('/api/users/me', {
-                method: 'PATCH',
-                headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
-                body: JSON.stringify(updates),
-            });
-            await async_storage_1.default.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
-            currentUser = result.user;
-            return { success: true, user: result.user };
+        const tokens = await this.getTokens();
+        const result = await apiFetch('/api/users/me', {
+            method: 'PATCH',
+            headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
+            body: JSON.stringify(updates),
+        });
+        if (!result.success) {
+            return result;
         }
-        catch (error) {
-            return { success: false, error: error instanceof Error ? error.message : 'Profile update failed' };
-        }
+        await api_client_1.apiClient.set(STORAGE_KEYS.USER, result.data.user);
+        currentUser = result.data.user;
+        return (0, result_1.ok)({ user: result.data.user });
     },
     async completeOnboarding(data) {
         logger.info('Completing onboarding', { accountType: data.accountType });
@@ -315,13 +321,13 @@ exports.authService = {
             hourlyRate: data.hourlyRate,
             onboardingComplete: true,
         });
-        await async_storage_1.default.setItem(STORAGE_KEYS.ONBOARDING_COMPLETE, 'true');
+        await api_client_1.apiClient.set(STORAGE_KEYS.ONBOARDING_COMPLETE, true);
         logger.success('Onboarding complete', { userId: currentUser?.id });
         return updateResult;
     },
     async isOnboardingComplete() {
-        const complete = await async_storage_1.default.getItem(STORAGE_KEYS.ONBOARDING_COMPLETE);
-        return complete === 'true';
+        const complete = await api_client_1.apiClient.get(STORAGE_KEYS.ONBOARDING_COMPLETE, false);
+        return complete === true;
     },
     async requestPasswordReset(email) {
         try {
@@ -334,39 +340,32 @@ exports.authService = {
     },
     async verifyEmail(code) {
         if (!currentUser) {
-            return { success: false, error: 'Not authenticated' };
+            return (0, result_1.err)((0, result_1.unauthorized)('Not authenticated'));
         }
         if (USE_MOCK) {
             if (code.length !== 6) {
-                return { success: false, error: 'Invalid verification code' };
+                return (0, result_1.err)({ code: 'VALIDATION', message: 'Invalid verification code' });
             }
             return this.updateProfile({ isVerified: true });
         }
-        try {
-            const tokens = await this.getTokens();
-            await apiFetch('/api/auth/verify-email', {
-                method: 'POST',
-                headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
-                body: JSON.stringify({ code }),
-            });
-            return this.updateProfile({ isVerified: true });
+        const tokens = await this.getTokens();
+        const fetchResult = await apiFetch('/api/auth/verify-email', {
+            method: 'POST',
+            headers: tokens ? { Authorization: `Bearer ${tokens.accessToken}` } : {},
+            body: JSON.stringify({ code }),
+        });
+        if (!fetchResult.success) {
+            return (0, result_1.err)(fetchResult.error);
         }
-        catch (error) {
-            return { success: false, error: error instanceof Error ? error.message : 'Email verification failed' };
-        }
+        return this.updateProfile({ isVerified: true });
     },
     async checkEmailAvailable(email) {
         if (USE_MOCK) {
             const existing = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase());
             return !existing;
         }
-        try {
-            const result = await apiFetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
-            return result.available;
-        }
-        catch {
-            return true;
-        }
+        const result = await apiFetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+        return result.success ? result.data.available : true;
     },
     // ============================================================================
     // MOCK IMPLEMENTATIONS (internal)
@@ -375,22 +374,22 @@ exports.authService = {
         const user = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
         if (!user) {
             logger.warn('Login failed: Invalid credentials', { email });
-            return { success: false, error: 'Invalid email or password' };
+            return (0, result_1.err)((0, result_1.unauthorized)('Invalid email or password'));
         }
         const tokens = generateMockTokens();
         const legacyToken = generateToken();
         const { password: _, ...userWithoutPassword } = user;
-        await async_storage_1.default.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+        await api_client_1.apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
         await this.storeTokens(tokens);
         currentUser = userWithoutPassword;
         logger.success('Login successful', { userId: user.id });
-        return { success: true, user: userWithoutPassword, tokens, token: legacyToken };
+        return (0, result_1.ok)({ user: userWithoutPassword, tokens, token: legacyToken });
     },
     async _mockRegister(input) {
         const existing = usersCache.find(u => u.email.toLowerCase() === input.email.toLowerCase());
         if (existing) {
             logger.warn('Registration failed: Email exists', { email: input.email });
-            return { success: false, error: 'An account with this email already exists' };
+            return (0, result_1.err)({ code: 'CONFLICT', message: 'An account with this email already exists' });
         }
         const now = new Date().toISOString();
         const userId = generateId();
@@ -418,10 +417,10 @@ exports.authService = {
         const tokens = generateMockTokens();
         const legacyToken = generateToken();
         const { password: _, ...userWithoutPassword } = newUser;
-        await async_storage_1.default.setItem(STORAGE_KEYS.USER, JSON.stringify(userWithoutPassword));
+        await api_client_1.apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
         await this.storeTokens(tokens);
         currentUser = userWithoutPassword;
         logger.success('Registration successful', { userId, accountType: input.accountType });
-        return { success: true, user: userWithoutPassword, tokens, token: legacyToken };
+        return (0, result_1.ok)({ user: userWithoutPassword, tokens, token: legacyToken });
     },
 };

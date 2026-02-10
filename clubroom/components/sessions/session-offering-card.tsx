@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -40,10 +41,10 @@ export function SessionOfferingCard({ offering, onPress, showCoach = false, show
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       <View style={styles.header}>
-        <View style={styles.titleRow}>
+        <Row wrap align="center" gap={10}>
           <ThemedText type="defaultSemiBold" style={styles.title}>{offering.title}</ThemedText>
           <SessionTypeBadge sessionType={offering.sessionType} palette={palette} />
-        </View>
+        </Row>
         {showCoach && <ThemedText style={styles.coachName}>with {offering.coachName}</ThemedText>}
       </View>
 
@@ -51,25 +52,25 @@ export function SessionOfferingCard({ offering, onPress, showCoach = false, show
         <ThemedText style={styles.description} numberOfLines={2}>{offering.description}</ThemedText>
       )}
 
-      <View style={styles.detailsRow}>
-        <View style={styles.detailItem}>
+      <Row align="center" gap={14} style={styles.detailsRow}>
+        <Row align="center" gap={8} flex>
           <Ionicons name="calendar-outline" size={16} color={palette.icon} />
           <ThemedText style={styles.detailText}>{formatSchedule()}</ThemedText>
-        </View>
-      </View>
-      <View style={styles.detailsRow}>
-        <View style={styles.detailItem}>
+        </Row>
+      </Row>
+      <Row align="center" gap={14} style={styles.detailsRow}>
+        <Row align="center" gap={8} flex>
           <Ionicons name="location-outline" size={16} color={palette.icon} />
           <ThemedText style={styles.detailText}>{offering.location}</ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
       {offering.footballSkill && (
-        <View style={styles.detailsRow}>
-          <View style={styles.detailItem}>
+        <Row align="center" gap={14} style={styles.detailsRow}>
+          <Row align="center" gap={8} flex>
             <Ionicons name="football-outline" size={16} color={palette.icon} />
             <ThemedText style={styles.detailText}>Focus: {offering.footballSkill}</ThemedText>
-          </View>
-        </View>
+          </Row>
+        </Row>
       )}
 
       <SessionFooterBadges
@@ -98,12 +99,10 @@ export function SessionOfferingCard({ offering, onPress, showCoach = false, show
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.lg, gap: Spacing.sm },
   header: { gap: 10 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   title: { flex: 1, fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4, lineHeight: scaleFont(25) },
   coachName: { fontSize: scaleFont(15), opacity: 0.6, fontWeight: '500', lineHeight: scaleFont(21), marginTop: Spacing.micro },
   description: { fontSize: scaleFont(15), opacity: 0.7, lineHeight: scaleFont(22), marginTop: Spacing.xxs },
-  detailsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: Spacing.xxs },
-  detailItem: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  detailsRow: { marginTop: Spacing.xxs },
   detailText: { fontSize: scaleFont(14), flex: 1, opacity: 0.8, lineHeight: scaleFont(20) },
   fullOverlay: {
     position: 'absolute',

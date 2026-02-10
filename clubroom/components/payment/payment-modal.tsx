@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
@@ -85,7 +86,7 @@ export function PaymentModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable
             onPress={handleClose}
             disabled={processing}
@@ -97,7 +98,7 @@ export function PaymentModal({
           </Clickable>
           <ThemedText type="subtitle">Payment</ThemedText>
           <View style={styles.closeBtn} />
-        </View>
+        </Row>
 
         {paymentStep === 'processing' ? (
           <PaymentProcessingView palette={palette} />
@@ -156,9 +157,6 @@ export function PaymentModal({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Components.modal.padding,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,

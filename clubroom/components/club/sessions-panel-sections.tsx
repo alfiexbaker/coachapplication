@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -38,25 +39,25 @@ export const TrainingSessionRow = memo(function TrainingSessionRow({
         <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
           {session.title}
         </ThemedText>
-        <View style={styles.trainingMeta}>
+        <Row style={styles.trainingMeta}>
           {session.isRecurring && (
-            <View style={[styles.recurringBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <Row style={[styles.recurringBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="repeat" size={10} color={palette.tint} />
               <ThemedText style={{ ...Typography.micro, color: palette.tint }}>
                 {dayName}s
               </ThemedText>
-            </View>
+            </Row>
           )}
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {nextDate ? `${nextDate.startTime} - ${nextDate.endTime}` : ''}
           </ThemedText>
-        </View>
-        <View style={styles.trainingLocation}>
+        </Row>
+        <Row style={styles.trainingLocation}>
           <Ionicons name="location-outline" size={12} color={palette.muted} />
           <ThemedText style={{ ...Typography.caption, color: palette.muted }} numberOfLines={1}>
             {session.location}
           </ThemedText>
-        </View>
+        </Row>
       </View>
       <View style={styles.trainingItemRight}>
         {session.squadName && (
@@ -115,7 +116,6 @@ export const EmptyTrainingState = memo(function EmptyTrainingState({
 
 const styles = StyleSheet.create({
   trainingItem: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingVertical: Spacing.sm,
@@ -126,12 +126,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   trainingMeta: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   recurringBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xxs,
@@ -139,7 +137,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   trainingLocation: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

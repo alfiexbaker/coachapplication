@@ -11,6 +11,7 @@ import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { BulkMessageCompose } from './bulk-message-compose';
 import { BulkMessageSent } from './bulk-message-sent';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,16 +80,16 @@ export function BulkMessage({
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Preview</ThemedText>
 
       <SurfaceCard style={styles.previewCard}>
-        <View style={styles.previewHeader}>
+        <Row style={styles.previewHeader}>
           <Ionicons name="people" size={Components.icon.md} color={palette.tint} />
           <ThemedText style={[styles.previewRecipient, { color: palette.text }]}>
             To: {selectedSquadName}
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.previewBody, { color: palette.text }]}>{messageText}</ThemedText>
       </SurfaceCard>
 
-      <View style={styles.previewActions}>
+      <Row style={styles.previewActions}>
         <Clickable
           onPress={() => setScreen('compose')}
           accessibilityRole="button"
@@ -118,7 +119,6 @@ export function BulkMessage({
             backgroundColor: palette.tint,
             alignItems: 'center',
             justifyContent: 'center',
-            flexDirection: 'row',
             gap: Spacing.xs,
           }}
         >
@@ -127,7 +127,7 @@ export function BulkMessage({
             {isSending ? 'Sending...' : 'Send Now'}
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </ScrollView>
   );
 
@@ -180,7 +180,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   previewHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -191,7 +190,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   previewActions: {
-    flexDirection: 'row',
     gap: Spacing.xs,
     marginTop: Spacing.sm,
   },

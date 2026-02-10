@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Components, Radii, Spacing, Typography } from '@/constants/theme';
@@ -92,7 +93,7 @@ export function ParentWelcome({
 
       {/* Bottom controls */}
       <View style={[styles.bottomBar, { borderTopColor: palette.border }]}>
-        <View style={styles.dotsRow}>
+        <Row justify="center" align="center" gap="xs">
           {Array.from({ length: TOTAL_SCREENS }).map((_, i) => (
             <View
               key={i}
@@ -105,9 +106,9 @@ export function ParentWelcome({
               ]}
             />
           ))}
-        </View>
+        </Row>
 
-        <View style={styles.buttonsRow}>
+        <Row align="center" justify="space-between">
           {onSkip && currentPage < TOTAL_SCREENS - 1 ? (
             <Clickable onPress={onSkip} style={styles.skipButton}>
               <ThemedText style={[Typography.bodySemiBold, { color: palette.muted }]}>
@@ -129,7 +130,7 @@ export function ParentWelcome({
               <Ionicons name="arrow-forward" size={Components.icon.md} color={palette.onPrimary} />
             )}
           </Clickable>
-        </View>
+        </Row>
       </View>
     </View>
   );
@@ -148,19 +149,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.xs,
+    // layout moved to Row
   },
   dot: {
     height: Spacing.xs,
     borderRadius: Radii.pill,
   },
   buttonsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    // layout moved to Row
   },
   skipButton: {
     paddingVertical: Spacing.xs,

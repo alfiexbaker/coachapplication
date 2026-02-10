@@ -21,6 +21,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { toDateStr } from '@/utils/format';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AvailabilitySlot } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ export const WeekNavigator = memo(function WeekNavigator({
   palette,
 }: WeekNavigatorProps) {
   return (
-    <View style={styles.weekNav}>
+    <Row style={styles.weekNav}>
       <Clickable
         accessibilityLabel="Go back"
         onPress={onPrev}
@@ -103,7 +104,7 @@ export const WeekNavigator = memo(function WeekNavigator({
       >
         <Ionicons name="chevron-forward" size={20} color={palette.text} />
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -119,12 +120,12 @@ export const SelectionCounter = memo(function SelectionCounter({
   palette,
 }: SelectionCounterProps) {
   return (
-    <View style={[styles.counterRow, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+    <Row style={[styles.counterRow, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
       <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
       <ThemedText style={[styles.counterText, { color: palette.tint }]}>
         {count} of {MAX_SELECTIONS} slots selected
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -196,12 +197,12 @@ export const SlotChip = memo(function SlotChip({
           {formatSlotTime(slot.startTime)} – {formatSlotTime(slot.endTime)}
         </ThemedText>
         {slot.location && (
-          <View style={styles.slotLocationRow}>
+          <Row style={styles.slotLocationRow}>
             <Ionicons name="location-outline" size={12} color={palette.tint} />
             <ThemedText style={[styles.slotLocation, { color: palette.tint }]} numberOfLines={1}>
               {slot.location}
             </ThemedText>
-          </View>
+          </Row>
         )}
       </View>
       {isSelected && (
@@ -247,7 +248,7 @@ export const DayRow = memo(function DayRow({
         <ThemedText type="defaultSemiBold" style={styles.dayDate}>{date}</ThemedText>
       </View>
 
-      <View style={styles.slotsRow}>
+      <Row style={styles.slotsRow}>
         {slots.length === 0 ? (
           <ThemedText style={[styles.noSlots, { color: palette.muted }]}>—</ThemedText>
         ) : (
@@ -262,7 +263,7 @@ export const DayRow = memo(function DayRow({
             />
           ))
         )}
-      </View>
+      </Row>
     </Animated.View>
   );
 });
@@ -271,7 +272,6 @@ export const DayRow = memo(function DayRow({
 
 const styles = StyleSheet.create({
   weekNav: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xs,
@@ -280,7 +280,6 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   counterRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
@@ -300,7 +299,6 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   dayColumn: {
-    flexDirection: 'row',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     gap: Spacing.md,
@@ -320,7 +318,6 @@ const styles = StyleSheet.create({
   },
   slotsRow: {
     flex: 1,
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
     alignItems: 'center',
@@ -330,7 +327,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   slotChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -343,7 +339,6 @@ const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   slotLocationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
   },

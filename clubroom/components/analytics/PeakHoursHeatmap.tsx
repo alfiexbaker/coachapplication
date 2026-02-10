@@ -20,6 +20,7 @@ import {
   formatHour, getIntensityColor,
   HeatmapSummary, HeatmapLegend,
 } from './peak-hours-heatmap-sections';
+import { Row } from '@/components/primitives';
 
 export interface PeakHoursHeatmapProps {
   data: PeakHoursData[];
@@ -57,10 +58,10 @@ export function PeakHoursHeatmap({
       tactile={!!onPress}
     >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
+        <Row style={styles.titleRow}>
           <Ionicons name="time" size={20} color={palette.tint} />
           <ThemedText style={styles.title}>{title}</ThemedText>
-        </View>
+        </Row>
         {subtitle && (
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             {subtitle}
@@ -74,7 +75,7 @@ export function PeakHoursHeatmap({
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.gridContainer}>
           {/* Header row with hour labels */}
-          <View style={styles.headerRow}>
+          <Row style={styles.headerRow}>
             <View style={styles.cornerCell} />
             {hours.map((hour) => (
               <View key={hour} style={styles.hourLabel}>
@@ -83,11 +84,11 @@ export function PeakHoursHeatmap({
                 </ThemedText>
               </View>
             ))}
-          </View>
+          </Row>
 
           {/* Day rows */}
           {DAY_LABELS.map((dayLabel, dayIndex) => (
-            <View key={dayLabel} style={styles.dayRow}>
+            <Row key={dayLabel} style={styles.dayRow}>
               <View style={styles.dayLabel}>
                 <ThemedText style={[styles.dayText, { color: palette.muted }]}>
                   {dayLabel}
@@ -118,7 +119,7 @@ export function PeakHoursHeatmap({
                   </View>
                 );
               })}
-            </View>
+            </Row>
           ))}
         </View>
       </ScrollView>
@@ -136,7 +137,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   titleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -146,7 +146,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     marginBottom: Spacing.xxs,
   },
   cornerCell: {
@@ -160,7 +159,6 @@ const styles = StyleSheet.create({
   },
   hourText: { ...Typography.micro },
   dayRow: {
-    flexDirection: 'row',
     marginVertical: Spacing.micro,
   },
   dayLabel: {

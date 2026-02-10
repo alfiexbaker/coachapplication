@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CreateOfferFormState } from '@/hooks/use-carpool';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 interface CarpoolCreateModalProps {
   visible: boolean;
@@ -29,10 +30,10 @@ export const CarpoolCreateModal = memo(function CarpoolCreateModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <ThemedText type="title" style={styles.title}>Offer a Ride</ThemedText>
           <Clickable accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={24} color={palette.text} /></Clickable>
-        </View>
+        </Row>
         <KeyboardAvoidingView style={styles.body} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
             <View style={styles.field}>
@@ -74,10 +75,10 @@ export const CarpoolCreateModal = memo(function CarpoolCreateModal({
               <TextInput style={[styles.textArea, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]} placeholder="Any additional info for parents..." placeholderTextColor={palette.muted} value={form.notes} onChangeText={(v) => onChangeForm({ ...form, notes: v })} multiline numberOfLines={3} textAlignVertical="top" />
             </View>
           </ScrollView>
-          <View style={[styles.actions, { borderTopColor: palette.border }]}>
+          <Row style={[styles.actions, { borderTopColor: palette.border }]}>
             <Button variant="outline" onPress={onClose} style={styles.actionBtn} disabled={creating}>Cancel</Button>
             <Button onPress={onSubmit} style={styles.actionBtn} disabled={creating}>{creating ? 'Creating...' : 'Create Offer'}</Button>
-          </View>
+          </Row>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -86,7 +87,7 @@ export const CarpoolCreateModal = memo(function CarpoolCreateModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   title: { ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
   body: { flex: 1 },
   formContent: { padding: Spacing.lg, gap: Spacing.md },
@@ -94,8 +95,8 @@ const styles = StyleSheet.create({
   label: { ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize), marginBottom: Spacing.xxs },
   input: { height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   textArea: { minHeight: 80, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  toggleRow: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   toggleLabel: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
-  actions: { flexDirection: 'row', padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },
+  actions: { padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },
   actionBtn: { flex: 1 },
 });

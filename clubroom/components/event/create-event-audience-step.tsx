@@ -12,6 +12,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { EventTargetAudience, ClubSquad } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -100,10 +101,10 @@ function CreateEventAudienceStepInner({
 
       {targetAudience === 'SQUADS' && (
         <SurfaceCard style={styles.selectorCard}>
-          <View style={styles.selectorHeader}>
+          <Row style={styles.selectorHeader}>
             <Ionicons name="people" size={20} color={palette.tint} />
             <ThemedText type="defaultSemiBold">Select Squads</ThemedText>
-          </View>
+          </Row>
           <InlineSquadSelector
             clubId={clubId}
             selectedSquadIds={selectedSquadIds}
@@ -111,12 +112,12 @@ function CreateEventAudienceStepInner({
             multiSelect
           />
           {selectedSquadIds.length > 0 && (
-            <View style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+            <Row style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
               <ThemedText style={{ color: palette.tint, ...Typography.small }}>
                 {selectedSquadIds.length} squad{selectedSquadIds.length !== 1 ? 's' : ''} selected ({totalInviteCount} athletes)
               </ThemedText>
-            </View>
+            </Row>
           )}
         </SurfaceCard>
       )}
@@ -174,19 +175,19 @@ const styles = StyleSheet.create({
   stepContent: { gap: Spacing.lg },
   stepTitle: { textAlign: 'center' },
   audienceGrid: { gap: Spacing.sm },
-  audienceCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.md },
+  audienceCard: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.md },
   audienceRadio: { alignItems: 'center', justifyContent: 'center' },
   radioOuter: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 12, height: 12, borderRadius: Radii.sm },
   audienceInfo: { flex: 1 },
   audienceDesc: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), marginTop: Spacing.micro },
   selectorCard: { gap: Spacing.md },
-  selectorHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  selectionSummary: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
+  selectorHeader: { alignItems: 'center', gap: Spacing.sm },
+  selectionSummary: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
   inputGroup: { gap: Spacing.xs },
   inputLabel: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md },
+  toggleRow: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md },
   toggleInfo: { flex: 1 },
   toggleDesc: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), marginTop: Spacing.micro },
   toggleSwitch: { width: 48, height: 28, borderRadius: Radii.lg, justifyContent: 'center' },

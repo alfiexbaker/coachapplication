@@ -8,6 +8,7 @@ import { memo } from 'react';
 import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -45,25 +46,24 @@ export const CompactBulkInviteButton = memo(function CompactBulkInviteButton({
         },
       ]}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={palette.onPrimary} />
-      ) : (
-        <>
-          <Ionicons name="paper-plane" size={16} color={palette.onPrimary} />
-          <ThemedText style={[styles.compactButtonText, { color: palette.onPrimary }]}>
-            Invite {selectedCount}
-          </ThemedText>
-        </>
-      )}
+      <Row align="center" gap="xs">
+        {loading ? (
+          <ActivityIndicator size="small" color={palette.onPrimary} />
+        ) : (
+          <>
+            <Ionicons name="paper-plane" size={16} color={palette.onPrimary} />
+            <ThemedText style={[styles.compactButtonText, { color: palette.onPrimary }]}>
+              Invite {selectedCount}
+            </ThemedText>
+          </>
+        )}
+      </Row>
     </Clickable>
   );
 });
 
 const styles = StyleSheet.create({
   compactButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,

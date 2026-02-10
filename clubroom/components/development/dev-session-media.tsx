@@ -92,6 +92,6 @@ export const DevSessionMedia = memo(function DevSessionMedia({
 });
 
 const styles = StyleSheet.create({
-  mediaCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.sm },
+  mediaCard: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.sm },
   empty: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.xs },
 });

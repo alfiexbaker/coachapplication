@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, Components, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { CoachCardData } from '@/components/coach';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export const FeaturedCard = memo(function FeaturedCard({
           <ThemedText style={[styles.name, { color: palette.text }]} numberOfLines={1}>
             {coach.fullName}
           </ThemedText>
-          <View style={styles.ratingRow}>
+          <Row style={styles.ratingRow}>
             <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
             <ThemedText style={[styles.ratingText, { color: palette.text }]}>
               {coach.rating?.toFixed(1)}
@@ -82,8 +83,8 @@ export const FeaturedCard = memo(function FeaturedCard({
             <ThemedText style={[styles.distance, { color: palette.muted }]}>
               {coach.distanceMiles?.toFixed(1)} mi
             </ThemedText>
-          </View>
-          <View style={styles.bottomRow}>
+          </Row>
+          <Row style={styles.bottomRow}>
             <ThemedText style={[styles.price, { color: palette.text }]}>
               {'\u00A3'}{coach.pricePerHour}/hr
             </ThemedText>
@@ -96,7 +97,7 @@ export const FeaturedCard = memo(function FeaturedCard({
             >
               <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>Book Now</ThemedText>
             </Clickable>
-          </View>
+          </Row>
         </View>
       </SurfaceCard>
     </Animated.View>
@@ -116,12 +117,12 @@ const styles = StyleSheet.create({
   trialText: { ...Typography.micro, fontSize: 9 },
   infoSection: { padding: Spacing.sm, gap: Spacing.xs / 2 },
   name: { ...Typography.bodySemiBold },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  ratingRow: { alignItems: 'center', gap: Spacing.xs / 2 },
   ratingText: { ...Typography.caption, fontWeight: '700' },
   reviewCount: { ...Typography.caption },
   dot: { width: 3, height: 3, borderRadius: Radii.pill },
   distance: { ...Typography.caption },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
+  bottomRow: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
   price: { ...Typography.bodySemiBold, fontWeight: '700' },
   bookBtn: { paddingHorizontal: Spacing.sm, minHeight: 44, justifyContent: 'center', borderRadius: Radii.button },
   bookBtnText: { ...Typography.caption, fontWeight: '700' },

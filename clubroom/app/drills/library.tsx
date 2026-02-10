@@ -10,13 +10,14 @@ import { Row } from '@/components/primitives/row';
 import { DrillList } from '@/components/drills';
 import { DrillCategoryFilter } from '@/components/drills/drill-category-filter';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useDrillLibrary, CATEGORIES } from '@/hooks/use-drill-library';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 
 export default function DrillLibraryScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     drills, filteredDrills, loading, refreshing, categoryFilter, searchQuery, categoryCounts,
     handleRefresh, handleDrillPress, handleCreateDrill, handleCategoryChange,

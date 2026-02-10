@@ -21,6 +21,7 @@ export { LOCATION_OPTIONS, LocationPicker } from './adjust-day-modal-sections';
 export type { LocationPickerProps } from './adjust-day-modal-sections';
 
 import { LocationPicker } from './adjust-day-modal-sections';
+import { Row } from '@/components/primitives';
 
 interface AdjustDayModalProps {
   visible: boolean;
@@ -75,27 +76,27 @@ export function AdjustDayModal({
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="subtitle">Adjust Hours</ThemedText>
             <Clickable accessibilityLabel="Close" onPress={onClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>
             {dayName} only — your weekly pattern stays the same
           </ThemedText>
 
           {templateStartTime && (
-            <View style={[styles.templateHint, { backgroundColor: palette.background }]}>
+            <Row style={[styles.templateHint, { backgroundColor: palette.background }]}>
               <Ionicons name="repeat" size={14} color={palette.muted} />
               <ThemedText style={[styles.templateHintText, { color: palette.muted }]}>
                 Weekly template: {templateStartTime} – {templateEndTime}
               </ThemedText>
-            </View>
+            </Row>
           )}
 
-          <View style={styles.timeRow}>
+          <Row style={styles.timeRow}>
             <DateTimeField
               mode="time"
               label="Start Time"
@@ -110,7 +111,7 @@ export function AdjustDayModal({
               onChange={setEndTime}
               style={{ flex: 1 }}
             />
-          </View>
+          </Row>
 
           {startTime && endTime && startTime >= endTime && (
             <ThemedText style={[styles.errorText, { color: palette.error }]}>
@@ -162,7 +163,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -170,7 +170,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
   },
   templateHint: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,
@@ -180,14 +179,12 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   timeRow: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   errorText: {
     ...Typography.small,
   },
   saveBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

@@ -10,6 +10,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface GroupSessionDetailsProps {
   session: GroupSession;
@@ -116,13 +117,13 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
       {session.focus && session.focus.length > 0 && (
         <View style={styles.focusSection}>
           <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.xs }}>Focus Areas</ThemedText>
-          <View style={styles.focusRow}>
+          <Row style={styles.focusRow}>
             {session.focus.map((f) => (
               <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
                 <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>{f}</ThemedText>
               </View>
             ))}
-          </View>
+          </Row>
         </View>
       )}
     </>
@@ -135,6 +136,6 @@ const styles = StyleSheet.create({
   coachPhoto: { width: 48, height: 48, borderRadius: Radii.xl },
   messageButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   focusSection: { marginTop: Spacing.sm },
-  focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  focusRow: { flexWrap: 'wrap', gap: Spacing.xs },
   focusTag: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
 });

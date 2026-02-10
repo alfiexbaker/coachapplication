@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { InjuryForm } from '@/components/health';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Spacing, Typography } from '@/constants/theme';
@@ -63,16 +64,16 @@ export default function LogInjuryScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row align="center" justify="space-between" style={styles.header}>
+        <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable accessibilityLabel="Close" onPress={handleCancel} hitSlop={8}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>
             Log Injury
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       <KeyboardAvoidingView
         style={styles.content}
@@ -96,17 +97,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
+  headerLeft: {},
   headerTitle: {
     ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ export const ValueCell = memo(function ValueCell({
 }: ValueCellProps) {
   return (
     <View style={[styles.cell, isBest ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined]}>
-      <View style={styles.cellHeader}>
+      <Row style={styles.cellHeader}>
         {icon && <Ionicons name={icon} size={14} color={palette.muted} />}
         <ThemedText style={[styles.cellLabel, { color: palette.muted }]}>{label}</ThemedText>
         {isBest && (
@@ -65,7 +66,7 @@ export const ValueCell = memo(function ValueCell({
             <ThemedText style={[styles.bestText, { color: palette.onPrimary }]}>Best</ThemedText>
           </View>
         )}
-      </View>
+      </Row>
       <ThemedText style={styles.cellValue}>
         {value}
         {suffix && <ThemedText style={[styles.cellSuffix, { color: palette.muted }]}> {suffix}</ThemedText>}
@@ -101,12 +102,12 @@ export const CoachProfileSection = memo(function CoachProfileSection({
       <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
         {name}
       </ThemedText>
-      <View style={styles.locationRow}>
+      <Row style={styles.locationRow}>
         <Ionicons name="location-outline" size={12} color={palette.muted} />
         <ThemedText style={[styles.location, { color: palette.muted }]}>
           {distanceMiles.toFixed(1)} mi
         </ThemedText>
-      </View>
+      </Row>
     </Pressable>
   );
 });
@@ -132,11 +133,11 @@ export const TagsCell = memo(function TagsCell({
 
   return (
     <View style={styles.cell}>
-      <View style={styles.cellHeader}>
+      <Row style={styles.cellHeader}>
         <Ionicons name={icon} size={14} color={palette.muted} />
         <ThemedText style={[styles.cellLabel, { color: palette.muted }]}>{label}</ThemedText>
-      </View>
-      <View style={styles.tags}>
+      </Row>
+      <Row style={styles.tags}>
         {displayTags.map((tag) => (
           <View
             key={tag}
@@ -145,7 +146,7 @@ export const TagsCell = memo(function TagsCell({
             <ThemedText style={[styles.tagText, { color: palette.text }]}>{tag}</ThemedText>
           </View>
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -191,7 +192,6 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'flex-end',
     padding: Spacing.xs,
   },
@@ -215,7 +215,6 @@ export const styles = StyleSheet.create({
   },
   name: { ...Typography.body, textAlign: 'center' },
   locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.micro,
@@ -231,7 +230,6 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   cellHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginBottom: Spacing.xxs,
@@ -249,7 +247,6 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   tags: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xxs,
   },
@@ -261,7 +258,6 @@ export const styles = StyleSheet.create({
   tagText: { ...Typography.caption },
   languagesText: { ...Typography.small },
   bookButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

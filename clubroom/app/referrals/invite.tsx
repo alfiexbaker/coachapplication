@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -27,11 +28,11 @@ export default function ReferralInviteScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" justify="between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="close" size={28} color={palette.text} /></Clickable>
         <ThemedText type="subtitle" style={styles.headerTitle}>Invite Friends</ThemedText>
         <View style={styles.headerSpacer} />
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {c.loading ? (
@@ -57,37 +58,41 @@ export default function ReferralInviteScreen() {
               <SurfaceCard style={styles.codeCard}>
                 <ThemedText style={[styles.codeLabel, { color: palette.muted }]}>Your Referral Code</ThemedText>
                 <ThemedText type="title" style={styles.codeValue}>{c.referralCode.code}</ThemedText>
-                <View style={styles.codeActions}>
+                <Row gap="sm" style={styles.codeActions}>
                   <Clickable onPress={c.handleCopyCode} style={[styles.actionButton, {
                     backgroundColor: c.copied ? withAlpha(palette.success, 0.09) : palette.background,
                     borderColor: c.copied ? palette.success : palette.border,
                   }]}>
-                    <Ionicons name={c.copied ? 'checkmark' : 'copy-outline'} size={18} color={c.copied ? palette.success : palette.icon} />
-                    <ThemedText style={[styles.actionButtonText, { color: c.copied ? palette.success : palette.text }]}>
-                      {c.copied ? 'Copied!' : 'Copy Code'}
-                    </ThemedText>
+                    <Row align="center" gap="xxs">
+                      <Ionicons name={c.copied ? 'checkmark' : 'copy-outline'} size={18} color={c.copied ? palette.success : palette.icon} />
+                      <ThemedText style={[styles.actionButtonText, { color: c.copied ? palette.success : palette.text }]}>
+                        {c.copied ? 'Copied!' : 'Copy Code'}
+                      </ThemedText>
+                    </Row>
                   </Clickable>
                   <Clickable onPress={c.handleCopyLink} style={[styles.actionButton, {
                     backgroundColor: c.linkCopied ? withAlpha(palette.success, 0.09) : palette.background,
                     borderColor: c.linkCopied ? palette.success : palette.border,
                   }]}>
-                    <Ionicons name={c.linkCopied ? 'checkmark' : 'link-outline'} size={18} color={c.linkCopied ? palette.success : palette.icon} />
-                    <ThemedText style={[styles.actionButtonText, { color: c.linkCopied ? palette.success : palette.text }]}>
-                      {c.linkCopied ? 'Copied!' : 'Copy Link'}
-                    </ThemedText>
+                    <Row align="center" gap="xxs">
+                      <Ionicons name={c.linkCopied ? 'checkmark' : 'link-outline'} size={18} color={c.linkCopied ? palette.success : palette.icon} />
+                      <ThemedText style={[styles.actionButtonText, { color: c.linkCopied ? palette.success : palette.text }]}>
+                        {c.linkCopied ? 'Copied!' : 'Copy Link'}
+                      </ThemedText>
+                    </Row>
                   </Clickable>
-                </View>
+                </Row>
               </SurfaceCard>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(250).springify()}>
               <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Share via</ThemedText>
-              <View style={styles.shareOptions}>
+              <Row justify="center" gap="md" style={styles.shareOptions}>
                 {(['share-social', 'chatbubble', 'mail', 'ellipsis-horizontal'] as const).map((icon) => (
                   <ShareButton key={icon} code={c.referralCode!.code} userName={c.userName} creditAmount={c.creditAmount}
                     variant="icon" onShare={() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />
                 ))}
-              </View>
+              </Row>
             </Animated.View>
 
             <Animated.View entering={FadeInUp.delay(300).springify()}>
@@ -115,7 +120,7 @@ export default function ReferralInviteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   headerSpacer: { width: 28 },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.lg },
@@ -128,11 +133,11 @@ const styles = StyleSheet.create({
   codeCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.md },
   codeLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textTransform: 'uppercase', letterSpacing: 1, fontWeight: '500' },
   codeValue: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), letterSpacing: 3, fontVariant: ['tabular-nums'] },
-  codeActions: { flexDirection: 'row', gap: Spacing.sm },
-  actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  codeActions: {},
+  actionButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   actionButtonText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   sectionLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '500', marginBottom: Spacing.xs, textAlign: 'center' },
-  shareOptions: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.md },
+  shareOptions: {},
   termsContainer: { paddingHorizontal: Spacing.md },
   termsText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textAlign: 'center', lineHeight: scaleFont(18) },
   errorContainer: { padding: Spacing['3xl'], alignItems: 'center', gap: Spacing.md },

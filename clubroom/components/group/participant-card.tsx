@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface ParticipantCardProps {
   registration: GroupRegistration;
@@ -45,7 +46,7 @@ export function ParticipantCard({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.main}>
+      <Row style={styles.main}>
         <View style={[styles.avatar, { backgroundColor: palette.border }]}>
           <ThemedText style={styles.avatarText}>
             {registration.athleteName.slice(0, 2).toUpperCase()}
@@ -63,9 +64,9 @@ export function ParticipantCard({
             </ThemedText>
           </View>
         </View>
-      </View>
+      </Row>
 
-      <View style={styles.actions}>
+      <Row style={styles.actions}>
         {!isWaitlisted && onMarkAttendance && (
           <Clickable
             onPress={() => onMarkAttendance(!isAttended)}
@@ -103,15 +104,15 @@ export function ParticipantCard({
             <Ionicons name="close" size={18} color={palette.error} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {registration.notes && (
-        <View style={[styles.notesSection, { borderTopColor: palette.border }]}>
+        <Row style={[styles.notesSection, { borderTopColor: palette.border }]}>
           <Ionicons name="document-text-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.notesText, { color: palette.muted }]}>
             {registration.notes}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -122,7 +123,6 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   main: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
@@ -148,7 +148,6 @@ const styles = StyleSheet.create({
   statusText: { ...Typography.micro, textTransform: 'uppercase',
     letterSpacing: 0.5 },
   actions: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   actionButton: {
@@ -160,7 +159,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   notesSection: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.xs,
     marginTop: Spacing.sm,

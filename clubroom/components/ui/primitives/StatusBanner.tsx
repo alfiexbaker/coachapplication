@@ -12,6 +12,7 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Components, Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
@@ -89,7 +90,7 @@ function StatusBannerInner({
   const iconName = icon ?? config.icon;
 
   return (
-    <View style={[styles.container, { backgroundColor: config.background }]}>
+    <Row align="center" gap="xs" style={[styles.container, { backgroundColor: config.background }]}>
       <Ionicons
         name={iconName}
         size={Components.icon.md}
@@ -118,7 +119,7 @@ function StatusBannerInner({
           />
         </Pressable>
       ) : null}
-    </View>
+    </Row>
   );
 }
 
@@ -130,9 +131,6 @@ export const StatusBanner = React.memo(StatusBannerInner);
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,

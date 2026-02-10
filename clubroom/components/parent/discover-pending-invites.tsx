@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -26,17 +27,17 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.titleRow}>
+      <Row justify="space-between" align="center" style={styles.sectionHeader}>
+        <Row align="center" gap="xs">
           <Ionicons name="mail" size={18} color={palette.warning} />
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Pending Invites ({invites.length})
           </ThemedText>
-        </View>
+        </Row>
         <Clickable onPress={() => router.push(Routes.SESSION_INVITES)}>
           <ThemedText style={[styles.viewAllLink, { color: palette.tint }]}>View All</ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       {invites.map((invite, index) => {
         const coachFirstName = invite.coachName.split(' ')[0];
@@ -55,18 +56,18 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
           >
             <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
               <SurfaceCard style={[styles.inviteCard, { borderLeftColor: palette.warning }]}>
-                <View style={styles.inviteContent}>
-                  <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                <Row align="center" gap="md">
+                  <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                       {invite.coachName.split(' ').map((n) => n[0]).join('')}
                     </ThemedText>
-                  </View>
+                  </Row>
                   <View style={styles.inviteInfo}>
                     <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.inviteMessage}>
                       {message}
                     </ThemedText>
-                    <View style={styles.inviteMeta}>
-                      <View style={styles.metaItem}>
+                    <Row align="center" gap="md">
+                      <Row align="center" gap={4}>
                         <Ionicons name="calendar-outline" size={12} color={palette.muted} />
                         <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                           {invite.proposedSlots[0]
@@ -75,15 +76,15 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
                               })
                             : 'View times'}
                         </ThemedText>
-                      </View>
-                      <View style={[styles.expiryBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                      </Row>
+                      <Row align="center" gap={4} style={[styles.expiryBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                         <Ionicons name="time-outline" size={10} color={palette.warning} />
                         <ThemedText style={[styles.expiryText, { color: palette.warning }]}>Respond soon</ThemedText>
-                      </View>
-                    </View>
+                      </Row>
+                    </Row>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-                </View>
+                </Row>
               </SurfaceCard>
             </Animated.View>
           </Clickable>
@@ -98,22 +99,17 @@ export const DiscoverPendingInvites = memo(DiscoverPendingInvitesInner);
 const styles = StyleSheet.create({
   section: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm },
   sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   sectionTitle: { ...Typography.body },
   viewAllLink: { ...Typography.smallSemiBold },
   inviteCard: { padding: Spacing.md, borderLeftWidth: 3 },
-  inviteContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 40, height: 40, borderRadius: Radii.xl },
   avatarText: { ...Typography.bodySmallSemiBold },
   inviteInfo: { flex: 1, gap: Spacing.xs / 2 },
   inviteMessage: { ...Typography.bodySmall, lineHeight: 18 },
-  inviteMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
   metaText: { ...Typography.caption },
   expiryBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2,
     paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm,
   },
   expiryText: { ...Typography.micro },

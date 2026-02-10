@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   capacityBadge: { ...Typography.bodySmallSemiBold },
   headerSpacing: { marginBottom: Spacing.sm },
   participantRow: { paddingVertical: Spacing.sm, borderBottomWidth: 1 },
-  participantInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 },
+  participantInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1 },
   participantAvatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   participantAvatarText: { ...Typography.heading },
   flex1: { flex: 1 },

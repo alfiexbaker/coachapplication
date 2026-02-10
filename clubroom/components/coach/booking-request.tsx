@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,12 +53,12 @@ export function BookingRequest({
   return (
     <SurfaceCard style={styles.card}>
       {/* Status badge */}
-      <View style={[styles.badge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+      <Row style={[styles.badge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
         <Ionicons name="time-outline" size={Components.icon.sm} color={palette.warning} />
         <ThemedText style={[Typography.caption, { color: palette.warning }]}>
           Pending Confirmation
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Details */}
       <View style={styles.details}>
@@ -94,7 +95,7 @@ export function BookingRequest({
       </View>
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <Row style={styles.actions}>
         <Clickable
           onPress={() => onConfirm(bookingId)}
           style={[
@@ -121,7 +122,7 @@ export function BookingRequest({
             Suggest Alternative
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       {/* Decline as text-only */}
       <Clickable
@@ -152,7 +153,7 @@ function DetailRow({
   palette: ReturnType<typeof useTheme>['colors'];
 }) {
   return (
-    <View style={styles.detailRow}>
+    <Row style={styles.detailRow}>
       <Ionicons name={icon} size={Components.icon.sm} color={palette.muted} />
       <ThemedText style={[Typography.small, styles.detailLabel, { color: palette.muted }]}>
         {label}
@@ -160,7 +161,7 @@ function DetailRow({
       <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
         {value}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -174,7 +175,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   badge: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: Spacing.xs / 2,
@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   detailRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -194,12 +193,10 @@ const styles = StyleSheet.create({
     width: 60,
   },
   actions: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   confirmButton: {
     flex: 1,
-    flexDirection: 'row',
     height: Components.button.height,
     borderRadius: Radii.button,
     alignItems: 'center',
@@ -211,7 +208,6 @@ const styles = StyleSheet.create({
   },
   alternativeButton: {
     flex: 1,
-    flexDirection: 'row',
     height: Components.button.height,
     borderRadius: Radii.button,
     borderWidth: 1,

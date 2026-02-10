@@ -15,6 +15,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatNextSession } from '@/hooks/use-discover-sessions';
 import type { SessionOffering } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface SessionOfferingCardProps {
   offering: SessionOffering;
@@ -29,8 +30,8 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
 
   return (
     <SurfaceCard style={styles.card} onPress={() => onPress(offering)}>
-      <View style={styles.cardHeader}>
-        <View style={styles.coachInfo}>
+      <Row style={styles.cardHeader}>
+        <Row style={styles.coachInfo}>
           <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
               {offering.coachName.charAt(0)}
@@ -40,11 +41,11 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
             <ThemedText type="defaultSemiBold" style={styles.coachName}>{offering.coachName}</ThemedText>
             <ThemedText style={[styles.location, { color: palette.muted }]}>{offering.location}</ThemedText>
           </View>
-        </View>
+        </Row>
         {offering.priceUsd !== undefined && offering.priceUsd > 0 && (
           <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>£{offering.priceUsd}</ThemedText>
         )}
-      </View>
+      </Row>
 
       <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>{offering.title}</ThemedText>
 
@@ -53,12 +54,12 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
       )}
 
       <View style={styles.meta}>
-        <View style={styles.metaRow}>
+        <Row style={styles.metaRow}>
           <Ionicons name="calendar-outline" size={16} color={palette.icon} />
           <ThemedText style={[styles.metaText, { color: palette.muted }]}>{formatNextSession(offering)}</ThemedText>
-        </View>
+        </Row>
 
-        <View style={styles.badges}>
+        <Row style={styles.badges}>
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
             <ThemedText style={[styles.badgeText, { color: palette.accent }]}>
               {offering.sessionType === 'group' ? 'Group' : '1:1'}
@@ -78,7 +79,7 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
               </ThemedText>
             </View>
           )}
-        </View>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -86,8 +87,8 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  coachInfo: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  cardHeader: { alignItems: 'flex-start', justifyContent: 'space-between' },
+  coachInfo: { alignItems: 'center', gap: Spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   avatarText: { ...Typography.subheading },
   coachName: { ...Typography.bodySmall },
@@ -96,9 +97,9 @@ const styles = StyleSheet.create({
   sessionTitle: { ...Typography.heading },
   description: { ...Typography.bodySmall },
   meta: { gap: Spacing.sm, marginTop: Spacing.xs },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  metaRow: { alignItems: 'center', gap: Spacing.xs },
   metaText: { ...Typography.small },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  badges: { flexWrap: 'wrap', gap: Spacing.xs },
   badge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   badgeText: { ...Typography.caption },
 });

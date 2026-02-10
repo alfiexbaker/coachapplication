@@ -4,6 +4,7 @@
  */
 import { memo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -70,10 +71,10 @@ function SessionInviteCardComponent({
   if (compact) {
     return (
       <SurfaceCard style={styles.compactCard} onPress={onPress} accessibilityLabel={`Session invite from ${invite.coachName}`}>
-        <View style={styles.compactContent}>
-          <View style={[styles.compactAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <Row align="center" gap="md">
+          <Row align="center" justify="center" style={[styles.compactAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={[styles.compactAvatarText, { color: palette.tint }]}>{initials}</ThemedText>
-          </View>
+          </Row>
           <View style={styles.compactInfo}>
             <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.invitationText}>{invitationMessage}</ThemedText>
             <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>{invite.sessionType} - {slotDate}</ThemedText>
@@ -81,7 +82,7 @@ function SessionInviteCardComponent({
           <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
             <Ionicons name={statusConfig.icon as keyof typeof Ionicons.glyphMap} size={12} color={statusConfig.text} />
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     );
   }
@@ -92,10 +93,10 @@ function SessionInviteCardComponent({
       <InvitationBanner message={invitationMessage} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+      <Row align="center" gap="md">
+        <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{initials}</ThemedText>
-        </View>
+        </Row>
         <View style={styles.headerContent}>
           <ThemedText type="defaultSemiBold" style={styles.coachName}>Coach {invite.coachName}</ThemedText>
           {invite.clubName && <ThemedText style={[styles.clubName, { color: palette.tint }]}>{invite.clubName}</ThemedText>}
@@ -104,14 +105,14 @@ function SessionInviteCardComponent({
         <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
           <ThemedText style={[styles.statusText, { color: statusConfig.text }]}>{status}</ThemedText>
         </View>
-      </View>
+      </Row>
 
       <SessionMetaRow sessionType={invite.sessionType} duration={invite.duration} priceUsd={invite.priceUsd} />
 
-      <View style={styles.athleteRow}>
+      <Row align="center" gap="xs">
         <Ionicons name="person-outline" size={16} color={palette.muted} />
         <ThemedText style={[styles.athletes, { color: palette.text }]}>For: {invite.athleteNames.join(', ')}</ThemedText>
-      </View>
+      </Row>
 
       {invite.rsvpCounts && invite.rsvpCounts.going > 0 && (
         <AvatarStack attendees={(invite.rsvpResponses ?? []).filter((r) => r.status === 'going').map((r) => ({ id: r.userId, name: r.userName, photoUrl: r.userPhotoUrl }))}
@@ -147,14 +148,12 @@ export const SessionInviteCard = memo(SessionInviteCardComponent);
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   compactCard: { padding: Spacing.md },
-  compactContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  compactAvatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  compactAvatar: { width: 36, height: 36, borderRadius: Radii.xl },
   compactAvatarText: { ...Typography.bodySmallSemiBold },
   compactInfo: { flex: 1 },
   compactMeta: { ...Typography.caption },
   invitationText: { ...Typography.bodySmall },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  avatar: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 48, height: 48, borderRadius: Radii.xl },
   avatarText: { ...Typography.heading },
   headerContent: { flex: 1, gap: Spacing.micro },
   coachName: { ...Typography.subheading },
@@ -162,7 +161,6 @@ const styles = StyleSheet.create({
   sessionType: { ...Typography.small },
   statusBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   statusText: { ...Typography.caption, textTransform: 'uppercase' },
-  athleteRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   athletes: { ...Typography.small },
   notes: { ...Typography.small, fontStyle: 'italic' },
 });

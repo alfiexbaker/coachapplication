@@ -45,5 +45,5 @@ export const MemberDangerZone = memo(function MemberDangerZone({ onRemove, onBan
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  row: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
 });

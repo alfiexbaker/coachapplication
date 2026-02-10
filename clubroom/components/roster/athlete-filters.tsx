@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -69,14 +70,14 @@ export function AthleteFilters({
   return (
     <SurfaceCard style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" justify="between">
         <ThemedText type="defaultSemiBold">Filters</ThemedText>
         {hasActiveFilters && (
           <Clickable onPress={onClear}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Clear All</ThemedText>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Status Filter */}
       <View style={styles.section}>
@@ -99,15 +100,17 @@ export function AthleteFilters({
                 },
               ]}
             >
-              <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-              <ThemedText
-                style={[
-                  styles.chipText,
-                  { color: filters.status === status.key ? status.color : palette.text },
-                ]}
-              >
-                {status.label}
-              </ThemedText>
+              <Row align="center" gap="xxs">
+                <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+                <ThemedText
+                  style={[
+                    styles.chipText,
+                    { color: filters.status === status.key ? status.color : palette.text },
+                  ]}
+                >
+                  {status.label}
+                </ThemedText>
+              </Row>
             </Clickable>
           ))}
         </ScrollView>
@@ -150,7 +153,7 @@ export function AthleteFilters({
       {availableTags.length > 0 && (
         <View style={styles.section}>
           <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Tags</ThemedText>
-          <View style={styles.tagsGrid}>
+          <Row wrap gap="xs">
             {availableTags.map((tag) => {
               const isSelected = filters.tags?.includes(tag);
               return (
@@ -164,16 +167,18 @@ export function AthleteFilters({
                     },
                   ]}
                 >
-                  <ThemedText
-                    style={[styles.tagText, { color: isSelected ? palette.onPrimary : palette.text }]}
-                  >
-                    {tag}
-                  </ThemedText>
-                  {isSelected && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
+                  <Row align="center" gap="xxs">
+                    <ThemedText
+                      style={[styles.tagText, { color: isSelected ? palette.onPrimary : palette.text }]}
+                    >
+                      {tag}
+                    </ThemedText>
+                    {isSelected && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
+                  </Row>
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
       )}
     </SurfaceCard>
@@ -186,11 +191,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     gap: Spacing.md,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   section: {
     gap: Spacing.xs,
   },
@@ -199,9 +199,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: 8,
     borderRadius: Radii.pill,
@@ -214,15 +211,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: Radii.xs,
   },
-  tagsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
   tagChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,

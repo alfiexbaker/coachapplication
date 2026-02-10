@@ -12,22 +12,24 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCoachInvites, formatExpiry, ROLE_LABELS, type PendingClubInvite } from '@/hooks/use-coach-invites';
 
 export default function CoachInvitesScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useCoachInvites();
 
   const renderInvite = ({ item: invite }: { item: PendingClubInvite }) => {
     const isResponding = c.respondingTo === invite.id;
     return (
       <SurfaceCard style={styles.inviteCard}>
-        <View style={styles.inviteHeader}>
+        <Row style={styles.inviteHeader}>
           <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>
               {invite.clubBadge?.slice(0, 2) || invite.clubName.slice(0, 2).toUpperCase()}
@@ -35,29 +37,31 @@ export default function CoachInvitesScreen() {
           </View>
           <View style={styles.clubInfo}>
             <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>{invite.clubName}</ThemedText>
-            <View style={[styles.roleBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row style={[styles.roleBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={14} color={palette.success} />
               <ThemedText style={[styles.roleText, { color: palette.success }]}>Invited as {ROLE_LABELS[invite.role]}</ThemedText>
-            </View>
+            </Row>
           </View>
-        </View>
+        </Row>
         <View style={[styles.detailsSection, { borderTopColor: palette.border }]}>
-          <View style={styles.detailRow}><Ionicons name="person-outline" size={16} color={palette.muted} />
-            <ThemedText style={{ color: palette.muted }}>Invited by {invite.invitedBy}</ThemedText></View>
-          <View style={styles.detailRow}><Ionicons name="time-outline" size={16} color={palette.warning} />
-            <ThemedText style={{ color: palette.warning }}>{formatExpiry(invite.expiresAt)}</ThemedText></View>
+          <Row style={styles.detailRow}><Ionicons name="person-outline" size={16} color={palette.muted} />
+            <ThemedText style={{ color: palette.muted }}>Invited by {invite.invitedBy}</ThemedText></Row>
+          <Row style={styles.detailRow}><Ionicons name="time-outline" size={16} color={palette.warning} />
+            <ThemedText style={{ color: palette.warning }}>{formatExpiry(invite.expiresAt)}</ThemedText></Row>
         </View>
-        <View style={styles.actions}>
+        <Row style={styles.actions}>
           <Clickable style={[styles.declineButton, { borderColor: palette.border }]} onPress={() => c.handleDecline(invite)} disabled={isResponding}>
             <ThemedText style={[styles.declineText, { color: palette.muted }]}>Decline</ThemedText>
           </Clickable>
           <Clickable style={[styles.acceptButton, { backgroundColor: palette.tint }]} onPress={() => c.handleAccept(invite)} disabled={isResponding}>
-            {isResponding ? <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Joining...</ThemedText> : (
-              <><Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept & Join</ThemedText></>
-            )}
+            <Row align="center" justify="center" gap="xs">
+              {isResponding ? <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Joining...</ThemedText> : (
+                <><Ionicons name="checkmark" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept & Join</ThemedText></>
+              )}
+            </Row>
           </Clickable>
-        </View>
+        </Row>
       </SurfaceCard>
     );
   };
@@ -81,8 +85,10 @@ export default function CoachInvitesScreen() {
               When you enter a club invite code, the invitation will appear here for you to review and accept.
             </ThemedText>
             <Clickable style={[styles.goToClubHubButton, { backgroundColor: palette.tint }]} onPress={() => router.push(Routes.CLUB_HUB)}>
-              <Ionicons name="people" size={18} color={palette.onPrimary} />
-              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
+              <Row align="center" gap="sm">
+                <Ionicons name="people" size={18} color={palette.onPrimary} />
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
+              </Row>
             </Clickable>
           </View>
         }
@@ -96,23 +102,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { padding: Spacing.md },
   inviteCard: { gap: Spacing.md },
-  inviteHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  inviteHeader: { alignItems: 'center', gap: Spacing.md },
   clubBadge: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   clubBadgeText: { ...Typography.heading },
   clubInfo: { flex: 1, gap: Spacing.xs },
-  roleBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  roleBadge: { alignItems: 'center', alignSelf: 'flex-start', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   roleText: { ...Typography.smallSemiBold },
   detailsSection: { gap: Spacing.xs, paddingTop: Spacing.xs, borderTopWidth: 1, borderTopColor: 'transparent' },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  detailRow: { alignItems: 'center', gap: Spacing.sm },
+  actions: { gap: Spacing.sm, marginTop: Spacing.xs },
   declineButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center' },
   declineText: { ...Typography.bodySemiBold },
-  acceptButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  acceptButton: { flex: 2, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   acceptText: { ...Typography.bodySemiBold },
   separator: { height: Spacing.sm },
   empty: { alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm, marginTop: Spacing.xl },
   emptyIcon: { width: 72, height: 72, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
   emptyTitle: { ...Typography.heading },
   emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
-  goToClubHubButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
+  goToClubHubButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
 });

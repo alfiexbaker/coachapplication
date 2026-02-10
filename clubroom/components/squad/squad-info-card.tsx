@@ -28,7 +28,7 @@ export const SquadInfoCard = memo(function SquadInfoCard({
 }: SquadInfoCardProps) {
   return (
     <SurfaceCard style={styles.card}>
-      <View style={[styles.banner, { backgroundColor: withAlpha(colors.tint, 0.03) }]}>
+      <Row align="center" gap="md" style={[styles.banner, { backgroundColor: withAlpha(colors.tint, 0.03) }]}>
         <View style={[styles.icon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
           <Ionicons name="people" size={28} color={colors.tint} />
         </View>
@@ -61,7 +61,7 @@ export const SquadInfoCard = memo(function SquadInfoCard({
             </Clickable>
           </Row>
         )}
-      </View>
+      </Row>
 
       <Row style={styles.statsRow}>
         <View style={styles.statItem}>
@@ -77,13 +77,13 @@ export const SquadInfoCard = memo(function SquadInfoCard({
       </Row>
 
       {squad.tags && squad.tags.length > 0 && (
-        <View style={styles.tagsRow}>
+        <Row wrap gap="xs">
           {squad.tags.map((tag, idx) => (
             <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
               <ThemedText style={[Typography.caption, { color: colors.tint }]}>{tag}</ThemedText>
             </View>
           ))}
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -91,13 +91,12 @@ export const SquadInfoCard = memo(function SquadInfoCard({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.md, borderRadius: Radii.md },
+  banner: { padding: Spacing.md, borderRadius: Radii.md },
   icon: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   editContainer: { flex: 1, gap: Spacing.xs },
   nameInput: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading },
   editBtn: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   statsRow: { paddingVertical: Spacing.sm },
   statItem: { flex: 1, alignItems: 'center', gap: Spacing.xxs },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   tag: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
 });

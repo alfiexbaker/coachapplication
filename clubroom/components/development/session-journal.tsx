@@ -25,6 +25,7 @@ import {
 // Re-export types for backward compat
 export type { JournalEntry } from './session-journal-sections';
 import type { JournalEntry } from './session-journal-sections';
+import { Row } from '@/components/primitives';
 
 export interface SessionJournalProps {
   coachNotes?: string;
@@ -54,12 +55,12 @@ export function SessionJournal({ coachNotes, pastEntries, onSave }: SessionJourn
     <View style={styles.container}>
       {coachNotes ? (
         <SurfaceCard style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <Row style={styles.sectionHeader}>
             <Ionicons name="clipboard-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>
               Coach&apos;s Notes
             </ThemedText>
-          </View>
+          </Row>
           <ThemedText style={[styles.coachNotes, { color: palette.foreground }]}>
             {coachNotes}
           </ThemedText>
@@ -67,13 +68,13 @@ export function SessionJournal({ coachNotes, pastEntries, onSave }: SessionJourn
       ) : null}
 
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row style={styles.sectionHeader}>
           <Ionicons name="journal-outline" size={Components.icon.md} color={palette.tint} />
           <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>
             My Notes
           </ThemedText>
           <ThemedText style={[styles.privateTag, { color: palette.muted }]}>(private)</ThemedText>
-        </View>
+        </Row>
 
         <TextInput
           style={[
@@ -129,7 +130,6 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

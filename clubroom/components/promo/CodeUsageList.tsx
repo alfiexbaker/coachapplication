@@ -1,6 +1,7 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import type { PromoCodeUsage } from '@/constants/types';
@@ -35,12 +36,12 @@ export function CodeUsageList({
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <Row align="center" justify="center" gap="sm" style={styles.loadingContainer}>
         <ActivityIndicator size="small" color={palette.tint} />
         <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
           Loading usage history...
         </ThemedText>
-      </View>
+      </Row>
     );
   }
 
@@ -82,10 +83,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.lg,
   },
   loadingText: { ...Typography.bodySmall },

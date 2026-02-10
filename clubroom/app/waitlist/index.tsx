@@ -6,6 +6,7 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -84,7 +85,7 @@ export default function WaitlistScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -96,7 +97,7 @@ export default function WaitlistScreen() {
               : `${entries.length} ${entries.length === 1 ? 'session' : 'sessions'} waiting`}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -133,19 +134,19 @@ export default function WaitlistScreen() {
 
         {entries.length > 0 && (
           <View style={[styles.infoCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
-            <View style={styles.infoRow}>
+            <Row align="start" gap="sm" style={styles.infoRow}>
               <Ionicons name="flash" size={16} color={palette.tint} />
               <ThemedText style={[styles.infoText, { color: palette.muted }]}>
                 <ThemedText style={{ fontWeight: '600', color: palette.tint }}>Auto-book</ThemedText>
                 {' '}automatically reserves your spot when available
               </ThemedText>
-            </View>
-            <View style={styles.infoRow}>
+            </Row>
+            <Row align="start" gap="sm" style={styles.infoRow}>
               <Ionicons name="notifications" size={16} color={palette.tint} />
               <ThemedText style={[styles.infoText, { color: palette.muted }]}>
                 You&apos;ll receive a notification when a spot opens up
               </ThemedText>
-            </View>
+            </Row>
           </View>
         )}
       </ScrollView>
@@ -163,11 +164,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
   },
   headerTitle: {
     flex: 1,
@@ -189,11 +187,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     gap: Spacing.sm,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
+  infoRow: {},
   infoText: {
     flex: 1,
     ...Typography.small,

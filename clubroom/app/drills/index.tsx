@@ -10,12 +10,13 @@ import { DrillList } from '@/components/drills';
 import { DrillStatsCard } from '@/components/drills/drill-stats-card';
 import { DrillTabFilter } from '@/components/drills/drill-tab-filter';
 import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useDrillsScreen } from '@/hooks/use-drills-screen';
 import { scaleFont } from '@/utils/scale';
 
 export default function DrillsDashboardScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     stats, loading, refreshing, activeTab, filteredAssignments,
     handleRefresh, handleAssignmentPress, handleComplete, handleTabChange,

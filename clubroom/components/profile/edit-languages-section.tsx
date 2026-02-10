@@ -4,6 +4,7 @@
 
 import React, { memo } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -37,13 +38,15 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
   return (
     <>
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="between" align="center">
           <ThemedText type="subtitle">Languages</ThemedText>
           <Pressable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add language" accessibilityRole="button">
-            <Ionicons name="add-circle" size={22} color={colors.tint} />
-            <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
+            <Row align="center" gap="xs">
+              <Ionicons name="add-circle" size={22} color={colors.tint} />
+              <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
+            </Row>
           </Pressable>
-        </View>
+        </Row>
         <ThemedText style={styles.subtitle}>
           Set expectations for onboarding calls and session briefings with your language strengths.
         </ThemedText>
@@ -51,21 +54,21 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
         {languages.length > 0 ? (
           <View style={styles.list}>
             {languages.map((lang) => (
-              <View key={lang.id} style={[styles.row, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Row key={lang.id} align="center" gap="sm" style={[styles.row, { borderColor: colors.border, backgroundColor: colors.card }]}>
                 <View style={[styles.dot, { backgroundColor: colors.tint }]} />
                 <View style={styles.copy}>
                   <ThemedText style={styles.name}>{lang.name}</ThemedText>
                   <ThemedText style={styles.proficiency}>{lang.proficiency}</ThemedText>
                 </View>
-                <View style={styles.actions}>
+                <Row gap="xs">
                   <Pressable onPress={() => onOpenModal(lang)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Edit ${lang.name}`} accessibilityRole="button">
                     <Ionicons name="pencil" size={16} color={colors.muted} />
                   </Pressable>
                   <Pressable onPress={() => onRemove(lang.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Remove ${lang.name}`} accessibilityRole="button">
                     <Ionicons name="close" size={16} color={colors.warning} />
                   </Pressable>
-                </View>
-              </View>
+                </Row>
+              </Row>
             ))}
           </View>
         ) : (
@@ -79,7 +82,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
 
         <View style={[styles.quickAddRow, { borderColor: colors.border }]}>
           <ThemedText style={styles.helper}>Quick add</ThemedText>
-          <View style={styles.quickAddChips}>
+          <Row wrap gap="xs">
             {languageOptions.map((option) => {
               const isAdded = languages.some((l) => l.name.toLowerCase() === option.toLowerCase());
               return (
@@ -97,19 +100,19 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                 </Pressable>
               );
             })}
-          </View>
+          </Row>
         </View>
       </SurfaceCard>
 
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={onCloseModal}>
         <View style={styles.modalOverlay}>
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
+            <Row justify="between" align="center">
               <ThemedText type="subtitle">Language</ThemedText>
               <Pressable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
                 <Ionicons name="close" size={22} color={colors.foreground} />
               </Pressable>
-            </View>
+            </Row>
             <View style={styles.modalContent}>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Language</ThemedText>
@@ -117,7 +120,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
               </View>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Proficiency</ThemedText>
-                <View style={styles.pillRow}>
+                <Row wrap gap="xs">
                   {proficiencyOptions.map((level) => {
                     const isActive = draft.proficiency === level;
                     return (
@@ -126,7 +129,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                       </Pressable>
                     );
                   })}
-                </View>
+                </Row>
               </View>
               <Pressable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save language" accessibilityRole="button">
                 <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save language</ThemedText>
@@ -141,34 +144,29 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subtitle: { opacity: 0.6, ...Typography.bodySmall },
-  inlineAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  inlineAction: {},
   inlineActionText: { fontWeight: '700' },
   list: { gap: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md },
+  row: { padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md },
   dot: { width: 10, height: 10, borderRadius: Radii.sm },
   copy: { flex: 1, gap: Spacing.micro },
   name: { fontWeight: '700' },
   proficiency: { ...Typography.caption, opacity: 0.7 },
-  actions: { flexDirection: 'row', gap: Spacing.xs },
   iconButton: { width: 36, height: 36, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   emptyCard: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, borderStyle: 'dashed', alignItems: 'center', gap: Spacing.xs },
   emptyText: { textAlign: 'center', opacity: 0.7 },
   quickAddRow: { marginTop: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, gap: Spacing.xs },
-  quickAddChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   helper: { ...Typography.caption, opacity: 0.6 },
   chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
   chipText: { fontWeight: '600' },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: Spacing.lg },
   modalCard: { padding: Spacing.lg, gap: Spacing.md },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   modalContent: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
   input: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   primaryButton: { marginTop: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg, alignItems: 'center' },
   primaryButtonText: { ...Typography.subheading },
 });

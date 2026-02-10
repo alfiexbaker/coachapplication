@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   container: { marginBottom: Spacing.sm },
   row: { paddingHorizontal: Spacing.lg },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs,
+    alignItems: 'center', gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: 8,
     borderRadius: Radii.pill, borderWidth: 1,
   },

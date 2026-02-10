@@ -6,6 +6,7 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -20,7 +21,7 @@ interface PresetRowProps {
 export const PresetRow = memo(function PresetRow({ presets, selected, onSelect, prefix }: PresetRowProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.presetRow}>
+    <Row gap="xs" wrap>
       {presets.map((value) => {
         const isActive = selected === String(value);
         return (
@@ -35,7 +36,7 @@ export const PresetRow = memo(function PresetRow({ presets, selected, onSelect, 
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -46,10 +47,10 @@ interface ErrorBannerProps {
 export const ErrorBanner = memo(function ErrorBanner({ message }: ErrorBannerProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+    <Row align="center" gap="sm" style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
       <Ionicons name="alert-circle" size={18} color={palette.error} />
       <ThemedText style={[styles.errorBannerText, { color: palette.error }]}>{message}</ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -62,7 +63,7 @@ interface FormFooterProps {
 export const FormFooter = memo(function FormFooter({ onCancel, onSubmit, submitting }: FormFooterProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={[styles.footer, { borderTopColor: palette.border }]}>
+    <Row gap="sm" style={[styles.footer, { borderTopColor: palette.border }]}>
       {onCancel && (
         <Clickable style={[styles.cancelButton, { borderColor: palette.border }]} onPress={onCancel} disabled={submitting}>
           <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
@@ -75,26 +76,25 @@ export const FormFooter = memo(function FormFooter({ onCancel, onSubmit, submitt
         {submitting ? (
           <ActivityIndicator size="small" color={palette.onPrimary} />
         ) : (
-          <>
+          <Row align="center" justify="center" gap="sm">
             <Ionicons name="add-circle-outline" size={20} color={palette.onPrimary} />
             <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>Create Code</ThemedText>
-          </>
+          </Row>
         )}
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
-  presetRow: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap' },
   presetButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   presetText: { ...Typography.bodySmallSemiBold },
-  errorBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md },
+  errorBanner: { padding: Spacing.md, borderRadius: Radii.md },
   errorBannerText: { ...Typography.bodySmallSemiBold, flex: 1 },
-  footer: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.md, borderTopWidth: 1 },
+  footer: { padding: Spacing.md, borderTopWidth: 1 },
   cancelButton: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1 },
   cancelButtonText: { ...Typography.subheading },
-  submitButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  submitButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
   submitButtonFull: { flex: 1 },
   submitButtonText: { ...Typography.subheading },
 });

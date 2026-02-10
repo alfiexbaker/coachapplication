@@ -15,6 +15,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { DAYS_ORDERED, PRESETS, type SetupDayConfig } from './week-pattern-types';
+import { Row } from '@/components/primitives';
 
 const logger = createLogger('WeekPatternSetup');
 
@@ -93,7 +94,7 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
         </ThemedText>
       </View>
 
-      <View style={styles.presetsRow}>
+      <Row style={styles.presetsRow}>
         {PRESETS.map((preset) => {
           const isActive = activePreset === preset.id;
           return (
@@ -106,14 +107,14 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
             </Clickable>
           );
         })}
-      </View>
+      </Row>
 
       <View style={styles.daysList}>
         {DAYS_ORDERED.map((d) => {
           const config = setupDays[d.index];
           return (
             <View key={d.index} style={[styles.dayRow, { borderBottomColor: palette.border }]}>
-              <View style={styles.dayHeader}>
+              <Row style={styles.dayHeader}>
                 <ThemedText style={[styles.dayLabel, { color: config.enabled ? palette.text : palette.muted }]}>{d.full}</ThemedText>
                 <Switch
                   value={config.enabled}
@@ -121,13 +122,13 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
                   trackColor={{ false: palette.border, true: withAlpha(palette.tint, 0.3) }}
                   thumbColor={config.enabled ? palette.tint : palette.muted}
                 />
-              </View>
+              </Row>
               {config.enabled && (
-                <View style={styles.dayTimes}>
+                <Row style={styles.dayTimes}>
                   <DateTimeField mode="time" label="Start" value={config.startTime} onChange={(v) => handleTimeChange(d.index, 'startTime', v)} minuteInterval={15} style={{ flex: 1 }} />
                   <View style={styles.timeArrow}><Ionicons name="arrow-forward" size={16} color={palette.muted} /></View>
                   <DateTimeField mode="time" label="End" value={config.endTime} onChange={(v) => handleTimeChange(d.index, 'endTime', v)} minuteInterval={15} style={{ flex: 1 }} />
-                </View>
+                </Row>
               )}
             </View>
           );
@@ -154,14 +155,14 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: Spacing.xs },
   title: { ...Typography.title, textAlign: 'center' },
   subtitle: { ...Typography.bodySmall, textAlign: 'center' },
-  presetsRow: { flexDirection: 'row', gap: Spacing.xs, justifyContent: 'center' },
+  presetsRow: { gap: Spacing.xs, justifyContent: 'center' },
   presetChip: { paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   presetText: { ...Typography.smallSemiBold },
   daysList: { gap: 0 },
   dayRow: { paddingVertical: Spacing.sm, borderBottomWidth: 1 },
-  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
+  dayHeader: { alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
   dayLabel: { ...Typography.bodySemiBold },
-  dayTimes: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.xs, marginTop: Spacing.sm },
+  dayTimes: { alignItems: 'flex-end', gap: Spacing.xs, marginTop: Spacing.sm },
   timeArrow: { paddingBottom: Spacing.sm },
   getStartedBtn: { minHeight: 52, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   getStartedText: { ...Typography.bodySemiBold },

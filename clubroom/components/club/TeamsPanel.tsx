@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ClubSquad } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface TeamsPanelProps {
   squads: ClubSquad[];
@@ -25,7 +26,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <ThemedText type="subtitle">Teams</ThemedText>
         {isCoach && (
           <Clickable
@@ -38,7 +39,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
             </ThemedText>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {squads.length > 0 ? (
         <ScrollView
@@ -62,20 +63,20 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
                   {squad.memberCount} athletes
                 </ThemedText>
                 {squad.primaryCoach && (
-                  <View style={styles.coachRow}>
+                  <Row style={styles.coachRow}>
                     <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
                     <ThemedText style={[styles.coachName, { color: palette.muted }]} numberOfLines={1}>
                       {squad.primaryCoach}
                     </ThemedText>
-                  </View>
+                  </Row>
                 )}
                 {squad.nextSession && (
-                  <View style={[styles.nextSessionBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                  <Row style={[styles.nextSessionBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="calendar" size={10} color={palette.success} />
                     <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
                       {formatNextSession(squad.nextSession)}
                     </ThemedText>
-                  </View>
+                  </Row>
                 )}
               </SurfaceCard>
             </Clickable>
@@ -109,14 +110,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
   },
   addButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -145,14 +144,12 @@ const styles = StyleSheet.create({
   teamName: { ...Typography.bodySmall, textAlign: 'center' },
   teamMeta: { ...Typography.caption },
   coachRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.micro,
   },
   coachName: { ...Typography.caption, maxWidth: 100 },
   nextSessionBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,

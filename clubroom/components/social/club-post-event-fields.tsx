@@ -3,6 +3,7 @@ import { View, StyleSheet, TextInput } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -37,10 +38,10 @@ export const ClubPostEventFields = memo(function ClubPostEventFields({
           onChange={(_, selectedDate) => { onCloseDatePicker(); if (selectedDate) onSetDate(selectedDate); }}
         />
       )}
-      <View style={[styles.field, { borderColor: palette.border }]}>
+      <Row align="center" gap="sm" style={[styles.locationField, { borderColor: palette.border }]}>
         <Ionicons name="location-outline" size={20} color={palette.muted} />
         <TextInput style={[styles.input, { color: palette.text }]} placeholder="Location" placeholderTextColor={palette.muted} value={eventLocation} onChangeText={onChangeLocation} />
-      </View>
+      </Row>
     </View>
   );
 });
@@ -49,5 +50,6 @@ const styles = StyleSheet.create({
   container: { marginHorizontal: Spacing.md, marginTop: Spacing.md, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
   label: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   field: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
+  locationField: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
   input: { flex: 1, ...Typography.body },
 });

@@ -3,6 +3,7 @@
  */
 import { memo, useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -49,7 +50,7 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                     with Coach {session.coachName || 'Coach'} -- {dateStr}
                   </ThemedText>
                 </View>
-                <View style={styles.actions}>
+                <Row gap="sm">
                   <Pressable
                     accessibilityLabel="Rate session now"
                     accessibilityRole="button"
@@ -62,8 +63,10 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                       router.push(Routes.reviewCreate(session.id, session.coachId));
                     }}
                   >
-                    <Ionicons name="star" size={14} color={palette.surface} />
-                    <ThemedText style={[styles.rateText, { color: palette.surface }]}>Rate Now</ThemedText>
+                    <Row align="center" gap="xs">
+                      <Ionicons name="star" size={14} color={palette.surface} />
+                      <ThemedText style={[styles.rateText, { color: palette.surface }]}>Rate Now</ThemedText>
+                    </Row>
                   </Pressable>
                   <Pressable
                     accessibilityLabel="Rate later"
@@ -76,7 +79,7 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                   >
                     <ThemedText style={[styles.laterText, { color: palette.muted }]}>Later</ThemedText>
                   </Pressable>
-                </View>
+                </Row>
               </View>
             </SurfaceCard>
           </Animated.View>
@@ -95,9 +98,7 @@ const styles = StyleSheet.create({
   info: { gap: Spacing.xs / 2 },
   title: { ...Typography.subheading, letterSpacing: -0.2 },
   meta: { ...Typography.small },
-  actions: { flexDirection: 'row', gap: Spacing.sm },
   rateButton: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.sm, minHeight: 44,
   },
   rateText: { ...Typography.bodySmallSemiBold },

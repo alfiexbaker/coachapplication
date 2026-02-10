@@ -16,6 +16,7 @@ import type { SmartSlotsProps, SlotSuggestion } from './smart-slots-data';
 import { MOCK_SUGGESTIONS, MOCK_HEATMAP } from './smart-slots-data';
 import { HeatmapGrid } from './smart-slots-heatmap';
 import { SuggestionCard, StatsSummary } from './smart-slots-cards';
+import { Row } from '@/components/primitives';
 
 export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLastWeek }: SmartSlotsProps) {
   const { colors, scheme } = useTheme();
@@ -63,10 +64,10 @@ export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLas
 
       {addSuggestions.length > 0 && (
         <>
-          <View style={styles.sectionHeader}>
+          <Row style={styles.sectionHeader}>
             <Ionicons name="bulb-outline" size={18} color={colors.success} />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Popular slots to add</Text>
-          </View>
+          </Row>
           <View style={styles.suggestionsContainer}>
             {addSuggestions.map((s) => <SuggestionCard key={s.id} suggestion={s} onAction={handleSuggestionAction} />)}
           </View>
@@ -75,10 +76,10 @@ export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLas
 
       {removeSuggestions.length > 0 && (
         <>
-          <View style={styles.sectionHeader}>
+          <Row style={styles.sectionHeader}>
             <Ionicons name="analytics-outline" size={18} color={colors.warning} />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Low-demand slots</Text>
-          </View>
+          </Row>
           <View style={styles.suggestionsContainer}>
             {removeSuggestions.map((s) => <SuggestionCard key={s.id} suggestion={s} onAction={handleSuggestionAction} />)}
           </View>
@@ -97,8 +98,8 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.title, marginBottom: Spacing.xxs },
   headerSubtitle: { ...Typography.body },
   sectionTitle: { ...Typography.heading, marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs },
-  copyWeekButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.card, paddingHorizontal: Spacing.sm, paddingVertical: 14, marginTop: Spacing.md },
+  sectionHeader: { alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs },
+  copyWeekButton: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.card, paddingHorizontal: Spacing.sm, paddingVertical: 14, marginTop: Spacing.md },
   copyWeekText: { flex: 1, ...Typography.bodySemiBold },
   suggestionsContainer: { gap: Spacing.xs },
   bottomSpacer: { height: Spacing.lg },

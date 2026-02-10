@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { ParentGroup, CarpoolOffer } from '@/constants/types';
 import type { TabType } from '@/hooks/use-community-hub';
+import { Row } from '@/components/primitives';
 
 interface CommunityTabContentProps {
   tab: TabType;
@@ -79,10 +80,10 @@ export const CommunityTabContent = memo(function CommunityTabContent({
         </SurfaceCard>
         {carpoolOffers.length > 0 ? (
           <>
-            <View style={styles.sectionHeader}>
+            <Row style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Available Rides</ThemedText>
               <Clickable onPress={onCarpoolPress}><ThemedText style={[styles.seeAllLink, { color: palette.tint }]}>See all</ThemedText></Clickable>
-            </View>
+            </Row>
             {carpoolOffers.slice(0, 3).map((offer) => (
               <CarpoolOfferCard key={offer.id} offer={offer} currentUserId={parentId} compact onPress={onCarpoolPress} />
             ))}
@@ -108,10 +109,10 @@ export const CommunityTabContent = memo(function CommunityTabContent({
         <SurfaceCard key={group.id} style={styles.discoverCard}>
           <ParentGroupCard group={group} compact />
           <Button variant="secondary" onPress={() => onJoinGroup(group)} style={styles.joinButton}>
-            <View style={styles.joinButtonContent}>
+            <Row style={styles.joinButtonContent}>
               <Ionicons name="add" size={18} color={palette.text} />
               <ThemedText style={styles.joinButtonText}>Join</ThemedText>
-            </View>
+            </Row>
           </Button>
         </SurfaceCard>
       ))}
@@ -127,11 +128,11 @@ const styles = StyleSheet.create({
   emptyTitle: { textAlign: 'center' },
   emptyText: { textAlign: 'center', ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   emptyButton: { marginTop: Spacing.sm },
-  quickActionCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+  quickActionCard: { alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
   quickActionIcon: { width: 52, height: 52, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   quickActionContent: { flex: 1, gap: Spacing.micro },
   quickActionSubtext: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm, marginBottom: Spacing.xs },
+  sectionHeader: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.sm, marginBottom: Spacing.xs },
   sectionTitle: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   seeAllLink: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   noCarpoolsMessage: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
@@ -139,6 +140,6 @@ const styles = StyleSheet.create({
   discoverHint: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize), marginBottom: Spacing.sm },
   discoverCard: { marginBottom: Spacing.sm, gap: Spacing.sm },
   joinButton: { marginTop: Spacing.xs },
-  joinButtonContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  joinButtonContent: { alignItems: 'center', gap: Spacing.xxs },
   joinButtonText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
 });

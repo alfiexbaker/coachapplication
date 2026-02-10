@@ -122,7 +122,6 @@ export function CoachMarkerPill({
 
 const styles = StyleSheet.create({
   pill: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

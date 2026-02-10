@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/
 import { useTheme } from '@/hooks/useTheme';
 import type { AthleteConsent } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
+import { Row } from '@/components/primitives';
 
 interface ConsentCardProps {
   athleteConsent: AthleteConsent;
@@ -41,7 +42,7 @@ export function ConsentCard({
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         {/* Avatar */}
         {athleteConsent.athletePhotoUrl ? (
           <Image
@@ -81,7 +82,7 @@ export function ConsentCard({
             </ThemedText>
           </View>
         </View>
-      </View>
+      </Row>
 
       {/* Consent Grid */}
       <View style={[styles.gridSection, { borderTopColor: palette.border }]}>
@@ -89,8 +90,8 @@ export function ConsentCard({
       </View>
 
       {/* Status Bar */}
-      <View style={[styles.statusBar, { borderTopColor: palette.border }]}>
-        <View style={styles.statusItem}>
+      <Row style={[styles.statusBar, { borderTopColor: palette.border }]}>
+        <Row style={styles.statusItem}>
           <Ionicons
             name={percentage === 100 ? 'checkmark-circle' : 'alert-circle'}
             size={14}
@@ -99,24 +100,24 @@ export function ConsentCard({
           <ThemedText style={[styles.statusText, { color: palette.muted }]}>
             {getStatusLabel()}
           </ThemedText>
-        </View>
+        </Row>
 
         {hasContentPosting && (
-          <View style={[styles.contentBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+          <Row style={[styles.contentBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="share-social" size={12} color={palette.success} />
             <ThemedText style={[styles.contentBadgeText, { color: palette.success }]}>
               Content OK
             </ThemedText>
-          </View>
+          </Row>
         )}
-      </View>
+      </Row>
 
       {/* Details Section */}
       {showDetails && (
         <View style={[styles.detailsSection, { borderTopColor: palette.border }]}>
           {athleteConsent.consents.map((consent) => (
-            <View key={consent.type} style={styles.detailRow}>
-              <View style={styles.detailLeft}>
+            <Row key={consent.type} style={styles.detailRow}>
+              <Row style={styles.detailLeft}>
                 <Ionicons
                   name={consentService.getConsentIcon(consent.type) as keyof typeof Ionicons.glyphMap}
                   size={16}
@@ -125,7 +126,7 @@ export function ConsentCard({
                 <ThemedText style={styles.detailLabel}>
                   {consentService.getConsentLabel(consent.type)}
                 </ThemedText>
-              </View>
+              </Row>
               <View style={styles.detailRight}>
                 {consent.granted ? (
                   <>
@@ -144,7 +145,7 @@ export function ConsentCard({
                   </ThemedText>
                 )}
               </View>
-            </View>
+            </Row>
           ))}
         </View>
       )}
@@ -158,7 +159,6 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   statusBar: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.sm,
@@ -202,13 +201,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   statusItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   statusText: { ...Typography.caption },
   contentBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
@@ -223,12 +220,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   detailRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   detailLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

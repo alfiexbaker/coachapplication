@@ -14,6 +14,7 @@ import {
   type RescheduleRequestProps,
 } from './reschedule-helpers';
 import { RescheduleActions } from './reschedule-actions';
+import { Row } from '@/components/primitives';
 
 // ─── Re-export types ────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ interface TimeComparisonProps {
 
 function TimeSlot({ label, dateTime, color, icon, palette }: TimeComparisonProps) {
   return (
-    <View style={[styles.timeSlot, { borderColor: palette.border }]}>
+    <Row style={[styles.timeSlot, { borderColor: palette.border }]}>
       <View style={[styles.timeSlotIcon, { backgroundColor: withAlpha(color, 0.07) }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
@@ -41,7 +42,7 @@ function TimeSlot({ label, dateTime, color, icon, palette }: TimeComparisonProps
           {formatDateTime(dateTime)}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 }
 
@@ -91,7 +92,7 @@ export function RescheduleRequest({
   return (
     <SurfaceCard style={styles.card}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={[styles.headerIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <Ionicons name="swap-horizontal" size={20} color={palette.warning} />
         </View>
@@ -101,16 +102,16 @@ export function RescheduleRequest({
             {proposal.coachName} wants to move your session
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Session info */}
       <View style={[styles.sessionInfo, { backgroundColor: withAlpha(palette.tint, 0.02) }]}>
         <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>{proposal.sessionTitle}</ThemedText>
         {proposal.venue && (
-          <View style={styles.venueRow}>
+          <Row style={styles.venueRow}>
             <Ionicons name="location-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.venueText, { color: palette.muted }]}>{proposal.venue}</ThemedText>
-          </View>
+          </Row>
         )}
         <ThemedText style={[styles.durationText, { color: palette.muted }]}>
           {proposal.durationMinutes} minutes
@@ -131,12 +132,12 @@ export function RescheduleRequest({
       </View>
 
       {/* Coach's reason */}
-      <View style={[styles.reasonBox, { backgroundColor: withAlpha(palette.warning, 0.03), borderColor: withAlpha(palette.warning, 0.12) }]}>
+      <Row style={[styles.reasonBox, { backgroundColor: withAlpha(palette.warning, 0.03), borderColor: withAlpha(palette.warning, 0.12) }]}>
         <Ionicons name="chatbubble-outline" size={16} color={palette.warning} />
         <ThemedText style={[styles.reasonText, { color: palette.text }]}>
           &ldquo;{proposal.reason}&rdquo;
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Actions */}
       <RescheduleActions
@@ -161,18 +162,18 @@ export function RescheduleRequest({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  header: { alignItems: 'center', gap: Spacing.sm },
   headerIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1 },
   headerTitle: { ...Typography.subheading },
   headerSubtitle: { ...Typography.small, marginTop: Spacing.micro },
   sessionInfo: { padding: Spacing.sm, borderRadius: Radii.sm, gap: Spacing.xs / 2 },
   sessionTitle: { ...Typography.body },
-  venueRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2 },
+  venueRow: { alignItems: 'center', gap: Spacing.xs / 2 },
   venueText: { ...Typography.small },
   durationText: { ...Typography.caption },
   timeComparison: { gap: 0 },
-  timeSlot: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.sm },
+  timeSlot: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.sm },
   timeSlotIcon: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   timeSlotText: { flex: 1 },
   timeSlotLabel: { ...Typography.micro },
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   arrowWrap: { alignItems: 'center', paddingVertical: Spacing.micro },
   arrowLine: { width: 1, height: 8 },
   arrowCircle: { width: 24, height: 24, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  reasonBox: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
+  reasonBox: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
   reasonText: { ...Typography.bodySmall, flex: 1, fontStyle: 'italic', lineHeight: 20 },
   disclaimer: { ...Typography.caption, textAlign: 'center', lineHeight: 16 },
 });

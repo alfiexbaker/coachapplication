@@ -12,28 +12,30 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ConfirmBookingSummary } from '@/components/booking/confirm-booking-summary';
 import { ConfirmBookingPayment } from '@/components/booking/confirm-booking-payment';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useConfirmBooking, formatGBP } from '@/hooks/use-confirm-booking';
 
 export default function ConfirmBookingScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const b = useConfirmBooking();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
-        <View style={styles.header}>
+        <Row style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8} disabled={b.isProcessing}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="subtitle">Confirm Booking</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
 
         <ConfirmBookingSummary
           coachName={b.coachName} athletesInfo={b.athletesInfo} slotTitle={b.slotTitle}
@@ -55,7 +57,7 @@ export default function ConfirmBookingScreen() {
           style={({ pressed }) => [styles.confirmButton, { backgroundColor: b.isProcessing ? palette.border : palette.tint, opacity: pressed ? 0.8 : 1 }]}
         >
           {b.isProcessing ? (
-            <View style={styles.processingRow}><ActivityIndicator color={palette.onPrimary} /><ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Processing...</ThemedText></View>
+            <Row style={styles.processingRow}><ActivityIndicator color={palette.onPrimary} /><ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Processing...</ThemedText></Row>
           ) : (
             <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Confirm & Pay {formatGBP(b.totalPrice)}</ThemedText>
           )}
@@ -68,9 +70,9 @@ export default function ConfirmBookingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   footer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
   confirmButton: { paddingVertical: Spacing.md + 4, borderRadius: Radii.md, alignItems: 'center' },
   confirmText: { ...Typography.subheading },
-  processingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  processingRow: { alignItems: 'center', gap: Spacing.sm },
 });

@@ -152,7 +152,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   awardButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Components.pill.paddingVertical,

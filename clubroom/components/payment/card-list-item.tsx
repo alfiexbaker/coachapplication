@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
@@ -15,7 +16,7 @@ export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?:
   const { colors: palette } = useTheme();
   return (
     <View style={[styles.card, { borderColor: palette.border }]}> 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+      <Row align="center" gap="md">
         <Ionicons name="card" size={24} color={palette.tint} />
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">{card.brand || 'Visa ending 4242'}</ThemedText>
@@ -26,7 +27,7 @@ export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?:
             <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Default</ThemedText>
           </View>
         )}
-      </View>
+      </Row>
       {onDelete ? (
         <Clickable onPress={onDelete} style={[styles.delete, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
           <Ionicons name="trash" size={16} color={palette.error} />

@@ -6,6 +6,7 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SkillProgress } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // Decorative: categorical chart colors (not themeable)
 export const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'] as const;
@@ -32,7 +33,7 @@ export const Sparkline = memo(function Sparkline({ data, color, width = 60, heig
   const range = max - min || 1;
 
   return (
-    <View style={[styles.sparkline, { width, height }]}>
+    <Row style={[styles.sparkline, { width, height }]}>
       {data.map((value, index) => {
         const barHeight = ((value - min) / range) * height;
         return (
@@ -49,7 +50,7 @@ export const Sparkline = memo(function Sparkline({ data, color, width = 60, heig
           />
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -62,19 +63,19 @@ export interface ChartLegendProps {
 
 export const ChartLegend = memo(function ChartLegend({ skills, palette }: ChartLegendProps) {
   return (
-    <View style={styles.legend}>
+    <Row style={styles.legend}>
       {skills.slice(0, 4).map((skill, index) => {
         const color = COLORS[index % COLORS.length];
         return (
-          <View key={skill.skillName} style={styles.legendItem}>
+          <Row key={skill.skillName} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: color }]} />
             <ThemedText style={[styles.legendText, { color: palette.text }]}>
               {skill.skillName}
             </ThemedText>
-          </View>
+          </Row>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -82,7 +83,6 @@ export const ChartLegend = memo(function ChartLegend({ skills, palette }: ChartL
 
 const styles = StyleSheet.create({
   sparkline: {
-    flexDirection: 'row',
     alignItems: 'flex-end',
     gap: Spacing.micro,
   },
@@ -91,13 +91,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   legend: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
     marginTop: Spacing.lg,
   },
   legendItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

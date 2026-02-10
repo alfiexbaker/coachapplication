@@ -14,6 +14,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -74,7 +75,7 @@ export const InviteStatusHeader = memo(function InviteStatusHeader({
   palette,
 }: InviteStatusHeaderProps) {
   return (
-    <View style={styles.statusHeader}>
+    <Row align="center" gap="md">
       <View style={[styles.statusIcon, { backgroundColor: config.bgColor }]}>
         <Ionicons name={config.icon} size={32} color={config.color} />
       </View>
@@ -84,7 +85,7 @@ export const InviteStatusHeader = memo(function InviteStatusHeader({
           {config.subtitle}
         </ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -104,24 +105,24 @@ export const InviteContextRow = memo(function InviteContextRow({
   if (!squadName && !sessionTitle) return null;
 
   return (
-    <View style={[styles.contextRow, { borderTopColor: palette.border }]}>
+    <Row wrap gap="md" style={[styles.contextRow, { borderTopColor: palette.border }]}>
       {squadName && (
-        <View style={styles.contextItem}>
+        <Row align="center" gap="xs">
           <Ionicons name="people" size={14} color={palette.muted} />
           <ThemedText style={[styles.contextText, { color: palette.muted }]}>
             {squadName}
           </ThemedText>
-        </View>
+        </Row>
       )}
       {sessionTitle && (
-        <View style={styles.contextItem}>
+        <Row align="center" gap="xs">
           <Ionicons name="calendar" size={14} color={palette.muted} />
           <ThemedText style={[styles.contextText, { color: palette.muted }]} numberOfLines={1}>
             {sessionTitle}
           </ThemedText>
-        </View>
+        </Row>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -141,27 +142,27 @@ export const InviteStatsBreakdown = memo(function InviteStatsBreakdown({
   palette,
 }: InviteStatsBreakdownProps) {
   return (
-    <View style={styles.statsRow}>
-      <View style={styles.statItem}>
+    <Row justify="start" gap="lg">
+      <Row align="center" gap="xs">
         <View style={[styles.statDot, { backgroundColor: palette.success }]} />
         <ThemedText style={styles.statValue}>{sent}</ThemedText>
         <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sent</ThemedText>
-      </View>
+      </Row>
       {failed > 0 && (
-        <View style={styles.statItem}>
+        <Row align="center" gap="xs">
           <View style={[styles.statDot, { backgroundColor: palette.error }]} />
           <ThemedText style={styles.statValue}>{failed}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Failed</ThemedText>
-        </View>
+        </Row>
       )}
       {skipped > 0 && (
-        <View style={styles.statItem}>
+        <Row align="center" gap="xs">
           <View style={[styles.statDot, { backgroundColor: palette.warning }]} />
           <ThemedText style={styles.statValue}>{skipped}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Skipped</ThemedText>
-        </View>
+        </Row>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -184,16 +185,17 @@ export const InviteErrorDetails = memo(function InviteErrorDetails({
     <View style={styles.errorSection}>
       <Clickable
         onPress={() => setShowDetails(!showDetails)}
-        style={styles.errorToggle}
       >
-        <Ionicons
-          name={showDetails ? 'chevron-down' : 'chevron-forward'}
-          size={16}
-          color={palette.error}
-        />
-        <ThemedText style={[styles.errorToggleText, { color: palette.error }]}>
-          View {errors.length} error{errors.length !== 1 ? 's' : ''}
-        </ThemedText>
+        <Row align="center" gap="xs">
+          <Ionicons
+            name={showDetails ? 'chevron-down' : 'chevron-forward'}
+            size={16}
+            color={palette.error}
+          />
+          <ThemedText style={[styles.errorToggleText, { color: palette.error }]}>
+            View {errors.length} error{errors.length !== 1 ? 's' : ''}
+          </ThemedText>
+        </Row>
       </Clickable>
 
       {showDetails && (
@@ -239,16 +241,18 @@ export const InviteActionRow = memo(function InviteActionRow({
   palette,
 }: InviteActionRowProps) {
   return (
-    <View style={styles.actionRow}>
+    <Row wrap gap="sm" style={styles.actionRow}>
       {onViewInvites && sent > 0 && (
         <Clickable
           onPress={onViewInvites}
           style={[styles.actionButton, { borderColor: palette.tint }]}
         >
-          <Ionicons name="eye-outline" size={16} color={palette.tint} />
-          <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>
-            View Invites
-          </ThemedText>
+          <Row align="center" gap="xs">
+            <Ionicons name="eye-outline" size={16} color={palette.tint} />
+            <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>
+              View Invites
+            </ThemedText>
+          </Row>
         </Clickable>
       )}
 
@@ -257,10 +261,12 @@ export const InviteActionRow = memo(function InviteActionRow({
           onPress={() => onRetryFailed(failedMemberIds)}
           style={[styles.actionButton, { borderColor: palette.warning }]}
         >
-          <Ionicons name="refresh" size={16} color={palette.warning} />
-          <ThemedText style={[styles.actionButtonText, { color: palette.warning }]}>
-            Retry Failed
-          </ThemedText>
+          <Row align="center" gap="xs">
+            <Ionicons name="refresh" size={16} color={palette.warning} />
+            <ThemedText style={[styles.actionButtonText, { color: palette.warning }]}>
+              Retry Failed
+            </ThemedText>
+          </Row>
         </Clickable>
       )}
 
@@ -272,7 +278,7 @@ export const InviteActionRow = memo(function InviteActionRow({
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Done</ThemedText>
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -292,7 +298,9 @@ export const CompactInviteResultInner = memo(function CompactInviteResultInner({
   const isSuccess = result.failed === 0;
 
   return (
-    <View
+    <Row
+      align="center"
+      gap="sm"
       style={[
         styles.compactContainer,
         {
@@ -323,18 +331,13 @@ export const CompactInviteResultInner = memo(function CompactInviteResultInner({
           />
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 });
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
   statusIcon: {
     width: 56,
     height: 56,
@@ -348,28 +351,10 @@ const styles = StyleSheet.create({
   },
   subtitleText: { ...Typography.small },
   contextRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
   },
-  contextItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   contextText: { ...Typography.caption },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    gap: Spacing.lg,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   statDot: {
     width: 8,
     height: 8,
@@ -378,11 +363,6 @@ const styles = StyleSheet.create({
   statValue: { ...Typography.subheading },
   statLabel: { ...Typography.caption },
   errorSection: {
-    gap: Spacing.xs,
-  },
-  errorToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.xs,
   },
   errorToggleText: { ...Typography.smallSemiBold },
@@ -397,15 +377,9 @@ const styles = StyleSheet.create({
   },
   errorMessage: { ...Typography.caption },
   actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
     marginTop: Spacing.xs,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
@@ -422,9 +396,6 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: { ...Typography.bodySmallSemiBold },
   compactContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,

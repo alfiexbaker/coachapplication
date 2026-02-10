@@ -38,14 +38,12 @@ export const ConversationRow = memo(function ConversationRow({
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
       <Clickable
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.conversationRow,
-          {
+        style={({ pressed }) => ({
             backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
-          },
-        ]}
+          })}
         accessibilityLabel={`Message from ${displayName}`}
       >
+        <Row align="center" gap="md" style={styles.conversationRow}>
         <View style={[styles.avatar, { backgroundColor: palette.surface }]}>
           <ThemedText style={[styles.avatarText, { color: palette.text }]}>
             {displayName
@@ -85,6 +83,7 @@ export const ConversationRow = memo(function ConversationRow({
             </ThemedText>
           ) : null}
         </Column>
+        </Row>
       </Clickable>
     </Animated.View>
   );
@@ -92,11 +91,8 @@ export const ConversationRow = memo(function ConversationRow({
 
 const styles = StyleSheet.create({
   conversationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    gap: Spacing.md,
   },
   avatar: {
     width: 48,

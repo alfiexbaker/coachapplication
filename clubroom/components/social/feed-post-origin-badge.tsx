@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,10 +35,12 @@ export const OriginBadge = memo(function OriginBadge({
 
   if (feedType === 'PERSONAL') {
     return (
-      <View style={styles.originBadgeRow}>
-        <View
+      <Row align="center" wrap gap="xs" style={styles.originBadgeRow}>
+        <Row
+          align="center"
+          gap="xxs"
           style={[
-            styles.clubBadge,
+            styles.clubBadgeView,
             { backgroundColor: withAlpha(palette.success, 0.06), borderColor: withAlpha(palette.success, 0.19) },
           ]}
         >
@@ -45,17 +48,19 @@ export const OriginBadge = memo(function OriginBadge({
           <ThemedText style={[styles.clubBadgeText, { color: palette.success }]} numberOfLines={1}>
             Personal
           </ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
     );
   }
 
   if (feedType === 'BOTH') {
     return (
-      <View style={styles.originBadgeRow}>
-        <View
+      <Row align="center" wrap gap="xs" style={styles.originBadgeRow}>
+        <Row
+          align="center"
+          gap="xxs"
           style={[
-            styles.clubBadge,
+            styles.clubBadgeView,
             { backgroundColor: withAlpha(palette.success, 0.06), borderColor: withAlpha(palette.success, 0.19) },
           ]}
         >
@@ -63,7 +68,7 @@ export const OriginBadge = memo(function OriginBadge({
           <ThemedText style={[styles.clubBadgeText, { color: palette.success }]} numberOfLines={1}>
             Personal
           </ThemedText>
-        </View>
+        </Row>
         <Clickable
           onPress={handleClubPress}
           style={[
@@ -82,7 +87,7 @@ export const OriginBadge = memo(function OriginBadge({
           </ThemedText>
           <Ionicons name="chevron-forward" size={12} color={palette.tint} />
         </Clickable>
-      </View>
+      </Row>
     );
   }
 
@@ -112,10 +117,6 @@ export const OriginBadge = memo(function OriginBadge({
 
 const styles = StyleSheet.create({
   originBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
     marginBottom: Spacing.xs,
   },
   clubBadge: {
@@ -123,6 +124,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    paddingRight: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  clubBadgeView: {
+    alignSelf: 'flex-start',
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingRight: Spacing.xs,

@@ -7,6 +7,7 @@
 
 import { View } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { withAlpha } from '@/constants/theme';
@@ -32,7 +33,7 @@ export function ReferralStats({
   const content = (
     <>
       {variant === 'horizontal' ? (
-        <View style={styles.horizontalRow}>
+        <Row align="center" justify="space-around">
           <StatItem
             icon="wallet-outline"
             iconColor={palette.success}
@@ -56,9 +57,9 @@ export function ReferralStats({
             label="Pending"
             palette={palette}
           />
-        </View>
+        </Row>
       ) : variant === 'compact' ? (
-        <View style={styles.compactRow}>
+        <Row gap="lg">
           <CompactStatItem
             icon="wallet-outline"
             iconColor={palette.success}
@@ -82,10 +83,10 @@ export function ReferralStats({
               palette={palette}
             />
           )}
-        </View>
+        </Row>
       ) : (
         <View style={styles.defaultGrid}>
-          <View style={styles.defaultRow}>
+          <Row gap="sm">
             <StatCard
               icon="wallet-outline"
               iconColor={palette.success}
@@ -95,8 +96,8 @@ export function ReferralStats({
               description="From successful referrals"
               palette={palette}
             />
-          </View>
-          <View style={styles.defaultRow}>
+          </Row>
+          <Row gap="sm">
             <StatCard
               icon="people-outline"
               iconColor={palette.tint}
@@ -119,7 +120,7 @@ export function ReferralStats({
                 flex
               />
             )}
-          </View>
+          </Row>
         </View>
       )}
     </>

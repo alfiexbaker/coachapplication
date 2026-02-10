@@ -6,9 +6,11 @@ import { ThemedText } from '@/components/themed-text';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { BrandingEditor } from '@/components/club/branding-editor';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { clubService, type ClubBranding } from '@/services/club-service';
 import { createLogger } from '@/utils/logger';
 
@@ -16,7 +18,7 @@ const logger = createLogger('BrandingScreen');
 
 export default function BrandingScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const router = useRouter();
 
   const [, setBranding] = useState<ClubBranding | null>(null);
@@ -91,7 +93,7 @@ export default function BrandingScreen() {
       {draft && <BrandingEditor branding={draft} onChange={handleChange} />}
 
       {/* Action buttons */}
-      <View style={styles.actions}>
+      <Row style={styles.actions}>
         <Clickable
           onPress={handleCancel}
           accessibilityLabel="Cancel"
@@ -133,7 +135,7 @@ export default function BrandingScreen() {
             </ThemedText>
           )}
         </Clickable>
-      </View>
+      </Row>
     </PageContainer>
   );
 }
@@ -146,7 +148,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   actions: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     paddingTop: Spacing.sm,
   },

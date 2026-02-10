@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface BookingCoachViewProps {
   booking: BookingSummary;
@@ -76,7 +77,7 @@ function BookingCoachViewInner({
         </ThemedText>
       </Clickable>
 
-      <View style={styles.buttonRow}>
+      <Row style={styles.buttonRow}>
         <Clickable
           onPress={onReschedule}
           style={({ pressed }) => [
@@ -100,7 +101,7 @@ function BookingCoachViewInner({
           <Ionicons name="cash-outline" size={18} color={palette.foreground} />
           <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       <Clickable
         onPress={onCancelBooking}
@@ -127,11 +128,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   buttonRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
   primaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -142,7 +141,6 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
   },
   secondaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -152,7 +150,6 @@ const styles = StyleSheet.create({
   },
   halfButton: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

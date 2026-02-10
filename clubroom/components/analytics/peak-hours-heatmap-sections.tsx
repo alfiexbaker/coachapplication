@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -46,7 +47,7 @@ export const HeatmapSummary = memo(function HeatmapSummary({
   if (!busiestDay && !busiestHour) return null;
 
   return (
-    <View style={styles.summaryRow}>
+    <Row style={styles.summaryRow}>
       {busiestDay && (
         <View style={styles.summaryItem}>
           <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
@@ -69,7 +70,7 @@ export const HeatmapSummary = memo(function HeatmapSummary({
           </ThemedText>
         </View>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -81,9 +82,9 @@ export interface HeatmapLegendProps {
 
 export const HeatmapLegend = memo(function HeatmapLegend({ palette }: HeatmapLegendProps) {
   return (
-    <View style={styles.legend}>
+    <Row style={styles.legend}>
       <ThemedText style={[styles.legendLabel, { color: palette.muted }]}>Less</ThemedText>
-      <View style={styles.legendScale}>
+      <Row style={styles.legendScale}>
         {[0, 0.25, 0.5, 0.75, 1].map((intensity) => (
           <View
             key={intensity}
@@ -93,9 +94,9 @@ export const HeatmapLegend = memo(function HeatmapLegend({ palette }: HeatmapLeg
             ]}
           />
         ))}
-      </View>
+      </Row>
       <ThemedText style={[styles.legendLabel, { color: palette.muted }]}>More</ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -103,7 +104,6 @@ export const HeatmapLegend = memo(function HeatmapLegend({ palette }: HeatmapLeg
 
 const styles = StyleSheet.create({
   summaryRow: {
-    flexDirection: 'row',
     marginBottom: Spacing.md,
     gap: Spacing.lg,
   },
@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
   summaryValue: { ...Typography.heading },
   summaryDetail: { ...Typography.caption, marginTop: Spacing.micro },
   legend: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.md,
@@ -127,7 +126,6 @@ const styles = StyleSheet.create({
   },
   legendLabel: { ...Typography.micro },
   legendScale: {
-    flexDirection: 'row',
     gap: Spacing.micro,
   },
   legendCell: {

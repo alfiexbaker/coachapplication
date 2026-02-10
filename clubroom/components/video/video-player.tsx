@@ -6,6 +6,7 @@ import Animated, { FadeIn, FadeOut, useSharedValue, withTiming } from 'react-nat
 import Slider from '@react-native-community/slider';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -121,7 +122,7 @@ export function VideoPlayer({
 
         {showControls && (
           <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={styles.controlsOverlay}>
-            <View style={styles.centerControls}>
+            <Row flex align="center" justify="center" gap="xl">
               <Clickable onPress={skipBackward} style={styles.skipButton}>
                 <Ionicons name="play-back" size={28} color={palette.onPrimary} />
               </Clickable>
@@ -131,7 +132,7 @@ export function VideoPlayer({
               <Clickable onPress={skipForward} style={styles.skipButton}>
                 <Ionicons name="play-forward" size={28} color={palette.onPrimary} />
               </Clickable>
-            </View>
+            </Row>
 
             <View style={styles.bottomControls}>
               <View style={styles.progressContainer}>
@@ -166,14 +167,14 @@ export function VideoPlayer({
                 />
               </View>
 
-              <View style={styles.timeRow}>
+              <Row justify="between" style={styles.timeRow}>
                 <ThemedText style={styles.timeText} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
                   {formatTime(currentTime)}
                 </ThemedText>
                 <ThemedText style={styles.timeText} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
                   {formatTime(videoDuration)}
                 </ThemedText>
-              </View>
+              </Row>
             </View>
           </Animated.View>
         )}
@@ -188,13 +189,12 @@ const styles = StyleSheet.create({
   video: { flex: 1 },
   bufferingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,23,42,0.5)', alignItems: 'center', justifyContent: 'center' },
   controlsOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,23,42,0.4)', justifyContent: 'space-between' },
-  centerControls: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xl },
   playPauseButton: { width: 72, height: 72, borderRadius: Radii['3xl'], backgroundColor: 'rgba(15,23,42,0.5)', alignItems: 'center', justifyContent: 'center' },
   skipButton: { width: 48, height: 48, borderRadius: Radii.xl, backgroundColor: 'rgba(15,23,42,0.3)', alignItems: 'center', justifyContent: 'center' },
   bottomControls: { padding: Spacing.md, gap: Spacing.xs },
   progressContainer: { position: 'relative', height: 30, justifyContent: 'center' },
   slider: { width: '100%', height: 30 },
   annotationMarker: { position: 'absolute', width: 8, height: 8, borderRadius: Radii.xs, top: 11, marginLeft: -4, zIndex: 10 },
-  timeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.xs },
+  timeRow: { paddingHorizontal: Spacing.xs },
   timeText: { ...Typography.caption },
 });

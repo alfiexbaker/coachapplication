@@ -21,6 +21,7 @@ import DateTimePicker, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { Components } from '@/constants/theme';
+import { Row } from '@/components/primitives/row';
 import { useTheme } from '@/hooks/useTheme';
 import { toDateStr } from '@/utils/format';
 
@@ -138,15 +139,17 @@ function DateTimeFieldInner({
           disabled ? themedStyles.disabled : undefined,
         ]}
       >
-        <Ionicons name={icon} size={Components.icon.md} color={colors.muted} />
-        <Text
-          style={[
-            styles.valueText,
-            displayValue ? themedStyles.text : themedStyles.placeholder,
-          ]}
-        >
-          {displayValue || placeholder || defaultPlaceholder}
-        </Text>
+        <Row align="center" gap="xs" flex>
+          <Ionicons name={icon} size={Components.icon.md} color={colors.muted} />
+          <Text
+            style={[
+              styles.valueText,
+              displayValue ? themedStyles.text : themedStyles.placeholder,
+            ]}
+          >
+            {displayValue || placeholder || defaultPlaceholder}
+          </Text>
+        </Row>
       </Pressable>
 
       {hasError ? (

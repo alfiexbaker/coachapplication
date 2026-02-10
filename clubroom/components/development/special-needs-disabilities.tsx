@@ -8,6 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
+import { Row } from '@/components/primitives';
 
 interface SpecialNeedsDisabilitiesProps {
   disabilities: ChildProfile['disabilities'];
@@ -72,13 +73,13 @@ function TagSection({ icon, label, color, tags }: { icon: string; label: string;
         <Ionicons name={icon as any} size={Components.icon.sm} color={color} />
         <ThemedText style={[Typography.caption, { color }]}>{label}</ThemedText>
       </Row>
-      <View style={styles.tagList}>
+      <Row style={styles.tagList}>
         {tags.map((tag, idx) => (
           <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(color, 0.09) }]}>
             <ThemedText style={[Typography.caption, { color }]}>{tag}</ThemedText>
           </View>
         ))}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -90,6 +91,6 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: Spacing.xs, paddingVertical: Components.pill.paddingVertical, borderRadius: Radii.sm },
   infoBlock: { padding: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
   tagSection: { gap: Spacing.xs },
-  tagList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  tagList: { flexWrap: 'wrap', gap: Spacing.xs },
   tag: { paddingHorizontal: Spacing.sm, paddingVertical: Components.pill.paddingVertical, borderRadius: Radii.pill },
 });

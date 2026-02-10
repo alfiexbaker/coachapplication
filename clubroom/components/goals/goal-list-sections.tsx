@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── GoalListSkeleton ─────────────────────────────────────────────────────────
 
@@ -84,8 +85,8 @@ export const GoalSectionHeaderInner = memo(function GoalSectionHeaderInner({
   palette,
 }: GoalSectionHeaderProps) {
   return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionTitleRow}>
+    <Row style={styles.sectionHeader}>
+      <Row style={styles.sectionTitleRow}>
         {icon && (
           <Ionicons
             name={icon as keyof typeof Ionicons.glyphMap}
@@ -96,7 +97,7 @@ export const GoalSectionHeaderInner = memo(function GoalSectionHeaderInner({
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           {title}
         </ThemedText>
-      </View>
+      </Row>
       {count !== undefined && (
         <View style={[styles.countBadge, { backgroundColor: palette.surfaceSecondary }]}>
           <ThemedText style={[styles.countText, { color: palette.muted }]}>
@@ -104,7 +105,7 @@ export const GoalSectionHeaderInner = memo(function GoalSectionHeaderInner({
           </ThemedText>
         </View>
       )}
-    </View>
+    </Row>
   );
 });
 
@@ -197,14 +198,12 @@ export const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xs,
   },
   sectionTitleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

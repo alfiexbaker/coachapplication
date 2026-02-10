@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { CoachGender } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ export const FilterModalHeader = memo(function FilterModalHeader({
   palette,
 }: FilterModalHeaderProps) {
   return (
-    <View style={[styles.header, { borderBottomColor: palette.border }]}>
+    <Row style={[styles.header, { borderBottomColor: palette.border }]}>
       <Clickable
         accessibilityLabel="Close filters"
         onPress={onClose}
@@ -90,7 +91,7 @@ export const FilterModalHeader = memo(function FilterModalHeader({
           Clear
         </ThemedText>
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -112,7 +113,7 @@ export const ChipGridSection = memo(function ChipGridSection({
       <ThemedText style={[styles.sectionTitle, { color: palette.text }]}>
         {title}
       </ThemedText>
-      <View style={styles.chipGrid}>{children}</View>
+      <Row style={styles.chipGrid}>{children}</Row>
     </View>
   );
 });
@@ -179,7 +180,6 @@ export const FilterModalFooter = memo(function FilterModalFooter({
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
@@ -203,7 +203,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   chipGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

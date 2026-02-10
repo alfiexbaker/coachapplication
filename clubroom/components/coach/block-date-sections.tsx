@@ -14,6 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { toDateStr } from '@/utils/format';
 import { BLOCK_REASONS, HOLIDAY_PRESETS, formatBlockDate } from './block-date-helpers';
+import { Row } from '@/components/primitives';
 
 // --- ModeSelector ---
 type BlockMode = 'single' | 'range' | 'holiday';
@@ -26,7 +27,7 @@ const MODE_OPTIONS = [
 export const ModeSelector = memo(function ModeSelector({ mode, onSelect }: { mode: BlockMode; onSelect: (m: BlockMode) => void }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.modeSelector}>
+    <Row style={styles.modeSelector}>
       {MODE_OPTIONS.map((m) => {
         const isActive = mode === m.id;
         return (
@@ -37,7 +38,7 @@ export const ModeSelector = memo(function ModeSelector({ mode, onSelect }: { mod
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -50,7 +51,7 @@ export const QuickDates = memo(function QuickDates({ startDate, onSelect }: { st
     return [{ id: 'today', label: 'Today', date: today }, { id: 'tomorrow', label: 'Tomorrow', date: tomorrow }, { id: 'nextweek', label: 'Next Week', date: nextWeek }];
   }, []);
   return (
-    <View style={styles.quickDates}>
+    <Row style={styles.quickDates}>
       {quickDates.map((qd) => {
         const isSelected = toDateStr(startDate) === toDateStr(qd.date);
         return (
@@ -60,7 +61,7 @@ export const QuickDates = memo(function QuickDates({ startDate, onSelect }: { st
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -68,7 +69,7 @@ export const QuickDates = memo(function QuickDates({ startDate, onSelect }: { st
 export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({ selectedPreset, onSelect }: { selectedPreset: string | null; onSelect: (id: string, range: { start: Date; end: Date }) => void }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.holidayGrid}>
+    <Row style={styles.holidayGrid}>
       {HOLIDAY_PRESETS.map((preset) => {
         const isSelected = selectedPreset === preset.id;
         const dateRange = preset.dates();
@@ -88,7 +89,7 @@ export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({ selectedPre
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -118,7 +119,7 @@ export const DatePickerSection = memo(function DatePickerSection({ mode, startDa
 function DateRow({ label, date, color, onBack, onForward }: { label: string; date: Date; color: string; onBack: () => void; onForward: () => void }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.dateRow}>
+    <Row style={styles.dateRow}>
       <View style={[styles.dateIcon, { backgroundColor: withAlpha(color, 0.09) }]}>
         <Ionicons name="calendar" size={18} color={color} />
       </View>
@@ -126,15 +127,15 @@ function DateRow({ label, date, color, onBack, onForward }: { label: string; dat
         <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>{label}</ThemedText>
         <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>{formatBlockDate(date)}</ThemedText>
       </View>
-      <View style={styles.dateAdjust}>
+      <Row style={styles.dateAdjust}>
         <Clickable accessibilityLabel="Go back" onPress={onBack} style={[styles.adjustButton, { borderColor: palette.border }]}>
           <Ionicons name="chevron-back" size={18} color={palette.text} />
         </Clickable>
         <Clickable accessibilityLabel="Next" onPress={onForward} style={[styles.adjustButton, { borderColor: palette.border }]}>
           <Ionicons name="chevron-forward" size={18} color={palette.text} />
         </Clickable>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 }
 
@@ -142,7 +143,7 @@ function DateRow({ label, date, color, onBack, onForward }: { label: string; dat
 export const ReasonSelector = memo(function ReasonSelector({ reason, onSelect }: { reason: string; onSelect: (id: string) => void }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.reasonGrid}>
+    <Row style={styles.reasonGrid}>
       {BLOCK_REASONS.map((r) => {
         const isSelected = reason === r.id;
         return (
@@ -153,7 +154,7 @@ export const ReasonSelector = memo(function ReasonSelector({ reason, onSelect }:
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -162,7 +163,7 @@ export const BlockSummary = memo(function BlockSummary({ startDate, endDate, rea
   const { colors: palette } = useTheme();
   return (
     <SurfaceCard style={[styles.summaryCard, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
-      <View style={styles.summaryRow}>
+      <Row style={styles.summaryRow}>
         <Ionicons name="alert-circle" size={20} color={palette.error} />
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold" style={{ color: palette.error }}>Time Off Summary</ThemedText>
@@ -171,34 +172,34 @@ export const BlockSummary = memo(function BlockSummary({ startDate, endDate, rea
           </ThemedText>
           <ThemedText style={[styles.summaryText, { color: palette.muted }]}>Reason: {BLOCK_REASONS.find(r => r.id === reason)?.label}</ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
 
 const styles = StyleSheet.create({
-  modeSelector: { flexDirection: 'row', gap: Spacing.xs },
-  modeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  modeSelector: { gap: Spacing.xs },
+  modeButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
   modeButtonText: { ...Typography.smallSemiBold },
-  quickDates: { flexDirection: 'row', gap: Spacing.xs },
+  quickDates: { gap: Spacing.xs },
   quickDateChip: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   quickDateText: { fontWeight: '600' },
-  holidayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  holidayGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   holidayCard: { width: '48%', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs, position: 'relative' },
   holidayIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
   holidayDates: { ...Typography.caption },
   selectedBadge: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   dateCard: { padding: Spacing.md },
-  dateRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  dateRow: { alignItems: 'center', gap: Spacing.md },
   dateIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   dateInfo: { flex: 1 },
   dateLabel: { ...Typography.caption },
-  dateAdjust: { flexDirection: 'row', gap: Spacing.xs },
+  dateAdjust: { gap: Spacing.xs },
   adjustButton: { width: 36, height: 36, borderRadius: Radii.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  reasonChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  reasonGrid: { flexWrap: 'wrap', gap: Spacing.xs },
+  reasonChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
   reasonText: { ...Typography.smallSemiBold },
   summaryCard: { padding: Spacing.md },
-  summaryRow: { flexDirection: 'row', gap: Spacing.md },
+  summaryRow: { gap: Spacing.md },
   summaryText: { ...Typography.small, marginTop: Spacing.micro },
 });

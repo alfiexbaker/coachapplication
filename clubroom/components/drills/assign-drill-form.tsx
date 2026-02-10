@@ -14,6 +14,7 @@ import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Drill } from '@/constants/types';
 import type { DrillAthlete } from '@/hooks/use-drill-assign';
+import { Row } from '@/components/primitives';
 
 interface AssignDrillFormProps {
   drill: Drill;
@@ -45,10 +46,10 @@ export const AssignDrillForm = memo(function AssignDrillForm({
       <Animated.View entering={FadeInDown.delay(100).springify()}>
         <SurfaceCard style={styles.drillPreview}>
           <Row align="center" justify="space-between" style={{ marginBottom: Spacing.xs }}>
-            <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
+            <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
               <Ionicons name={categoryInfo.icon as keyof typeof Ionicons.glyphMap} size={14} color={categoryInfo.color} />
               <ThemedText style={[Typography.caption, { color: categoryInfo.color, fontSize: scaleFont(Typography.caption.fontSize) }]}>{categoryInfo.label}</ThemedText>
-            </View>
+            </Row>
             <DifficultyBadge difficulty={drill.difficulty} size="small" />
           </Row>
           <ThemedText type="defaultSemiBold" style={[Typography.heading, { fontSize: scaleFont(Typography.heading.fontSize), marginBottom: Spacing.xs }]}>{drill.title}</ThemedText>
@@ -71,7 +72,7 @@ export const AssignDrillForm = memo(function AssignDrillForm({
       <Animated.View entering={FadeInDown.delay(150).springify()}>
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Select Athlete *</ThemedText>
-          <View style={styles.athleteGrid}>
+          <Row style={styles.athleteGrid}>
             {athletes.map((athlete) => {
               const isSelected = selectedAthlete?.id === athlete.id;
               return (
@@ -90,7 +91,7 @@ export const AssignDrillForm = memo(function AssignDrillForm({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
       </Animated.View>
 
@@ -176,15 +177,15 @@ export const AssignDrillForm = memo(function AssignDrillForm({
 
 const styles = StyleSheet.create({
   drillPreview: { padding: Spacing.md, marginBottom: Spacing.lg },
-  categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  categoryBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   section: { marginBottom: Spacing.lg },
   sectionTitle: { ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize), marginBottom: Spacing.sm },
-  athleteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  athleteGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   athleteCard: { width: '47%', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', position: 'relative' },
   avatar: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
   check: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   dateOption: { paddingVertical: 10, alignItems: 'center', borderRadius: Radii.md, borderWidth: 1 },
-  priorityOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, borderWidth: 1 },
+  priorityOption: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, borderWidth: 1 },
   repsOption: { width: 48, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: Radii.sm, borderWidth: 1 },
   customReps: { width: 72, height: 44, borderWidth: 1, borderRadius: Radii.sm, paddingHorizontal: Spacing.sm, ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize), textAlign: 'center' },
   notesInput: { height: 100, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },

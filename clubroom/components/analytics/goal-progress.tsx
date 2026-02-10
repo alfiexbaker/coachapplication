@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { Goal } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { MilestoneItem } from './goal-progress-sections';
+import { Row } from '@/components/primitives';
 
 // Re-export for backward compatibility
 export { GoalsSummary } from './goal-progress-sections';
@@ -45,9 +46,9 @@ export function GoalProgress({
   return (
     <SurfaceCard style={styles.container} onPress={onPress}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={styles.headerContent}>
-          <View style={styles.titleRow}>
+          <Row style={styles.titleRow}>
             {isCompleted && (
               <Ionicons name="checkmark-circle" size={18} color={palette.success} />
             )}
@@ -57,9 +58,9 @@ export function GoalProgress({
             >
               {goal.title}
             </ThemedText>
-          </View>
+          </Row>
 
-          <View style={styles.metaRow}>
+          <Row style={styles.metaRow}>
             {goal.createdBy === 'COACH' && (
               <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
@@ -98,7 +99,7 @@ export function GoalProgress({
                 </ThemedText>
               </View>
             )}
-          </View>
+          </Row>
         </View>
 
         <View style={[styles.progressCircle, { borderColor: statusColor }]}>
@@ -106,7 +107,7 @@ export function GoalProgress({
             {goal.progress}%
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Description */}
       <ThemedText
@@ -151,7 +152,7 @@ export function GoalProgress({
 
       {/* Target Date */}
       {goal.targetDate && (
-        <View style={styles.targetRow}>
+        <Row style={styles.targetRow}>
           <Ionicons name="calendar-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.targetText, { color: palette.muted }]}>
             Target:{' '}
@@ -161,7 +162,7 @@ export function GoalProgress({
               year: 'numeric',
             })}
           </ThemedText>
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -170,20 +171,17 @@ export function GoalProgress({
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.sm },
   header: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
   headerContent: { flex: 1, gap: Spacing.xs },
   titleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   title: { ...Typography.body, flex: 1 },
   metaRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
@@ -213,7 +211,6 @@ const styles = StyleSheet.create({
   milestoneCount: { ...Typography.caption, textAlign: 'right' },
   milestonesList: { gap: Spacing.xs, paddingTop: Spacing.xs },
   targetRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

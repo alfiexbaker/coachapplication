@@ -13,6 +13,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface TrainingCardProps {
   session: GroupSession;
@@ -83,7 +84,7 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
         </View>
 
         {/* Coach */}
-        <View style={[styles.coachSection, { borderTopColor: colors.border }]}>
+        <Row style={[styles.coachSection, { borderTopColor: colors.border }]}>
           {session.coachPhotoUrl ? (
             <Image source={{ uri: session.coachPhotoUrl }} style={styles.coachPhoto} />
           ) : (
@@ -99,7 +100,7 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
               <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>RSVP</ThemedText>
             </Clickable>
           )}
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   freeBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   details: { gap: Spacing.sm },
   iconCircle: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
-  coachSection: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1 },
+  coachSection: { alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1 },
   coachPhoto: { width: 28, height: 28, borderRadius: Radii.lg },
   rsvpButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.sm },
 });

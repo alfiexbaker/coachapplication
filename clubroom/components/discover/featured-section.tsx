@@ -14,6 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 import { CoachCard, type CoachCardData } from '@/components/coach';
 import { MOCK_DISCOVERY_COACHES } from '@/constants/mock-data';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,8 +72,8 @@ export function FeaturedSection({
   return (
     <View style={styles.container}>
       {/* Section header */}
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.headerLeft}>
           <Ionicons
             name={getSectionIcon(variant)}
             size={Components.icon.lg}
@@ -81,19 +82,19 @@ export function FeaturedSection({
           <ThemedText style={[styles.headerTitle, { color: palette.text }]}>
             {getSectionTitle(variant, childName)}
           </ThemedText>
-        </View>
+        </Row>
 
         {onSeeAll && (
           <Clickable onPress={onSeeAll} accessibilityLabel="See all coaches">
-            <View style={styles.seeAllButton}>
+            <Row style={styles.seeAllButton}>
               <ThemedText style={[styles.seeAllText, { color: palette.tint }]}>
                 See all
               </ThemedText>
               <Ionicons name="chevron-forward" size={Components.icon.sm} color={palette.tint} />
-            </View>
+            </Row>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Horizontal scroll of cards */}
       <ScrollView
@@ -133,13 +134,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
   },
   headerLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     flex: 1,
@@ -149,7 +148,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   seeAllButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

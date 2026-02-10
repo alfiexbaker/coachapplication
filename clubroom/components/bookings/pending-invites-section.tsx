@@ -99,7 +99,6 @@ const styles = StyleSheet.create({
     ...Typography.micro,
   },
   viewAll: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

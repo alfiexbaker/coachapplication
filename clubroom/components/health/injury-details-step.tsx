@@ -10,6 +10,7 @@ import type { BodyPart, InjurySeverity } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 
 import { InjurySummaryCard, ShareWithCoachToggle } from './injury-details-sections';
+import { Row } from '@/components/primitives';
 
 interface InjuryDetailsStepProps {
   bodyPart: BodyPart | null;
@@ -84,7 +85,7 @@ export function InjuryDetailsStep({
             When did it occur?
           </ThemedText>
           <Clickable onPress={() => onShowOccurredPicker(true)}>
-            <View style={[styles.dateButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row style={[styles.dateButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <Ionicons name="calendar-outline" size={18} color={palette.muted} />
               <ThemedText style={styles.dateButtonText}>
                 {occurredAt.toLocaleDateString('en-GB', {
@@ -93,7 +94,7 @@ export function InjuryDetailsStep({
                   year: 'numeric',
                 })}
               </ThemedText>
-            </View>
+            </Row>
           </Clickable>
         </View>
 
@@ -111,7 +112,7 @@ export function InjuryDetailsStep({
               onShowRecoveryPicker(true);
             }}
           >
-            <View style={[styles.dateButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row style={[styles.dateButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <Ionicons name="calendar-outline" size={18} color={palette.muted} />
               <ThemedText style={styles.dateButtonText}>
                 {expectedRecovery
@@ -134,7 +135,7 @@ export function InjuryDetailsStep({
                   <Ionicons name="close-circle" size={18} color={palette.muted} />
                 </Clickable>
               )}
-            </View>
+            </Row>
           </Clickable>
         </View>
       </View>
@@ -207,7 +208,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   dateButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

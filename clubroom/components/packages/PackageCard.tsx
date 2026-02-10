@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
@@ -55,7 +56,7 @@ export function PackageCard({
 
         <View style={styles.content}>
           {/* Header */}
-          <View style={styles.header}>
+          <Row justify="space-between" align="flex-start">
             <View style={styles.titleSection}>
               <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>
                 {pkg.name}
@@ -71,7 +72,7 @@ export function PackageCard({
                 {packageService.formatPrice(pkg.price, pkg.currency)}
               </ThemedText>
             </View>
-          </View>
+          </Row>
 
           {/* Description */}
           {!compact && pkg.description && (
@@ -81,54 +82,54 @@ export function PackageCard({
           )}
 
           {/* Stats Row */}
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
+          <Row wrap gap="sm">
+            <Row align="center" gap="xxs">
               <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <Ionicons name="calendar-outline" size={14} color={palette.tint} />
               </View>
               <ThemedText style={styles.statText}>
                 {pkg.sessionCount} {pkg.sessionCount === 1 ? 'session' : 'sessions'}
               </ThemedText>
-            </View>
+            </Row>
 
-            <View style={styles.stat}>
+            <Row align="center" gap="xxs">
               <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="pricetag-outline" size={14} color={palette.success} />
               </View>
               <ThemedText style={styles.statText}>
                 {packageService.formatPrice(pricePerSession, pkg.currency)}/session
               </ThemedText>
-            </View>
+            </Row>
 
-            <View style={styles.stat}>
+            <Row align="center" gap="xxs">
               <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                 <Ionicons name="time-outline" size={14} color={palette.warning} />
               </View>
               <ThemedText style={styles.statText}>
                 {pkg.validDays} days valid
               </ThemedText>
-            </View>
-          </View>
+            </Row>
+          </Row>
 
           {/* Focus Areas */}
           {!compact && pkg.focus && pkg.focus.length > 0 && (
-            <View style={styles.focusRow}>
+            <Row gap="xxs" style={styles.focusRow}>
               {pkg.focus.slice(0, 3).map((f) => (
                 <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <ThemedText style={[styles.focusText, { color: palette.tint }]}>{f}</ThemedText>
                 </View>
               ))}
-            </View>
+            </Row>
           )}
 
           {/* Inactive indicator */}
           {!pkg.isActive && (
-            <View style={[styles.inactiveBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+            <Row align="center" gap="xxs" style={[styles.inactiveBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
               <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
               <ThemedText style={[styles.inactiveText, { color: palette.error }]}>
                 Currently unavailable
               </ThemedText>
-            </View>
+            </Row>
           )}
         </View>
       </SurfaceCard>
@@ -161,11 +162,6 @@ const styles = StyleSheet.create({
     padding: Components.card.padding,
     gap: Spacing.sm,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   titleSection: {
     flex: 1,
     marginRight: Spacing.lg,
@@ -178,16 +174,6 @@ const styles = StyleSheet.create({
   },
   price: { ...Typography.title },
   description: { ...Typography.small, lineHeight: 18 },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
   statIcon: {
     width: 24,
     height: 24,
@@ -197,8 +183,6 @@ const styles = StyleSheet.create({
   },
   statText: { ...Typography.caption },
   focusRow: {
-    flexDirection: 'row',
-    gap: Spacing.xxs,
     marginTop: Spacing.xxs,
   },
   focusTag: {
@@ -208,9 +192,6 @@ const styles = StyleSheet.create({
   },
   focusText: { ...Typography.caption },
   inactiveBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,

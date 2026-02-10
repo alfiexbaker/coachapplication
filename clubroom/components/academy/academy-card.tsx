@@ -12,6 +12,7 @@ export { CompactAcademyCard } from './academy-card-sections';
 export type { CompactAcademyCardProps } from './academy-card-sections';
 
 import { CompactAcademyCard } from './academy-card-sections';
+import { Row } from '@/components/primitives';
 
 interface AcademyCardProps {
   academy: Academy;
@@ -38,7 +39,7 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
       </View>
 
       <View style={styles.content}>
-        <View style={styles.logoRow}>
+        <Row style={styles.logoRow}>
           {academy.logoUrl ? (
             <Image source={{ uri: academy.logoUrl }} style={[styles.logo, { borderColor: palette.surface }]} />
           ) : (
@@ -48,36 +49,36 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
           )}
           <View style={styles.titleSection}>
             <ThemedText type="defaultSemiBold" numberOfLines={1}>{academy.name}</ThemedText>
-            <View style={styles.locationRow}>
+            <Row style={styles.locationRow}>
               <Ionicons name="location-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.location, { color: palette.muted }]}>{academy.city}</ThemedText>
-            </View>
+            </Row>
           </View>
-        </View>
+        </Row>
 
         {academy.description && (
           <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>{academy.description}</ThemedText>
         )}
 
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
+        <Row style={styles.statsRow}>
+          <Row style={styles.stat}>
             <Ionicons name="people" size={14} color={primaryColor} />
             <ThemedText style={[styles.statText, { color: palette.muted }]}>{academy.coachCount} coaches</ThemedText>
-          </View>
-          <View style={styles.stat}>
+          </Row>
+          <Row style={styles.stat}>
             <Ionicons name="person" size={14} color={primaryColor} />
             <ThemedText style={[styles.statText, { color: palette.muted }]}>{academy.athleteCount} athletes</ThemedText>
-          </View>
+          </Row>
           {academy.rating && (
-            <View style={styles.stat}>
+            <Row style={styles.stat}>
               <Ionicons name="star" size={14} color={palette.rating} />
               <ThemedText style={[styles.statText, { color: palette.muted }]}>{academy.rating.average.toFixed(1)}</ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
 
         {academy.specialties && academy.specialties.length > 0 && (
-          <View style={styles.tagsRow}>
+          <Row style={styles.tagsRow}>
             {academy.specialties.slice(0, 3).map((specialty) => (
               <View key={specialty} style={[styles.tag, { backgroundColor: withAlpha(primaryColor, 0.09) }]}>
                 <ThemedText style={[styles.tagText, { color: primaryColor }]}>{specialty}</ThemedText>
@@ -88,7 +89,7 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
                 <ThemedText style={[styles.tagText, { color: palette.muted }]}>+{academy.specialties.length - 3}</ThemedText>
               </View>
             )}
-          </View>
+          </Row>
         )}
       </View>
     </SurfaceCard>
@@ -101,18 +102,18 @@ const styles = StyleSheet.create({
   banner: { width: '100%', height: '100%' },
   bannerPlaceholder: { width: '100%', height: '100%' },
   content: { padding: Spacing.md, gap: Spacing.sm },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: -32 },
+  logoRow: { alignItems: 'center', gap: Spacing.sm, marginTop: -32 },
   logo: { width: 56, height: 56, borderRadius: Radii['2xl'], borderWidth: 3 },
   logoPlaceholder: { width: 56, height: 56, borderRadius: Radii['2xl'], borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   logoText: { ...Typography.heading },
   titleSection: { flex: 1, marginTop: 24 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, marginTop: Spacing.micro },
+  locationRow: { alignItems: 'center', gap: Spacing.micro, marginTop: Spacing.micro },
   location: { ...Typography.caption },
   description: { ...Typography.small, lineHeight: 18 },
-  statsRow: { flexDirection: 'row', gap: Spacing.md },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  statsRow: { gap: Spacing.md },
+  stat: { alignItems: 'center', gap: Spacing.xxs },
   statText: { ...Typography.caption },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  tagsRow: { flexWrap: 'wrap', gap: Spacing.xs },
   tag: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   tagText: { ...Typography.caption },
 });

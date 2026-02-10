@@ -9,6 +9,7 @@ import { StaffRolePicker } from '@/components/academy/staff-role-picker';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AcademyMembership } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface StaffInviteModalProps {
   visible: boolean;
@@ -29,12 +30,12 @@ export const StaffInviteModal = memo(function StaffInviteModal({
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="title">Invite Staff</ThemedText>
             <Clickable accessibilityLabel="Close" onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text} />
             </Clickable>
-          </View>
+          </Row>
 
           {inviteCode ? (
             <View style={styles.codeSection}>
@@ -67,7 +68,7 @@ export const StaffInviteModal = memo(function StaffInviteModal({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   content: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { alignItems: 'center', justifyContent: 'space-between' },
   label: { ...Typography.smallSemiBold, marginTop: Spacing.sm },
   codeSection: { alignItems: 'center', gap: Spacing.md },
   codeLabel: { ...Typography.bodySmall, textAlign: 'center' },

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+/**
+ * FeedScreen — Aggregated social feed from all clubs.
+ *
+ * Uses useScreen() for data loading with proper 4-state pattern.
+ * Sub-components: FeedPostCard, FeedFilters, ClubHubCard, EmptyFeedState.
+ */
+
+import { useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -8,10 +15,13 @@ import {
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
+import { ServiceEvents } from '@/services/event-bus';
+import { ok, err, type Result, type ServiceError } from '@/types/result';
 import type { Club } from '@/constants/types';
 
 import { FeedPostCard } from '@/components/social/feed-post-card';
@@ -22,53 +32,85 @@ import {
   type FeedFilter,
 } from '@/components/social/feed-filters';
 
-export default function FeedScreen() {
-  const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+interface FeedData {
+  feed: AggregatedFeedPost[];
+  clubs: Club[];
+}
 
-  const [feed, setFeed] = useState<AggregatedFeedPost[]>([]);
-  const [clubs, setClubs] = useState<Club[]>([]);
+export default function FeedScreen() {
+  const { currentUser } = useAuth();
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
-  const [refreshing, setRefreshing] = useState(false);
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const loadFeed = useCallback(() => {
-    if (currentUser?.id) {
-      const posts = isCoach
-        ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
-        : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
-      setFeed(posts);
-      const userClubs = socialFeedService.getUserClubs(currentUser.id);
-      setClubs(userClubs);
-    }
-  }, [currentUser?.id, feedFilter, isCoach]);
+  const { data, status, error, refreshing, onRefresh, retry, colors } =
+    useScreen<FeedData>({
+      load: async (): Promise<Result<FeedData, ServiceError>> => {
+        try {
+          if (!currentUser?.id) {
+            return ok({ feed: [], clubs: [] });
+          }
+          const feed = isCoach
+            ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
+            : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
+          const clubs = socialFeedService.getUserClubs(currentUser.id);
+          return ok({ feed, clubs });
+        } catch {
+          return err({ code: 'UNKNOWN' as const, message: 'Failed to load feed' });
+        }
+      },
+      deps: [currentUser?.id, feedFilter, isCoach],
+      events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
+      isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
+    });
 
-  useEffect(() => {
-    loadFeed();
-  }, [loadFeed]);
+  const feed = data?.feed ?? [];
+  const clubs = data?.clubs ?? [];
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    loadFeed();
-    setRefreshing(false);
-  }, [loadFeed]);
+  // ─── Loading ───────────────────────────────────────────────────
+  if (status === 'loading') {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        gap={0}
+        horizontalSpacing={0}
+      >
+        <LoadingState variant="list" />
+      </PageContainer>
+    );
+  }
 
-  // Available for future badge display on filter tabs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _filterCounts = useMemo(() => {
-    if (!currentUser?.id) return {};
-    const allPosts = socialFeedService.getAggregatedFeed(currentUser.id);
-    return {
-      all: allPosts.length,
-      announcement: allPosts.filter((p) => p.postType === 'announcement').length,
-      achievement: allPosts.filter((p) => p.postType === 'achievement').length,
-      photo: allPosts.filter((p) => p.postType === 'photo').length,
-      event: allPosts.filter((p) => p.postType === 'event').length,
-    };
-  }, [currentUser?.id]);
+  // ─── Error ─────────────────────────────────────────────────────
+  if (status === 'error') {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        gap={0}
+        horizontalSpacing={0}
+      >
+        <ErrorState message={error?.message ?? 'Failed to load feed'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
 
+  // ─── Empty ─────────────────────────────────────────────────────
+  if (status === 'empty') {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
+        gap={0}
+        horizontalSpacing={0}
+      >
+        <EmptyState
+          icon="newspaper-outline"
+          title="No posts yet"
+          message="Join a club or follow coaches to see posts in your feed."
+        />
+      </PageContainer>
+    );
+  }
+
+  // ─── Success ───────────────────────────────────────────────────
   return (
     <PageContainer
       header={<ScreenHeader title="Feed" subtitle="Latest updates" />}
@@ -83,24 +125,21 @@ export default function FeedScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={palette.tint}
-            colors={[palette.tint]}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
           />
         }
       >
-        {/* Club pills */}
         {clubs.length > 0 && (
           <View style={styles.clubsSection}>
             <ClubHubCard clubs={clubs} />
           </View>
         )}
 
-        {/* Filter tabs */}
         {(feed.length > 0 || clubs.length > 0) && (
           <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
         )}
 
-        {/* Feed posts */}
         <View style={styles.feedSection}>
           {feed.length > 0 ? (
             feed.map((post) => <FeedPostCard key={post.id} post={post} />)

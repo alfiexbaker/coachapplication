@@ -16,6 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export const MoodSelector = memo(function MoodSelector({
   palette,
 }: MoodSelectorProps) {
   return (
-    <View style={styles.moodRow}>
+    <Row style={styles.moodRow}>
       {MOOD_OPTIONS.map((opt) => {
         const isActive = selected === opt.value;
         return (
@@ -94,7 +95,7 @@ export const MoodSelector = memo(function MoodSelector({
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -112,7 +113,7 @@ export const StarRating = memo(function StarRating({
   palette,
 }: StarRatingProps) {
   return (
-    <View style={styles.starRow}>
+    <Row style={styles.starRow}>
       {[1, 2, 3, 4, 5].map((star) => (
         <Clickable
           key={star}
@@ -126,7 +127,7 @@ export const StarRating = memo(function StarRating({
           />
         </Clickable>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -149,16 +150,16 @@ export const JournalTimelineEntry = memo(function JournalTimelineEntry({
   });
 
   return (
-    <View style={styles.timelineItem}>
+    <Row style={styles.timelineItem}>
       <View style={[styles.timelineDot, { backgroundColor: palette.tint }]} />
       <SurfaceCard style={styles.timelineCard}>
-        <View style={styles.timelineHeader}>
+        <Row style={styles.timelineHeader}>
           <ThemedText style={[styles.timelineDate, { color: palette.muted }]}>
             {entryDate}
           </ThemedText>
-          <View style={styles.timelineIcons}>
+          <Row style={styles.timelineIcons}>
             <Ionicons name={moodOpt.icon} size={Components.icon.sm} color={palette.muted} />
-            <View style={styles.miniStars}>
+            <Row style={styles.miniStars}>
               {[1, 2, 3, 4, 5].map((s) => (
                 <Ionicons
                   key={s}
@@ -167,9 +168,9 @@ export const JournalTimelineEntry = memo(function JournalTimelineEntry({
                   color={s <= entry.energyLevel ? palette.warning : palette.muted}
                 />
               ))}
-            </View>
-          </View>
-        </View>
+            </Row>
+          </Row>
+        </Row>
         <ThemedText
           style={[styles.timelineText, { color: palette.foreground }]}
           numberOfLines={3}
@@ -177,7 +178,7 @@ export const JournalTimelineEntry = memo(function JournalTimelineEntry({
           {entry.personalNotes}
         </ThemedText>
       </SurfaceCard>
-    </View>
+    </Row>
   );
 });
 
@@ -185,7 +186,6 @@ export const JournalTimelineEntry = memo(function JournalTimelineEntry({
 
 const styles = StyleSheet.create({
   moodRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     gap: Spacing.xs,
   },
@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   moodLabel: { ...Typography.micro },
-  starRow: { flexDirection: 'row', gap: Spacing.xs },
-  timelineItem: { flexDirection: 'row', gap: Spacing.sm },
+  starRow: { gap: Spacing.xs },
+  timelineItem: { gap: Spacing.sm },
   timelineDot: {
     width: 10,
     height: 10,
@@ -209,16 +209,14 @@ const styles = StyleSheet.create({
   },
   timelineCard: { flex: 1, gap: Spacing.xs },
   timelineHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   timelineDate: { ...Typography.caption },
   timelineIcons: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  miniStars: { flexDirection: 'row', gap: 1 },
+  miniStars: { gap: 1 },
   timelineText: { ...Typography.body },
 });

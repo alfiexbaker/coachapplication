@@ -15,6 +15,7 @@ import { RatingDisplay } from './coach-card-reviews';
 import { DistanceDisplay } from './coach-card-availability';
 import { FocusBadge, formatPrice } from './coach-card-services';
 import type { CompactVariantProps } from './coach-card-shared';
+import { Row } from '@/components/primitives';
 
 function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantProps) {
   const { colors: palette } = useTheme();
@@ -30,12 +31,12 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
         style={[styles.card, active && { borderColor: palette.premium }]}
         gradientPadding={active ? 2 : 0}
       >
-        <View style={styles.row}>
+        <Row style={styles.row}>
           <CoachAvatar profilePhotoUrl={coach.profilePhotoUrl} size="lg" />
           <View style={styles.meta}>
             <ThemedText type="subtitle" style={styles.name}>{coach.fullName}</ThemedText>
             {coach.distanceMiles !== undefined && <DistanceDisplay distanceMiles={coach.distanceMiles} />}
-            <View style={styles.metaRow}>
+            <Row style={styles.metaRow}>
               {coach.rating !== undefined && <RatingDisplay rating={coach.rating} showCount={false} />}
               {primaryFocus && (
                 <>
@@ -43,7 +44,7 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
                   <FocusBadge focus={primaryFocus} />
                 </>
               )}
-            </View>
+            </Row>
           </View>
           {priceStr && (
             <View style={styles.priceColumn}>
@@ -51,7 +52,7 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
               <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>per session</ThemedText>
             </View>
           )}
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -61,10 +62,10 @@ export const CompactCard = memo(CompactCardInner);
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.sm, marginBottom: Spacing.sm },
-  row: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
+  row: { gap: Spacing.sm, alignItems: 'center' },
   meta: { flex: 1, gap: Spacing.xs, justifyContent: 'center' },
   name: { ...Typography.heading, letterSpacing: -0.2, marginBottom: -2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  metaRow: { alignItems: 'center', gap: Spacing.sm },
   priceColumn: { alignItems: 'flex-end', justifyContent: 'center' },
   price: { ...Typography.heading, letterSpacing: -0.3 },
   priceLabel: { ...Typography.caption, marginTop: 1 },

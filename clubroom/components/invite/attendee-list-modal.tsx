@@ -19,6 +19,7 @@ export { AttendeeRow } from './attendee-list-modal-sections';
 export type { AttendeeRowProps } from './attendee-list-modal-sections';
 
 import { AttendeeRow } from './attendee-list-modal-sections';
+import { Row } from '@/components/primitives';
 
 interface AttendeeListModalProps {
   visible: boolean;
@@ -65,13 +66,13 @@ function AttendeeListModalComponent({ visible, onClose, responses, counts }: Att
     return (
       <View style={styles.section}>
         <Clickable onPress={() => toggleSection(section.key)} style={styles.sectionHeader} accessibilityLabel={`${section.label} section, ${section.count} responses`}>
-          <View style={styles.sectionLabelRow}>
+          <Row style={styles.sectionLabelRow}>
             <View style={[styles.statusDot, { backgroundColor: color }]} />
             <ThemedText style={styles.sectionLabel}>{section.label}</ThemedText>
             <View style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.12) }]}>
               <ThemedText style={[styles.countText, { color }]}>{section.count}</ThemedText>
             </View>
-          </View>
+          </Row>
           <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={palette.muted} />
         </Clickable>
         {isExpanded && sectionResponses.map((resp) => <AttendeeRow key={resp.id} response={resp} />)}
@@ -84,12 +85,12 @@ function AttendeeListModalComponent({ visible, onClose, responses, counts }: Att
       <Pressable style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]} onPress={onClose}>
         <Pressable style={[styles.sheet, { backgroundColor: palette.surface }]} onPress={() => {}}>
           <View style={[styles.handleBar, { backgroundColor: palette.border }]} />
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="heading">Responses</ThemedText>
             <Clickable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
               <Ionicons name="close" size={24} color={palette.text} />
             </Clickable>
-          </View>
+          </Row>
           {totalResponses === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={48} color={palette.muted} />
@@ -110,11 +111,11 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: { maxHeight: '70%', borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, paddingBottom: Spacing.lg },
   handleBar: { width: 36, height: 4, borderRadius: Radii.sm, alignSelf: 'center', marginTop: Spacing.sm, marginBottom: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm },
   listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
   section: { marginBottom: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.sm, minHeight: 44 },
-  sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  sectionHeader: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.sm, minHeight: 44 },
+  sectionLabelRow: { alignItems: 'center', gap: Spacing.xs },
   statusDot: { width: 10, height: 10, borderRadius: Radii.full },
   sectionLabel: { ...Typography.bodySemiBold },
   countBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },

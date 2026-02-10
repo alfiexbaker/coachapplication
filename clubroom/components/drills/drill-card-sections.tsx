@@ -17,6 +17,7 @@ import type { Drill } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── CompactDrillCard ────────────────────────────────────────────────────────
 
@@ -38,23 +39,23 @@ export const CompactDrillCard = memo(function CompactDrillCard({
     <SurfaceCard style={styles.compactCard} onPress={onPress}>
       <View style={[styles.categoryIndicator, { backgroundColor: categoryInfo.color }]} />
       <View style={styles.compactContent}>
-        <View style={styles.compactHeader}>
+        <Row style={styles.compactHeader}>
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
             {drill.title}
           </ThemedText>
           {hasVideo && (
             <Ionicons name="videocam" size={14} color={palette.muted} />
           )}
-        </View>
-        <View style={styles.compactMeta}>
-          <View style={styles.metaItem}>
+        </Row>
+        <Row style={styles.compactMeta}>
+          <Row style={styles.metaItem}>
             <Ionicons name="time-outline" size={12} color={palette.muted} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {drillService.formatDuration(drill.duration)}
             </ThemedText>
-          </View>
+          </Row>
           <DifficultyBadge difficulty={drill.difficulty} size="small" />
-        </View>
+        </Row>
       </View>
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </SurfaceCard>
@@ -102,8 +103,8 @@ export const FullDrillCardContent = memo(function FullDrillCardContent({
 
       <View style={styles.content}>
         {/* Header with category and video indicator */}
-        <View style={styles.header}>
-          <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
+        <Row style={styles.header}>
+          <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
             <Ionicons
               name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
               size={14}
@@ -112,16 +113,16 @@ export const FullDrillCardContent = memo(function FullDrillCardContent({
             <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>
               {categoryInfo.label}
             </ThemedText>
-          </View>
+          </Row>
           {hasVideo && !drill.thumbnailUrl && (
-            <View style={[styles.videoBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <Row style={[styles.videoBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="videocam" size={12} color={palette.tint} />
               <ThemedText style={[styles.videoBadgeText, { color: palette.tint }]}>
                 Video
               </ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
 
         {/* Title */}
         <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>
@@ -134,38 +135,38 @@ export const FullDrillCardContent = memo(function FullDrillCardContent({
         </ThemedText>
 
         {/* Footer with meta info */}
-        <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          <View style={styles.metaRow}>
+        <Row style={[styles.footer, { borderTopColor: palette.border }]}>
+          <Row style={styles.metaRow}>
             {!drill.thumbnailUrl && (
-              <View style={styles.metaItem}>
+              <Row style={styles.metaItem}>
                 <Ionicons name="time-outline" size={14} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   {drillService.formatDuration(drill.duration)}
                 </ThemedText>
-              </View>
+              </Row>
             )}
             {drill.equipment && drill.equipment.length > 0 && (
-              <View style={styles.metaItem}>
+              <Row style={styles.metaItem}>
                 <Ionicons name="football-outline" size={14} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
                   {drill.equipment.slice(0, 2).join(', ')}
                   {drill.equipment.length > 2 && ` +${drill.equipment.length - 2}`}
                 </ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
-          <View style={styles.footerRight}>
+          </Row>
+          <Row style={styles.footerRight}>
             {showAssignmentCount && drill.assignmentCount !== undefined && drill.assignmentCount > 0 && (
-              <View style={styles.assignmentCount}>
+              <Row style={styles.assignmentCount}>
                 <Ionicons name="people-outline" size={12} color={palette.muted} />
                 <ThemedText style={[styles.assignmentCountText, { color: palette.muted }]}>
                   {drill.assignmentCount}
                 </ThemedText>
-              </View>
+              </Row>
             )}
             <DifficultyBadge difficulty={drill.difficulty} />
-          </View>
-        </View>
+          </Row>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -219,12 +220,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   categoryBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 10,
@@ -237,7 +236,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   videoBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
@@ -259,7 +257,6 @@ export const styles = StyleSheet.create({
     lineHeight: scaleFont(20),
   },
   footer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.xs,
@@ -267,13 +264,11 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     flex: 1,
   },
   metaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -281,12 +276,10 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(13),
   },
   footerRight: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   assignmentCount: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -294,7 +287,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(12),
   },
   compactCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -311,7 +303,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   compactHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -321,7 +312,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(15),
   },
   compactMeta: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },

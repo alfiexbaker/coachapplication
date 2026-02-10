@@ -1,4 +1,5 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
@@ -40,7 +41,7 @@ export function TimeSlotPicker({ selectedSlot, onSelect, slots, isLoading }: Tim
   }
 
   return (
-    <View style={styles.wrap}>
+    <Row wrap gap="sm">
       {availableSlots.map((slot) => {
         const active = selectedSlot === slot.startTime;
         return (
@@ -64,16 +65,12 @@ export function TimeSlotPicker({ selectedSlot, onSelect, slots, isLoading }: Tim
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  // wrap replaced by Row primitive
   slot: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,

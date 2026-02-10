@@ -8,6 +8,7 @@
 import { View, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { FilterChip } from './FilterChip';
 import { Spacing, Typography } from '@/constants/theme';
@@ -75,7 +76,7 @@ export function FilterSlider({
       )}
 
       {presets && presets.length > 0 && (
-        <View style={styles.presets}>
+        <Row wrap gap="xs" style={styles.presets}>
           {presets.map((preset) => (
             <FilterChip
               key={preset}
@@ -85,7 +86,7 @@ export function FilterSlider({
               size="sm"
             />
           ))}
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -104,9 +105,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   presets: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
 });

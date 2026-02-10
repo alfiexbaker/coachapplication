@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography, Radii } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SkillDataPoint } from './skill-radar';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -206,14 +207,14 @@ interface RadarLegendProps {
 
 export const RadarLegend = memo(function RadarLegend({ palette }: RadarLegendProps) {
   return (
-    <View style={styles.legend}>
-      <View style={styles.legendItem}>
+    <Row style={styles.legend}>
+      <Row style={styles.legendItem}>
         <View style={[styles.legendDotFilled, { backgroundColor: palette.success }]} />
         <ThemedText style={[styles.legendText, { color: palette.text }]}>
           Current
         </ThemedText>
-      </View>
-      <View style={styles.legendItem}>
+      </Row>
+      <Row style={styles.legendItem}>
         <View
           style={[
             styles.legendDotOutline,
@@ -223,8 +224,8 @@ export const RadarLegend = memo(function RadarLegend({ palette }: RadarLegendPro
         <ThemedText style={[styles.legendText, { color: palette.muted }]}>
           Previous
         </ThemedText>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -244,7 +245,7 @@ export const RadarCallouts = memo(function RadarCallouts({
   return (
     <View style={[styles.callouts, { borderTopColor: palette.border }]}>
       {improvements.map((item) => (
-        <View key={item.name} style={styles.calloutRow}>
+        <Row key={item.name} style={styles.calloutRow}>
           <Ionicons
             name={item.positive ? 'trending-up' : 'trending-down'}
             size={16}
@@ -258,7 +259,7 @@ export const RadarCallouts = memo(function RadarCallouts({
           >
             {item.label}
           </ThemedText>
-        </View>
+        </Row>
       ))}
     </View>
   );
@@ -327,12 +328,10 @@ export const styles = StyleSheet.create({
   },
   ringLabelText: { ...Typography.micro },
   legend: {
-    flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.lg,
   },
   legendItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -356,7 +355,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   calloutRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },

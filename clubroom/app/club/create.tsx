@@ -15,11 +15,12 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCreateClub, CLUB_FEATURES } from '@/hooks/use-create-club';
 
 export default function CreateClubScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     name, setName, tagline, setTagline, city, setCity,
     country, setCountry, badge, handleBadgeChange,
@@ -99,14 +100,16 @@ export default function CreateClubScreen() {
             onPress={handleCreate}
             disabled={!isValid || isSubmitting}
           >
-            {isSubmitting ? (
-              <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Creating...</ThemedText>
-            ) : (
-              <Row gap="sm" align="center" justify="center">
-                <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
-                <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Create Club</ThemedText>
-              </Row>
-            )}
+            <Row align="center" justify="center" gap="sm">
+              {isSubmitting ? (
+                <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Creating...</ThemedText>
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
+                  <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Create Club</ThemedText>
+                </>
+              )}
+            </Row>
           </Clickable>
         </View>
       </KeyboardAvoidingView>
@@ -147,5 +150,5 @@ const styles = StyleSheet.create({
   previewBadge: { width: 56, height: 56, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   features: { gap: Spacing.sm },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.lg, borderTopWidth: 1 },
-  createButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  createButton: { paddingVertical: Spacing.md, borderRadius: Radii.lg },
 });

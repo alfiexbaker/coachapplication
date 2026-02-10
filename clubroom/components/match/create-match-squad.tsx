@@ -38,23 +38,25 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
               style={[styles.squadCard, { borderColor: isSelected ? colors.tint : colors.border }, isSelected && { backgroundColor: withAlpha(colors.tint, 0.06) }]}
               onPress={() => onSelectSquad(squad.id)}
             >
-              <View style={[styles.squadIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <Ionicons name="people" size={24} color={colors.tint} />
-              </View>
-              <View style={styles.squadInfo}>
-                <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
-                <Row gap="sm" align="center">
-                  <View style={[styles.ageChip, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
-                    <ThemedText style={[Typography.caption, { color: colors.tint }]}>{squadService.getAgeGroupLabel(squad)}</ThemedText>
-                  </View>
-                  <ThemedText style={[Typography.small, { color: colors.muted }]}>{squad.memberCount} players</ThemedText>
-                </Row>
-              </View>
-              {isSelected ? (
-                <Ionicons name="checkmark-circle" size={24} color={colors.tint} />
-              ) : (
-                <View style={[styles.emptyCheck, { borderColor: colors.border }]} />
-              )}
+              <Row align="center" gap="md" flex>
+                <View style={[styles.squadIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+                  <Ionicons name="people" size={24} color={colors.tint} />
+                </View>
+                <View style={styles.squadInfo}>
+                  <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
+                  <Row gap="sm" align="center">
+                    <View style={[styles.ageChip, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
+                      <ThemedText style={[Typography.caption, { color: colors.tint }]}>{squadService.getAgeGroupLabel(squad)}</ThemedText>
+                    </View>
+                    <ThemedText style={[Typography.small, { color: colors.muted }]}>{squad.memberCount} players</ThemedText>
+                  </Row>
+                </View>
+                {isSelected ? (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.tint} />
+                ) : (
+                  <View style={[styles.emptyCheck, { borderColor: colors.border }]} />
+                )}
+              </Row>
             </Clickable>
           );
         })}
@@ -86,7 +88,7 @@ const styles = StyleSheet.create({
   stepTitle: { ...Typography.heading, marginBottom: Spacing.sm },
   stepSubtitle: { textAlign: 'center', ...Typography.bodySmall, marginBottom: Spacing.sm },
   squadList: { gap: Spacing.sm },
-  squadCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.md },
+  squadCard: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   squadIcon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   squadInfo: { flex: 1, gap: Spacing.micro },
   ageChip: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },

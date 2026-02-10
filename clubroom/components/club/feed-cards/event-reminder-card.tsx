@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -39,40 +40,40 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       {/* Header */}
-      <View style={styles.headerRow}>
-        <View style={styles.typeRow}>
+      <Row style={styles.headerRow}>
+        <Row style={styles.typeRow}>
           <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.tint} />
           <ThemedText style={[styles.typeLabel, { color: palette.tint }]}>Upcoming Event</ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {/* Event title */}
       <ThemedText style={[styles.eventTitle, { color: palette.text }]}>{data.title}</ThemedText>
 
       {/* Details grid */}
       <View style={[styles.detailsContainer, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}>
-        <View style={styles.detailRow}>
+        <Row style={styles.detailRow}>
           <Ionicons name="calendar" size={Components.icon.sm} color={palette.tint} />
           <ThemedText style={[styles.detailText, { color: palette.text }]}>{formatDate(data.date)}</ThemedText>
-        </View>
-        <View style={styles.detailRow}>
+        </Row>
+        <Row style={styles.detailRow}>
           <Ionicons name="time-outline" size={Components.icon.sm} color={palette.tint} />
           <ThemedText style={[styles.detailText, { color: palette.text }]}>{data.time}</ThemedText>
-        </View>
-        <View style={styles.detailRow}>
+        </Row>
+        <Row style={styles.detailRow}>
           <Ionicons name="location-outline" size={Components.icon.sm} color={palette.tint} />
           <ThemedText style={[styles.detailText, { color: palette.text }]}>{data.location}</ThemedText>
-        </View>
+        </Row>
       </View>
 
       {/* RSVP count + CTA */}
-      <View style={styles.rsvpRow}>
-        <View style={styles.rsvpCount}>
+      <Row style={styles.rsvpRow}>
+        <Row style={styles.rsvpCount}>
           <Ionicons name="people-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.rsvpText, { color: palette.muted }]}>
             {data.rsvpCount}{data.totalInvited ? `/${data.totalInvited}` : ''} attending
           </ThemedText>
-        </View>
+        </Row>
 
         <Clickable
           onPress={onRsvp}
@@ -102,7 +103,7 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
             {data.hasRsvped ? 'Going' : 'RSVP Now'}
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -112,12 +113,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   typeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
@@ -135,7 +134,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   detailRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -143,13 +141,11 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   rsvpRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: Spacing.xs,
   },
   rsvpCount: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

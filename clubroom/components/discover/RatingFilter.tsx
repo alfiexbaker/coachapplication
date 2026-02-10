@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface RatingDistribution {
   rating: number;
@@ -59,7 +60,7 @@ export function RatingFilter({
 
   const renderStars = (rating: number, isActive: boolean) => {
     return (
-      <View style={styles.starsRow}>
+      <Row style={styles.starsRow}>
         {[1, 2, 3, 4, 5].map((star) => (
           <Ionicons
             key={star}
@@ -69,13 +70,13 @@ export function RatingFilter({
             style={styles.star}
           />
         ))}
-      </View>
+      </Row>
     );
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <ThemedText style={[styles.label, { color: palette.text }]}>
           Minimum Rating
         </ThemedText>
@@ -89,7 +90,7 @@ export function RatingFilter({
             </ThemedText>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       <View style={styles.ratingsList}>
         {RATINGS.map((rating) => {
@@ -113,7 +114,7 @@ export function RatingFilter({
                 },
               ]}
             >
-              <View style={styles.ratingInfo}>
+              <Row style={styles.ratingInfo}>
                 {renderStars(rating, isSelected)}
                 <ThemedText
                   style={[
@@ -123,7 +124,7 @@ export function RatingFilter({
                 >
                   & up
                 </ThemedText>
-              </View>
+              </Row>
 
               <View style={styles.barContainer}>
                 <View
@@ -169,7 +170,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -188,7 +188,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   ratingRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -196,12 +195,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   ratingInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     width: 100,
   },
   starsRow: {
-    flexDirection: 'row',
   },
   star: {
     marginRight: 1,

@@ -43,19 +43,21 @@ export const AthleteTabBar = memo(function AthleteTabBar({
             accessibilityLabel={`${tab.label} tab`}
             accessibilityRole="tab"
           >
-            <Ionicons
-              name={tab.icon as 'person-outline'}
-              size={18}
-              color={isActive ? colors.tint : colors.muted}
-            />
-            <ThemedText
-              style={[
-                styles.tabLabel,
-                { color: isActive ? colors.tint : colors.muted },
-              ]}
-            >
-              {tab.label}
-            </ThemedText>
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons
+                name={tab.icon as 'person-outline'}
+                size={18}
+                color={isActive ? colors.tint : colors.muted}
+              />
+              <ThemedText
+                style={[
+                  styles.tabLabel,
+                  { color: isActive ? colors.tint : colors.muted },
+                ]}
+              >
+                {tab.label}
+              </ThemedText>
+            </Row>
           </Clickable>
         );
       })}
@@ -70,10 +72,6 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 2,
     minHeight: 44,

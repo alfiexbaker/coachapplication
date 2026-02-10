@@ -1,5 +1,6 @@
 import { View, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -27,25 +28,24 @@ export function AcceptRejectButtons({
   rejectLabel = 'Decline',
   counterProposeLabel = 'Counter',
   showCounterPropose = true,
-  variant = 'default',
-}: AcceptRejectButtonsProps) {
+  variant = 'default' }: AcceptRejectButtonsProps) {
   const { colors: palette } = useTheme();
 
   const isCompact = variant === 'compact';
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <Row align="center" justify="center" gap="sm" style={styles.loadingContainer}>
         <ActivityIndicator size="small" color={palette.tint} />
         <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
           Processing...
         </ThemedText>
-      </View>
+      </Row>
     );
   }
 
   return (
-    <View style={[styles.container, isCompact ? styles.containerCompact : undefined]}>
+    <Row gap={isCompact ? "xs" : "sm"} style={[styles.container, isCompact ? styles.containerCompact : undefined]}>
       {/* Accept button */}
       <Clickable
         onPress={onAccept}
@@ -58,21 +58,23 @@ export function AcceptRejectButtons({
         accessibilityLabel={acceptLabel}
         accessibilityRole="button"
       >
-        <Ionicons
-          name="checkmark"
-          size={isCompact ? 16 : 18}
-          color={palette.onPrimary}
-        />
-        <ThemedText
-          style={[
-            styles.buttonText,
-            styles.acceptText,
-            { color: palette.onPrimary },
-            isCompact ? styles.buttonTextCompact : undefined,
-          ]}
-        >
-          {acceptLabel}
-        </ThemedText>
+        <Row align="center" justify="center" gap="xxs">
+          <Ionicons
+            name="checkmark"
+            size={isCompact ? 16 : 18}
+            color={palette.onPrimary}
+          />
+          <ThemedText
+            style={[
+              styles.buttonText,
+              styles.acceptText,
+              { color: palette.onPrimary },
+              isCompact ? styles.buttonTextCompact : undefined,
+            ]}
+          >
+            {acceptLabel}
+          </ThemedText>
+        </Row>
       </Clickable>
 
       {/* Reject button */}
@@ -87,20 +89,22 @@ export function AcceptRejectButtons({
         accessibilityLabel={rejectLabel}
         accessibilityRole="button"
       >
-        <Ionicons
-          name="close"
-          size={isCompact ? 16 : 18}
-          color={palette.error}
-        />
-        <ThemedText
-          style={[
-            styles.buttonText,
-            { color: palette.error },
-            isCompact ? styles.buttonTextCompact : undefined,
-          ]}
-        >
-          {rejectLabel}
-        </ThemedText>
+        <Row align="center" justify="center" gap="xxs">
+          <Ionicons
+            name="close"
+            size={isCompact ? 16 : 18}
+            color={palette.error}
+          />
+          <ThemedText
+            style={[
+              styles.buttonText,
+              { color: palette.error },
+              isCompact ? styles.buttonTextCompact : undefined,
+            ]}
+          >
+            {rejectLabel}
+          </ThemedText>
+        </Row>
       </Clickable>
 
       {/* Counter-propose button (optional) */}
@@ -116,69 +120,52 @@ export function AcceptRejectButtons({
           accessibilityLabel={counterProposeLabel}
           accessibilityRole="button"
         >
-          <Ionicons
-            name="swap-horizontal"
-            size={isCompact ? 16 : 18}
-            color={palette.tint}
-          />
-          <ThemedText
-            style={[
-              styles.buttonText,
-              { color: palette.tint },
-              isCompact ? styles.buttonTextCompact : undefined,
-            ]}
-          >
-            {counterProposeLabel}
-          </ThemedText>
+          <Row align="center" justify="center" gap="xxs">
+            <Ionicons
+              name="swap-horizontal"
+              size={isCompact ? 16 : 18}
+              color={palette.tint}
+            />
+            <ThemedText
+              style={[
+                styles.buttonText,
+                { color: palette.tint },
+                isCompact ? styles.buttonTextCompact : undefined,
+              ]}
+            >
+              {counterProposeLabel}
+            </ThemedText>
+          </Row>
         </Clickable>
       )}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   containerCompact: {
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   button: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
+    borderColor: 'transparent' },
   buttonCompact: {
     paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-  },
+    paddingHorizontal: Spacing.xs },
   acceptButton: {},
   rejectButton: {},
   counterButton: {},
   buttonText: {
     ...Typography.sm,
-    fontWeight: '600',
-  },
+    fontWeight: '600' },
   buttonTextCompact: { ...Typography.caption },
   acceptText: {},
   loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   loadingText: {
-    ...Typography.sm,
-  },
-});
+    ...Typography.sm } });

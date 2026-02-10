@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +29,8 @@ import {
 } from '@/components/drills';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { AssignedDrill } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
@@ -39,7 +41,7 @@ const logger = createLogger('DrillDetailScreen');
  * Drill detail screen showing full assignment information and video.
  */
 export default function DrillDetailScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { id } = useLocalSearchParams<{ id: string }>();
 
   // State
@@ -122,11 +124,11 @@ export default function DrillDetailScreen() {
   if (!assignment || !assignment.drill) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="center" justify="space-between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
         <View style={styles.notFoundContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={palette.muted} />
           <ThemedText type="subtitle" style={{ marginTop: Spacing.md }}>
@@ -159,21 +161,21 @@ export default function DrillDetailScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
-        <View style={styles.headerRight}>
+        <Row align="center" gap="sm" style={styles.headerRight}>
           {assignment.isCompleted && (
-            <View style={[styles.completedBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row align="center" gap="xxs" style={[styles.completedBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark-circle" size={16} color={palette.success} />
               <ThemedText style={[styles.completedBadgeText, { color: palette.success }]}>
                 Completed
               </ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -251,21 +253,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+  headerRight: {},
   completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,

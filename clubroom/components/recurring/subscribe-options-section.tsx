@@ -50,7 +50,7 @@ function SubscribeOptionsSectionInner({
       {athletes && athletes.length > 1 && (
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Booking For</ThemedText>
-          <View style={styles.wrapRow}>
+          <Row wrap gap="xs">
             {athletes.map((athlete) => {
               const isSelected = selectedAthleteId === athlete.id;
               return (
@@ -64,14 +64,14 @@ function SubscribeOptionsSectionInner({
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
       )}
 
       {/* Session Type */}
       <View style={styles.section}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Session Type</ThemedText>
-        <View style={styles.wrapRow}>
+        <Row wrap gap="xs">
           {sessionTypes.map((type) => {
             const isSelected = sessionType === type;
             return (
@@ -84,13 +84,13 @@ function SubscribeOptionsSectionInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       {/* Duration */}
       <View style={styles.section}>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Duration</ThemedText>
-        <View style={styles.durationRow}>
+        <Row gap="xs">
           {DURATION_OPTIONS.map((d) => {
             const isSelected = duration === d;
             return (
@@ -103,7 +103,7 @@ function SubscribeOptionsSectionInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       {/* Location */}
@@ -120,13 +120,13 @@ function SubscribeOptionsSectionInner({
 
       {/* End Date */}
       <View style={styles.section}>
-        <View style={styles.endDateHeader}>
+        <Row justify="between" align="center">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>End Date</ThemedText>
           <Clickable onPress={onToggleEndDate} style={[styles.toggleButton, { backgroundColor: hasEndDate ? withAlpha(palette.tint, 0.1) : palette.surface }]}>
             <Ionicons name={hasEndDate ? 'checkbox' : 'square-outline'} size={20} color={hasEndDate ? palette.tint : palette.muted} />
             <ThemedText style={[styles.toggleText, { color: hasEndDate ? palette.tint : palette.muted }]}>Set end date</ThemedText>
           </Clickable>
-        </View>
+        </Row>
         {hasEndDate && (
           <>
             <Clickable onPress={() => onShowEndDatePicker(true)} style={[styles.timeSelector, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -164,16 +164,13 @@ export const SubscribeOptionsSection = memo(SubscribeOptionsSectionInner);
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xxs },
-  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   chipOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1 },
   typeOption: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   typeText: { ...Typography.small, fontWeight: '500' },
-  durationRow: { flexDirection: 'row', gap: Spacing.xs },
   durationOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
   durationText: { ...Typography.smallSemiBold },
   textInput: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
-  endDateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   toggleButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   toggleText: { ...Typography.small },
   timeSelector: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },

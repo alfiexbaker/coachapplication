@@ -9,6 +9,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, Components, Borders, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -66,42 +67,41 @@ export function FilterChip({
         size === 'sm' ? styles.chipSm : undefined,
       ]}
     >
-      {icon && (
-        <Ionicons
-          name={(active ? icon.replace('-outline', '') : icon) as keyof typeof Ionicons.glyphMap}
-          size={iconSize}
-          color={active ? palette.tint : palette.muted}
-        />
-      )}
+      <Row align="center" gap={Spacing.xs / 2}>
+        {icon && (
+          <Ionicons
+            name={(active ? icon.replace('-outline', '') : icon) as keyof typeof Ionicons.glyphMap}
+            size={iconSize}
+            color={active ? palette.tint : palette.muted}
+          />
+        )}
 
-      <ThemedText
-        style={[
-          styles.label,
-          size === 'sm' ? styles.labelSm : undefined,
-          { color: active ? palette.tint : palette.muted },
-          active ? styles.labelActive : undefined,
-        ]}
-      >
-        {label}
-        {count !== undefined && count > 0 && ` (${count})`}
-      </ThemedText>
+        <ThemedText
+          style={[
+            styles.label,
+            size === 'sm' ? styles.labelSm : undefined,
+            { color: active ? palette.tint : palette.muted },
+            active ? styles.labelActive : undefined,
+          ]}
+        >
+          {label}
+          {count !== undefined && count > 0 && ` (${count})`}
+        </ThemedText>
 
-      {showCheckmark && active && (
-        <Ionicons name="checkmark" size={iconSize} color={palette.tint} />
-      )}
+        {showCheckmark && active && (
+          <Ionicons name="checkmark" size={iconSize} color={palette.tint} />
+        )}
 
-      {showChevron && active && (
-        <Ionicons name="chevron-down" size={12} color={palette.tint} />
-      )}
+        {showChevron && active && (
+          <Ionicons name="chevron-down" size={12} color={palette.tint} />
+        )}
+      </Row>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: Borders.width.thin,

@@ -9,6 +9,7 @@ import React, { memo, useCallback } from 'react';
 import { View, StyleSheet, TextInput, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -52,8 +53,7 @@ export const NotesStep = memo(function NotesStep({
   overallEffort,
   onOverallEffortChange,
   homework,
-  onHomeworkChange,
-}: NotesStepProps) {
+  onHomeworkChange }: NotesStepProps) {
   const handleToggleSkill = useCallback(
     (skill: string) => {
       const isSelected = skillsFocused.includes(skill);
@@ -68,10 +68,10 @@ export const NotesStep = memo(function NotesStep({
     <>
       {/* Session Notes */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
           <Ionicons name="document-text" size={20} color={colors.tint} />
           <ThemedText type="subtitle">Session Notes</ThemedText>
-        </View>
+        </Row>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           placeholder="What did you cover in this session? How did it go?"
@@ -86,11 +86,11 @@ export const NotesStep = memo(function NotesStep({
 
       {/* Skills Worked On */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
           <Ionicons name="football" size={20} color={colors.tint} />
           <ThemedText type="subtitle">Skills Worked On</ThemedText>
-        </View>
-        <View style={styles.skillChips}>
+        </Row>
+        <Row wrap gap="xs">
           {SKILL_OPTIONS.map(skill => {
             const isSelected = skillsFocused.includes(skill);
             return (
@@ -100,8 +100,7 @@ export const NotesStep = memo(function NotesStep({
                   styles.skillChip,
                   {
                     backgroundColor: isSelected ? colors.tint : 'transparent',
-                    borderColor: isSelected ? colors.tint : colors.border,
-                  },
+                    borderColor: isSelected ? colors.tint : colors.border },
                 ]}
                 onPress={() => handleToggleSkill(skill)}
                 accessibilityLabel={`${isSelected ? 'Remove' : 'Add'} ${skill} skill`}
@@ -113,16 +112,16 @@ export const NotesStep = memo(function NotesStep({
               </Pressable>
             );
           })}
-        </View>
+        </Row>
       </SurfaceCard>
 
       {/* Overall Group Effort */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
           <Ionicons name="fitness" size={20} color={colors.tint} />
           <ThemedText type="subtitle">Overall Group Effort</ThemedText>
-        </View>
-        <View style={styles.effortRow}>
+        </Row>
+        <Row align="center" gap="sm">
           <ThemedText style={[styles.effortLabel, { color: colors.muted }]}>Low</ThemedText>
           <Slider
             style={styles.slider}
@@ -137,7 +136,7 @@ export const NotesStep = memo(function NotesStep({
             accessibilityLabel="Overall effort rating"
           />
           <ThemedText style={[styles.effortLabel, { color: colors.muted }]}>High</ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.effortValue, { color: colors.tint }]}>
           {overallEffort}/5
         </ThemedText>
@@ -145,10 +144,10 @@ export const NotesStep = memo(function NotesStep({
 
       {/* Homework / Practice Focus */}
       <SurfaceCard style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" gap="sm" style={styles.sectionHeader}>
           <Ionicons name="clipboard" size={20} color={colors.tint} />
           <ThemedText type="subtitle">Homework / Practice Focus</ThemedText>
-        </View>
+        </Row>
         <TextInput
           style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           placeholder="What should they practice before next session?"
@@ -169,58 +168,35 @@ export const NotesStep = memo(function NotesStep({
 const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   textArea: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
     minHeight: 100,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body,
-  },
-  skillChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    ...Typography.body },
   skillChip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
     minHeight: 44,
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   skillChipText: {
-    ...Typography.smallSemiBold,
-  },
-  effortRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    ...Typography.smallSemiBold },
   effortLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   slider: {
     flex: 1,
-    height: 40,
-  },
+    height: 40 },
   effortValue: {
     textAlign: 'center',
-    ...Typography.subheading,
-  },
-});
+    ...Typography.subheading } });

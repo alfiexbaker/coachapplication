@@ -9,6 +9,7 @@ import { apiClient } from '@/services/api-client';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
@@ -94,7 +95,7 @@ export default function ReportProblemScreen() {
         {/* Category Selection */}
         <View style={styles.section}>
           <ThemedText style={styles.label}>What went wrong?</ThemedText>
-          <View style={styles.categoriesGrid}>
+          <Row style={styles.categoriesGrid}>
             {problemCategories.map((category) => {
               const isSelected = selectedCategory === category.id;
               return (
@@ -124,7 +125,7 @@ export default function ReportProblemScreen() {
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
 
         {/* Description */}
@@ -147,10 +148,12 @@ export default function ReportProblemScreen() {
 
         {/* Info Box */}
         <SurfaceCard style={[styles.infoBox, { backgroundColor: palette.border }]}>
-          <Ionicons name="information-circle" size={20} color={palette.foreground} />
-          <ThemedText style={styles.infoText}>
-            Reports are reviewed within 24 hours. Serious issues will be addressed immediately.
-          </ThemedText>
+          <Row align="start" gap="sm">
+            <Ionicons name="information-circle" size={20} color={palette.foreground} />
+            <ThemedText style={styles.infoText}>
+              Reports are reviewed within 24 hours. Serious issues will be addressed immediately.
+            </ThemedText>
+          </Row>
         </SurfaceCard>
       </ScrollView>
 
@@ -198,7 +201,6 @@ const styles = StyleSheet.create({
     paddingLeft: Spacing.xs,
   },
   categoriesGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
@@ -226,10 +228,7 @@ const styles = StyleSheet.create({
     paddingLeft: Spacing.xs,
   },
   infoBox: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
     padding: Spacing.md,
-    alignItems: 'flex-start',
   },
   infoText: {
     flex: 1,

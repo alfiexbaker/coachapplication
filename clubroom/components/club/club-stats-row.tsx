@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,15 +34,15 @@ export const ClubStatsRow = memo(function ClubStatsRow({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.statsRow, { borderColor: palette.border }]}>
+    <Row style={[styles.statsRow, { borderColor: palette.border }]}>
       <Clickable style={styles.statItem} onPress={() => canManageMembers && onToggleMembersSection()}>
         <ThemedText type="title" style={{ ...Typography.heading }}>{memberCount}</ThemedText>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.micro }}>
+        <Row style={{ alignItems: 'center', gap: Spacing.micro }}>
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Members</ThemedText>
           {canManageMembers && (
             <Ionicons name={showMembersSection ? 'chevron-up' : 'chevron-down'} size={12} color={palette.muted} />
           )}
-        </View>
+        </Row>
       </Clickable>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
@@ -58,14 +59,14 @@ export const ClubStatsRow = memo(function ClubStatsRow({
         <ThemedText type="title" style={{ ...Typography.heading }}>{inviteCount}</ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Invites</ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  statsRow: { flexDirection: 'row', paddingVertical: Spacing.md, marginHorizontal: Spacing.md, borderTopWidth: 1, borderBottomWidth: 1 },
+  statsRow: { paddingVertical: Spacing.md, marginHorizontal: Spacing.md, borderTopWidth: 1, borderBottomWidth: 1 },
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, height: '100%' },
 });

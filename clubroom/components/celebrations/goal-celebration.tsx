@@ -9,6 +9,7 @@ import { Components, Radii, Spacing, Typography, withAlpha } from '@/constants/t
 
 import { Confetti } from './confetti';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface GoalCelebrationProps {
   visible: boolean;
@@ -79,7 +80,7 @@ export function GoalCelebration({
           </ThemedText>
 
           {/* Progress bar at 100% */}
-          <View style={styles.progressContainer}>
+          <Row style={styles.progressContainer}>
             <View
               style={[styles.progressTrack, { backgroundColor: withAlpha(palette.success, 0.12) }]}
             >
@@ -94,7 +95,7 @@ export function GoalCelebration({
             <ThemedText style={[Typography.caption, { color: palette.success }]}>
               100%
             </ThemedText>
-          </View>
+          </Row>
 
           {/* Buttons */}
           <View style={styles.buttonRow}>
@@ -163,7 +164,6 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     width: '100%',
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -183,7 +183,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   primaryButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: Components.button.height,
@@ -191,7 +190,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   outlineButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: Components.button.height,

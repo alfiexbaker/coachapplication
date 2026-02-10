@@ -16,6 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ export const TimelineEventRow = memo(function TimelineEventRow({
 
       {/* Event Content */}
       <View style={styles.eventContent}>
-        <View style={styles.eventHeader}>
+        <Row style={styles.eventHeader}>
           <ThemedText type="defaultSemiBold" style={styles.eventTitle}>
             {event.title}
           </ThemedText>
@@ -115,7 +116,7 @@ export const TimelineEventRow = memo(function TimelineEventRow({
               month: 'short',
             })}
           </ThemedText>
-        </View>
+        </Row>
 
         {event.subtitle && (
           <ThemedText style={[styles.eventSubtitle, { color: palette.muted }]}>
@@ -123,32 +124,32 @@ export const TimelineEventRow = memo(function TimelineEventRow({
           </ThemedText>
         )}
 
-        <View style={styles.eventMeta}>
+        <Row style={styles.eventMeta}>
           {event.coach && (
-            <View style={styles.metaItem}>
+            <Row style={styles.metaItem}>
               <Ionicons name="person-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {event.coach}
               </ThemedText>
-            </View>
+            </Row>
           )}
           {event.focus && (
-            <View style={styles.metaItem}>
+            <Row style={styles.metaItem}>
               <Ionicons name="football-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {event.focus}
               </ThemedText>
-            </View>
+            </Row>
           )}
           {event.rating && (
-            <View style={styles.metaItem}>
+            <Row style={styles.metaItem}>
               <Ionicons name="star" size={12} color={palette.rating} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {event.rating.toFixed(1)}
               </ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
       </View>
     </Clickable>
   );
@@ -172,7 +173,7 @@ export const HorizontalTimelineItem = memo(function HorizontalTimelineItem({
   const iconConfig = EVENT_ICONS[event.type];
 
   return (
-    <View style={styles.horizontalItem}>
+    <Row style={styles.horizontalItem}>
       {showConnector && (
         <View style={[styles.horizontalLine, { backgroundColor: palette.border }]} />
       )}
@@ -197,7 +198,7 @@ export const HorizontalTimelineItem = memo(function HorizontalTimelineItem({
           {event.title}
         </ThemedText>
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -226,7 +227,6 @@ export const styles = StyleSheet.create({
     gap: 0,
   },
   eventRow: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
   timelineColumn: {
@@ -252,7 +252,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   eventHeader: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
@@ -260,13 +259,11 @@ export const styles = StyleSheet.create({
   eventDate: { ...Typography.caption },
   eventSubtitle: { ...Typography.small },
   eventMeta: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
     marginTop: Spacing.micro,
   },
   metaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -276,7 +273,6 @@ export const styles = StyleSheet.create({
     gap: 0,
   },
   horizontalItem: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   horizontalLine: {

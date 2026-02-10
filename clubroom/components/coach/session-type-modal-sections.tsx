@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionType } from '@/constants/session-types';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ export const SegmentSelector = memo(function SegmentSelector<T extends string | 
   return (
     <View style={styles.field}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>{label}</ThemedText>
-      <View style={styles.segmentRow}>
+      <Row style={styles.segmentRow}>
         {options.map((opt) => (
           <Clickable
             key={String(opt.key)}
@@ -72,7 +73,7 @@ export const SegmentSelector = memo(function SegmentSelector<T extends string | 
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
     </View>
   );
 }) as <T extends string | number>(props: SegmentSelectorProps<T>) => React.ReactElement;
@@ -97,7 +98,7 @@ export const CapacityStepper = memo(function CapacityStepper({
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Max Athletes</ThemedText>
-      <View style={[styles.stepperRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
+      <Row style={[styles.stepperRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
         <Clickable
           accessibilityLabel="Decrease value"
           onPress={() => onChange(Math.max(min, value - 1))}
@@ -113,7 +114,7 @@ export const CapacityStepper = memo(function CapacityStepper({
         >
           <Ionicons name="add" size={18} color={palette.text} />
         </Clickable>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -134,7 +135,7 @@ export const PriceInput = memo(function PriceInput({
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Price per Head</ThemedText>
-      <View style={[styles.priceRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
+      <Row style={[styles.priceRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
         <ThemedText style={{ color: palette.muted }}>£</ThemedText>
         <TextInput
           style={[styles.priceInput, { color: palette.text }]}
@@ -144,7 +145,7 @@ export const PriceInput = memo(function PriceInput({
           onChangeText={onChange}
           keyboardType="numeric"
         />
-      </View>
+      </Row>
     </View>
   );
 });
@@ -159,7 +160,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   segmentRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   segment: {
@@ -171,7 +171,6 @@ const styles = StyleSheet.create({
   },
   segmentText: { ...Typography.smallSemiBold },
   stepperRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: Radii.md,
@@ -186,7 +185,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   priceRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: Radii.md,

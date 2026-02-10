@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/them
 import { useTheme } from '@/hooks/useTheme';
 import { toDateStr } from '@/utils/format';
 import { addDays, getDaysInMonth, getFirstDayOfMonth, type BlockedDateRange } from '@/hooks/use-blocked-dates';
+import { Row } from '@/components/primitives';
 
 const WEEKDAY_HEADERS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -57,15 +58,15 @@ function MiniCalendarInner({ selectedStart, selectedEnd, onSelectDate, blockedDa
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <Clickable onPress={prevMonth} hitSlop={12}><Ionicons name="chevron-back" size={20} color={colors.text} /></Clickable>
         <Text style={[styles.monthTitle, { color: colors.text }]}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
         <Clickable onPress={nextMonth} hitSlop={12}><Ionicons name="chevron-forward" size={20} color={colors.text} /></Clickable>
-      </View>
-      <View style={styles.weekRow}>
+      </Row>
+      <Row style={styles.weekRow}>
         {WEEKDAY_HEADERS.map((d) => (<View key={d} style={styles.weekCell}><Text style={[styles.weekText, { color: colors.muted }]}>{d}</Text></View>))}
-      </View>
-      <View style={styles.daysGrid}>
+      </Row>
+      <Row style={styles.daysGrid}>
         {cells.map((dateStr, idx) => {
           if (!dateStr) return <View key={`empty-${idx}`} style={styles.dayCell} />;
           const isPast = dateStr < todayStr;
@@ -79,7 +80,7 @@ function MiniCalendarInner({ selectedStart, selectedEnd, onSelectDate, blockedDa
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -88,12 +89,12 @@ export const MiniCalendar = memo(MiniCalendarInner);
 
 const styles = StyleSheet.create({
   container: { borderRadius: Radii.card, padding: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.xs },
+  header: { alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.xs },
   monthTitle: { ...Typography.bodySemiBold },
-  weekRow: { flexDirection: 'row', marginBottom: Spacing.xxs },
+  weekRow: { marginBottom: Spacing.xxs },
   weekCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xxs },
   weekText: { ...Typography.caption },
-  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  daysGrid: { flexWrap: 'wrap' },
   dayCell: { width: '14.285%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: Radii.sm },
   dayText: { ...Typography.body },
 });

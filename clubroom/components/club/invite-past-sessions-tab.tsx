@@ -10,6 +10,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { PastSessionUser } from '@/hooks/use-club-invite';
+import { Row } from '@/components/primitives';
 
 interface InvitePastSessionsTabProps {
   searchQuery: string;
@@ -28,7 +29,7 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
   return (
     <>
       {/* Search */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Row style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={20} color={colors.muted} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -42,7 +43,7 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
             <Ionicons name="close-circle" size={20} color={colors.muted} />
           </Clickable>
         ) : null}
-      </View>
+      </Row>
 
       {/* Select All */}
       {filteredUsers.length > 0 && (
@@ -79,7 +80,7 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
                   ]}
                   onPress={() => onToggleUser(user.userId)}
                 >
-                  <View style={styles.userLeft}>
+                  <Row style={styles.userLeft}>
                     <View style={[styles.checkbox, { borderColor: isSelected ? colors.tint : colors.border, backgroundColor: isSelected ? colors.tint : 'transparent' }]}>
                       {isSelected && <Ionicons name="checkmark" size={14} color={colors.onPrimary} />}
                     </View>
@@ -97,7 +98,7 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
                         </ThemedText>
                       </Row>
                     </View>
-                  </View>
+                  </Row>
                   <Row gap="xxs" align="center">
                     <Ionicons name="calendar-outline" size={14} color={colors.muted} />
                     <ThemedText style={[Typography.caption, { color: colors.muted }]}>
@@ -115,13 +116,13 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
 });
 
 const styles = StyleSheet.create({
-  searchContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  searchContainer: { alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   searchInput: { flex: 1, ...Typography.body, padding: 0 },
   selectAllRow: { paddingHorizontal: Spacing.xs },
   emptyCard: { alignItems: 'center', gap: Spacing.md, padding: Spacing.xl },
   userList: { gap: Spacing.sm },
-  userRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
-  userLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
+  userRow: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
+  userLeft: { alignItems: 'center', gap: Spacing.md, flex: 1 },
   checkbox: { width: 22, height: 22, borderRadius: Radii.sm, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   userInfo: { flex: 1, gap: Spacing.micro },

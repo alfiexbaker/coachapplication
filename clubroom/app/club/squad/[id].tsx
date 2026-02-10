@@ -20,12 +20,13 @@ import { SquadAddMembers } from '@/components/squad/squad-add-members';
 import { SquadQuickActions } from '@/components/squad/squad-quick-actions';
 import { SquadDangerZone, RemoveMemberOverlay } from '@/components/squad/squad-danger-zone';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useSquadDetail } from '@/hooks/use-squad-detail';
 
 export default function SquadDetailScreen() {
   const { id: squadId } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     squad, members, loading, resolvedClubId,
     isEditing, setIsEditing, editName, setEditName, cancelEdit,

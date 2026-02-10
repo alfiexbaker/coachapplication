@@ -10,22 +10,18 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RetentionCard, CancellationChart } from '@/components/analytics';
 import { RetentionFunnel } from '@/components/analytics/retention-funnel';
 import { RetentionRecommendations } from '@/components/analytics/retention-recommendations';
-import { LoadingState } from '@/components/ui/screen-states';
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ok } from '@/types/result';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useRetentionAnalytics } from '@/hooks/use-retention-analytics';
 
 export default function RetentionScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { retention, cancellations, loading, refreshing, status, handleRefresh } = useRetentionAnalytics();
 
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <LoadingState variant="card" />
-      </SafeAreaView>
-    );
-  }
+  if (loading) return <LoadingState variant="card" />;
+  if (!retention) return <EmptyState icon="people-outline" title="No retention data" message="Data will appear after you have active clients" />;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

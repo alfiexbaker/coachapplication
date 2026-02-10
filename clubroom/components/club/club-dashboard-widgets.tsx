@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MatchResult } from '@/services/club-service';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Stat Card
@@ -63,14 +64,14 @@ export const ResultRow = memo(function ResultRow({ result, palette }: ResultRowP
   });
 
   return (
-    <View style={[styles.resultRow, { borderBottomColor: palette.border }]}>
+    <Row style={[styles.resultRow, { borderBottomColor: palette.border }]}>
       <OutcomeBadge outcome={result.outcome} palette={palette} />
       <View style={styles.resultInfo}>
         <ThemedText style={{ ...Typography.bodySemiBold, color: palette.foreground }}>vs {result.opponent}</ThemedText>
         <ThemedText style={{ ...Typography.small, color: palette.muted }}>{result.squad} &middot; {formattedDate}</ThemedText>
       </View>
       <ThemedText style={{ ...Typography.heading, color: palette.foreground }}>{result.scoreHome} - {result.scoreAway}</ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, alignItems: 'center', gap: Spacing.xs / 2, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
   outcomeBadge: { width: 32, height: 32, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
   outcomeBadgeText: { ...Typography.caption },
-  resultRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  resultRow: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   resultInfo: { flex: 1, gap: Spacing.micro },
   quickAction: { flex: 1, height: 80, borderRadius: Radii.card, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xs / 2 },
 });

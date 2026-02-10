@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -111,27 +112,29 @@ export default function FavouritesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+      <Row align="center" justify="space-between" style={styles.header}>
+        <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={styles.headerTitle}>
             Favourites
           </ThemedText>
-        </View>
+        </Row>
         {favourites.length > 0 && (
           <Clickable
             onPress={handleDiscoverCoaches}
             style={[styles.discoverButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
           >
-            <Ionicons name="search" size={18} color={palette.text} />
-            <ThemedText style={[styles.discoverText, { color: palette.text }]}>
-              Discover
-            </ThemedText>
+            <Row align="center" gap="xxs">
+              <Ionicons name="search" size={18} color={palette.text} />
+              <ThemedText style={[styles.discoverText, { color: palette.text }]}>
+                Discover
+              </ThemedText>
+            </Row>
           </Clickable>
         )}
-      </View>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -148,8 +151,8 @@ export default function FavouritesScreen() {
         {/* Stats Summary */}
         {favourites.length > 0 && (
           <Animated.View entering={FadeInDown.delay(50).springify()}>
-            <View style={[styles.statsRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <View style={styles.statItem}>
+            <Row align="center" justify="center" style={[styles.statsRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <Row align="center" gap="xs" style={styles.statItem}>
                 <Ionicons name="heart" size={20} color={palette.error} />
                 <ThemedText type="defaultSemiBold" style={styles.statValue}>
                   {favourites.length}
@@ -157,8 +160,8 @@ export default function FavouritesScreen() {
                 <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
                   Saved Coach{favourites.length !== 1 ? 'es' : ''}
                 </ThemedText>
-              </View>
-            </View>
+              </Row>
+            </Row>
           </Animated.View>
         )}
 
@@ -201,28 +204,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
+  headerLeft: {},
   headerTitle: {
     ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   discoverButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.xl,
     borderWidth: 1,
-    gap: Spacing.xxs,
   },
   discoverText: {
     ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
@@ -233,19 +226,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
     marginBottom: Spacing.md,
   },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
+  statItem: {},
   statValue: {
     ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },

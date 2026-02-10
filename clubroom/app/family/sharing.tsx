@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SharingGuardiansSection } from '@/components/family/sharing-guardians-section';
@@ -62,8 +63,10 @@ export default function FamilySharingScreen() {
         {family?.pendingInvites && <SharingPendingInvites invites={family.pendingInvites} onCancel={handleCancelInvite} />}
 
         <Clickable style={[styles.inviteButton, { backgroundColor: colors.tint }]} onPress={() => setShowInviteModal(true)}>
-          <Ionicons name="person-add" size={22} color={colors.onPrimary} />
-          <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Invite Family Member</ThemedText>
+          <Row align="center" justify="center" gap="sm">
+            <Ionicons name="person-add" size={22} color={colors.onPrimary} />
+            <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Invite Family Member</ThemedText>
+          </Row>
         </Clickable>
       </ScrollView>
 
@@ -85,5 +88,5 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.md, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
   introCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
-  inviteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },
+  inviteButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },
 });

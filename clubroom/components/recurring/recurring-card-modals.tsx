@@ -7,6 +7,7 @@ import { View, StyleSheet, Modal, TextInput } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -42,12 +43,12 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
             placeholder={placeholder} placeholderTextColor={palette.muted}
             value={reason} onChangeText={onReasonChange} multiline
           />
-          <View style={styles.actions}>
+          <Row gap="sm" justify="center">
             <Button variant="outline" onPress={onCancel}>{destructive ? 'Go Back' : 'Cancel'}</Button>
             <Button onPress={onConfirm} disabled={loading} style={destructive ? { backgroundColor: palette.error } : undefined}>
               {loading ? loadingLabel : confirmLabel}
             </Button>
-          </View>
+          </Row>
         </ThemedView>
       </View>
     </Modal>
@@ -60,5 +61,4 @@ const styles = StyleSheet.create({
   title: { textAlign: 'center' },
   description: { textAlign: 'center', ...Typography.body },
   reasonInput: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, minHeight: 80, textAlignVertical: 'top', ...Typography.body },
-  actions: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center' },
 });

@@ -12,6 +12,7 @@ export { ReviewHeader, ExistingReplyCard } from './review-response-sections';
 export type { ReviewHeaderProps, ExistingReplyCardProps } from './review-response-sections';
 
 import { ReviewHeader, ExistingReplyCard } from './review-response-sections';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,7 +86,7 @@ export function ReviewResponse({
             maxLength={maxCharacters}
             textAlignVertical="top"
           />
-          <View style={styles.replyFooter}>
+          <Row style={styles.replyFooter}>
             <ThemedText style={[Typography.small, { color: charCount > maxCharacters ? palette.error : palette.muted }]}>
               {charCount}/{maxCharacters}
             </ThemedText>
@@ -101,7 +102,7 @@ export function ReviewResponse({
                 Post Reply
               </ThemedText>
             </Clickable>
-          </View>
+          </Row>
         </View>
       )}
     </SurfaceCard>
@@ -121,6 +122,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
   },
-  replyFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  replyFooter: { justifyContent: 'space-between', alignItems: 'center' },
   postButton: { height: Components.button.height, paddingHorizontal: Spacing.md, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
 });

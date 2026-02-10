@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
@@ -41,7 +42,7 @@ export default function InvitesScreen() {
       <PageHeader title="Session Invites" subtitle={inv.pendingCount > 0 ? `${inv.pendingCount} pending invite${inv.pendingCount !== 1 ? 's' : ''}` : 'From your coaches'} showBack onBackPress={() => router.back()} />
 
       {/* Tab Filter */}
-      <View style={styles.tabRow}>
+      <Row gap="xs" style={styles.tabRow}>
         {tabs.map((tab) => (
           <Clickable key={tab.key} style={[styles.tab, { borderColor: inv.tabFilter === tab.key ? palette.tint : palette.border, backgroundColor: inv.tabFilter === tab.key ? withAlpha(palette.tint, 0.06) : 'transparent' }]} onPress={() => inv.setTabFilter(tab.key)}>
             <ThemedText style={[styles.tabText, { color: inv.tabFilter === tab.key ? palette.tint : palette.muted }]}>
@@ -49,7 +50,7 @@ export default function InvitesScreen() {
             </ThemedText>
           </Clickable>
         ))}
-      </View>
+      </Row>
 
       <FlatList
         data={inv.filteredInvites}
@@ -71,8 +72,10 @@ export default function InvitesScreen() {
             </ThemedText>
             {inv.error && !inv.loading && (
               <Clickable style={[styles.retryButton, { borderColor: palette.tint }]} onPress={inv.loadInvites}>
-                <Ionicons name="refresh" size={18} color={palette.tint} />
-                <ThemedText style={[styles.retryText, { color: palette.tint }]}>Retry</ThemedText>
+                <Row align="center" justify="center" gap="xs">
+                  <Ionicons name="refresh" size={18} color={palette.tint} />
+                  <ThemedText style={[styles.retryText, { color: palette.tint }]}>Retry</ThemedText>
+                </Row>
               </Clickable>
             )}
           </View>
@@ -85,7 +88,7 @@ export default function InvitesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  tabRow: { flexDirection: 'row', paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, gap: Spacing.xs },
+  tabRow: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
   tab: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
   tabText: { ...Typography.bodySmallSemiBold },
   list: { padding: Spacing.md },
@@ -94,6 +97,6 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 72, height: 72, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
   emptyTitle: { ...Typography.heading },
   emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
-  retryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44, marginTop: Spacing.sm },
+  retryButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44, marginTop: Spacing.sm },
   retryText: { ...Typography.bodySemiBold },
 });

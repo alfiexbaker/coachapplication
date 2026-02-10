@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { REASONS, formatDateDisplay } from '@/hooks/use-time-off-form';
+import { Row } from '@/components/primitives';
 
 interface Conflicts {
   bookingCount: number;
@@ -39,7 +40,7 @@ function TimeOffConfirmStepInner({
     <View style={styles.content}>
       {/* Summary */}
       <SurfaceCard style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
+        <Row style={styles.summaryRow}>
           <Ionicons name="airplane-outline" size={20} color={palette.tint} />
           <View style={styles.summaryInfo}>
             <ThemedText type="defaultSemiBold">
@@ -50,18 +51,18 @@ function TimeOffConfirmStepInner({
               {!isSameDay ? ` \u00B7 ${dayCount} days` : ''}
             </ThemedText>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
 
       {/* Conflict Info */}
       {conflicts && conflicts.bookingCount > 0 ? (
         <SurfaceCard style={[styles.conflictCard, { borderColor: palette.warning }]}>
-          <View style={styles.conflictHeader}>
+          <Row style={styles.conflictHeader}>
             <Ionicons name="warning-outline" size={18} color={palette.warning} />
             <ThemedText style={[styles.conflictTitle, { color: palette.warning }]}>
               {conflicts.bookingCount} session{conflicts.bookingCount !== 1 ? 's' : ''} affected
             </ThemedText>
-          </View>
+          </Row>
           {conflicts.bookings.slice(0, 3).map((b) => (
             <View key={b.id} style={styles.conflictItem}>
               <ThemedText style={[styles.conflictItemText, { color: palette.text }]}>
@@ -77,10 +78,10 @@ function TimeOffConfirmStepInner({
           </ThemedText>
         </SurfaceCard>
       ) : (
-        <View style={[styles.allClear, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+        <Row style={[styles.allClear, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={palette.success} />
           <ThemedText style={[styles.allClearText, { color: palette.success }]}>No sessions affected</ThemedText>
-        </View>
+        </Row>
       )}
 
       {/* Actions */}
@@ -102,20 +103,20 @@ export const TimeOffConfirmStep = memo(TimeOffConfirmStepInner);
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },
   summaryCard: { padding: Spacing.md },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  summaryRow: { alignItems: 'center', gap: Spacing.md },
   summaryInfo: { flex: 1 },
   summaryMeta: { ...Typography.small, marginTop: Spacing.micro },
   conflictCard: { padding: Spacing.md, borderWidth: 1, gap: Spacing.xs },
-  conflictHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  conflictHeader: { alignItems: 'center', gap: Spacing.xs },
   conflictTitle: { ...Typography.bodySemiBold },
   conflictItem: { paddingLeft: Spacing.lg },
   conflictItemText: { ...Typography.small },
   conflictMore: { ...Typography.small, paddingLeft: Spacing.lg },
   conflictNote: { ...Typography.caption, marginTop: Spacing.xs },
-  allClear: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
+  allClear: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
   allClearText: { ...Typography.smallSemiBold },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 52, borderRadius: Radii.md, marginTop: Spacing.xs },
+  primaryBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 52, borderRadius: Radii.md, marginTop: Spacing.xs },
   primaryBtnText: { ...Typography.bodySemiBold },
-  backBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 44 },
+  backBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 44 },
   backBtnText: { ...Typography.bodySmall },
 });

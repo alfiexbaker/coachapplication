@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -97,14 +98,14 @@ export function AnnotationMarker({
             },
           ]}
         >
-          <View style={styles.tooltipHeader}>
+          <Row align="center" gap="xs" style={styles.tooltipHeader}>
             <View style={[styles.tooltipBadge, { backgroundColor: withAlpha(typeConfig.color, 0.12) }]}>
               <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={12} color={typeConfig.color} />
             </View>
             <ThemedText style={styles.tooltipTime}>
               {formatTimestamp(annotation.timestamp)}
             </ThemedText>
-          </View>
+          </Row>
           <ThemedText style={styles.tooltipLabel} numberOfLines={2}>
             {annotation.label}
           </ThemedText>
@@ -203,9 +204,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tooltipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     marginBottom: Spacing.xxs,
   },
   tooltipBadge: {

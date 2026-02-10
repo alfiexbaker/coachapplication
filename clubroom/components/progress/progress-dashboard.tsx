@@ -5,6 +5,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
@@ -43,14 +44,14 @@ export function ProgressDashboard({
 
       {/* Skills */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Skills</ThemedText>
           {onViewAllSkills && progress.skills.length > 4 && (
             <SurfaceCard style={styles.viewAllButton} onPress={onViewAllSkills} tactile>
               <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
             </SurfaceCard>
           )}
-        </View>
+        </Row>
         {progress.skills.length > 0 ? (
           <SkillLevelGrid skills={progress.skills.slice(0, 4)} compact />
         ) : (
@@ -63,32 +64,32 @@ export function ProgressDashboard({
 
       {/* Goals */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Active Goals</ThemedText>
           <Chip dense>{progress.activeGoals.length} active</Chip>
-        </View>
+        </Row>
         <GoalsSection goals={progress.activeGoals} onViewGoal={onViewGoal} />
       </View>
 
       {/* Badges */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Badges</ThemedText>
           <Chip dense>{progress.totalBadges} earned</Chip>
-        </View>
+        </Row>
         <BadgesSection badges={progress.recentBadges} onViewAll={onViewBadges} />
       </View>
 
       {/* Recent Feedback */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Feedback</ThemedText>
           {onViewAllFeedback && progress.recentFeedback.length > 3 && (
             <SurfaceCard style={styles.viewAllButton} onPress={onViewAllFeedback} tactile>
               <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
             </SurfaceCard>
           )}
-        </View>
+        </Row>
         <FeedbackList feedback={progress.recentFeedback.slice(0, 3)} compact emptyMessage="No feedback from coaches yet" />
       </View>
     </View>
@@ -98,7 +99,6 @@ export function ProgressDashboard({
 const styles = StyleSheet.create({
   container: { gap: Spacing.lg },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle: { ...Typography.subheading },
   viewAllButton: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
   viewAllText: { ...Typography.smallSemiBold },

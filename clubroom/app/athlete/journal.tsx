@@ -18,9 +18,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SessionJournal } from '@/components/development/session-journal';
 import type { JournalEntry } from '@/components/development/session-journal';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ok } from '@/types/result';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -30,7 +31,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('AthleteJournalScreen');
 
 export default function AthleteJournalScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [entries, setEntries] = useState<JournalEntry[]>([]);

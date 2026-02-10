@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export type TimeFilter = 'upcoming' | 'past';
 
@@ -129,7 +130,7 @@ export function BookingsList({
   return (
     <View style={styles.container}>
       {/* Time Filter - Simple pills */}
-      <View style={styles.filterRow}>
+      <Row style={styles.filterRow}>
         <Clickable
           onPress={() => onTimeFilterChange('upcoming')}
           style={[
@@ -164,7 +165,7 @@ export function BookingsList({
             Past
           </ThemedText>
         </Clickable>
-      </View>
+      </Row>
 
       {hasItems ? (
         <FlatList
@@ -207,7 +208,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filterRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingBottom: Spacing.sm,

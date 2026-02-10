@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { matchService } from '@/services/match-service';
@@ -26,7 +27,7 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
         {match.selectedPlayers.map((player) => {
           const statusCol = matchService.getPlayerStatusColor(player.status);
           return (
-            <View key={player.athleteId} style={[styles.row, { borderBottomColor: colors.border }]}>
+            <Row key={player.athleteId} align="center" gap="sm" style={[styles.row, { borderBottomColor: colors.border }]}>
               <View style={[styles.avatar, { backgroundColor: withAlpha(statusCol, 0.09) }]}>
                 <ThemedText style={[Typography.bodySmallSemiBold, { color: statusCol }]}>
                   {player.athleteName.slice(0, 2).toUpperCase()}
@@ -45,7 +46,7 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
                   {matchService.formatPlayerStatus(player.status)}
                 </ThemedText>
               </View>
-            </View>
+            </Row>
           );
         })}
       </View>
@@ -56,7 +57,7 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   title: { ...Typography.subheading, marginBottom: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.sm },
+  row: { paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   pill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
 });

@@ -11,6 +11,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface OptionPickerProps<T> {
   options: { value: T; label: string; description: string }[];
@@ -22,7 +23,7 @@ function OptionPickerInner<T extends number>({ options, selectedValue, onSelect 
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.optionsGrid}>
+    <Row style={styles.optionsGrid}>
       {options.map((option) => {
         const isSelected = option.value === selectedValue;
         return (
@@ -58,7 +59,7 @@ function OptionPickerInner<T extends number>({ options, selectedValue, onSelect 
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
@@ -66,7 +67,6 @@ export const SchedulingOptionPicker = memo(OptionPickerInner) as typeof OptionPi
 
 const styles = StyleSheet.create({
   optionsGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },

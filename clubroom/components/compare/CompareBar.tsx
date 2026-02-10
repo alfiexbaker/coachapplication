@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Shadows, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
+import { Row } from '@/components/primitives';
 
 interface CompareBarProps {
   /** Whether to show the bar */
@@ -95,7 +96,7 @@ export function CompareBar({
         ]}
       >
         {/* Info section */}
-        <View style={styles.info}>
+        <Row style={styles.info}>
           <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.onPrimary, 0.2) }]}>
             <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
           </View>
@@ -107,10 +108,10 @@ export function CompareBar({
               {count < maxCount ? `Add ${maxCount - count} more to compare` : 'Ready to compare'}
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         {/* Action buttons */}
-        <View style={styles.actions}>
+        <Row style={styles.actions}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Clear comparison"
@@ -139,7 +140,7 @@ export function CompareBar({
               Compare
             </ThemedText>
           </Pressable>
-        </View>
+        </Row>
       </View>
     </Animated.View>
   );
@@ -153,7 +154,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   bar: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   info: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
@@ -181,7 +180,6 @@ const styles = StyleSheet.create({
   subtitle: { ...Typography.caption,
     marginTop: 1 },
   actions: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -189,7 +187,6 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   compareButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.xs + 2,

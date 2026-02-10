@@ -19,6 +19,7 @@ import type { RSVPStatus, EventRSVP } from '@/constants/types';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -63,12 +64,12 @@ export const RSVPStatusBanner = memo(function RSVPStatusBanner({
   }[variant];
 
   return (
-    <View style={[styles.statusBanner, { backgroundColor: withAlpha(config.color, 0.09) }]}>
+    <Row style={[styles.statusBanner, { backgroundColor: withAlpha(config.color, 0.09) }]}>
       <Ionicons name={config.icon} size={18} color={config.color} />
       <ThemedText style={[styles.statusText, { color: config.color }]}>
         {config.label}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -153,7 +154,7 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
   ];
 
   return (
-    <View style={styles.buttonRow}>
+    <Row style={styles.buttonRow}>
       {statuses.map((s) => {
         const btnDisabled = s.useRawDisabled ? disabled : isDisabled;
         const textColor = getTextColor(s.status, currentRSVP, palette);
@@ -182,7 +183,7 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -198,11 +199,11 @@ export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
   palette,
 }: CurrentRSVPStatusProps) {
   return (
-    <View style={styles.currentStatus}>
+    <Row style={styles.currentStatus}>
       <ThemedText style={[styles.currentStatusLabel, { color: palette.muted }]}>
         Your response:
       </ThemedText>
-      <View style={styles.currentStatusBadge}>
+      <Row style={styles.currentStatusBadge}>
         <Ionicons
           name={eventService.getRSVPStatusIcon(currentRSVP.status) as keyof typeof Ionicons.glyphMap}
           size={14}
@@ -217,8 +218,8 @@ export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
           {eventService.formatRSVPStatus(currentRSVP.status)}
           {currentRSVP.guestCount > 0 && ` (+${currentRSVP.guestCount} guests)`}
         </ThemedText>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -229,12 +230,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   buttonRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   rsvpButton: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,
@@ -250,7 +249,6 @@ export const styles = StyleSheet.create({
     opacity: 0.5,
   },
   statusBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,
@@ -261,7 +259,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   currentStatus: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: Spacing.xs,
@@ -270,7 +267,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(13),
   },
   currentStatusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -279,7 +275,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   compactButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

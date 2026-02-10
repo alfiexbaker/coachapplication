@@ -16,6 +16,7 @@ import { InjuryStepIndicator } from './injury-step-indicator';
 import { InjuryDetailsStep } from './injury-details-step';
 import { Spacing } from '@/constants/theme';
 import type { BodyPart, InjurySeverity, LogInjuryInput } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface InjuryFormProps {
   onSubmit: (data: LogInjuryInput) => void;
@@ -103,7 +104,7 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
       )}
 
       {/* Navigation buttons */}
-      <View style={styles.buttonRow}>
+      <Row style={styles.buttonRow}>
         {step !== 'body_part' ? (
           <Button variant="secondary" onPress={handleBack} style={styles.button}>Back</Button>
         ) : onCancel ? (
@@ -128,7 +129,7 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
             {loading ? 'Saving...' : 'Log Injury'}
           </Button>
         )}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -138,7 +139,6 @@ const styles = StyleSheet.create({
   stepContent: { flex: 1, paddingHorizontal: Spacing.lg },
   stepTitle: { marginBottom: Spacing.md },
   buttonRow: {
-    flexDirection: 'row',
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,

@@ -29,6 +29,7 @@ import {
   SpecialtyTags,
   FocusBadge,
 } from './coach-card-services-sections';
+import { Row } from '@/components/primitives';
 
 // ============================================================================
 // Types
@@ -111,28 +112,28 @@ export function CoachCardServices({
 
   if (variant === 'compact' && primaryFocus) {
     return (
-      <View style={styles.compactContainer}>
+      <Row style={styles.compactContainer}>
         <FocusBadge focus={primaryFocus} />
         <PriceDisplay
           pricePerHour={pricePerHour}
           priceMin={priceMin}
           priceMax={priceMax}
         />
-      </View>
+      </Row>
     );
   }
 
   if (variant === 'inline') {
     const { InlinePrice } = require('./coach-card-services-sections');
     return (
-      <View style={styles.inlineContainer}>
+      <Row style={styles.inlineContainer}>
         {primaryFocus && <FocusBadge focus={primaryFocus} />}
         <InlinePrice
           pricePerHour={pricePerHour}
           priceMin={priceMin}
           priceMax={priceMax}
         />
-      </View>
+      </Row>
     );
   }
 
@@ -155,13 +156,11 @@ export function CoachCardServices({
 
 const styles = StyleSheet.create({
   compactContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
   inlineContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },

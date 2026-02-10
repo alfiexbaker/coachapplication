@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatFullDate, formatMonthDay, formatTimeRange, formatWeekday } from '@/utils/format';
 
 import type { DayAvailability, SlotInstance } from './booking-flow-types';
+import { Row } from '@/components/primitives';
 
 interface BookingFlowSchedulerProps {
   availability: DayAvailability[];
@@ -31,21 +32,21 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
 
   return (
     <SurfaceCard style={styles.schedulerCard}>
-      <View style={styles.schedulerHeader}>
+      <Row style={styles.schedulerHeader}>
         <View>
           <ThemedText type="subtitle">2 {'\u00B7'} Schedule a session</ThemedText>
           <ThemedText style={styles.schedulerSubtitle}>
             Pick a day that works—live calendar sync keeps cancellations low.
           </ThemedText>
         </View>
-        <View style={[styles.liveBadge, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}>
+        <Row style={[styles.liveBadge, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}>
           <Ionicons name="time-outline" size={16} color={palette.secondary} />
           <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>Live sync</ThemedText>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {/* Calendar grid */}
-      <View style={styles.calendarGrid}>
+      <Row style={styles.calendarGrid}>
         {availability.map((day) => {
           const isSelected = day.id === selectedDayId;
           const hasSlots = day.slots.length > 0;
@@ -65,7 +66,7 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
             </Clickable>
           );
         })}
-      </View>
+      </Row>
 
       {/* Slot list */}
       <View style={styles.slotList}>
@@ -86,15 +87,15 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
                 { borderColor: isSelected ? palette.tint : palette.border, backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface },
               ]}
               onPress={() => handleSlotPress(slot.id)}>
-              <View style={styles.slotHeader}>
+              <Row style={styles.slotHeader}>
                 <ThemedText type="defaultSemiBold">{slot.title}</ThemedText>
                 <ThemedText style={styles.slotTime}>{formatTimeRange(slot.start, slot.durationMinutes)}</ThemedText>
-              </View>
+              </Row>
               <ThemedText style={styles.slotFocus}>{slot.focus}</ThemedText>
-              <View style={styles.slotTag}>
+              <Row style={styles.slotTag}>
                 <Ionicons name="radio-outline" size={14} color={palette.secondary} />
                 <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>{slot.tag}</ThemedText>
-              </View>
+              </Row>
             </Clickable>
           );
         })}
@@ -107,20 +108,20 @@ export const BookingFlowScheduler = memo(BookingFlowSchedulerInner);
 
 const styles = StyleSheet.create({
   schedulerCard: { gap: Spacing.md },
-  schedulerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  schedulerHeader: { justifyContent: 'space-between', alignItems: 'flex-start' },
   schedulerSubtitle: { opacity: 0.75, marginTop: Spacing.micro },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
+  liveBadge: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
   badgeLabel: { ...Typography.caption, textTransform: 'uppercase' },
-  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  calendarGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   calendarDay: { flex: 1, minWidth: 90, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, gap: Spacing.micro },
   calendarWeekday: { fontWeight: '600', opacity: 0.75 },
   calendarDate: { ...Typography.heading },
   calendarMeta: { opacity: 0.7 },
   slotList: { gap: Spacing.sm },
   slotCard: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, gap: Spacing.xs / 2 },
-  slotHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  slotHeader: { justifyContent: 'space-between', alignItems: 'center' },
   slotTime: { opacity: 0.7 },
   slotFocus: { opacity: 0.85 },
-  slotTag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  slotTag: { alignItems: 'center', gap: Spacing.xs },
   emptySlots: { alignItems: 'center', gap: Spacing.xs / 2, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
 });

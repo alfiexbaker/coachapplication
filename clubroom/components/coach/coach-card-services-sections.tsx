@@ -12,6 +12,7 @@ import { View, StyleSheet } from 'react-native';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ============================================================================
 // HELPERS
@@ -47,7 +48,7 @@ export function SpecialtyTags({ specialties }: SpecialtyTagsProps) {
   }
 
   return (
-    <View style={styles.tagsRow}>
+    <Row style={styles.tagsRow}>
       {specialties.map((tag) => (
         <View
           key={tag}
@@ -58,7 +59,7 @@ export function SpecialtyTags({ specialties }: SpecialtyTagsProps) {
           </ThemedText>
         </View>
       ))}
-    </View>
+    </Row>
   );
 }
 
@@ -108,14 +109,14 @@ export function InlinePrice({
   }
 
   return (
-    <View style={styles.inlinePriceContainer}>
+    <Row style={styles.inlinePriceContainer}>
       <ThemedText type="defaultSemiBold" style={styles.inlinePrice}>
         {priceStr}
       </ThemedText>
       <ThemedText style={[styles.inlinePriceSuffix, { color: palette.muted }]}>
         {suffix}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -125,7 +126,6 @@ export function InlinePrice({
 
 const styles = StyleSheet.create({
   tagsRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
@@ -144,7 +144,6 @@ const styles = StyleSheet.create({
   },
   focusText: { ...Typography.caption },
   inlinePriceContainer: {
-    flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.micro,
   },

@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,19 +40,19 @@ export default function CreateEventScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <View style={styles.header}>
+        <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={goBack} hitSlop={8} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>Create Event</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
 
-        <View style={styles.progressContainer}>
+        <Row justify="center" gap="xs" style={styles.progressContainer}>
           {STEPS.map((s, i) => (
             <View key={s} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border }]} />
           ))}
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {renderStep()}
@@ -59,10 +60,10 @@ export default function CreateEventScreen() {
 
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
           {step === 'review' ? (
-            <View style={styles.reviewButtons}>
+            <Row gap="sm" style={styles.reviewButtons}>
               <Button variant="outline" onPress={() => handleCreate(false)} disabled={loading} style={styles.reviewButton}>Save Draft</Button>
               <Button onPress={() => handleCreate(true)} disabled={loading} style={styles.reviewButton}>{loading ? 'Creating...' : 'Publish'}</Button>
-            </View>
+            </Row>
           ) : (
             <Button onPress={goNext} disabled={!canProceed()}>Continue</Button>
           )}
@@ -75,11 +76,11 @@ export default function CreateEventScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardView: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
-  progressContainer: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.xs, paddingBottom: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  progressContainer: { paddingBottom: Spacing.md },
   progressDot: { width: 8, height: 8, borderRadius: Radii.xs },
   scrollContent: { padding: Spacing.lg, paddingTop: 0 },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
-  reviewButtons: { flexDirection: 'row', gap: Spacing.sm },
+  reviewButtons: {},
   reviewButton: { flex: 1 },
 });

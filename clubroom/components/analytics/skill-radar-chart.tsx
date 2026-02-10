@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SkillProgress } from '@/constants/types';
 import { RADAR_SIZE, CENTER, RADIUS, getSkillColor, getSkillLabel, getPosition } from './skill-radar-helpers';
+import { Row } from '@/components/primitives';
 
 const RINGS = [25, 50, 75, 100];
 
@@ -89,28 +90,28 @@ function SkillRadarChartInner({ skills, selectedSkill, onSelectSkill, showCompar
       </View>
 
       {/* Legend */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.tint }]} /><ThemedText style={[styles.legendText, { color: palette.text }]}>Current</ThemedText></View>
-        {showComparison && <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.muted }]} /><ThemedText style={[styles.legendText, { color: palette.muted }]}>{comparisonLabel}</ThemedText></View>}
-      </View>
+      <Row style={styles.legend}>
+        <Row style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.tint }]} /><ThemedText style={[styles.legendText, { color: palette.text }]}>Current</ThemedText></Row>
+        {showComparison && <Row style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.muted }]} /><ThemedText style={[styles.legendText, { color: palette.muted }]}>{comparisonLabel}</ThemedText></Row>}
+      </Row>
 
       {/* Selected Skill Detail */}
       {selectedSkill && (
         <Animated.View entering={FadeInDown.springify()} style={styles.selectedDetail}>
           <View style={[styles.selectedCard, { borderColor: getSkillColor(selectedSkill.currentLevel) }]}>
-            <View style={styles.selectedHeader}>
+            <Row style={styles.selectedHeader}>
               <View>
                 <ThemedText type="defaultSemiBold">{selectedSkill.skillName}</ThemedText>
                 <ThemedText style={[styles.selectedCategory, { color: palette.muted }]}>{selectedSkill.category}</ThemedText>
               </View>
               <View style={styles.selectedStats}>
                 <ThemedText type="heading" style={{ color: getSkillColor(selectedSkill.currentLevel) }}>{selectedSkill.currentLevel}</ThemedText>
-                <View style={[styles.selectedTrend, { backgroundColor: selectedSkill.changePercent >= 0 ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }]}>
+                <Row style={[styles.selectedTrend, { backgroundColor: selectedSkill.changePercent >= 0 ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }]}>
                   <Ionicons name={selectedSkill.changePercent >= 0 ? 'arrow-up' : 'arrow-down'} size={12} color={selectedSkill.changePercent >= 0 ? palette.success : palette.error} />
                   <ThemedText style={{ ...Typography.caption, color: selectedSkill.changePercent >= 0 ? palette.success : palette.error }}>{selectedSkill.changePercent >= 0 ? '+' : ''}{selectedSkill.changePercent.toFixed(1)}%</ThemedText>
-                </View>
+                </Row>
               </View>
-            </View>
+            </Row>
             <View style={styles.selectedProgressBar}>
               <View style={[styles.selectedProgressBg, { backgroundColor: palette.border }]}>
                 <View style={[styles.selectedProgressFill, { width: `${selectedSkill.currentLevel}%`, backgroundColor: getSkillColor(selectedSkill.currentLevel) }]} />
@@ -139,16 +140,16 @@ const styles = StyleSheet.create({
   dataPoint: { position: 'absolute', borderRadius: Radii.pill },
   comparisonPoint: { position: 'absolute', width: 8, height: 8, borderRadius: Radii.xs, borderWidth: 1 },
   centerDot: { position: 'absolute', width: 6, height: 6, borderRadius: Radii.xs },
-  legend: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  legend: { justifyContent: 'center', gap: Spacing.lg },
+  legendItem: { alignItems: 'center', gap: Spacing.xs },
   legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
   legendText: { ...Typography.caption },
   selectedDetail: { marginTop: Spacing.sm },
   selectedCard: { padding: Spacing.sm, borderWidth: 2, borderRadius: Radii.md, gap: Spacing.sm },
-  selectedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  selectedHeader: { justifyContent: 'space-between', alignItems: 'flex-start' },
   selectedCategory: { ...Typography.caption, marginTop: Spacing.micro },
   selectedStats: { alignItems: 'flex-end', gap: Spacing.xxs },
-  selectedTrend: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  selectedTrend: { alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   selectedProgressBar: { gap: Spacing.xxs },
   selectedProgressBg: { height: 6, borderRadius: Radii.xs, overflow: 'hidden' },
   selectedProgressFill: { height: '100%', borderRadius: Radii.xs },

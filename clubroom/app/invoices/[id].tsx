@@ -9,6 +9,7 @@ import { View, StyleSheet, ActivityIndicator, Modal, TextInput } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
@@ -55,18 +56,22 @@ export default function InvoiceDetailScreen() {
         {c.actionLoading ? (
           <ActivityIndicator size="small" color={palette.tint} />
         ) : (
-          <View style={styles.actionButtons}>
+          <Row gap="sm" align="center" style={styles.actionButtons}>
             <DownloadButton invoice={c.invoice} variant="secondary" size="medium" />
             {c.canSend && (
               <Clickable style={[styles.actionButton, { backgroundColor: palette.tint }]} onPress={c.openSendModal}>
-                <Ionicons name="paper-plane-outline" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>Send</ThemedText>
+                <Row align="center" gap="xs">
+                  <Ionicons name="paper-plane-outline" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>Send</ThemedText>
+                </Row>
               </Clickable>
             )}
             {c.canMarkPaid && (
               <Clickable style={[styles.actionButton, { backgroundColor: palette.success }]} onPress={c.handleMarkPaid}>
-                <Ionicons name="checkmark-circle-outline" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>Mark Paid</ThemedText>
+                <Row align="center" gap="xs">
+                  <Ionicons name="checkmark-circle-outline" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>Mark Paid</ThemedText>
+                </Row>
               </Clickable>
             )}
             {c.canVoid && c.isCoach && (
@@ -74,18 +79,18 @@ export default function InvoiceDetailScreen() {
                 <Ionicons name="close-circle-outline" size={18} color={palette.error} />
               </Clickable>
             )}
-          </View>
+          </Row>
         )}
       </View>
 
       <Modal visible={c.showSendModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={c.closeSendModal}>
         <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
-          <View style={styles.modalHeader}>
+          <Row align="center" justify="between" style={styles.modalHeader}>
             <ThemedText type="title">Send Invoice</ThemedText>
             <Clickable accessibilityLabel="Close" style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]} onPress={c.closeSendModal}>
               <Ionicons name="close" size={24} color={palette.text} />
             </Clickable>
-          </View>
+          </Row>
           <View style={styles.modalContent}>
             <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Recipient Email</ThemedText>
             <TextInput style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
@@ -94,8 +99,10 @@ export default function InvoiceDetailScreen() {
             <Clickable style={[styles.sendButton, { backgroundColor: palette.tint, opacity: !c.sendEmail.trim() || c.actionLoading ? 0.6 : 1 }]}
               onPress={c.handleSendInvoice} disabled={!c.sendEmail.trim() || c.actionLoading}>
               {c.actionLoading ? <ActivityIndicator size="small" color={palette.onPrimary} /> : (
-                <><Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
-                  <ThemedText style={[styles.sendText, { color: palette.onPrimary }]}>Send Invoice</ThemedText></>
+                <Row align="center" justify="center" gap="xs">
+                  <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.sendText, { color: palette.onPrimary }]}>Send Invoice</ThemedText>
+                </Row>
               )}
             </Clickable>
           </View>
@@ -111,16 +118,16 @@ const styles = StyleSheet.create({
   errorText: { ...Typography.subheading },
   backButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, marginTop: Spacing.sm },
   actionBar: { padding: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
-  actionButtons: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
-  actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md },
+  actionButtons: {},
+  actionButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md },
   actionText: { ...Typography.bodySmallSemiBold },
   voidButton: { width: 44, height: 44, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginLeft: 'auto' },
   modalContainer: { flex: 1 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, paddingTop: Spacing.lg },
+  modalHeader: { padding: Spacing.md, paddingTop: Spacing.lg },
   closeButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   modalContent: { padding: Spacing.md, gap: Spacing.sm },
   inputLabel: { ...Typography.bodySmallSemiBold },
   input: { height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.subheading },
-  sendButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.md },
+  sendButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.md },
   sendText: { ...Typography.subheading },
 });

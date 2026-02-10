@@ -15,6 +15,7 @@ export { TrainingSessionRow, EmptyTrainingState } from './sessions-panel-section
 export type { TrainingSessionRowProps, EmptyTrainingStateProps } from './sessions-panel-sections';
 
 import { TrainingSessionRow, EmptyTrainingState } from './sessions-panel-sections';
+import { Row } from '@/components/primitives';
 
 export interface SessionsPanelProps {
   sessions: GroupSession[];
@@ -38,13 +39,13 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
 
   return (
     <SurfaceCard style={styles.trainingCard}>
-      <View style={styles.trainingSectionHeader}>
-        <View style={styles.trainingHeaderLeft}>
+      <Row style={styles.trainingSectionHeader}>
+        <Row style={styles.trainingHeaderLeft}>
           <Ionicons name="football" size={20} color={palette.tint} />
           <ThemedText type="defaultSemiBold">Training Schedule</ThemedText>
-        </View>
+        </Row>
         {isCoach && (
-          <View style={styles.trainingHeaderButtons}>
+          <Row style={styles.trainingHeaderButtons}>
             <Clickable style={styles.manageAllLink} onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}>
               <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint }}>Manage All</ThemedText>
               <Ionicons name="chevron-forward" size={14} color={palette.tint} />
@@ -57,9 +58,9 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
               <Ionicons name="add" size={16} color={palette.onPrimary} />
               <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>Add</ThemedText>
             </Clickable>
-          </View>
+          </Row>
         )}
-      </View>
+      </Row>
 
       {sessions.length > 0 ? (
         <View style={styles.trainingList}>
@@ -89,28 +90,23 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   trainingSectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   trainingHeaderLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   trainingHeaderButtons: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   manageAllLink: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
     paddingVertical: Spacing.xs,
   },
   inviteSquadButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -119,7 +115,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   addTrainingButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -130,7 +125,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   viewAllButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

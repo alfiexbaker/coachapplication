@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -129,7 +130,9 @@ function Toast({
       style={[styles.container, { bottom: bottomPosition }]}
       pointerEvents={action ? 'box-none' : 'none'}
     >
-      <View
+      <Row
+        align="center"
+        gap="md"
         style={[
           styles.toast,
           { backgroundColor: scheme === 'dark' ? palette.surface : palette.onPrimary, borderColor: withAlpha(toneColor, 0.33), ...Shadows[scheme].card },
@@ -147,7 +150,7 @@ function Toast({
             <Text style={[styles.actionText, { color: palette.tint }]}>{action.label}</Text>
           </Pressable>
         )}
-      </View>
+      </Row>
     </Animated.View>
   );
 }
@@ -162,9 +165,6 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
     borderWidth: 1,
     borderRadius: Radii.lg,
     paddingHorizontal: Spacing.lg,

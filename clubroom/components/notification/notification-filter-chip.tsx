@@ -6,11 +6,12 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -31,7 +32,9 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
 
   return (
     <Clickable onPress={onPress} accessibilityLabel={`Filter by ${label}`}>
-      <View
+      <Row
+        align="center"
+        gap="xxs"
         style={[
           styles.filterChip,
           {
@@ -53,16 +56,13 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
         >
           {label}
         </ThemedText>
-      </View>
+      </Row>
     </Clickable>
   );
 });
 
 const styles = StyleSheet.create({
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,

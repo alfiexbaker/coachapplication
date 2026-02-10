@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { invoiceService } from '@/services/invoice-service';
@@ -60,22 +61,22 @@ export const CompactInvoiceRow = memo(function CompactInvoiceRow({
     <Clickable style={[styles.compactContainer, { borderBottomColor: palette.border }]} onPress={onPress}>
       <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
       <View style={styles.compactContent}>
-        <View style={styles.compactRow}>
+        <Row justify="space-between" align="center">
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.compactTitle}>
             {invoice.invoiceNumber}
           </ThemedText>
           <ThemedText type="defaultSemiBold">
             {invoiceService.formatAmount(invoice.total)}
           </ThemedText>
-        </View>
-        <View style={styles.compactRow}>
+        </Row>
+        <Row justify="space-between" align="center">
           <ThemedText style={[styles.compactSubtext, { color: palette.muted }]} numberOfLines={1}>
             {invoice.athleteName} - {invoice.sessionType || 'Training'}
           </ThemedText>
           <ThemedText style={[styles.compactDate, { color: palette.muted }]}>
             {formatShortDate(invoice.sessionDate)}
           </ThemedText>
-        </View>
+        </Row>
       </View>
       <Ionicons name="chevron-forward" size={18} color={palette.muted} />
     </Clickable>
@@ -101,11 +102,6 @@ const styles = StyleSheet.create({
   compactContent: {
     flex: 1,
     gap: Spacing.micro,
-  },
-  compactRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   compactTitle: { ...Typography.body, flex: 1, marginRight: Spacing.sm },
   compactSubtext: { ...Typography.small, flex: 1, marginRight: Spacing.sm },

@@ -17,7 +17,8 @@ import { InviteRoleSelector } from '@/components/club/invite-role-selector';
 import { InvitePastSessionsTab } from '@/components/club/invite-past-sessions-tab';
 import { InviteManualTab } from '@/components/club/invite-manual-tab';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useClubInvite, type InviteTab } from '@/hooks/use-club-invite';
 
 const TABS: { key: InviteTab; label: string; icon: 'people-outline' | 'mail-outline' }[] = [
@@ -26,7 +27,7 @@ const TABS: { key: InviteTab; label: string; icon: 'people-outline' | 'mail-outl
 ];
 
 export default function InviteMembersScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     activeTab, setActiveTab, searchQuery, setSearchQuery,
     selectedUsers, selectedRole, setSelectedRole,
@@ -53,10 +54,12 @@ export default function InviteMembersScreen() {
             style={[styles.tab, activeTab === tab.key && { backgroundColor: colors.tint }].filter(Boolean) as ViewStyle[]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Ionicons name={tab.icon} size={18} color={activeTab === tab.key ? colors.onPrimary : colors.text} />
-            <ThemedText style={[styles.tabText, { color: activeTab === tab.key ? colors.onPrimary : colors.text }]}>
-              {tab.label}
-            </ThemedText>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name={tab.icon} size={18} color={activeTab === tab.key ? colors.onPrimary : colors.text} />
+              <ThemedText style={[styles.tabText, { color: activeTab === tab.key ? colors.onPrimary : colors.text }]}>
+                {tab.label}
+              </ThemedText>
+            </Row>
           </Clickable>
         ))}
       </Row>
@@ -83,16 +86,18 @@ export default function InviteMembersScreen() {
             onPress={handleSendInvites}
             disabled={isInviting}
           >
-            {isInviting ? (
-              <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Sending...</ThemedText>
-            ) : (
-              <>
-                <Ionicons name="paper-plane" size={18} color={colors.onPrimary} />
-                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                  Invite {selectedUsers.size} User{selectedUsers.size !== 1 ? 's' : ''}
-                </ThemedText>
-              </>
-            )}
+            <Row align="center" justify="center" gap="sm">
+              {isInviting ? (
+                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Sending...</ThemedText>
+              ) : (
+                <>
+                  <Ionicons name="paper-plane" size={18} color={colors.onPrimary} />
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                    Invite {selectedUsers.size} User{selectedUsers.size !== 1 ? 's' : ''}
+                  </ThemedText>
+                </>
+              )}
+            </Row>
           </Clickable>
         </View>
       )}
@@ -104,9 +109,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   tabs: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  tab: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   tabText: { fontWeight: '600' },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: 120 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.lg, borderTopWidth: 1 },
-  inviteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  inviteButton: { paddingVertical: Spacing.md, borderRadius: Radii.lg },
 });

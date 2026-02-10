@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -45,11 +46,11 @@ export const UsageItem = memo(function UsageItem({
   palette,
 }: UsageItemProps) {
   return (
-    <View style={styles.usageItem}>
+    <Row align="center" gap="md" style={styles.usageItem}>
       <View style={[styles.usageIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
         <Ionicons name="checkmark-circle" size={20} color={palette.success} />
       </View>
-      <View style={styles.usageContent}>
+      <Row flex align="center" justify="space-between">
         <View style={styles.usageRow}>
           {showUser && (
             <ThemedText style={styles.userName} numberOfLines={1}>
@@ -68,8 +69,8 @@ export const UsageItem = memo(function UsageItem({
         <ThemedText style={[styles.creditAmount, { color: palette.success }]}>
           +{promoService.formatCredit(item.creditAmount)}
         </ThemedText>
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
@@ -98,8 +99,8 @@ export const CodeUsageSummary = memo(function CodeUsageSummary({
 
   return (
     <SurfaceCard style={styles.summaryCard}>
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryItem}>
+      <Row align="center">
+        <Row flex align="center" gap="sm">
           <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="people-outline" size={20} color={palette.tint} />
           </View>
@@ -111,9 +112,9 @@ export const CodeUsageSummary = memo(function CodeUsageSummary({
               Redemptions
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
-        <View style={styles.summaryItem}>
+        <Row flex align="center" gap="sm">
           <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="cash-outline" size={20} color={palette.success} />
           </View>
@@ -125,8 +126,8 @@ export const CodeUsageSummary = memo(function CodeUsageSummary({
               Credits Awarded
             </ThemedText>
           </View>
-        </View>
-      </View>
+        </Row>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -135,9 +136,6 @@ export const CodeUsageSummary = memo(function CodeUsageSummary({
 
 const styles = StyleSheet.create({
   usageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
     paddingVertical: Spacing.sm,
   },
   usageIcon: {
@@ -146,12 +144,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  usageContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   usageRow: {
     flex: 1,
@@ -163,16 +155,6 @@ const styles = StyleSheet.create({
   creditAmount: { ...Typography.bodySmallSemiBold },
   summaryCard: {
     padding: Spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
   },
   summaryIcon: {
     width: 40,

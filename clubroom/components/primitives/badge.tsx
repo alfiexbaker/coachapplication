@@ -17,6 +17,7 @@
  */
 
 import { StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -125,7 +126,9 @@ export function Badge({
   const variantStyles = getVariantStyles();
 
   return (
-    <View
+    <Row
+      align="center"
+      gap={sizeConfig.gap}
       style={[
         styles.badge,
         {
@@ -134,7 +137,6 @@ export function Badge({
           borderColor: variantStyles.borderColor,
           paddingHorizontal: sizeConfig.paddingH,
           paddingVertical: sizeConfig.paddingV,
-          gap: sizeConfig.gap,
         },
       ]}
     >
@@ -158,7 +160,7 @@ export function Badge({
       >
         {label}
       </ThemedText>
-    </View>
+    </Row>
   );
 }
 
@@ -188,8 +190,6 @@ export function InfoBadge({ label, ...props }: Omit<BadgeProps, 'tone'>) {
 
 const styles = StyleSheet.create({
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     alignSelf: 'flex-start',
     borderRadius: Radii.pill,
   },

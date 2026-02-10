@@ -13,6 +13,7 @@ import { Radii, Spacing , withAlpha } from '@/constants/theme';
 import type { GoalCategory } from '@/constants/types';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 interface CategoryBadgeProps {
   /** The goal category to display */
@@ -71,14 +72,14 @@ export function CategoryBadge({
 
   if (variant === 'text') {
     return (
-      <View style={[styles.textBadge, { gap: currentSize.gap }]}>
+      <Row style={[styles.textBadge, { gap: currentSize.gap }]}>
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={currentSize.iconSize} color={color} />
         {!iconOnly && (
           <ThemedText style={[styles.textLabel, { fontSize: currentSize.fontSize, color }]}>
             {label}
           </ThemedText>
         )}
-      </View>
+      </Row>
     );
   }
 
@@ -117,7 +118,7 @@ export function CategoryBadgeRow({
   onSelect?: (category: GoalCategory) => void;
 }) {
   return (
-    <View style={styles.badgeRow}>
+    <Row style={styles.badgeRow}>
       {categories.map((category) => {
         const { color } = progressService.getCategoryInfo(category);
         const isSelected = category === selectedCategory;
@@ -145,13 +146,12 @@ export function CategoryBadgeRow({
           </View>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
@@ -161,14 +161,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   textBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   textLabel: {
     fontWeight: '600',
   },
   badgeRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

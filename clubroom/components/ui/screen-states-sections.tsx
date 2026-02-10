@@ -9,6 +9,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolateColor } from 'react-native-reanimated';
+import { Row } from '@/components/primitives/row';
 
 import { Spacing, Radii, Components } from '@/constants/theme';
 
@@ -73,7 +74,7 @@ function ListSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={styles.listContainer}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <View key={i} style={styles.listRow}>
+        <Row key={i} align="center" gap="sm">
           <ShimmerBlock
             width={Components.avatar.sm}
             height={Components.avatar.sm}
@@ -85,7 +86,7 @@ function ListSkeleton({ baseColor, highlightColor }: SkeletonColors) {
             <ShimmerBlock width="70%" height={14} baseColor={baseColor} highlightColor={highlightColor} />
             <ShimmerBlock width="45%" height={12} baseColor={baseColor} highlightColor={highlightColor} />
           </View>
-        </View>
+        </Row>
       ))}
     </View>
   );
@@ -165,7 +166,7 @@ function CalendarSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={styles.calendarContainer}>
       <ShimmerBlock width={160} height={18} style={styles.calendarHeader} baseColor={baseColor} highlightColor={highlightColor} />
-      <View style={styles.calendarGrid}>
+      <Row wrap justify="between" gap="xs">
         {Array.from({ length: 7 }).map((_, dayIndex) => (
           <ShimmerBlock key={`header-${dayIndex}`} width={cellSize} height={14} baseColor={baseColor} highlightColor={highlightColor} />
         ))}
@@ -179,7 +180,7 @@ function CalendarSkeleton({ baseColor, highlightColor }: SkeletonColors) {
             highlightColor={highlightColor}
           />
         ))}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -198,7 +199,7 @@ export const VARIANT_MAP: Record<LoadingVariant, React.FC<SkeletonColors>> = {
 
 const styles = StyleSheet.create({
   listContainer: { gap: Spacing.sm },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  // listRow replaced by Row primitive
   listTextGroup: { flex: 1, gap: Spacing.xs },
   cardContainer: { gap: Spacing.md },
   card: { gap: Spacing.xs },
@@ -210,10 +211,5 @@ const styles = StyleSheet.create({
   formField: { gap: Spacing.xs },
   calendarContainer: { gap: Spacing.sm },
   calendarHeader: { alignSelf: 'center', marginBottom: Spacing.xs },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-  },
+  // calendarGrid replaced by Row primitive
 });

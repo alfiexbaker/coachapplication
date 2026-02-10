@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   infoCard: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,

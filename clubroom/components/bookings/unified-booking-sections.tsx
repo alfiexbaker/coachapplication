@@ -18,6 +18,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { formatPrice } from '@/constants/styles';
+import { Row } from '@/components/primitives';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export const CompactBookingCard = memo(function CompactBookingCard({
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.compactCard}>
-        <View style={styles.compactRow}>
+        <Row style={styles.compactRow}>
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatarSmall} />
           <View style={styles.compactContent}>
             <ThemedText style={styles.compactTitle} numberOfLines={1}>
@@ -80,16 +81,16 @@ export const CompactBookingCard = memo(function CompactBookingCard({
               {booking.coachName} · {day}
             </ThemedText>
             {booking.locationLabel ? (
-              <View style={styles.locationRow}>
+              <Row style={styles.locationRow}>
                 <Ionicons name="location-outline" size={12} color={palette.tint} />
                 <ThemedText style={[styles.compactLocation, { color: palette.tint }]} numberOfLines={1}>
                   {booking.locationLabel}
                 </ThemedText>
-              </View>
+              </Row>
             ) : null}
           </View>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-        </View>
+        </Row>
       </SurfaceCard>
     </Clickable>
   );
@@ -130,7 +131,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.detailedCard}>
         {/* Header */}
-        <View style={styles.detailedHeader}>
+        <Row style={styles.detailedHeader}>
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
           <View style={styles.detailedHeaderContent}>
             <ThemedText style={styles.detailedTitle}>{booking.service}</ThemedText>
@@ -143,27 +144,27 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
               {booking.status}
             </ThemedText>
           </View>
-        </View>
+        </Row>
 
         {/* Meta rows */}
         <View style={[styles.metaSection, { borderTopColor: palette.border }]}>
-          <View style={styles.metaRow}>
+          <Row style={styles.metaRow}>
             <Ionicons name="calendar-outline" size={16} color={palette.muted} />
             <ThemedText style={styles.metaText}>{full}</ThemedText>
-          </View>
-          <View style={styles.metaRow}>
+          </Row>
+          <Row style={styles.metaRow}>
             <Ionicons name="time-outline" size={16} color={palette.muted} />
             <ThemedText style={styles.metaText}>
               {time}{extendedBooking.duration ? ` (${extendedBooking.duration} mins)` : ''}
             </ThemedText>
-          </View>
+          </Row>
           {booking.locationLabel && (
-            <View style={styles.metaRow}>
+            <Row style={styles.metaRow}>
               <Ionicons name="location-outline" size={16} color={palette.tint} />
               <ThemedText style={[styles.metaText, { color: palette.tint, fontWeight: '600' }]}>
                 {booking.locationLabel}
               </ThemedText>
-            </View>
+            </Row>
           )}
           {booking.childName && (
             <Clickable
@@ -191,7 +192,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
 
         {/* Actions */}
         {showActions && booking.status === 'Completed' && (
-          <View style={[styles.actionsRow, { borderTopColor: palette.border }]}>
+          <Row style={[styles.actionsRow, { borderTopColor: palette.border }]}>
             <Clickable
               style={[styles.actionButton, { borderColor: palette.tint }]}
               onPress={onRatePress}
@@ -201,7 +202,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
                 Rate Session
               </ThemedText>
             </Clickable>
-          </View>
+          </Row>
         )}
       </SurfaceCard>
     </Clickable>
@@ -223,7 +224,6 @@ const styles = StyleSheet.create({
   statusText: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3 },
   compactCard: { padding: Spacing.xs },
   compactRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -232,13 +232,11 @@ const styles = StyleSheet.create({
   compactMeta: { ...Typography.small },
   compactLocation: { ...Typography.caption, fontWeight: '600' },
   locationRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   detailedCard: { padding: Spacing.sm, gap: Spacing.sm },
   detailedHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
@@ -251,7 +249,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -259,14 +256,12 @@ const styles = StyleSheet.create({
   priceRow: { alignItems: 'flex-end' },
   priceText: { ...Typography.heading },
   actionsRow: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

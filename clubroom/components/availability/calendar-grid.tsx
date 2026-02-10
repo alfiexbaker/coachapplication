@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS_OF_WEEK, type CalendarDay } from '@/hooks/use-availability-calendar';
 import type { AvailabilitySlot } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface CalendarGridProps {
   calendarDays: CalendarDay[];
@@ -20,14 +21,14 @@ export const CalendarGrid = memo(function CalendarGrid({ calendarDays, selectedD
 
   return (
     <SurfaceCard style={styles.calendar}>
-      <View style={styles.weekHeader}>
+      <Row style={styles.weekHeader}>
         {DAYS_OF_WEEK.map(day => (
           <View key={day} style={styles.dayHeaderCell}>
             <ThemedText style={[styles.dayHeaderText, { color: palette.muted }]}>{day}</ThemedText>
           </View>
         ))}
-      </View>
-      <View style={styles.daysGrid}>
+      </Row>
+      <Row style={styles.daysGrid}>
         {calendarDays.map((day, index) => {
           const isSelected = selectedDate?.toDateString() === day.date.toDateString();
           return (
@@ -36,15 +37,15 @@ export const CalendarGrid = memo(function CalendarGrid({ calendarDays, selectedD
               <ThemedText style={[styles.dayNumber, !day.isCurrentMonth && { color: palette.muted }, day.isToday && { color: palette.tint, fontWeight: '700' }, isSelected && { color: palette.tint }]}>
                 {day.dayOfMonth}
               </ThemedText>
-              <View style={styles.indicators}>
+              <Row style={styles.indicators}>
                 {day.isBlocked && <View style={[styles.indicator, { backgroundColor: palette.error }]} />}
                 {day.hasAvailability && !day.isBlocked && <View style={[styles.indicator, { backgroundColor: palette.success }]} />}
                 {day.bookingCount > 0 && <View style={[styles.indicator, { backgroundColor: palette.tint }]} />}
-              </View>
+              </Row>
             </Pressable>
           );
         })}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -62,17 +63,17 @@ export const CalendarDayDetail = memo(function CalendarDayDetail({ selectedDate,
 
   return (
     <SurfaceCard style={styles.detailsCard}>
-      <View style={styles.detailsHeader}>
+      <Row style={styles.detailsHeader}>
         <ThemedText type="subtitle">{selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</ThemedText>
-        <View style={styles.detailsActions}>
+        <Row style={styles.detailsActions}>
           <Pressable style={[styles.actionButton, { backgroundColor: withAlpha(palette.error, 0.09) }]} onPress={onBlockDate}>
             <Ionicons name="close-circle-outline" size={18} color={palette.error} />
           </Pressable>
           <Pressable style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]} onPress={onAddTemplate}>
             <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
           </Pressable>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {selectedSlots.length === 0 ? (
         <View style={styles.noSlots}>
@@ -83,19 +84,19 @@ export const CalendarDayDetail = memo(function CalendarDayDetail({ selectedDate,
         <View style={styles.slotsList}>
           {selectedSlots.map((slot, index) => (
             <View key={index} style={[styles.slotItem, { borderLeftColor: slot.isAvailable ? palette.success : palette.tint }]}>
-              <View style={styles.slotTime}>
+              <Row style={styles.slotTime}>
                 <ThemedText type="defaultSemiBold">{formatTime(slot.startTime)} - {formatTime(slot.endTime)}</ThemedText>
                 <View style={[styles.slotStatus, { backgroundColor: slot.isAvailable ? withAlpha(palette.success, 0.09) : withAlpha(palette.tint, 0.09) }]}>
                   <ThemedText style={[styles.slotStatusText, { color: slot.isAvailable ? palette.success : palette.tint }]}>
                     {slot.isAvailable ? 'Available' : 'Booked'}
                   </ThemedText>
                 </View>
-              </View>
+              </Row>
               {slot.location && (
-                <View style={styles.slotLocation}>
+                <Row style={styles.slotLocation}>
                   <Ionicons name="location-outline" size={14} color={palette.muted} />
                   <ThemedText style={[styles.slotLocationText, { color: palette.muted }]}>{slot.location}</ThemedText>
-                </View>
+                </Row>
               )}
             </View>
           ))}
@@ -107,25 +108,25 @@ export const CalendarDayDetail = memo(function CalendarDayDetail({ selectedDate,
 
 const styles = StyleSheet.create({
   calendar: { padding: Spacing.sm },
-  weekHeader: { flexDirection: 'row', marginBottom: Spacing.xs },
+  weekHeader: { marginBottom: Spacing.xs },
   dayHeaderCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs },
   dayHeaderText: { ...Typography.caption },
-  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  daysGrid: { flexWrap: 'wrap' },
   dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: Radii.sm },
   otherMonthDay: { opacity: 0.4 },
   dayNumber: { ...Typography.bodySmall },
-  indicators: { flexDirection: 'row', gap: Spacing.micro, marginTop: Spacing.micro, height: 6 },
+  indicators: { gap: Spacing.micro, marginTop: Spacing.micro, height: 6 },
   indicator: { width: 6, height: 6, borderRadius: Radii.xs },
   detailsCard: { padding: Spacing.md, gap: Spacing.sm },
-  detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  detailsActions: { flexDirection: 'row', gap: Spacing.sm },
+  detailsHeader: { justifyContent: 'space-between', alignItems: 'center' },
+  detailsActions: { gap: Spacing.sm },
   actionButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   noSlots: { alignItems: 'center', paddingVertical: Spacing.lg },
   slotsList: { gap: Spacing.sm },
   slotItem: { paddingLeft: Spacing.md, paddingVertical: Spacing.sm, borderLeftWidth: 3 },
-  slotTime: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  slotTime: { alignItems: 'center', justifyContent: 'space-between' },
   slotStatus: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   slotStatusText: { ...Typography.caption },
-  slotLocation: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xxs },
+  slotLocation: { alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xxs },
   slotLocationText: { ...Typography.caption },
 });

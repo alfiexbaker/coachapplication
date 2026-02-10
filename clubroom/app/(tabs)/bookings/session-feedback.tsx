@@ -1,17 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
+import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography } from '@/constants/theme';
+import { LoadingState } from '@/components/ui/screen-states';
 import { FootballObjective, Booking } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -100,10 +94,7 @@ export default function SessionFeedbackScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={palette.tint} />
-        <ThemedText style={styles.loadingText}>Creating session...</ThemedText>
-      </View>
+      <LoadingState variant="detail" />
     </SafeAreaView>
   );
 }
@@ -111,14 +102,5 @@ export default function SessionFeedbackScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  loadingText: {
-    ...Typography.subheading,
   },
 });

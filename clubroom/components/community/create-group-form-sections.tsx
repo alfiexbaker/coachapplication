@@ -9,6 +9,7 @@ import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import type { GroupType } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ export const GroupTypeSelector = memo(function GroupTypeSelector({
   palette,
 }: GroupTypeSelectorProps) {
   return (
-    <View style={styles.typeOptions}>
+    <Row style={styles.typeOptions}>
       {GROUP_TYPE_OPTIONS.map((option) => (
         <SurfaceCard
           key={option.value}
@@ -63,7 +64,7 @@ export const GroupTypeSelector = memo(function GroupTypeSelector({
           </ThemedText>
         </SurfaceCard>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -116,13 +117,13 @@ export const PrivacySelector = memo(function PrivacySelector({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  typeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  typeOptions: { flexWrap: 'wrap', gap: Spacing.sm },
   typeOption: { width: '47%', padding: Spacing.sm, gap: 8, alignItems: 'center' },
   typeIconContainer: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   typeLabel: { fontSize: scaleFont(14), textAlign: 'center' },
   typeDescription: { fontSize: scaleFont(11), textAlign: 'center', lineHeight: scaleFont(15) },
   privacyOptions: { gap: Spacing.sm },
-  privacyOption: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
+  privacyOption: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
   privacyTextContainer: { flex: 1, gap: Spacing.micro },
   privacyLabel: { fontSize: scaleFont(15) },
   privacyDescription: { fontSize: scaleFont(12) },

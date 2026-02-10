@@ -17,6 +17,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,28 +95,30 @@ export function OfflineBanner() {
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
     >
-      {isFlushing ? (
-        <ActivityIndicator size="small" color={textColor} style={styles.icon} />
-      ) : (
-        <Ionicons
-          name={iconName}
-          size={16}
-          color={textColor}
-          style={styles.icon}
-        />
-      )}
-      <ThemedText style={[styles.text, { color: textColor }]}>{message}</ThemedText>
-      {hasFailedActions && isConnected && (
-        <Pressable
-          onPress={handleRetry}
-          style={styles.retryButton}
-          accessibilityLabel="Retry syncing failed changes"
-          accessibilityRole="button"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ThemedText style={[styles.retryText, { color: textColor }]}>Retry</ThemedText>
-        </Pressable>
-      )}
+      <Row align="center" justify="center">
+        {isFlushing ? (
+          <ActivityIndicator size="small" color={textColor} style={styles.icon} />
+        ) : (
+          <Ionicons
+            name={iconName}
+            size={16}
+            color={textColor}
+            style={styles.icon}
+          />
+        )}
+        <ThemedText style={[styles.text, { color: textColor }]}>{message}</ThemedText>
+        {hasFailedActions && isConnected && (
+          <Pressable
+            onPress={handleRetry}
+            style={styles.retryButton}
+            accessibilityLabel="Retry syncing failed changes"
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <ThemedText style={[styles.retryText, { color: textColor }]}>Retry</ThemedText>
+          </Pressable>
+        )}
+      </Row>
     </Animated.View>
   );
 }
@@ -127,9 +130,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingBottom: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },

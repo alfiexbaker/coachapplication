@@ -19,6 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CancellationPolicy } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -57,11 +58,11 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
   return (
     <View style={[styles.card, { borderColor: palette.border }]}>
       <Clickable onPress={handleToggle} style={styles.header}>
-        <View style={styles.headerLeft}>
+        <Row style={styles.headerLeft}>
           <Ionicons name="shield-checkmark-outline" size={18} color={palette.muted} />
           <ThemedText style={styles.headerTitle}>Cancellation Policy</ThemedText>
-        </View>
-        <View style={styles.headerRight}>
+        </Row>
+        <Row style={styles.headerRight}>
           <ThemedText style={[styles.policyName, { color: palette.muted }]}>
             {policy.name}
           </ThemedText>
@@ -70,13 +71,13 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
             size={18}
             color={palette.muted}
           />
-        </View>
+        </Row>
       </Clickable>
 
       {expanded && (
         <View style={styles.tiers}>
           {sortedTiers.map((tier, index) => (
-            <View key={index} style={styles.tierRow}>
+            <Row key={index} style={styles.tierRow}>
               <View
                 style={[
                   styles.dot,
@@ -91,16 +92,16 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
                   {tier.description}
                 </ThemedText>
               </View>
-            </View>
+            </Row>
           ))}
 
           {!policy.allowCancellations && (
-            <View style={[styles.noCancelBanner, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+            <Row style={[styles.noCancelBanner, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
               <Ionicons name="information-circle-outline" size={16} color={palette.error} />
               <ThemedText style={[styles.noCancelText, { color: palette.error }]}>
                 Cancellations not allowed for this coach
               </ThemedText>
-            </View>
+            </Row>
           )}
 
           {policy.minimumNoticeHours > 0 && (
@@ -121,13 +122,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.md,
   },
   headerLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -135,7 +134,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmallSemiBold,
   },
   headerRight: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -148,7 +146,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   tierRow: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
@@ -169,7 +166,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   noCancelBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,

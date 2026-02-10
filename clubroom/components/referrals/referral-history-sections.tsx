@@ -10,6 +10,7 @@ import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
@@ -49,7 +50,7 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
       onPress={onPress}
       tactile={Boolean(onPress)}
     >
-      <View style={styles.itemContent}>
+      <Row align="center" gap="sm">
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {initials}
@@ -57,7 +58,7 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
         </View>
 
         <View style={styles.itemDetails}>
-          <View style={styles.itemHeader}>
+          <Row align="center" justify="space-between" gap="xs">
             <ThemedText type="defaultSemiBold" style={styles.itemName} numberOfLines={1}>
               {referral.refereeName}
             </ThemedText>
@@ -66,40 +67,40 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
                 {statusLabel}
               </ThemedText>
             </View>
-          </View>
+          </Row>
 
-          <View style={styles.itemMeta}>
-            <View style={styles.metaItem}>
+          <Row gap="md">
+            <Row align="center" gap="xxs">
               <Ionicons name="calendar-outline" size={12} color={palette.muted} />
               <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                 {formattedDate}
               </ThemedText>
-            </View>
+            </Row>
 
             {referral.status === 'COMPLETED' && referral.creditAwarded > 0 && (
-              <View style={styles.metaItem}>
+              <Row align="center" gap="xxs">
                 <Ionicons name="wallet-outline" size={12} color={palette.success} />
                 <ThemedText style={[styles.metaText, { color: palette.success }]}>
                   +{referralService.formatCredit(referral.creditAwarded)}
                 </ThemedText>
-              </View>
+              </Row>
             )}
 
             {referral.status === 'PENDING' && (
-              <View style={styles.metaItem}>
+              <Row align="center" gap="xxs">
                 <Ionicons name="time-outline" size={12} color={palette.warning} />
                 <ThemedText style={[styles.metaText, { color: palette.warning }]}>
                   Awaiting first booking
                 </ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
         </View>
 
         {onPress && (
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
         )}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -115,18 +116,18 @@ export const ReferralHistorySkeletonInner = memo(function ReferralHistorySkeleto
 }: ReferralHistorySkeletonInnerProps) {
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <View style={[styles.skeletonTitle, { backgroundColor: palette.border }]} />
-      </View>
+      </Row>
       {[1, 2, 3].map((i) => (
         <View key={i} style={[styles.item, i < 3 && styles.itemWithBorder, i < 3 && { borderBottomColor: palette.border }]}>
-          <View style={styles.itemContent}>
+          <Row align="center" gap="sm">
             <View style={[styles.avatar, { backgroundColor: palette.border }]} />
             <View style={styles.itemDetails}>
               <View style={[styles.skeletonName, { backgroundColor: palette.border }]} />
               <View style={[styles.skeletonMeta, { backgroundColor: palette.border }]} />
             </View>
-          </View>
+          </Row>
         </View>
       ))}
     </SurfaceCard>
@@ -162,9 +163,6 @@ export const ReferralEmptyState = memo(function ReferralEmptyState({
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
   item: {
@@ -177,9 +175,7 @@ const styles = StyleSheet.create({
   },
   itemWithBorder: { borderBottomWidth: StyleSheet.hairlineWidth },
   itemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+    // layout moved to Row props
   },
   avatar: {
     width: 40,
@@ -191,10 +187,7 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: scaleFont(14), fontWeight: '600' },
   itemDetails: { flex: 1, gap: Spacing.xxs },
   itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
+    // layout moved to Row props
   },
   itemName: { flex: 1, fontSize: scaleFont(15) },
   statusBadge: {
@@ -203,8 +196,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   statusText: { fontSize: scaleFont(11), fontWeight: '600', letterSpacing: 0.3 },
-  itemMeta: { flexDirection: 'row', gap: Spacing.md },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  itemMeta: { /* layout moved to Row */ },
+  metaItem: { /* layout moved to Row */ },
   metaText: { fontSize: scaleFont(12) },
   emptyState: {
     alignItems: 'center',

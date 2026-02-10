@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { FamilyMember } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface FamilyMemberCardProps {
   /** Family member data */
@@ -56,7 +57,7 @@ export function FamilyMemberCard({
 
   const content = (
     <SurfaceCard style={[styles.card, compact ? styles.cardCompact : undefined]}>
-      <View style={styles.header}>
+      <Row style={styles.header}>
         {/* Avatar */}
         {member.avatar ? (
           <Image source={{ uri: member.avatar }} style={styles.avatar} />
@@ -77,15 +78,15 @@ export function FamilyMemberCard({
 
         {/* Info */}
         <View style={styles.info}>
-          <View style={styles.nameRow}>
+          <Row style={styles.nameRow}>
             <ThemedText type="defaultSemiBold" style={styles.name}>
               {member.name}
             </ThemedText>
             <View
               style={[styles.colorDot, { backgroundColor: member.colorCode }]}
             />
-          </View>
-          <View style={styles.metaRow}>
+          </Row>
+          <Row style={styles.metaRow}>
             <ThemedText style={[styles.meta, { color: palette.muted }]}>
               {member.age} years old
             </ThemedText>
@@ -96,7 +97,7 @@ export function FamilyMemberCard({
             <ThemedText style={[styles.meta, { color: palette.muted }]}>
               {getRelationshipLabel(member.relationship)}
             </ThemedText>
-          </View>
+          </Row>
           {member.skillLevel && (
             <Chip dense style={styles.skillChip}>
               {member.skillLevel}
@@ -108,12 +109,12 @@ export function FamilyMemberCard({
         {onPress && (
           <Ionicons name="chevron-forward" size={20} color={palette.muted} />
         )}
-      </View>
+      </Row>
 
       {/* Stats Row */}
       {showStats && !compact && (
-        <View style={[styles.statsRow, { borderTopColor: palette.border }]}>
-          <View style={styles.stat}>
+        <Row style={[styles.statsRow, { borderTopColor: palette.border }]}>
+          <Row style={styles.stat}>
             <Ionicons name="calendar-outline" size={16} color={member.colorCode} />
             <ThemedText style={styles.statValue}>
               {member.totalSessions || 0}
@@ -121,8 +122,8 @@ export function FamilyMemberCard({
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
               sessions
             </ThemedText>
-          </View>
-          <View style={styles.stat}>
+          </Row>
+          <Row style={styles.stat}>
             <Ionicons name="ribbon-outline" size={16} color={palette.rating} />
             <ThemedText style={styles.statValue}>
               {member.totalBadges || 0}
@@ -130,16 +131,16 @@ export function FamilyMemberCard({
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
               badges
             </ThemedText>
-          </View>
+          </Row>
           {member.primarySport && (
-            <View style={styles.stat}>
+            <Row style={styles.stat}>
               <Ionicons name="football-outline" size={16} color={palette.tint} />
               <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
                 {member.primarySport}
               </ThemedText>
-            </View>
+            </Row>
           )}
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -165,7 +166,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   nameRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -198,7 +197,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   meta: { ...Typography.small },
@@ -208,13 +206,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xxs,
   },
   statsRow: {
-    flexDirection: 'row',
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
     gap: Spacing.lg,
   },
   stat: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },

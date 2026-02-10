@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import type { BodyPart, InjurySeverity } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ============================================================================
 // INJURY SUMMARY CARD
@@ -34,15 +35,15 @@ export const InjurySummaryCard = React.memo(function InjurySummaryCard({
 
   return (
     <View style={[styles.summary, { backgroundColor: palette.surface }]}>
-      <View style={styles.summaryRow}>
+      <Row style={styles.summaryRow}>
         <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
           Body Part
         </ThemedText>
         <ThemedText style={styles.summaryValue}>
           {bodyPart ? injuryService.getBodyPartLabel(bodyPart) : '-'}
         </ThemedText>
-      </View>
-      <View style={styles.summaryRow}>
+      </Row>
+      <Row style={styles.summaryRow}>
         <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
           Severity
         </ThemedText>
@@ -54,7 +55,7 @@ export const InjurySummaryCard = React.memo(function InjurySummaryCard({
         >
           {severity ? injuryService.getSeverityInfo(severity).label : '-'}
         </ThemedText>
-      </View>
+      </Row>
     </View>
   );
 });
@@ -76,8 +77,8 @@ export const ShareWithCoachToggle = React.memo(function ShareWithCoachToggle({
 
   return (
     <SurfaceCard style={styles.toggleCard}>
-      <View style={styles.toggleRow}>
-        <View style={styles.toggleInfo}>
+      <Row style={styles.toggleRow}>
+        <Row style={styles.toggleInfo}>
           <Ionicons name="share-social-outline" size={24} color={palette.text} />
           <View style={styles.toggleText}>
             <ThemedText style={styles.toggleLabel}>Share with coach</ThemedText>
@@ -85,14 +86,14 @@ export const ShareWithCoachToggle = React.memo(function ShareWithCoachToggle({
               Your coach will be able to see this injury
             </ThemedText>
           </View>
-        </View>
+        </Row>
         <Switch
           value={sharedWithCoach}
           onValueChange={onToggle}
           trackColor={{ false: palette.border, true: withAlpha(palette.tint, 0.31) }}
           thumbColor={sharedWithCoach ? palette.tint : palette.surface}
         />
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -108,7 +109,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   summaryRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.xxs,
@@ -124,12 +124,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   toggleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   toggleInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,

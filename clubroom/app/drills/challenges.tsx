@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +21,8 @@ import { ChallengeCard } from '@/components/drills/challenge-card';
 import { ChallengeStatsBar } from '@/components/drills/challenge-stats-bar';
 import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { challengeService } from '@/services/challenge-service';
 import type { Challenge, ChallengeSubmission } from '@/services/challenge-service';
@@ -33,7 +35,7 @@ type TabFilter = 'active' | 'completed';
 const logger = createLogger('ChallengesScreen');
 
 export default function ChallengesScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
 
@@ -118,7 +120,7 @@ export default function ChallengesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -139,7 +141,7 @@ export default function ChallengesScreen() {
         ) : (
           <View style={{ width: 28 }} />
         )}
-      </View>
+      </Row>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -152,46 +154,50 @@ export default function ChallengesScreen() {
         </Animated.View>
 
         {/* Tabs */}
-        <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.tabRow}>
-          {(['active', 'completed'] as TabFilter[]).map((tab) => {
-            const count = tab === 'active' ? activeCount : completedCount;
-            const isActive = activeTab === tab;
-            return (
-              <Clickable
-                key={tab}
-                onPress={() => handleTabChange(tab)}
-                style={[
-                  styles.tab,
-                  {
-                    backgroundColor: isActive ? palette.tint : 'transparent',
-                    borderColor: isActive ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.tabText, { color: isActive ? palette.onPrimary : palette.text }]}
-                >
-                  {tab === 'active' ? 'Active' : 'Completed'}
-                </ThemedText>
-                <View
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
+          <Row gap="xs" style={styles.tabRow}>
+            {(['active', 'completed'] as TabFilter[]).map((tab) => {
+              const count = tab === 'active' ? activeCount : completedCount;
+              const isActive = activeTab === tab;
+              return (
+                <Clickable
+                  key={tab}
+                  onPress={() => handleTabChange(tab)}
                   style={[
-                    styles.tabBadge,
+                    styles.tab,
                     {
-                      backgroundColor: isActive
-                        ? withAlpha(palette.onPrimary, 0.2)
-                        : palette.surfaceSecondary,
+                      backgroundColor: isActive ? palette.tint : 'transparent',
+                      borderColor: isActive ? palette.tint : palette.border,
                     },
                   ]}
                 >
-                  <ThemedText
-                    style={[styles.tabBadgeText, { color: isActive ? palette.onPrimary : palette.muted }]}
-                  >
-                    {count}
-                  </ThemedText>
-                </View>
-              </Clickable>
-            );
-          })}
+                  <Row align="center" justify="center" gap="xs">
+                    <ThemedText
+                      style={[styles.tabText, { color: isActive ? palette.onPrimary : palette.text }]}
+                    >
+                      {tab === 'active' ? 'Active' : 'Completed'}
+                    </ThemedText>
+                    <View
+                      style={[
+                        styles.tabBadge,
+                        {
+                          backgroundColor: isActive
+                            ? withAlpha(palette.onPrimary, 0.2)
+                            : palette.surfaceSecondary,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[styles.tabBadgeText, { color: isActive ? palette.onPrimary : palette.muted }]}
+                      >
+                        {count}
+                      </ThemedText>
+                    </View>
+                  </Row>
+                </Clickable>
+              );
+            })}
+          </Row>
         </Animated.View>
 
         {/* Challenge List */}
@@ -229,11 +235,11 @@ export default function ChallengesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { flex: 1, marginLeft: Spacing.md },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.md },
-  tabRow: { flexDirection: 'row', gap: Spacing.xs },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, height: 44, borderRadius: Radii.md, borderWidth: 1 },
+  tabRow: {},
+  tab: { flex: 1, height: 44, borderRadius: Radii.md, borderWidth: 1 },
   tabText: { ...Typography.bodySmallSemiBold },
   tabBadge: { minWidth: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxs },
   tabBadgeText: { ...Typography.caption },

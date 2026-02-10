@@ -3,6 +3,7 @@
  */
 import { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,10 +62,10 @@ function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTa
       )}
 
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" justify="space-between">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Sessions</ThemedText>
           <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>{sessions.length} total</ThemedText>
-        </View>
+        </Row>
 
         {sessions.length === 0 ? (
           <EmptyMetrics
@@ -78,24 +79,24 @@ function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTa
               <Animated.View key={session.id} entering={FadeInDown.delay(index * 50).springify()}>
                 <Clickable onPress={() => handleSessionPress(session)}>
                   <SurfaceCard style={styles.card}>
-                    <View style={styles.cardHeader}>
+                    <Row justify="space-between" align="flex-start">
                       <View style={styles.cardInfo}>
                         <ThemedText type="defaultSemiBold">{session.coachName}</ThemedText>
                         <ThemedText style={[styles.date, { color: palette.muted }]}>{formatDate(session.completedAt)}</ThemedText>
                       </View>
-                      <View style={styles.rating}>
+                      <Row align="center" gap="xxs">
                         <ThemedText type="defaultSemiBold" style={styles.ratingValue}>{session.performanceRating.toFixed(1)}</ThemedText>
                         <Ionicons name="star" size={14} color={palette.warning} />
-                      </View>
-                    </View>
+                      </Row>
+                    </Row>
                     {session.skillsWorkedOn && session.skillsWorkedOn.length > 0 && (
-                      <View style={styles.skillsRow}>
+                      <Row wrap gap="xs">
                         {session.skillsWorkedOn.slice(0, 3).map((skill, idx) => (
                           <View key={idx} style={[styles.skillPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                             <ThemedText style={[styles.skillText, { color: palette.tint }]}>{skill}</ThemedText>
                           </View>
                         ))}
-                      </View>
+                      </Row>
                     )}
                   </SurfaceCard>
                 </Clickable>
@@ -113,17 +114,13 @@ export const DevProgressTab = memo(DevProgressTabInner);
 const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...Typography.subheading },
   sectionCount: { ...Typography.caption },
   list: { gap: Spacing.sm },
   card: { padding: Spacing.md, gap: Spacing.sm },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardInfo: { flex: 1, gap: Spacing.micro },
   date: { ...Typography.caption },
-  rating: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   ratingValue: { ...Typography.subheading },
-  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   skillPill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   skillText: { ...Typography.caption },
 });

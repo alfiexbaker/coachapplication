@@ -14,6 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -32,12 +33,12 @@ function DrillFeedbackCardInner({ feedback }: DrillFeedbackCardProps) {
 
   return (
     <SurfaceCard style={styles.feedbackCard}>
-      <View style={styles.sectionHeader}>
+      <Row style={styles.sectionHeader}>
         <Ionicons name="chatbubbles-outline" size={18} color={palette.success} />
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           Your Feedback
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={[styles.feedbackText, { color: palette.text }]}>
         {feedback}
       </ThemedText>
@@ -57,7 +58,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   sectionHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.sm,

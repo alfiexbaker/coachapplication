@@ -7,6 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 /* ---------- SignupCard ---------- */
 
@@ -21,13 +22,13 @@ export const SignupCard = memo(function SignupCard({ onPress, palette }: SignupC
       style={[styles.signupCard, { backgroundColor: palette.tint }]}
       onPress={onPress}
     >
-      <View style={styles.signupCardContent}>
+      <Row style={styles.signupCardContent}>
         <Ionicons name="person-add" size={24} color={palette.onPrimary} />
         <View style={styles.signupCardText}>
           <ThemedText style={[styles.signupTitle, { color: palette.onPrimary }]}>New to Clubroom?</ThemedText>
           <ThemedText style={[styles.signupSubtitle, { color: withAlpha(palette.onPrimary, 0.8) }]}>Create your free account</ThemedText>
         </View>
-      </View>
+      </Row>
       <Ionicons name="arrow-forward" size={20} color={palette.onPrimary} />
     </Clickable>
   );
@@ -73,14 +74,14 @@ export const DemoAccountsCard = memo(function DemoAccountsCard({ users, palette 
         Preloaded accounts
       </ThemedText>
       {users.slice(0, 4).map((user) => (
-        <View key={user.username} style={styles.credentialsRow}>
+        <Row key={user.username} style={styles.credentialsRow}>
           <View style={[styles.roleBadge, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
             <ThemedText style={styles.roleBadgeText}>{user.role}</ThemedText>
           </View>
           <ThemedText style={styles.credentialValue}>
             {user.username} / {user.password}
           </ThemedText>
-        </View>
+        </Row>
       ))}
     </SurfaceCard>
   );
@@ -90,14 +91,12 @@ export const DemoAccountsCard = memo(function DemoAccountsCard({ users, palette 
 
 const styles = StyleSheet.create({
   signupCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.lg,
     borderRadius: Radii.lg,
   },
   signupCardContent: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
@@ -128,7 +127,6 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   credentialsRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },

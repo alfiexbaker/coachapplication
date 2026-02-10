@@ -11,6 +11,7 @@
 
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -37,29 +38,25 @@ export function getAlertConfig(type: AlertType, palette: { error: string; warnin
         icon: 'alert-circle',
         color: palette.error,
         bgColor: withAlpha(palette.error, 0.07),
-        typeLabel: 'Allergy',
-      };
+        typeLabel: 'Allergy' };
     case 'condition':
       return {
         icon: 'fitness',
         color: palette.warning,
         bgColor: withAlpha(palette.warning, 0.07),
-        typeLabel: 'Condition',
-      };
+        typeLabel: 'Condition' };
     case 'medication':
       return {
         icon: 'medkit',
         color: palette.tint,
         bgColor: withAlpha(palette.tint, 0.07),
-        typeLabel: 'Medication',
-      };
+        typeLabel: 'Medication' };
     case 'restriction':
       return {
         icon: 'ban',
         color: palette.muted,
         bgColor: withAlpha(palette.muted, 0.09),
-        typeLabel: 'Restriction',
-      };
+        typeLabel: 'Restriction' };
   }
 }
 
@@ -68,21 +65,17 @@ export const BADGE_SIZE_CONFIG = {
     ...Typography.micro,
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
-    iconSize: 10,
-  },
+    iconSize: 10 },
   medium: {
     ...Typography.caption,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
-    iconSize: 12,
-  },
+    iconSize: 12 },
   large: {
     ...Typography.bodySmall,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    iconSize: 14,
-  },
-} as const;
+    iconSize: 14 } } as const;
 
 // ─── MedicalAlertRow ──────────────────────────────────────────────────────────
 
@@ -93,8 +86,7 @@ export function MedicalAlertRow({
   type,
   label,
   description,
-  onPress,
-}: {
+  onPress }: {
   type: AlertType;
   label: string;
   description?: string;
@@ -104,7 +96,7 @@ export function MedicalAlertRow({
   const config = getAlertConfig(type, palette);
 
   const content = (
-    <View style={styles.row}>
+    <Row align="center" gap="sm" style={styles.row}>
       <View style={[styles.rowIcon, { backgroundColor: withAlpha(config.color, 0.07) }]}>
         <Ionicons name={config.icon} size={16} color={config.color} />
       </View>
@@ -122,7 +114,7 @@ export function MedicalAlertRow({
       {onPress && (
         <Ionicons name="chevron-forward" size={16} color={palette.muted} />
       )}
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -139,8 +131,7 @@ export function MedicalAlertRow({
  */
 export function AlertSeverityDot({
   level,
-  size = 8,
-}: {
+  size = 8 }: {
   level: 'none' | 'low' | 'medium' | 'high';
   size?: number;
 }) {
@@ -166,8 +157,7 @@ export function AlertSeverityDot({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: getColor(),
-      }}
+        backgroundColor: getColor() }}
     />
   );
 }
@@ -179,8 +169,7 @@ export function AlertSeverityDot({
  */
 export function AlertCountBadge({
   count,
-  type = 'allergy',
-}: {
+  type = 'allergy' }: {
   count: number;
   type?: 'allergy' | 'condition' | 'medication' | 'total';
 }) {
@@ -215,46 +204,31 @@ export function AlertCountBadge({
 
 export const styles = StyleSheet.create({
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   label: {
-    fontWeight: '600',
-  },
+    fontWeight: '600' },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
+    paddingVertical: Spacing.sm },
   rowIcon: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   rowContent: {
-    flex: 1,
-  },
+    flex: 1 },
   rowTypeLabel: {
     ...Typography.micro,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   rowDescription: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   countBadge: {
     minWidth: 18,
     height: 18,
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 5,
-  },
-  countText: { ...Typography.caption },
-});
+    paddingHorizontal: 5 },
+  countText: { ...Typography.caption } });

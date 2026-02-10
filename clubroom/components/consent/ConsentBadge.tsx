@@ -79,7 +79,6 @@ export function ConsentBadge({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radii.sm,
   },

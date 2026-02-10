@@ -14,11 +14,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { TimeProposalForm } from '@/components/negotiate/TimeProposalForm';
 import { Spacing, Radii } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCounterOffer } from '@/hooks/use-counter-offer';
 
 export default function CounterOfferScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useCounterOffer();
 
   if (c.isLoading) {

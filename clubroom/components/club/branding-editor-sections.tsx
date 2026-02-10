@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubBranding } from '@/services/club-service';
+import { Row } from '@/components/primitives';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ export const ColorPickerRow = memo(function ColorPickerRow({ label, value, onSel
   return (
     <View style={styles.colorSection}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>{label}</ThemedText>
-      <View style={styles.colorRow}>
+      <Row style={styles.colorRow}>
         {PRESET_COLORS.map((color) => (
           <Clickable
             key={color}
@@ -67,9 +68,9 @@ export const ColorPickerRow = memo(function ColorPickerRow({ label, value, onSel
         >
           <Ionicons name="color-palette-outline" size={Components.icon.sm} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
       {showCustom && (
-        <View style={styles.customHexRow}>
+        <Row style={styles.customHexRow}>
           <TextInput
             style={[styles.customHexInput, { color: palette.foreground, backgroundColor: palette.surface, borderColor: palette.border }]}
             value={customHex}
@@ -91,7 +92,7 @@ export const ColorPickerRow = memo(function ColorPickerRow({ label, value, onSel
           >
             <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Apply</ThemedText>
           </Clickable>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -119,7 +120,7 @@ export const LivePreviewCard = memo(function LivePreviewCard({ branding, palette
         </View>
 
         {/* Badge + Name */}
-        <View style={styles.previewContent}>
+        <Row style={styles.previewContent}>
           <View style={[styles.previewBadge, { backgroundColor: branding.secondaryColor }]}>
             {branding.badgeUrl ? (
               <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Badge</ThemedText>
@@ -137,7 +138,7 @@ export const LivePreviewCard = memo(function LivePreviewCard({ branding, palette
               </ThemedText>
             ) : null}
           </View>
-        </View>
+        </Row>
       </View>
     </View>
   );
@@ -148,14 +149,14 @@ export const LivePreviewCard = memo(function LivePreviewCard({ branding, palette
 const styles = StyleSheet.create({
   fieldLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.6 },
   colorSection: { gap: Spacing.xs },
-  colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  customHexRow: { flexDirection: 'row', gap: Spacing.xs, alignItems: 'center' },
+  colorRow: { flexWrap: 'wrap', gap: Spacing.xs },
+  customHexRow: { gap: Spacing.xs, alignItems: 'center' },
   customHexInput: { flex: 1, height: Components.buttonCompact.height, borderRadius: Radii.sm, paddingHorizontal: Spacing.sm, borderWidth: 1, ...Typography.body },
   previewSection: { gap: Spacing.xs, marginBottom: Spacing.xs },
   previewCard: { overflow: 'hidden' },
   previewCover: { height: 80, alignItems: 'center', justifyContent: 'center' },
   previewCoverText: { ...Typography.caption },
-  previewContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
+  previewContent: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm },
   previewBadge: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
   previewTextContainer: { flex: 1, gap: Spacing.micro },
 });

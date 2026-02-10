@@ -19,6 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { Alert } from 'react-native';
 import { MilestoneItem, CompactMilestoneList } from './milestone-list-sections';
+import { Row } from '@/components/primitives';
 
 interface MilestoneListProps {
   milestones: GoalMilestone[];
@@ -152,12 +153,12 @@ export function MilestoneList({
       )}
 
       {milestones.length === 0 && (
-        <View style={[styles.emptyState, { backgroundColor: palette.surfaceSecondary }]}>
+        <Row style={[styles.emptyState, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="flag-outline" size={24} color={palette.muted} />
           <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
             No milestones yet. Add one to track your progress!
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -168,7 +169,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   addInputContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginTop: Spacing.xs,
@@ -189,7 +189,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyState: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

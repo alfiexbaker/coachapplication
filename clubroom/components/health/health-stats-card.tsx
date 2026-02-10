@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { InjuryStats } from '@/constants/types';
 import { injuryService } from '@/services/injury-service';
+import { Row } from '@/components/primitives';
 
 interface HealthStatsCardProps {
   colors: ThemeColors;
@@ -18,7 +19,7 @@ export const HealthStatsCard = memo(function HealthStatsCard({ colors, stats }: 
   return (
     <SurfaceCard style={styles.card}>
       <ThemedText type="subtitle" style={styles.title}>Injury History</ThemedText>
-      <View style={styles.grid}>
+      <Row style={styles.grid}>
         <View style={styles.gridItem}>
           <ThemedText style={[styles.value, { color: colors.text }]}>{stats.totalInjuries}</ThemedText>
           <ThemedText style={[styles.label, { color: colors.muted }]}>Total</ThemedText>
@@ -31,7 +32,7 @@ export const HealthStatsCard = memo(function HealthStatsCard({ colors, stats }: 
           <ThemedText style={[styles.value, { color: colors.text }]}>{stats.averageRecoveryDays}</ThemedText>
           <ThemedText style={[styles.label, { color: colors.muted }]}>Avg Days</ThemedText>
         </View>
-      </View>
+      </Row>
       {stats.commonBodyParts.length > 0 && (
         <View style={[styles.commonParts, { borderTopColor: colors.border }]}>
           <ThemedText style={[styles.commonLabel, { color: colors.muted }]}>Most common areas:</ThemedText>
@@ -53,7 +54,7 @@ export const HealthStatsCard = memo(function HealthStatsCard({ colors, stats }: 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.md },
   title: { marginBottom: Spacing.md },
-  grid: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: Spacing.md },
+  grid: { justifyContent: 'space-around', marginBottom: Spacing.md },
   gridItem: { alignItems: 'center' },
   value: { ...Typography.display },
   label: { ...Typography.caption },

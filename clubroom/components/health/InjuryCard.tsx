@@ -22,6 +22,7 @@ export { CompactInjuryRow, InjuryRecoveryBar, InjuryFooterMeta } from './injury-
 export type { CompactInjuryRowProps, InjuryRecoveryBarProps, InjuryFooterMetaProps } from './injury-card-sections';
 
 import { CompactInjuryRow, InjuryRecoveryBar, InjuryFooterMeta } from './injury-card-sections';
+import { Row } from '@/components/primitives';
 
 interface InjuryCardProps {
   injury: Injury;
@@ -50,22 +51,22 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
   return (
     <SurfaceCard onPress={onPress ? handlePress : undefined} style={styles.card}>
       {/* Header with status and severity */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
+      <Row style={styles.header}>
+        <Row style={styles.headerLeft}>
+          <Row style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
             <Ionicons name={statusInfo.icon as keyof typeof Ionicons.glyphMap} size={14} color={statusInfo.color} />
             <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</ThemedText>
-          </View>
+          </Row>
           <View style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}>
             <ThemedText style={[styles.severityText, { color: severityInfo.color }]}>{severityInfo.label}</ThemedText>
           </View>
-        </View>
+        </Row>
         {injury.sharedWithCoach && (
           <View style={[styles.sharedBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name="share-social-outline" size={12} color={palette.tint} />
           </View>
         )}
-      </View>
+      </Row>
 
       {/* Body part and description */}
       <View style={styles.content}>
@@ -86,17 +87,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
   },
   headerLeft: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   statusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,

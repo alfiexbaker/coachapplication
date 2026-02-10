@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { CounterOfferCard } from '@/components/negotiate/CounterOfferCard';
 import { NegotiationTimeline } from '@/components/negotiate/NegotiationTimeline';
 import { RejectModal } from '@/components/negotiate/reject-modal';
@@ -72,10 +73,10 @@ export default function NegotiateScreen() {
             Need to change the booking time? Start a negotiation by proposing a new time.
           </ThemedText>
           <Button onPress={n.handleNewProposal} style={styles.proposalButton}>
-            <View style={styles.proposalRow}>
+            <Row style={styles.proposalRow}>
               <Ionicons name="time-outline" size={18} color={palette.onPrimary} />
               <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Propose New Time</ThemedText>
-            </View>
+            </Row>
           </Button>
         </View>
       </SafeAreaView>
@@ -91,13 +92,13 @@ export default function NegotiateScreen() {
       >
         {/* Booking summary */}
         <View style={[styles.summary, { backgroundColor: palette.surface }]}>
-          <View style={styles.summaryRow}>
+          <Row style={styles.summaryRow}>
             <Ionicons name="calendar-outline" size={20} color={palette.tint} />
             <View style={styles.summaryInfo}>
               <ThemedText type="defaultSemiBold">Session with {n.negotiation.coachName}</ThemedText>
               <ThemedText style={{ color: palette.muted }}>For {n.negotiation.athleteName}</ThemedText>
             </View>
-          </View>
+          </Row>
         </View>
 
         {n.pendingOffer && (
@@ -114,10 +115,10 @@ export default function NegotiateScreen() {
         {n.canPropose && !n.pendingOffer && (
           <View style={{ marginTop: Spacing.md }}>
             <Button onPress={n.handleNewProposal}>
-              <View style={styles.proposalRow}>
+              <Row style={styles.proposalRow}>
                 <Ionicons name="swap-horizontal" size={18} color={palette.onPrimary} />
                 <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Propose Different Time</ThemedText>
-              </View>
+              </Row>
             </Button>
           </View>
         )}
@@ -141,10 +142,10 @@ const styles = StyleSheet.create({
   retryButton: { marginTop: Spacing.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.sm },
   headerButton: { padding: Spacing.xs },
   summary: { padding: Spacing.md, borderRadius: Radii.md },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  summaryRow: { alignItems: 'center', gap: Spacing.sm },
   summaryInfo: { flex: 1, gap: Spacing.micro },
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xs },
   proposalButton: { marginTop: Spacing.md },
-  proposalRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  proposalRow: { alignItems: 'center', gap: 8 },
 });

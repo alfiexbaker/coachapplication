@@ -29,6 +29,7 @@ import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 import { GoalMilestonesSection } from './goal-milestones-section';
 import { GoalPreviewCard } from './goal-preview-card';
+import { Row } from '@/components/primitives';
 
 const CATEGORIES: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
 
@@ -118,7 +119,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
         {/* Category */}
         <Animated.View entering={FadeInDown.delay(200)} style={styles.section}>
           <ThemedText style={styles.label}>Category</ThemedText>
-          <View style={styles.categoryGrid}>
+          <Row style={styles.categoryGrid}>
             {CATEGORIES.map((cat) => {
               const { color, icon } = progressService.getCategoryInfo(cat);
               const isSelected = category === cat;
@@ -141,7 +142,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </Animated.View>
 
         {/* Target Date */}
@@ -183,7 +184,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { borderTopColor: palette.border }]}>
+      <Row style={[styles.footer, { borderTopColor: palette.border }]}>
         {onCancel && (
           <Button variant="outline" onPress={onCancel} style={styles.footerButton}>Cancel</Button>
         )}
@@ -194,7 +195,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
         >
           {loading ? 'Saving...' : isEditing ? 'Update Goal' : 'Create Goal'}
         </Button>
-      </View>
+      </Row>
     </KeyboardAvoidingView>
   );
 }
@@ -208,10 +209,10 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 88, borderRadius: Radii.md, padding: Spacing.md, borderWidth: 1, fontSize: scaleFont(15), textAlignVertical: 'top' },
   charCount: { fontSize: scaleFont(12), textAlign: 'right' },
   hint: { fontSize: scaleFont(13) },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  categoryOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xxs },
+  categoryGrid: { flexWrap: 'wrap', gap: Spacing.xs },
+  categoryOption: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xxs },
   categoryLabel: { fontSize: scaleFont(13), fontWeight: '500' },
-  footer: { flexDirection: 'row', padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
+  footer: { padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
   footerButton: { flex: 1 },
   fullWidthButton: { flex: 1 },
 });

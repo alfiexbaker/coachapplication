@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   categoryChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,

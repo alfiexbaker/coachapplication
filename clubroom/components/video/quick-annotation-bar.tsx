@@ -1,8 +1,9 @@
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -25,9 +26,9 @@ export const QuickAnnotationBar = memo(function QuickAnnotationBar({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.quickBar}>
+    <Row align="center" gap="sm" style={styles.quickBar}>
       <ThemedText style={[styles.quickBarLabel, { color: palette.muted }]}>Quick Add:</ThemedText>
-      <View style={styles.quickButtons}>
+      <Row gap="xs">
         {ANNOTATION_TYPES.map((type) => (
           <Clickable
             key={type.type}
@@ -42,16 +43,15 @@ export const QuickAnnotationBar = memo(function QuickAnnotationBar({
             <ThemedText style={{ color: type.color, ...Typography.caption }}>{type.label}</ThemedText>
           </Clickable>
         ))}
-      </View>
-    </View>
+      </Row>
+    </Row>
   );
 });
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  quickBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm },
+  quickBar: { paddingVertical: Spacing.sm },
   quickBarLabel: { ...Typography.caption },
-  quickButtons: { flexDirection: 'row', gap: Spacing.xs },
   quickButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm },
 });

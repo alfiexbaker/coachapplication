@@ -4,18 +4,20 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { SessionTypeSelector } from '@/components/ui/booking/session-type-selector';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 
 export default function SessionTypeScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -30,7 +32,7 @@ export default function SessionTypeScreen() {
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">Duration</ThemedText>
-          <View style={styles.row}>
+          <Row style={styles.row}>
             {[60, 90, 120].map((duration) => {
               const active = draft.duration === duration;
               return (
@@ -49,7 +51,7 @@ export default function SessionTypeScreen() {
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
         </View>
 
         <View style={{ gap: Spacing.sm }}>
@@ -69,8 +71,10 @@ export default function SessionTypeScreen() {
           onPress={() => router.push(Routes.bookSchedule(coachId))}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          <Row justify="center" align="center" gap="sm">
+            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          </Row>
         </Clickable>
       </View>
     </SafeAreaView>
@@ -80,9 +84,9 @@ export default function SessionTypeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  row: { flexDirection: 'row', gap: Spacing.sm },
+  row: { gap: Spacing.sm },
   chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1.5 },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
-  cta: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.button },
+  cta: { padding: Spacing.md, borderRadius: Radii.button },
 });

@@ -11,6 +11,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -51,7 +52,7 @@ export function PillRow({ options, selected, onToggle, singleSelect }: PillRowPr
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.pillRow}>
+    <Row style={styles.pillRow}>
       {options.map((option) => {
         const isSelected = selected.includes(option);
         return (
@@ -74,7 +75,7 @@ export function PillRow({ options, selected, onToggle, singleSelect }: PillRowPr
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
@@ -84,7 +85,6 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { ...Typography.body },
   pillRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

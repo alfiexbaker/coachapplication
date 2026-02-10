@@ -25,6 +25,7 @@ import {
   type BadgeEarned,
   type GoalProgress,
 } from './progress-report-sections';
+import { Row } from '@/components/primitives';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export function ProgressReport({
       </View>
 
       {/* Athlete info */}
-      <View style={styles.athleteRow}>
+      <Row style={styles.athleteRow}>
         <View style={[styles.avatarPlaceholder, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="person" size={Components.icon.lg} color={palette.muted} />
         </View>
@@ -94,7 +95,7 @@ export function ProgressReport({
             Age {athleteAge} &middot; Coach: {coachName}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <StatsRow sessionsCount={sessionsCount} attendanceRate={attendanceRate} />
 
@@ -115,20 +116,20 @@ export function ProgressReport({
       </View>
 
       {/* Action buttons */}
-      <View style={styles.actionsRow}>
+      <Row style={styles.actionsRow}>
         <Clickable onPress={handleShare} accessibilityLabel="Share report">
-          <View style={[styles.actionButton, { backgroundColor: palette.tint }]}>
+          <Row style={[styles.actionButton, { backgroundColor: palette.tint }]}>
             <Ionicons name="share-outline" size={Components.icon.md} color={palette.surface} />
             <ThemedText style={[styles.actionText, { color: palette.surface }]}>Share</ThemedText>
-          </View>
+          </Row>
         </Clickable>
         <Clickable onPress={onDownload} accessibilityLabel="Download report">
-          <View style={[styles.actionButton, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
+          <Row style={[styles.actionButton, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
             <Ionicons name="download-outline" size={Components.icon.md} color={palette.foreground} />
             <ThemedText style={[styles.actionText, { color: palette.foreground }]}>Download</ThemedText>
-          </View>
+          </Row>
         </Clickable>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
   header: { gap: Spacing.xs / 2 },
   reportTitle: { ...Typography.title },
   period: { ...Typography.small },
-  athleteRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  athleteRow: { alignItems: 'center', gap: Spacing.sm },
   avatarPlaceholder: { width: Components.avatar.lg, height: Components.avatar.lg, borderRadius: Components.avatar.lg / 2, alignItems: 'center', justifyContent: 'center' },
   athleteInfo: { flex: 1, gap: Spacing.xs / 2 },
   athleteName: { ...Typography.heading },
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
   placeholderText: { ...Typography.caption },
   brandingFooter: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, alignItems: 'center' },
   brandingText: { ...Typography.caption, letterSpacing: 1, textTransform: 'uppercase' },
-  actionsRow: { flexDirection: 'row', gap: Spacing.sm },
-  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: Components.button.height, borderRadius: Radii.button, gap: Spacing.xs },
+  actionsRow: { gap: Spacing.sm },
+  actionButton: { flex: 1, alignItems: 'center', justifyContent: 'center', height: Components.button.height, borderRadius: Radii.button, gap: Spacing.xs },
   actionText: { ...Typography.bodySemiBold },
 });

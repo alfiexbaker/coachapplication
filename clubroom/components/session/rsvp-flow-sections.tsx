@@ -8,6 +8,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -22,16 +23,14 @@ export function formatSessionDate(isoDate: string): string {
   return date.toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long',
-  });
+    month: 'long' });
 }
 
 export function formatSessionTime(isoDate: string): string {
   const date = new Date(isoDate);
   return date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
-    minute: '2-digit',
-  });
+    minute: '2-digit' });
 }
 
 export function getTimeUntilDeadline(deadline: string): string {
@@ -77,8 +76,7 @@ export const ResponseButton = React.memo(function ResponseButton({
   surfaceColor,
   isSelected,
   isSubmitting,
-  onPress,
-}: ResponseButtonProps) {
+  onPress }: ResponseButtonProps) {
   return (
     <Clickable
       style={[
@@ -89,20 +87,22 @@ export const ResponseButton = React.memo(function ResponseButton({
       onPress={() => onPress(status)}
       disabled={isSubmitting}
     >
-      <Ionicons
-        name={(isSelected ? selectedIcon : outlineIcon) as keyof typeof Ionicons.glyphMap}
-        size={28}
-        color={isSelected ? surfaceColor : accentColor}
-      />
-      <ThemedText
-        style={[
-          styles.responseButtonText,
-          { color: accentColor },
-          isSelected && { color: surfaceColor },
-        ]}
-      >
-        {label}
-      </ThemedText>
+      <Row align="center" justify="center" gap="sm">
+        <Ionicons
+          name={(isSelected ? selectedIcon : outlineIcon) as keyof typeof Ionicons.glyphMap}
+          size={28}
+          color={isSelected ? surfaceColor : accentColor}
+        />
+        <ThemedText
+          style={[
+            styles.responseButtonText,
+            { color: accentColor },
+            isSelected && { color: surfaceColor },
+          ]}
+        >
+          {label}
+        </ThemedText>
+      </Row>
     </Clickable>
   );
 });
@@ -113,16 +113,10 @@ export const ResponseButton = React.memo(function ResponseButton({
 
 const styles = StyleSheet.create({
   responseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
     height: 64,
     borderRadius: Radii.card,
-    borderWidth: 2,
-  },
+    borderWidth: 2 },
   responseButtonText: {
     ...Typography.heading,
-    letterSpacing: -0.2,
-  },
-});
+    letterSpacing: -0.2 } });

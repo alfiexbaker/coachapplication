@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { RevenueDataPoint, TrendDirection } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -92,30 +93,30 @@ export function RevenueChart({
       tactile={!!onPress}
     >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
+        <Row style={styles.titleRow}>
           <Ionicons name="bar-chart" size={20} color={palette.tint} />
           <ThemedText style={styles.title}>{title}</ThemedText>
-        </View>
+        </Row>
         {totalRevenue !== undefined && (
-          <View style={styles.totalContainer}>
+          <Row style={styles.totalContainer}>
             <ThemedText style={styles.totalValue}>
               {formatCurrency(totalRevenue)}
             </ThemedText>
             {trend && changePercent !== undefined && (
-              <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
+              <Row style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
                 <Ionicons name={getTrendIcon()} size={12} color={trendColor} />
                 <ThemedText style={[styles.trendText, { color: trendColor }]}>
                   {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(1)}%
                 </ThemedText>
-              </View>
+              </Row>
             )}
-          </View>
+          </Row>
         )}
       </View>
 
       {data.length > 0 ? (
         <View style={styles.chartContainer}>
-          <View style={styles.barsContainer}>
+          <Row style={styles.barsContainer}>
             {data.map((point, index) => {
               const barHeight = (point.amount / maxAmount) * 100;
               const isLast = index === data.length - 1;
@@ -139,7 +140,7 @@ export function RevenueChart({
                 </View>
               );
             })}
-          </View>
+          </Row>
         </View>
       ) : (
         <View style={styles.emptyState}>
@@ -161,20 +162,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   titleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
   title: { ...Typography.subheading },
   totalContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   totalValue: { ...Typography.display, letterSpacing: -0.5 },
   trendBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
@@ -187,7 +185,6 @@ const styles = StyleSheet.create({
   },
   barsContainer: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingBottom: Spacing.lg,

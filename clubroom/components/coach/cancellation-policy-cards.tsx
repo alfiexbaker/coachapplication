@@ -11,6 +11,7 @@ import { Spacing, Radii, Typography, Shadows, Components, withAlpha } from '@/co
 import { useTheme } from '@/hooks/useTheme';
 import type { RefundTier } from '@/constants/types';
 import type { PresetOption } from './cancellation-policy-helpers';
+import { Row } from '@/components/primitives';
 
 // --- PresetCard ---
 export const PresetCard = memo(function PresetCard({ preset, selected, onPress }: { preset: PresetOption; selected: boolean; onPress: () => void }) {
@@ -40,20 +41,20 @@ export const TierTable = memo(function TierTable({ tiers }: { tiers: RefundTier[
   const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
   return (
     <View style={[styles.tierTable, Shadows[scheme].card, { backgroundColor: palette.surface }]}>
-      <View style={[styles.tierHeaderRow, { backgroundColor: palette.background }]}>
+      <Row style={[styles.tierHeaderRow, { backgroundColor: palette.background }]}>
         <ThemedText style={[styles.tierHeaderCell, { flex: 2, color: palette.muted }]}>Cancellation window</ThemedText>
         <ThemedText style={[styles.tierHeaderCell, { flex: 1, textAlign: 'right', color: palette.muted }]}>Refund</ThemedText>
-      </View>
+      </Row>
       {sorted.map((tier, idx) => {
         const isLast = idx === sorted.length - 1;
         const refundColor = tier.refundPercentage >= 75 ? palette.success : tier.refundPercentage >= 25 ? palette.warning : palette.error;
         return (
-          <View key={`${tier.hoursBeforeSession}-${tier.refundPercentage}`} style={[styles.tierRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.border }]}>
+          <Row key={`${tier.hoursBeforeSession}-${tier.refundPercentage}`} style={[styles.tierRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.border }]}>
             <ThemedText style={[styles.tierCell, { flex: 2, color: palette.text }]} numberOfLines={2}>{tier.description}</ThemedText>
             <View style={[styles.tierBadge, { backgroundColor: withAlpha(refundColor, 0.09) }]}>
               <ThemedText style={[styles.tierBadgeText, { color: refundColor }]}>{tier.refundPercentage}%</ThemedText>
             </View>
-          </View>
+          </Row>
         );
       })}
     </View>
@@ -73,7 +74,7 @@ export const EditableTierRow = memo(function EditableTierRow({ tier, index, onUp
   const { colors: palette, scheme } = useTheme();
   return (
     <View style={[styles.editableTierRow, Shadows[scheme].subtle, { backgroundColor: palette.surface }]}>
-      <View style={styles.editableTierFields}>
+      <Row style={styles.editableTierFields}>
         <View style={styles.editableField}>
           <ThemedText style={[styles.editableFieldLabel, { color: palette.muted }]}>Hours before</ThemedText>
           <TextInput style={[styles.editableInput, { borderColor: palette.border, color: palette.text }]}
@@ -86,7 +87,7 @@ export const EditableTierRow = memo(function EditableTierRow({ tier, index, onUp
             value={String(tier.refundPercentage)} keyboardType="number-pad" placeholder="0" placeholderTextColor={palette.muted}
             onChangeText={(text) => { const n = parseInt(text, 10); if (!isNaN(n) && n >= 0 && n <= 100) onUpdate(index, 'refundPercentage', n); }} />
         </View>
-      </View>
+      </Row>
       <TextInput style={[styles.editableDescInput, { borderColor: palette.border, color: palette.text }]}
         value={tier.description} placeholder="Description for this tier" placeholderTextColor={palette.muted}
         onChangeText={(text) => onUpdate(index, 'description', text)} />
@@ -101,7 +102,7 @@ export const EditableTierRow = memo(function EditableTierRow({ tier, index, onUp
 });
 
 const styles = StyleSheet.create({
-  presetCard: { flexDirection: 'row', alignItems: 'center', borderRadius: Radii.card, padding: Spacing.sm, borderWidth: 1.5 },
+  presetCard: { alignItems: 'center', borderRadius: Radii.card, padding: Spacing.sm, borderWidth: 1.5 },
   presetIconCircle: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
   presetInfo: { flex: 1 },
   presetLabel: { ...Typography.bodySemiBold },
@@ -109,18 +110,18 @@ const styles = StyleSheet.create({
   radioOuter: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center' as const, justifyContent: 'center' as const, marginLeft: Spacing.xs },
   radioInner: { width: 12, height: 12, borderRadius: Radii.sm },
   tierTable: { borderRadius: Radii.card, overflow: 'hidden', marginBottom: Spacing.md },
-  tierHeaderRow: { flexDirection: 'row', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs + 2 },
+  tierHeaderRow: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs + 2 },
   tierHeaderCell: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
-  tierRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
+  tierRow: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },
   tierCell: { ...Typography.body },
   tierBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill },
   tierBadgeText: { ...Typography.bodySemiBold, fontSize: Typography.small.fontSize },
   editableTierRow: { borderRadius: Radii.card, padding: Spacing.sm },
-  editableTierFields: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs },
+  editableTierFields: { gap: Spacing.sm, marginBottom: Spacing.xs },
   editableField: { flex: 1 },
   editableFieldLabel: { ...Typography.caption, marginBottom: Spacing.xs / 2 },
   editableInput: { height: Components.button.height, borderRadius: Radii.sm, borderWidth: 1, paddingHorizontal: Spacing.xs, ...Typography.body },
   editableDescInput: { height: Components.button.height, borderRadius: Radii.sm, borderWidth: 1, paddingHorizontal: Spacing.xs, ...Typography.body, marginBottom: Spacing.xs },
-  removeTierButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2, alignSelf: 'flex-end' },
+  removeTierButton: { alignItems: 'center', gap: Spacing.xs / 2, alignSelf: 'flex-end' },
   removeTierText: { ...Typography.small },
 });

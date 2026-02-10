@@ -16,6 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,9 +50,9 @@ export const GoLiveCard = memo(function GoLiveCard({
   return (
     <View style={styles.goLiveSection}>
       <SurfaceCard style={styles.goLiveCard}>
-        <View style={styles.goLiveHeader}>
+        <Row style={styles.goLiveHeader}>
           <View style={styles.goLiveInfo}>
-            <View style={styles.goLiveTitleRow}>
+            <Row style={styles.goLiveTitleRow}>
               <View
                 style={[
                   styles.statusDot,
@@ -61,7 +62,7 @@ export const GoLiveCard = memo(function GoLiveCard({
               <ThemedText type="subtitle">
                 {isLive ? "You're Live" : 'Profile Offline'}
               </ThemedText>
-            </View>
+            </Row>
             <ThemedText style={[styles.goLiveSubtitle, { color: palette.muted }]}>
               {isLive
                 ? 'Athletes can find and book you'
@@ -75,10 +76,10 @@ export const GoLiveCard = memo(function GoLiveCard({
             thumbColor={palette.surface}
             disabled={liveLoading}
           />
-        </View>
+        </Row>
 
         <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
+          <Row style={styles.progressHeader}>
             <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
               Profile completion
             </ThemedText>
@@ -90,7 +91,7 @@ export const GoLiveCard = memo(function GoLiveCard({
             >
               {completionPercentage}%
             </ThemedText>
-          </View>
+          </Row>
           <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
             <View
               style={[
@@ -107,7 +108,7 @@ export const GoLiveCard = memo(function GoLiveCard({
         {!canGoLive && (
           <View style={styles.checklistSection}>
             {completionChecks.map((check, index) => (
-              <View key={index} style={styles.checklistItem}>
+              <Row key={index} style={styles.checklistItem}>
                 <Ionicons
                   name={check.done ? 'checkmark-circle' : 'ellipse-outline'}
                   size={18}
@@ -121,7 +122,7 @@ export const GoLiveCard = memo(function GoLiveCard({
                 >
                   {check.label}
                 </ThemedText>
-              </View>
+              </Row>
             ))}
           </View>
         )}
@@ -154,7 +155,7 @@ export const QuickAccessItem = memo(function QuickAccessItem({
       style={styles.quickAccessCard}
       onPress={() => router.push(route)}
     >
-      <View style={styles.quickAccessRow}>
+      <Row style={styles.quickAccessRow}>
         <View
           style={[
             styles.quickAccessIcon,
@@ -170,7 +171,7 @@ export const QuickAccessItem = memo(function QuickAccessItem({
           </ThemedText>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -210,7 +211,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   goLiveHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -219,7 +219,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.micro,
   },
   goLiveTitleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -235,7 +234,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   progressHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
   },
   progressLabel: {
@@ -259,7 +257,6 @@ export const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
   },
   checklistItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -278,7 +275,6 @@ export const styles = StyleSheet.create({
     padding: 0,
   },
   quickAccessRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.sm,
@@ -299,7 +295,6 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   signOutButton: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xs,

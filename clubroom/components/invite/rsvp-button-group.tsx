@@ -15,6 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 type RsvpStatus = 'going' | 'maybe' | 'cant_go';
 
@@ -76,7 +77,7 @@ function RsvpButtonGroupComponent({
   );
 
   return (
-    <View style={styles.row}>
+    <Row style={styles.row}>
       {BUTTONS.map((btn) => {
         const isSelected = currentStatus === btn.status;
         const color = palette[btn.colorKey];
@@ -115,7 +116,7 @@ function RsvpButtonGroupComponent({
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
@@ -123,12 +124,10 @@ export const RsvpButtonGroup = memo(RsvpButtonGroupComponent);
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   button: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

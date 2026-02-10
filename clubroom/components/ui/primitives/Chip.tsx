@@ -13,6 +13,7 @@ import React, { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Components, Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -84,39 +85,41 @@ function ChipInner({
         disabled ? styles.disabled : undefined,
       ]}
     >
-      {icon ? (
-        <Ionicons
-          name={icon}
-          size={Components.icon.sm}
-          color={iconColor}
-        />
-      ) : null}
-
-      <Text
-        style={[
-          styles.label,
-          { color: iconColor },
-        ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-
-      {removable ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Remove ${label}`}
-          onPress={handleRemove}
-          hitSlop={8}
-          style={styles.removeButton}
-        >
+      <Row align="center" gap="xxs">
+        {icon ? (
           <Ionicons
-            name="close-circle"
+            name={icon}
             size={Components.icon.sm}
             color={iconColor}
           />
-        </Pressable>
-      ) : null}
+        ) : null}
+
+        <Text
+          style={[
+            styles.label,
+            { color: iconColor },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+
+        {removable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${label}`}
+            onPress={handleRemove}
+            hitSlop={8}
+            style={styles.removeButton}
+          >
+            <Ionicons
+              name="close-circle"
+              size={Components.icon.sm}
+              color={iconColor}
+            />
+          </Pressable>
+        ) : null}
+      </Row>
     </Pressable>
   );
 }
@@ -129,9 +132,6 @@ export const Chip = React.memo(ChipInner);
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Components.chip.paddingHorizontal,
     paddingVertical: Components.chip.paddingVertical,
     borderRadius: Radii.pill,

@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { UpcomingSession } from '@/hooks/use-invite-session-flow';
 import { formatDateTime } from '@/hooks/use-invite-session-flow';
 import type { Athlete } from '@/hooks/use-invite-athletes';
+import { Row } from '@/components/primitives';
 
 // --- Choice Step ---
 export const ChoiceStep = memo(function ChoiceStep({ onSelect }: { onSelect: (choice: 'existing' | 'new') => void }) {
@@ -78,7 +79,7 @@ export const SessionListStep = memo(function SessionListStep({ sessions, onSelec
               </View>
               <View style={styles.sessionInfo}>
                 <ThemedText type="defaultSemiBold" numberOfLines={1}>{session.title || 'Coaching Session'}</ThemedText>
-                <View style={styles.sessionMeta}>
+                <Row style={styles.sessionMeta}>
                   <Ionicons name="time-outline" size={14} color={palette.muted} />
                   <ThemedText style={[styles.sessionMetaText, { color: palette.muted }]}>{time}</ThemedText>
                   {session.location && (
@@ -87,7 +88,7 @@ export const SessionListStep = memo(function SessionListStep({ sessions, onSelec
                       <ThemedText style={[styles.sessionMetaText, { color: palette.muted }]} numberOfLines={1}>{session.location}</ThemedText>
                     </>
                   )}
-                </View>
+                </Row>
                 {spotsLeft !== null && (
                   <View style={[styles.spotsBadge, { backgroundColor: spotsLeft > 0 ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }]}>
                     <ThemedText style={{ ...Typography.caption, color: spotsLeft > 0 ? palette.success : palette.error, fontWeight: '600' }}>
@@ -149,31 +150,31 @@ export const ConfirmStep = memo(function ConfirmStep({ session, athletes, onConf
 const styles = StyleSheet.create({
   choiceContainer: { gap: Spacing.md },
   choiceSubtitle: { ...Typography.body, marginBottom: Spacing.sm },
-  choiceCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 2, gap: Spacing.md },
+  choiceCard: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.lg, borderWidth: 2, gap: Spacing.md },
   choiceIcon: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   choiceInfo: { flex: 1, gap: Spacing.xxs },
   choiceTitle: { ...Typography.subheading },
   choiceDesc: { ...Typography.small, lineHeight: 18 },
   sessionList: { gap: Spacing.sm },
   sectionSubtitle: { ...Typography.bodySmall, marginBottom: Spacing.sm },
-  sessionCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.md },
+  sessionCard: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.md },
   sessionDate: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: Spacing.sm, borderRadius: Radii.sm, minWidth: 50 },
   sessionDayName: { ...Typography.micro, textTransform: 'uppercase' },
   sessionDateStr: { ...Typography.caption },
   sessionInfo: { flex: 1, gap: Spacing.xxs },
-  sessionMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  sessionMeta: { alignItems: 'center', gap: Spacing.xxs },
   sessionMetaText: { ...Typography.caption },
   spotsBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.sm, marginTop: Spacing.xxs },
   emptyState: { alignItems: 'center', paddingVertical: Spacing['2xl'], gap: Spacing.sm },
   emptyText: { ...Typography.body },
-  createButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
+  createButton: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
   createButtonText: { fontWeight: '600' },
   confirmContainer: { gap: Spacing.md },
   confirmCard: { padding: Spacing.lg, gap: Spacing.md },
   confirmHeader: { alignItems: 'center' },
   confirmDetail: { gap: Spacing.xxs },
   confirmLabel: { ...Typography.caption, textTransform: 'uppercase', fontWeight: '600' },
-  confirmButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: Spacing.md, borderRadius: Radii.md },
+  confirmButton: { alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: Spacing.md, borderRadius: Radii.md },
   confirmButtonText: { ...Typography.subheading },
   changeButton: { alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
 });

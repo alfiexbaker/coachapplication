@@ -17,11 +17,12 @@ import { CalendarGrid } from '@/components/club/calendar-grid';
 import { CalendarEventList } from '@/components/club/calendar-event-list';
 import { CalendarSquadFilter } from '@/components/club/calendar-squad-filter';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useClubCalendar, MONTH_LABELS } from '@/hooks/use-club-calendar';
 
 export default function CalendarScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     year, month, selectedDay, setSelectedDay,
     loading, squads, squadFilter, setSquadFilter,
@@ -71,7 +72,7 @@ export default function CalendarScreen() {
 }
 
 function LegendItem({ color, label }: { color: string; label: string }) {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   return (
     <Row gap="xxs" align="center">
       <View style={[styles.dot, { backgroundColor: color }]} />

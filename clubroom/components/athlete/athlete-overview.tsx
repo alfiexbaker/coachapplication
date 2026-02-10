@@ -143,7 +143,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   tag: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 10,

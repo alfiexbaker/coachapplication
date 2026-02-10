@@ -14,6 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { academyService } from '@/services/academy-service';
 import type { AcademyMembership } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const ROLE_COLORS = {
   OWNER: '#7C3AED',
@@ -46,7 +47,7 @@ export const AcademyStaffCard = memo(function AcademyStaffCard({
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
       <SurfaceCard style={styles.staffCard}>
-        <View style={styles.staffMain}>
+        <Row style={styles.staffMain}>
           {member.userPhotoUrl ? (
             <Image source={{ uri: member.userPhotoUrl }} style={styles.staffPhoto} />
           ) : (
@@ -64,7 +65,7 @@ export const AcademyStaffCard = memo(function AcademyStaffCard({
               </ThemedText>
             </View>
           </View>
-        </View>
+        </Row>
         {isOwner && member.role !== 'OWNER' && (
           <Clickable accessibilityLabel="Manage staff member" onPress={onManage} hitSlop={8}>
             <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
@@ -83,7 +84,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   staffMain: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     flex: 1,

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { useRouter, type Href } from 'expo-router';
@@ -63,7 +64,7 @@ export function ParentOnboardingChecklist({
 
   return (
     <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <View style={styles.header}>
+      <Row align="flex-start" justify="space-between" style={styles.header}>
         <View style={styles.headerTextGroup}>
           <ThemedText type="defaultSemiBold" style={[styles.title, { color: palette.text }]}>Get started</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
@@ -73,7 +74,7 @@ export function ParentOnboardingChecklist({
         <Clickable accessibilityLabel="Close" onPress={handleDismiss} hitSlop={12}>
           <Ionicons name="close" size={20} color={palette.muted} />
         </Clickable>
-      </View>
+      </Row>
 
       <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
         <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: palette.success }]} />
@@ -104,11 +105,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     borderWidth: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
+  header: {},
   headerTextGroup: { flex: 1, gap: Spacing.micro },
   title: { ...Typography.heading },
   subtitle: { ...Typography.small },

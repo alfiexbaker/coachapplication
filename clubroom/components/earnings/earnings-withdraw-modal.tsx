@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachEarnings, PayoutMethod } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface EarningsWithdrawModalProps {
   visible: boolean;
@@ -40,10 +41,10 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <SurfaceCard style={[styles.card, { paddingBottom: insets.bottom + Spacing.md }]}>
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="subtitle">Withdraw Funds</ThemedText>
             <Clickable accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={24} color={palette.icon} /></Clickable>
-          </View>
+          </Row>
           <View style={styles.content}>
             <View style={[styles.availableCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
               <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available to withdraw</ThemedText>
@@ -53,7 +54,7 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
             </View>
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold">Amount</ThemedText>
-              <View style={[styles.amountContainer, { borderColor: palette.border }]}>
+              <Row style={[styles.amountContainer, { borderColor: palette.border }]}>
                 <ThemedText style={styles.currencySymbol}>
                   {earnings?.currency === 'GBP' ? '£' : earnings?.currency === 'USD' ? '$' : '€'}
                 </ThemedText>
@@ -65,7 +66,7 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                   value={withdrawAmount}
                   onChangeText={onChangeAmount}
                 />
-              </View>
+              </Row>
             </View>
             <View style={styles.inputGroup}>
               <ThemedText type="defaultSemiBold">Payout Method</ThemedText>
@@ -77,8 +78,8 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                 <View style={styles.methodOptions}>
                   {payoutMethods.filter((m) => m.isVerified).map((method) => (
                     <Clickable key={method.id} onPress={() => onSelectMethod(method.id)}>
-                      <View style={[styles.methodOption, { borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border, backgroundColor: selectedPayoutMethod === method.id ? withAlpha(palette.tint, 0.06) : 'transparent' }]}>
-                        <View style={styles.methodContent}>
+                      <Row style={[styles.methodOption, { borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border, backgroundColor: selectedPayoutMethod === method.id ? withAlpha(palette.tint, 0.06) : 'transparent' }]}>
+                        <Row style={styles.methodContent}>
                           <Ionicons name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'} size={18} color={selectedPayoutMethod === method.id ? palette.tint : palette.icon} />
                           <View>
                             <ThemedText style={{ fontWeight: '500' }}>{method.nickname || method.type}</ThemedText>
@@ -86,11 +87,11 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                               {method.type === 'BANK_ACCOUNT' ? `****${method.accountLastFour}` : method.paypalEmail}
                             </ThemedText>
                           </View>
-                        </View>
+                        </Row>
                         <View style={[styles.radio, { borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border, backgroundColor: selectedPayoutMethod === method.id ? palette.tint : 'transparent' }]}>
                           {selectedPayoutMethod === method.id && <View style={[styles.radioInner, { backgroundColor: palette.background }]} />}
                         </View>
-                      </View>
+                      </Row>
                     </Clickable>
                   ))}
                 </View>
@@ -98,36 +99,36 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
             </View>
             {parsedAmount > 0 && (
               <View style={[styles.feeCard, { borderColor: palette.border }]}>
-                <View style={styles.feeRow}>
+                <Row style={styles.feeRow}>
                   <ThemedText style={{ color: palette.muted }}>Withdrawal amount</ThemedText>
                   <ThemedText>{formatCurrency(parsedAmount).replace(/^[+-]/, '')}</ThemedText>
-                </View>
-                <View style={styles.feeRow}>
+                </Row>
+                <Row style={styles.feeRow}>
                   <ThemedText style={{ color: palette.muted }}>Platform fee ({feePercent}%)</ThemedText>
                   <ThemedText style={{ color: palette.error }}>-{formatCurrency(fee).replace(/^[+-]/, '')}</ThemedText>
-                </View>
+                </Row>
                 <View style={[styles.feeDivider, { backgroundColor: palette.border }]} />
-                <View style={styles.feeRow}>
+                <Row style={styles.feeRow}>
                   <ThemedText type="defaultSemiBold">You will receive</ThemedText>
                   <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>{formatCurrency(netAmount).replace(/^[+-]/, '')}</ThemedText>
-                </View>
+                </Row>
               </View>
             )}
             {withdrawError && (
-              <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+              <Row style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                 <Ionicons name="alert-circle" size={16} color={palette.error} />
                 <ThemedText style={{ color: palette.error, flex: 1 }}>{withdrawError}</ThemedText>
-              </View>
+              </Row>
             )}
             <Clickable onPress={onConfirm} disabled={withdrawing || !selectedPayoutMethod || !withdrawAmount}>
-              <View style={[styles.confirmBtn, { backgroundColor: withdrawing || !selectedPayoutMethod || !withdrawAmount ? palette.border : palette.tint }]}>
+              <Row style={[styles.confirmBtn, { backgroundColor: withdrawing || !selectedPayoutMethod || !withdrawAmount ? palette.border : palette.tint }]}>
                 {withdrawing ? <ActivityIndicator size="small" color={palette.background} /> : (
                   <>
                     <Ionicons name="checkmark-circle" size={18} color={palette.background} />
                     <ThemedText style={{ color: palette.background, fontWeight: '700' }}>Confirm Withdrawal</ThemedText>
                   </>
                 )}
-              </View>
+              </Row>
             </Clickable>
           </View>
         </SurfaceCard>
@@ -139,22 +140,22 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   card: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: Spacing.lg, maxHeight: '90%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  header: { justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   content: { gap: Spacing.md },
   availableCard: { padding: Spacing.md, borderRadius: Radii.md, alignItems: 'center', gap: Spacing.xxs },
   inputGroup: { gap: Spacing.xs },
-  amountContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md, height: 52 },
+  amountContainer: { alignItems: 'center', borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md, height: 52 },
   currencySymbol: { ...Typography.title, marginRight: Spacing.xs },
   amountInput: { flex: 1, ...Typography.display, height: '100%' },
   noMethods: { padding: Spacing.lg, borderWidth: 1, borderRadius: Radii.md, borderStyle: 'dashed' },
   methodOptions: { gap: Spacing.sm },
-  methodOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderWidth: 1.5, borderRadius: Radii.md },
-  methodContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  methodOption: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderWidth: 1.5, borderRadius: Radii.md },
+  methodContent: { alignItems: 'center', gap: Spacing.sm },
   radio: { width: 20, height: 20, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 8, height: 8, borderRadius: Radii.xs },
   feeCard: { padding: Spacing.md, borderWidth: 1, borderRadius: Radii.md, gap: Spacing.sm },
-  feeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  feeRow: { justifyContent: 'space-between', alignItems: 'center' },
   feeDivider: { height: 1 },
-  errorCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.xs },
+  errorCard: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
+  confirmBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.xs },
 });

@@ -9,7 +9,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -26,7 +28,7 @@ export default function AddToSessionScreen() {
   const { currentUser } = useAuth();
 
   const [sessions, setSessions] = useState<GroupSession[]>([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [athleteInfo, setAthleteInfo] = useState<{ parentId?: string; parentName?: string }>({});
 
@@ -108,7 +110,7 @@ export default function AddToSessionScreen() {
     return (
       <Animated.View entering={FadeInDown.delay(index * 50)}>
         <SurfaceCard style={styles.sessionCard}>
-          <View style={styles.sessionHeader}>
+          <Row gap="md" style={styles.sessionHeader}>
             <View style={[styles.typeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons
                 name={session.sessionType === 'TEAM_TRAINING' ? 'fitness' : 'people'}
@@ -120,22 +122,22 @@ export default function AddToSessionScreen() {
               <ThemedText type="defaultSemiBold" numberOfLines={1}>
                 {session.title}
               </ThemedText>
-              <View style={styles.sessionMeta}>
+              <Row align="center" gap="xxs" style={styles.sessionMeta}>
                 <Ionicons name="calendar-outline" size={12} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   {nextSchedule ? `${formatDate(nextSchedule.date)} at ${nextSchedule.startTime}` : 'No schedule'}
                 </ThemedText>
-              </View>
-              <View style={styles.sessionMeta}>
+              </Row>
+              <Row align="center" gap="xxs" style={styles.sessionMeta}>
                 <Ionicons name="location-outline" size={12} color={palette.muted} />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
                   {session.location}
                 </ThemedText>
-              </View>
+              </Row>
             </View>
-          </View>
+          </Row>
 
-          <View style={styles.sessionFooter}>
+          <Row align="center" justify="space-between" style={styles.sessionFooter}>
             <View style={[styles.spotsBadge, { backgroundColor: spotsLeft <= 3 ? withAlpha(palette.warning, 0.09) : withAlpha(palette.success, 0.09) }]}>
               <ThemedText style={[styles.spotsText, { color: spotsLeft <= 3 ? palette.warning : palette.success }]}>
                 {spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left
@@ -147,16 +149,36 @@ export default function AddToSessionScreen() {
               onPress={() => handleAddToSession(session)}
               disabled={isAdding}
             >
-              <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color={palette.onPrimary} />
-              <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>
-                {isAdding ? 'Adding...' : 'Add'}
-              </ThemedText>
+              <Row align="center" gap="xxs">
+                <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color={palette.onPrimary} />
+                <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>
+                  {isAdding ? 'Adding...' : 'Add'}
+                </ThemedText>
+              </Row>
             </Clickable>
-          </View>
+          </Row>
         </SurfaceCard>
       </Animated.View>
     );
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: palette.border }]}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="close" size={24} color={palette.text} />
+          </Clickable>
+          <View style={styles.headerCenter}>
+            <ThemedText type="defaultSemiBold">Add to Session</ThemedText>
+            <ThemedText style={[styles.athleteLabel, { color: palette.muted }]}>{athleteName || 'Athlete'}</ThemedText>
+          </View>
+          <View style={{ width: 24 }} />
+        </Row>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
@@ -171,8 +193,10 @@ export default function AddToSessionScreen() {
         style={[styles.createButton, { backgroundColor: palette.tint }]}
         onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
       >
-        <Ionicons name="add" size={18} color={palette.onPrimary} />
-        <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Session</ThemedText>
+        <Row align="center" gap="xxs">
+          <Ionicons name="add" size={18} color={palette.onPrimary} />
+          <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Session</ThemedText>
+        </Row>
       </Clickable>
     </View>
   );
@@ -180,7 +204,7 @@ export default function AddToSessionScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+      <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={palette.text} />
         </Clickable>
@@ -191,7 +215,7 @@ export default function AddToSessionScreen() {
           </ThemedText>
         </View>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       <FlatList
         data={sessions}
@@ -209,9 +233,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1 },
@@ -226,9 +247,7 @@ const styles = StyleSheet.create({
   sessionCard: {
     padding: Spacing.md,
     gap: Spacing.md },
-  sessionHeader: {
-    flexDirection: 'row',
-    gap: Spacing.md },
+  sessionHeader: {},
   typeIcon: {
     width: 44,
     height: 44,
@@ -238,16 +257,10 @@ const styles = StyleSheet.create({
   sessionInfo: {
     flex: 1,
     gap: Spacing.xxs },
-  sessionMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs },
+  sessionMeta: {},
   metaText: {
     ...Typography.caption },
-  sessionFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between' },
+  sessionFooter: {},
   spotsBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -255,9 +268,6 @@ const styles = StyleSheet.create({
   spotsText: {
     ...Typography.caption },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill },
@@ -273,9 +283,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     lineHeight: 20 },
   createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: Radii.pill,

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ── Progress Metric ──────────────────────────────────────────
 
@@ -24,7 +25,7 @@ export function ProgressMetric({ title, current, total, label, icon, color, show
 
   return (
     <View style={styles.progressMetric}>
-      <View style={styles.progressMetricHeader}>
+      <Row style={styles.progressMetricHeader}>
         {icon && (
           <View style={[styles.progressMetricIcon, { backgroundColor: withAlpha(accentColor, 0.07) }]}>
             <Ionicons name={icon} size={16} color={accentColor} />
@@ -32,7 +33,7 @@ export function ProgressMetric({ title, current, total, label, icon, color, show
         )}
         <ThemedText type="defaultSemiBold" style={styles.progressMetricTitle}>{title}</ThemedText>
         {showPercentage && <ThemedText style={[styles.progressMetricPercentage, { color: accentColor }]}>{percentage}%</ThemedText>}
-      </View>
+      </Row>
       <View style={styles.progressMetricBarContainer}>
         <View style={[styles.progressMetricBarBg, { backgroundColor: palette.border }]}>
           <View style={[styles.progressMetricBarFill, { width: `${percentage}%`, backgroundColor: accentColor }]} />
@@ -63,15 +64,15 @@ export function MetricsSummary({ title, metrics, highlight }: MetricsSummaryProp
     <SurfaceCard style={styles.metricsSummaryCard}>
       <ThemedText type="defaultSemiBold" style={styles.metricsSummaryTitle}>{title}</ThemedText>
       {highlight && (
-        <View style={[styles.metricsSummaryHighlight, { backgroundColor: withAlpha(highlight.color || palette.tint, 0.03) }]}>
+        <Row style={[styles.metricsSummaryHighlight, { backgroundColor: withAlpha(highlight.color || palette.tint, 0.03) }]}>
           {highlight.icon && <Ionicons name={highlight.icon} size={24} color={highlight.color || palette.tint} />}
           <View style={styles.metricsSummaryHighlightContent}>
             <ThemedText type="heading" style={[styles.metricsSummaryHighlightValue, { color: highlight.color || palette.tint }]}>{highlight.value}</ThemedText>
             <ThemedText style={[styles.metricsSummaryHighlightLabel, { color: palette.muted }]}>{highlight.label}</ThemedText>
           </View>
-        </View>
+        </Row>
       )}
-      <View style={styles.metricsSummaryGrid}>
+      <Row style={styles.metricsSummaryGrid}>
         {metrics.map((metric, index) => {
           const trendColor = metric.trend ? (metric.trend.value > 0 ? palette.success : metric.trend.value < 0 ? palette.error : palette.muted) : null;
           return (
@@ -79,15 +80,15 @@ export function MetricsSummary({ title, metrics, highlight }: MetricsSummaryProp
               <ThemedText style={styles.metricsSummaryItemValue}>{metric.value}</ThemedText>
               <ThemedText style={[styles.metricsSummaryItemLabel, { color: palette.muted }]}>{metric.label}</ThemedText>
               {metric.trend && trendColor && (
-                <View style={[styles.metricsSummaryTrend, { backgroundColor: withAlpha(trendColor, 0.07) }]}>
+                <Row style={[styles.metricsSummaryTrend, { backgroundColor: withAlpha(trendColor, 0.07) }]}>
                   <Ionicons name={metric.trend.value > 0 ? 'arrow-up' : 'arrow-down'} size={10} color={trendColor} />
                   <ThemedText style={[styles.metricsSummaryTrendText, { color: trendColor }]}>{metric.trend.label}</ThemedText>
-                </View>
+                </Row>
               )}
             </Animated.View>
           );
         })}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -119,7 +120,7 @@ export function EmptyMetrics({ icon = 'analytics-outline', title, description, a
 
 const styles = StyleSheet.create({
   progressMetric: { gap: Spacing.xs },
-  progressMetricHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  progressMetricHeader: { alignItems: 'center', gap: Spacing.xs },
   progressMetricIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
   progressMetricTitle: { ...Typography.bodySmall, flex: 1 },
   progressMetricPercentage: { ...Typography.bodySmallSemiBold },
@@ -130,15 +131,15 @@ const styles = StyleSheet.create({
   progressMetricValue: { ...Typography.caption },
   metricsSummaryCard: { padding: Spacing.md, gap: Spacing.md },
   metricsSummaryTitle: { ...Typography.subheading },
-  metricsSummaryHighlight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md },
+  metricsSummaryHighlight: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md },
   metricsSummaryHighlightContent: { gap: Spacing.micro },
   metricsSummaryHighlightValue: { ...Typography.display },
   metricsSummaryHighlightLabel: { ...Typography.caption },
-  metricsSummaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  metricsSummaryGrid: { flexWrap: 'wrap', gap: Spacing.xs },
   metricsSummaryItem: { flex: 1, minWidth: '45%', padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, gap: Spacing.xxs },
   metricsSummaryItemValue: { ...Typography.heading },
   metricsSummaryItemLabel: { ...Typography.caption },
-  metricsSummaryTrend: { flexDirection: 'row', alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm, alignSelf: 'flex-start' },
+  metricsSummaryTrend: { alignItems: 'center', gap: Spacing.micro, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm, alignSelf: 'flex-start' },
   metricsSummaryTrendText: { ...Typography.micro },
   emptyMetrics: { padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm },
   emptyMetricsIcon: { width: 72, height: 72, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center' },

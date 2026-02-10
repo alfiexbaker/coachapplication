@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CarpoolOffer } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 interface CarpoolRequestModalProps {
   visible: boolean;
@@ -31,10 +32,10 @@ export const CarpoolRequestModal = memo(function CarpoolRequestModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <ThemedText type="title" style={styles.title}>Request a Seat</ThemedText>
           <Clickable accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={24} color={palette.text} /></Clickable>
-        </View>
+        </Row>
         <KeyboardAvoidingView style={styles.body} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
             {offer && (
@@ -59,10 +60,10 @@ export const CarpoolRequestModal = memo(function CarpoolRequestModal({
               />
             </View>
           </ScrollView>
-          <View style={[styles.actions, { borderTopColor: palette.border }]}>
+          <Row style={[styles.actions, { borderTopColor: palette.border }]}>
             <Button variant="outline" onPress={onClose} style={styles.actionBtn} disabled={requesting}>Cancel</Button>
             <Button onPress={onSubmit} style={styles.actionBtn} disabled={requesting}>{requesting ? 'Sending...' : 'Send Request'}</Button>
-          </View>
+          </Row>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -71,7 +72,7 @@ export const CarpoolRequestModal = memo(function CarpoolRequestModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   title: { ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
   body: { flex: 1 },
   formContent: { padding: Spacing.lg, gap: Spacing.md },
@@ -80,6 +81,6 @@ const styles = StyleSheet.create({
   label: { ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize), marginBottom: Spacing.xxs },
   input: { height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   textArea: { minHeight: 80, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
-  actions: { flexDirection: 'row', padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },
+  actions: { padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },
   actionBtn: { flex: 1 },
 });

@@ -6,12 +6,14 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import { createLogger } from '@/utils/logger';
@@ -19,7 +21,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('JoinTeam');
 
 export default function JoinTeamScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [inviteCode, setInviteCode] = useState('');
@@ -68,14 +70,14 @@ export default function JoinTeamScreen() {
         style={styles.keyboardView}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={{ flex: 1 }}>
             Join Team
           </ThemedText>
-        </View>
+        </Row>
 
         <View style={styles.content}>
           {/* Hero */}
@@ -124,12 +126,12 @@ export default function JoinTeamScreen() {
           </Button>
 
           {/* Info */}
-          <View style={[styles.infoCard, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
+          <Row align="flex-start" gap="sm" style={[styles.infoCard, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
             <Ionicons name="information-circle" size={20} color={palette.info} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
               Don&apos;t have a code? Ask your coach or club administrator for an invite.
             </ThemedText>
-          </View>
+          </Row>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -144,11 +146,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
   },
   content: {
     flex: 1,
@@ -196,9 +195,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
   },

@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { COACH_SPECIALIZATIONS } from './onboarding-types';
+import { Row } from '@/components/primitives';
 
 interface StepCoachDetailsProps {
   isOrganization: boolean;
@@ -123,7 +124,7 @@ function StepCoachDetailsInner({
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Specializations</ThemedText>
-        <View style={styles.specGrid}>
+        <Row style={styles.specGrid}>
           {COACH_SPECIALIZATIONS.map((spec) => {
             const isSelected = specializations.includes(spec);
             return (
@@ -150,7 +151,7 @@ function StepCoachDetailsInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
 
       <View style={styles.fieldGroup}>
@@ -207,7 +208,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   toggleCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.card,
@@ -232,7 +232,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   specGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },

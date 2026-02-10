@@ -18,6 +18,7 @@ import type { EventAttendance } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 // ─── CheckInUnavailable ──────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ export const CheckInUnavailable = memo(function CheckInUnavailable({
   const isFuture = date > today;
 
   return (
-    <View style={[styles.statusContainer, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
+    <Row style={[styles.statusContainer, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
       <Ionicons
         name={isPast ? 'time-outline' : 'calendar-outline'}
         size={20}
@@ -51,7 +52,7 @@ export const CheckInUnavailable = memo(function CheckInUnavailable({
           ? `Check-in opens on ${eventService.formatEventDate(eventDate)}`
           : 'Check-in not available'}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -72,7 +73,7 @@ export const CheckedInBadge = memo(function CheckedInBadge({
 }: CheckedInBadgeProps) {
   return (
     <View style={styles.checkedInContainer}>
-      <View style={[styles.checkedInBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+      <Row style={[styles.checkedInBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
         <View style={[styles.checkedInIcon, { backgroundColor: palette.success }]}>
           <Ionicons name="checkmark" size={20} color={palette.onSuccess} />
         </View>
@@ -86,14 +87,14 @@ export const CheckedInBadge = memo(function CheckedInBadge({
           </ThemedText>
         </View>
         {attendance.guestsCheckedIn > 0 && (
-          <View style={[styles.guestsBadge, { backgroundColor: palette.success }]}>
+          <Row style={[styles.guestsBadge, { backgroundColor: palette.success }]}>
             <Ionicons name="people" size={14} color={palette.onSuccess} />
             <ThemedText style={[styles.guestsBadgeText, { color: palette.onSuccess }]}>
               +{attendance.guestsCheckedIn}
             </ThemedText>
-          </View>
+          </Row>
         )}
-      </View>
+      </Row>
 
       {onUndoCheckIn && (
         <Clickable
@@ -146,7 +147,7 @@ export const CheckInAction = memo(function CheckInAction({
         disabled={disabled || loading}
         style={[styles.checkInButton, { backgroundColor: palette.success }]}
       >
-        <View style={styles.buttonContent}>
+        <Row style={styles.buttonContent}>
           {loading ? (
             <ActivityIndicator size="small" color={palette.onSuccess} />
           ) : (
@@ -157,25 +158,25 @@ export const CheckInAction = memo(function CheckInAction({
               </ThemedText>
             </>
           )}
-        </View>
+        </Row>
       </Button>
 
       {requireLocation && !currentLocation && (
-        <View style={styles.locationWarning}>
+        <Row style={styles.locationWarning}>
           <Ionicons name="location-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.locationWarningText, { color: palette.warning }]}>
             Location required for check-in
           </ThemedText>
-        </View>
+        </Row>
       )}
 
       {currentLocation && (
-        <View style={styles.locationInfo}>
+        <Row style={styles.locationInfo}>
           <Ionicons name="location" size={14} color={palette.success} />
           <ThemedText style={[styles.locationInfoText, { color: palette.muted }]}>
             Location will be verified
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -188,7 +189,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statusContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.md,
@@ -203,7 +203,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   checkedInBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
@@ -227,7 +226,6 @@ export const styles = StyleSheet.create({
     fontSize: scaleFont(12),
   },
   guestsBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
@@ -251,7 +249,6 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   buttonContent: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -261,7 +258,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   locationWarning: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xxs,
@@ -271,7 +267,6 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   locationInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xxs,

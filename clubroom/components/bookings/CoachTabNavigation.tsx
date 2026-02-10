@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export type TabType = 'list' | 'create';
 
@@ -18,7 +19,7 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.tabContainer}>
+    <Row style={styles.tabContainer}>
       <Clickable
         onPress={() => onTabChange('list')}
         style={[
@@ -58,20 +59,18 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
           Create Booking
         </ThemedText>
       </Clickable>
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   tabContainer: {
-    flexDirection: 'row',
     paddingHorizontal: 16,
     marginBottom: Spacing.xs + Spacing.xxs,
     gap: 10,
   },
   tab: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

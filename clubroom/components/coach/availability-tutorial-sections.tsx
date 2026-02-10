@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -114,7 +115,7 @@ export const TutorialProgressDots = memo(function TutorialProgressDots({
   palette,
 }: TutorialProgressDotsProps) {
   return (
-    <View style={styles.progressDots}>
+    <Row style={styles.progressDots}>
       {Array.from({ length: totalSteps }, (_, index) => (
         <View
           key={index}
@@ -128,7 +129,7 @@ export const TutorialProgressDots = memo(function TutorialProgressDots({
           ]}
         />
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -150,7 +151,7 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
   palette,
 }: TutorialNavButtonsProps) {
   return (
-    <View style={styles.buttonRow}>
+    <Row style={styles.buttonRow}>
       {!isFirstStep ? (
         <Clickable
           onPress={onBack}
@@ -179,7 +180,7 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
           <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
         )}
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -228,7 +229,6 @@ export const styles = StyleSheet.create({
     maxWidth: 300,
   },
   progressDots: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xs,
@@ -239,13 +239,11 @@ export const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   buttonRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   backButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
@@ -260,7 +258,6 @@ export const styles = StyleSheet.create({
     width: 90,
   },
   nextButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,

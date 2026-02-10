@@ -7,6 +7,7 @@
 
 import { View, Switch, StyleSheet } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,7 +35,7 @@ export function FilterToggle({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <Row align="center" justify="between" style={styles.container}>
       <View style={styles.labelContainer}>
         <ThemedText style={[styles.label, { color: palette.text }]}>
           {label}
@@ -54,15 +55,12 @@ export function FilterToggle({
         thumbColor={value ? palette.tint : palette.surface}
         ios_backgroundColor={palette.border}
       />
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
   },
   labelContainer: {

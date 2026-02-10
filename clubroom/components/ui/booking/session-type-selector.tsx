@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -41,10 +42,10 @@ export function SessionTypeSelector({
             ]}
             onPress={() => onSelect(opt.id)}
           >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Row justify="between" align="center">
               <ThemedText type="defaultSemiBold">{opt.title}</ThemedText>
               <ThemedText style={{ color: palette.muted }}>{opt.price}</ThemedText>
-            </View>
+            </Row>
             <ThemedText style={{ color: palette.muted }}>{opt.description}</ThemedText>
           </Clickable>
         );

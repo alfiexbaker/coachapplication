@@ -13,6 +13,7 @@ import { View, StyleSheet, Modal, FlatList } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -98,7 +99,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
   const hasDateFilter = !!(dateRange.from || dateRange.to);
 
   return (
-    <View style={styles.filterContainer}>
+    <Row align="center" gap="xs" style={styles.filterContainer}>
       <FlatList
         horizontal
         data={FILTER_OPTIONS}
@@ -129,7 +130,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
           </Clickable>
         )}
       </Clickable>
-    </View>
+    </Row>
   );
 });
 
@@ -165,7 +166,7 @@ export const DateFilterModal = memo(function DateFilterModal({
       onRequestClose={onClose}
     >
       <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
-        <View style={styles.modalHeader}>
+        <Row align="center" justify="space-between" style={styles.modalHeader}>
           <ThemedText type="title">Filter by Date</ThemedText>
           <Clickable
             accessibilityLabel="Close"
@@ -174,7 +175,7 @@ export const DateFilterModal = memo(function DateFilterModal({
           >
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
 
         <View style={styles.modalContent}>
           <ThemedText style={[styles.dateHint, { color: palette.muted }]}>
@@ -248,10 +249,7 @@ export const InvoiceEmptyState = memo(function InvoiceEmptyState({
 
 const styles = StyleSheet.create({
   filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: Spacing.md,
-    gap: Spacing.xs,
   },
   filterList: { gap: Spacing.xs, flex: 1 },
   filterPill: {
@@ -291,9 +289,6 @@ const styles = StyleSheet.create({
   clearFilterText: { ...Typography.bodySmallSemiBold },
   modalContainer: { flex: 1 },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: Spacing.md,
     paddingTop: Spacing.lg,
   },

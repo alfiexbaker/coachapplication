@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -17,7 +18,7 @@ export function CoachSummaryCard({ coach, coachProfile }: CoachSummaryCardProps)
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.header}>
+      <Row align="center" gap="sm">
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {coach.avatar || coach.name.charAt(0)}
@@ -27,14 +28,14 @@ export function CoachSummaryCard({ coach, coachProfile }: CoachSummaryCardProps)
           <ThemedText type="defaultSemiBold" style={styles.name}>
             {coach.name}
           </ThemedText>
-          <View style={styles.meta}>
+          <Row align="center" gap={Spacing.xs / 2}>
             <Ionicons name="star" size={14} color={palette.rating} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {coachProfile.rating.toFixed(1)} ({coachProfile.totalReviews} reviews)
             </ThemedText>
-          </View>
+          </Row>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -44,11 +45,6 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
     padding: Spacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
   },
   avatar: {
     width: 56,
@@ -63,10 +59,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   name: { ...Typography.heading },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
+  // meta replaced by Row primitive
   metaText: { ...Typography.small },
 });

@@ -153,7 +153,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sessionItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,

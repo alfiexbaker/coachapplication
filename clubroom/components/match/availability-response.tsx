@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
@@ -75,10 +76,10 @@ export function AvailabilityResponse({
       <MatchInfoCard match={match} palette={palette} />
 
       {match.notes && (
-        <View style={[styles.coachNote, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
+        <Row align="flex-start" gap="sm" style={[styles.coachNote, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="chatbubble-outline" size={16} color={palette.tint} />
           <ThemedText style={styles.coachNoteText}>{match.notes}</ThemedText>
-        </View>
+        </Row>
       )}
 
       {showNoteInput && (
@@ -101,14 +102,16 @@ export function AvailabilityResponse({
         </View>
       )}
 
-      <View style={styles.responseButtons}>
+      <Row gap="sm">
         <Clickable
           style={[styles.responseButton, { backgroundColor: palette.success }]}
           onPress={() => handleResponse('AVAILABLE')}
           disabled={isLoading}
         >
-          <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
-          <ThemedText style={[styles.responseButtonText, { color: palette.onSuccess }]}>Available</ThemedText>
+          <Row align="center" justify="center" gap="xs" flex>
+            <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
+            <ThemedText style={[styles.responseButtonText, { color: palette.onSuccess }]}>Available</ThemedText>
+          </Row>
         </Clickable>
 
         <Clickable
@@ -123,21 +126,23 @@ export function AvailabilityResponse({
           onPress={() => handleResponse('UNAVAILABLE')}
           disabled={isLoading}
         >
-          <Ionicons
-            name="close-circle"
-            size={22}
-            color={showNoteInput ? palette.onError : palette.error}
-          />
-          <ThemedText
-            style={[
-              styles.responseButtonText,
-              { color: showNoteInput ? palette.onError : palette.error },
-            ]}
-          >
-            {showNoteInput ? 'Confirm Unavailable' : 'Unavailable'}
-          </ThemedText>
+          <Row align="center" justify="center" gap="xs" flex>
+            <Ionicons
+              name="close-circle"
+              size={22}
+              color={showNoteInput ? palette.onError : palette.error}
+            />
+            <ThemedText
+              style={[
+                styles.responseButtonText,
+                { color: showNoteInput ? palette.onError : palette.error },
+              ]}
+            >
+              {showNoteInput ? 'Confirm Unavailable' : 'Unavailable'}
+            </ThemedText>
+          </Row>
         </Clickable>
-      </View>
+      </Row>
 
       {showNoteInput && (
         <Clickable
@@ -159,13 +164,12 @@ const styles = StyleSheet.create({
   inviteHeader: { alignItems: 'center', gap: Spacing.sm },
   inviteTitle: { ...Typography.title, textAlign: 'center' },
   inviteMessage: { ...Typography.body, textAlign: 'center', lineHeight: 22 },
-  coachNote: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
+  coachNote: { padding: Spacing.sm, borderRadius: Radii.sm },
   coachNoteText: { ...Typography.small, flex: 1, fontStyle: 'italic' },
   noteInputContainer: { gap: Spacing.xs },
   noteInputLabel: { ...Typography.small },
   noteInput: { ...Typography.bodySmall, borderRadius: Radii.md, borderWidth: 1, padding: Spacing.sm, minHeight: 60, textAlignVertical: 'top' },
-  responseButtons: { flexDirection: 'row', gap: Spacing.sm },
-  responseButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
+  responseButton: { flex: 1, padding: Spacing.md, borderRadius: Radii.md },
   responseButtonText: { ...Typography.bodySemiBold },
   cancelNoteButton: { alignItems: 'center', padding: Spacing.sm },
   cancelNoteText: { ...Typography.bodySmall },

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
+import { LoadingState } from '@/components/ui/screen-states';
 import { QuietHoursSelector, ChannelToggle, NotificationTypeList, MutedCoachesList } from '@/components/notification';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,10 +24,7 @@ export default function NotificationPreferencesScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Header colors={colors} updating={false} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <ThemedText style={[styles.loadingText, { color: colors.muted }]}>Loading preferences...</ThemedText>
-        </View>
+        <LoadingState variant="list" />
       </SafeAreaView>
     );
   }

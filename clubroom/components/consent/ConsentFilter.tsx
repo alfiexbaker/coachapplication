@@ -6,6 +6,7 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ConsentType } from '@/constants/types';
 import { consentService, type ConsentFilters } from '@/services/consent-service';
+import { Row } from '@/components/primitives';
 
 interface ConsentFilterProps {
   filters: ConsentFilters;
@@ -112,7 +113,7 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
           Status
         </ThemedText>
-        <View style={styles.chipRow}>
+        <Row style={styles.chipRow}>
           <FilterChip
             label="Granted"
             icon="checkmark-circle-outline"
@@ -130,7 +131,7 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
             isActive={filters.status === 'all'}
             onPress={() => handleStatusSelect('all')}
           />
-        </View>
+        </Row>
       </View>
 
       {/* Clear Filters */}
@@ -158,11 +159,9 @@ const styles = StyleSheet.create({
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.5 },
   chipRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   chip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
@@ -172,7 +171,6 @@ const styles = StyleSheet.create({
   },
   chipText: { ...Typography.smallSemiBold },
   clearButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,

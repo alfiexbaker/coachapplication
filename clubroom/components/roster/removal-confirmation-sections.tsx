@@ -9,6 +9,7 @@
 
 import React, { useCallback } from 'react';
 import { View, StyleSheet, Switch } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -57,7 +58,7 @@ export const ReasonGrid = React.memo(function ReasonGrid({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.reasonGrid}>
+    <Row wrap gap="xs">
       {reasons.map((reason) => {
         const isSelected = selectedReason === reason.value;
         return (
@@ -65,7 +66,9 @@ export const ReasonGrid = React.memo(function ReasonGrid({
             key={reason.value}
             onPress={() => onSelect(reason.value as ReasonType)}
           >
-            <View
+            <Row
+              align="center"
+              gap="xs"
               style={[
                 styles.reasonCard,
                 {
@@ -87,11 +90,11 @@ export const ReasonGrid = React.memo(function ReasonGrid({
               >
                 {reason.label}
               </ThemedText>
-            </View>
+            </Row>
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -107,14 +110,14 @@ export const WarningBox = React.memo(function WarningBox({ archive }: WarningBox
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.warningBox, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
+    <Row align="center" gap="sm" style={[styles.warningBox, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
       <Ionicons name="information-circle" size={18} color={palette.warning} />
       <ThemedText style={{ ...Typography.small, color: palette.warning, flex: 1 }}>
         {archive
           ? 'This will remove them from active roster but keep their history.'
           : 'This action cannot be undone. All data will be permanently deleted.'}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -134,7 +137,7 @@ export const ArchiveToggle = React.memo(function ArchiveToggle({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.archiveRow, { borderColor: palette.border }]}>
+    <Row align="center" justify="between" style={[styles.archiveRow, { borderColor: palette.border }]}>
       <View style={styles.archiveInfo}>
         <ThemedText type="defaultSemiBold">Keep history</ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
@@ -147,7 +150,7 @@ export const ArchiveToggle = React.memo(function ArchiveToggle({
         trackColor={{ false: palette.border, true: palette.tint }}
         thumbColor={archive ? palette.background : palette.surface}
       />
-    </View>
+    </Row>
   );
 });
 
@@ -156,15 +159,7 @@ export const ArchiveToggle = React.memo(function ArchiveToggle({
 // ============================================================================
 
 const styles = StyleSheet.create({
-  reasonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
   reasonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
@@ -172,17 +167,11 @@ const styles = StyleSheet.create({
   },
   reasonLabel: { ...Typography.bodySmallSemiBold },
   warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   archiveRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
     borderBottomWidth: 1,

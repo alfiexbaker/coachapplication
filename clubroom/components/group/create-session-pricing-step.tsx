@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   toggleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,

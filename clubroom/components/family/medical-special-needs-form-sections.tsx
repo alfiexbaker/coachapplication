@@ -8,6 +8,7 @@ import { Button } from '@/components/primitives/button';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { type Disability, DISABILITY_TYPES } from '@/services/child-service';
+import { Row } from '@/components/primitives';
 
 /* ---------- DisabilitySelector ---------- */
 
@@ -38,7 +39,7 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
       <ThemedText style={[styles.hint, { color: palette.muted }]}>
         Select any that apply
       </ThemedText>
-      <View style={styles.optionGrid}>
+      <Row style={styles.optionGrid}>
         {DISABILITY_TYPES.map((type) => {
           const isSelected = disabilities.some((d) => d.type === type);
           return (
@@ -73,7 +74,7 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
             </Clickable>
           );
         })}
-      </View>
+      </Row>
 
       {selectedDisabilityType && (
         <View
@@ -92,14 +93,14 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
             multiline
             numberOfLines={3}
           />
-          <View style={styles.addButtonRow}>
+          <Row style={styles.addButtonRow}>
             <Clickable onPress={() => onSelectedDisabilityTypeChange(null)}>
               <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
             </Clickable>
             <Button onPress={onAddDisability} size="small">
               Add
             </Button>
-          </View>
+          </Row>
         </View>
       )}
     </View>
@@ -120,12 +121,10 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   optionGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
   optionChip: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
@@ -153,7 +152,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   addButtonRow: {
-    flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: Spacing.md,

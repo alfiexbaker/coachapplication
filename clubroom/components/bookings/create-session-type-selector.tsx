@@ -11,6 +11,7 @@ import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont, scale } from '@/utils/scale';
 import type { SessionType, RecurrenceType } from './CreateSessionForm';
+import { Row } from '@/components/primitives';
 
 interface SessionTypeSelectorProps {
   sessionType: SessionType;
@@ -59,16 +60,16 @@ function SessionTypeSelectorInner({
   return (
     <View style={styles.container}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>Session Type</ThemedText>
-      <View style={styles.row}>
+      <Row style={styles.row}>
         {renderToggle('1:1 Session', 'person-outline', sessionType === '1on1', () => onSessionTypeChange('1on1'))}
         {renderToggle('Group Session', 'people-outline', sessionType === 'group', () => onSessionTypeChange('group'))}
-      </View>
+      </Row>
 
       <ThemedText type="subtitle" style={styles.sectionTitle}>Schedule Type</ThemedText>
-      <View style={styles.row}>
+      <Row style={styles.row}>
         {renderToggle('One-time', 'calendar-outline', recurrenceType === 'none', () => onRecurrenceTypeChange('none'))}
         {renderToggle('Weekly Recurring', 'repeat-outline', recurrenceType === 'weekly', () => onRecurrenceTypeChange('weekly'))}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -86,13 +87,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   row: {
-    flexDirection: 'row',
     gap: Spacing.xs + Spacing.xxs,
     marginBottom: 14,
   },
   button: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,

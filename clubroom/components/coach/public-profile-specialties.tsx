@@ -7,6 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Coach } from '@/services/coach-service';
+import { Row } from '@/components/primitives';
 
 interface PublicProfileSpecialtiesProps {
   coach: Coach;
@@ -20,41 +21,41 @@ export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
       {coach.footballFocuses && coach.footballFocuses.length > 0 ? (
         <SurfaceCard style={styles.section}>
           <ThemedText style={[Typography.heading, { color: palette.text }]}>Football Focus Areas</ThemedText>
-          <View style={styles.chipGrid}>
+          <Row style={styles.chipGrid}>
             {coach.footballFocuses.map((focus, i) => (
-              <View key={i} style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+              <Row key={i} style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>{focus}</ThemedText>
-              </View>
+              </Row>
             ))}
-          </View>
+          </Row>
         </SurfaceCard>
       ) : null}
 
       {coach.sports && coach.sports.length > 0 ? (
         <SurfaceCard style={styles.section}>
           <ThemedText style={[Typography.heading, { color: palette.text }]}>Sports</ThemedText>
-          <View style={styles.chipGrid}>
+          <Row style={styles.chipGrid}>
             {coach.sports.map((sport, i) => (
-              <View key={i} style={[styles.chip, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}>
+              <Row key={i} style={[styles.chip, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}>
                 <Ionicons name="football-outline" size={14} color={palette.secondary} />
                 <ThemedText style={[Typography.smallSemiBold, { color: palette.secondary }]}>{sport}</ThemedText>
-              </View>
+              </Row>
             ))}
-          </View>
+          </Row>
         </SurfaceCard>
       ) : null}
 
       {coach.languages && coach.languages.length > 0 ? (
         <SurfaceCard style={styles.section}>
           <ThemedText style={[Typography.heading, { color: palette.text }]}>Languages</ThemedText>
-          <View style={styles.chipGrid}>
+          <Row style={styles.chipGrid}>
             {coach.languages.map((lang, i) => (
-              <View key={i} style={[styles.chip, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}>
+              <Row key={i} style={[styles.chip, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}>
                 <Ionicons name="language-outline" size={14} color={palette.muted} />
                 <ThemedText style={[Typography.small, { color: palette.text }]}>{lang.name} - {lang.proficiency}</ThemedText>
-              </View>
+              </Row>
             ))}
-          </View>
+          </Row>
         </SurfaceCard>
       ) : null}
     </Animated.View>
@@ -64,6 +65,6 @@ export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },
   section: { gap: Spacing.sm },
-  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.xs },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs / 2, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
+  chipGrid: { flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.xs },
+  chip: { alignItems: 'center', gap: Spacing.xs / 2, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
 });

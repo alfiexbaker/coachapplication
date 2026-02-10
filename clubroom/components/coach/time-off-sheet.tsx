@@ -15,6 +15,7 @@ import { useTimeOffForm } from '@/hooks/use-time-off-form';
 import { TimeOffFormStep } from './time-off-form-step';
 import { TimeOffConfirmStep } from './time-off-confirm-step';
 import { TimeOffRemoveStep } from './time-off-remove-step';
+import { Row } from '@/components/primitives';
 
 interface TimeOffSheetProps {
   visible: boolean;
@@ -35,14 +36,14 @@ export function TimeOffSheet({ visible, onClose, coachId, preselectedDate, exist
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="subtitle">
               {form.step === 'confirmRemove' ? 'Remove Time Off' : form.isEditing ? 'Time Off' : 'Take Time Off'}
             </ThemedText>
             <Clickable onPress={form.handleClose} disabled={form.removing} hitSlop={8} accessibilityLabel="Close">
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
-          </View>
+          </Row>
 
           <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
             {form.step === 'confirmRemove' && form.existingOverride && (
@@ -99,5 +100,5 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md, maxHeight: '85%' },
   handle: { width: 36, height: Spacing.xxs, borderRadius: Spacing.micro, alignSelf: 'center', marginBottom: Spacing.xs },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { justifyContent: 'space-between', alignItems: 'center' },
 });

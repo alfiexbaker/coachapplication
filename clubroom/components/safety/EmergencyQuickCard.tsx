@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -35,8 +36,7 @@ export function EmergencyQuickCard({
   medications,
   primaryContact,
   onCallPrimary,
-  onPress,
-}: EmergencyQuickCardProps) {
+  onPress }: EmergencyQuickCardProps) {
   const { colors: palette } = useTheme();
 
   const alertColor = safetyService.getAlertLevelColor(alertLevel);
@@ -58,7 +58,7 @@ export function EmergencyQuickCard({
       onPress={onPress}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
           <Ionicons
             name={hasAlerts ? 'warning' : 'shield-checkmark'}
@@ -70,14 +70,14 @@ export function EmergencyQuickCard({
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.athleteName}>
             {athleteName}
           </ThemedText>
-          <View style={[styles.alertBadge, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
+          <Row align="center" gap="xxs" style={[styles.alertBadge, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
             <View style={[styles.alertDot, { backgroundColor: alertColor }]} />
             <ThemedText style={[styles.alertText, { color: alertColor }]}>
               {alertLabel}
             </ThemedText>
-          </View>
+          </Row>
         </View>
-      </View>
+      </Row>
 
       {hasAlerts && (
         <MedicalItemChips topItems={topItems} remainingCount={remainingCount} palette={palette} />
@@ -96,39 +96,26 @@ const styles = StyleSheet.create({
   card: {
     padding: 0,
     borderWidth: 1.5,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Components.card.padding,
-  },
+    padding: Components.card.padding },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   headerInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   athleteName: { ...Typography.heading },
   alertBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   alertDot: {
     width: 6,
     height: 6,
-    borderRadius: Radii.xs,
-  },
-  alertText: { ...Typography.caption },
-});
+    borderRadius: Radii.xs },
+  alertText: { ...Typography.caption } });

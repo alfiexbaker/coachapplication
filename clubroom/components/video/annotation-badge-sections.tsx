@@ -10,6 +10,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
@@ -37,7 +38,9 @@ export function AnnotationTypeCountBadge({
   const config = ANNOTATION_TYPE_CONFIG[type];
 
   const content = (
-    <View
+    <Row
+      align="center"
+      gap="xxs"
       style={[
         styles.countBadge,
         {
@@ -67,7 +70,7 @@ export function AnnotationTypeCountBadge({
       >
         <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
       </View>
-    </View>
+    </Row>
   );
 
   if (onPress) {
@@ -95,7 +98,7 @@ export function AnnotationTypesSummary({
   const types: VideoAnnotationType[] = ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
 
   return (
-    <View style={styles.summaryContainer}>
+    <Row gap="xs" wrap>
       {types.map((type) => (
         <AnnotationTypeCountBadge
           key={type}
@@ -105,7 +108,7 @@ export function AnnotationTypesSummary({
           onPress={onTypePress ? () => onTypePress(type) : undefined}
         />
       ))}
-    </View>
+    </Row>
   );
 }
 
@@ -128,7 +131,7 @@ export function AnnotationInlineIndicator({
   const config = ANNOTATION_TYPE_CONFIG[type];
 
   return (
-    <View style={styles.inlineContainer}>
+    <Row align="center" gap="xxs">
       <View style={[styles.inlineDot, { backgroundColor: config.color }]} />
       {label && (
         <ThemedText style={styles.inlineLabel} numberOfLines={1}>
@@ -140,7 +143,7 @@ export function AnnotationInlineIndicator({
           {timestamp}
         </ThemedText>
       )}
-    </View>
+    </Row>
   );
 }
 
@@ -150,13 +153,10 @@ export function AnnotationInlineIndicator({
 
 const styles = StyleSheet.create({
   countBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    gap: Spacing.xxs,
   },
   countLabel: { ...Typography.caption },
   countNumber: {
@@ -168,16 +168,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxs,
   },
   countText: { ...Typography.caption },
-  summaryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  inlineContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
   inlineDot: {
     width: 8,
     height: 8,

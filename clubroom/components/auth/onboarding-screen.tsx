@@ -27,6 +27,7 @@ import { StepLocation } from './onboarding-step-location';
 import { StepAthleteDetails } from './onboarding-step-athlete';
 import { StepCoachDetails } from './onboarding-step-coach';
 import { StepComplete } from './onboarding-step-complete';
+import { Row } from '@/components/primitives';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -131,7 +132,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
       >
         {/* Header */}
         {state.step !== 'complete' && (
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <Clickable
               onPress={handleBack}
               style={styles.backButton}
@@ -143,7 +144,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
               stepNumber={getStepNumber()}
               totalSteps={getTotalSteps()}
             />
-          </View>
+          </Row>
         )}
 
         {/* Content */}
@@ -158,10 +159,10 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
 
           {/* Error */}
           {state.error && (
-            <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+            <Row style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
               <Ionicons name="alert-circle" size={20} color={palette.error} />
               <ThemedText style={[styles.errorText, { color: palette.error }]}>{state.error}</ThemedText>
-            </View>
+            </Row>
           )}
         </ScrollView>
 
@@ -200,7 +201,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -218,7 +218,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   errorCard: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,
@@ -234,7 +233,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   nextButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

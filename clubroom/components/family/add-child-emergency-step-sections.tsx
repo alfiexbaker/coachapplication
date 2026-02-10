@@ -115,7 +115,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   infoCard: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
@@ -126,7 +125,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   consentRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderWidth: 1,

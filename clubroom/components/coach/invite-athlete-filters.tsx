@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Squad, SkillFilter, AgeFilter } from '@/hooks/use-invite-athletes';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Filter Panel
@@ -34,7 +35,7 @@ function FilterPanelInner(p: FilterPanelProps) {
     <View style={styles.filterRow}>
       <ThemedText style={styles.filterLabel}>{label}</ThemedText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.filterChips}>
+        <Row style={styles.filterChips}>
           {options.map((opt) => (
             <Clickable key={opt} onPress={() => onSelect(opt)}
               style={[styles.filterChip, { backgroundColor: current === opt ? palette.tint : 'transparent', borderColor: current === opt ? palette.tint : palette.border }]}>
@@ -43,7 +44,7 @@ function FilterPanelInner(p: FilterPanelProps) {
               </ThemedText>
             </Clickable>
           ))}
-        </View>
+        </Row>
       </ScrollView>
     </View>
   );
@@ -89,7 +90,7 @@ function QuickSelectInner(p: QuickSelectProps) {
   return (
     <View style={styles.quickContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.quickActions}>
+        <Row style={styles.quickActions}>
           <Clickable onPress={p.onSelectAll} style={[styles.quickButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name="checkmark-done" size={14} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, ...Typography.caption }}>Select All ({p.filteredCount})</ThemedText>
@@ -108,7 +109,7 @@ function QuickSelectInner(p: QuickSelectProps) {
             style={[styles.quickButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}>
             <ThemedText style={{ ...Typography.caption, color: palette.text }}>Beginners only</ThemedText>
           </Clickable>
-        </View>
+        </Row>
       </ScrollView>
     </View>
   );
@@ -120,10 +121,10 @@ const styles = StyleSheet.create({
   panel: { marginHorizontal: Spacing.lg, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
   filterRow: { gap: Spacing.xs },
   filterLabel: { ...Typography.caption },
-  filterChips: { flexDirection: 'row', gap: Spacing.xs },
+  filterChips: { gap: Spacing.xs },
   filterChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, borderWidth: 1 },
-  resetButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, marginTop: Spacing.xs },
+  resetButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, marginTop: Spacing.xs },
   quickContainer: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm },
-  quickActions: { flexDirection: 'row', gap: Spacing.xs },
-  quickButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md },
+  quickActions: { gap: Spacing.xs },
+  quickButton: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md },
 });

@@ -19,6 +19,7 @@ import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import type { SkillProgress } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const logger = createLogger('ProgressSkillsTab');
 
@@ -66,10 +67,10 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
       )}
 
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row style={styles.sectionHeader}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Sessions</ThemedText>
           <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>{sortedSessions.length} total</ThemedText>
-        </View>
+        </Row>
 
         {sortedSessions.length === 0 ? (
           <EmptyMetrics icon="football-outline" title="No Sessions Yet" description="Book your first session to start tracking your progress" />
@@ -79,46 +80,46 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
               <Animated.View key={session.id} entering={FadeInDown.delay(index * 50).springify()}>
                 <Clickable onPress={() => handleSessionPress(session)}>
                   <SurfaceCard style={styles.card}>
-                    <View style={styles.cardHeader}>
+                    <Row style={styles.cardHeader}>
                       <View style={styles.cardLeft}>
                         <ThemedText type="defaultSemiBold" style={styles.date}>{formatDate(session.completedAt)}</ThemedText>
                         <ThemedText style={[styles.coach, { color: palette.muted }]}>with {session.coachName}</ThemedText>
                       </View>
-                      <View style={styles.rating}>
+                      <Row style={styles.rating}>
                         <ThemedText style={styles.ratingValue}>{session.performanceRating}</ThemedText>
                         <Ionicons name="star" size={14} color={palette.warning} />
-                      </View>
-                    </View>
+                      </Row>
+                    </Row>
 
                     {session.skillsWorkedOn.length > 0 && (
-                      <View style={styles.skillsRow}>
+                      <Row style={styles.skillsRow}>
                         {session.skillsWorkedOn.map((skill, idx) => (
                           <View key={idx} style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                             <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>{skill}</ThemedText>
                           </View>
                         ))}
-                      </View>
+                      </Row>
                     )}
 
-                    <View style={styles.footer}>
-                      <View style={styles.indicators}>
+                    <Row style={styles.footer}>
+                      <Row style={styles.indicators}>
                         {session.notes && session.notes.trim() !== '' && (
-                          <View style={styles.indicator}>
+                          <Row style={styles.indicator}>
                             <Ionicons name="document-text" size={12} color={palette.muted} />
                             <ThemedText style={[styles.indicatorText, { color: palette.muted }]}>Notes</ThemedText>
-                          </View>
+                          </Row>
                         )}
                         {session.videoUrls && session.videoUrls.length > 0 && (
-                          <View style={styles.indicator}>
+                          <Row style={styles.indicator}>
                             <Ionicons name="videocam" size={12} color={palette.muted} />
                             <ThemedText style={[styles.indicatorText, { color: palette.muted }]}>
                               {session.videoUrls.length} video{session.videoUrls.length > 1 ? 's' : ''}
                             </ThemedText>
-                          </View>
+                          </Row>
                         )}
-                      </View>
+                      </Row>
                       <Ionicons name="chevron-forward" size={16} color={palette.icon} />
-                    </View>
+                    </Row>
                   </SurfaceCard>
                 </Clickable>
               </Animated.View>
@@ -135,23 +136,23 @@ export const ProgressSkillsTab = memo(ProgressSkillsTabInner);
 const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionHeader: { alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...Typography.subheading },
   sectionCount: { ...Typography.caption },
   categoryList: { gap: Spacing.sm },
   list: { gap: Spacing.sm },
   card: { padding: Spacing.md, gap: Spacing.sm },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  cardHeader: { justifyContent: 'space-between', alignItems: 'flex-start' },
   cardLeft: { gap: Spacing.micro },
   date: { ...Typography.bodySmall },
   coach: { ...Typography.caption },
-  rating: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  rating: { alignItems: 'center', gap: Spacing.xxs },
   ratingValue: { ...Typography.subheading },
-  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  skillsRow: { flexWrap: 'wrap', gap: Spacing.xs },
   skillChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
   skillChipText: { ...Typography.caption },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  indicators: { flexDirection: 'row', gap: Spacing.sm },
-  indicator: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  footer: { justifyContent: 'space-between', alignItems: 'center' },
+  indicators: { gap: Spacing.sm },
+  indicator: { alignItems: 'center', gap: Spacing.xxs },
   indicatorText: { ...Typography.caption },
 });

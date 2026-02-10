@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, Components, withAlpha, Shadows } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
+import { Row } from '@/components/primitives';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -162,12 +163,12 @@ interface MapInfoNoteProps {
 
 export const MapInfoNote = memo(function MapInfoNote({ palette }: MapInfoNoteProps) {
   return (
-    <View style={[styles.infoNote, { backgroundColor: palette.surfaceSecondary }]}>
+    <Row style={[styles.infoNote, { backgroundColor: palette.surfaceSecondary }]}>
       <Ionicons name="information-circle-outline" size={Components.icon.sm} color={palette.muted} />
       <ThemedText style={[styles.infoText, { color: palette.muted }]}>
         Map view requires native build for full interactivity
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -252,7 +253,6 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.sm,
     alignSelf: 'center',
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
@@ -274,7 +274,6 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
   },
   infoNote: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,

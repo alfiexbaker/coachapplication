@@ -21,12 +21,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
@@ -43,7 +45,7 @@ const REASON_OPTIONS = [
 ];
 
 export default function BlockDateScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -118,7 +120,7 @@ export default function BlockDateScreen() {
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Select Date to Block</ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.dateGrid}>
+            <Row style={styles.dateGrid}>
               {dates.map((date, index) => {
                 const isSelected = isSameDay(date, selectedDate);
                 const isToday = isSameDay(date, new Date());
@@ -152,14 +154,14 @@ export default function BlockDateScreen() {
                   </Clickable>
                 );
               })}
-            </View>
+            </Row>
           </ScrollView>
         </SurfaceCard>
 
         {/* Reason Selection */}
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Reason (shown to clients)</ThemedText>
-          <View style={styles.reasonGrid}>
+          <Row style={styles.reasonGrid}>
             {REASON_OPTIONS.map((option) => {
               const isSelected = reason === option.key;
               return (
@@ -187,7 +189,7 @@ export default function BlockDateScreen() {
                 </Clickable>
               );
             })}
-          </View>
+          </Row>
 
           {reason === 'other' && (
             <TextInput
@@ -202,10 +204,10 @@ export default function BlockDateScreen() {
 
         {/* Preview */}
         <SurfaceCard style={[styles.section, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
-          <View style={styles.previewHeader}>
+          <Row style={styles.previewHeader}>
             <Ionicons name="close-circle" size={20} color={palette.error} />
             <ThemedText type="defaultSemiBold">Preview</ThemedText>
-          </View>
+          </Row>
           <ThemedText style={{ color: palette.muted }}>
             {formatDate(selectedDate)} will be blocked
           </ThemedText>
@@ -225,10 +227,10 @@ export default function BlockDateScreen() {
           {saving ? (
             <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
-            <>
+            <Row align="center" justify="center" gap="sm">
               <Ionicons name="close-circle" size={22} color={palette.onPrimary} />
               <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Block This Date</ThemedText>
-            </>
+            </Row>
           )}
         </Clickable>
       </View>
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentInner: { padding: Spacing.md, paddingBottom: 100, gap: Spacing.md },
   section: { padding: Spacing.md, gap: Spacing.sm },
-  dateGrid: { flexDirection: 'row', gap: Spacing.sm, paddingVertical: Spacing.xs },
+  dateGrid: { gap: Spacing.sm, paddingVertical: Spacing.xs },
   dateCard: {
     width: 70,
     paddingVertical: Spacing.md,
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
   dateNum: { ...Typography.title },
   dateMonth: { ...Typography.caption },
   todayDot: { width: 6, height: 6, borderRadius: Radii.xs, marginTop: Spacing.xxs },
-  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  reasonGrid: { flexWrap: 'wrap', gap: Spacing.sm },
   reasonCard: {
     width: '48%',
     padding: Spacing.md,
@@ -271,13 +273,9 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
     marginTop: Spacing.sm,
   },
-  previewHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  previewHeader: { alignItems: 'center', gap: Spacing.sm },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },

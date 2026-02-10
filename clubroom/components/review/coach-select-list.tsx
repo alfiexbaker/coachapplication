@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -30,24 +31,26 @@ export const CoachSelectList = memo(function CoachSelectList({ coaches, onSelect
       contentContainerStyle={styles.list}
       renderItem={({ item }) => (
         <Clickable onPress={() => onSelect(item)}>
-          <SurfaceCard style={styles.coachCard}>
-            <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-              <Ionicons name="person" size={28} color={palette.tint} />
-            </View>
-            <View style={styles.coachInfo}>
-              <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
-              <ThemedText style={[styles.coachMeta, { color: palette.muted }]}>
-                {item.sessionCount} session{item.sessionCount !== 1 ? 's' : ''} - Last: {formatCoachDate(item.lastSession)}
-              </ThemedText>
-            </View>
-            {item.hasReview ? (
-              <View style={[styles.reviewedBadge, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
-                <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-                <ThemedText style={[styles.reviewedText, { color: palette.success }]}>Reviewed</ThemedText>
+          <SurfaceCard>
+            <Row align="center" gap="md" style={styles.coachCard}>
+              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                <Ionicons name="person" size={28} color={palette.tint} />
               </View>
-            ) : (
-              <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-            )}
+              <View style={styles.coachInfo}>
+                <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                <ThemedText style={[styles.coachMeta, { color: palette.muted }]}>
+                  {item.sessionCount} session{item.sessionCount !== 1 ? 's' : ''} - Last: {formatCoachDate(item.lastSession)}
+                </ThemedText>
+              </View>
+              {item.hasReview ? (
+                <Row align="center" gap="xxs" style={[styles.reviewedBadge, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
+                  <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+                  <ThemedText style={[styles.reviewedText, { color: palette.success }]}>Reviewed</ThemedText>
+                </Row>
+              ) : (
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              )}
+            </Row>
           </SurfaceCard>
         </Clickable>
       )}
@@ -64,11 +67,11 @@ export const CoachSelectList = memo(function CoachSelectList({ coaches, onSelect
 
 const styles = StyleSheet.create({
   list: { padding: Spacing.md, gap: Spacing.sm },
-  coachCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
+  coachCard: { padding: Spacing.md },
   avatar: { width: 52, height: 52, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   coachInfo: { flex: 1, gap: Spacing.xxs },
   coachMeta: { ...Typography.small },
-  reviewedBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  reviewedBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   reviewedText: { ...Typography.caption },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2, gap: Spacing.sm },
   emptyText: { ...Typography.subheading },

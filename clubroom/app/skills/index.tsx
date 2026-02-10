@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { ProgressBadge } from '@/components/skills/ProgressBadge';
 import { Row } from '@/components/primitives/row';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSkillsScreen, BADGE_TIER_COLORS } from '@/hooks/use-skills-screen';
@@ -37,7 +38,7 @@ export default function SkillsScreen() {
     >
       {/* Overall Stats */}
       <SurfaceCard style={styles.statsCard}>
-        <View style={styles.statsRow}>
+        <Row align="center" justify="around">
           <View style={styles.statItem}>
             <ThemedText style={[Typography.display, { color: palette.tint }]}>{overallStats.totalUnlocked}</ThemedText>
             <ThemedText style={[Typography.caption, { color: palette.muted, marginTop: Spacing.micro }]}>Skills Unlocked</ThemedText>
@@ -52,22 +53,20 @@ export default function SkillsScreen() {
             <ThemedText style={[Typography.display, { color: palette.success }]}>{overallStats.overallPercent}%</ThemedText>
             <ThemedText style={[Typography.caption, { color: palette.muted, marginTop: Spacing.micro }]}>Complete</ThemedText>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
 
       {/* Tree Grid */}
       {isLoading ? (
-        <SurfaceCard style={styles.loadingCard}>
-          <ThemedText style={{ color: palette.muted }}>Loading skill trees...</ThemedText>
-        </SurfaceCard>
+        <LoadingState variant="card" />
       ) : (
-        <View style={styles.treesGrid}>
+        <Row gap="sm" wrap style={styles.treesGrid}>
           {trees.map((tree) => (
             <SurfaceCard key={tree.treeId} style={styles.treeCard} onPress={() => handleTreePress(tree)}>
               <ProgressBadge icon={tree.icon} label={tree.name} progress={tree.percentComplete} themeColor={tree.themeColor} totalNodes={tree.totalNodes} unlockedNodes={tree.unlockedNodes} size="large" />
             </SurfaceCard>
           ))}
-        </View>
+        </Row>
       )}
 
       {/* Info Card */}
@@ -97,8 +96,10 @@ export default function SkillsScreen() {
       {/* Demo button (for testing) */}
       {__DEV__ && (
         <Clickable style={[styles.demoButton, { borderColor: palette.border }]} onPress={handleInitializeMock}>
-          <Ionicons name="flask-outline" size={18} color={palette.muted} />
-          <ThemedText style={[Typography.small, { color: palette.muted }]}>Initialize Demo Progress</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="flask-outline" size={18} color={palette.muted} />
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>Initialize Demo Progress</ThemedText>
+          </Row>
         </Clickable>
       )}
     </PageContainer>
@@ -107,14 +108,14 @@ export default function SkillsScreen() {
 
 const styles = StyleSheet.create({
   statsCard: { padding: Spacing.sm },
-  statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  statsRow: {},
   statItem: { alignItems: 'center', flex: 1 },
   statDivider: { width: 1, height: 40 },
   loadingCard: { padding: Spacing.xl, alignItems: 'center', justifyContent: 'center' },
-  treesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  treesGrid: {},
   treeCard: { width: '47%', minWidth: 150, padding: Spacing.md, alignItems: 'center' },
   infoCard: { padding: Spacing.sm, gap: Spacing.sm },
   infoList: { gap: Spacing.xs, paddingTop: Spacing.xs },
   levelDot: { width: 10, height: 10, borderRadius: Radii.sm },
-  demoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, borderStyle: 'dashed' },
+  demoButton: { padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, borderStyle: 'dashed' },
 });

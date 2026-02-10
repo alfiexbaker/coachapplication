@@ -4,6 +4,7 @@ import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { Typography, Spacing, Shadows} from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
@@ -194,28 +195,30 @@ export default function TabLayout() {
   };
 
   return (
-    <Tabs screenOptions={tabBarOptions}>
-      {roleConfig.primary.map(({ name, title, icon, badge }) => (
-        <Tabs.Screen
-          key={name}
-          name={name}
-          options={{
-            title,
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name={icon} color={color} />,
-            tabBarBadge: getBadgeCount(badge),
-          }}
-        />
-      ))}
+    <ErrorBoundary>
+      <Tabs screenOptions={tabBarOptions}>
+        {roleConfig.primary.map(({ name, title, icon, badge }) => (
+          <Tabs.Screen
+            key={name}
+            name={name}
+            options={{
+              title,
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name={icon} color={color} />,
+              tabBarBadge: getBadgeCount(badge),
+            }}
+          />
+        ))}
 
-      {hiddenRoutes.map((route) => (
-        <Tabs.Screen
-          key={route}
-          name={route}
-          options={{
-            href: null,
-          }}
-        />
-      ))}
-    </Tabs>
+        {hiddenRoutes.map((route) => (
+          <Tabs.Screen
+            key={route}
+            name={route}
+            options={{
+              href: null,
+            }}
+          />
+        ))}
+      </Tabs>
+    </ErrorBoundary>
   );
 }

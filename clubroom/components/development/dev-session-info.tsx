@@ -8,6 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { BadgeAward } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 export interface DevSessionInfoProps {
   athleteName: string;
@@ -39,10 +40,10 @@ export const DevSessionInfo = memo(function DevSessionInfo({
       {sessionBadges.length > 0 && (
         <Row gap="xs" style={{ flexWrap: 'wrap' }}>
           {sessionBadges.map((badge) => (
-            <View key={badge.id} style={[styles.badgeChip, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+            <Row key={badge.id} style={[styles.badgeChip, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
               <Ionicons name="ribbon" size={14} color={colors.success} />
               <ThemedText style={[Typography.caption, { color: colors.success }]}>{badge.badgeLabel}</ThemedText>
-            </View>
+            </Row>
           ))}
         </Row>
       )}
@@ -53,6 +54,6 @@ export const DevSessionInfo = memo(function DevSessionInfo({
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   avatar: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  awardBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
-  badgeChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  awardBtn: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  badgeChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
 });

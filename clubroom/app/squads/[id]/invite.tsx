@@ -13,11 +13,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { SquadMemberSelect } from '@/components/squad/SquadMemberSelect';
 import { BulkInviteButton } from '@/components/squad/BulkInviteButton';
 import { InviteResultCard } from '@/components/squad/InviteResultCard';
 import { SquadInviteSessionForm } from '@/components/squad/squad-invite-session-form';
 import { SquadInviteHistory } from '@/components/squad/squad-invite-history';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSquadInvite } from '@/hooks/use-squad-invite';
@@ -29,9 +31,7 @@ export default function SquadInviteScreen() {
   if (s.loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.centerContainer}>
-          <ThemedText style={{ color: palette.muted }}>Loading squad...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
@@ -39,13 +39,7 @@ export default function SquadInviteScreen() {
   if (!s.squad) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.centerContainer}>
-          <Ionicons name="alert-circle" size={48} color={palette.error} />
-          <ThemedText style={{ color: palette.error, marginTop: Spacing.md }}>Squad not found</ThemedText>
-          <Clickable onPress={() => router.back()} style={[styles.backButton, { borderColor: palette.border }]}>
-            <ThemedText>Go Back</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState message="Squad not found" onRetry={() => router.back()} />
       </SafeAreaView>
     );
   }
@@ -53,13 +47,13 @@ export default function SquadInviteScreen() {
   if (s.viewMode === 'result' && s.inviteResult) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
+        <Row align="center" justify="space-between" style={styles.header}>
           <View style={{ width: 24 }} />
           <ThemedText type="title">Invites Sent</ThemedText>
           <Clickable accessibilityLabel="Close" onPress={s.handleDone} hitSlop={8}>
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
-        </View>
+        </Row>
         <ScrollView contentContainerStyle={styles.content}>
           <InviteResultCard
             result={s.inviteResult.result} invitedMembers={s.inviteResult.squadInvite.invitedMembers}
@@ -73,16 +67,16 @@ export default function SquadInviteScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="title">Invite Squad</ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       {/* Squad Banner */}
-      <View style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+      <Row align="center" gap="md" style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <View style={[styles.bannerIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="people" size={20} color={palette.tint} />
         </View>
@@ -92,7 +86,7 @@ export default function SquadInviteScreen() {
             {s.members.length} athletes {'\u2022'} {s.squad.level}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <SquadInviteHistory history={s.inviteHistory} />
@@ -129,8 +123,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
   backButton: { marginTop: Spacing.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginHorizontal: Spacing.lg, padding: Spacing.md, borderRadius: Radii.md, marginBottom: Spacing.md },
+  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  banner: { marginHorizontal: Spacing.lg, padding: Spacing.md, borderRadius: Radii.md, marginBottom: Spacing.md },
   bannerIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   bannerInfo: { flex: 1, gap: Spacing.micro },
   bannerMeta: { ...Typography.caption },

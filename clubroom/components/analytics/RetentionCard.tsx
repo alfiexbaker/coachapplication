@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import type { RetentionMetrics } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface RetentionCardProps {
   /** Retention metrics data */
@@ -53,10 +54,10 @@ export function RetentionCard({
       tactile={!!onPress}
     >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
+        <Row style={styles.titleRow}>
           <Ionicons name="people" size={20} color={palette.tint} />
           <ThemedText style={styles.title}>{title}</ThemedText>
-        </View>
+        </Row>
       </View>
 
       {/* Main retention rate */}
@@ -92,8 +93,8 @@ export function RetentionCard({
       </View>
 
       {/* Client breakdown */}
-      <View style={styles.clientBreakdown}>
-        <View style={styles.clientStat}>
+      <Row style={styles.clientBreakdown}>
+        <Row style={styles.clientStat}>
           <View style={[styles.clientDot, { backgroundColor: palette.success }]} />
           <View style={styles.clientInfo}>
             <ThemedText style={styles.clientValue}>
@@ -103,8 +104,8 @@ export function RetentionCard({
               Returning
             </ThemedText>
           </View>
-        </View>
-        <View style={styles.clientStat}>
+        </Row>
+        <Row style={styles.clientStat}>
           <View style={[styles.clientDot, { backgroundColor: palette.tint }]} />
           <View style={styles.clientInfo}>
             <ThemedText style={styles.clientValue}>
@@ -114,8 +115,8 @@ export function RetentionCard({
               New
             </ThemedText>
           </View>
-        </View>
-        <View style={styles.clientStat}>
+        </Row>
+        <Row style={styles.clientStat}>
           <View style={[styles.clientDot, { backgroundColor: palette.error }]} />
           <View style={styles.clientInfo}>
             <ThemedText style={styles.clientValue}>
@@ -125,11 +126,11 @@ export function RetentionCard({
               Lost
             </ThemedText>
           </View>
-        </View>
-      </View>
+        </Row>
+      </Row>
 
       {/* Additional metrics */}
-      <View style={[styles.metricsRow, { borderTopColor: palette.border }]}>
+      <Row style={[styles.metricsRow, { borderTopColor: palette.border }]}>
         <View style={styles.metricItem}>
           <ThemedText style={styles.metricValue}>
             {metrics.totalActiveClients}
@@ -154,7 +155,7 @@ export function RetentionCard({
             Churn Rate
           </ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 }
@@ -167,7 +168,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   titleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -205,12 +205,10 @@ const styles = StyleSheet.create({
   retentionValue: { ...Typography.display },
   retentionLabel: { ...Typography.caption, marginTop: Spacing.micro },
   clientBreakdown: {
-    flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: Spacing.md,
   },
   clientStat: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -225,7 +223,6 @@ const styles = StyleSheet.create({
   clientValue: { ...Typography.subheading },
   clientLabel: { ...Typography.caption },
   metricsRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     paddingTop: Spacing.md,
     borderTopWidth: 1,

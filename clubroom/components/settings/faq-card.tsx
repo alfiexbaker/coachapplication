@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
@@ -18,10 +19,10 @@ interface FAQCardProps {
 export const FAQCard = memo(function FAQCard({ item, expanded, onToggle, colors }: FAQCardProps) {
   return (
     <SurfaceCard style={styles.card} onPress={onToggle}>
-      <View style={styles.header}>
+      <Row justify="space-between" align="center" gap="sm">
         <ThemedText type="defaultSemiBold" style={styles.question}>{item.question}</ThemedText>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.muted} />
-      </View>
+      </Row>
       {expanded && (
         <ThemedText style={[styles.answer, { color: colors.muted }]}>{item.answer}</ThemedText>
       )}
@@ -31,7 +32,7 @@ export const FAQCard = memo(function FAQCard({ item, expanded, onToggle, colors 
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
+  header: { /* layout moved to Row */ },
   question: { flex: 1, ...Typography.body },
   answer: { ...Typography.bodySmall },
 });

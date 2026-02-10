@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -52,7 +53,7 @@ export default function FamilyDashboardScreen() {
       {/* Overview Stats */}
       {overview && (
         <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <View style={styles.statsRow}>
+          <Row gap="sm">
             <SurfaceCard style={styles.statCard}>
               <ThemedText style={Typography.display}>{overview.totalChildren}</ThemedText>
               <ThemedText style={[Typography.caption, { color: palette.muted }]}>Children</ThemedText>
@@ -65,7 +66,7 @@ export default function FamilyDashboardScreen() {
               <ThemedText style={Typography.display}>{'\u00A3'}{overview.spendingThisMonth.toFixed(0)}</ThemedText>
               <ThemedText style={[Typography.caption, { color: palette.muted }]}>This Month</ThemedText>
             </SurfaceCard>
-          </View>
+          </Row>
         </Animated.View>
       )}
 
@@ -77,10 +78,10 @@ export default function FamilyDashboardScreen() {
       {/* Children Section */}
       <Animated.View entering={FadeInDown.delay(150).springify()}>
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <Row justify="between" align="center">
             <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>Your Children</ThemedText>
             <ThemedText style={[Typography.small, { color: palette.muted }]}>{members.length} {members.length === 1 ? 'child' : 'children'}</ThemedText>
-          </View>
+          </Row>
           {members.length > 0 ? (
             <View style={styles.membersList}>
               {members.map((member, index) => (
@@ -112,8 +113,10 @@ export default function FamilyDashboardScreen() {
       {/* Book Session CTA */}
       <Animated.View entering={FadeInDown.delay(350).springify()}>
         <Clickable onPress={() => router.push(Routes.MORE)} style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
-          <Ionicons name="add-circle" size={20} color={palette.onPrimary} />
-          <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Book New Session</ThemedText>
+          <Row align="center" justify="center" gap="xs">
+            <Ionicons name="add-circle" size={20} color={palette.onPrimary} />
+            <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Book New Session</ThemedText>
+          </Row>
         </Clickable>
       </Animated.View>
     </PageContainer>
@@ -122,10 +125,8 @@ export default function FamilyDashboardScreen() {
 
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm },
   statCard: { flex: 1, alignItems: 'center', padding: Spacing.md, gap: Spacing.xxs },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   membersList: { gap: Spacing.sm },
-  ctaButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Spacing.sm },
+  ctaButton: { paddingVertical: Spacing.md, borderRadius: Spacing.sm },
 });

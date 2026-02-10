@@ -160,7 +160,7 @@ export default function AthletesScreen() {
         <NeedsAttentionSection roster={roster} />
 
         {/* Search */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Row style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="search" size={18} color={colors.muted} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -175,7 +175,7 @@ export default function AthletesScreen() {
               <Ionicons name="close-circle" size={18} color={colors.muted} />
             </Clickable>
           )}
-        </View>
+        </Row>
 
         {/* Filters */}
         <Row gap="sm" style={styles.filterRow}>
@@ -196,36 +196,38 @@ export default function AthletesScreen() {
               onPress={() => setFilter(f.id)}
               accessibilityLabel={`Filter: ${f.label}`}
             >
-              <ThemedText
-                style={[
-                  styles.filterText,
-                  { color: filter === f.id ? colors.onPrimary : colors.text },
-                ]}
-              >
-                {f.label}
-              </ThemedText>
-              {f.count > 0 && (
-                <View
+              <Row align="center" gap="xxs">
+                <ThemedText
                   style={[
-                    styles.filterCount,
-                    {
-                      backgroundColor:
-                        filter === f.id
-                          ? withAlpha(colors.onPrimary, 0.3)
-                          : withAlpha(colors.muted, 0.19),
-                    },
+                    styles.filterText,
+                    { color: filter === f.id ? colors.onPrimary : colors.text },
                   ]}
                 >
-                  <ThemedText
+                  {f.label}
+                </ThemedText>
+                {f.count > 0 && (
+                  <View
                     style={[
-                      styles.filterCountText,
-                      { color: filter === f.id ? colors.onPrimary : colors.muted },
+                      styles.filterCount,
+                      {
+                        backgroundColor:
+                          filter === f.id
+                            ? withAlpha(colors.onPrimary, 0.3)
+                            : withAlpha(colors.muted, 0.19),
+                      },
                     ]}
                   >
-                    {f.count}
-                  </ThemedText>
-                </View>
-              )}
+                    <ThemedText
+                      style={[
+                        styles.filterCountText,
+                        { color: filter === f.id ? colors.onPrimary : colors.muted },
+                      ]}
+                    >
+                      {f.count}
+                    </ThemedText>
+                  </View>
+                )}
+              </Row>
             </Clickable>
           ))}
         </Row>
@@ -332,7 +334,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xs,
   },
   searchContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     marginHorizontal: Spacing.lg,
@@ -350,9 +351,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,

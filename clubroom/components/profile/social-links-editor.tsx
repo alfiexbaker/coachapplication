@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -65,7 +66,7 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
           const hasValue = value.trim() !== '';
 
           return (
-            <View key={platform} style={styles.fieldRow}>
+            <Row key={platform} align="start" gap="sm">
               <View style={[styles.iconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
                 <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
               </View>
@@ -74,7 +75,8 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                 <ThemedText style={[styles.label, { color: palette.foreground }]}>
                   {config.label}
                 </ThemedText>
-                <View
+                <Row
+                  align="center"
                   style={[
                     styles.inputWrapper,
                     {
@@ -100,19 +102,19 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                       <Ionicons name="close-circle" size={18} color={palette.muted} />
                     </Pressable>
                   )}
-                </View>
+                </Row>
               </View>
-            </View>
+            </Row>
           );
         })}
       </View>
 
-      <View style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
+      <Row align="start" gap="xs" style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
         <Ionicons name="information-circle" size={18} color={palette.tint} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
           You can enter either your username/handle or the full URL to your profile. Links will be shown on your public profile.
         </ThemedText>
-      </View>
+      </Row>
     </View>
   );
 }
@@ -126,11 +128,6 @@ const styles = StyleSheet.create({
   },
   subtitle: { ...Typography.bodySmall, lineHeight: 20 },
   fieldsContainer: {
-    gap: Spacing.sm,
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     gap: Spacing.sm,
   },
   iconContainer: {
@@ -147,8 +144,6 @@ const styles = StyleSheet.create({
   },
   label: { ...Typography.smallSemiBold },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
@@ -159,9 +154,6 @@ const styles = StyleSheet.create({
     padding: Spacing.xxs,
   },
   infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,

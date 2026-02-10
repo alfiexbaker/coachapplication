@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -78,12 +79,12 @@ export function WaitlistPosition({
 
   return (
     <View style={[styles.container, currentSize.container, { backgroundColor: withAlpha(color, 0.09) }]}>
-      <View style={styles.positionRow}>
+      <Row align="center" gap="xxs">
         <Ionicons name="time" size={currentSize.icon} color={color} />
         <ThemedText style={[currentSize.position, { color }]}>
           {showOrdinal ? `${position}${getOrdinalSuffix(position)}` : `#${position}`}
         </ThemedText>
-      </View>
+      </Row>
 
       {totalWaiting !== undefined && totalWaiting > 1 && (
         <ThemedText style={[currentSize.label, { color: palette.muted }]}>
@@ -118,11 +119,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs + Spacing.xxs,
     minWidth: 60,
   },
-  positionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+  positionRow: { /* layout moved to Row */ },
   positionSmall: { ...Typography.bodySmallSemiBold },
   positionMedium: { ...Typography.heading },
   positionLarge: { ...Typography.display },

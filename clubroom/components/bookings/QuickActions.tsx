@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Typography, Spacing} from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 export interface QuickActionsProps {
   userRole: 'USER' | 'PARENT' | 'COACH' | string | undefined;
@@ -39,7 +40,7 @@ export function QuickActions({
   // Invites are now shown inline as "Action Required" section above the bookings list
   if (userRole === 'USER' || userRole === 'PARENT') {
     return (
-      <View style={styles.quickActions}>
+      <Row style={styles.quickActions}>
         <Clickable
           onPress={onDiscoverSessionsPress || (() => {})}
           style={[styles.actionPill, { borderColor: palette.border }]}>
@@ -60,14 +61,14 @@ export function QuickActions({
           <Ionicons name="people-circle-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
         </Clickable>
-      </View>
+      </Row>
     );
   }
 
   // Quick Actions for Coaches - only show on list tab
   if (userRole === 'COACH' && showCoachActions) {
     return (
-      <View style={styles.quickActions}>
+      <Row style={styles.quickActions}>
         <Clickable
           onPress={onGroupSessionsPress || (() => {})}
           style={[styles.actionPill, { borderColor: palette.border }]}>
@@ -88,7 +89,7 @@ export function QuickActions({
           <Ionicons name="person-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Settings</ThemedText>
         </Clickable>
-      </View>
+      </Row>
     );
   }
 
@@ -97,14 +98,12 @@ export function QuickActions({
 
 const styles = StyleSheet.create({
   quickActions: {
-    flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: Spacing.xs + Spacing.xxs,
   },
   actionCard: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     padding: Spacing.xs + Spacing.xxs,
@@ -116,7 +115,6 @@ const styles = StyleSheet.create({
   },
   actionPill: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

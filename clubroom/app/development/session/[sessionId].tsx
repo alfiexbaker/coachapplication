@@ -15,12 +15,13 @@ import { DevSessionMedia } from '@/components/development/dev-session-media';
 import { DevSessionVisibility } from '@/components/development/dev-session-visibility';
 import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useDevSession } from '@/hooks/use-dev-session';
 
 export default function SessionDetailScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     session, athlete, currentUser, loading, saving,
     publicNotes, setPublicNotes, privateNotes, setPrivateNotes,
@@ -122,14 +123,16 @@ export default function SessionDetailScreen() {
             disabled={saving}
             style={({ pressed }) => [styles.saveBtn, { backgroundColor: saving ? colors.muted : colors.tint, opacity: pressed ? 0.8 : 1 }]}
           >
-            {saving ? (
-              <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Saving...</ThemedText>
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Save & Submit</ThemedText>
-              </>
-            )}
+            <Row align="center" justify="center" gap="xs">
+              {saving ? (
+                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Saving...</ThemedText>
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Save & Submit</ThemedText>
+                </>
+              )}
+            </Row>
           </Clickable>
         </ScrollView>
       </SafeAreaView>
@@ -153,5 +156,5 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.lg, marginTop: Spacing.sm },
+  saveBtn: { padding: Spacing.md, borderRadius: Radii.lg, marginTop: Spacing.sm },
 });

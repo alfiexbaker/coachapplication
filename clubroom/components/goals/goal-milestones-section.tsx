@@ -9,6 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 interface GoalMilestonesSectionProps {
   milestones: string[];
@@ -48,19 +49,19 @@ export function GoalMilestonesSection({
 
       {milestones.map((ms, index) => (
         <SurfaceCard key={index} style={styles.milestoneItem}>
-          <View style={styles.milestoneContent}>
+          <Row style={styles.milestoneContent}>
             <Ionicons name="flag-outline" size={16} color={palette.muted} />
             <ThemedText style={styles.milestoneText} numberOfLines={1}>
               {ms}
             </ThemedText>
-          </View>
+          </Row>
           <Clickable accessibilityLabel="Remove milestone" onPress={() => handleRemove(index)} hitSlop={8}>
             <Ionicons name="close-circle" size={20} color={palette.error} />
           </Clickable>
         </SurfaceCard>
       ))}
 
-      <View style={styles.addRow}>
+      <Row style={styles.addRow}>
         <TextInput
           style={[
             styles.milestoneInput,
@@ -92,15 +93,15 @@ export function GoalMilestonesSection({
         >
           <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
-      </View>
+      </Row>
 
       {milestones.length === 0 && (
-        <View style={[styles.tip, { backgroundColor: palette.surfaceSecondary }]}>
+        <Row style={[styles.tip, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="bulb-outline" size={18} color={palette.warning} />
           <ThemedText style={[styles.tipText, { color: palette.muted }]}>
             Tip: Goals with milestones are 3x more likely to be achieved!
           </ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -119,14 +120,12 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(13),
   },
   milestoneItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.sm,
     marginBottom: Spacing.xs,
   },
   milestoneContent: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     flex: 1,
@@ -136,7 +135,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   milestoneInput: {
@@ -155,7 +153,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tip: {
-    flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     borderRadius: Radii.md,

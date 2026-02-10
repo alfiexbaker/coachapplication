@@ -12,14 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FilterModal } from '@/components/discover/FilterModal';
 import { createLogger } from '@/utils/logger';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { discoverService } from '@/services/discover-service';
 import type { CoachSearchFilters, FilterOptions } from '@/constants/types';
 
 const logger = createLogger('FiltersScreen');
 
 export default function FiltersScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const router = useRouter();
   const params = useLocalSearchParams<{
     filters?: string;

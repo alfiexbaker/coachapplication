@@ -18,6 +18,7 @@ import {
   FullBanner,
   GuestCountModal,
 } from './rsvp-button-sections';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
       {isFull && !currentRSVP && <FullBanner palette={palette} />}
 
       {/* RSVP buttons */}
-      <View style={styles.buttonRow}>
+      <Row style={styles.buttonRow}>
         {buttons.map(({ status, icon, label, loadingLabel, canAlwaysChange }) => {
           const btnDisabled = canAlwaysChange ? (disabled || loading !== null) : (isDisabled || loading !== null);
           return (
@@ -104,7 +105,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
             </Clickable>
           );
         })}
-      </View>
+      </Row>
 
       <GuestCountModal
         visible={showGuestModal}
@@ -122,8 +123,8 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
-  buttonRow: { flexDirection: 'row', gap: Spacing.xs },
-  rsvpButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, borderWidth: 1.5 },
+  buttonRow: { gap: Spacing.xs },
+  rsvpButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, borderWidth: 1.5 },
   rsvpButtonText: { fontSize: scaleFont(14), fontWeight: '600' },
   disabledButton: { opacity: 0.5 },
 });

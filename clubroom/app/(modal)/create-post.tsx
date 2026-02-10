@@ -18,6 +18,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { CreatePostForm } from '@/components/social/create-post-form';
+import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreatePost } from '@/hooks/use-create-post';
@@ -53,13 +54,13 @@ export default function CreatePostScreen() {
   if (!p.membership?.clubId) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable accessibilityLabel="Close" onPress={handleClose} hitSlop={10} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={palette.foreground} />
           </Clickable>
           <ThemedText type="defaultSemiBold">New Post</ThemedText>
           <View style={{ width: 24 }} />
-        </View>
+        </Row>
         <View style={styles.content}>
           <SurfaceCard style={styles.card}>
             <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
@@ -70,8 +71,10 @@ export default function CreatePostScreen() {
               Social features are now part of your club experience. Join or create a club to start sharing with your community.
             </ThemedText>
             <Clickable style={[styles.button, { backgroundColor: palette.tint }]} onPress={handleGoToClubHub}>
-              <Ionicons name="people" size={18} color={palette.onPrimary} />
-              <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Go to Club Hub</ThemedText>
+              <Row align="center" gap="sm">
+                <Ionicons name="people" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Go to Club Hub</ThemedText>
+              </Row>
             </Clickable>
           </SurfaceCard>
         </View>
@@ -92,14 +95,14 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 0.5 },
+  header: { justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 0.5 },
   closeButton: { minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'flex-start' },
   content: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
   card: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.md },
   iconContainer: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { textAlign: 'center', marginTop: Spacing.sm },
   description: { textAlign: 'center', lineHeight: 22 },
-  button: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: Radii.md, marginTop: Spacing.md, minHeight: 44 },
+  button: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: Radii.md, marginTop: Spacing.md, minHeight: 44 },
   buttonText: { ...Typography.subheading },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

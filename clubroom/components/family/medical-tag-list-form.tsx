@@ -7,6 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface MedicalTagListFormProps {
   allergies: string[];
@@ -51,7 +52,7 @@ function TagInputSection({
   return (
     <View style={styles.field}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      <View style={styles.tagInputRow}>
+      <Row style={styles.tagInputRow}>
         <TextInput
           style={[styles.input, { flex: 1, borderColor: palette.border, color: palette.text }]}
           placeholder={placeholder}
@@ -67,9 +68,9 @@ function TagInputSection({
         >
           <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
-      </View>
+      </Row>
       {items.length > 0 && (
-        <View style={styles.tagList}>
+        <Row style={styles.tagList}>
           {items.map((item, index) => (
             <View
               key={index}
@@ -84,7 +85,7 @@ function TagInputSection({
               </Clickable>
             </View>
           ))}
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -185,7 +186,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   tagInputRow: {
-    flexDirection: 'row',
     gap: Spacing.xs,
   },
   addTagButton: {
@@ -196,13 +196,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tagList: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
   tag: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,

@@ -15,6 +15,7 @@ import type { GroupType } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
 import { GroupTypeSelector, PrivacySelector } from './create-group-form-sections';
+import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -119,12 +120,12 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.actions, { borderTopColor: palette.border }]}>
+      <Row style={[styles.actions, { borderTopColor: palette.border }]}>
         <Button variant="outline" onPress={onCancel} style={styles.actionButton} disabled={loading}>Cancel</Button>
         <Button onPress={handleSubmit} style={styles.actionButton} disabled={loading || !name.trim()}>
           {loading ? 'Creating...' : 'Create Group'}
         </Button>
-      </View>
+      </Row>
     </KeyboardAvoidingView>
   );
 }
@@ -141,6 +142,6 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 100, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: scaleFont(16) },
   errorText: { fontSize: scaleFont(12), marginTop: Spacing.xxs },
   charCount: { fontSize: scaleFont(11), textAlign: 'right' },
-  actions: { flexDirection: 'row', padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },
+  actions: { padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },
   actionButton: { flex: 1 },
 });

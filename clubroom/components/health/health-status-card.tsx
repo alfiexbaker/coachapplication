@@ -8,6 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Injury } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface HealthStatusCardProps {
   colors: ThemeColors;
@@ -38,7 +39,7 @@ export const HealthStatusCard = memo(function HealthStatusCard({
   return (
     <SurfaceCard style={styles.card}>
       <View style={styles.statusContent}>
-        <View style={styles.statusRow}>
+        <Row style={styles.statusRow}>
           <StatusItem
             icon="pulse" iconColor={colors.error}
             value={String(injuries.filter((i) => i.status === 'ACTIVE').length)}
@@ -56,7 +57,7 @@ export const HealthStatusCard = memo(function HealthStatusCard({
             value={`${avgRecovery}%`}
             valueColor={colors.tint} label="Avg Recovery" labelColor={colors.muted}
           />
-        </View>
+        </Row>
       </View>
     </SurfaceCard>
   );
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   healthyTitle: { marginBottom: Spacing.xxs },
   healthyText: { textAlign: 'center', ...Typography.bodySmall },
   statusContent: { padding: Spacing.sm },
-  statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  statusRow: { alignItems: 'center', justifyContent: 'space-around' },
   statusItem: { alignItems: 'center', flex: 1 },
   statusIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
   statusLabel: { ...Typography.caption },

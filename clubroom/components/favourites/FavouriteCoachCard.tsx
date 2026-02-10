@@ -25,6 +25,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { FavouriteButton } from './FavouriteButton';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface FavouriteCoachCardProps {
   /** The favourite coach data */
@@ -87,7 +88,7 @@ export function FavouriteCoachCard({
         onPress={handlePress}
         style={styles.card}
       >
-        <View style={styles.content}>
+        <Row style={styles.content}>
           {/* Coach Avatar */}
           <Image
             source={{ uri: favourite.coachAvatar || 'https://via.placeholder.com/64' }}
@@ -97,7 +98,7 @@ export function FavouriteCoachCard({
 
           {/* Coach Info */}
           <View style={styles.info}>
-            <View style={styles.nameRow}>
+            <Row style={styles.nameRow}>
               <ThemedText type="subtitle" style={styles.name} numberOfLines={1}>
                 {favourite.coachName}
               </ThemedText>
@@ -108,42 +109,42 @@ export function FavouriteCoachCard({
                 coachName={favourite.coachName}
                 size={20}
               />
-            </View>
+            </Row>
 
             {/* Rating and Location */}
-            <View style={styles.metaRow}>
+            <Row style={styles.metaRow}>
               {favourite.coachRating && (
-                <View style={styles.ratingContainer}>
+                <Row style={styles.ratingContainer}>
                   <Ionicons name="star" size={14} color={palette.premium} />
                   <ThemedText style={[styles.metaText, { color: palette.text }]}>
                     {favourite.coachRating.toFixed(1)}
                   </ThemedText>
-                </View>
+                </Row>
               )}
               {favourite.coachCity && (
                 <>
                   {favourite.coachRating && <Divider vertical style={{ height: 12, opacity: 0.5 }} />}
-                  <View style={styles.locationContainer}>
+                  <Row style={styles.locationContainer}>
                     <Ionicons name="location-outline" size={14} color={palette.muted} />
                     <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                       {favourite.coachCity}
                     </ThemedText>
-                  </View>
+                  </Row>
                 </>
               )}
-            </View>
+            </Row>
 
             {/* Price and Book Button */}
-            <View style={styles.actionRow}>
+            <Row style={styles.actionRow}>
               {priceDisplay && (
-                <View style={styles.priceContainer}>
+                <Row style={styles.priceContainer}>
                   <ThemedText type="defaultSemiBold" style={styles.price}>
                     {priceDisplay}
                   </ThemedText>
                   <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
                     /session
                   </ThemedText>
-                </View>
+                </Row>
               )}
               <Button
                 onPress={handleBook}
@@ -152,9 +153,9 @@ export function FavouriteCoachCard({
               >
                 Book Now
               </Button>
-            </View>
+            </Row>
           </View>
-        </View>
+        </Row>
       </SurfaceCard>
     </Animated.View>
   );
@@ -166,7 +167,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   content: {
-    flexDirection: 'row',
     gap: Spacing.sm,
   },
   avatar: {
@@ -179,7 +179,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   nameRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,
@@ -187,29 +186,24 @@ const styles = StyleSheet.create({
   name: { ...Typography.heading, letterSpacing: -0.2,
     flex: 1 },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   ratingContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   locationContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
   metaText: { ...Typography.smallSemiBold },
   actionRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.xs,
   },
   priceContainer: {
-    flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.micro,
   },

@@ -16,6 +16,7 @@ import {
   SESSION_TYPE_OPTIONS, SPECIALTIES, AVAILABILITY_OPTIONS, SORT_OPTIONS,
   FilterSection, PillRow,
 } from './filter-panel-sections';
+import { Row } from '@/components/primitives';
 
 export type CoachFilters = {
   price: number;
@@ -53,12 +54,12 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.15) }]} onPress={onClose}>
         <Pressable style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.header}>
+          <Row style={styles.header}>
             <ThemedText type="subtitle">Filters</ThemedText>
             <Clickable onPress={reset}>
               <ThemedText style={{ color: palette.tint }}>Reset</ThemedText>
             </Clickable>
-          </View>
+          </Row>
 
           <ScrollView contentContainerStyle={styles.content}>
             <FilterSection label="Price per hour">
@@ -109,11 +110,11 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { maxHeight: '90%', borderTopLeftRadius: Radii['2xl'], borderTopRightRadius: Radii['2xl'], borderWidth: 1, paddingBottom: Spacing.lg },
-  header: { padding: Spacing.md, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { padding: Spacing.md, justifyContent: 'space-between', alignItems: 'center' },
   content: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, gap: Spacing.sm },
   helper: { ...Typography.small, marginTop: Spacing.micro },
   footer: { gap: Spacing.xs, paddingHorizontal: Spacing.md, marginTop: Spacing.xs },
-  apply: { flexDirection: 'row', gap: Spacing.xs, justifyContent: 'center', alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.button },
+  apply: { gap: Spacing.xs, justifyContent: 'center', alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.button },
   applyLabel: { ...Typography.bodySemiBold },
   dismiss: { alignItems: 'center', paddingVertical: Spacing.sm },
 });

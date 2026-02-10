@@ -14,13 +14,14 @@ import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 import type { DrillCategory, DrillDifficulty } from '@/constants/types';
 import { CATEGORIES, DIFFICULTIES } from './drill-form-constants';
+import { Row } from '@/components/primitives';
 
 /* ─── Category Picker ─── */
 interface CategoryPickerProps { selected: DrillCategory; onSelect: (c: DrillCategory) => void; }
 export const CategoryPicker = memo(function CategoryPicker({ selected, onSelect }: CategoryPickerProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.optionsRow}>
+    <Row style={styles.optionsRow}>
       {CATEGORIES.map((cat) => {
         const info = drillService.getCategoryInfo(cat);
         const isSelected = selected === cat;
@@ -32,7 +33,7 @@ export const CategoryPicker = memo(function CategoryPicker({ selected, onSelect 
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -41,7 +42,7 @@ interface DifficultyPickerProps { selected: DrillDifficulty; onSelect: (d: Drill
 export const DifficultyPicker = memo(function DifficultyPicker({ selected, onSelect }: DifficultyPickerProps) {
   const { colors: palette } = useTheme();
   return (
-    <View style={styles.difficultyRow}>
+    <Row style={styles.difficultyRow}>
       {DIFFICULTIES.map((diff) => {
         const info = drillService.getDifficultyInfo(diff);
         const isSelected = selected === diff;
@@ -52,7 +53,7 @@ export const DifficultyPicker = memo(function DifficultyPicker({ selected, onSel
           </Clickable>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
@@ -63,7 +64,7 @@ export const DurationPicker = memo(function DurationPicker({ duration, onDuratio
   const { colors: palette } = useTheme();
   return (
     <View>
-      <View style={styles.durationRow}>
+      <Row style={styles.durationRow}>
         {DURATION_PRESETS.map((mins) => (
           <Clickable key={mins} onPress={() => onDurationChange(mins.toString())}
             style={[styles.durationOption, { backgroundColor: duration === mins.toString() ? palette.tint : palette.surface, borderColor: duration === mins.toString() ? palette.tint : palette.border }]}>
@@ -75,7 +76,7 @@ export const DurationPicker = memo(function DurationPicker({ duration, onDuratio
           placeholder="Custom" placeholderTextColor={palette.muted}
           value={!DURATION_PRESETS.includes(parseInt(duration, 10)) ? duration : ''}
           onChangeText={onDurationChange} keyboardType="number-pad" maxLength={3} />
-      </View>
+      </Row>
       {error && <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>}
     </View>
   );
@@ -104,21 +105,21 @@ export const VideoUrlInput = memo(function VideoUrlInput({ videoUrl, onVideoUrlC
 interface FormActionsProps { onSubmit: () => void; onCancel?: () => void; isSubmitting: boolean; submitLabel: string; }
 export const DrillFormActions = memo(function DrillFormActions({ onSubmit, onCancel, isSubmitting, submitLabel }: FormActionsProps) {
   return (
-    <View style={styles.actions}>
+    <Row style={styles.actions}>
       {onCancel && <Button variant="secondary" onPress={onCancel} style={styles.cancelButton} disabled={isSubmitting}>Cancel</Button>}
       <Button onPress={onSubmit} style={styles.submitButton} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : submitLabel}</Button>
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
-  optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  categoryOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: 10, borderRadius: Radii.sm, borderWidth: 1 },
+  optionsRow: { flexWrap: 'wrap', gap: Spacing.xs },
+  categoryOption: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: 10, borderRadius: Radii.sm, borderWidth: 1 },
   categoryOptionText: { fontSize: scaleFont(13), fontWeight: '500' },
-  difficultyRow: { flexDirection: 'row', gap: Spacing.sm },
+  difficultyRow: { gap: Spacing.sm },
   difficultyOption: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, borderWidth: 1 },
   difficultyOptionText: { fontSize: scaleFont(13), fontWeight: '600' },
-  durationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  durationRow: { flexWrap: 'wrap', gap: Spacing.xs },
   durationOption: { width: 48, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: Radii.sm, borderWidth: 1 },
   durationOptionText: { fontSize: scaleFont(14), fontWeight: '600' },
   durationInput: { width: 72, height: 44, borderWidth: 1, borderRadius: Radii.sm, paddingHorizontal: Spacing.sm, fontSize: scaleFont(14), textAlign: 'center' },
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   input: { height: Components.input.height, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, fontSize: scaleFont(15) },
   inputWithIconInput: { paddingLeft: 48 },
   errorText: { fontSize: scaleFont(12), marginTop: Spacing.xxs },
-  actions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
+  actions: { gap: Spacing.md, marginTop: Spacing.md },
   cancelButton: { flex: 1 },
   submitButton: { flex: 2 },
 });

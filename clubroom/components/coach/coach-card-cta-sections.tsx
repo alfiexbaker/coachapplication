@@ -14,6 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { BookButton } from './coach-card-cta';
+import { Row } from '@/components/primitives';
 
 // ============================================================================
 // INLINE FAVOURITE ICON
@@ -69,9 +70,9 @@ export function ActionRow({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.actionRow}>
+    <Row style={styles.actionRow}>
       {nextAvailable ? (
-        <View style={styles.availabilityContainer}>
+        <Row style={styles.availabilityContainer}>
           <Ionicons
             name="calendar-outline"
             size={Components.icon.sm}
@@ -80,7 +81,7 @@ export function ActionRow({
           <ThemedText style={[styles.availabilityText, { color: palette.success }]}>
             {nextAvailable}
           </ThemedText>
-        </View>
+        </Row>
       ) : (
         <View />
       )}
@@ -92,7 +93,7 @@ export function ActionRow({
           variant="compact"
         />
       )}
-    </View>
+    </Row>
   );
 }
 
@@ -102,12 +103,10 @@ export function ActionRow({
 
 const styles = StyleSheet.create({
   actionRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   availabilityContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

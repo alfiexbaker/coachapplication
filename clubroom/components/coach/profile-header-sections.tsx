@@ -25,6 +25,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ export const ProfileStatsRow = memo(function ProfileStatsRow({
   rating,
 }: ProfileStatsRowProps) {
   return (
-    <View style={styles.statsRow}>
+    <Row style={styles.statsRow}>
       <View style={styles.statItem}>
         <ThemedText type="subtitle">{totalSessions}</ThemedText>
         <ThemedText style={styles.statLabel}>Sessions</ThemedText>
@@ -125,7 +126,7 @@ export const ProfileStatsRow = memo(function ProfileStatsRow({
         <ThemedText type="subtitle">{rating.reviewCount}</ThemedText>
         <ThemedText style={styles.statLabel}>Reviews</ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -197,7 +198,7 @@ export const BadgesRow = memo(function BadgesRow({
   if (badges.length === 0) return null;
 
   return (
-    <View style={styles.badgesRow}>
+    <Row style={styles.badgesRow}>
       {badges.map((badge) => (
         <View
           key={badge.id}
@@ -230,7 +231,7 @@ export const BadgesRow = memo(function BadgesRow({
           </ThemedText>
         </View>
       ))}
-    </View>
+    </Row>
   );
 });
 
@@ -304,7 +305,6 @@ export const styles = StyleSheet.create({
     opacity: 0.6,
   },
   statsRow: {
-    flexDirection: 'row',
     gap: Spacing.xl,
     marginTop: Spacing.sm,
   },
@@ -316,7 +316,6 @@ export const styles = StyleSheet.create({
     opacity: 0.6,
   },
   followButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.sm,
@@ -335,7 +334,6 @@ export const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
   },
   badgesRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
     marginTop: Spacing.xs,

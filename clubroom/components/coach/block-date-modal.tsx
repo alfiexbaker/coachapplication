@@ -14,6 +14,7 @@ import { toDateStr } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
 import { BLOCK_REASONS, getDaysBetween } from './block-date-helpers';
 import { ModeSelector, QuickDates, HolidayPresetsGrid, DatePickerSection, ReasonSelector, BlockSummary } from './block-date-sections';
+import { Row } from '@/components/primitives';
 
 const logger = createLogger('BlockDateModal');
 
@@ -90,13 +91,13 @@ export function BlockDateModal({ visible, onClose, onBlock, preselectedDate }: B
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={onClose} disabled={saving}><ThemedText style={{ color: palette.muted }}>Cancel</ThemedText></Clickable>
           <ThemedText type="subtitle">Block Time Off</ThemedText>
           <Clickable onPress={handleSave} disabled={saving}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>{saving ? 'Saving...' : 'Block'}</ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
@@ -122,9 +123,9 @@ export function BlockDateModal({ visible, onClose, onBlock, preselectedDate }: B
             <ThemedText style={styles.sectionTitle}>{mode === 'single' ? 'Selected Date' : 'Date Range'}</ThemedText>
             <DatePickerSection mode={mode} startDate={startDate} endDate={endDate} onAdjust={adjustDate} />
             {!isSameDay && (
-              <View style={[styles.daySummary, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+              <Row style={[styles.daySummary, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                 <ThemedText style={{ color: palette.warning, fontWeight: '600' }}>Blocking {dayCount} day{dayCount !== 1 ? 's' : ''}</ThemedText>
-              </View>
+              </Row>
             )}
           </View>
 
@@ -142,10 +143,10 @@ export function BlockDateModal({ visible, onClose, onBlock, preselectedDate }: B
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   content: { padding: Spacing.lg, gap: Spacing.xl, paddingBottom: Spacing['2xl'] },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading },
   sectionHint: { ...Typography.small },
-  daySummary: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: 12 },
+  daySummary: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: 12 },
 });

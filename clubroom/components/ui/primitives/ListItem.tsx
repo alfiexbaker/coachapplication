@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { Components, Fonts, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Avatar, type AvatarProps } from './Avatar';
@@ -75,7 +76,7 @@ function ListItemInner({
   );
 
   const content = (
-    <>
+    <Row align="center" gap={compact ? "xs" : "sm"} flex>
       {/* Left slot */}
       {leftAvatar ? (
         <Avatar
@@ -121,7 +122,7 @@ function ListItemInner({
           color={colors.muted}
         />
       ) : null}
-    </>
+    </Row>
   );
 
   const containerStyle = [
@@ -157,14 +158,10 @@ export const ListItem = React.memo(ListItemInner);
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },
   compact: {
-    gap: Spacing.xs,
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
   },

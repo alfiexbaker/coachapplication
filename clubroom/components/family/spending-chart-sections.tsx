@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { FamilySpending } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,15 +57,15 @@ export const SummaryCard = memo(function SummaryCard({
 }: SummaryCardProps) {
   return (
     <SurfaceCard style={styles.summaryCard}>
-      <View style={styles.summaryHeader}>
+      <Row style={styles.summaryHeader}>
         <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
           Total Family Spending
         </ThemedText>
-      </View>
+      </Row>
       <ThemedText style={styles.totalAmount}>
         {currencySymbol}{totalSpent.toFixed(2)}
       </ThemedText>
-      <View style={styles.summaryStats}>
+      <Row style={styles.summaryStats}>
         <View style={styles.summaryStat}>
           <ThemedText style={styles.summaryStatValue}>{totalSessions}</ThemedText>
           <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
@@ -80,7 +81,7 @@ export const SummaryCard = memo(function SummaryCard({
             avg per child
           </ThemedText>
         </View>
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -108,7 +109,7 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
         Spending by Child
       </ThemedText>
 
-      <View style={[styles.progressBarContainer, { backgroundColor: palette.border }]}>
+      <Row style={[styles.progressBarContainer, { backgroundColor: palette.border }]}>
         {childPercentages.map((child) => (
           <View
             key={child.childId}
@@ -121,22 +122,22 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
             ]}
           />
         ))}
-      </View>
+      </Row>
 
       <View style={styles.childList}>
         {childPercentages.map((child) => {
           const trend = getTrendDisplay(child.trend, child.trendPercent, palette);
           return (
-            <View key={child.childId} style={styles.childRow}>
-              <View style={styles.childInfo}>
+            <Row key={child.childId} style={styles.childRow}>
+              <Row style={styles.childInfo}>
                 <View
                   style={[styles.childColorDot, { backgroundColor: child.colorCode }]}
                 />
                 <ThemedText style={styles.childName}>{child.childName}</ThemedText>
-              </View>
-              <View style={styles.childStats}>
+              </Row>
+              <Row style={styles.childStats}>
                 {trend && (
-                  <View style={styles.trendBadge}>
+                  <Row style={styles.trendBadge}>
                     <Ionicons
                       name={trend.iconName as keyof typeof Ionicons.glyphMap}
                       size={12}
@@ -145,7 +146,7 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
                     <ThemedText style={[styles.trendText, { color: trend.color }]}>
                       {trend.percent}%
                     </ThemedText>
-                  </View>
+                  </Row>
                 )}
                 <ThemedText type="defaultSemiBold" style={styles.childAmount}>
                   {currencySymbol}{child.totalSpent.toFixed(2)}
@@ -153,8 +154,8 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
                 <ThemedText style={[styles.childSessions, { color: palette.muted }]}>
                   {child.sessionCount} sessions
                 </ThemedText>
-              </View>
-            </View>
+              </Row>
+            </Row>
           );
         })}
       </View>
@@ -188,7 +189,7 @@ export const MonthlyBarChart = memo(function MonthlyBarChart({
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
         Monthly Spending
       </ThemedText>
-      <View style={styles.barChart}>
+      <Row style={styles.barChart}>
         {monthlyData.map((month) => {
           const barHeight = (month.amount / maxAmount) * 100;
           return (
@@ -213,7 +214,7 @@ export const MonthlyBarChart = memo(function MonthlyBarChart({
             </View>
           );
         })}
-      </View>
+      </Row>
     </SurfaceCard>
   );
 });
@@ -252,14 +253,12 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   summaryHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   summaryLabel: { ...Typography.bodySmallSemiBold },
   totalAmount: { ...Typography.display, letterSpacing: -1 },
   summaryStats: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     marginTop: Spacing.xs,
@@ -279,7 +278,6 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: { ...Typography.bodySmall },
   progressBarContainer: {
-    flexDirection: 'row',
     height: 8,
     borderRadius: Radii.xs,
     overflow: 'hidden',
@@ -291,12 +289,10 @@ export const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   childRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   childInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
@@ -307,12 +303,10 @@ export const styles = StyleSheet.create({
   },
   childName: { ...Typography.bodySmall },
   childStats: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   trendBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
   },
@@ -324,7 +318,6 @@ export const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   barChart: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     height: 140,
     paddingTop: Spacing.sm,

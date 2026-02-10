@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { Row } from '@/components/primitives';
 
 export interface FilterGroup {
   id: string;
@@ -26,13 +27,13 @@ export function FilterTray({ groups, onClear }: FilterTrayProps) {
       {groups.map((group) => (
         <View key={group.id} style={styles.group}>
           <ThemedText type="defaultSemiBold">{group.label}</ThemedText>
-          <View style={styles.chipRow}>
+          <Row style={styles.chipRow}>
             {group.chips.map((chip) => (
               <Chip key={chip.id} active={chip.active} onPress={chip.onPress}>
                 {chip.label}
               </Chip>
             ))}
-          </View>
+          </Row>
         </View>
       ))}
       {onClear ? (
@@ -50,7 +51,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   chipRow: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: Spacing.sm,
   },

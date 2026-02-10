@@ -9,6 +9,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS, HOURS } from './availability-grid-sections';
+import { Row } from '@/components/primitives';
 
 // Re-export for backward compat
 export { DayScheduleView } from './availability-grid-sections';
@@ -69,7 +70,7 @@ export function AvailabilityGrid({
   return (
     <View style={styles.container}>
       {/* Day Headers */}
-      <View style={styles.header}>
+      <Row style={styles.header}>
         <View style={styles.timeColumn} />
         {DAYS.map((day, index) => {
           const dayTemplates = getDayTemplates(index);
@@ -103,13 +104,13 @@ export function AvailabilityGrid({
             </Clickable>
           );
         })}
-      </View>
+      </Row>
 
       {/* Grid */}
       <ScrollView style={styles.gridScroll} showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>
           {HOURS.map((hour) => (
-            <View key={hour} style={styles.row}>
+            <Row key={hour} style={styles.row}>
               <View style={styles.timeColumn}>
                 <ThemedText style={[styles.timeText, { color: palette.muted }]}>
                   {hour.toString().padStart(2, '0')}:00
@@ -142,44 +143,44 @@ export function AvailabilityGrid({
                   </Clickable>
                 );
               })}
-            </View>
+            </Row>
           ))}
         </View>
       </ScrollView>
 
       {/* Legend */}
-      <View style={[styles.legend, { borderTopColor: palette.border }]}>
-        <View style={styles.legendItem}>
+      <Row style={[styles.legend, { borderTopColor: palette.border }]}>
+        <Row style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
           <ThemedText style={[styles.legendText, { color: palette.muted }]}>Available</ThemedText>
-        </View>
-        <View style={styles.legendItem}>
+        </Row>
+        <Row style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: palette.border }]} />
           <ThemedText style={[styles.legendText, { color: palette.muted }]}>Not set</ThemedText>
-        </View>
+        </Row>
         <ThemedText style={[styles.legendHint, { color: palette.muted }]}>
           Tap to add, long press to edit
         </ThemedText>
-      </View>
+      </Row>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
+  header: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
   timeColumn: { width: 50, alignItems: 'center', justifyContent: 'center' },
   dayHeader: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs, borderRadius: Radii.sm, marginHorizontal: 1 },
   dayText: { ...Typography.caption },
   dayIndicator: { width: 4, height: 4, borderRadius: Radii.xs, marginTop: Spacing.micro },
   gridScroll: { flex: 1 },
   grid: { paddingHorizontal: Spacing.xs },
-  row: { flexDirection: 'row', height: 36 },
+  row: { height: 36 },
   timeText: { ...Typography.micro },
   cell: { flex: 1, marginHorizontal: 1, marginVertical: 1, borderRadius: Radii.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   slotIndicator: { width: 6, height: 6, borderRadius: Radii.xs },
-  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  legend: { alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
+  legendItem: { alignItems: 'center', gap: Spacing.xs },
   legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
   legendText: { ...Typography.caption },
   legendHint: { ...Typography.caption, fontStyle: 'italic' },

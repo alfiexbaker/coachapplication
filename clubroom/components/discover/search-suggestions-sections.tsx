@@ -76,7 +76,6 @@ export const SectionHeader = memo(function SectionHeader({
 
 const headerStyles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.sm,
@@ -131,7 +130,6 @@ export const SuggestionRow = memo(function SuggestionRow({
 
 const rowStyles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.sm,

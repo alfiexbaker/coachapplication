@@ -9,6 +9,7 @@ import type { GoalCategory } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 interface GoalPreviewCardProps {
   title: string;
@@ -31,12 +32,12 @@ export function GoalPreviewCard({
     <View style={styles.section}>
       <ThemedText style={styles.label}>Preview</ThemedText>
       <SurfaceCard style={styles.preview}>
-        <View style={styles.header}>
+        <Row style={styles.header}>
           <CategoryBadge category={category} />
           <ThemedText style={[styles.progress, { color: palette.muted }]}>
             0%
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText type="defaultSemiBold" style={styles.title}>
           {title || 'Your goal title'}
         </ThemedText>
@@ -46,20 +47,20 @@ export function GoalPreviewCard({
           </ThemedText>
         ) : null}
         {targetDate ? (
-          <View style={styles.meta}>
+          <Row style={styles.meta}>
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               Target: {progressService.formatTargetDate(targetDate)}
             </ThemedText>
-          </View>
+          </Row>
         ) : null}
         {milestoneCount > 0 && (
-          <View style={styles.meta}>
+          <Row style={styles.meta}>
             <Ionicons name="flag-outline" size={14} color={palette.muted} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {milestoneCount} milestone{milestoneCount !== 1 ? 's' : ''}
             </ThemedText>
-          </View>
+          </Row>
         )}
       </SurfaceCard>
     </View>
@@ -80,7 +81,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
     lineHeight: scaleFont(20),
   },
   meta: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     marginTop: Spacing.xs,

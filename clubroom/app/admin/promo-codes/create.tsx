@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { CreateCodeForm } from '@/components/promo';
@@ -10,6 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { PromoCode } from '@/constants/types';
 
 export default function CreatePromoCodeScreen() {
+  useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const router = useRouter();
   const { currentUser } = useAuth();
 

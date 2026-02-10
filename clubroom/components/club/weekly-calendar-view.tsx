@@ -9,6 +9,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { DAYS } from '@/hooks/use-training-schedule';
 import type { GroupSession } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 interface WeeklyCalendarViewProps {
   sessions: GroupSession[];
@@ -22,7 +23,7 @@ export const WeeklyCalendarView = memo(function WeeklyCalendarView({ sessions }:
   );
 
   return (
-    <View style={styles.container}>
+    <Row style={styles.container}>
       {DAYS.map((day, dayIndex) => {
         const daySessions = sessionsByDay[dayIndex];
         return (
@@ -53,12 +54,12 @@ export const WeeklyCalendarView = memo(function WeeklyCalendarView({ sessions }:
           </View>
         );
       })}
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', gap: Spacing.xxs },
+  container: { gap: Spacing.xxs },
   day: { flex: 1, borderRadius: Radii.sm, borderWidth: 1, overflow: 'hidden' },
   dayHeader: { paddingVertical: Spacing.xs, alignItems: 'center' },
   dayContent: { padding: Spacing.xxs, gap: Spacing.xxs, minHeight: 80 },

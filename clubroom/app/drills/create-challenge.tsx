@@ -18,7 +18,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { challengeService } from '@/services/challenge-service';
 import { createLogger } from '@/utils/logger';
@@ -26,7 +27,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('CreateChallengeScreen');
 
 export default function CreateChallengeScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [title, setTitle] = useState('');
@@ -141,10 +142,10 @@ export default function CreateChallengeScreen() {
             <Ionicons name="calendar-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText type="subheading">Deadline</ThemedText>
           </Row>
-          <View style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}>
+          <Row align="center" justify="space-between" style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}>
             <ThemedText style={{ color: palette.text }}>{deadlineLabel}</ThemedText>
             <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.muted} />
-          </View>
+          </Row>
         </SurfaceCard>
 
         {/* Squad */}
@@ -153,10 +154,10 @@ export default function CreateChallengeScreen() {
             <Ionicons name="people-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText type="subheading">Audience</ThemedText>
           </Row>
-          <View style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}>
+          <Row align="center" justify="space-between" style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}>
             <ThemedText style={{ color: palette.text }}>U12 Lions</ThemedText>
             <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.muted} />
-          </View>
+          </Row>
         </SurfaceCard>
 
         {/* Create Button */}
@@ -213,9 +214,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   deadlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     height: Components.button.height,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,

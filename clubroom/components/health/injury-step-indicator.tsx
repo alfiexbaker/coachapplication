@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
+import { Row } from '@/components/primitives';
 
 type FormStep = 'body_part' | 'severity' | 'details';
 
@@ -18,7 +19,7 @@ export function InjuryStepIndicator({ currentStep }: InjuryStepIndicatorProps) {
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <Row style={styles.container}>
       {STEPS.map((s, index) => {
         const isActive = s === currentStep;
         const isCompleted =
@@ -26,7 +27,7 @@ export function InjuryStepIndicator({ currentStep }: InjuryStepIndicatorProps) {
           (s === 'severity' && currentStep === 'details');
 
         return (
-          <View key={s} style={styles.stepContainer}>
+          <Row key={s} style={styles.stepContainer}>
             <View
               style={[
                 styles.dot,
@@ -60,22 +61,20 @@ export function InjuryStepIndicator({ currentStep }: InjuryStepIndicatorProps) {
                 ]}
               />
             )}
-          </View>
+          </Row>
         );
       })}
-    </View>
+    </Row>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.md,
   },
   stepContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   dot: {

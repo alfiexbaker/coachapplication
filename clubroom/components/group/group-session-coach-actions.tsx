@@ -40,5 +40,5 @@ export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm, marginTop: Spacing.md },
-  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  button: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
 });

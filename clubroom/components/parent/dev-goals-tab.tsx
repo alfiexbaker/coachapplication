@@ -3,6 +3,7 @@
  */
 import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Row } from '@/components/primitives/row';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
@@ -26,12 +27,12 @@ function DevGoalsTabInner({ activeGoals, completedGoals }: DevGoalsTabProps) {
       <GoalsSummary activeGoals={activeGoals.length} completedGoals={completedGoals.length} />
 
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <Row align="center" justify="space-between">
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Active Goals</ThemedText>
           <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.countText, { color: palette.tint }]}>{activeGoals.length}</ThemedText>
           </View>
-        </View>
+        </Row>
 
         {activeGoals.length === 0 ? (
           <EmptyMetrics icon="flag-outline" title="No Active Goals" description="Goals will appear here when set by coaches" />
@@ -54,7 +55,6 @@ export const DevGoalsTab = memo(DevGoalsTabInner);
 const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...Typography.subheading },
   countBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
   countText: { ...Typography.caption },

@@ -158,7 +158,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   toggleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,

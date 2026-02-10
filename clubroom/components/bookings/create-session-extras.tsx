@@ -10,6 +10,7 @@ import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { FootballObjective } from '@/constants/types';
+import { Row } from '@/components/primitives';
 
 const SKILLS: FootballObjective[] = [
   'Dribbling', 'Passing', 'Defending', 'Finishing', 'Goalkeeping', 'Conditioning',
@@ -45,7 +46,7 @@ function SessionExtrasInner({
       {/* Price */}
       <View style={styles.field}>
         <ThemedText style={styles.label}>Price (£) - Optional</ThemedText>
-        <View style={styles.priceRow}>
+        <Row style={styles.priceRow}>
           <View style={[styles.currencyPrefix, { backgroundColor: palette.border }]}>
             <ThemedText style={styles.currencyText}>£</ThemedText>
           </View>
@@ -58,13 +59,13 @@ function SessionExtrasInner({
             keyboardType="decimal-pad"
             accessibilityLabel="Price in pounds"
           />
-        </View>
+        </Row>
       </View>
 
       {/* Age Range */}
       <View style={styles.field}>
         <ThemedText style={styles.label}>Age Range - Optional</ThemedText>
-        <View style={styles.ageRow}>
+        <Row style={styles.ageRow}>
           <TextInput
             style={[...inputBase, styles.ageInput]}
             placeholder="Min"
@@ -84,13 +85,13 @@ function SessionExtrasInner({
             keyboardType="number-pad"
             accessibilityLabel="Maximum age"
           />
-        </View>
+        </Row>
       </View>
 
       {/* Skill Focus */}
       <View style={styles.field}>
         <ThemedText style={styles.label}>Skill Focus - Optional</ThemedText>
-        <View style={styles.skillPicker}>
+        <Row style={styles.skillPicker}>
           {SKILLS.map((skill) => {
             const isActive = footballSkill === skill;
             return (
@@ -117,7 +118,7 @@ function SessionExtrasInner({
               </Clickable>
             );
           })}
-        </View>
+        </Row>
       </View>
     </View>
   );
@@ -147,7 +148,6 @@ const styles = StyleSheet.create({
     lineHeight: scaleFont(20),
   },
   priceRow: {
-    flexDirection: 'row',
     alignItems: 'stretch',
   },
   currencyPrefix: {
@@ -166,7 +166,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
   },
   ageRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs + Spacing.xxs,
   },
@@ -179,7 +178,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   skillPicker: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },

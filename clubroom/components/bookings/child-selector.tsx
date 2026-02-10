@@ -6,6 +6,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { User } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface ChildSelectorProps {
   children: User[];
@@ -21,13 +22,13 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
   if (autoSelected && children.length === 1) {
     const child = children[0];
     return (
-      <View style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
+      <Row style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
         <Ionicons name="person" size={16} color={palette.tint} />
         <ThemedText style={[styles.bannerText, { color: palette.tint }]}>
           Session for {child.name}
         </ThemedText>
         <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
-      </View>
+      </Row>
     );
   }
 
@@ -37,7 +38,7 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
       <ThemedText style={[styles.label, { color: palette.muted }]}>
         ATHLETE
       </ThemedText>
-      <View style={styles.options}>
+      <Row style={styles.options}>
         {children.map((child) => {
           const isSelected = child.id === selectedChildId;
           return (
@@ -67,14 +68,13 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
             </Clickable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   banner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -89,12 +89,10 @@ const styles = StyleSheet.create({
   label: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.8 },
   options: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     flexWrap: 'wrap',
   },
   option: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,

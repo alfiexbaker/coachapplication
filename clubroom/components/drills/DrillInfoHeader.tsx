@@ -15,6 +15,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import type { AssignedDrill, Drill } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -55,8 +56,8 @@ function DrillInfoHeaderInner({
   return (
     <View>
       {/* Category and difficulty */}
-      <View style={styles.badgeRow}>
-        <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
+      <Row style={styles.badgeRow}>
+        <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
           <Ionicons
             name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
             size={14}
@@ -65,9 +66,9 @@ function DrillInfoHeaderInner({
           <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>
             {categoryInfo.label}
           </ThemedText>
-        </View>
+        </Row>
         <DifficultyBadge difficulty={drill.difficulty} />
-      </View>
+      </Row>
 
       {/* Title */}
       <ThemedText type="title" style={styles.title}>
@@ -75,7 +76,7 @@ function DrillInfoHeaderInner({
       </ThemedText>
 
       {/* Due date */}
-      <View style={styles.dueDateRow}>
+      <Row style={styles.dueDateRow}>
         <Ionicons
           name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'}
           size={18}
@@ -92,33 +93,33 @@ function DrillInfoHeaderInner({
               ? `Overdue: ${formattedDueDate}`
               : `Due ${formattedDueDate}`}
         </ThemedText>
-      </View>
+      </Row>
 
       {/* Meta info */}
-      <View style={styles.metaRow}>
-        <View style={styles.metaItem}>
+      <Row style={styles.metaRow}>
+        <Row style={styles.metaItem}>
           <Ionicons name="time-outline" size={16} color={palette.muted} />
           <ThemedText style={[styles.metaText, { color: palette.muted }]}>
             {formattedDuration}
           </ThemedText>
-        </View>
+        </Row>
         {assignment.repetitions != null && assignment.repetitions > 1 && (
-          <View style={styles.metaItem}>
+          <Row style={styles.metaItem}>
             <Ionicons name="repeat" size={16} color={palette.muted} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {assignment.repetitions} sets
             </ThemedText>
-          </View>
+          </Row>
         )}
         {assignment.priority === 1 && (
-          <View style={[styles.priorityBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+          <Row style={[styles.priorityBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
             <Ionicons name="alert-circle" size={14} color={palette.error} />
             <ThemedText style={[styles.priorityText, { color: palette.error }]}>
               Priority
             </ThemedText>
-          </View>
+          </Row>
         )}
-      </View>
+      </Row>
     </View>
   );
 }
@@ -131,13 +132,11 @@ export const DrillInfoHeader = React.memo(DrillInfoHeaderInner);
 
 const styles = StyleSheet.create({
   badgeRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     marginTop: Spacing.lg,
   },
   categoryBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs + Spacing.xxs,
@@ -155,7 +154,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   dueDateRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginTop: Spacing.sm,
@@ -165,13 +163,11 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.bodySemiBold.fontSize),
   },
   metaRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     marginTop: Spacing.sm,
   },
   metaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -180,7 +176,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.bodySmall.fontSize),
   },
   priorityBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,

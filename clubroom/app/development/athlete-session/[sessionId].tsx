@@ -15,12 +15,13 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAthleteSessionDetail } from '@/hooks/use-athlete-session-detail';
 import { formatDate } from '@/constants/mock-data';
 
 export default function AthleteSessionDetailScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { session, hasNotes, hasVideos, hasSkills, hasNextFocus, ratingLabel } = useAthleteSessionDetail();
 
   if (!session) return null;
@@ -69,13 +70,13 @@ export default function AthleteSessionDetailScreen() {
           <View style={styles.section}>
             <ThemedText type="subtitle" style={Typography.heading}>Skills Worked On</ThemedText>
             <SurfaceCard style={styles.cardPadded}>
-              <View style={styles.skillsGrid}>
+              <Row wrap gap="sm" style={styles.skillsGrid}>
                 {session.skillsWorkedOn.map((skill, index) => (
                   <View key={index} style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                     <ThemedText style={[Typography.bodySmallSemiBold, { color: palette.tint }]}>{skill}</ThemedText>
                   </View>
                 ))}
-              </View>
+              </Row>
             </SurfaceCard>
           </View>
         )}
@@ -119,11 +120,13 @@ export default function AthleteSessionDetailScreen() {
             <View style={{ gap: Spacing.sm }}>
               {session.videoUrls!.map((url, index) => (
                 <SurfaceCard key={index} style={styles.videoCard}>
-                  <Row gap="sm" align="center" style={{ flex: 1 }}>
-                    <Ionicons name="videocam" size={20} color={palette.tint} />
-                    <ThemedText style={[Typography.bodySmall, { flex: 1 }]}>Video {index + 1}</ThemedText>
+                  <Row align="center" justify="space-between">
+                    <Row gap="sm" align="center" style={{ flex: 1 }}>
+                      <Ionicons name="videocam" size={20} color={palette.tint} />
+                      <ThemedText style={[Typography.bodySmall, { flex: 1 }]}>Video {index + 1}</ThemedText>
+                    </Row>
+                    <Ionicons name="play-circle-outline" size={24} color={palette.tint} />
                   </Row>
-                  <Ionicons name="play-circle-outline" size={24} color={palette.tint} />
                 </SurfaceCard>
               ))}
             </View>
@@ -143,8 +146,8 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   ratingCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.md },
   cardPadded: { padding: Spacing.lg },
-  skillsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  skillsGrid: {},
   skillChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   emptyNotes: { padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm },
-  videoCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md },
+  videoCard: { padding: Spacing.md },
 });

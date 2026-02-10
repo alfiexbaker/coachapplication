@@ -13,6 +13,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { CompactAnnotationMarker } from './AnnotationMarker';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -42,14 +43,14 @@ export const TimelineLabels = memo(function TimelineLabels({
   palette,
 }: TimelineLabelsProps) {
   return (
-    <View style={styles.labelsRow}>
+    <Row justify="between" style={styles.labelsRow}>
       <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>
         {formatTimestamp(currentTime)}
       </ThemedText>
       <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>
         {formatTimestamp(duration)}
       </ThemedText>
-    </View>
+    </Row>
   );
 });
 
@@ -75,7 +76,7 @@ export const TimelineGroupedMarker = memo(function TimelineGroupedMarker({
           {annotations.length}
         </ThemedText>
       </View>
-      <View style={styles.groupStack}>
+      <Row gap={-6}>
         {annotations.slice(0, 3).map((ann) => (
           <CompactAnnotationMarker
             key={ann.id}
@@ -83,7 +84,7 @@ export const TimelineGroupedMarker = memo(function TimelineGroupedMarker({
             onPress={() => onAnnotationPress?.(ann)}
           />
         ))}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -168,8 +169,6 @@ export const CompactTimelineInner = memo(function CompactTimelineInner({
 
 const styles = StyleSheet.create({
   labelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.micro,
   },
   timeLabel: { ...Typography.caption },
@@ -187,10 +186,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.micro,
   },
   groupCount: { ...Typography.micro },
-  groupStack: {
-    flexDirection: 'row',
-    gap: -6,
-  },
   activeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',

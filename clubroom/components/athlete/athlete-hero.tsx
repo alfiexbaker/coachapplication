@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   statusBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 10,

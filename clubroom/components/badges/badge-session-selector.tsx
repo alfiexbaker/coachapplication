@@ -10,6 +10,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
+import { Row } from '@/components/primitives';
 
 interface BadgeSessionSelectorProps {
   sessionQuery: string;
@@ -37,18 +38,18 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
           <ThemedText type="defaultSemiBold">Link to session</ThemedText>
         </Row>
         {selectedSession ? (
-          <View style={[styles.sessionPill, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+          <Row style={[styles.sessionPill, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={14} color={colors.tint} />
             <ThemedText style={[Typography.caption, { color: colors.tint }]}>
               {linkedAthlete} · {formatDate(selectedSession.completedAt)}
             </ThemedText>
-          </View>
+          </Row>
         ) : (
           <ThemedText style={{ color: colors.muted }}>Optional</ThemedText>
         )}
       </Row>
 
-      <View style={[styles.inputContainer, { borderColor: colors.border }]}>
+      <Row style={[styles.inputContainer, { borderColor: colors.border }]}>
         <Ionicons name="search" size={16} color={colors.icon} />
         <TextInput
           placeholder="Search sessions by athlete or format"
@@ -57,7 +58,7 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
           onChangeText={onQueryChange}
           style={[styles.input, { color: colors.foreground }]}
         />
-      </View>
+      </Row>
 
       {filteredSessions.length === 0 ? (
         <ThemedText style={[Typography.small, { color: colors.muted }]}>No matching sessions yet</ThemedText>
@@ -93,11 +94,11 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm, padding: Spacing.sm },
-  sessionPill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.sm, paddingVertical: 8 },
+  sessionPill: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  inputContainer: { alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.sm, paddingVertical: 8 },
   input: { flex: 1, ...Typography.bodySmall },
   sessionList: { maxHeight: 200 },
-  sessionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  sessionRow: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   sessionMeta: { flex: 1, gap: Spacing.micro },
   avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
 });

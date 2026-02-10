@@ -12,6 +12,7 @@ export { REASON_LABELS, REASON_ICONS, ReasonsBreakdown, DayOfWeekBreakdown, Noti
 export type { ReasonsBreakdownProps, DayOfWeekBreakdownProps, NoticeFooterProps } from './cancellation-chart-sections';
 
 import { ReasonsBreakdown, DayOfWeekBreakdown, NoticeFooter } from './cancellation-chart-sections';
+import { Row } from '@/components/primitives';
 
 export interface CancellationChartProps {
   stats: CancellationStats;
@@ -47,14 +48,14 @@ export function CancellationChart({
       tactile={!!onPress}
     >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
+        <Row style={styles.titleRow}>
           <Ionicons name="close-circle" size={20} color={palette.error} />
           <ThemedText style={styles.title}>{title}</ThemedText>
-        </View>
+        </Row>
       </View>
 
       {/* Summary stats */}
-      <View style={styles.summaryRow}>
+      <Row style={styles.summaryRow}>
         <View style={styles.summaryItem}>
           <ThemedText style={[styles.summaryValue, { color: rateColor }]}>
             {stats.cancellationRate.toFixed(1)}%
@@ -79,7 +80,7 @@ export function CancellationChart({
             Lost Revenue
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       <ReasonsBreakdown
         byReason={stats.byReason}
@@ -108,13 +109,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   titleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   title: { ...Typography.subheading },
   summaryRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },

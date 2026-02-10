@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 interface CreateEventScheduleStepProps {
   date: string;
@@ -41,7 +42,7 @@ function CreateEventScheduleStepInner({
         />
       </View>
 
-      <View style={styles.rowInputs}>
+      <Row style={styles.rowInputs}>
         <View style={[styles.inputGroup, { flex: 1 }]}>
           <ThemedText style={styles.inputLabel}>Start Time</ThemedText>
           <TextInput
@@ -62,7 +63,7 @@ function CreateEventScheduleStepInner({
             onChangeText={(v) => onFieldChange('endTime', v)}
           />
         </View>
-      </View>
+      </Row>
 
       <View style={styles.inputGroup}>
         <ThemedText style={styles.inputLabel}>RSVP Deadline</ThemedText>
@@ -102,7 +103,6 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(Typography.body.fontSize),
   },
   rowInputs: {
-    flexDirection: 'row',
     gap: Spacing.md,
   },
 });

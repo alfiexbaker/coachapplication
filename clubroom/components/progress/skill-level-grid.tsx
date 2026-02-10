@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillLevel } from '@/services/progress-service';
@@ -45,12 +46,12 @@ export const SkillLevelGrid = memo(function SkillLevelGrid({
       <View style={styles.groupedContainer}>
         {sortedCategories.map(category => (
           <View key={category} style={styles.categoryGroup}>
-            <View style={styles.categoryHeader}>
+            <Row align="center" gap="sm">
               <ThemedText type="defaultSemiBold" style={styles.categoryTitle}>{category}</ThemedText>
               <View style={[styles.categoryCount, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.categoryCountText, { color: palette.tint }]}>{grouped[category].length}</ThemedText>
               </View>
-            </View>
+            </Row>
             <View style={compact ? styles.compactGrid : styles.grid}>
               {grouped[category].map((skill) => (
                 <SkillLevelCard key={skill.skill} skill={skill} compact={compact} showUpdatedBy={showUpdatedBy} />
@@ -78,7 +79,6 @@ const styles = StyleSheet.create({
   compactGrid: { gap: Spacing.sm },
   groupedContainer: { gap: Spacing.lg },
   categoryGroup: { gap: Spacing.sm },
-  categoryHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   categoryTitle: { ...Typography.body },
   categoryCount: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm, minWidth: 20, alignItems: 'center' },
   categoryCountText: { ...Typography.caption },

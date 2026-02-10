@@ -8,6 +8,7 @@
 import React, { memo, useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -70,7 +71,7 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
 
   return (
     <View style={[styles.athleteRow, { borderBottomColor: colors.border }]}>
-      <View style={styles.athleteInfo}>
+      <Row align="center" gap="sm" style={styles.athleteInfo}>
         <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
           <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
             {athlete.userName.charAt(0)}
@@ -79,17 +80,17 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
         <View style={styles.athleteName}>
           <ThemedText type="defaultSemiBold">{athlete.userName}</ThemedText>
           {athlete.badges.length > 0 && (
-            <View style={styles.badgePreview}>
+            <Row align="center" gap="xxs" style={styles.badgePreview}>
               <Ionicons name="ribbon" size={12} color={colors.warning} />
               <ThemedText style={[styles.badgeCount, { color: colors.warning }]}>
                 {athlete.badges.length} badge{athlete.badges.length !== 1 ? 's' : ''}
               </ThemedText>
-            </View>
+            </Row>
           )}
         </View>
-      </View>
+      </Row>
 
-      <View style={styles.attendanceActions}>
+      <Row gap="xs">
         {ATTENDANCE_STATUSES.map(s => {
           const btnIcon = getAttendanceIcon(s, colors);
           const isSelected = athlete.status === s;
@@ -112,7 +113,7 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
             </Pressable>
           );
         })}
-      </View>
+      </Row>
     </View>
   );
 });
@@ -128,10 +129,10 @@ export const AttendanceStep = memo(function AttendanceStep({
 }: AttendanceStepProps) {
   return (
     <SurfaceCard style={styles.section}>
-      <View style={styles.sectionHeader}>
+      <Row align="center" gap="sm" style={styles.sectionHeader}>
         <Ionicons name="people" size={20} color={colors.tint} />
         <ThemedText type="subtitle">Attendance</ThemedText>
-      </View>
+      </Row>
 
       {athletes.length === 0 ? (
         <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
@@ -161,9 +162,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     marginBottom: Spacing.xs,
   },
   emptyText: {
@@ -177,9 +175,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   athleteInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
     marginBottom: Spacing.xs,
   },
   avatar: {
@@ -196,17 +191,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badgePreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
     marginTop: Spacing.micro,
   },
   badgeCount: {
     ...Typography.caption,
-  },
-  attendanceActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
   },
   attendanceBtn: {
     padding: Spacing.xs,

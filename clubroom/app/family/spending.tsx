@@ -98,12 +98,16 @@ export default function FamilySpendingScreen() {
       <Animated.View entering={FadeInDown.delay(300).springify()}>
         <Row gap="sm">
           <Clickable onPress={() => router.push(Routes.WALLET)} style={[styles.actionButton, { backgroundColor: colors.tint }]}>
-            <Ionicons name="wallet" size={20} color={colors.onPrimary} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>Top Up Wallet</ThemedText>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name="wallet" size={20} color={colors.onPrimary} />
+              <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>Top Up Wallet</ThemedText>
+            </Row>
           </Clickable>
           <Clickable onPress={() => router.push(Routes.FAMILY_CALENDAR)} style={[styles.actionButtonSecondary, { borderColor: colors.border }]}>
-            <Ionicons name="calendar-outline" size={20} color={colors.tint} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>View Calendar</ThemedText>
+            <Row align="center" justify="center" gap="xs">
+              <Ionicons name="calendar-outline" size={20} color={colors.tint} />
+              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>View Calendar</ThemedText>
+            </Row>
           </Clickable>
         </Row>
       </Animated.View>
@@ -113,10 +117,10 @@ export default function FamilySpendingScreen() {
 
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  filterRow: { flexDirection: 'row', gap: Spacing.xs, paddingVertical: Spacing.xs },
+  filterRow: { gap: Spacing.xs, paddingVertical: Spacing.xs },
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
   tipsCard: { padding: Spacing.md, gap: Spacing.sm },
   tipsButton: { alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5, marginTop: Spacing.xs },
-  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg },
-  actionButtonSecondary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
+  actionButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
+  actionButtonSecondary: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
 });

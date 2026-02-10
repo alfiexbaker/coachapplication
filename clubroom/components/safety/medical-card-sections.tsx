@@ -10,6 +10,7 @@
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -48,10 +49,9 @@ export const MedicalInfoRow = memo(function MedicalInfoRow({
   iconColor,
   label,
   value,
-  palette,
-}: MedicalInfoRowProps) {
+  palette }: MedicalInfoRowProps) {
   return (
-    <View style={styles.infoRow}>
+    <Row align="start" gap="sm">
       <View style={[styles.iconBg, { backgroundColor: withAlpha(iconColor, 0.06) }]}>
         <Ionicons name={icon} size={14} color={iconColor} />
       </View>
@@ -59,7 +59,7 @@ export const MedicalInfoRow = memo(function MedicalInfoRow({
         <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>{label}</ThemedText>
         <ThemedText style={styles.infoValue}>{value}</ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
@@ -74,8 +74,7 @@ interface MedicalSummaryRowInnerProps {
 export const MedicalSummaryRowInner = memo(function MedicalSummaryRowInner({
   medical,
   onPress,
-  palette,
-}: MedicalSummaryRowInnerProps) {
+  palette }: MedicalSummaryRowInnerProps) {
   const hasAlerts =
     medical.allergies.length > 0 ||
     medical.conditions.length > 0 ||
@@ -94,37 +93,38 @@ export const MedicalSummaryRowInner = memo(function MedicalSummaryRowInner({
 
   return (
     <Clickable onPress={onPress} style={styles.summaryRow}>
-      <Ionicons name="medical" size={14} color={palette.warning} />
-      <View style={styles.summaryTags}>
-        {items.map((item, index) => (
-          <View
-            key={index}
-            style={[
-              styles.summaryTag,
-              {
-                backgroundColor:
-                  item.type === 'allergy'
-                    ? withAlpha(palette.error, 0.06)
-                    : withAlpha(palette.warning, 0.06),
-              },
-            ]}
-          >
-            <ThemedText
+      <Row align="center" gap="xs">
+        <Ionicons name="medical" size={14} color={palette.warning} />
+        <Row wrap gap="xxs" align="center">
+          {items.map((item, index) => (
+            <View
+              key={index}
               style={[
-                styles.summaryTagText,
-                { color: item.type === 'allergy' ? palette.error : palette.warning },
+                styles.summaryTag,
+                {
+                  backgroundColor:
+                    item.type === 'allergy'
+                      ? withAlpha(palette.error, 0.06)
+                      : withAlpha(palette.warning, 0.06) },
               ]}
             >
-              {item.label}
+              <ThemedText
+                style={[
+                  styles.summaryTagText,
+                  { color: item.type === 'allergy' ? palette.error : palette.warning },
+                ]}
+              >
+                {item.label}
+              </ThemedText>
+            </View>
+          ))}
+          {totalCount > 3 && (
+            <ThemedText style={[styles.moreText, { color: palette.muted }]}>
+              +{totalCount - 3} more
             </ThemedText>
-          </View>
-        ))}
-        {totalCount > 3 && (
-          <ThemedText style={[styles.moreText, { color: palette.muted }]}>
-            +{totalCount - 3} more
-          </ThemedText>
-        )}
-      </View>
+          )}
+        </Row>
+      </Row>
     </Clickable>
   );
 });
@@ -138,8 +138,7 @@ interface MedicalInfoEmptyStateInnerProps {
 
 export const MedicalInfoEmptyStateInner = memo(function MedicalInfoEmptyStateInner({
   onAddPress,
-  palette,
-}: MedicalInfoEmptyStateInnerProps) {
+  palette }: MedicalInfoEmptyStateInnerProps) {
   return (
     <SurfaceCard style={styles.emptyCard}>
       <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
@@ -154,8 +153,10 @@ export const MedicalInfoEmptyStateInner = memo(function MedicalInfoEmptyStateInn
           onPress={onAddPress}
           style={[styles.addButton, { borderColor: palette.tint }]}
         >
-          <Ionicons name="add" size={16} color={palette.tint} />
-          <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Medical Info</ThemedText>
+          <Row align="center" gap="xs">
+            <Ionicons name="add" size={16} color={palette.tint} />
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Medical Info</ThemedText>
+          </Row>
         </Clickable>
       )}
     </SurfaceCard>
@@ -165,61 +166,38 @@ export const MedicalInfoEmptyStateInner = memo(function MedicalInfoEmptyStateInn
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
   iconBg: {
     width: 24,
     height: 24,
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   infoLabel: { ...Typography.caption, marginBottom: 1 },
   infoValue: { ...Typography.bodySmall },
   summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  summaryTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xxs,
-    alignItems: 'center',
-  },
+    paddingVertical: Spacing.xxs },
   summaryTag: {
     paddingVertical: Spacing.micro,
     paddingHorizontal: Spacing.xs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   summaryTagText: { ...Typography.caption },
   moreText: { ...Typography.caption },
   emptyCard: {
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg },
   emptyIcon: {
     width: 64,
     height: 64,
     borderRadius: Radii['2xl'],
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   emptyText: { ...Typography.bodySmall, textAlign: 'center' },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.button,
     borderWidth: 1.5,
-    marginTop: Spacing.sm,
-  },
-});
+    marginTop: Spacing.sm } });

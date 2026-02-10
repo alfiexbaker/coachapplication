@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface ClubDetailStatsProps {
   memberCount: number;
@@ -28,10 +29,10 @@ export const ClubDetailStats = memo(function ClubDetailStats({
   colors,
 }: ClubDetailStatsProps) {
   return (
-    <View style={[styles.row, { borderColor: colors.border }]}>
+    <Row style={[styles.row, { borderColor: colors.border }]}>
       <Clickable style={styles.item} onPress={onToggleMembers}>
         <ThemedText type="title" style={Typography.heading}>{memberCount}</ThemedText>
-        <View style={styles.labelRow}>
+        <Row style={styles.labelRow}>
           <ThemedText style={[Typography.caption, { color: colors.muted }]}>Members</ThemedText>
           {canExpand && (
             <Ionicons
@@ -40,7 +41,7 @@ export const ClubDetailStats = memo(function ClubDetailStats({
               color={colors.muted}
             />
           )}
-        </View>
+        </Row>
       </Clickable>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.item}>
@@ -57,13 +58,12 @@ export const ClubDetailStats = memo(function ClubDetailStats({
         <ThemedText type="title" style={Typography.heading}>{inviteCount}</ThemedText>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>Invites</ThemedText>
       </View>
-    </View>
+    </Row>
   );
 });
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
     paddingVertical: Spacing.md,
     marginHorizontal: Spacing.md,
     borderTopWidth: 1,
@@ -74,7 +74,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   labelRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
   },

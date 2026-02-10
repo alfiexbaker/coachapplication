@@ -70,14 +70,14 @@ export const SkillNodeDetailModal = memo(function SkillNodeDetailModal({
                 {prereqNames.length > 0 && (
                   <View style={styles.prereqSection}>
                     <ThemedText type="defaultSemiBold">Prerequisites</ThemedText>
-                    <View style={styles.prereqList}>
+                    <Row wrap gap="xs">
                       {prereqNames.map((prereq) => (
-                        <View key={prereq.id} style={[styles.prereqItem, { backgroundColor: prereq.isUnlocked ? withAlpha(colors.success, 0.09) : withAlpha(colors.error, 0.09) }]}>
+                        <Row key={prereq.id} align="center" gap="xxs" style={[styles.prereqItem, { backgroundColor: prereq.isUnlocked ? withAlpha(colors.success, 0.09) : withAlpha(colors.error, 0.09) }]}>
                           <Ionicons name={prereq.isUnlocked ? 'checkmark-circle' : 'lock-closed'} size={14} color={prereq.isUnlocked ? colors.success : colors.error} />
                           <ThemedText style={[Typography.caption, { color: prereq.isUnlocked ? colors.success : colors.error }]}>{prereq.name}</ThemedText>
-                        </View>
+                        </Row>
                       ))}
-                    </View>
+                    </Row>
                   </View>
                 )}
 
@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
   progressBg: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.xs },
   prereqSection: { gap: Spacing.xs },
-  prereqList: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  prereqItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  prereqList: { /* layout moved to Row */ },
+  prereqItem: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   badgeReward: { padding: Spacing.sm, borderRadius: Radii.md },
   banner: { padding: Spacing.md, borderRadius: Radii.md },
   actionsRow: { gap: Spacing.sm },

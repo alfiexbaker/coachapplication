@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatSessionDate } from '@/hooks/use-booking-cancel';
+import { Row } from '@/components/primitives';
 
 interface CancelRescheduleStepProps {
   isCoach: boolean;
@@ -46,12 +47,12 @@ export const CancelRescheduleStep = memo(function CancelRescheduleStep({
             Current session
           </ThemedText>
           <ThemedText type="defaultSemiBold">{sessionTitle}</ThemedText>
-          <View style={styles.sessionRow}>
+          <Row style={styles.sessionRow}>
             <Ionicons name="calendar-outline" size={16} color={palette.muted} />
             <ThemedText style={{ color: palette.muted }}>
               {formatSessionDate(sessionTime)}
             </ThemedText>
-          </View>
+          </Row>
         </SurfaceCard>
       )}
 
@@ -85,9 +86,9 @@ const styles = StyleSheet.create({
   heroDesc: { textAlign: 'center', ...Typography.bodySmall },
   sessionCard: { padding: Spacing.md, gap: Spacing.xxs },
   sessionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
-  sessionRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.micro },
-  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, height: 44, borderRadius: Radii.card },
+  sessionRow: { alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.micro },
+  primaryButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, height: 44, borderRadius: Radii.card },
   primaryText: { ...Typography.subheading },
-  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: Radii.card, borderWidth: 1.5 },
+  outlineButton: { alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: Radii.card, borderWidth: 1.5 },
   outlineText: { ...Typography.bodySemiBold },
 });

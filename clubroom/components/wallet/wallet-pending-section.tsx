@@ -38,8 +38,9 @@ export const WalletPendingSection = memo(function WalletPendingSection({
           </ThemedText>
         </Row>
         {transactions.map((transaction) => (
-          <View
+          <Row
             key={transaction.id}
+            align="center"
             style={[styles.item, { borderTopColor: colors.border }]}
           >
             <ThemedText style={styles.description}>
@@ -48,7 +49,7 @@ export const WalletPendingSection = memo(function WalletPendingSection({
             <ThemedText type="defaultSemiBold" style={{ color: colors.warning }}>
               {walletService.formatAmount(Math.abs(transaction.amount))}
             </ThemedText>
-          </View>
+          </Row>
         ))}
       </SurfaceCard>
     </Animated.View>
@@ -63,8 +64,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
   },

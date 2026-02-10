@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Row } from '@/components/primitives/row';
 import { PackageList } from '@/components/packages/PackageList';
 import { MyPackages } from '@/components/packages/MyPackages';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
@@ -67,7 +68,7 @@ export default function PackagesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
@@ -86,11 +87,11 @@ export default function PackagesScreen() {
             <Ionicons name="settings-outline" size={18} color={palette.onPrimary} />
           </Clickable>
         )}
-      </View>
+      </Row>
 
       {/* Tab Navigation - Only for non-coaches */}
       {!isCoach && (
-        <View style={styles.tabContainer}>
+        <Row gap="sm" style={styles.tabContainer}>
           <Clickable
             style={[
               styles.tab,
@@ -98,19 +99,21 @@ export default function PackagesScreen() {
             ]}
             onPress={() => setActiveTab('browse')}
           >
-            <Ionicons
-              name="pricetags-outline"
-              size={18}
-              color={activeTab === 'browse' ? palette.tint : palette.muted}
-            />
-            <ThemedText
-              style={[
-                styles.tabText,
-                { color: activeTab === 'browse' ? palette.tint : palette.muted },
-              ]}
-            >
-              Browse
-            </ThemedText>
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons
+                name="pricetags-outline"
+                size={18}
+                color={activeTab === 'browse' ? palette.tint : palette.muted}
+              />
+              <ThemedText
+                style={[
+                  styles.tabText,
+                  { color: activeTab === 'browse' ? palette.tint : palette.muted },
+                ]}
+              >
+                Browse
+              </ThemedText>
+            </Row>
           </Clickable>
 
           <Clickable
@@ -120,21 +123,23 @@ export default function PackagesScreen() {
             ]}
             onPress={() => setActiveTab('my-packages')}
           >
-            <Ionicons
-              name="wallet-outline"
-              size={18}
-              color={activeTab === 'my-packages' ? palette.tint : palette.muted}
-            />
-            <ThemedText
-              style={[
-                styles.tabText,
-                { color: activeTab === 'my-packages' ? palette.tint : palette.muted },
-              ]}
-            >
-              My Packages
-            </ThemedText>
+            <Row align="center" justify="center" gap="xxs">
+              <Ionicons
+                name="wallet-outline"
+                size={18}
+                color={activeTab === 'my-packages' ? palette.tint : palette.muted}
+              />
+              <ThemedText
+                style={[
+                  styles.tabText,
+                  { color: activeTab === 'my-packages' ? palette.tint : palette.muted },
+                ]}
+              >
+                My Packages
+              </ThemedText>
+            </Row>
           </Clickable>
-        </View>
+        </Row>
       )}
 
       <ScrollView
@@ -149,17 +154,19 @@ export default function PackagesScreen() {
             {/* Info Banner */}
             <Animated.View entering={FadeInDown.delay(50).springify()}>
               <SurfaceCard style={[styles.infoBanner, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
-                <View style={[styles.infoIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                  <Ionicons name="gift-outline" size={20} color={palette.success} />
-                </View>
-                <View style={styles.infoContent}>
-                  <ThemedText type="defaultSemiBold" style={styles.infoTitle}>
-                    Save with Bundles
-                  </ThemedText>
-                  <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-                    Buy 5 or 10 sessions at a discounted rate. Use them for future bookings with your coach.
-                  </ThemedText>
-                </View>
+                <Row align="start" gap="md">
+                  <View style={[styles.infoIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                    <Ionicons name="gift-outline" size={20} color={palette.success} />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <ThemedText type="defaultSemiBold" style={styles.infoTitle}>
+                      Save with Bundles
+                    </ThemedText>
+                    <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+                      Buy 5 or 10 sessions at a discounted rate. Use them for future bookings with your coach.
+                    </ThemedText>
+                  </View>
+                </Row>
               </SurfaceCard>
             </Animated.View>
 
@@ -193,11 +200,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md },
+    paddingVertical: Spacing.md },
   headerTitle: {
     flex: 1 },
   subtitle: {
@@ -210,16 +214,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center' },
   tabContainer: {
-    flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
     marginBottom: Spacing.md },
   tab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
@@ -233,9 +231,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     gap: Spacing.lg },
   infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
     padding: Spacing.md },
   infoIcon: {
     width: 40,

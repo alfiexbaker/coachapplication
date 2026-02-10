@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Row } from '@/components/primitives/row';
 import { ReviewForm } from '@/components/review/review-form';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -121,7 +122,7 @@ export default function ReviewScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.foreground} />
         </Clickable>
@@ -129,14 +130,14 @@ export default function ReviewScreen() {
           {submitted ? 'Review Submitted' : 'Leave a Review'}
         </ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Row>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Session Info */}
         {booking && (
           <SurfaceCard style={styles.sessionCard}>
-            <View style={styles.sessionHeader}>
+            <Row align="center" gap="md" style={styles.sessionHeader}>
               <View style={[styles.coachAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <Ionicons name="person" size={24} color={palette.tint} />
               </View>
@@ -146,7 +147,7 @@ export default function ReviewScreen() {
                   {booking.service} - {formatDate(booking.scheduledAt)}
                 </ThemedText>
               </View>
-            </View>
+            </Row>
           </SurfaceCard>
         )}
 
@@ -181,9 +182,6 @@ export default function ReviewScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
   },
@@ -199,11 +197,7 @@ const styles = StyleSheet.create({
   sessionCard: {
     padding: Spacing.md,
   },
-  sessionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
+  sessionHeader: {},
   coachAvatar: {
     width: 48,
     height: 48,

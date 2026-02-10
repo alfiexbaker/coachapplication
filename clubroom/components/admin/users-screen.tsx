@@ -8,6 +8,7 @@ import { Spacing, Typography } from '@/constants/theme';
 import { MOCK_USERS } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export function AdminUsersScreen() {
   const { colors: palette } = useTheme();
@@ -30,7 +31,7 @@ export function AdminUsersScreen() {
           </ThemedText>
         </View>
 
-        <View style={styles.statsGrid}>
+        <Row style={styles.statsGrid}>
           <SurfaceCard style={styles.statCard}>
             <Ionicons name="people" size={32} color={palette.tint} />
             <ThemedText type="title" style={styles.statNumber}>
@@ -54,7 +55,7 @@ export function AdminUsersScreen() {
             </ThemedText>
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Parents</ThemedText>
           </SurfaceCard>
-        </View>
+        </Row>
       </ScrollView>
     </SafeAreaView>
   );
@@ -79,7 +80,6 @@ const styles = StyleSheet.create({
   subtitle: { ...Typography.body, lineHeight: 22,
     fontWeight: '500' },
   statsGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
   },

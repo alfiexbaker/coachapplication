@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -74,7 +75,7 @@ export function StatCard({
 
   return (
     <View style={[styles.container, isCompact ? styles.containerCompact : undefined]}>
-      <View style={styles.valueRow}>
+      <Row align="center" gap={Spacing.xs / 2}>
         <ThemedText
           style={[
             styles.value,
@@ -92,7 +93,7 @@ export function StatCard({
             </ThemedText>
           </View>
         ) : null}
-      </View>
+      </Row>
       <ThemedText style={[styles.label, isCompact ? styles.labelCompact : undefined, { color: palette.muted }]}>
         {label}
       </ThemedText>
@@ -107,11 +108,6 @@ const styles = StyleSheet.create({
   },
   containerCompact: {
     alignItems: 'flex-start',
-  },
-  valueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
   },
   value: { ...Typography.display, letterSpacing: -0.4 },
   valueCompact: { ...Typography.title },

@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { clubService, type ClubMember } from '@/services/club-service';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface MemberRowProps {
   member: ClubMember;
@@ -64,7 +65,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
       onLongPress={handleLongPress}
       delayLongPress={500}
     >
-      <View style={[styles.memberRow, { borderColor: palette.border }]}>
+      <Row style={[styles.memberRow, { borderColor: palette.border }]}>
         <View style={[styles.memberAvatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
           <ThemedText style={[styles.memberAvatarText, { color: roleColor }]}>{initials}</ThemedText>
         </View>
@@ -78,7 +79,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
           <Chip>Pending</Chip>
         )}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-      </View>
+      </Row>
     </Clickable>
   );
 }
@@ -95,12 +96,12 @@ export function MembersPanel({ members, canRemoveMembers, onRemoveMember, clubId
 
   return (
     <SurfaceCard style={styles.membersCard}>
-      <View style={styles.membersSectionHeader}>
+      <Row style={styles.membersSectionHeader}>
         <ThemedText type="defaultSemiBold">Club Members</ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
           Tap to manage
         </ThemedText>
-      </View>
+      </Row>
       <View style={styles.membersList}>
         {members.map((member) => (
           <MemberRow
@@ -130,7 +131,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   membersSectionHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   memberRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,

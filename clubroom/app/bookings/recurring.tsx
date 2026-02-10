@@ -12,7 +12,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Typography } from '@/constants/theme';
 import { RecurringBooking } from '@/constants/types';
 import { recurringBookingService } from '@/services/recurring-booking-service';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
@@ -23,7 +24,7 @@ const logger = createLogger('RecurringBookingsScreen');
  * with the ability to pause, resume, or cancel them.
  */
 export default function RecurringBookingsScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [bookings, setBookings] = useState<RecurringBooking[]>([]);

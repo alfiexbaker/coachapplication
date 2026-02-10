@@ -19,6 +19,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { DAYS_ORDERED, timeToMinutes, formatTimeRange, type WeekPatternGridProps } from './week-pattern-types';
 import { WeekPatternSetupMode } from './week-pattern-setup-mode';
 import { WeekPatternSlotRow, WeekPatternAddBlockRow } from './week-pattern-slot-row';
+import { Row } from '@/components/primitives';
 
 export { type WeekPatternGridProps } from './week-pattern-types';
 
@@ -139,7 +140,7 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
   return (
     <View style={styles.container}>
       {/* Week Navigator */}
-      <View style={styles.weekNavRow}>
+      <Row style={styles.weekNavRow}>
         <Clickable onPress={() => { haptic(); setWeekOffset(p => p - 1); }} style={styles.weekNavArrow}>
           <Ionicons name="chevron-back" size={20} color={palette.text} />
         </Clickable>
@@ -149,7 +150,7 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
         <Clickable onPress={() => { haptic(); setWeekOffset(p => p + 1); }} style={styles.weekNavArrow}>
           <Ionicons name="chevron-forward" size={20} color={palette.text} />
         </Clickable>
-      </View>
+      </Row>
 
       {/* Summary */}
       <View style={[styles.summaryRow, { backgroundColor: withAlpha(palette.tint, 0.05) }]}>
@@ -169,7 +170,7 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
-  weekNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  weekNavRow: { alignItems: 'center', justifyContent: 'space-between' },
   weekNavArrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: Radii.xl },
   weekNavLabelBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
   weekNavLabel: { ...Typography.bodySemiBold, textAlign: 'center' },

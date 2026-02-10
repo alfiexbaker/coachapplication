@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -54,7 +55,7 @@ export function CoachCardHeader({
   const avatarDimension = avatarSize === 'lg' ? Components.avatar.lg : Components.avatar.md;
 
   return (
-    <View style={layout === 'inline' ? styles.inlineContainer : styles.stackedContainer}>
+    <Row style={layout === 'inline' ? styles.inlineContainer : styles.stackedContainer}>
       {/* Avatar with optional trial badge */}
       <View style={styles.avatarContainer}>
         <Image
@@ -77,7 +78,7 @@ export function CoachCardHeader({
       {/* Name and verification */}
       {layout === 'inline' && (
         <View style={styles.nameContainer}>
-          <View style={styles.nameRow}>
+          <Row style={styles.nameRow}>
             <ThemedText
               style={[styles.coachName, { color: palette.text }]}
               numberOfLines={1}
@@ -91,13 +92,13 @@ export function CoachCardHeader({
                 color={palette.tint}
               />
             )}
-          </View>
+          </Row>
         </View>
       )}
 
       {/* Right content (e.g., favourite button) */}
       {rightContent}
-    </View>
+    </Row>
   );
 }
 
@@ -159,8 +160,8 @@ export function CoachNameRow({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={styles.nameRowSpaceBetween}>
-      <View style={styles.nameRow}>
+    <Row style={styles.nameRowSpaceBetween}>
+      <Row style={styles.nameRow}>
         <ThemedText
           type="subtitle"
           style={styles.coachNameSubtitle}
@@ -175,9 +176,9 @@ export function CoachNameRow({
             color={palette.tint}
           />
         )}
-      </View>
+      </Row>
       {rightContent}
-    </View>
+    </Row>
   );
 }
 
@@ -187,7 +188,6 @@ export function CoachNameRow({
 
 const styles = StyleSheet.create({
   inlineContainer: {
-    flexDirection: 'row',
     gap: Spacing.sm,
     alignItems: 'flex-start',
   },
@@ -219,13 +219,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   nameRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
     flex: 1,
   },
   nameRowSpaceBetween: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.xs,

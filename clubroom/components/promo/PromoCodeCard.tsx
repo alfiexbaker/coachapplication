@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -51,24 +52,24 @@ export function PromoCodeCard({
       tactile={Boolean(onPress)}
     >
       {/* Header with code and status */}
-      <View style={styles.header}>
-        <Clickable onPress={handleCopyCode} style={styles.codeContainer}>
-          <View style={[styles.codeBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
+      <Row justify="space-between" align="center">
+        <Clickable onPress={handleCopyCode}>
+          <Row align="center" gap="xs" style={[styles.codeBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
             <ThemedText style={[styles.codeText, { color: statusInfo.color }]}>
               {promoCode.code}
             </ThemedText>
             <Ionicons name="copy-outline" size={14} color={statusInfo.color} />
-          </View>
+          </Row>
         </Clickable>
         <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.12) }]}>
           <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
             {statusInfo.label}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {/* Credit amount and description */}
-      <View style={styles.amountRow}>
+      <Row align="baseline" gap="sm">
         <ThemedText type="subtitle" style={styles.amount}>
           {promoService.formatCredit(promoCode.creditAmount)}
         </ThemedText>
@@ -77,11 +78,11 @@ export function PromoCodeCard({
             {promoCode.description}
           </ThemedText>
         )}
-      </View>
+      </Row>
 
       {/* Usage progress bar */}
       <View style={styles.usageSection}>
-        <View style={styles.usageHeader}>
+        <Row justify="space-between" align="center">
           <ThemedText style={[styles.usageLabel, { color: palette.muted }]}>
             Usage
           </ThemedText>
@@ -91,7 +92,7 @@ export function PromoCodeCard({
               {' '}({remainingUses} left)
             </ThemedText>
           </ThemedText>
-        </View>
+        </Row>
         <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
           <View
             style={[
@@ -132,19 +133,7 @@ const styles = StyleSheet.create({
   card: {
     gap: Spacing.md,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  codeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   codeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
@@ -156,20 +145,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   statusText: { ...Typography.caption, textTransform: 'uppercase' },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: Spacing.sm,
-  },
   amount: { ...Typography.title },
   description: { ...Typography.small, flex: 1 },
   usageSection: {
     gap: Spacing.xs,
-  },
-  usageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   usageLabel: { ...Typography.caption },
   usageValue: { ...Typography.smallSemiBold },

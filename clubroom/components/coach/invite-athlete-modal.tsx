@@ -15,6 +15,7 @@ import type { Athlete, Squad } from '@/hooks/use-invite-athletes';
 
 import { FilterPanel, QuickSelect } from './invite-athlete-filters';
 import { AthleteList } from './invite-athlete-list';
+import { Row } from '@/components/primitives';
 
 // Re-export types for backward compatibility
 export type { Athlete, Squad } from '@/hooks/use-invite-athletes';
@@ -52,17 +53,17 @@ export function InviteAthleteModal({ visible, onClose, onSelect, athletes, squad
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={handleClose}><ThemedText style={{ color: palette.muted }}>Cancel</ThemedText></Clickable>
           <ThemedText type="subtitle">{title}</ThemedText>
           <Clickable onPress={handleConfirm} disabled={state.selectedAthletes.length === 0}>
             <ThemedText style={{ color: state.selectedAthletes.length > 0 ? palette.tint : palette.muted, fontWeight: '600' }}>Done</ThemedText>
           </Clickable>
-        </View>
+        </Row>
 
         {/* Search */}
         <View style={styles.searchContainer}>
-          <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <Ionicons name="search" size={18} color={palette.muted} />
             <TextInput style={[styles.searchInput, { color: palette.text }]} placeholder="Search athletes or parents..." placeholderTextColor={palette.muted} value={state.searchQuery} onChangeText={state.setSearchQuery} />
             {state.searchQuery.length > 0 && (
@@ -71,7 +72,7 @@ export function InviteAthleteModal({ visible, onClose, onSelect, athletes, squad
             <Clickable onPress={() => state.setShowFilters(!state.showFilters)}>
               <Ionicons name={state.showFilters ? 'options' : 'options-outline'} size={20} color={state.hasActiveFilters ? palette.tint : palette.muted} />
             </Clickable>
-          </View>
+          </Row>
         </View>
 
         {/* Filters */}
@@ -91,12 +92,12 @@ export function InviteAthleteModal({ visible, onClose, onSelect, athletes, squad
 
         {/* Selected Banner */}
         {state.selectedAthletes.length > 0 && (
-          <View style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+          <Row style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
               {state.selectedAthletes.length} athlete{state.selectedAthletes.length !== 1 ? 's' : ''} selected
             </ThemedText>
             <Clickable onPress={state.selectNone}><ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Clear</ThemedText></Clickable>
-          </View>
+          </Row>
         )}
 
         {/* List */}
@@ -109,9 +110,9 @@ export function InviteAthleteModal({ visible, onClose, onSelect, athletes, squad
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
   searchContainer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, height: 44, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
+  searchBar: { alignItems: 'center', paddingHorizontal: Spacing.md, height: 44, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
   searchInput: { ...Typography.body, flex: 1 },
-  selectedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: Spacing.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginBottom: Spacing.sm },
+  selectedBanner: { alignItems: 'center', justifyContent: 'space-between', marginHorizontal: Spacing.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginBottom: Spacing.sm },
 });

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
@@ -35,37 +36,37 @@ export const MatchInfoCard = memo(function MatchInfoCard({ match, player, palett
 
   return (
     <View style={[styles.matchInfo, { backgroundColor: palette.surface }]}>
-      <View style={styles.matchInfoRow}>
+      <Row align="center" gap="sm">
         <Ionicons name="calendar" size={18} color={palette.tint} />
         <ThemedText style={styles.matchInfoText}>{dateLabel}</ThemedText>
-      </View>
-      <View style={styles.matchInfoRow}>
+      </Row>
+      <Row align="center" gap="sm">
         <Ionicons name="time" size={18} color={palette.tint} />
         <ThemedText style={styles.matchInfoText}>
           Kickoff: {match.kickoffTime}
           {match.meetTime && ` (Meet: ${match.meetTime})`}
         </ThemedText>
-      </View>
-      <View style={styles.matchInfoRow}>
+      </Row>
+      <Row align="center" gap="sm">
         <Ionicons name="location" size={18} color={palette.tint} />
         <ThemedText style={styles.matchInfoText}>{match.venue}</ThemedText>
-      </View>
+      </Row>
       {match.address && (
         <ThemedText style={[styles.addressText, { color: palette.muted }]}>
           {match.address}
         </ThemedText>
       )}
       {player?.position && (
-        <View style={styles.matchInfoRow}>
+        <Row align="center" gap="sm">
           <Ionicons name="person" size={18} color={palette.tint} />
           <ThemedText style={styles.matchInfoText}>Position: {player.position}</ThemedText>
-        </View>
+        </Row>
       )}
       {player?.jerseyNumber && (
-        <View style={styles.matchInfoRow}>
+        <Row align="center" gap="sm">
           <Ionicons name="shirt" size={18} color={palette.tint} />
           <ThemedText style={styles.matchInfoText}>Number: {player.jerseyNumber}</ThemedText>
-        </View>
+        </Row>
       )}
     </View>
   );
@@ -130,7 +131,7 @@ export const RespondedCard = memo(function RespondedCard({
 
   return (
     <SurfaceCard style={styles.card}>
-      <View style={styles.responseHeader}>
+      <Row align="center" gap="md">
         <View
           style={[
             styles.statusIcon,
@@ -158,7 +159,7 @@ export const RespondedCard = memo(function RespondedCard({
               : 'Response recorded'}
           </ThemedText>
         </View>
-      </View>
+      </Row>
 
       {player.parentNote && (
         <View style={[styles.noteDisplay, { backgroundColor: palette.surface }]}>
@@ -202,14 +203,12 @@ export const RespondedCard = memo(function RespondedCard({
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   matchInfo: { padding: Spacing.md, borderRadius: Radii.md, gap: Spacing.sm },
-  matchInfoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   matchInfoText: { ...Typography.bodySmall, flex: 1 },
   addressText: { ...Typography.small, marginLeft: 26 },
   selectionHeader: { alignItems: 'center', gap: Spacing.sm },
   iconCircle: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   selectionTitle: { ...Typography.title, textAlign: 'center' },
   selectionMessage: { ...Typography.body, textAlign: 'center', lineHeight: 22 },
-  responseHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   statusIcon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   responseInfo: { flex: 1 },
   responseSubtext: { ...Typography.small },

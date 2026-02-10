@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { TrendDirection } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { Row } from '@/components/primitives';
 
 export interface AnalyticsStatCardProps {
   /** Label for the stat */
@@ -107,13 +108,13 @@ export function AnalyticsStatCard({
       onPress={onPress}
       tactile={!!onPress}
     >
-      <View style={styles.header}>
+      <Row style={styles.header}>
         {icon && (
           <View style={[styles.iconContainer, { backgroundColor: withAlpha(iconColor || palette.tint, 0.09) }]}>
             <Ionicons name={icon} size={20} color={iconColor || palette.tint} />
           </View>
         )}
-      </View>
+      </Row>
 
       <ThemedText style={styles.value}>
         {formatValue(value)}
@@ -124,14 +125,14 @@ export function AnalyticsStatCard({
       </ThemedText>
 
       {(trend || change !== undefined || changePercent !== undefined) && (
-        <View style={[styles.trendContainer, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
+        <Row style={[styles.trendContainer, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
           <Ionicons name={trendIcon} size={14} color={trendColor} />
           {changeText && (
             <ThemedText style={[styles.trendText, { color: trendColor }]}>
               {changeText}
             </ThemedText>
           )}
-        </View>
+        </Row>
       )}
     </SurfaceCard>
   );
@@ -145,7 +146,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   header: {
-    flexDirection: 'row',
     justifyContent: 'flex-start',
     marginBottom: Spacing.xs,
   },
@@ -160,7 +160,6 @@ const styles = StyleSheet.create({
   label: { ...Typography.smallSemiBold, textTransform: 'uppercase',
     letterSpacing: 0.5 },
   trendContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: Spacing.xxs,
