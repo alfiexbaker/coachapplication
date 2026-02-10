@@ -4,10 +4,12 @@ import type {
   JoinWaitlistParams,
   WaitlistSummary,
 } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { emitTyped, ServiceEvents } from './event-bus';
+import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
 const NOTIFICATION_EXPIRY_HOURS = 24; // Hours before notification expires
 
 const logger = createLogger('WaitlistService');
@@ -24,21 +26,21 @@ class WaitlistService {
   /**
    * Get all waitlist entries from storage
    */
-  async getAllEntries(): Promise<WaitlistEntry[]> {
-    return storageService.getItem<WaitlistEntry[]>(STORAGE_KEYS.WAITLIST, []);
+  private async getAllEntries(): Promise<WaitlistEntry[]> {
+    return apiClient.get<WaitlistEntry[]>(STORAGE_KEYS.WAITLIST, []);
   }
 
   /**
    * Save all waitlist entries to storage
    */
   private async saveEntries(entries: WaitlistEntry[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.WAITLIST, entries);
+    await apiClient.set(STORAGE_KEYS.WAITLIST, entries);
   }
 
   /**
    * Get a specific waitlist entry by ID
    */
-  async getEntryById(entryId: string): Promise<WaitlistEntry | undefined> {
+  private async getEntryById(entryId: string): Promise<WaitlistEntry | undefined> {
     const entries = await this.getAllEntries();
     return entries.find((e) => e.id === entryId);
   }
@@ -51,8 +53,9 @@ class WaitlistService {
    * Join a waitlist for a session
    * Returns the created waitlist entry
    */
-  async joinWaitlist(params: JoinWaitlistParams): Promise<WaitlistEntry> {
-    const entries = await this.getAllEntries();
+  async joinWaitlist(params: JoinWaitlistParams): Promise<Result<WaitlistEntry, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
 
     // Check if user is already on this session's waitlist
     const existing = entries.find(
@@ -67,7 +70,7 @@ class WaitlistService {
         userId: params.userId,
         sessionId: params.sessionId,
       });
-      return existing;
+      return ok(existing);
     }
 
     // Calculate position (number of people currently waiting + 1)
@@ -103,21 +106,33 @@ class WaitlistService {
       position,
       autoBook: newEntry.autoBook,
     });
+    emitTyped(ServiceEvents.WAITLIST_JOINED, {
+      entryId: newEntry.id,
+      sessionId: newEntry.sessionId,
+      userId: newEntry.userId,
+      position: newEntry.position,
+      autoBook: newEntry.autoBook,
+    });
 
-    return newEntry;
+      return ok(newEntry);
+    } catch (error) {
+      logger.error('join_waitlist_failed', { params, error });
+      return err(storageError('Failed to join waitlist'));
+    }
   }
 
   /**
    * Leave a waitlist (remove entry)
    * Updates positions of remaining users
    */
-  async leaveWaitlist(entryId: string): Promise<boolean> {
-    const entries = await this.getAllEntries();
+  async leaveWaitlist(entryId: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
     const entryIndex = entries.findIndex((e) => e.id === entryId);
 
     if (entryIndex === -1) {
       logger.warn('waitlist_entry_not_found', { entryId });
-      return false;
+      return err(notFound('Waitlist entry', entryId));
     }
 
     const entry = entries[entryIndex];
@@ -148,18 +163,34 @@ class WaitlistService {
       userId: entry.userId,
       sessionId,
     });
+    emitTyped(ServiceEvents.WAITLIST_LEFT, {
+      entryId,
+      sessionId,
+      userId: entry.userId,
+    });
 
-    return true;
+      return ok(true);
+    } catch (error) {
+      logger.error('leave_waitlist_failed', { entryId, error });
+      return err(storageError('Failed to leave waitlist'));
+    }
   }
 
   /**
    * Get all waitlist entries for a specific user
    */
-  async getUserWaitlists(userId: string): Promise<WaitlistEntry[]> {
-    const entries = await this.getAllEntries();
-    return entries
-      .filter((e) => e.userId === userId && e.status === 'WAITING')
-      .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+  async getUserWaitlists(userId: string): Promise<Result<WaitlistEntry[], ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
+      return ok(
+        entries
+          .filter((e) => e.userId === userId && e.status === 'WAITING')
+          .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()),
+      );
+    } catch (error) {
+      logger.error('get_user_waitlists_failed', { userId, error });
+      return err(storageError('Failed to load waitlists'));
+    }
   }
 
   /**
@@ -169,33 +200,42 @@ class WaitlistService {
   async getWaitlistPosition(
     userId: string,
     sessionId: string
-  ): Promise<{ position: number; totalWaiting: number; entry: WaitlistEntry } | null> {
-    const entries = await this.getAllEntries();
-    const sessionWaitlist = entries.filter(
-      (e) => e.sessionId === sessionId && e.status === 'WAITING'
-    );
-    const userEntry = sessionWaitlist.find((e) => e.userId === userId);
+  ): Promise<Result<{ position: number; totalWaiting: number; entry: WaitlistEntry } | null, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
+      const sessionWaitlist = entries.filter(
+        (e) => e.sessionId === sessionId && e.status === 'WAITING'
+      );
+      const userEntry = sessionWaitlist.find((e) => e.userId === userId);
 
-    if (!userEntry) {
-      return null;
+      if (!userEntry) {
+        return ok(null);
+      }
+
+      return ok({
+        position: userEntry.position,
+        totalWaiting: sessionWaitlist.length,
+        entry: userEntry,
+      });
+    } catch (error) {
+      logger.error('get_waitlist_position_failed', { userId, sessionId, error });
+      return err(storageError('Failed to get waitlist position'));
     }
-
-    return {
-      position: userEntry.position,
-      totalWaiting: sessionWaitlist.length,
-      entry: userEntry,
-    };
   }
 
   /**
    * Update auto-book preference for a waitlist entry
    */
-  async updateAutoBook(entryId: string, autoBook: boolean): Promise<WaitlistEntry | null> {
-    const entries = await this.getAllEntries();
+  async updateAutoBook(
+    entryId: string,
+    autoBook: boolean,
+  ): Promise<Result<WaitlistEntry | null, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
     const entryIndex = entries.findIndex((e) => e.id === entryId);
 
     if (entryIndex === -1) {
-      return null;
+      return ok(null);
     }
 
     entries[entryIndex] = {
@@ -210,7 +250,11 @@ class WaitlistService {
       autoBook,
     });
 
-    return entries[entryIndex];
+      return ok(entries[entryIndex]);
+    } catch (error) {
+      logger.error('update_autobook_failed', { entryId, autoBook, error });
+      return err(storageError('Failed to update auto-book'));
+    }
   }
 
   // ============================================================================
@@ -220,18 +264,27 @@ class WaitlistService {
   /**
    * Get all waitlist entries for a specific session
    */
-  async getSessionWaitlist(sessionId: string): Promise<WaitlistEntry[]> {
+  private async getSessionWaitlistRaw(sessionId: string): Promise<WaitlistEntry[]> {
     const entries = await this.getAllEntries();
     return entries
       .filter((e) => e.sessionId === sessionId && e.status === 'WAITING')
       .sort((a, b) => a.position - b.position);
   }
 
+  async getSessionWaitlist(sessionId: string): Promise<Result<WaitlistEntry[], ServiceError>> {
+    try {
+      return ok(await this.getSessionWaitlistRaw(sessionId));
+    } catch (error) {
+      logger.error('get_session_waitlist_failed', { sessionId, error });
+      return err(storageError('Failed to get session waitlist'));
+    }
+  }
+
   /**
    * Get waitlist summary for a session
    */
-  async getWaitlistSummary(sessionId: string, sessionTitle: string): Promise<WaitlistSummary> {
-    const waitlist = await this.getSessionWaitlist(sessionId);
+  private async getWaitlistSummary(sessionId: string, sessionTitle: string): Promise<WaitlistSummary> {
+    const waitlist = await this.getSessionWaitlistRaw(sessionId);
     const autoBookCount = waitlist.filter((e) => e.autoBook).length;
     const nextInLine = waitlist[0];
 
@@ -255,12 +308,13 @@ class WaitlistService {
    * Notify the next person in line that a spot is available
    * Sets expiry time for the notification
    */
-  async notifyNextInLine(sessionId: string): Promise<WaitlistEntry | null> {
-    const waitlist = await this.getSessionWaitlist(sessionId);
+  async notifyNextInLine(sessionId: string): Promise<Result<WaitlistEntry | null, ServiceError>> {
+    try {
+      const waitlist = await this.getSessionWaitlistRaw(sessionId);
 
     if (waitlist.length === 0) {
       logger.info('no_one_on_waitlist', { sessionId });
-      return null;
+      return ok(null);
     }
 
     const nextInLine = waitlist[0];
@@ -268,7 +322,7 @@ class WaitlistService {
     const entryIndex = entries.findIndex((e) => e.id === nextInLine.id);
 
     if (entryIndex === -1) {
-      return null;
+      return ok(null);
     }
 
     const expiresAt = new Date();
@@ -306,22 +360,25 @@ class WaitlistService {
       expiresAt: expiresAt.toISOString(),
     });
 
-    return entries[entryIndex];
+      return ok(entries[entryIndex]);
+    } catch (error) {
+      logger.error('notify_next_in_line_failed', { sessionId, error });
+      return err(storageError('Failed to notify next in line'));
+    }
   }
 
   /**
    * Promote the next person from waitlist to a booking
    * This is used when auto-book is enabled or when a coach manually promotes
    */
-  async promoteFromWaitlist(sessionId: string): Promise<{
-    success: boolean;
-    entry?: WaitlistEntry;
-    error?: string;
-  }> {
-    const waitlist = await this.getSessionWaitlist(sessionId);
+  async promoteFromWaitlist(
+    sessionId: string,
+  ): Promise<Result<{ success: boolean; entry?: WaitlistEntry; error?: string }, ServiceError>> {
+    try {
+      const waitlist = await this.getSessionWaitlistRaw(sessionId);
 
     if (waitlist.length === 0) {
-      return { success: false, error: 'No one on waitlist' };
+      return ok({ success: false, error: 'No one on waitlist' });
     }
 
     const nextInLine = waitlist[0];
@@ -329,7 +386,7 @@ class WaitlistService {
     const entryIndex = entries.findIndex((e) => e.id === nextInLine.id);
 
     if (entryIndex === -1) {
-      return { success: false, error: 'Entry not found' };
+      return ok({ success: false, error: 'Entry not found' });
     }
 
     // Mark as booked
@@ -372,19 +429,31 @@ class WaitlistService {
       userId: nextInLine.userId,
       sessionId,
     });
+    emitTyped(ServiceEvents.WAITLIST_PROMOTED, {
+      entryId: nextInLine.id,
+      sessionId,
+      userId: nextInLine.userId,
+      position: nextInLine.position,
+      autoBook: nextInLine.autoBook,
+    });
 
-    return { success: true, entry: entries[entryIndex] };
+      return ok({ success: true, entry: entries[entryIndex] });
+    } catch (error) {
+      logger.error('promote_from_waitlist_failed', { sessionId, error });
+      return err(storageError('Failed to promote from waitlist'));
+    }
   }
 
   /**
    * Remove a user from the waitlist (coach action)
    */
-  async removeFromWaitlist(entryId: string, reason?: string): Promise<boolean> {
-    const entries = await this.getAllEntries();
+  async removeFromWaitlist(entryId: string, reason?: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
     const entryIndex = entries.findIndex((e) => e.id === entryId);
 
     if (entryIndex === -1) {
-      return false;
+      return err(notFound('Waitlist entry', entryId));
     }
 
     const entry = entries[entryIndex];
@@ -427,14 +496,24 @@ class WaitlistService {
       sessionId,
       reason,
     });
+    emitTyped(ServiceEvents.WAITLIST_LEFT, {
+      entryId,
+      sessionId,
+      userId: entry.userId,
+      reason,
+    });
 
-    return true;
+      return ok(true);
+    } catch (error) {
+      logger.error('remove_from_waitlist_failed', { entryId, reason, error });
+      return err(storageError('Failed to remove from waitlist'));
+    }
   }
 
   /**
    * Get all waitlists for sessions managed by a coach
    */
-  async getCoachWaitlists(coachId: string): Promise<WaitlistEntry[]> {
+  private async getCoachWaitlists(coachId: string): Promise<WaitlistEntry[]> {
     const entries = await this.getAllEntries();
     return entries
       .filter((e) => e.coachId === coachId && e.status === 'WAITING')
@@ -450,8 +529,9 @@ class WaitlistService {
   /**
    * Get waitlist summaries for all sessions managed by a coach
    */
-  async getCoachWaitlistSummaries(coachId: string): Promise<WaitlistSummary[]> {
-    const entries = await this.getCoachWaitlists(coachId);
+  async getCoachWaitlistSummaries(coachId: string): Promise<Result<WaitlistSummary[], ServiceError>> {
+    try {
+      const entries = await this.getCoachWaitlists(coachId);
 
     // Group by sessionId
     const sessionMap = new Map<string, WaitlistEntry[]>();
@@ -480,7 +560,11 @@ class WaitlistService {
       });
     });
 
-    return summaries;
+      return ok(summaries);
+    } catch (error) {
+      logger.error('get_coach_waitlist_summaries_failed', { coachId, error });
+      return err(storageError('Failed to get coach waitlist summaries'));
+    }
   }
 
   // ============================================================================
@@ -491,64 +575,74 @@ class WaitlistService {
    * Expire notifications that have passed their deadline
    * Moves expired notified entries back to waiting (next in line)
    */
-  async expireNotifications(): Promise<number> {
-    const entries = await this.getAllEntries();
-    const now = new Date();
-    let expiredCount = 0;
+  async expireNotifications(): Promise<Result<number, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
+      const now = new Date();
+      let expiredCount = 0;
 
-    entries.forEach((entry, index) => {
-      if (
-        entry.status === 'NOTIFIED' &&
-        entry.expiresAt &&
-        new Date(entry.expiresAt) < now
-      ) {
-        entries[index] = {
-          ...entry,
-          status: 'EXPIRED' as WaitlistStatus,
-        };
-        expiredCount++;
+      entries.forEach((entry, index) => {
+        if (
+          entry.status === 'NOTIFIED' &&
+          entry.expiresAt &&
+          new Date(entry.expiresAt) < now
+        ) {
+          entries[index] = {
+            ...entry,
+            status: 'EXPIRED' as WaitlistStatus,
+          };
+          expiredCount++;
 
-        logger.info('notification_expired', {
-          entryId: entry.id,
-          userId: entry.userId,
-          sessionId: entry.sessionId,
-        });
+          logger.info('notification_expired', {
+            entryId: entry.id,
+            userId: entry.userId,
+            sessionId: entry.sessionId,
+          });
+        }
+      });
+
+      if (expiredCount > 0) {
+        await this.saveEntries(entries);
       }
-    });
 
-    if (expiredCount > 0) {
-      await this.saveEntries(entries);
+      return ok(expiredCount);
+    } catch (error) {
+      logger.error('expire_notifications_failed', { error });
+      return err(storageError('Failed to expire notifications'));
     }
-
-    return expiredCount;
   }
 
   /**
    * Clean up old entries (completed, expired, removed)
    * Keeps entries for a specified number of days for history
    */
-  async cleanupOldEntries(daysToKeep: number = 30): Promise<number> {
-    const entries = await this.getAllEntries();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+  async cleanupOldEntries(daysToKeep: number = 30): Promise<Result<number, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    const activeStatuses: WaitlistStatus[] = ['WAITING', 'NOTIFIED'];
-    const toKeep = entries.filter((entry) => {
-      if (activeStatuses.includes(entry.status)) {
-        return true;
+      const activeStatuses: WaitlistStatus[] = ['WAITING', 'NOTIFIED'];
+      const toKeep = entries.filter((entry) => {
+        if (activeStatuses.includes(entry.status)) {
+          return true;
+        }
+        // Keep recent completed/expired/removed entries
+        return new Date(entry.joinedAt) > cutoffDate;
+      });
+
+      const removedCount = entries.length - toKeep.length;
+
+      if (removedCount > 0) {
+        await this.saveEntries(toKeep);
+        logger.info('old_entries_cleaned', { removedCount });
       }
-      // Keep recent completed/expired/removed entries
-      return new Date(entry.joinedAt) > cutoffDate;
-    });
 
-    const removedCount = entries.length - toKeep.length;
-
-    if (removedCount > 0) {
-      await this.saveEntries(toKeep);
-      logger.info('old_entries_cleaned', { removedCount });
+      return ok(removedCount);
+    } catch (error) {
+      logger.error('cleanup_old_entries_failed', { daysToKeep, error });
+      return err(storageError('Failed to cleanup old waitlist entries'));
     }
-
-    return removedCount;
   }
 
   // ============================================================================
@@ -558,22 +652,32 @@ class WaitlistService {
   /**
    * Check if a user is on the waitlist for a session
    */
-  async isUserOnWaitlist(userId: string, sessionId: string): Promise<boolean> {
-    const entries = await this.getAllEntries();
-    return entries.some(
-      (e) =>
-        e.userId === userId &&
-        e.sessionId === sessionId &&
-        (e.status === 'WAITING' || e.status === 'NOTIFIED')
-    );
+  async isUserOnWaitlist(userId: string, sessionId: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      const entries = await this.getAllEntries();
+      return ok(
+        entries.some(
+          (e) =>
+            e.userId === userId &&
+            e.sessionId === sessionId &&
+            (e.status === 'WAITING' || e.status === 'NOTIFIED')
+        ),
+      );
+    } catch (error) {
+      logger.error('is_user_on_waitlist_failed', { userId, sessionId, error });
+      return err(storageError('Failed to check waitlist membership'));
+    }
   }
 
   /**
    * Get the count of people waiting for a session
    */
-  async getWaitlistCount(sessionId: string): Promise<number> {
-    const waitlist = await this.getSessionWaitlist(sessionId);
-    return waitlist.length;
+  async getWaitlistCount(sessionId: string): Promise<Result<number, ServiceError>> {
+    const waitlistResult = await this.getSessionWaitlist(sessionId);
+    if (!waitlistResult.success) {
+      return waitlistResult;
+    }
+    return ok(waitlistResult.data.length);
   }
 
   /**
@@ -611,8 +715,9 @@ class WaitlistService {
   /**
    * Seed demo waitlist entries for testing
    */
-  async seedDemoData(): Promise<void> {
-    const demoEntries: WaitlistEntry[] = [
+  async seedDemoData(): Promise<Result<void, ServiceError>> {
+    try {
+      const demoEntries: WaitlistEntry[] = [
       {
         id: 'waitlist_demo_1',
         userId: 'parent1',
@@ -655,10 +760,15 @@ class WaitlistService {
         autoBook: false,
         status: 'WAITING',
       },
-    ];
+      ];
 
-    await this.saveEntries(demoEntries);
-    logger.info('demo_waitlist_data_seeded', { count: demoEntries.length });
+      await this.saveEntries(demoEntries);
+      logger.info('demo_waitlist_data_seeded', { count: demoEntries.length });
+      return ok(undefined);
+    } catch (error) {
+      logger.error('seed_demo_waitlist_data_failed', { error });
+      return err(storageError('Failed to seed demo waitlist data'));
+    }
   }
 }
 

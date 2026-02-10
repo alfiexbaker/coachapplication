@@ -5,11 +5,12 @@
  * Single responsibility: notification data management.
  */
 
-import { storageService } from '../storage-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import type { NotificationItem } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('NotificationStore');
 
@@ -37,123 +38,183 @@ class NotificationStore {
   /**
    * Get all notifications.
    */
-  async list(): Promise<ExtendedNotificationItem[]> {
-    return storageService.getItem<ExtendedNotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+  async list(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    try {
+      return ok(await apiClient.get<ExtendedNotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []));
+    } catch (error) {
+      logger.error('Failed to list notifications', error);
+      return err(storageError('Failed to load notifications'));
+    }
   }
 
   /**
    * Create a new notification.
    */
-  async create(notification: ExtendedNotificationItem): Promise<ExtendedNotificationItem[]> {
-    const fullNotification: ExtendedNotificationItem = {
-      ...notification,
-      createdAt: notification.createdAt || new Date().toISOString(),
-      read: notification.read ?? false,
-    };
+  async create(notification: ExtendedNotificationItem): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    try {
+      const fullNotification: ExtendedNotificationItem = {
+        ...notification,
+        createdAt: notification.createdAt || new Date().toISOString(),
+        read: notification.read ?? false,
+      };
 
-    const current = await this.list();
-    const updated = [fullNotification, ...current];
-    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
+      const currentResult = await this.list();
+      if (!currentResult.success) {
+        return currentResult;
+      }
+      const updated = [fullNotification, ...currentResult.data];
+      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
 
-    // Notify in-app listeners for toasts
-    this.notifyListeners(fullNotification);
+      // Notify in-app listeners for toasts
+      this.notifyListeners(fullNotification);
 
-    // Emit event for other services
-    emitTyped(ServiceEvents.NOTIFICATION_CREATED, {
-      notificationId: notification.id,
-      userId: notification.recipientId ?? '',
-      type: notification.type,
-    });
+      // Emit event for other services
+      emitTyped(ServiceEvents.NOTIFICATION_CREATED, {
+        notificationId: notification.id,
+        userId: notification.recipientId ?? '',
+        type: notification.type,
+      });
 
-    logger.info('Notification created', {
-      id: notification.id,
-      type: notification.type,
-      recipientId: notification.recipientId,
-    });
+      logger.info('Notification created', {
+        id: notification.id,
+        type: notification.type,
+        recipientId: notification.recipientId,
+      });
 
-    return updated;
+      return ok(updated);
+    } catch (error) {
+      logger.error('Failed to create notification', { notification, error });
+      return err(storageError('Failed to create notification'));
+    }
   }
 
   /**
    * Mark a notification as read.
    */
-  async markAsRead(id: string): Promise<ExtendedNotificationItem[]> {
-    const current = await this.list();
-    const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
-    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
+  async markAsRead(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    try {
+      const currentResult = await this.list();
+      if (!currentResult.success) {
+        return currentResult;
+      }
+      const updated = currentResult.data.map((n) => (n.id === id ? { ...n, read: true } : n));
+      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
 
-    emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
+      emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
 
-    return updated;
+      return ok(updated);
+    } catch (error) {
+      logger.error('Failed to mark notification as read', { id, error });
+      return err(storageError('Failed to update notification'));
+    }
   }
 
   /**
    * Mark all notifications as read.
    */
-  async markAllAsRead(): Promise<ExtendedNotificationItem[]> {
-    const current = await this.list();
-    const updated = current.map((n) => ({ ...n, read: true }));
-    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
-    return updated;
+  async markAllAsRead(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    try {
+      const currentResult = await this.list();
+      if (!currentResult.success) {
+        return currentResult;
+      }
+      const updated = currentResult.data.map((n) => ({ ...n, read: true }));
+      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      return ok(updated);
+    } catch (error) {
+      logger.error('Failed to mark all notifications as read', error);
+      return err(storageError('Failed to update notifications'));
+    }
   }
 
   /**
    * Mark a notification as handled (read + processed).
    */
-  async markHandled(id: string): Promise<ExtendedNotificationItem | undefined> {
-    const current = await this.list();
-    const updated = current.map((n) =>
-      n.id === id ? { ...n, read: true, handled: true } : n
-    );
-    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
-    return updated.find((n) => n.id === id);
+  async markHandled(id: string): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
+    try {
+      const currentResult = await this.list();
+      if (!currentResult.success) {
+        return currentResult;
+      }
+      const updated = currentResult.data.map((n) =>
+        n.id === id ? { ...n, read: true, handled: true } : n
+      );
+      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
+      return ok(updated.find((n) => n.id === id));
+    } catch (error) {
+      logger.error('Failed to mark notification as handled', { id, error });
+      return err(storageError('Failed to update notification'));
+    }
   }
 
   /**
    * Dismiss a notification.
    */
-  async dismiss(id: string): Promise<ExtendedNotificationItem[]> {
-    const current = await this.list();
-    const updated = current.filter((n) => n.id !== id);
-    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
+  async dismiss(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    try {
+      const currentResult = await this.list();
+      if (!currentResult.success) {
+        return currentResult;
+      }
+      const updated = currentResult.data.filter((n) => n.id !== id);
+      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
 
-    emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
+      emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
 
-    return updated;
+      return ok(updated);
+    } catch (error) {
+      logger.error('Failed to dismiss notification', { id, error });
+      return err(storageError('Failed to dismiss notification'));
+    }
   }
 
   /**
    * Clear all notifications.
    */
-  async clearAll(): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, []);
+  async clearAll(): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, []);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to clear notifications', error);
+      return err(storageError('Failed to clear notifications'));
+    }
   }
 
   /**
    * Get unread count for a user.
    */
-  async getUnreadCount(recipientId?: string): Promise<number> {
-    const notifications = await this.list();
+  async getUnreadCount(recipientId?: string): Promise<Result<number, ServiceError>> {
+    const listResult = await this.list();
+    if (!listResult.success) {
+      return listResult;
+    }
     const filtered = recipientId
-      ? notifications.filter((n) => n.recipientId === recipientId)
-      : notifications;
-    return filtered.filter((n) => !n.read).length;
+      ? listResult.data.filter((n) => n.recipientId === recipientId)
+      : listResult.data;
+    return ok(filtered.filter((n) => !n.read).length);
   }
 
   /**
    * Get notifications for a specific recipient.
    */
-  async getByRecipient(recipientId: string): Promise<ExtendedNotificationItem[]> {
-    const notifications = await this.list();
-    return notifications.filter((n) => n.recipientId === recipientId);
+  async getByRecipient(recipientId: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    const listResult = await this.list();
+    if (!listResult.success) {
+      return listResult;
+    }
+    return ok(listResult.data.filter((n) => n.recipientId === recipientId));
   }
 
   /**
    * Get notifications by type.
    */
-  async getByType(type: NotificationItem['type']): Promise<ExtendedNotificationItem[]> {
-    const notifications = await this.list();
-    return notifications.filter((n) => n.type === type);
+  async getByType(type: NotificationItem['type']): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+    const listResult = await this.list();
+    if (!listResult.success) {
+      return listResult;
+    }
+    return ok(listResult.data.filter((n) => n.type === type));
   }
 
   /**

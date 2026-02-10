@@ -156,6 +156,35 @@ export const ServiceEvents = {
   NOTIFICATION_READ: 'notification:read',
   NOTIFICATION_DISMISSED: 'notification:dismissed',
 
+  // Messaging events
+  MESSAGE_SENT: 'message:sent',
+  MESSAGE_EDITED: 'message:edited',
+  MESSAGE_DELETED: 'message:deleted',
+
+  // Waitlist events
+  WAITLIST_JOINED: 'waitlist:joined',
+  WAITLIST_LEFT: 'waitlist:left',
+  WAITLIST_PROMOTED: 'waitlist:promoted',
+
+  // Counter-offer events
+  COUNTER_OFFER_CREATED: 'counter_offer:created',
+  COUNTER_OFFER_ACCEPTED: 'counter_offer:accepted',
+  COUNTER_OFFER_REJECTED: 'counter_offer:rejected',
+
+  // Recurring booking events
+  RECURRING_CREATED: 'recurring:created',
+  RECURRING_CANCELLED: 'recurring:cancelled',
+
+  // Verification events
+  VERIFICATION_UPDATED: 'verification:updated',
+
+  // Favourite events
+  FAVOURITE_ADDED: 'favourite:added',
+  FAVOURITE_REMOVED: 'favourite:removed',
+
+  // Cancellation events
+  CANCELLATION_RECORDED: 'cancellation:recorded',
+
   // Club events
   CLUB_MEMBER_JOINED: 'club:member:joined',
   CLUB_MEMBER_LEFT: 'club:member:left',
@@ -415,6 +444,113 @@ export interface EventPayloads {
   };
   [ServiceEvents.NOTIFICATION_DISMISSED]: {
     notificationId: string;
+  };
+
+  // Messaging events
+  [ServiceEvents.MESSAGE_SENT]: {
+    threadId: string;
+    messageId: string;
+    sender: 'parent' | 'coach';
+    senderName?: string;
+    attachmentsCount: number;
+    createdAt: string;
+  };
+  [ServiceEvents.MESSAGE_EDITED]: {
+    threadId: string;
+    messageId: string;
+    status: 'pending' | 'sent' | 'delivered' | 'seen';
+  };
+  [ServiceEvents.MESSAGE_DELETED]: {
+    threadId: string;
+    messageId: string;
+  };
+
+  // Waitlist events
+  [ServiceEvents.WAITLIST_JOINED]: {
+    entryId: string;
+    sessionId: string;
+    userId: string;
+    position: number;
+    autoBook: boolean;
+  };
+  [ServiceEvents.WAITLIST_LEFT]: {
+    entryId: string;
+    sessionId: string;
+    userId: string;
+    reason?: string;
+  };
+  [ServiceEvents.WAITLIST_PROMOTED]: {
+    entryId: string;
+    sessionId: string;
+    userId: string;
+    position: number;
+    autoBook: boolean;
+  };
+
+  // Counter-offer events
+  [ServiceEvents.COUNTER_OFFER_CREATED]: {
+    offerId: string;
+    bookingId: string;
+    proposedBy: string;
+    proposerId: string;
+    proposerName: string;
+    expiresAt: string;
+  };
+  [ServiceEvents.COUNTER_OFFER_ACCEPTED]: {
+    offerId: string;
+    bookingId: string;
+    respondedAt: string;
+  };
+  [ServiceEvents.COUNTER_OFFER_REJECTED]: {
+    offerId: string;
+    bookingId: string;
+    respondedAt: string;
+    reason?: string;
+  };
+
+  // Recurring booking events
+  [ServiceEvents.RECURRING_CREATED]: {
+    recurringId: string;
+    userId: string;
+    coachId: string;
+    frequency: string;
+    status: string;
+  };
+  [ServiceEvents.RECURRING_CANCELLED]: {
+    recurringId: string;
+    userId: string;
+    coachId: string;
+    reason?: string;
+  };
+
+  // Verification events
+  [ServiceEvents.VERIFICATION_UPDATED]: {
+    coachId: string;
+    field: 'email' | 'phone' | 'identity' | 'backgroundCheck' | 'insurance' | 'credentials';
+    status: string;
+    overallLevel: string;
+    lastUpdated: string;
+  };
+
+  // Favourite events
+  [ServiceEvents.FAVOURITE_ADDED]: {
+    userId: string;
+    coachId: string;
+    favouriteId: string;
+  };
+  [ServiceEvents.FAVOURITE_REMOVED]: {
+    userId: string;
+    coachId: string;
+    favouriteId: string;
+  };
+
+  // Cancellation events
+  [ServiceEvents.CANCELLATION_RECORDED]: {
+    cancellationId: string;
+    bookingId: string;
+    cancelledBy: 'parent' | 'coach';
+    coachId: string;
+    familyId?: string;
   };
 
   // Club events

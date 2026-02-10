@@ -9,9 +9,10 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.skillProgressService = void 0;
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
 const skill_definition_service_1 = require("./skill-definition-service");
+const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('SkillProgressService');
 // ============================================================================
@@ -22,24 +23,41 @@ class SkillProgressService {
      * Get user's progress on all skill trees
      */
     async getAllUserProgress(userId) {
-        const allProgress = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
-        return allProgress[userId] ?? {};
+        try {
+            const allProgress = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
+            return (0, result_1.ok)(allProgress[userId] ?? {});
+        }
+        catch (error) {
+            logger.error('get_all_user_progress_failed', { userId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load skill progress'));
+        }
     }
     /**
      * Get user's progress on a specific skill tree
      */
     async getUserProgress(userId, treeId) {
-        const allUserProgress = await this.getAllUserProgress(userId);
-        return allUserProgress[treeId] ?? null;
+        const allUserProgressResult = await this.getAllUserProgress(userId);
+        if (!allUserProgressResult.success) {
+            return (0, result_1.err)(allUserProgressResult.error);
+        }
+        return (0, result_1.ok)(allUserProgressResult.data[treeId] ?? null);
     }
     /**
      * Get a skill tree with user progress merged in
      */
     async getSkillTreeWithProgress(userId, category) {
-        const tree = await skill_definition_service_1.skillDefinitionService.getSkillTree(category);
+        const treeResult = await skill_definition_service_1.skillDefinitionService.getSkillTree(category);
+        if (!treeResult.success) {
+            return (0, result_1.err)(treeResult.error);
+        }
+        const tree = treeResult.data;
         if (!tree)
-            return null;
-        const progress = await this.getUserProgress(userId, tree.id);
+            return (0, result_1.ok)(null);
+        const progressResult = await this.getUserProgress(userId, tree.id);
+        if (!progressResult.success) {
+            return (0, result_1.err)(progressResult.error);
+        }
+        const progress = progressResult.data;
         // Merge progress into nodes
         const nodesWithProgress = tree.nodes.map((node) => {
             const nodeProgress = progress?.nodeProgress[node.id];
@@ -58,20 +76,28 @@ class SkillProgressService {
         const progressPercent = tree.totalNodes > 0
             ? Math.round((unlockedNodes / tree.totalNodes) * 100)
             : 0;
-        return {
+        return (0, result_1.ok)({
             ...tree,
             nodes: nodesWithProgress,
             unlockedNodes,
             progressPercent,
-        };
+        });
     }
     /**
      * Get all skill trees with user progress
      */
     async getAllSkillTreesWithProgress(userId) {
-        const trees = await skill_definition_service_1.skillDefinitionService.getSkillTrees();
-        const userProgress = await this.getAllUserProgress(userId);
-        return trees.map((tree) => {
+        const treesResult = await skill_definition_service_1.skillDefinitionService.getSkillTrees();
+        if (!treesResult.success) {
+            return (0, result_1.err)(treesResult.error);
+        }
+        const userProgressResult = await this.getAllUserProgress(userId);
+        if (!userProgressResult.success) {
+            return (0, result_1.err)(userProgressResult.error);
+        }
+        const trees = treesResult.data;
+        const userProgress = userProgressResult.data;
+        return (0, result_1.ok)(trees.map((tree) => {
             const progress = userProgress[tree.id];
             const nodesWithProgress = tree.nodes.map((node) => {
                 const nodeProgress = progress?.nodeProgress[node.id];
@@ -95,142 +121,163 @@ class SkillProgressService {
                 unlockedNodes,
                 progressPercent,
             };
-        });
+        }));
     }
     /**
      * Add XP to a skill node
      * Returns progress info or null if operation failed
      */
     async addXpToNode(userId, nodeId, xpAmount) {
-        // Find the node and its tree
-        const nodeResult = skill_definition_service_1.skillDefinitionService.findNodeById(nodeId);
-        if (!nodeResult) {
-            logger.warn('node_not_found', { nodeId });
-            return null;
-        }
-        const { tree: targetTree, node: targetNode } = nodeResult;
-        // Check if prerequisites are met
-        const userProgress = await this.getAllUserProgress(userId);
-        const treeProgress = userProgress[targetTree.id];
-        for (const prereqId of targetNode.prerequisites) {
-            const prereqProgress = treeProgress?.nodeProgress[prereqId];
-            if (!prereqProgress?.isUnlocked) {
-                logger.warn('prerequisites_not_met', {
+        try {
+            // Find the node and its tree
+            const nodeResult = skill_definition_service_1.skillDefinitionService.findNodeById(nodeId);
+            if (!nodeResult) {
+                logger.warn('node_not_found', { nodeId });
+                return (0, result_1.err)((0, result_1.validationError)('Skill node not found'));
+            }
+            const { tree: targetTree, node: targetNode } = nodeResult;
+            // Check if prerequisites are met
+            const userProgressResult = await this.getAllUserProgress(userId);
+            if (!userProgressResult.success) {
+                return (0, result_1.err)(userProgressResult.error);
+            }
+            const userProgress = userProgressResult.data;
+            const treeProgress = userProgress[targetTree.id];
+            for (const prereqId of targetNode.prerequisites) {
+                const prereqProgress = treeProgress?.nodeProgress[prereqId];
+                if (!prereqProgress?.isUnlocked) {
+                    logger.warn('prerequisites_not_met', {
+                        nodeId,
+                        missingPrereq: prereqId,
+                    });
+                    return (0, result_1.err)((0, result_1.validationError)('Skill prerequisites not met', {
+                        nodeId,
+                        missingPrereq: prereqId,
+                    }));
+                }
+            }
+            // Get or create node progress
+            const allProgress = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
+            if (!allProgress[userId]) {
+                allProgress[userId] = {};
+            }
+            if (!allProgress[userId][targetTree.id]) {
+                allProgress[userId][targetTree.id] = {
+                    userId,
+                    treeId: targetTree.id,
+                    category: targetTree.category,
+                    nodeProgress: {},
+                    totalXp: 0,
+                    nodesUnlocked: 0,
+                    totalNodes: targetTree.totalNodes,
+                    percentComplete: 0,
+                    lastUpdatedAt: new Date().toISOString(),
+                };
+            }
+            const currentTreeProgress = allProgress[userId][targetTree.id];
+            if (!currentTreeProgress.nodeProgress[nodeId]) {
+                currentTreeProgress.nodeProgress[nodeId] = {
                     nodeId,
-                    missingPrereq: prereqId,
+                    currentXp: 0,
+                    maxXp: targetNode.xpRequired,
+                    currentLevel: 0,
+                    maxLevel: targetNode.level,
+                    isUnlocked: false,
+                    lastUpdatedAt: new Date().toISOString(),
+                };
+            }
+            const nodeProgress = currentTreeProgress.nodeProgress[nodeId];
+            const wasUnlocked = nodeProgress.isUnlocked;
+            // Add XP
+            nodeProgress.currentXp = Math.min(nodeProgress.currentXp + xpAmount, nodeProgress.maxXp);
+            nodeProgress.lastUpdatedAt = new Date().toISOString();
+            // Check if node is now unlocked
+            let justUnlocked = false;
+            let badgeId;
+            if (!wasUnlocked && nodeProgress.currentXp >= nodeProgress.maxXp) {
+                nodeProgress.isUnlocked = true;
+                nodeProgress.unlockedAt = new Date().toISOString();
+                nodeProgress.currentLevel = targetNode.level;
+                justUnlocked = true;
+                // Update tree-level stats
+                currentTreeProgress.nodesUnlocked += 1;
+                currentTreeProgress.percentComplete = Math.round((currentTreeProgress.nodesUnlocked / currentTreeProgress.totalNodes) *
+                    100);
+                logger.info('skill_node_unlocked', {
+                    userId,
+                    nodeId,
+                    nodeName: targetNode.name,
+                    treeId: targetTree.id,
                 });
-                return null;
+                // Return badge ID if applicable (achievement service will handle awarding)
+                if (targetNode.badgeId) {
+                    badgeId = targetNode.badgeId;
+                }
             }
-        }
-        // Get or create node progress
-        const allProgress = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
-        if (!allProgress[userId]) {
-            allProgress[userId] = {};
-        }
-        if (!allProgress[userId][targetTree.id]) {
-            allProgress[userId][targetTree.id] = {
-                userId,
-                treeId: targetTree.id,
-                category: targetTree.category,
-                nodeProgress: {},
-                totalXp: 0,
-                nodesUnlocked: 0,
-                totalNodes: targetTree.totalNodes,
-                percentComplete: 0,
-                lastUpdatedAt: new Date().toISOString(),
-            };
-        }
-        const currentTreeProgress = allProgress[userId][targetTree.id];
-        if (!currentTreeProgress.nodeProgress[nodeId]) {
-            currentTreeProgress.nodeProgress[nodeId] = {
-                nodeId,
-                currentXp: 0,
-                maxXp: targetNode.xpRequired,
-                currentLevel: 0,
-                maxLevel: targetNode.level,
-                isUnlocked: false,
-                lastUpdatedAt: new Date().toISOString(),
-            };
-        }
-        const nodeProgress = currentTreeProgress.nodeProgress[nodeId];
-        const wasUnlocked = nodeProgress.isUnlocked;
-        // Add XP
-        nodeProgress.currentXp = Math.min(nodeProgress.currentXp + xpAmount, nodeProgress.maxXp);
-        nodeProgress.lastUpdatedAt = new Date().toISOString();
-        // Check if node is now unlocked
-        let justUnlocked = false;
-        let badgeId;
-        if (!wasUnlocked && nodeProgress.currentXp >= nodeProgress.maxXp) {
-            nodeProgress.isUnlocked = true;
-            nodeProgress.unlockedAt = new Date().toISOString();
-            nodeProgress.currentLevel = targetNode.level;
-            justUnlocked = true;
-            // Update tree-level stats
-            currentTreeProgress.nodesUnlocked += 1;
-            currentTreeProgress.percentComplete = Math.round((currentTreeProgress.nodesUnlocked / currentTreeProgress.totalNodes) *
-                100);
-            logger.info('skill_node_unlocked', {
+            // Update total XP
+            currentTreeProgress.totalXp = Object.values(currentTreeProgress.nodeProgress).reduce((sum, np) => sum + np.currentXp, 0);
+            currentTreeProgress.lastUpdatedAt = new Date().toISOString();
+            // Save progress
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, allProgress);
+            logger.info('xp_added_to_node', {
                 userId,
                 nodeId,
-                nodeName: targetNode.name,
-                treeId: targetTree.id,
+                xpAmount,
+                newTotal: nodeProgress.currentXp,
+                justUnlocked,
             });
-            // Return badge ID if applicable (achievement service will handle awarding)
-            if (targetNode.badgeId) {
-                badgeId = targetNode.badgeId;
-            }
+            return (0, result_1.ok)({
+                node: {
+                    ...targetNode,
+                    isUnlocked: nodeProgress.isUnlocked,
+                    progress: Math.round((nodeProgress.currentXp / nodeProgress.maxXp) * 100),
+                    xpCurrent: nodeProgress.currentXp,
+                },
+                progress: nodeProgress,
+                justUnlocked,
+                badgeId,
+            });
         }
-        // Update total XP
-        currentTreeProgress.totalXp = Object.values(currentTreeProgress.nodeProgress).reduce((sum, np) => sum + np.currentXp, 0);
-        currentTreeProgress.lastUpdatedAt = new Date().toISOString();
-        // Save progress
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, allProgress);
-        logger.info('xp_added_to_node', {
-            userId,
-            nodeId,
-            xpAmount,
-            newTotal: nodeProgress.currentXp,
-            justUnlocked,
-        });
-        return {
-            node: {
-                ...targetNode,
-                isUnlocked: nodeProgress.isUnlocked,
-                progress: Math.round((nodeProgress.currentXp / nodeProgress.maxXp) * 100),
-                xpCurrent: nodeProgress.currentXp,
-            },
-            progress: nodeProgress,
-            justUnlocked,
-            badgeId,
-        };
+        catch (error) {
+            logger.error('add_xp_to_node_failed', { userId, nodeId, xpAmount, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to add XP to skill node'));
+        }
     }
     /**
      * Calculate overall tree progress for a user
      */
     async calculateTreeProgress(userId, treeId) {
-        const progress = await this.getUserProgress(userId, treeId);
+        const progressResult = await this.getUserProgress(userId, treeId);
+        if (!progressResult.success) {
+            return (0, result_1.err)(progressResult.error);
+        }
+        const progress = progressResult.data;
         if (!progress) {
             const tree = skill_definition_service_1.SKILL_TREES.find((t) => t.id === treeId);
-            return {
+            return (0, result_1.ok)({
                 totalNodes: tree?.totalNodes ?? 0,
                 unlockedNodes: 0,
                 percentComplete: 0,
                 totalXp: 0,
-            };
+            });
         }
-        return {
+        return (0, result_1.ok)({
             totalNodes: progress.totalNodes,
             unlockedNodes: progress.nodesUnlocked,
             percentComplete: progress.percentComplete,
             totalXp: progress.totalXp,
-        };
+        });
     }
     /**
      * Get summary of all trees for a user
      */
     async getTreesSummary(userId) {
-        const trees = await this.getAllSkillTreesWithProgress(userId);
-        return trees.map((tree) => ({
+        const treesResult = await this.getAllSkillTreesWithProgress(userId);
+        if (!treesResult.success) {
+            return (0, result_1.err)(treesResult.error);
+        }
+        const trees = treesResult.data;
+        return (0, result_1.ok)(trees.map((tree) => ({
             treeId: tree.id,
             category: tree.category,
             name: tree.name,
@@ -239,7 +286,7 @@ class SkillProgressService {
             totalNodes: tree.totalNodes,
             unlockedNodes: tree.unlockedNodes,
             percentComplete: tree.progressPercent,
-        }));
+        })));
     }
     /**
      * Check if a node can be unlocked (prerequisites met)
@@ -248,25 +295,36 @@ class SkillProgressService {
         // Find the node
         const nodeResult = skill_definition_service_1.skillDefinitionService.findNodeById(nodeId);
         if (!nodeResult)
-            return false;
+            return (0, result_1.ok)(false);
         const { tree: targetTree, node: targetNode } = nodeResult;
         // No prerequisites = can unlock
         if (targetNode.prerequisites.length === 0)
-            return true;
+            return (0, result_1.ok)(true);
         // Check prerequisites
-        const progress = await this.getUserProgress(userId, targetTree.id);
+        const progressResult = await this.getUserProgress(userId, targetTree.id);
+        if (!progressResult.success) {
+            return (0, result_1.err)(progressResult.error);
+        }
+        const progress = progressResult.data;
         if (!progress)
-            return false;
-        return targetNode.prerequisites.every((prereqId) => progress.nodeProgress[prereqId]?.isUnlocked === true);
+            return (0, result_1.ok)(false);
+        return (0, result_1.ok)(targetNode.prerequisites.every((prereqId) => progress.nodeProgress[prereqId]?.isUnlocked === true));
     }
     /**
      * Reset progress for a user (for testing)
      */
     async resetUserProgress(userId) {
-        const allProgress = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
-        delete allProgress[userId];
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, allProgress);
-        logger.info('user_progress_reset', { userId });
+        try {
+            const allProgress = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
+            delete allProgress[userId];
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SKILL_TREE_PROGRESS, allProgress);
+            logger.info('user_progress_reset', { userId });
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('reset_user_progress_failed', { userId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to reset user skill progress'));
+        }
     }
     /**
      * Initialize mock progress for demo purposes
@@ -286,9 +344,13 @@ class SkillProgressService {
             { nodeId: 'tact_1_position', xp: 60 },
         ];
         for (const item of nodesToProgress) {
-            await this.addXpToNode(userId, item.nodeId, item.xp);
+            const result = await this.addXpToNode(userId, item.nodeId, item.xp);
+            if (!result.success) {
+                return (0, result_1.err)(result.error);
+            }
         }
         logger.info('mock_progress_initialized', { userId });
+        return (0, result_1.ok)(undefined);
     }
 }
 // Export singleton instance

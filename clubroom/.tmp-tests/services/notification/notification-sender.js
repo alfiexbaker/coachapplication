@@ -10,6 +10,7 @@ exports.notificationSenderService = void 0;
 const notification_store_1 = require("./notification-store");
 const notification_preferences_1 = require("./notification-preferences");
 const logger_1 = require("@/utils/logger");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('NotificationSender');
 class NotificationSenderService {
     /**
@@ -18,22 +19,34 @@ class NotificationSenderService {
     async send(notification) {
         // Check if user wants this notification
         if (notification.recipientId && notification.notificationType) {
-            const shouldSend = await notification_preferences_1.notificationPreferencesService.shouldSendNotification(notification.recipientId, notification.notificationType, 'PUSH');
-            if (!shouldSend) {
+            const shouldSendResult = await notification_preferences_1.notificationPreferencesService.shouldSendNotification(notification.recipientId, notification.notificationType, 'PUSH');
+            if (!shouldSendResult.success) {
+                logger.error('Failed to evaluate notification preferences', {
+                    recipientId: notification.recipientId,
+                    type: notification.notificationType,
+                    error: shouldSendResult.error,
+                });
+                return shouldSendResult;
+            }
+            if (!shouldSendResult.data) {
                 logger.info('Notification suppressed by preferences', {
                     recipientId: notification.recipientId,
                     type: notification.notificationType,
                 });
-                return;
+                return (0, result_1.ok)(undefined);
             }
         }
-        await notification_store_1.notificationStore.create(notification);
+        const createResult = await notification_store_1.notificationStore.create(notification);
+        if (!createResult.success) {
+            return (0, result_1.err)((0, result_1.storageError)(createResult.error.message));
+        }
+        return (0, result_1.ok)(undefined);
     }
     // ============================================================================
     // COACH NOTIFICATIONS
     // ============================================================================
     async notifyCoachNewBooking(params) {
-        await this.send({
+        return this.send({
             id: `notif_booking_${Date.now()}`,
             type: 'booking',
             notificationType: 'BOOKING_RECEIVED',
@@ -51,7 +64,7 @@ class NotificationSenderService {
         });
     }
     async notifyCoachBookingCancelled(params) {
-        await this.send({
+        return this.send({
             id: `notif_cancel_${Date.now()}`,
             type: 'booking',
             notificationType: 'BOOKING_CANCELLED',
@@ -65,7 +78,7 @@ class NotificationSenderService {
         });
     }
     async notifyCoachInviteAccepted(params) {
-        await this.send({
+        return this.send({
             id: `notif_invite_accept_${Date.now()}`,
             type: 'booking',
             notificationType: 'SESSION_INVITE_RESPONSE',
@@ -83,7 +96,7 @@ class NotificationSenderService {
         });
     }
     async notifyCoachInviteDeclined(params) {
-        await this.send({
+        return this.send({
             id: `notif_invite_decline_${Date.now()}`,
             type: 'booking',
             notificationType: 'SESSION_INVITE_RESPONSE',
@@ -97,7 +110,7 @@ class NotificationSenderService {
         });
     }
     async notifyCoachNewMessage(params) {
-        await this.send({
+        return this.send({
             id: `notif_msg_${Date.now()}`,
             type: 'message',
             notificationType: 'MESSAGE_RECEIVED',
@@ -111,7 +124,7 @@ class NotificationSenderService {
         });
     }
     async notifyCoachNewReview(params) {
-        await this.send({
+        return this.send({
             id: `notif_review_${Date.now()}`,
             type: 'review',
             notificationType: 'REVIEW_RECEIVED',
@@ -129,7 +142,7 @@ class NotificationSenderService {
         });
     }
     async notifyCoachSessionReminder(params) {
-        await this.send({
+        return this.send({
             id: `notif_reminder_${Date.now()}`,
             type: 'reminder',
             notificationType: 'SESSION_REMINDER',
@@ -146,7 +159,7 @@ class NotificationSenderService {
     // PARENT NOTIFICATIONS
     // ============================================================================
     async notifyParentBookingConfirmed(params) {
-        await this.send({
+        return this.send({
             id: `notif_confirm_${Date.now()}`,
             type: 'booking',
             notificationType: 'BOOKING_CONFIRMED',
@@ -160,7 +173,7 @@ class NotificationSenderService {
         });
     }
     async notifyParentSessionInvite(params) {
-        await this.send({
+        return this.send({
             id: `notif_invite_${Date.now()}`,
             type: 'booking',
             notificationType: 'SESSION_INVITE',
@@ -178,7 +191,7 @@ class NotificationSenderService {
         });
     }
     async notifyParentBadgeAwarded(params) {
-        await this.send({
+        return this.send({
             id: `notif_badge_${Date.now()}`,
             type: 'badge',
             notificationType: 'BADGE_AWARDED',
@@ -200,7 +213,7 @@ class NotificationSenderService {
         });
     }
     async notifyParentSessionFeedback(params) {
-        await this.send({
+        return this.send({
             id: `notif_feedback_${Date.now()}`,
             type: 'review',
             notificationType: 'REVIEW_RECEIVED',
@@ -218,7 +231,7 @@ class NotificationSenderService {
         });
     }
     async notifyParentNewMessage(params) {
-        await this.send({
+        return this.send({
             id: `notif_msg_${Date.now()}`,
             type: 'message',
             notificationType: 'MESSAGE_RECEIVED',
@@ -232,7 +245,7 @@ class NotificationSenderService {
         });
     }
     async notifyParentSessionReminder(params) {
-        await this.send({
+        return this.send({
             id: `notif_reminder_${Date.now()}`,
             type: 'reminder',
             notificationType: 'SESSION_REMINDER',
@@ -250,7 +263,7 @@ class NotificationSenderService {
         });
     }
     async notifyParentClubPost(params) {
-        await this.send({
+        return this.send({
             id: `notif_post_${Date.now()}`,
             type: 'message',
             notificationType: 'MESSAGE_RECEIVED',

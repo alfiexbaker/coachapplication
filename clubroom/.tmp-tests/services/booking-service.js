@@ -1,4 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.bookingService = void 0;
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('BookingService');
 /**
  * Booking Service - Re-export Facade
  *
@@ -11,7 +15,5 @@
  * - services/booking/booking-search-service.ts (user queries, upcoming, awaiting completion)
  * - services/booking/index.ts (unified facade)
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.bookingService = void 0;
 var index_1 = require("./booking/index");
 Object.defineProperty(exports, "bookingService", { enumerable: true, get: function () { return index_1.bookingService; } });

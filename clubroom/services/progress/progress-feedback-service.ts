@@ -5,10 +5,10 @@
  * with role-based visibility control.
  *
  * API Integration Notes:
- * - Feedback and notes are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Feedback and notes are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 
-import { storageService } from '../storage-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { progressSkillsService } from './progress-skills-service';
@@ -62,7 +62,7 @@ export type SessionNoteRecord = SessionNoteFields & {
 // ============================================================================
 
 async function getAllSessionFeedback(): Promise<SessionFeedback[]> {
-  return storageService.getItem<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);
+  return apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);
 }
 
 async function addSessionFeedback(feedback: Omit<SessionFeedback, 'id' | 'createdAt'>): Promise<SessionFeedback> {
@@ -84,7 +84,7 @@ async function addSessionFeedback(feedback: Omit<SessionFeedback, 'id' | 'create
   }
 
   allFeedback.unshift(newFeedback);
-  await storageService.setItem(STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);
+  await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);
 
   logger.info('session_feedback_added', {
     feedbackId: newFeedback.id,
@@ -133,7 +133,7 @@ async function getFeedbackForAthlete(
 // ============================================================================
 
 async function getAllSessionNotes(): Promise<Record<string, SessionNoteRecord>> {
-  return storageService.getItem<Record<string, SessionNoteRecord>>(STORAGE_KEYS.SESSION_NOTES, {});
+  return apiClient.get<Record<string, SessionNoteRecord>>(STORAGE_KEYS.SESSION_NOTES, {});
 }
 
 async function getSessionNote(bookingId: string): Promise<SessionNoteRecord | null> {
@@ -151,7 +151,7 @@ async function saveSessionNote(
     updatedAt: new Date().toISOString(),
   };
 
-  await storageService.setItem(STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });
+  await apiClient.set(STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });
 
   logger.info('session_note_saved', {
     bookingId,

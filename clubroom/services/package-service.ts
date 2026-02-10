@@ -3,18 +3,28 @@ import {
   PackagePurchase,
   PackageRedemption,
 } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  storageError,
+} from '@/types/result';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const STORAGE_KEY_PACKAGES = 'clubroom.packages';
-const STORAGE_KEY_PURCHASES = 'clubroom.package_purchases';
-const STORAGE_KEY_REDEMPTIONS = 'clubroom.package_redemptions';
+const STORAGE_KEY_PACKAGES = STORAGE_KEYS.PACKAGES;
+const STORAGE_KEY_PURCHASES = STORAGE_KEYS.PACKAGE_PURCHASES;
+const STORAGE_KEY_REDEMPTIONS = STORAGE_KEYS.PACKAGE_REDEMPTIONS;
 const USE_MOCK = api.useMock;
 const logger = createLogger('PackageService');
 
@@ -194,22 +204,6 @@ export interface UpdatePackageParams {
   focus?: string[];
 }
 
-/** Result of a package purchase attempt */
-export interface PurchaseResult {
-  success: boolean;
-  purchase?: PackagePurchase;
-  error?: string;
-  newWalletBalance?: number;
-}
-
-/** Result of a session redemption attempt */
-export interface RedemptionResult {
-  success: boolean;
-  redemption?: PackageRedemption;
-  purchase?: PackagePurchase;
-  error?: string;
-}
-
 // ============================================================================
 // PACKAGE SERVICE
 // ============================================================================
@@ -228,13 +222,18 @@ class PackageService {
    * @param coachId - The coach's unique identifier
    * @returns Array of active packages for the coach
    */
-  async getAvailablePackages(coachId: string): Promise<SessionPackage[]> {
-    const packages = await this.getAllPackages();
-    const available = packages.filter(
-      (pkg) => pkg.coachId === coachId && pkg.isActive
-    );
-    logger.info('available_packages_retrieved', { coachId, count: available.length });
-    return available;
+  async getAvailablePackages(coachId: string): Promise<Result<SessionPackage[], ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const available = packages.filter(
+        (pkg) => pkg.coachId === coachId && pkg.isActive
+      );
+      logger.info('available_packages_retrieved', { coachId, count: available.length });
+      return ok(available);
+    } catch (error) {
+      logger.error('get_available_packages_failed', { coachId, error });
+      return err(storageError('Failed to load available packages'));
+    }
   }
 
   /**
@@ -242,11 +241,16 @@ class PackageService {
    * @param coachId - The coach's unique identifier
    * @returns Array of all packages for the coach
    */
-  async getCoachPackages(coachId: string): Promise<SessionPackage[]> {
-    const packages = await this.getAllPackages();
-    const coachPackages = packages.filter((pkg) => pkg.coachId === coachId);
-    logger.info('coach_packages_retrieved', { coachId, count: coachPackages.length });
-    return coachPackages;
+  async getCoachPackages(coachId: string): Promise<Result<SessionPackage[], ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const coachPackages = packages.filter((pkg) => pkg.coachId === coachId);
+      logger.info('coach_packages_retrieved', { coachId, count: coachPackages.length });
+      return ok(coachPackages);
+    } catch (error) {
+      logger.error('get_coach_packages_failed', { coachId, error });
+      return err(storageError('Failed to load coach packages'));
+    }
   }
 
   /**
@@ -254,26 +258,36 @@ class PackageService {
    * @param packageId - The package's unique identifier
    * @returns The package or null if not found
    */
-  async getPackageById(packageId: string): Promise<SessionPackage | null> {
-    const packages = await this.getAllPackages();
-    const pkg = packages.find((p) => p.id === packageId);
-    if (pkg) {
-      logger.info('package_retrieved', { packageId, name: pkg.name });
-    } else {
-      logger.warn('package_not_found', { packageId });
+  async getPackageById(packageId: string): Promise<Result<SessionPackage | null, ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const pkg = packages.find((p) => p.id === packageId);
+      if (pkg) {
+        logger.info('package_retrieved', { packageId, name: pkg.name });
+      } else {
+        logger.warn('package_not_found', { packageId });
+      }
+      return ok(pkg || null);
+    } catch (error) {
+      logger.error('get_package_by_id_failed', { packageId, error });
+      return err(storageError('Failed to load package'));
     }
-    return pkg || null;
   }
 
   /**
    * Get all packages from all coaches (for discovery)
    * @returns Array of all active packages
    */
-  async discoverPackages(): Promise<SessionPackage[]> {
-    const packages = await this.getAllPackages();
-    const active = packages.filter((pkg) => pkg.isActive);
-    logger.info('packages_discovered', { count: active.length });
-    return active;
+  async discoverPackages(): Promise<Result<SessionPackage[], ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const active = packages.filter((pkg) => pkg.isActive);
+      logger.info('packages_discovered', { count: active.length });
+      return ok(active);
+    } catch (error) {
+      logger.error('discover_packages_failed', error);
+      return err(storageError('Failed to discover packages'));
+    }
   }
 
   /**
@@ -281,16 +295,16 @@ class PackageService {
    */
   private async getAllPackages(): Promise<SessionPackage[]> {
     if (USE_MOCK) {
-      return storageService.getItem<SessionPackage[]>(STORAGE_KEY_PACKAGES, MOCK_PACKAGES);
+      return apiClient.get<SessionPackage[]>(STORAGE_KEY_PACKAGES, MOCK_PACKAGES);
     }
-    return storageService.getItem<SessionPackage[]>(STORAGE_KEY_PACKAGES, []);
+    return apiClient.get<SessionPackage[]>(STORAGE_KEY_PACKAGES, []);
   }
 
   /**
    * Save packages to storage
    */
   private async savePackages(packages: SessionPackage[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_PACKAGES, packages);
+    await apiClient.set(STORAGE_KEY_PACKAGES, packages);
   }
 
   // ==========================================================================
@@ -302,40 +316,45 @@ class PackageService {
    * @param params - Package creation parameters
    * @returns The created package
    */
-  async createPackage(params: CreatePackageParams): Promise<SessionPackage> {
-    const packages = await this.getAllPackages();
+  async createPackage(params: CreatePackageParams): Promise<Result<SessionPackage, ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
 
-    const newPackage: SessionPackage = {
-      id: `pkg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      coachId: params.coachId,
-      coachName: params.coachName,
-      name: params.name,
-      description: params.description,
-      sessionCount: params.sessionCount,
-      price: params.price,
-      discountPercent: params.discountPercent,
-      validDays: params.validDays,
-      isActive: true,
-      sessionType: params.sessionType,
-      focus: params.focus as SessionPackage['focus'],
-      currency: 'GBP',
-      pricePerSession: Math.round((params.price / params.sessionCount) * 100) / 100,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      const newPackage: SessionPackage = {
+        id: `pkg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        coachId: params.coachId,
+        coachName: params.coachName,
+        name: params.name,
+        description: params.description,
+        sessionCount: params.sessionCount,
+        price: params.price,
+        discountPercent: params.discountPercent,
+        validDays: params.validDays,
+        isActive: true,
+        sessionType: params.sessionType,
+        focus: params.focus as SessionPackage['focus'],
+        currency: 'GBP',
+        pricePerSession: Math.round((params.price / params.sessionCount) * 100) / 100,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    packages.push(newPackage);
-    await this.savePackages(packages);
+      packages.push(newPackage);
+      await this.savePackages(packages);
 
-    logger.info('package_created', {
-      id: newPackage.id,
-      name: newPackage.name,
-      coachId: newPackage.coachId,
-      sessionCount: newPackage.sessionCount,
-      price: newPackage.price,
-    });
+      logger.info('package_created', {
+        id: newPackage.id,
+        name: newPackage.name,
+        coachId: newPackage.coachId,
+        sessionCount: newPackage.sessionCount,
+        price: newPackage.price,
+      });
 
-    return newPackage;
+      return ok(newPackage);
+    } catch (error) {
+      logger.error('create_package_failed', { params, error });
+      return err(storageError('Failed to create package'));
+    }
   }
 
   /**
@@ -347,34 +366,39 @@ class PackageService {
   async updatePackage(
     packageId: string,
     params: UpdatePackageParams
-  ): Promise<SessionPackage | null> {
-    const packages = await this.getAllPackages();
-    const index = packages.findIndex((p) => p.id === packageId);
+  ): Promise<Result<SessionPackage | null, ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const index = packages.findIndex((p) => p.id === packageId);
 
-    if (index === -1) {
-      logger.warn('update_package_not_found', { packageId });
-      return null;
+      if (index === -1) {
+        logger.warn('update_package_not_found', { packageId });
+        return ok(null);
+      }
+
+      const updatedPackage: SessionPackage = {
+        ...packages[index],
+        ...params,
+        focus: params.focus as SessionPackage['focus'],
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Recalculate price per session if price or count changed
+      if (params.price !== undefined || params.sessionCount !== undefined) {
+        const price = params.price ?? packages[index].price;
+        const count = params.sessionCount ?? packages[index].sessionCount;
+        updatedPackage.pricePerSession = Math.round((price / count) * 100) / 100;
+      }
+
+      packages[index] = updatedPackage;
+      await this.savePackages(packages);
+
+      logger.info('package_updated', { packageId, updates: Object.keys(params) });
+      return ok(updatedPackage);
+    } catch (error) {
+      logger.error('update_package_failed', { packageId, params, error });
+      return err(storageError('Failed to update package'));
     }
-
-    const updatedPackage: SessionPackage = {
-      ...packages[index],
-      ...params,
-      focus: params.focus as SessionPackage['focus'],
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Recalculate price per session if price or count changed
-    if (params.price !== undefined || params.sessionCount !== undefined) {
-      const price = params.price ?? packages[index].price;
-      const count = params.sessionCount ?? packages[index].sessionCount;
-      updatedPackage.pricePerSession = Math.round((price / count) * 100) / 100;
-    }
-
-    packages[index] = updatedPackage;
-    await this.savePackages(packages);
-
-    logger.info('package_updated', { packageId, updates: Object.keys(params) });
-    return updatedPackage;
   }
 
   /**
@@ -382,25 +406,30 @@ class PackageService {
    * @param packageId - The package to delete
    * @returns True if deleted successfully
    */
-  async deletePackage(packageId: string): Promise<boolean> {
-    const packages = await this.getAllPackages();
-    const index = packages.findIndex((p) => p.id === packageId);
+  async deletePackage(packageId: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const index = packages.findIndex((p) => p.id === packageId);
 
-    if (index === -1) {
-      logger.warn('delete_package_not_found', { packageId });
-      return false;
+      if (index === -1) {
+        logger.warn('delete_package_not_found', { packageId });
+        return ok(false);
+      }
+
+      // Soft delete - mark as inactive
+      packages[index] = {
+        ...packages[index],
+        isActive: false,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await this.savePackages(packages);
+      logger.info('package_deleted', { packageId });
+      return ok(true);
+    } catch (error) {
+      logger.error('delete_package_failed', { packageId, error });
+      return err(storageError('Failed to delete package'));
     }
-
-    // Soft delete - mark as inactive
-    packages[index] = {
-      ...packages[index],
-      isActive: false,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await this.savePackages(packages);
-    logger.info('package_deleted', { packageId });
-    return true;
   }
 
   /**
@@ -408,18 +437,23 @@ class PackageService {
    * @param packageId - The package to remove
    * @returns True if removed successfully
    */
-  async permanentlyDeletePackage(packageId: string): Promise<boolean> {
-    const packages = await this.getAllPackages();
-    const index = packages.findIndex((p) => p.id === packageId);
+  async permanentlyDeletePackage(packageId: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      const packages = await this.getAllPackages();
+      const index = packages.findIndex((p) => p.id === packageId);
 
-    if (index === -1) {
-      return false;
+      if (index === -1) {
+        return ok(false);
+      }
+
+      packages.splice(index, 1);
+      await this.savePackages(packages);
+      logger.info('package_permanently_deleted', { packageId });
+      return ok(true);
+    } catch (error) {
+      logger.error('permanent_delete_package_failed', { packageId, error });
+      return err(storageError('Failed to permanently delete package'));
     }
-
-    packages.splice(index, 1);
-    await this.savePackages(packages);
-    logger.info('package_permanently_deleted', { packageId });
-    return true;
   }
 
   // ==========================================================================
@@ -437,28 +471,33 @@ class PackageService {
     userId: string,
     userName: string,
     packageId: string
-  ): Promise<PurchaseResult> {
-    const pkg = await this.getPackageById(packageId);
-
-    if (!pkg) {
-      return { success: false, error: 'Package not found' };
-    }
-
-    if (!pkg.isActive) {
-      return { success: false, error: 'This package is no longer available' };
-    }
-
-    // Check wallet balance
-    const hasFunds = await walletService.hasSufficientBalance(userId, pkg.price);
-    if (!hasFunds) {
-      const balance = await walletService.getBalance(userId);
-      return {
-        success: false,
-        error: `Insufficient balance. You have \u00A3${balance.toFixed(2)} but need \u00A3${pkg.price.toFixed(2)}`,
-      };
-    }
-
+  ): Promise<Result<{ purchase: PackagePurchase; newWalletBalance?: number }, ServiceError>> {
     try {
+      const packageResult = await this.getPackageById(packageId);
+      if (!packageResult.success) {
+        return err(packageResult.error);
+      }
+      const pkg = packageResult.data;
+
+      if (!pkg) {
+        return err(notFound('Package', packageId));
+      }
+
+      if (!pkg.isActive) {
+        return err(validationError('This package is no longer available'));
+      }
+
+      // Check wallet balance
+      const hasFunds = await walletService.hasSufficientBalance(userId, pkg.price);
+      if (!hasFunds) {
+        const balance = await walletService.getBalance(userId);
+        return err(
+          validationError(
+            `Insufficient balance. You have \u00A3${balance.toFixed(2)} but need \u00A3${pkg.price.toFixed(2)}`
+          )
+        );
+      }
+
       // Process payment through wallet
       const paymentResult = await walletService.payForBooking(
         userId,
@@ -474,7 +513,7 @@ class PackageService {
       );
 
       if (!paymentResult.success) {
-        return { success: false, error: paymentResult.error };
+        return err(validationError(paymentResult.error || 'Package payment failed'));
       }
 
       // Create purchase record
@@ -513,17 +552,13 @@ class PackageService {
         sessionCount: pkg.sessionCount,
       });
 
-      return {
-        success: true,
+      return ok({
         purchase,
         newWalletBalance: paymentResult.newBalance,
-      };
+      });
     } catch (error) {
       logger.error('package_purchase_failed', { packageId, userId, error });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Purchase failed',
-      };
+      return err(storageError('Failed to purchase package'));
     }
   }
 
@@ -532,31 +567,36 @@ class PackageService {
    * @param userId - The user's unique identifier
    * @returns Array of user's package purchases
    */
-  async getUserPackages(userId: string): Promise<PackagePurchase[]> {
-    const purchases = await this.getAllPurchases();
-    const userPurchases = purchases
-      .filter((p) => p.userId === userId)
-      .sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
+  async getUserPackages(userId: string): Promise<Result<PackagePurchase[], ServiceError>> {
+    try {
+      const purchases = await this.getAllPurchases();
+      const userPurchases = purchases
+        .filter((p) => p.userId === userId)
+        .sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
 
-    // Update status for expired packages
-    const now = new Date();
-    let hasChanges = false;
-    for (const purchase of userPurchases) {
-      if (purchase.status === 'ACTIVE') {
-        const expiresAt = new Date(purchase.expiresAt);
-        if (expiresAt < now) {
-          purchase.status = 'EXPIRED';
-          hasChanges = true;
+      // Update status for expired packages
+      const now = new Date();
+      let hasChanges = false;
+      for (const purchase of userPurchases) {
+        if (purchase.status === 'ACTIVE') {
+          const expiresAt = new Date(purchase.expiresAt);
+          if (expiresAt < now) {
+            purchase.status = 'EXPIRED';
+            hasChanges = true;
+          }
         }
       }
-    }
 
-    if (hasChanges) {
-      await this.savePurchases(purchases);
-    }
+      if (hasChanges) {
+        await this.savePurchases(purchases);
+      }
 
-    logger.info('user_packages_retrieved', { userId, count: userPurchases.length });
-    return userPurchases;
+      logger.info('user_packages_retrieved', { userId, count: userPurchases.length });
+      return ok(userPurchases);
+    } catch (error) {
+      logger.error('get_user_packages_failed', { userId, error });
+      return err(storageError('Failed to load user packages'));
+    }
   }
 
   /**
@@ -568,9 +608,11 @@ class PackageService {
   async getActiveUserPackages(
     userId: string,
     coachId?: string
-  ): Promise<PackagePurchase[]> {
-    const userPackages = await this.getUserPackages(userId);
-    let active = userPackages.filter(
+  ): Promise<Result<PackagePurchase[], ServiceError>> {
+    const userPackagesResult = await this.getUserPackages(userId);
+    if (!userPackagesResult.success) return err(userPackagesResult.error);
+
+    let active = userPackagesResult.data.filter(
       (p) => p.status === 'ACTIVE' && p.sessionsRemaining > 0
     );
 
@@ -578,7 +620,7 @@ class PackageService {
       active = active.filter((p) => p.coachId === coachId);
     }
 
-    return active;
+    return ok(active);
   }
 
   /**
@@ -586,9 +628,14 @@ class PackageService {
    * @param purchaseId - The purchase's unique identifier
    * @returns The purchase or null if not found
    */
-  async getPurchaseById(purchaseId: string): Promise<PackagePurchase | null> {
-    const purchases = await this.getAllPurchases();
-    return purchases.find((p) => p.id === purchaseId) || null;
+  async getPurchaseById(purchaseId: string): Promise<Result<PackagePurchase | null, ServiceError>> {
+    try {
+      const purchases = await this.getAllPurchases();
+      return ok(purchases.find((p) => p.id === purchaseId) || null);
+    } catch (error) {
+      logger.error('get_purchase_by_id_failed', { purchaseId, error });
+      return err(storageError('Failed to load package purchase'));
+    }
   }
 
   /**
@@ -596,16 +643,16 @@ class PackageService {
    */
   private async getAllPurchases(): Promise<PackagePurchase[]> {
     if (USE_MOCK) {
-      return storageService.getItem<PackagePurchase[]>(STORAGE_KEY_PURCHASES, MOCK_PURCHASES);
+      return apiClient.get<PackagePurchase[]>(STORAGE_KEY_PURCHASES, MOCK_PURCHASES);
     }
-    return storageService.getItem<PackagePurchase[]>(STORAGE_KEY_PURCHASES, []);
+    return apiClient.get<PackagePurchase[]>(STORAGE_KEY_PURCHASES, []);
   }
 
   /**
    * Save purchases to storage
    */
   private async savePurchases(purchases: PackagePurchase[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_PURCHASES, purchases);
+    await apiClient.set(STORAGE_KEY_PURCHASES, purchases);
   }
 
   // ==========================================================================
@@ -623,78 +670,83 @@ class PackageService {
     purchaseId: string,
     bookingId: string,
     userId: string
-  ): Promise<RedemptionResult> {
-    const purchases = await this.getAllPurchases();
-    const purchaseIndex = purchases.findIndex((p) => p.id === purchaseId);
+  ): Promise<Result<{ redemption: PackageRedemption; purchase: PackagePurchase }, ServiceError>> {
+    try {
+      const purchases = await this.getAllPurchases();
+      const purchaseIndex = purchases.findIndex((p) => p.id === purchaseId);
 
-    if (purchaseIndex === -1) {
-      return { success: false, error: 'Purchase not found' };
-    }
+      if (purchaseIndex === -1) {
+        return err(notFound('Package purchase', purchaseId));
+      }
 
-    const purchase = purchases[purchaseIndex];
+      const purchase = purchases[purchaseIndex];
 
-    // Validate ownership
-    if (purchase.userId !== userId) {
-      return { success: false, error: 'This package does not belong to you' };
-    }
+      // Validate ownership
+      if (purchase.userId !== userId) {
+        return err(validationError('This package does not belong to you'));
+      }
 
-    // Validate status
-    if (purchase.status !== 'ACTIVE') {
-      return { success: false, error: `Package is ${purchase.status.toLowerCase()}` };
-    }
+      // Validate status
+      if (purchase.status !== 'ACTIVE') {
+        return err(validationError(`Package is ${purchase.status.toLowerCase()}`));
+      }
 
-    // Check expiration
-    if (new Date(purchase.expiresAt) < new Date()) {
-      purchase.status = 'EXPIRED';
+      // Check expiration
+      if (new Date(purchase.expiresAt) < new Date()) {
+        purchase.status = 'EXPIRED';
+        await this.savePurchases(purchases);
+        return err(validationError('Package has expired'));
+      }
+
+      // Check remaining sessions
+      if (purchase.sessionsRemaining <= 0) {
+        purchase.status = 'EXHAUSTED';
+        await this.savePurchases(purchases);
+        return err(validationError('No sessions remaining'));
+      }
+
+      // Check if booking already redeemed
+      if (purchase.redeemedBookingIds?.includes(bookingId)) {
+        return err(validationError('Session already redeemed for this booking'));
+      }
+
+      // Create redemption record
+      const redemption: PackageRedemption = {
+        id: `redeem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        purchaseId,
+        bookingId,
+        redeemedAt: new Date().toISOString(),
+        userId,
+      };
+
+      const redemptions = await this.getAllRedemptions();
+      redemptions.push(redemption);
+      await this.saveRedemptions(redemptions);
+
+      // Update purchase
+      purchase.sessionsUsed += 1;
+      purchase.sessionsRemaining -= 1;
+      purchase.redeemedBookingIds = [...(purchase.redeemedBookingIds || []), bookingId];
+
+      if (purchase.sessionsRemaining === 0) {
+        purchase.status = 'EXHAUSTED';
+      }
+
+      purchases[purchaseIndex] = purchase;
       await this.savePurchases(purchases);
-      return { success: false, error: 'Package has expired' };
+
+      logger.info('session_redeemed', {
+        redemptionId: redemption.id,
+        purchaseId,
+        bookingId,
+        sessionsRemaining: purchase.sessionsRemaining,
+      });
+
+      return ok({ redemption, purchase });
+    } catch (error) {
+      logger.error('redeem_session_failed', { purchaseId, bookingId, userId, error });
+      return err(storageError('Failed to redeem package session'));
     }
-
-    // Check remaining sessions
-    if (purchase.sessionsRemaining <= 0) {
-      purchase.status = 'EXHAUSTED';
-      await this.savePurchases(purchases);
-      return { success: false, error: 'No sessions remaining' };
-    }
-
-    // Check if booking already redeemed
-    if (purchase.redeemedBookingIds?.includes(bookingId)) {
-      return { success: false, error: 'Session already redeemed for this booking' };
-    }
-
-    // Create redemption record
-    const redemption: PackageRedemption = {
-      id: `redeem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      purchaseId,
-      bookingId,
-      redeemedAt: new Date().toISOString(),
-      userId,
-    };
-
-    const redemptions = await this.getAllRedemptions();
-    redemptions.push(redemption);
-    await this.saveRedemptions(redemptions);
-
-    // Update purchase
-    purchase.sessionsUsed += 1;
-    purchase.sessionsRemaining -= 1;
-    purchase.redeemedBookingIds = [...(purchase.redeemedBookingIds || []), bookingId];
-
-    if (purchase.sessionsRemaining === 0) {
-      purchase.status = 'EXHAUSTED';
-    }
-
-    purchases[purchaseIndex] = purchase;
-    await this.savePurchases(purchases);
-
-    logger.info('session_redeemed', {
-      redemptionId: redemption.id,
-      purchaseId,
-      bookingId,
-      sessionsRemaining: purchase.sessionsRemaining,
-    });
-
-    return { success: true, redemption, purchase };
   }
 
   /**
@@ -702,16 +754,16 @@ class PackageService {
    */
   private async getAllRedemptions(): Promise<PackageRedemption[]> {
     if (USE_MOCK) {
-      return storageService.getItem<PackageRedemption[]>(STORAGE_KEY_REDEMPTIONS, MOCK_REDEMPTIONS);
+      return apiClient.get<PackageRedemption[]>(STORAGE_KEY_REDEMPTIONS, MOCK_REDEMPTIONS);
     }
-    return storageService.getItem<PackageRedemption[]>(STORAGE_KEY_REDEMPTIONS, []);
+    return apiClient.get<PackageRedemption[]>(STORAGE_KEY_REDEMPTIONS, []);
   }
 
   /**
    * Save redemptions to storage
    */
   private async saveRedemptions(redemptions: PackageRedemption[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_REDEMPTIONS, redemptions);
+    await apiClient.set(STORAGE_KEY_REDEMPTIONS, redemptions);
   }
 
   // ==========================================================================
@@ -776,21 +828,26 @@ class PackageService {
    * @param coachId - The coach's unique identifier
    * @returns Stats about package sales
    */
-  async getCoachPackageStats(coachId: string): Promise<{
+  async getCoachPackageStats(coachId: string): Promise<Result<{
     totalPackagesSold: number;
     totalRevenue: number;
     activePackages: number;
     sessionsRedeemed: number;
-  }> {
-    const purchases = await this.getAllPurchases();
-    const coachPurchases = purchases.filter((p) => p.coachId === coachId);
+  }, ServiceError>> {
+    try {
+      const purchases = await this.getAllPurchases();
+      const coachPurchases = purchases.filter((p) => p.coachId === coachId);
 
-    const totalPackagesSold = coachPurchases.length;
-    const totalRevenue = coachPurchases.reduce((sum, p) => sum + p.pricePaid, 0);
-    const activePackages = coachPurchases.filter((p) => p.status === 'ACTIVE').length;
-    const sessionsRedeemed = coachPurchases.reduce((sum, p) => sum + p.sessionsUsed, 0);
+      const totalPackagesSold = coachPurchases.length;
+      const totalRevenue = coachPurchases.reduce((sum, p) => sum + p.pricePaid, 0);
+      const activePackages = coachPurchases.filter((p) => p.status === 'ACTIVE').length;
+      const sessionsRedeemed = coachPurchases.reduce((sum, p) => sum + p.sessionsUsed, 0);
 
-    return { totalPackagesSold, totalRevenue, activePackages, sessionsRedeemed };
+      return ok({ totalPackagesSold, totalRevenue, activePackages, sessionsRedeemed });
+    } catch (error) {
+      logger.error('get_coach_package_stats_failed', { coachId, error });
+      return err(storageError('Failed to load package stats'));
+    }
   }
 
   // ==========================================================================
@@ -800,25 +857,37 @@ class PackageService {
   /**
    * Seed demo data (for testing/demos)
    */
-  async seedDemoData(): Promise<void> {
-    await this.savePackages(MOCK_PACKAGES);
-    await this.savePurchases(MOCK_PURCHASES);
-    await this.saveRedemptions(MOCK_REDEMPTIONS);
-    logger.info('demo_data_seeded', {
-      packageCount: MOCK_PACKAGES.length,
-      purchaseCount: MOCK_PURCHASES.length,
-      redemptionCount: MOCK_REDEMPTIONS.length,
-    });
+  async seedDemoData(): Promise<Result<void, ServiceError>> {
+    try {
+      await this.savePackages(MOCK_PACKAGES);
+      await this.savePurchases(MOCK_PURCHASES);
+      await this.saveRedemptions(MOCK_REDEMPTIONS);
+      logger.info('demo_data_seeded', {
+        packageCount: MOCK_PACKAGES.length,
+        purchaseCount: MOCK_PURCHASES.length,
+        redemptionCount: MOCK_REDEMPTIONS.length,
+      });
+      return ok(undefined);
+    } catch (error) {
+      logger.error('seed_package_demo_data_failed', error);
+      return err(storageError('Failed to seed package demo data'));
+    }
   }
 
   /**
    * Clear all package data (for testing)
    */
-  async clearAllData(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_PACKAGES, []);
-    await storageService.setItem(STORAGE_KEY_PURCHASES, []);
-    await storageService.setItem(STORAGE_KEY_REDEMPTIONS, []);
-    logger.info('package_data_cleared');
+  async clearAllData(): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.set(STORAGE_KEY_PACKAGES, []);
+      await apiClient.set(STORAGE_KEY_PURCHASES, []);
+      await apiClient.set(STORAGE_KEY_REDEMPTIONS, []);
+      logger.info('package_data_cleared');
+      return ok(undefined);
+    } catch (error) {
+      logger.error('clear_package_data_failed', error);
+      return err(storageError('Failed to clear package data'));
+    }
   }
 }
 

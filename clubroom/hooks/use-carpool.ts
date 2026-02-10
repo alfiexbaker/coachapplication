@@ -63,15 +63,31 @@ export function useCarpool() {
 
   const loadData = useCallback(async () => {
     try {
-      const [available, offers] = await Promise.all([
+      const [availableResult, offersResult] = await Promise.all([
         communityService.getAvailableCarpoolOffers(parentId),
         communityService.getParentCarpoolOffers(parentId),
       ]);
-      setAvailableOffers(available);
-      setMyOffers(offers);
+      if (!availableResult.success) {
+        Alert.alert('Error', availableResult.error.message);
+        setAvailableOffers([]);
+      } else {
+        setAvailableOffers(availableResult.data);
+      }
+      if (!offersResult.success) {
+        Alert.alert('Error', offersResult.error.message);
+        setMyOffers([]);
+      } else {
+        setMyOffers(offersResult.data);
+      }
 
-      const allOffers = await communityService.getAvailableCarpoolOffers('');
-      const rides = allOffers.filter(
+      const allOffersResult = await communityService.getAvailableCarpoolOffers('');
+      if (!allOffersResult.success) {
+        Alert.alert('Error', allOffersResult.error.message);
+        setMyRides([]);
+        return;
+      }
+
+      const rides = allOffersResult.data.filter(
         (o) => o.parentId !== parentId && o.requests.some((r) => r.parentId === parentId && r.status === 'ACCEPTED'),
       );
       setMyRides(rides);

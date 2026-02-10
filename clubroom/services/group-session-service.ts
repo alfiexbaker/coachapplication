@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('GroupSessionService');
+
 /**
  * Group Session Service - Re-export Facade
  *

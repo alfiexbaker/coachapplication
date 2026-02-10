@@ -43,23 +43,33 @@ export function useAcademyBranding(id: string | undefined) {
     if (!id) return;
     setLoading(true);
     try {
-      const [academyData, staffData] = await Promise.all([
+      const [academyResult, staffResult] = await Promise.all([
         academyService.getAcademy(id),
         academyService.getStaff(id),
       ]);
-      setAcademy(academyData);
-      if (academyData) {
-        setLogoUrl(academyData.logoUrl || '');
-        setBannerUrl(academyData.bannerUrl || '');
-        setPrimaryColor(academyData.primaryColor || '#1E40AF');
-        setSecondaryColor(academyData.secondaryColor || '#60A5FA');
-        setEmail(academyData.email || '');
-        setPhone(academyData.phone || '');
-        setWebsite(academyData.website || '');
-        setAddress(academyData.address || '');
+      if (!academyResult.success) {
+        logger.error('Failed to load academy', academyResult.error);
+        setAcademy(null);
+        return;
+      }
+      if (!staffResult.success) {
+        logger.error('Failed to load academy staff', staffResult.error);
+        setAcademy(null);
+        return;
+      }
+      setAcademy(academyResult.data);
+      if (academyResult.data) {
+        setLogoUrl(academyResult.data.logoUrl || '');
+        setBannerUrl(academyResult.data.bannerUrl || '');
+        setPrimaryColor(academyResult.data.primaryColor || '#1E40AF');
+        setSecondaryColor(academyResult.data.secondaryColor || '#60A5FA');
+        setEmail(academyResult.data.email || '');
+        setPhone(academyResult.data.phone || '');
+        setWebsite(academyResult.data.website || '');
+        setAddress(academyResult.data.address || '');
       }
       if (currentUser?.id) {
-        const membership = staffData.find((m) => m.userId === currentUser.id);
+        const membership = staffResult.data.find((m) => m.userId === currentUser.id);
         setCanEdit(membership?.role === 'OWNER' || !!membership?.permissions.includes('MANAGE_SETTINGS'));
       }
     } catch (error) {
@@ -83,7 +93,11 @@ export function useAcademyBranding(id: string | undefined) {
         email: email || undefined, phone: phone || undefined,
         website: website || undefined, address: address || undefined,
       };
-      await academyService.updateBranding(academy.id, branding);
+      const result = await academyService.updateBranding(academy.id, branding);
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+        return;
+      }
       Alert.alert('Success', 'Branding updated successfully');
       router.back();
     } catch (error) {

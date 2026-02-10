@@ -19,6 +19,10 @@ import type {
 } from '@/constants/types';
 import { safetyService } from './safety-service';
 import { rosterService } from './roster-service';
+import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+
+const logger = createLogger('ConsentService');
 
 const CONSENT_TYPES: ConsentType[] = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT'];
 
@@ -62,9 +66,16 @@ class ConsentService {
   /**
    * Get consent status for a single athlete
    */
-  async getAthleteConsents(athleteId: string, coachId?: string): Promise<AthleteConsent | null> {
+  async getAthleteConsents(
+    athleteId: string,
+    coachId?: string,
+  ): Promise<Result<AthleteConsent | null, ServiceError>> {
     try {
-      const emergencyInfo = await safetyService.getEmergencyInfo(athleteId);
+      const emergencyInfoResult = await safetyService.getEmergencyInfo(athleteId);
+      if (!emergencyInfoResult.success) {
+        return err(emergencyInfoResult.error);
+      }
+      const emergencyInfo = emergencyInfoResult.data;
 
       // Get athlete name from roster if coachId provided
       let athleteName = 'Unknown';
@@ -81,39 +92,45 @@ class ConsentService {
         }
       }
 
-      return {
+      return ok({
         athleteId,
         athleteName,
         athletePhotoUrl,
         parentName,
         consents: emergencyInfo.consents,
         lastUpdated: emergencyInfo.updatedAt,
-      };
-    } catch {
-      return null;
+      });
+    } catch (error) {
+      logger.error('Failed to get athlete consents', { athleteId, coachId, error });
+      return err(storageError('Failed to load athlete consents'));
     }
   }
 
   /**
    * Get all athletes' consent status for a coach's roster
    */
-  async getRosterConsents(coachId: string, filters?: ConsentFilters): Promise<AthleteConsent[]> {
-    // Get all athletes from roster
-    const roster = await rosterService.getRoster(coachId);
+  async getRosterConsents(
+    coachId: string,
+    filters?: ConsentFilters,
+  ): Promise<Result<AthleteConsent[], ServiceError>> {
+    try {
+      // Get all athletes from roster
+      const roster = await rosterService.getRoster(coachId);
 
-    // Get consent data for each athlete
-    const consentsPromises = roster.map(async (entry: RosterEntry): Promise<AthleteConsent> => {
-      try {
-        const emergencyInfo = await safetyService.getEmergencyInfo(entry.athleteId);
-        return {
-          athleteId: entry.athleteId,
-          athleteName: entry.athleteName,
-          athletePhotoUrl: entry.athletePhotoUrl,
-          parentName: entry.parentName,
-          consents: emergencyInfo.consents,
-          lastUpdated: emergencyInfo.updatedAt,
-        };
-      } catch {
+      // Get consent data for each athlete
+      const consentsPromises = roster.map(async (entry: RosterEntry): Promise<AthleteConsent> => {
+        const emergencyInfoResult = await safetyService.getEmergencyInfo(entry.athleteId);
+        if (emergencyInfoResult.success) {
+          const emergencyInfo = emergencyInfoResult.data;
+          return {
+            athleteId: entry.athleteId,
+            athleteName: entry.athleteName,
+            athletePhotoUrl: entry.athletePhotoUrl,
+            parentName: entry.parentName,
+            consents: emergencyInfo.consents,
+            lastUpdated: emergencyInfo.updatedAt,
+          };
+        }
         // Return default consents if no emergency info exists
         return {
           athleteId: entry.athleteId,
@@ -127,90 +144,138 @@ class ConsentService {
           })),
           lastUpdated: new Date().toISOString(),
         };
-      }
-    });
-
-    let athleteConsents = await Promise.all(consentsPromises);
-
-    // Apply filters
-    if (filters?.search) {
-      const search = filters.search.toLowerCase();
-      athleteConsents = athleteConsents.filter(
-        (ac) =>
-          ac.athleteName.toLowerCase().includes(search) ||
-          ac.parentName.toLowerCase().includes(search)
-      );
-    }
-
-    if (filters?.type && filters?.status && filters.status !== 'all') {
-      const isGranted = filters.status === 'granted';
-      athleteConsents = athleteConsents.filter((ac) => {
-        const consent = ac.consents.find((c) => c.type === filters.type);
-        return consent?.granted === isGranted;
       });
-    }
 
-    return athleteConsents;
+      let athleteConsents = await Promise.all(consentsPromises);
+
+      // Apply filters
+      if (filters?.search) {
+        const search = filters.search.toLowerCase();
+        athleteConsents = athleteConsents.filter(
+          (ac) =>
+            ac.athleteName.toLowerCase().includes(search) ||
+            ac.parentName.toLowerCase().includes(search),
+        );
+      }
+
+      if (filters?.type && filters?.status && filters.status !== 'all') {
+        const isGranted = filters.status === 'granted';
+        athleteConsents = athleteConsents.filter((ac) => {
+          const consent = ac.consents.find((c) => c.type === filters.type);
+          return consent?.granted === isGranted;
+        });
+      }
+
+      return ok(athleteConsents);
+    } catch (error) {
+      logger.error('Failed to get roster consents', { coachId, filters, error });
+      return err(storageError('Failed to load roster consents'));
+    }
   }
 
   /**
    * Check if an athlete has a specific consent
    */
-  async checkConsent(athleteId: string, type: ConsentType): Promise<boolean> {
-    const consent = await safetyService.getConsent(athleteId, type);
-    return consent?.granted ?? false;
+  async checkConsent(athleteId: string, type: ConsentType): Promise<Result<boolean, ServiceError>> {
+    try {
+      const consentResult = await safetyService.getConsent(athleteId, type);
+      if (!consentResult.success) {
+        return err(consentResult.error);
+      }
+      return ok(consentResult.data?.granted ?? false);
+    } catch (error) {
+      logger.error('Failed to check consent', { athleteId, type, error });
+      return err(storageError('Failed to check consent'));
+    }
   }
 
   /**
    * Get all athletes who have granted a specific consent type
    */
-  async getConsentedAthletes(coachId: string, type: ConsentType): Promise<AthleteConsent[]> {
-    const allConsents = await this.getRosterConsents(coachId);
-    return allConsents.filter((ac) => {
-      const consent = ac.consents.find((c) => c.type === type);
-      return consent?.granted === true;
-    });
+  async getConsentedAthletes(
+    coachId: string,
+    type: ConsentType,
+  ): Promise<Result<AthleteConsent[], ServiceError>> {
+    try {
+      const allConsentsResult = await this.getRosterConsents(coachId);
+      if (!allConsentsResult.success) {
+        return allConsentsResult;
+      }
+
+      return ok(
+        allConsentsResult.data.filter((ac) => {
+          const consent = ac.consents.find((c) => c.type === type);
+          return consent?.granted === true;
+        }),
+      );
+    } catch (error) {
+      logger.error('Failed to get consented athletes', { coachId, type, error });
+      return err(storageError('Failed to load consented athletes'));
+    }
   }
 
   /**
    * Get all athletes who have NOT granted a specific consent type
    */
-  async getNonConsentedAthletes(coachId: string, type: ConsentType): Promise<AthleteConsent[]> {
-    const allConsents = await this.getRosterConsents(coachId);
-    return allConsents.filter((ac) => {
-      const consent = ac.consents.find((c) => c.type === type);
-      return consent?.granted === false;
-    });
+  async getNonConsentedAthletes(
+    coachId: string,
+    type: ConsentType,
+  ): Promise<Result<AthleteConsent[], ServiceError>> {
+    try {
+      const allConsentsResult = await this.getRosterConsents(coachId);
+      if (!allConsentsResult.success) {
+        return allConsentsResult;
+      }
+
+      return ok(
+        allConsentsResult.data.filter((ac) => {
+          const consent = ac.consents.find((c) => c.type === type);
+          return consent?.granted === false;
+        }),
+      );
+    } catch (error) {
+      logger.error('Failed to get non-consented athletes', { coachId, type, error });
+      return err(storageError('Failed to load non-consented athletes'));
+    }
   }
 
   /**
    * Get consent summary/statistics for a coach's roster
    */
-  async getConsentSummary(coachId: string): Promise<ConsentSummary> {
-    const allConsents = await this.getRosterConsents(coachId);
-    const totalAthletes = allConsents.length;
+  async getConsentSummary(coachId: string): Promise<Result<ConsentSummary, ServiceError>> {
+    try {
+      const allConsentsResult = await this.getRosterConsents(coachId);
+      if (!allConsentsResult.success) {
+        return allConsentsResult;
+      }
+      const allConsents = allConsentsResult.data;
+      const totalAthletes = allConsents.length;
 
-    const byType: Record<ConsentType, { granted: number; denied: number }> = {
-      PHOTO: { granted: 0, denied: 0 },
-      VIDEO: { granted: 0, denied: 0 },
-      SOCIAL_MEDIA: { granted: 0, denied: 0 },
-      EMERGENCY_TREATMENT: { granted: 0, denied: 0 },
-    };
+      const byType: Record<ConsentType, { granted: number; denied: number }> = {
+        PHOTO: { granted: 0, denied: 0 },
+        VIDEO: { granted: 0, denied: 0 },
+        SOCIAL_MEDIA: { granted: 0, denied: 0 },
+        EMERGENCY_TREATMENT: { granted: 0, denied: 0 },
+      };
 
-    for (const ac of allConsents) {
-      for (const consent of ac.consents) {
-        if (consent.granted) {
-          byType[consent.type].granted++;
-        } else {
-          byType[consent.type].denied++;
+      for (const ac of allConsents) {
+        for (const consent of ac.consents) {
+          if (consent.granted) {
+            byType[consent.type].granted++;
+          } else {
+            byType[consent.type].denied++;
+          }
         }
       }
-    }
 
-    return {
-      totalAthletes,
-      byType,
-    };
+      return ok({
+        totalAthletes,
+        byType,
+      });
+    } catch (error) {
+      logger.error('Failed to get consent summary', { coachId, error });
+      return err(storageError('Failed to load consent summary'));
+    }
   }
 
   /**

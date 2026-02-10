@@ -5,10 +5,10 @@
  * milestone management, goal analytics, and helper functions.
  *
  * API Integration Notes:
- * - Goals are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Goals are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 
-import { storageService } from '../storage-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type {
@@ -135,7 +135,7 @@ const MOCK_GOALS: Goal[] = [
 // ============================================================================
 
 async function getAllGoals(): Promise<Goal[]> {
-  const goals = await storageService.getItem<Goal[]>(STORAGE_KEYS.GOALS, []);
+  const goals = await apiClient.get<Goal[]>(STORAGE_KEYS.GOALS, []);
   // Return mock data if no goals stored
   if (goals.length === 0) {
     return [...MOCK_GOALS];
@@ -144,7 +144,7 @@ async function getAllGoals(): Promise<Goal[]> {
 }
 
 async function saveGoals(goals: Goal[]): Promise<void> {
-  await storageService.setItem(STORAGE_KEYS.GOALS, goals);
+  await apiClient.set(STORAGE_KEYS.GOALS, goals);
 }
 
 async function getGoalsForAthlete(athleteId: string): Promise<{ active: Goal[]; completed: Goal[] }> {

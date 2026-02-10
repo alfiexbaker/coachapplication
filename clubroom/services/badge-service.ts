@@ -1,6 +1,6 @@
 import { badgeAwards as mockBadgeAwards, badgeCatalog, getParentForAthlete, getUserClubs } from '@/constants/mock-data';
 import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
@@ -38,7 +38,7 @@ class BadgeService {
   private logger = createLogger('BadgeService');
 
   private async getStoredAwards(): Promise<BadgeAward[]> {
-    return storageService.getItem<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []);
+    return apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []);
   }
 
   private mergeAwards(stored: BadgeAward[]): BadgeAward[] {
@@ -126,7 +126,7 @@ class BadgeService {
     };
 
     const updated = [award, ...stored];
-    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, updated);
+    await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, updated);
     this.logger.info('badge_awarded', {
       badgeId: input.badgeId,
       athleteId: input.athleteId,
@@ -263,7 +263,7 @@ class BadgeService {
 
     const updatedAward = { ...target, shared: true, feedPostId: feedPost?.id ?? target.feedPostId };
     const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, nextStored);
+    await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, nextStored);
     this.logger.info('badge_shared', {
       badgeId: target.badgeId,
       athleteId: target.athleteId,
@@ -298,7 +298,7 @@ class BadgeService {
     // Mark as shared/posted
     const updatedAward = { ...award, shared: true, addedToFeedAt: new Date().toISOString() };
     const nextStored = [updatedAward, ...stored.filter((a) => a.id !== awardId)];
-    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, nextStored);
+    await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, nextStored);
 
     this.logger.info('badge_posted_to_feed_by_user', {
       awardId,
@@ -322,7 +322,7 @@ class BadgeService {
       seenAt: new Date().toISOString(),
     };
     const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, nextStored);
+    await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, nextStored);
     this.logger.info('badge_seen_by_parent', { awardId });
     return updatedAward;
   }
@@ -341,7 +341,7 @@ class BadgeService {
         : award
     );
 
-    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, updated);
+    await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, updated);
     this.logger.info('all_badges_seen_by_parent', { athleteId });
   }
 

@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('ProgressService');
+
 /**
  * Progress Service - Re-export Facade
  *

@@ -5,10 +5,12 @@ exports.getFrequencyLabel = getFrequencyLabel;
 exports.getStatusLabel = getStatusLabel;
 const booking_types_1 = require("@/constants/booking-types");
 Object.defineProperty(exports, "getDayName", { enumerable: true, get: function () { return booking_types_1.getDayName; } });
-const storage_service_1 = require("./storage-service");
+const api_client_1 = require("./api-client");
 const notification_service_1 = require("./notification-service");
 const booking_service_1 = require("./booking-service");
 const logger_1 = require("@/utils/logger");
+const event_bus_1 = require("./event-bus");
+const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('RecurringBookingService');
 /**
@@ -47,19 +49,34 @@ function getStatusLabel(status) {
  * Service for managing recurring booking subscriptions
  */
 class RecurringBookingService {
+    async listValue() {
+        return api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, []);
+    }
     /**
      * Get all recurring bookings from storage
      */
     async list() {
-        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, []);
+        try {
+            return (0, result_1.ok)(await this.listValue());
+        }
+        catch (error) {
+            logger.error('Failed to list recurring bookings', { error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load recurring bookings'));
+        }
     }
     /**
      * Get a specific recurring booking by ID
      * @param id - The recurring booking ID
      */
     async getById(id) {
-        const bookings = await this.list();
-        return bookings.find((b) => b.id === id);
+        try {
+            const bookings = await this.listValue();
+            return (0, result_1.ok)(bookings.find((b) => b.id === id));
+        }
+        catch (error) {
+            logger.error('Failed to get recurring booking', { id, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load recurring booking'));
+        }
     }
     /**
      * Create a new recurring booking subscription
@@ -97,17 +114,24 @@ class RecurringBookingService {
             if (params.endDate) {
                 newRecurring.sessionsRemaining = this.calculateSessionsRemaining(params.startDate, params.endDate, params.frequency);
             }
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const updated = [...bookings, newRecurring];
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, updated);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, updated);
             logger.info('recurring_booking_created', {
                 id: newRecurring.id,
                 userId: params.userId,
                 coachId: params.coachId,
                 frequency: params.frequency,
             });
+            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.RECURRING_CREATED, {
+                recurringId: newRecurring.id,
+                userId: newRecurring.userId,
+                coachId: newRecurring.coachId,
+                frequency: newRecurring.frequency,
+                status: newRecurring.status,
+            });
             // Send notification to coach
-            await notification_service_1.notificationService.create({
+            const notifyResult = await notification_service_1.notificationService.create({
                 id: `notif_recurring_${Date.now()}`,
                 type: 'booking',
                 title: 'New Recurring Booking',
@@ -117,14 +141,14 @@ class RecurringBookingService {
                 timeLabel: 'Just now',
                 read: false,
             });
-            return { success: true, data: newRecurring };
+            if (!notifyResult.success) {
+                logger.warn('Failed to create recurring booking notification', { error: notifyResult.error });
+            }
+            return (0, result_1.ok)(newRecurring);
         }
         catch (error) {
             logger.error('recurring_booking_create_failed', { error, params });
-            return {
-                success: false,
-                error: 'Failed to create recurring booking. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to create recurring booking. Please try again.'));
         }
     }
     /**
@@ -132,32 +156,50 @@ class RecurringBookingService {
      * @param userId - The user ID
      */
     async getUserRecurringBookings(userId) {
-        const bookings = await this.list();
-        return bookings.filter((b) => b.userId === userId);
+        try {
+            const bookings = await this.listValue();
+            return (0, result_1.ok)(bookings.filter((b) => b.userId === userId));
+        }
+        catch (error) {
+            logger.error('Failed to get user recurring bookings', { userId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load recurring bookings'));
+        }
     }
     /**
      * Get all recurring bookings for a specific coach
      * @param coachId - The coach ID
      */
     async getCoachRecurringBookings(coachId) {
-        const bookings = await this.list();
-        return bookings.filter((b) => b.coachId === coachId);
+        try {
+            const bookings = await this.listValue();
+            return (0, result_1.ok)(bookings.filter((b) => b.coachId === coachId));
+        }
+        catch (error) {
+            logger.error('Failed to get coach recurring bookings', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load recurring bookings'));
+        }
     }
     /**
      * Get active recurring bookings for a user
      * @param userId - The user ID
      */
     async getActiveUserRecurringBookings(userId) {
-        const bookings = await this.getUserRecurringBookings(userId);
-        return bookings.filter((b) => b.status === 'ACTIVE');
+        const bookingsResult = await this.getUserRecurringBookings(userId);
+        if (!bookingsResult.success) {
+            return bookingsResult;
+        }
+        return (0, result_1.ok)(bookingsResult.data.filter((b) => b.status === 'ACTIVE'));
     }
     /**
      * Get active recurring bookings for a coach
      * @param coachId - The coach ID
      */
     async getActiveCoachRecurringBookings(coachId) {
-        const bookings = await this.getCoachRecurringBookings(coachId);
-        return bookings.filter((b) => b.status === 'ACTIVE');
+        const bookingsResult = await this.getCoachRecurringBookings(coachId);
+        if (!bookingsResult.success) {
+            return bookingsResult;
+        }
+        return (0, result_1.ok)(bookingsResult.data.filter((b) => b.status === 'ACTIVE'));
     }
     /**
      * Cancel a recurring booking subscription
@@ -166,14 +208,14 @@ class RecurringBookingService {
      */
     async cancelRecurring(recurringId, reason) {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const index = bookings.findIndex((b) => b.id === recurringId);
             if (index === -1) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
             const booking = bookings[index];
             if (booking.status === 'CANCELLED') {
-                return { success: false, error: 'This subscription is already cancelled.' };
+                return (0, result_1.err)((0, result_1.validationError)('This subscription is already cancelled.'));
             }
             const now = new Date().toISOString();
             const updated = {
@@ -184,15 +226,21 @@ class RecurringBookingService {
                 updatedAt: now,
             };
             bookings[index] = updated;
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
             logger.info('recurring_booking_cancelled', {
                 id: recurringId,
                 userId: booking.userId,
                 coachId: booking.coachId,
                 reason,
             });
+            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.RECURRING_CANCELLED, {
+                recurringId: updated.id,
+                userId: updated.userId,
+                coachId: updated.coachId,
+                reason,
+            });
             // Notify coach of cancellation
-            await notification_service_1.notificationService.create({
+            const notifyResult = await notification_service_1.notificationService.create({
                 id: `notif_recurring_cancel_${Date.now()}`,
                 type: 'booking',
                 title: 'Recurring Booking Cancelled',
@@ -202,14 +250,14 @@ class RecurringBookingService {
                 timeLabel: 'Just now',
                 read: false,
             });
-            return { success: true, data: updated };
+            if (!notifyResult.success) {
+                logger.warn('Failed to create recurring cancel notification', { error: notifyResult.error });
+            }
+            return (0, result_1.ok)(updated);
         }
         catch (error) {
             logger.error('recurring_booking_cancel_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to cancel recurring booking. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to cancel recurring booking. Please try again.'));
         }
     }
     /**
@@ -219,17 +267,14 @@ class RecurringBookingService {
      */
     async pauseRecurring(recurringId, reason) {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const index = bookings.findIndex((b) => b.id === recurringId);
             if (index === -1) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
             const booking = bookings[index];
             if (booking.status !== 'ACTIVE') {
-                return {
-                    success: false,
-                    error: `Cannot pause a subscription that is ${booking.status.toLowerCase()}.`,
-                };
+                return (0, result_1.err)((0, result_1.validationError)(`Cannot pause a subscription that is ${booking.status.toLowerCase()}.`));
             }
             const now = new Date().toISOString();
             const updated = {
@@ -240,7 +285,7 @@ class RecurringBookingService {
                 updatedAt: now,
             };
             bookings[index] = updated;
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
             logger.info('recurring_booking_paused', {
                 id: recurringId,
                 userId: booking.userId,
@@ -248,7 +293,7 @@ class RecurringBookingService {
                 reason,
             });
             // Notify coach of pause
-            await notification_service_1.notificationService.create({
+            const notifyResult = await notification_service_1.notificationService.create({
                 id: `notif_recurring_pause_${Date.now()}`,
                 type: 'booking',
                 title: 'Recurring Booking Paused',
@@ -258,14 +303,14 @@ class RecurringBookingService {
                 timeLabel: 'Just now',
                 read: false,
             });
-            return { success: true, data: updated };
+            if (!notifyResult.success) {
+                logger.warn('Failed to create recurring pause notification', { error: notifyResult.error });
+            }
+            return (0, result_1.ok)(updated);
         }
         catch (error) {
             logger.error('recurring_booking_pause_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to pause recurring booking. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to pause recurring booking. Please try again.'));
         }
     }
     /**
@@ -274,17 +319,14 @@ class RecurringBookingService {
      */
     async resumeRecurring(recurringId) {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const index = bookings.findIndex((b) => b.id === recurringId);
             if (index === -1) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
             const booking = bookings[index];
             if (booking.status !== 'PAUSED') {
-                return {
-                    success: false,
-                    error: `Cannot resume a subscription that is ${booking.status.toLowerCase()}.`,
-                };
+                return (0, result_1.err)((0, result_1.validationError)(`Cannot resume a subscription that is ${booking.status.toLowerCase()}.`));
             }
             const now = new Date().toISOString();
             const updated = {
@@ -295,14 +337,14 @@ class RecurringBookingService {
                 updatedAt: now,
             };
             bookings[index] = updated;
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
             logger.info('recurring_booking_resumed', {
                 id: recurringId,
                 userId: booking.userId,
                 coachId: booking.coachId,
             });
             // Notify coach of resume
-            await notification_service_1.notificationService.create({
+            const notifyResult = await notification_service_1.notificationService.create({
                 id: `notif_recurring_resume_${Date.now()}`,
                 type: 'booking',
                 title: 'Recurring Booking Resumed',
@@ -312,14 +354,14 @@ class RecurringBookingService {
                 timeLabel: 'Just now',
                 read: false,
             });
-            return { success: true, data: updated };
+            if (!notifyResult.success) {
+                logger.warn('Failed to create recurring resume notification', { error: notifyResult.error });
+            }
+            return (0, result_1.ok)(updated);
         }
         catch (error) {
             logger.error('recurring_booking_resume_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to resume recurring booking. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to resume recurring booking. Please try again.'));
         }
     }
     /**
@@ -330,15 +372,16 @@ class RecurringBookingService {
      */
     async generateUpcomingBookings(recurringId, count = 4) {
         try {
-            const recurring = await this.getById(recurringId);
+            const recurringResult = await this.getById(recurringId);
+            if (!recurringResult.success) {
+                return recurringResult;
+            }
+            const recurring = recurringResult.data;
             if (!recurring) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
             if (recurring.status !== 'ACTIVE') {
-                return {
-                    success: false,
-                    error: `Cannot generate bookings for a ${recurring.status.toLowerCase()} subscription.`,
-                };
+                return (0, result_1.err)((0, result_1.validationError)(`Cannot generate bookings for a ${recurring.status.toLowerCase()} subscription.`));
             }
             const generatedBookings = [];
             const now = new Date();
@@ -395,7 +438,7 @@ class RecurringBookingService {
             }
             // Update the recurring booking with generated booking IDs
             if (generatedBookings.length > 0) {
-                const bookings = await this.list();
+                const bookings = await this.listValue();
                 const index = bookings.findIndex((b) => b.id === recurringId);
                 if (index !== -1) {
                     bookings[index].generatedBookingIds = [
@@ -403,21 +446,18 @@ class RecurringBookingService {
                         ...generatedBookings.map((g) => g.bookingId),
                     ];
                     bookings[index].updatedAt = new Date().toISOString();
-                    await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+                    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
                 }
             }
             logger.info('bookings_generated', {
                 recurringId,
                 count: generatedBookings.length,
             });
-            return { success: true, data: generatedBookings };
+            return (0, result_1.ok)(generatedBookings);
         }
         catch (error) {
             logger.error('generate_bookings_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to generate bookings. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to generate bookings. Please try again.'));
         }
     }
     /**
@@ -427,14 +467,14 @@ class RecurringBookingService {
      */
     async updateRecurring(recurringId, updates) {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const index = bookings.findIndex((b) => b.id === recurringId);
             if (index === -1) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
             const booking = bookings[index];
             if (booking.status === 'CANCELLED') {
-                return { success: false, error: 'Cannot update a cancelled subscription.' };
+                return (0, result_1.err)((0, result_1.validationError)('Cannot update a cancelled subscription.'));
             }
             const now = new Date().toISOString();
             const updated = {
@@ -452,19 +492,16 @@ class RecurringBookingService {
                 }
             }
             bookings[index] = updated;
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
             logger.info('recurring_booking_updated', {
                 id: recurringId,
                 updates,
             });
-            return { success: true, data: updated };
+            return (0, result_1.ok)(updated);
         }
         catch (error) {
             logger.error('recurring_booking_update_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to update recurring booking. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to update recurring booking. Please try again.'));
         }
     }
     /**
@@ -473,10 +510,10 @@ class RecurringBookingService {
      */
     async markSessionCompleted(recurringId) {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const index = bookings.findIndex((b) => b.id === recurringId);
             if (index === -1) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
             const booking = bookings[index];
             const now = new Date().toISOString();
@@ -493,20 +530,17 @@ class RecurringBookingService {
                 updated.status = 'EXPIRED';
             }
             bookings[index] = updated;
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
             logger.info('recurring_session_completed', {
                 id: recurringId,
                 sessionsCompleted: updated.sessionsCompleted,
                 sessionsRemaining: updated.sessionsRemaining,
             });
-            return { success: true, data: updated };
+            return (0, result_1.ok)(updated);
         }
         catch (error) {
             logger.error('mark_session_completed_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to mark session as completed. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to mark session as completed. Please try again.'));
         }
     }
     /**
@@ -515,21 +549,18 @@ class RecurringBookingService {
      */
     async deleteRecurring(recurringId) {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const filtered = bookings.filter((b) => b.id !== recurringId);
             if (filtered.length === bookings.length) {
-                return { success: false, error: 'Recurring booking not found.' };
+                return (0, result_1.err)((0, result_1.notFound)('Recurring booking', recurringId));
             }
-            await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, filtered);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, filtered);
             logger.info('recurring_booking_deleted', { id: recurringId });
-            return { success: true };
+            return (0, result_1.ok)(undefined);
         }
         catch (error) {
             logger.error('recurring_booking_delete_failed', { error, recurringId });
-            return {
-                success: false,
-                error: 'Failed to delete recurring booking. Please try again.',
-            };
+            return (0, result_1.err)((0, result_1.storageError)('Failed to delete recurring booking. Please try again.'));
         }
     }
     /**
@@ -576,7 +607,7 @@ class RecurringBookingService {
      */
     async checkAndExpireBookings() {
         try {
-            const bookings = await this.list();
+            const bookings = await this.listValue();
             const now = new Date();
             let updated = false;
             const updatedBookings = bookings.map((booking) => {
@@ -593,12 +624,14 @@ class RecurringBookingService {
                 return booking;
             });
             if (updated) {
-                await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, updatedBookings);
+                await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, updatedBookings);
                 logger.info('expired_bookings_updated');
             }
+            return (0, result_1.ok)(undefined);
         }
         catch (error) {
             logger.error('check_expire_bookings_failed', { error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to check and expire recurring bookings'));
         }
     }
     /**
@@ -682,15 +715,29 @@ class RecurringBookingService {
                 sessionsCompleted: 1,
             },
         ];
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, demoBookings);
-        logger.info('demo_recurring_bookings_seeded', { count: demoBookings.length });
+        try {
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, demoBookings);
+            logger.info('demo_recurring_bookings_seeded', { count: demoBookings.length });
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to seed recurring demo data', { error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to seed recurring demo data'));
+        }
     }
     /**
      * Clear all recurring bookings (for testing)
      */
     async clearAll() {
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, []);
-        logger.info('recurring_bookings_cleared');
+        try {
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.RECURRING_BOOKINGS, []);
+            logger.info('recurring_bookings_cleared');
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to clear recurring bookings', { error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to clear recurring bookings'));
+        }
     }
 }
 exports.recurringBookingService = new RecurringBookingService();

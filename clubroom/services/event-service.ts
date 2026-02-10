@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('EventService');
+
 /**
  * Event Service - Re-export Facade
  *

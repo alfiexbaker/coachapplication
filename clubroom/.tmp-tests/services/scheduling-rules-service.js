@@ -215,7 +215,7 @@ class SchedulingRulesService {
     /**
      * Get scheduling rules for a coach
      */
-    async getCoachRules(coachId) {
+    async getCoachRulesValue(coachId) {
         // Check cache first
         if (this.rulesCache.has(coachId)) {
             return this.rulesCache.get(coachId);
@@ -228,6 +228,18 @@ class SchedulingRulesService {
         }
         // Return default rules if none exist
         return this.getDefaultRules(coachId);
+    }
+    /**
+     * Get scheduling rules for a coach
+     */
+    async getCoachRules(coachId) {
+        try {
+            return (0, result_1.ok)(await this.getCoachRulesValue(coachId));
+        }
+        catch (error) {
+            logger.error('Failed to get scheduling rules', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load scheduling rules'));
+        }
     }
     /**
      * Get default rules for a coach
@@ -245,26 +257,32 @@ class SchedulingRulesService {
      * Update scheduling rules for a coach
      */
     async updateCoachRules(coachId, updates) {
-        const allRules = await this.loadAllRules();
-        const existingIndex = allRules.findIndex(r => r.coachId === coachId);
-        const now = new Date().toISOString();
-        const existingRules = existingIndex >= 0 ? allRules[existingIndex] : this.getDefaultRules(coachId);
-        const updatedRules = {
-            ...existingRules,
-            ...updates,
-            id: existingRules.id.startsWith('rules_default_') ? `rules_${Date.now()}` : existingRules.id,
-            coachId,
-            updatedAt: now,
-        };
-        if (existingIndex >= 0) {
-            allRules[existingIndex] = updatedRules;
+        try {
+            const allRules = await this.loadAllRules();
+            const existingIndex = allRules.findIndex(r => r.coachId === coachId);
+            const now = new Date().toISOString();
+            const existingRules = existingIndex >= 0 ? allRules[existingIndex] : this.getDefaultRules(coachId);
+            const updatedRules = {
+                ...existingRules,
+                ...updates,
+                id: existingRules.id.startsWith('rules_default_') ? `rules_${Date.now()}` : existingRules.id,
+                coachId,
+                updatedAt: now,
+            };
+            if (existingIndex >= 0) {
+                allRules[existingIndex] = updatedRules;
+            }
+            else {
+                allRules.push(updatedRules);
+            }
+            await this.saveAllRules(allRules);
+            logger.debug('Scheduling rules updated', { coachId });
+            return (0, result_1.ok)(updatedRules);
         }
-        else {
-            allRules.push(updatedRules);
+        catch (error) {
+            logger.error('Failed to update scheduling rules', { coachId, updates, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to update scheduling rules'));
         }
-        await this.saveAllRules(allRules);
-        logger.debug('Scheduling rules updated', { coachId });
-        return updatedRules;
     }
     /**
      * Apply a preset to a coach's rules
@@ -274,74 +292,86 @@ class SchedulingRulesService {
         if (!preset) {
             return (0, result_1.err)((0, result_1.validationError)(`Unknown preset: ${presetKey}`));
         }
-        return (0, result_1.ok)(await this.updateCoachRules(coachId, preset.rules));
+        return this.updateCoachRules(coachId, preset.rules);
     }
     /**
      * Validate a proposed booking time against coach's rules
      */
     async validateBookingTime(coachId, proposedTime) {
-        const rules = await this.getCoachRules(coachId);
-        const now = new Date();
-        // Calculate hours until proposed session
-        const hoursUntilSession = (proposedTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-        const daysUntilSession = hoursUntilSession / 24;
-        // Check minimum advance booking
-        if (hoursUntilSession < rules.minimumAdvanceBookingHours) {
-            const minHours = rules.minimumAdvanceBookingHours;
-            return {
-                isValid: false,
-                errorMessage: minHours >= 24
-                    ? `Bookings must be made at least ${Math.floor(minHours / 24)} day${Math.floor(minHours / 24) > 1 ? 's' : ''} in advance`
-                    : `Bookings must be made at least ${minHours} hours in advance`,
-            };
+        try {
+            const rules = await this.getCoachRulesValue(coachId);
+            const now = new Date();
+            // Calculate hours until proposed session
+            const hoursUntilSession = (proposedTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+            const daysUntilSession = hoursUntilSession / 24;
+            // Check minimum advance booking
+            if (hoursUntilSession < rules.minimumAdvanceBookingHours) {
+                const minHours = rules.minimumAdvanceBookingHours;
+                return (0, result_1.ok)({
+                    isValid: false,
+                    errorMessage: minHours >= 24
+                        ? `Bookings must be made at least ${Math.floor(minHours / 24)} day${Math.floor(minHours / 24) > 1 ? 's' : ''} in advance`
+                        : `Bookings must be made at least ${minHours} hours in advance`,
+                });
+            }
+            // Check same-day booking
+            const isSameDay = now.toDateString() === proposedTime.toDateString();
+            if (isSameDay && !rules.allowSameDayBookings) {
+                return (0, result_1.ok)({
+                    isValid: false,
+                    errorMessage: 'This coach does not accept same-day bookings',
+                });
+            }
+            // Check max advance booking
+            if (daysUntilSession > rules.maxAdvanceBookingDays) {
+                return (0, result_1.ok)({
+                    isValid: false,
+                    errorMessage: `Bookings cannot be made more than ${rules.maxAdvanceBookingDays} days in advance`,
+                });
+            }
+            // Warning for close to deadline
+            if (hoursUntilSession < rules.minimumAdvanceBookingHours * 1.5) {
+                return (0, result_1.ok)({
+                    isValid: true,
+                    warningMessage: 'This booking is close to the minimum notice deadline',
+                });
+            }
+            return (0, result_1.ok)({ isValid: true });
         }
-        // Check same-day booking
-        const isSameDay = now.toDateString() === proposedTime.toDateString();
-        if (isSameDay && !rules.allowSameDayBookings) {
-            return {
-                isValid: false,
-                errorMessage: 'This coach does not accept same-day bookings',
-            };
+        catch (error) {
+            logger.error('Failed to validate booking time', { coachId, proposedTime, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to validate booking time'));
         }
-        // Check max advance booking
-        if (daysUntilSession > rules.maxAdvanceBookingDays) {
-            return {
-                isValid: false,
-                errorMessage: `Bookings cannot be made more than ${rules.maxAdvanceBookingDays} days in advance`,
-            };
-        }
-        // Warning for close to deadline
-        if (hoursUntilSession < rules.minimumAdvanceBookingHours * 1.5) {
-            return {
-                isValid: true,
-                warningMessage: 'This booking is close to the minimum notice deadline',
-            };
-        }
-        return { isValid: true };
     }
     /**
      * Validate a proposed reschedule
      */
     async validateReschedule(coachId, originalTime, newTime) {
-        const rules = await this.getCoachRules(coachId);
-        const now = new Date();
-        // Check if rescheduling is allowed
-        if (!rules.allowRescheduling) {
-            return {
-                isValid: false,
-                errorMessage: 'This coach does not allow rescheduling',
-            };
+        try {
+            const rules = await this.getCoachRulesValue(coachId);
+            const now = new Date();
+            // Check if rescheduling is allowed
+            if (!rules.allowRescheduling) {
+                return (0, result_1.ok)({
+                    isValid: false,
+                    errorMessage: 'This coach does not allow rescheduling',
+                });
+            }
+            // Check reschedule deadline
+            const hoursUntilOriginal = (originalTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+            if (hoursUntilOriginal < rules.rescheduleDeadlineHours) {
+                return (0, result_1.ok)({
+                    isValid: false,
+                    errorMessage: `Rescheduling must be done at least ${rules.rescheduleDeadlineHours} hours before the original session`,
+                });
+            }
+            // Validate the new time
+            return this.validateBookingTime(coachId, newTime);
         }
-        // Check reschedule deadline
-        const hoursUntilOriginal = (originalTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-        if (hoursUntilOriginal < rules.rescheduleDeadlineHours) {
-            return {
-                isValid: false,
-                errorMessage: `Rescheduling must be done at least ${rules.rescheduleDeadlineHours} hours before the original session`,
-            };
+        catch (error) {
+            logger.error('Failed to validate reschedule', { coachId, originalTime, newTime, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to validate reschedule'));
         }
-        // Validate the new time
-        return this.validateBookingTime(coachId, newTime);
     }
     /**
      * Format rules for display
@@ -390,7 +420,7 @@ class SchedulingRulesService {
     /**
      * Load all cancellation policies from storage
      */
-    async loadPolicies() {
+    async loadPoliciesValue() {
         if (this.policiesCache)
             return this.policiesCache;
         try {
@@ -400,6 +430,18 @@ class SchedulingRulesService {
         catch (error) {
             logger.error('Failed to load cancellation policies', error);
             return [];
+        }
+    }
+    /**
+     * Load all cancellation policies from storage
+     */
+    async loadPolicies() {
+        try {
+            return (0, result_1.ok)(await this.loadPoliciesValue());
+        }
+        catch (error) {
+            logger.error('Failed to load cancellation policies', error);
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load cancellation policies'));
         }
     }
     /**
@@ -413,8 +455,14 @@ class SchedulingRulesService {
      * Get a coach's cancellation policy
      */
     async getCancellationPolicy(coachId) {
-        const policies = await this.loadPolicies();
-        return policies.find(p => p.coachId === coachId) || null;
+        try {
+            const policies = await this.loadPoliciesValue();
+            return (0, result_1.ok)(policies.find(p => p.coachId === coachId) || null);
+        }
+        catch (error) {
+            logger.error('Failed to get cancellation policy', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load cancellation policy'));
+        }
     }
     /**
      * Get the default cancellation policy (used when coach hasn't configured one)
@@ -432,34 +480,40 @@ class SchedulingRulesService {
      * Create or update a coach's cancellation policy
      */
     async setCancellationPolicy(coachId, templateKey, customTiers) {
-        const policies = await this.loadPolicies();
-        const existingIndex = policies.findIndex(p => p.coachId === coachId);
-        const now = new Date().toISOString();
-        let template = exports.POLICY_TEMPLATES[templateKey] || exports.POLICY_TEMPLATES.standard;
-        if (templateKey === 'custom' && customTiers) {
-            template = {
+        try {
+            const policies = await this.loadPoliciesValue();
+            const existingIndex = policies.findIndex(p => p.coachId === coachId);
+            const now = new Date().toISOString();
+            let template = exports.POLICY_TEMPLATES[templateKey] || exports.POLICY_TEMPLATES.standard;
+            if (templateKey === 'custom' && customTiers) {
+                template = {
+                    ...template,
+                    name: 'Custom',
+                    description: 'Custom cancellation policy',
+                    tiers: customTiers,
+                };
+            }
+            const policy = {
+                id: existingIndex >= 0 ? policies[existingIndex].id : `policy_${Date.now()}`,
+                coachId,
                 ...template,
-                name: 'Custom',
-                description: 'Custom cancellation policy',
-                tiers: customTiers,
+                createdAt: existingIndex >= 0 ? policies[existingIndex].createdAt : now,
+                updatedAt: now,
             };
+            if (existingIndex >= 0) {
+                policies[existingIndex] = policy;
+            }
+            else {
+                policies.push(policy);
+            }
+            await this.savePolicies(policies);
+            logger.debug('Cancellation policy saved', { coachId, policyName: policy.name });
+            return (0, result_1.ok)(policy);
         }
-        const policy = {
-            id: existingIndex >= 0 ? policies[existingIndex].id : `policy_${Date.now()}`,
-            coachId,
-            ...template,
-            createdAt: existingIndex >= 0 ? policies[existingIndex].createdAt : now,
-            updatedAt: now,
-        };
-        if (existingIndex >= 0) {
-            policies[existingIndex] = policy;
+        catch (error) {
+            logger.error('Failed to set cancellation policy', { coachId, templateKey, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to save cancellation policy'));
         }
-        else {
-            policies.push(policy);
-        }
-        await this.savePolicies(policies);
-        logger.debug('Cancellation policy saved', { coachId, policyName: policy.name });
-        return policy;
     }
     /**
      * Calculate refund for a booking cancellation

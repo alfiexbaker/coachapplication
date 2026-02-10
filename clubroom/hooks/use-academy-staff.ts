@@ -56,14 +56,26 @@ export function useAcademyStaff(id: string | undefined) {
     if (!id) return;
     setLoading(true);
     try {
-      const [academyData, staffData] = await Promise.all([
+      const [academyResult, staffResult] = await Promise.all([
         academyService.getAcademy(id),
         academyService.getStaff(id),
       ]);
-      setAcademy(academyData);
-      setStaff(staffData);
+      if (!academyResult.success) {
+        logger.error('Failed to load academy', academyResult.error);
+        setAcademy(null);
+        setStaff([]);
+        return;
+      }
+      if (!staffResult.success) {
+        logger.error('Failed to load academy staff', staffResult.error);
+        setAcademy(null);
+        setStaff([]);
+        return;
+      }
+      setAcademy(academyResult.data);
+      setStaff(staffResult.data);
       if (currentUser?.id) {
-        const membership = staffData.find((m) => m.userId === currentUser.id);
+        const membership = staffResult.data.find((m) => m.userId === currentUser.id);
         setUserMembership(membership || null);
       }
     } catch (error) {
@@ -88,8 +100,12 @@ export function useAcademyStaff(id: string | undefined) {
     setCreatingInvite(true);
     try {
       const permissions = getPermissionsForRole(inviteRole);
-      const invite = await academyService.createInvite(academy.id, academy.name, inviteRole, permissions, currentUser.id, currentUser.name || 'Admin', 30, 10);
-      setInviteCode(invite.code);
+      const result = await academyService.createInvite(academy.id, academy.name, inviteRole, permissions, currentUser.id, currentUser.name || 'Admin', 30, 10);
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+        return;
+      }
+      setInviteCode(result.data.code);
     } catch (error) {
       logger.error('Failed to create invite:', error);
       Alert.alert('Error', 'Failed to create invite code');
@@ -107,7 +123,11 @@ export function useAcademyStaff(id: string | undefined) {
     if (!editingMember) return;
     try {
       const permissions = getPermissionsForRole(editRole);
-      await academyService.updateMemberRole(editingMember.id, editRole, permissions);
+      const result = await academyService.updateMemberRole(editingMember.id, editRole, permissions);
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+        return;
+      }
       setEditingMember(null);
       await loadData();
       Alert.alert('Success', 'Role updated successfully');
@@ -124,7 +144,11 @@ export function useAcademyStaff(id: string | undefined) {
         text: 'Remove', style: 'destructive',
         onPress: async () => {
           try {
-            await academyService.removeMember(member.id);
+            const result = await academyService.removeMember(member.id);
+            if (!result.success) {
+              Alert.alert('Error', result.error.message);
+              return;
+            }
             await loadData();
           } catch (error) {
             logger.error('Failed to remove member:', error);

@@ -6,6 +6,13 @@
  */
 
 import { createLogger } from '@/utils/logger';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+} from '@/types/result';
 import type {
   SkillTree,
   SkillTreeCategory,
@@ -996,33 +1003,48 @@ class SkillDefinitionService {
   /**
    * Get all available skill trees
    */
-  async getSkillTrees(): Promise<SkillTree[]> {
-    logger.info('get_all_skill_trees');
-    return SKILL_TREES;
+  async getSkillTrees(): Promise<Result<SkillTree[], ServiceError>> {
+    try {
+      logger.info('get_all_skill_trees');
+      return ok(SKILL_TREES);
+    } catch (error) {
+      logger.error('get_all_skill_trees_failed', { error });
+      return err(storageError('Failed to load skill trees'));
+    }
   }
 
   /**
    * Get a specific skill tree by category
    */
-  async getSkillTree(category: SkillTreeCategory): Promise<SkillTree | null> {
-    const tree = SKILL_TREES.find((t) => t.category === category);
-    if (!tree) {
-      logger.warn('skill_tree_not_found', { category });
-      return null;
+  async getSkillTree(category: SkillTreeCategory): Promise<Result<SkillTree | null, ServiceError>> {
+    try {
+      const tree = SKILL_TREES.find((t) => t.category === category);
+      if (!tree) {
+        logger.warn('skill_tree_not_found', { category });
+        return ok(null);
+      }
+      return ok(tree);
+    } catch (error) {
+      logger.error('get_skill_tree_failed', { category, error });
+      return err(storageError('Failed to load skill tree'));
     }
-    return tree;
   }
 
   /**
    * Get a skill tree by its ID
    */
-  async getSkillTreeById(treeId: string): Promise<SkillTree | null> {
-    const tree = SKILL_TREES.find((t) => t.id === treeId);
-    if (!tree) {
-      logger.warn('skill_tree_not_found_by_id', { treeId });
-      return null;
+  async getSkillTreeById(treeId: string): Promise<Result<SkillTree | null, ServiceError>> {
+    try {
+      const tree = SKILL_TREES.find((t) => t.id === treeId);
+      if (!tree) {
+        logger.warn('skill_tree_not_found_by_id', { treeId });
+        return ok(null);
+      }
+      return ok(tree);
+    } catch (error) {
+      logger.error('get_skill_tree_by_id_failed', { treeId, error });
+      return err(storageError('Failed to load skill tree'));
     }
-    return tree;
   }
 
   /**

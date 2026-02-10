@@ -29,8 +29,8 @@ export default function CompareScreen() {
 
   useEffect(() => {
     const loadCount = async () => {
-      const count = await comparisonService.getComparisonCount();
-      setCoachCount(count);
+      const countResult = await comparisonService.getComparisonCount();
+      setCoachCount(countResult.success ? countResult.data : 0);
     };
     void loadCount();
   }, [refreshKey]);
@@ -40,7 +40,10 @@ export default function CompareScreen() {
   }, []);
 
   const handleClearAll = useCallback(async () => {
-    await comparisonService.clearComparison();
+    const clearResult = await comparisonService.clearComparison();
+    if (!clearResult.success) {
+      return;
+    }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setCoachCount(0);
     setRefreshKey((k) => k + 1);

@@ -107,11 +107,15 @@ export const rescheduleService = {
     } = params;
 
     // Validate the proposed time against scheduling rules
-    const validation = await schedulingRulesService.validateReschedule(
+    const validationResult = await schedulingRulesService.validateReschedule(
       coachId,
       new Date(originalDateTime),
       new Date(proposedDateTime),
     );
+    if (!validationResult.success) {
+      return validationResult;
+    }
+    const validation = validationResult.data;
 
     if (!validation.isValid) {
       return err(validationError(validation.errorMessage || 'Proposed time is not valid'));
@@ -303,11 +307,15 @@ export const rescheduleService = {
     }
 
     // Validate the counter time
-    const validation = await schedulingRulesService.validateReschedule(
+    const validationResult = await schedulingRulesService.validateReschedule(
       proposal.coachId,
       new Date(proposal.originalDateTime),
       new Date(counterDateTime),
     );
+    if (!validationResult.success) {
+      return validationResult;
+    }
+    const validation = validationResult.data;
 
     if (!validation.isValid) {
       return err(validationError(validation.errorMessage || 'Counter time is not valid'));

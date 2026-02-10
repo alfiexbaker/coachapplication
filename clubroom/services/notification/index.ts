@@ -17,6 +17,10 @@
 import { notificationStore } from './notification-store';
 import { notificationSenderService } from './notification-sender';
 import { notificationPreferencesService } from './notification-preferences';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('NotificationFacade');
+void logger;
 
 export { notificationStore, type ExtendedNotificationItem } from './notification-store';
 export { notificationSenderService } from './notification-sender';

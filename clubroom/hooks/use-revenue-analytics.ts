@@ -33,18 +33,26 @@ export function useRevenueAnalytics() {
   const fetchData = useCallback(async () => {
     if (!currentUser?.id) return;
 
-    try {
-      const [analyticsData, chartData] = await Promise.all([
+    const [analyticsResult, chartResult] = await Promise.all([
         coachAnalyticsService.getCoachAnalytics(currentUser.id, period),
         coachAnalyticsService.getRevenueChart(currentUser.id, period),
       ]);
-      setAnalytics(analyticsData);
-      setRevenueData(chartData);
-    } catch (error) {
-      logger.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
+
+    if (analyticsResult.success) {
+      setAnalytics(analyticsResult.data);
+    } else {
+      logger.error('Failed to fetch analytics data', analyticsResult.error);
+      setAnalytics(null);
     }
+
+    if (chartResult.success) {
+      setRevenueData(chartResult.data);
+    } else {
+      logger.error('Failed to fetch revenue chart', chartResult.error);
+      setRevenueData([]);
+    }
+
+    setLoading(false);
   }, [currentUser?.id, period]);
 
   useEffect(() => {

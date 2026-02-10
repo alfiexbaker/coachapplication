@@ -38,13 +38,19 @@ export default function RecurringBookingsScreen() {
     if (!currentUser?.id) return;
 
     try {
-      let userBookings: RecurringBooking[];
+      let userBookings: RecurringBooking[] = [];
+      let bookingsResult;
 
       if (currentUser.role === 'COACH') {
-        userBookings = await recurringBookingService.getCoachRecurringBookings(currentUser.id);
+        bookingsResult = await recurringBookingService.getCoachRecurringBookings(currentUser.id);
       } else {
-        userBookings = await recurringBookingService.getUserRecurringBookings(currentUser.id);
+        bookingsResult = await recurringBookingService.getUserRecurringBookings(currentUser.id);
       }
+
+      if (!bookingsResult.success) {
+        throw new Error(bookingsResult.error.message);
+      }
+      userBookings = bookingsResult.data;
 
       setBookings(userBookings);
       logger.debug('Loaded recurring bookings', { count: userBookings.length });
@@ -66,9 +72,16 @@ export default function RecurringBookingsScreen() {
   // Seed demo data on first load if no bookings exist
   useEffect(() => {
     const seedIfEmpty = async () => {
-      const allBookings = await recurringBookingService.list();
-      if (allBookings.length === 0) {
-        await recurringBookingService.seedDemoData();
+      const allBookingsResult = await recurringBookingService.list();
+      if (!allBookingsResult.success) {
+        return;
+      }
+      if (allBookingsResult.data.length === 0) {
+        const seedResult = await recurringBookingService.seedDemoData();
+        if (!seedResult.success) {
+          logger.warn('Failed to seed recurring demo data', seedResult.error);
+          return;
+        }
         loadBookings();
       }
     };
@@ -96,7 +109,7 @@ export default function RecurringBookingsScreen() {
       );
       Alert.alert('Subscription Paused', 'Your recurring booking has been paused. You can resume it anytime.');
     } else {
-      Alert.alert('Error', result.error || 'Failed to pause subscription.');
+      Alert.alert('Error', result.error?.message || 'Failed to pause subscription.');
     }
   }, []);
 
@@ -112,7 +125,7 @@ export default function RecurringBookingsScreen() {
       );
       Alert.alert('Subscription Resumed', 'Your recurring booking has been resumed.');
     } else {
-      Alert.alert('Error', result.error || 'Failed to resume subscription.');
+      Alert.alert('Error', result.error?.message || 'Failed to resume subscription.');
     }
   }, []);
 
@@ -128,7 +141,7 @@ export default function RecurringBookingsScreen() {
       );
       Alert.alert('Subscription Cancelled', 'Your recurring booking has been cancelled.');
     } else {
-      Alert.alert('Error', result.error || 'Failed to cancel subscription.');
+      Alert.alert('Error', result.error?.message || 'Failed to cancel subscription.');
     }
   }, []);
 
@@ -155,7 +168,7 @@ export default function RecurringBookingsScreen() {
                 `${result.data.length} upcoming sessions have been added to your bookings.`
               );
             } else {
-              Alert.alert('Error', result.error || 'Failed to generate bookings.');
+              Alert.alert('Error', result.error?.message || 'Failed to generate bookings.');
             }
           },
         },

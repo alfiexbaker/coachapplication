@@ -4,8 +4,8 @@
  */
 
 export type Result<T, E = ServiceError> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+  | { success: true; data: T; error?: undefined }
+  | { success: false; data?: undefined; error: E };
 
 export type ServiceErrorCode =
   | 'NOT_FOUND'

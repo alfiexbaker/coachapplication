@@ -37,7 +37,13 @@ export function useSkillsScreen() {
     if (!currentUser) return;
 
     try {
-      const summary = await skillTreeService.getTreesSummary(currentUser.id);
+      const summaryResult = await skillTreeService.getTreesSummary(currentUser.id);
+      if (!summaryResult.success) {
+        logger.error('skill_trees_load_failed', summaryResult.error);
+        setTrees([]);
+        return;
+      }
+      const summary = summaryResult.data;
       setTrees(summary);
       logger.info('skill_trees_loaded', { count: summary.length });
     } catch (error) {
@@ -67,7 +73,11 @@ export function useSkillsScreen() {
           text: 'Initialize',
           onPress: async () => {
             try {
-              await skillTreeService.initializeMockProgress(currentUser.id);
+              const result = await skillTreeService.initializeMockProgress(currentUser.id);
+              if (!result.success) {
+                Alert.alert('Error', result.error.message);
+                return;
+              }
               await loadTrees();
               Alert.alert('Success', 'Demo progress has been added!');
             } catch {

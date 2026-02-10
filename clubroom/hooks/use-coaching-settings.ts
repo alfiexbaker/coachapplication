@@ -30,8 +30,12 @@ export function useCoachingSettings() {
   useEffect(() => {
     (async () => {
       try {
-        const loaded = await schedulingRulesService.getCoachRules(coachId);
-        setRules(loaded);
+        const loadedResult = await schedulingRulesService.getCoachRules(coachId);
+        if (loadedResult.success) {
+          setRules(loadedResult.data);
+        } else {
+          setRules(schedulingRulesService.getDefaultRules(coachId));
+        }
       } catch {
         setRules(schedulingRulesService.getDefaultRules(coachId));
       } finally {
@@ -57,7 +61,10 @@ export function useCoachingSettings() {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
-          await schedulingRulesService.updateCoachRules(coachId, updated);
+          const result = await schedulingRulesService.updateCoachRules(coachId, updated);
+          if (!result.success) {
+            return;
+          }
           flashSaved();
         } catch {
           // Silent fail for MVP

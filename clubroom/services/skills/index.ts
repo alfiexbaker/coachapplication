@@ -20,12 +20,17 @@ export type { UnlockResult, MilestoneInfo } from './skill-achievement-service';
 import { skillDefinitionService, SKILL_TREE_CATEGORIES } from './skill-definition-service';
 import { skillProgressService } from './skill-progress-service';
 import { skillAchievementService } from './skill-achievement-service';
+import { createLogger } from '@/utils/logger';
+import type { Result, ServiceError } from '@/types/result';
 import type {
   SkillTree,
   SkillTreeCategory,
   SkillNode,
   SkillNodeProgress,
 } from '@/constants/types';
+
+const logger = createLogger('SkillTreeFacade');
+void logger;
 
 /**
  * SkillTreeService - Backward-compatible facade
@@ -41,14 +46,14 @@ class SkillTreeService {
   /**
    * Get all available skill trees
    */
-  async getSkillTrees(): Promise<SkillTree[]> {
+  async getSkillTrees(): Promise<Result<SkillTree[], ServiceError>> {
     return skillDefinitionService.getSkillTrees();
   }
 
   /**
    * Get a specific skill tree by category
    */
-  async getSkillTree(category: SkillTreeCategory): Promise<SkillTree | null> {
+  async getSkillTree(category: SkillTreeCategory): Promise<Result<SkillTree | null, ServiceError>> {
     return skillDefinitionService.getSkillTree(category);
   }
 
@@ -70,7 +75,7 @@ class SkillTreeService {
    */
   async getAllUserProgress(
     userId: string
-  ): Promise<Record<string, import('@/constants/types').SkillTreeProgress>> {
+  ): Promise<Result<Record<string, import('@/constants/types').SkillTreeProgress>, ServiceError>> {
     return skillProgressService.getAllUserProgress(userId);
   }
 
@@ -80,7 +85,7 @@ class SkillTreeService {
   async getUserProgress(
     userId: string,
     treeId: string
-  ): Promise<import('@/constants/types').SkillTreeProgress | null> {
+  ): Promise<Result<import('@/constants/types').SkillTreeProgress | null, ServiceError>> {
     return skillProgressService.getUserProgress(userId, treeId);
   }
 
@@ -90,14 +95,14 @@ class SkillTreeService {
   async getSkillTreeWithProgress(
     userId: string,
     category: SkillTreeCategory
-  ): Promise<SkillTree | null> {
+  ): Promise<Result<SkillTree | null, ServiceError>> {
     return skillProgressService.getSkillTreeWithProgress(userId, category);
   }
 
   /**
    * Get all skill trees with user progress
    */
-  async getAllSkillTreesWithProgress(userId: string): Promise<SkillTree[]> {
+  async getAllSkillTreesWithProgress(userId: string): Promise<Result<SkillTree[], ServiceError>> {
     return skillProgressService.getAllSkillTreesWithProgress(userId);
   }
 
@@ -108,12 +113,12 @@ class SkillTreeService {
     userId: string,
     nodeId: string,
     xpAmount: number
-  ): Promise<{
+  ): Promise<Result<{
     node: SkillNode;
     progress: SkillNodeProgress;
     justUnlocked: boolean;
     badgeAwarded?: string;
-  } | null> {
+  }, ServiceError>> {
     return skillAchievementService.addXpWithAchievements(userId, nodeId, xpAmount);
   }
 
@@ -123,11 +128,11 @@ class SkillTreeService {
   async unlockNode(
     userId: string,
     nodeId: string
-  ): Promise<{
+  ): Promise<Result<{
     node: SkillNode;
     progress: SkillNodeProgress;
     badgeAwarded?: string;
-  } | null> {
+  }, ServiceError>> {
     return skillAchievementService.unlockNode(userId, nodeId);
   }
 
@@ -137,12 +142,12 @@ class SkillTreeService {
   async calculateTreeProgress(
     userId: string,
     treeId: string
-  ): Promise<{
+  ): Promise<Result<{
     totalNodes: number;
     unlockedNodes: number;
     percentComplete: number;
     totalXp: number;
-  }> {
+  }, ServiceError>> {
     return skillProgressService.calculateTreeProgress(userId, treeId);
   }
 
@@ -151,7 +156,7 @@ class SkillTreeService {
    */
   async getTreesSummary(
     userId: string
-  ): Promise<
+  ): Promise<Result<
     {
       treeId: string;
       category: SkillTreeCategory;
@@ -162,28 +167,28 @@ class SkillTreeService {
       unlockedNodes: number;
       percentComplete: number;
     }[]
-  > {
+  , ServiceError>> {
     return skillProgressService.getTreesSummary(userId);
   }
 
   /**
    * Check if a node can be unlocked (prerequisites met)
    */
-  async canUnlockNode(userId: string, nodeId: string): Promise<boolean> {
+  async canUnlockNode(userId: string, nodeId: string): Promise<Result<boolean, ServiceError>> {
     return skillProgressService.canUnlockNode(userId, nodeId);
   }
 
   /**
    * Reset progress for a user (for testing)
    */
-  async resetUserProgress(userId: string): Promise<void> {
+  async resetUserProgress(userId: string): Promise<Result<void, ServiceError>> {
     return skillProgressService.resetUserProgress(userId);
   }
 
   /**
    * Initialize mock progress for demo purposes
    */
-  async initializeMockProgress(userId: string): Promise<void> {
+  async initializeMockProgress(userId: string): Promise<Result<void, ServiceError>> {
     return skillProgressService.initializeMockProgress(userId);
   }
 }

@@ -34,14 +34,14 @@ export function useAnalyticsDashboard() {
 
   const fetchAnalytics = useCallback(async () => {
     if (!currentUser?.id) return;
-    try {
-      const data = await coachAnalyticsService.getCoachAnalytics(currentUser.id, period);
-      setAnalytics(data);
-    } catch (error) {
-      logger.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
+    const result = await coachAnalyticsService.getCoachAnalytics(currentUser.id, period);
+    if (result.success) {
+      setAnalytics(result.data);
+    } else {
+      logger.error('Failed to fetch analytics:', result.error);
+      setAnalytics(null);
     }
+    setLoading(false);
   }, [currentUser?.id, period]);
 
   useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);

@@ -75,7 +75,7 @@ export function useSubscribe() {
           { text: 'View Subscriptions', onPress: () => router.replace(Routes.BOOKINGS_RECURRING) },
         ]);
       } else {
-        Alert.alert('Error', result.error || 'Failed to create subscription.');
+        Alert.alert('Error', result.error?.message || 'Failed to create subscription.');
       }
     } catch (error) {
       logger.error('Failed to create subscription', error);

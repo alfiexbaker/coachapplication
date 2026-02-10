@@ -25,6 +25,10 @@ export type { CreateCarpoolOfferParams, RequestCarpoolSeatParams } from './commu
 import { communityGroupService } from './community-group-service';
 import { communityMessagingService } from './community-messaging-service';
 import { communityCarpoolService } from './community-carpool-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CommunityFacade');
+void logger;
 
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY

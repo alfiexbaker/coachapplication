@@ -40,8 +40,13 @@ export default function PackagesScreen() {
   const loadPackages = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await packageService.discoverPackages();
-      setPackages(data);
+      const result = await packageService.discoverPackages();
+      if (!result.success) {
+        logger.error('Failed to load packages', result.error);
+        setPackages([]);
+        return;
+      }
+      setPackages(result.data);
     } catch (error) {
       logger.error('Failed to load packages:', error);
     } finally {

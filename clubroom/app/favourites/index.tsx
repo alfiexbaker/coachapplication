@@ -52,15 +52,14 @@ export default function FavouritesScreen() {
 
   // Load favourites
   const loadFavourites = useCallback(async () => {
-    try {
-      const userFavourites = await favouriteService.getFavourites(userId);
-      setFavourites(userFavourites);
-    } catch (error) {
-      logger.error('Failed to load favourites:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    const result = await favouriteService.getFavourites(userId);
+    if (result.success) {
+      setFavourites(result.data);
+    } else {
+      logger.error('Failed to load favourites:', result.error);
     }
+    setLoading(false);
+    setRefreshing(false);
   }, [userId]);
 
   // Reload on focus
@@ -85,9 +84,12 @@ export default function FavouritesScreen() {
 
       try {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await favouriteService.removeFavourite(userId, favourite.coachId);
+        const result = await favouriteService.removeFavourite(userId, favourite.coachId);
+        if (!result.success && result.error.code !== 'NOT_FOUND') {
+          logger.error('Failed to remove favourite:', result.error);
+          setFavourites((prev) => [...prev, favourite]);
+        }
       } catch (error) {
-        // Revert on error
         logger.error('Failed to remove favourite:', error);
         setFavourites((prev) => [...prev, favourite]);
       } finally {

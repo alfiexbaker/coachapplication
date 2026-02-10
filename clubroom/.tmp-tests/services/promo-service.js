@@ -18,7 +18,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.promoService = void 0;
-const storage_service_1 = require("./storage-service");
+const api_client_1 = require("./api-client");
 const wallet_service_1 = require("./wallet-service");
 const logger_1 = require("@/utils/logger");
 const result_1 = require("@/types/result");
@@ -188,24 +188,24 @@ function getCodeStatus(code) {
 // STORAGE OPERATIONS
 // ============================================================================
 async function getAllCodes() {
-    const codes = await storage_service_1.storageService.getItem(STORAGE_KEY_CODES, []);
+    const codes = await api_client_1.apiClient.get(STORAGE_KEY_CODES, []);
     if (codes.length === 0) {
         return [...MOCK_PROMO_CODES];
     }
     return codes;
 }
 async function saveCodes(codes) {
-    await storage_service_1.storageService.setItem(STORAGE_KEY_CODES, codes);
+    await api_client_1.apiClient.set(STORAGE_KEY_CODES, codes);
 }
 async function getAllUsage() {
-    const usage = await storage_service_1.storageService.getItem(STORAGE_KEY_USAGE, []);
+    const usage = await api_client_1.apiClient.get(STORAGE_KEY_USAGE, []);
     if (usage.length === 0) {
         return [...MOCK_PROMO_USAGE];
     }
     return usage;
 }
 async function saveUsage(usage) {
-    await storage_service_1.storageService.setItem(STORAGE_KEY_USAGE, usage);
+    await api_client_1.apiClient.set(STORAGE_KEY_USAGE, usage);
 }
 // ============================================================================
 // PROMO CODE OPERATIONS
@@ -591,8 +591,8 @@ async function resetToMockData() {
  * Clear all promo code data (for testing)
  */
 async function clearAllData() {
-    await storage_service_1.storageService.setItem(STORAGE_KEY_CODES, []);
-    await storage_service_1.storageService.setItem(STORAGE_KEY_USAGE, []);
+    await api_client_1.apiClient.set(STORAGE_KEY_CODES, []);
+    await api_client_1.apiClient.set(STORAGE_KEY_USAGE, []);
     logger.info('promo_data_cleared');
 }
 // ============================================================================

@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('FamilyService');
+
 /**
  * Family Service - Re-export Facade
  *

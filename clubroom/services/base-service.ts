@@ -5,7 +5,7 @@
 
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
-import { eventBus } from './event-bus';
+import { emitTyped, type EventPayloads } from './event-bus';
 import {
   type Result,
   type ServiceError,
@@ -84,7 +84,7 @@ export abstract class BaseService<T extends BaseEntity> {
    * Emit an event through the event bus.
    */
   protected emit(event: string, data: unknown): void {
-    eventBus.emit(event, data);
+    emitTyped(event as keyof EventPayloads, data as EventPayloads[keyof EventPayloads]);
   }
 
   /**

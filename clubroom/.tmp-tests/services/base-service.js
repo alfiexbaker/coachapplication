@@ -56,7 +56,7 @@ class BaseService {
      * Emit an event through the event bus.
      */
     emit(event, data) {
-        event_bus_1.eventBus.emit(event, data);
+        (0, event_bus_1.emitTyped)(event, data);
     }
     /**
      * Load all entities from storage.

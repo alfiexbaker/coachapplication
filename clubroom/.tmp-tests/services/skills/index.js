@@ -22,6 +22,9 @@ Object.defineProperty(exports, "skillAchievementService", { enumerable: true, ge
 const skill_definition_service_2 = require("./skill-definition-service");
 const skill_progress_service_2 = require("./skill-progress-service");
 const skill_achievement_service_2 = require("./skill-achievement-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('SkillTreeFacade');
+void logger;
 /**
  * SkillTreeService - Backward-compatible facade
  *

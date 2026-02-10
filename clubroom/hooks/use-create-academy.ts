@@ -97,14 +97,22 @@ export function useCreateAcademy() {
         specialties,
       };
 
-      const academy = await academyService.createAcademy(input);
+      const academyResult = await academyService.createAcademy(input);
+      if (!academyResult.success) {
+        logger.error('Failed to create academy', academyResult.error);
+        return;
+      }
+      const academy = academyResult.data;
 
       if (email || phone || website) {
-        await academyService.updateBranding(academy.id, {
+        const brandingResult = await academyService.updateBranding(academy.id, {
           email: email || undefined,
           phone: phone || undefined,
           website: website || undefined,
         });
+        if (!brandingResult.success) {
+          logger.error('Failed to update academy branding', brandingResult.error);
+        }
       }
 
       router.replace(Routes.academy(academy.id));

@@ -28,12 +28,24 @@ export function useConsents() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [consentsData, summaryData] = await Promise.all([
+      const [consentsResult, summaryResult] = await Promise.all([
         consentService.getRosterConsents(coachId, { ...filters, search: searchQuery }),
         consentService.getConsentSummary(coachId),
       ]);
-      setConsents(consentsData);
-      setSummary(summaryData);
+
+      if (consentsResult.success) {
+        setConsents(consentsResult.data);
+      } else {
+        logger.error('Failed to load roster consents', consentsResult.error);
+        setConsents([]);
+      }
+
+      if (summaryResult.success) {
+        setSummary(summaryResult.data);
+      } else {
+        logger.error('Failed to load consent summary', summaryResult.error);
+        setSummary(null);
+      }
     } catch (error) {
       logger.error('Failed to load consents:', error);
     } finally {

@@ -9,6 +9,14 @@ import { badgeService } from '../badge-service';
 import { createLogger } from '@/utils/logger';
 import { skillDefinitionService } from './skill-definition-service';
 import { skillProgressService } from './skill-progress-service';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  validationError,
+  storageError,
+} from '@/types/result';
 import type {
   SkillNode,
   SkillNodeProgress,
@@ -48,55 +56,60 @@ class SkillAchievementService {
   async unlockNode(
     userId: string,
     nodeId: string
-  ): Promise<UnlockResult | null> {
-    // Find the node
-    const nodeResult = skillDefinitionService.findNodeById(nodeId);
+  ): Promise<Result<UnlockResult, ServiceError>> {
+    try {
+      // Find the node
+      const nodeResult = skillDefinitionService.findNodeById(nodeId);
 
-    if (!nodeResult) {
-      logger.warn('node_not_found_for_unlock', { nodeId });
-      return null;
-    }
-
-    const { node: targetNode } = nodeResult;
-
-    // Add enough XP to unlock
-    const result = await skillProgressService.addXpToNode(
-      userId,
-      nodeId,
-      targetNode.xpRequired
-    );
-
-    if (!result) {
-      return null;
-    }
-
-    // Award badge if applicable
-    let badgeAwarded: string | undefined;
-    if (result.badgeId) {
-      try {
-        await badgeService.awardBadge({
-          badgeId: result.badgeId,
-          athleteId: userId,
-          coachId: 'system',
-          reason: `Unlocked skill: ${result.node.name}`,
-          visibility: 'athlete',
-        });
-        badgeAwarded = result.badgeId;
-        logger.info('skill_badge_awarded', {
-          userId,
-          nodeId,
-          badgeId: result.badgeId,
-        });
-      } catch (error) {
-        logger.error('skill_badge_award_failed', { error });
+      if (!nodeResult) {
+        logger.warn('node_not_found_for_unlock', { nodeId });
+        return err(validationError('Skill node not found'));
       }
-    }
 
-    return {
-      node: result.node,
-      progress: result.progress,
-      badgeAwarded,
-    };
+      const { node: targetNode } = nodeResult;
+
+      // Add enough XP to unlock
+      const result = await skillProgressService.addXpToNode(
+        userId,
+        nodeId,
+        targetNode.xpRequired
+      );
+
+      if (!result.success) {
+        return err(result.error);
+      }
+
+      // Award badge if applicable
+      let badgeAwarded: string | undefined;
+      if (result.data.badgeId) {
+        try {
+          await badgeService.awardBadge({
+            badgeId: result.data.badgeId,
+            athleteId: userId,
+            coachId: 'system',
+            reason: `Unlocked skill: ${result.data.node.name}`,
+            visibility: 'athlete',
+          });
+          badgeAwarded = result.data.badgeId;
+          logger.info('skill_badge_awarded', {
+            userId,
+            nodeId,
+            badgeId: result.data.badgeId,
+          });
+        } catch (error) {
+          logger.error('skill_badge_award_failed', { error });
+        }
+      }
+
+      return ok({
+        node: result.data.node,
+        progress: result.data.progress,
+        badgeAwarded,
+      });
+    } catch (error) {
+      logger.error('unlock_skill_node_failed', { userId, nodeId, error });
+      return err(storageError('Failed to unlock skill node'));
+    }
   }
 
   /**
@@ -106,44 +119,49 @@ class SkillAchievementService {
     userId: string,
     nodeId: string,
     xpAmount: number
-  ): Promise<{
+  ): Promise<Result<{
     node: SkillNode;
     progress: SkillNodeProgress;
     justUnlocked: boolean;
     badgeAwarded?: string;
-  } | null> {
-    const result = await skillProgressService.addXpToNode(userId, nodeId, xpAmount);
+  }, ServiceError>> {
+    try {
+      const result = await skillProgressService.addXpToNode(userId, nodeId, xpAmount);
 
-    if (!result) {
-      return null;
-    }
-
-    // Award badge if node was just unlocked and has a badge
-    let badgeAwarded: string | undefined;
-    if (result.justUnlocked && result.badgeId) {
-      try {
-        await badgeService.awardBadge({
-          badgeId: result.badgeId,
-          athleteId: userId,
-          coachId: 'system',
-          reason: `Unlocked skill: ${result.node.name}`,
-          visibility: 'athlete',
-        });
-        badgeAwarded = result.badgeId;
-        logger.info('skill_badge_awarded', {
-          userId,
-          nodeId,
-          badgeId: result.badgeId,
-        });
-      } catch (error) {
-        logger.error('skill_badge_award_failed', { error });
+      if (!result.success) {
+        return err(result.error);
       }
-    }
 
-    return {
-      ...result,
-      badgeAwarded,
-    };
+      // Award badge if node was just unlocked and has a badge
+      let badgeAwarded: string | undefined;
+      if (result.data.justUnlocked && result.data.badgeId) {
+        try {
+          await badgeService.awardBadge({
+            badgeId: result.data.badgeId,
+            athleteId: userId,
+            coachId: 'system',
+            reason: `Unlocked skill: ${result.data.node.name}`,
+            visibility: 'athlete',
+          });
+          badgeAwarded = result.data.badgeId;
+          logger.info('skill_badge_awarded', {
+            userId,
+            nodeId,
+            badgeId: result.data.badgeId,
+          });
+        } catch (error) {
+          logger.error('skill_badge_award_failed', { error });
+        }
+      }
+
+      return ok({
+        ...result.data,
+        badgeAwarded,
+      });
+    } catch (error) {
+      logger.error('add_xp_with_achievements_failed', { userId, nodeId, xpAmount, error });
+      return err(storageError('Failed to update skill XP'));
+    }
   }
 
   /**
@@ -152,9 +170,17 @@ class SkillAchievementService {
   async checkMilestones(
     userId: string,
     treeId: string
-  ): Promise<MilestoneInfo> {
-    const tree = await skillDefinitionService.getSkillTreeById(treeId);
-    const progress = await skillProgressService.calculateTreeProgress(userId, treeId);
+  ): Promise<Result<MilestoneInfo, ServiceError>> {
+    const treeResult = await skillDefinitionService.getSkillTreeById(treeId);
+    if (!treeResult.success) {
+      return err(treeResult.error);
+    }
+    const progressResult = await skillProgressService.calculateTreeProgress(userId, treeId);
+    if (!progressResult.success) {
+      return err(progressResult.error);
+    }
+    const tree = treeResult.data;
+    const progress = progressResult.data;
 
     let milestoneReached: '25%' | '50%' | '75%' | '100%' | null = null;
 
@@ -168,7 +194,7 @@ class SkillAchievementService {
       milestoneReached = '25%';
     }
 
-    return {
+    return ok({
       treeId,
       treeName: tree?.name ?? 'Unknown',
       category: tree?.category ?? 'UNKNOWN',
@@ -176,17 +202,21 @@ class SkillAchievementService {
       totalNodes: progress.totalNodes,
       percentComplete: progress.percentComplete,
       milestoneReached,
-    };
+    });
   }
 
   /**
    * Get all unlocked nodes for a user across all trees
    */
-  async getUnlockedNodes(userId: string): Promise<{
+  async getUnlockedNodes(userId: string): Promise<Result<{
     total: number;
     byTree: Record<string, number>;
-  }> {
-    const trees = await skillProgressService.getAllSkillTreesWithProgress(userId);
+  }, ServiceError>> {
+    const treesResult = await skillProgressService.getAllSkillTreesWithProgress(userId);
+    if (!treesResult.success) {
+      return err(treesResult.error);
+    }
+    const trees = treesResult.data;
     const byTree: Record<string, number> = {};
     let total = 0;
 
@@ -195,7 +225,7 @@ class SkillAchievementService {
       total += tree.unlockedNodes;
     }
 
-    return { total, byTree };
+    return ok({ total, byTree });
   }
 
   /**
@@ -204,15 +234,19 @@ class SkillAchievementService {
   async getRecentAchievements(
     userId: string,
     limit: number = 10
-  ): Promise<{
+  ): Promise<Result<{
     nodeId: string;
     nodeName: string;
     treeId: string;
     treeName: string;
     unlockedAt: string;
     badgeId?: string;
-  }[]> {
-    const allProgress = await skillProgressService.getAllUserProgress(userId);
+  }[], ServiceError>> {
+    const allProgressResult = await skillProgressService.getAllUserProgress(userId);
+    if (!allProgressResult.success) {
+      return err(allProgressResult.error);
+    }
+    const allProgress = allProgressResult.data;
     const achievements: {
       nodeId: string;
       nodeName: string;
@@ -223,7 +257,11 @@ class SkillAchievementService {
     }[] = [];
 
     for (const [treeId, treeProgress] of Object.entries(allProgress)) {
-      const tree = await skillDefinitionService.getSkillTreeById(treeId);
+      const treeResult = await skillDefinitionService.getSkillTreeById(treeId);
+      if (!treeResult.success) {
+        return err(treeResult.error);
+      }
+      const tree = treeResult.data;
       if (!tree) continue;
 
       for (const [nodeId, nodeProgress] of Object.entries(treeProgress.nodeProgress)) {
@@ -248,7 +286,7 @@ class SkillAchievementService {
       new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime()
     );
 
-    return achievements.slice(0, limit);
+    return ok(achievements.slice(0, limit));
   }
 
   /**
@@ -256,12 +294,16 @@ class SkillAchievementService {
    */
   async getNextAchievableNodes(
     userId: string
-  ): Promise<{
+  ): Promise<Result<{
     treeId: string;
     treeName: string;
     nodes: SkillNode[];
-  }[]> {
-    const trees = await skillProgressService.getAllSkillTreesWithProgress(userId);
+  }[], ServiceError>> {
+    const treesResult = await skillProgressService.getAllSkillTreesWithProgress(userId);
+    if (!treesResult.success) {
+      return err(treesResult.error);
+    }
+    const trees = treesResult.data;
     const result: { treeId: string; treeName: string; nodes: SkillNode[] }[] = [];
 
     for (const tree of trees) {
@@ -292,36 +334,53 @@ class SkillAchievementService {
       }
     }
 
-    return result;
+    return ok(result);
   }
 
   /**
    * Calculate total XP earned across all trees
    */
-  async getTotalXpEarned(userId: string): Promise<number> {
-    const allProgress = await skillProgressService.getAllUserProgress(userId);
+  async getTotalXpEarned(userId: string): Promise<Result<number, ServiceError>> {
+    const allProgressResult = await skillProgressService.getAllUserProgress(userId);
+    if (!allProgressResult.success) {
+      return err(allProgressResult.error);
+    }
+    const allProgress = allProgressResult.data;
     let totalXp = 0;
 
     for (const treeProgress of Object.values(allProgress)) {
       totalXp += treeProgress.totalXp;
     }
 
-    return totalXp;
+    return ok(totalXp);
   }
 
   /**
    * Get achievement stats for a user
    */
-  async getAchievementStats(userId: string): Promise<{
+  async getAchievementStats(userId: string): Promise<Result<{
     totalXp: number;
     totalNodesUnlocked: number;
     totalNodes: number;
     treesStarted: number;
     treesCompleted: number;
     badgesEarned: number;
-  }> {
-    const trees = await skillProgressService.getAllSkillTreesWithProgress(userId);
-    const unlockedInfo = await this.getUnlockedNodes(userId);
+  }, ServiceError>> {
+    const treesResult = await skillProgressService.getAllSkillTreesWithProgress(userId);
+    if (!treesResult.success) {
+      return err(treesResult.error);
+    }
+    const unlockedInfoResult = await this.getUnlockedNodes(userId);
+    if (!unlockedInfoResult.success) {
+      return err(unlockedInfoResult.error);
+    }
+    const totalXpResult = await this.getTotalXpEarned(userId);
+    if (!totalXpResult.success) {
+      return err(totalXpResult.error);
+    }
+
+    const trees = treesResult.data;
+    const unlockedInfo = unlockedInfoResult.data;
 
     let totalNodes = 0;
     let treesStarted = 0;
@@ -345,14 +404,14 @@ class SkillAchievementService {
       }
     }
 
-    return {
-      totalXp: await this.getTotalXpEarned(userId),
+    return ok({
+      totalXp: totalXpResult.data,
       totalNodesUnlocked: unlockedInfo.total,
       totalNodes,
       treesStarted,
       treesCompleted,
       badgesEarned,
-    };
+    });
   }
 }
 

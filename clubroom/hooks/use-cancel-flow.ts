@@ -65,8 +65,11 @@ export function useCancelFlow({ visible, bookingId, booking, userRole, onCancell
     (async () => {
       setLoading(true);
       try {
-        const policy = await schedulingRulesService.getCancellationPolicy(booking.coachId);
-        setRefundCalc(schedulingRulesService.calculateRefund(bookingAmount, sessionStartTime, policy));
+        const policyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);
+        if (!policyResult.success) {
+          throw new Error(policyResult.error.message);
+        }
+        setRefundCalc(schedulingRulesService.calculateRefund(bookingAmount, sessionStartTime, policyResult.data));
       } catch {
         setRefundCalc(schedulingRulesService.calculateRefund(bookingAmount, sessionStartTime, null));
       } finally { setLoading(false); }
@@ -79,7 +82,16 @@ export function useCancelFlow({ visible, bookingId, booking, userRole, onCancell
     if (!reason) return;
     setSubmitting(true);
     try {
-      await cancellationService.cancelBooking(bookingId, userRole, { reason, note, refundCalculation: refundCalc, coachId: booking.coachId });
+      const cancelResult = await cancellationService.cancelBooking(bookingId, userRole, {
+        reason,
+        note,
+        refundCalculation: refundCalc,
+        coachId: booking.coachId,
+      });
+      if (!cancelResult.success) {
+        onCancelled();
+        return;
+      }
       try {
         const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
         const idx = bookings.findIndex((b) => b.id === bookingId);

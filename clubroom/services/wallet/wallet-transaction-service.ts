@@ -5,7 +5,7 @@
  * Manages transaction storage and retrieval.
  *
  * API Integration Notes:
- * - Transactions are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Transactions are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 
 import { api } from '@/constants/config';
@@ -14,9 +14,10 @@ import {
   TransactionType,
   TransactionStatus,
 } from '@/constants/types';
-import { storageService } from '../storage-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('WalletTransactionService');
 const USE_MOCK = api.useMock;
@@ -237,18 +238,30 @@ class WalletTransactionService {
   /**
    * Get transactions for a user with optional limit
    */
-  async getTransactions(userId: string, limit?: number): Promise<WalletTransaction[]> {
-    const allTransactions = await this.getAllTransactions();
-    let userTransactions = allTransactions
-      .filter((t) => t.userId === userId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  async getTransactions(
+    userId: string,
+    limit?: number,
+  ): Promise<Result<WalletTransaction[], ServiceError>> {
+    try {
+      const allTransactionsResult = await this.getAllTransactions();
+      if (!allTransactionsResult.success) {
+        return allTransactionsResult;
+      }
 
-    if (limit && limit > 0) {
-      userTransactions = userTransactions.slice(0, limit);
+      let userTransactions = allTransactionsResult.data
+        .filter((t) => t.userId === userId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      if (limit && limit > 0) {
+        userTransactions = userTransactions.slice(0, limit);
+      }
+
+      logger.info('transactions_retrieved', { userId, count: userTransactions.length });
+      return ok(userTransactions);
+    } catch (error) {
+      logger.error('Failed to get transactions', { userId, limit, error });
+      return err(storageError('Failed to load transactions'));
     }
-
-    logger.info('transactions_retrieved', { userId, count: userTransactions.length });
-    return userTransactions;
   }
 
   /**
@@ -258,8 +271,12 @@ class WalletTransactionService {
     userId: string,
     filter: TransactionFilter,
     limit?: number
-  ): Promise<WalletTransaction[]> {
-    let transactions = await this.getTransactions(userId);
+  ): Promise<Result<WalletTransaction[], ServiceError>> {
+    const transactionsResult = await this.getTransactions(userId);
+    if (!transactionsResult.success) {
+      return transactionsResult;
+    }
+    let transactions = transactionsResult.data;
 
     // Filter by type
     if (filter.type) {
@@ -292,36 +309,56 @@ class WalletTransactionService {
       transactions = transactions.slice(0, limit);
     }
 
-    return transactions;
+    return ok(transactions);
   }
 
   /**
    * Get a single transaction by ID
    */
-  async getTransactionById(transactionId: string): Promise<WalletTransaction | null> {
-    const allTransactions = await this.getAllTransactions();
-    return allTransactions.find((t) => t.id === transactionId) || null;
+  async getTransactionById(
+    transactionId: string,
+  ): Promise<Result<WalletTransaction | null, ServiceError>> {
+    const allTransactionsResult = await this.getAllTransactions();
+    if (!allTransactionsResult.success) {
+      return allTransactionsResult;
+    }
+    return ok(allTransactionsResult.data.find((t) => t.id === transactionId) || null);
   }
 
   /**
    * Get all transactions (internal use)
    */
-  async getAllTransactions(): Promise<WalletTransaction[]> {
-    if (USE_MOCK) {
-      return storageService.getItem<WalletTransaction[]>(
-        STORAGE_KEYS.WALLET_TRANSACTIONS,
-        MOCK_TRANSACTIONS
-      );
+  async getAllTransactions(): Promise<Result<WalletTransaction[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        return ok(
+          await apiClient.get<WalletTransaction[]>(
+            STORAGE_KEYS.WALLET_TRANSACTIONS,
+            MOCK_TRANSACTIONS,
+          ),
+        );
+      }
+      // TODO: API call when ready
+      return ok(await apiClient.get<WalletTransaction[]>(STORAGE_KEYS.WALLET_TRANSACTIONS, []));
+    } catch (error) {
+      logger.error('Failed to get all transactions', error);
+      return err(storageError('Failed to load wallet transactions'));
     }
-    // TODO: API call when ready
-    return storageService.getItem<WalletTransaction[]>(STORAGE_KEYS.WALLET_TRANSACTIONS, []);
   }
 
   /**
    * Save transactions to storage
    */
-  async saveTransactions(transactions: WalletTransaction[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.WALLET_TRANSACTIONS, transactions);
+  async saveTransactions(
+    transactions: WalletTransaction[],
+  ): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.set(STORAGE_KEYS.WALLET_TRANSACTIONS, transactions);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to save transactions', error);
+      return err(storageError('Failed to save wallet transactions'));
+    }
   }
 
   /**
@@ -329,8 +366,12 @@ class WalletTransactionService {
    */
   async createTransaction(
     params: Omit<WalletTransaction, 'id' | 'createdAt'>
-  ): Promise<WalletTransaction> {
-    const transactions = await this.getAllTransactions();
+  ): Promise<Result<WalletTransaction, ServiceError>> {
+    const transactionsResult = await this.getAllTransactions();
+    if (!transactionsResult.success) {
+      return transactionsResult;
+    }
+    const transactions = transactionsResult.data;
 
     const newTransaction: WalletTransaction = {
       ...params,
@@ -339,7 +380,10 @@ class WalletTransactionService {
     };
 
     transactions.unshift(newTransaction);
-    await this.saveTransactions(transactions);
+    const saveResult = await this.saveTransactions(transactions);
+    if (!saveResult.success) {
+      return saveResult;
+    }
 
     logger.info('transaction_created', {
       id: newTransaction.id,
@@ -348,7 +392,7 @@ class WalletTransactionService {
       userId: newTransaction.userId,
     });
 
-    return newTransaction;
+    return ok(newTransaction);
   }
 
   /**
@@ -357,12 +401,16 @@ class WalletTransactionService {
   async updateTransaction(
     transactionId: string,
     updates: Partial<WalletTransaction>
-  ): Promise<WalletTransaction | null> {
-    const transactions = await this.getAllTransactions();
+  ): Promise<Result<WalletTransaction | null, ServiceError>> {
+    const transactionsResult = await this.getAllTransactions();
+    if (!transactionsResult.success) {
+      return transactionsResult;
+    }
+    const transactions = transactionsResult.data;
     const index = transactions.findIndex((t) => t.id === transactionId);
 
     if (index === -1) {
-      return null;
+      return ok(null);
     }
 
     transactions[index] = {
@@ -370,8 +418,11 @@ class WalletTransactionService {
       ...updates,
     };
 
-    await this.saveTransactions(transactions);
-    return transactions[index];
+    const saveResult = await this.saveTransactions(transactions);
+    if (!saveResult.success) {
+      return saveResult;
+    }
+    return ok(transactions[index]);
   }
 
   /**
@@ -380,24 +431,28 @@ class WalletTransactionService {
   async createCustomTransaction(
     params: Omit<WalletTransaction, 'id' | 'createdAt' | 'walletId'> & { userId: string },
     walletId: string,
-  ): Promise<WalletTransaction> {
-    const transaction = await this.createTransaction({
+  ): Promise<Result<WalletTransaction, ServiceError>> {
+    return this.createTransaction({
       ...params,
       walletId,
     });
-
-    return transaction;
   }
 
   /**
    * Cancel a pending transaction
    */
-  async cancelTransaction(transactionId: string): Promise<WalletTransaction | null> {
-    const transaction = await this.getTransactionById(transactionId);
+  async cancelTransaction(
+    transactionId: string,
+  ): Promise<Result<WalletTransaction | null, ServiceError>> {
+    const transactionResult = await this.getTransactionById(transactionId);
+    if (!transactionResult.success) {
+      return transactionResult;
+    }
+    const transaction = transactionResult.data;
 
     if (!transaction) {
       logger.warn('cancel_transaction_not_found', { transactionId });
-      return null;
+      return ok(null);
     }
 
     if (transaction.status !== 'PENDING') {
@@ -405,39 +460,49 @@ class WalletTransactionService {
         transactionId,
         status: transaction.status,
       });
-      return null;
+      return ok(null);
     }
 
-    const updatedTransaction = await this.updateTransaction(transactionId, {
+    const updatedResult = await this.updateTransaction(transactionId, {
       status: 'CANCELLED',
     });
+    if (!updatedResult.success) {
+      return updatedResult;
+    }
 
     logger.info('transaction_cancelled', { transactionId });
-    return updatedTransaction;
+    return ok(updatedResult.data);
   }
 
   /**
    * Delete a transaction (admin only, use with caution)
    */
-  async deleteTransaction(transactionId: string): Promise<boolean> {
-    const transactions = await this.getAllTransactions();
+  async deleteTransaction(transactionId: string): Promise<Result<boolean, ServiceError>> {
+    const transactionsResult = await this.getAllTransactions();
+    if (!transactionsResult.success) {
+      return transactionsResult;
+    }
+    const transactions = transactionsResult.data;
     const index = transactions.findIndex((t) => t.id === transactionId);
 
     if (index === -1) {
-      return false;
+      return ok(false);
     }
 
     transactions.splice(index, 1);
-    await this.saveTransactions(transactions);
+    const saveResult = await this.saveTransactions(transactions);
+    if (!saveResult.success) {
+      return saveResult;
+    }
 
     logger.info('transaction_deleted', { transactionId });
-    return true;
+    return ok(true);
   }
 
   /**
    * Get pending transactions for a user
    */
-  async getPendingTransactions(userId: string): Promise<WalletTransaction[]> {
+  async getPendingTransactions(userId: string): Promise<Result<WalletTransaction[], ServiceError>> {
     return this.getTransactionsFiltered(userId, { status: 'PENDING' });
   }
 

@@ -18,8 +18,12 @@ export function useEmergencyContacts() {
   const loadInfo = useCallback(async () => {
     if (!id) return;
     try {
-      const data = await safetyService.getEmergencyInfo(id);
-      setInfo(data);
+      const result = await safetyService.getEmergencyInfo(id);
+      if (!result.success) {
+        logger.error('Failed to load emergency info', result.error);
+        return;
+      }
+      setInfo(result.data);
     } catch (error) {
       logger.error('Failed to load emergency info:', error);
     } finally {
@@ -34,7 +38,11 @@ export function useEmergencyContacts() {
   const handleAddContact = useCallback(async (contact: Omit<EmergencyContact, 'id'>) => {
     if (!id) return;
     try {
-      await safetyService.addContact(id, contact);
+      const result = await safetyService.addContact(id, contact);
+      if (!result.success) {
+        logger.error('Failed to add contact', result.error);
+        return;
+      }
       await loadInfo();
       setShowForm(false);
     } catch (error) {
@@ -45,7 +53,11 @@ export function useEmergencyContacts() {
   const handleUpdateContact = useCallback(async (contact: Omit<EmergencyContact, 'id'>) => {
     if (!id || !editingContact) return;
     try {
-      await safetyService.updateContact(id, editingContact.id, contact);
+      const result = await safetyService.updateContact(id, editingContact.id, contact);
+      if (!result.success) {
+        logger.error('Failed to update contact', result.error);
+        return;
+      }
       await loadInfo();
       setEditingContact(null);
     } catch (error) {
@@ -56,7 +68,11 @@ export function useEmergencyContacts() {
   const handleDeleteContact = useCallback(async (contactId: string) => {
     if (!id) return;
     try {
-      await safetyService.removeContact(id, contactId);
+      const result = await safetyService.removeContact(id, contactId);
+      if (!result.success) {
+        logger.error('Failed to delete contact', result.error);
+        return;
+      }
       await loadInfo();
     } catch (error) {
       logger.error('Failed to delete contact:', error);
@@ -66,7 +82,11 @@ export function useEmergencyContacts() {
   const handleSetPrimary = useCallback(async (contactId: string) => {
     if (!id) return;
     try {
-      await safetyService.updateContact(id, contactId, { isPrimary: true });
+      const result = await safetyService.updateContact(id, contactId, { isPrimary: true });
+      if (!result.success) {
+        logger.error('Failed to set primary contact', result.error);
+        return;
+      }
       await loadInfo();
     } catch (error) {
       logger.error('Failed to set primary contact:', error);

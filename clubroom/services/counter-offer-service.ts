@@ -33,7 +33,8 @@ import type {
 } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('CounterOfferService');
 
@@ -162,80 +163,105 @@ export const counterOfferService = {
    * Create a new counter-offer for a booking
    * Sends notification to the other party
    */
-  async createCounterOffer(input: CreateCounterOfferInput): Promise<CounterOffer> {
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + (input.expiryHours || DEFAULT_EXPIRY_HOURS));
+  async createCounterOffer(input: CreateCounterOfferInput): Promise<Result<CounterOffer, ServiceError>> {
+    try {
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + (input.expiryHours || DEFAULT_EXPIRY_HOURS));
 
-    const newOffer: CounterOffer = {
-      id: `co_${Date.now()}`,
-      bookingId: input.bookingId,
-      proposedBy: input.proposedBy,
-      proposerId: input.proposerId,
-      proposerName: input.proposerName,
-      originalTime: input.originalTime,
-      proposedTime: input.proposedTime,
-      status: 'PENDING',
-      message: input.message,
-      createdAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    };
-
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      counterOffersCache.push(newOffer);
-      await saveCounterOffersToStorage(counterOffersCache);
-
-      // Update or create negotiation history
-      negotiationsCache = await loadNegotiationsFromStorage();
-      const existingNeg = negotiationsCache.find((n) => n.bookingId === input.bookingId);
-
-      if (existingNeg) {
-        existingNeg.offers.push(newOffer);
-        existingNeg.status = 'IN_PROGRESS';
-      } else {
-        // Create new negotiation - would need booking details in real implementation
-        const newNegotiation: NegotiationHistory = {
-          id: `neg_${Date.now()}`,
-          bookingId: input.bookingId,
-          coachId: input.proposedBy === 'COACH' ? input.proposerId : 'coach1',
-          coachName: input.proposedBy === 'COACH' ? input.proposerName : 'Coach',
-          parentId: input.proposedBy === 'PARENT' ? input.proposerId : 'parent_1',
-          parentName: input.proposedBy === 'PARENT' ? input.proposerName : 'Parent',
-          athleteId: 'athlete_1',
-          athleteName: 'Athlete',
-          offers: [newOffer],
-          originalTime: input.originalTime,
-          status: 'IN_PROGRESS',
-          createdAt: new Date().toISOString(),
-        };
-        negotiationsCache.push(newNegotiation);
-      }
-
-      await saveNegotiationsToStorage(negotiationsCache);
-
-      // Create notification for the other party
-      const notification: NotificationItem = {
-        id: `notif_co_${Date.now()}`,
-        type: 'booking',
-        title: 'Time Change Request',
-        body: `${input.proposerName} has proposed a new time: ${formatTimeSlot(input.proposedTime)}`,
-        timeLabel: 'Just now',
-        read: false,
-        actionLabel: 'Review Proposal',
+      const newOffer: CounterOffer = {
+        id: `co_${Date.now()}`,
+        bookingId: input.bookingId,
+        proposedBy: input.proposedBy,
+        proposerId: input.proposerId,
+        proposerName: input.proposerName,
+        originalTime: input.originalTime,
+        proposedTime: input.proposedTime,
+        status: 'PENDING',
+        message: input.message,
+        createdAt: new Date().toISOString(),
+        expiresAt: expiresAt.toISOString(),
       };
 
-      await notificationService.create(notification);
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        counterOffersCache.push(newOffer);
+        await saveCounterOffersToStorage(counterOffersCache);
 
-      return newOffer;
+        // Update or create negotiation history
+        negotiationsCache = await loadNegotiationsFromStorage();
+        const existingNeg = negotiationsCache.find((n) => n.bookingId === input.bookingId);
+
+        if (existingNeg) {
+          existingNeg.offers.push(newOffer);
+          existingNeg.status = 'IN_PROGRESS';
+        } else {
+          // Create new negotiation - would need booking details in real implementation
+          const newNegotiation: NegotiationHistory = {
+            id: `neg_${Date.now()}`,
+            bookingId: input.bookingId,
+            coachId: input.proposedBy === 'COACH' ? input.proposerId : 'coach1',
+            coachName: input.proposedBy === 'COACH' ? input.proposerName : 'Coach',
+            parentId: input.proposedBy === 'PARENT' ? input.proposerId : 'parent_1',
+            parentName: input.proposedBy === 'PARENT' ? input.proposerName : 'Parent',
+            athleteId: 'athlete_1',
+            athleteName: 'Athlete',
+            offers: [newOffer],
+            originalTime: input.originalTime,
+            status: 'IN_PROGRESS',
+            createdAt: new Date().toISOString(),
+          };
+          negotiationsCache.push(newNegotiation);
+        }
+
+        await saveNegotiationsToStorage(negotiationsCache);
+
+        // Create notification for the other party
+        const notification: NotificationItem = {
+          id: `notif_co_${Date.now()}`,
+          type: 'booking',
+          title: 'Time Change Request',
+          body: `${input.proposerName} has proposed a new time: ${formatTimeSlot(input.proposedTime)}`,
+          timeLabel: 'Just now',
+          read: false,
+          actionLabel: 'Review Proposal',
+        };
+
+        const notifyResult = await notificationService.create(notification);
+        if (!notifyResult.success) {
+          logger.warn('Failed to create counter-offer notification', { error: notifyResult.error });
+        }
+        emitTyped(ServiceEvents.COUNTER_OFFER_CREATED, {
+          offerId: newOffer.id,
+          bookingId: newOffer.bookingId,
+          proposedBy: newOffer.proposedBy,
+          proposerId: newOffer.proposerId,
+          proposerName: newOffer.proposerName,
+          expiresAt: newOffer.expiresAt,
+        });
+
+        return ok(newOffer);
+      }
+
+      // API call would go here
+      const response = await fetch('/api/counter-offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOffer),
+      });
+      const createdOffer = await response.json();
+      emitTyped(ServiceEvents.COUNTER_OFFER_CREATED, {
+        offerId: createdOffer.id ?? newOffer.id,
+        bookingId: createdOffer.bookingId ?? newOffer.bookingId,
+        proposedBy: createdOffer.proposedBy ?? newOffer.proposedBy,
+        proposerId: createdOffer.proposerId ?? newOffer.proposerId,
+        proposerName: createdOffer.proposerName ?? newOffer.proposerName,
+        expiresAt: createdOffer.expiresAt ?? newOffer.expiresAt,
+      });
+      return ok(createdOffer as CounterOffer);
+    } catch (error) {
+      logger.error('Failed to create counter-offer', { input, error });
+      return err(storageError('Failed to create counter-offer'));
     }
-
-    // API call would go here
-    const response = await fetch('/api/counter-offers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newOffer),
-    });
-    return response.json();
   },
 
   /**
@@ -320,13 +346,25 @@ export const counterOfferService = {
         }
       }
 
-      return ok(counterOffersCache[index]);
+      const acceptedOffer = counterOffersCache[index];
+      emitTyped(ServiceEvents.COUNTER_OFFER_ACCEPTED, {
+        offerId: acceptedOffer.id,
+        bookingId: acceptedOffer.bookingId,
+        respondedAt: acceptedOffer.respondedAt ?? new Date().toISOString(),
+      });
+      return ok(acceptedOffer);
     }
 
     const response = await fetch(`/api/counter-offers/${offerId}/accept`, {
       method: 'PATCH',
     });
-    return ok(await response.json());
+    const acceptedOffer = await response.json();
+    emitTyped(ServiceEvents.COUNTER_OFFER_ACCEPTED, {
+      offerId: acceptedOffer.id ?? offerId,
+      bookingId: acceptedOffer.bookingId ?? '',
+      respondedAt: acceptedOffer.respondedAt ?? new Date().toISOString(),
+    });
+    return ok(acceptedOffer);
   },
 
   /**
@@ -379,7 +417,14 @@ export const counterOfferService = {
 
       await notificationService.create(notification);
 
-      return ok(counterOffersCache[index]);
+      const rejectedOffer = counterOffersCache[index];
+      emitTyped(ServiceEvents.COUNTER_OFFER_REJECTED, {
+        offerId: rejectedOffer.id,
+        bookingId: rejectedOffer.bookingId,
+        respondedAt: rejectedOffer.respondedAt ?? new Date().toISOString(),
+        reason: input.reason,
+      });
+      return ok(rejectedOffer);
     }
 
     const response = await fetch(`/api/counter-offers/${input.offerId}/reject`, {
@@ -387,34 +432,51 @@ export const counterOfferService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason: input.reason }),
     });
-    return ok(await response.json());
+    const rejectedOffer = await response.json();
+    emitTyped(ServiceEvents.COUNTER_OFFER_REJECTED, {
+      offerId: rejectedOffer.id ?? input.offerId,
+      bookingId: rejectedOffer.bookingId ?? '',
+      respondedAt: rejectedOffer.respondedAt ?? new Date().toISOString(),
+      reason: input.reason,
+    });
+    return ok(rejectedOffer);
   },
 
   /**
    * Get all counter-offers for a specific booking
    */
-  async getCounterOffers(bookingId: string): Promise<CounterOffer[]> {
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      return counterOffersCache.filter((o) => o.bookingId === bookingId);
-    }
+  async getCounterOffers(bookingId: string): Promise<Result<CounterOffer[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        return ok(counterOffersCache.filter((o) => o.bookingId === bookingId));
+      }
 
-    const response = await fetch(`/api/counter-offers?bookingId=${bookingId}`);
-    return response.json();
+      const response = await fetch(`/api/counter-offers?bookingId=${bookingId}`);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get counter-offers', { bookingId, error });
+      return err(storageError('Failed to load counter-offers'));
+    }
   },
 
   /**
    * Get a single counter-offer by ID
    */
-  async getCounterOffer(offerId: string): Promise<CounterOffer | null> {
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      return counterOffersCache.find((o) => o.id === offerId) || null;
-    }
+  async getCounterOffer(offerId: string): Promise<Result<CounterOffer | null, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        return ok(counterOffersCache.find((o) => o.id === offerId) || null);
+      }
 
-    const response = await fetch(`/api/counter-offers/${offerId}`);
-    if (!response.ok) return null;
-    return response.json();
+      const response = await fetch(`/api/counter-offers/${offerId}`);
+      if (!response.ok) return ok(null);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get counter-offer', { offerId, error });
+      return err(storageError('Failed to load counter-offer'));
+    }
   },
 
   /**
@@ -424,85 +486,105 @@ export const counterOfferService = {
   async getPendingCounterOffers(
     userId: string,
     role: CounterOfferProposerRole
-  ): Promise<CounterOffer[]> {
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      const now = new Date();
+  ): Promise<Result<CounterOffer[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        const now = new Date();
 
-      // Get offers where user is the recipient (not proposer)
-      return counterOffersCache.filter((o) => {
-        // Only pending offers
-        if (o.status !== 'PENDING') return false;
+        // Get offers where user is the recipient (not proposer)
+        return ok(counterOffersCache.filter((o) => {
+          // Only pending offers
+          if (o.status !== 'PENDING') return false;
 
-        // Not expired
-        if (new Date(o.expiresAt) <= now) return false;
+          // Not expired
+          if (new Date(o.expiresAt) <= now) return false;
 
-        // User is the recipient (opposite role from proposer)
-        // If proposer is PARENT, recipient is COACH, and vice versa
-        // We check if the user is the one who should respond
-        // This is simplified - in production we'd check actual recipient ID
-        return o.proposedBy !== role;
-      });
+          // User is the recipient (opposite role from proposer)
+          // If proposer is PARENT, recipient is COACH, and vice versa
+          // We check if the user is the one who should respond
+          // This is simplified - in production we'd check actual recipient ID
+          return o.proposedBy !== role;
+        }));
+      }
+
+      const response = await fetch(`/api/counter-offers/pending?userId=${userId}&role=${role}`);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get pending counter-offers', { userId, role, error });
+      return err(storageError('Failed to load pending counter-offers'));
     }
-
-    const response = await fetch(`/api/counter-offers/pending?userId=${userId}&role=${role}`);
-    return response.json();
   },
 
   /**
    * Get all pending counter-offers that need user's attention
    * Returns offers where user is the recipient
    */
-  async getActionableOffers(userId: string): Promise<CounterOffer[]> {
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      const now = new Date();
+  async getActionableOffers(userId: string): Promise<Result<CounterOffer[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        const now = new Date();
 
-      return counterOffersCache.filter((o) => {
-        // Only pending offers
-        if (o.status !== 'PENDING') return false;
+        return ok(counterOffersCache.filter((o) => {
+          // Only pending offers
+          if (o.status !== 'PENDING') return false;
 
-        // Not expired
-        if (new Date(o.expiresAt) <= now) return false;
+          // Not expired
+          if (new Date(o.expiresAt) <= now) return false;
 
-        // User is NOT the proposer (they need to respond)
-        return o.proposerId !== userId;
-      });
+          // User is NOT the proposer (they need to respond)
+          return o.proposerId !== userId;
+        }));
+      }
+
+      const response = await fetch(`/api/counter-offers/actionable?userId=${userId}`);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get actionable counter-offers', { userId, error });
+      return err(storageError('Failed to load actionable counter-offers'));
     }
-
-    const response = await fetch(`/api/counter-offers/actionable?userId=${userId}`);
-    return response.json();
   },
 
   /**
    * Get the full negotiation history for a booking
    */
-  async getNegotiationHistory(bookingId: string): Promise<NegotiationHistory | null> {
-    if (USE_MOCK) {
-      negotiationsCache = await loadNegotiationsFromStorage();
-      return negotiationsCache.find((n) => n.bookingId === bookingId) || null;
-    }
+  async getNegotiationHistory(bookingId: string): Promise<Result<NegotiationHistory | null, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        negotiationsCache = await loadNegotiationsFromStorage();
+        return ok(negotiationsCache.find((n) => n.bookingId === bookingId) || null);
+      }
 
-    const response = await fetch(`/api/negotiations/${bookingId}`);
-    if (!response.ok) return null;
-    return response.json();
+      const response = await fetch(`/api/negotiations/${bookingId}`);
+      if (!response.ok) return ok(null);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get negotiation history', { bookingId, error });
+      return err(storageError('Failed to load negotiation history'));
+    }
   },
 
   /**
    * Get all active negotiations for a user
    */
-  async getActiveNegotiations(userId: string): Promise<NegotiationHistory[]> {
-    if (USE_MOCK) {
-      negotiationsCache = await loadNegotiationsFromStorage();
-      return negotiationsCache.filter(
-        (n) =>
-          n.status === 'IN_PROGRESS' &&
-          (n.coachId === userId || n.parentId === userId)
-      );
-    }
+  async getActiveNegotiations(userId: string): Promise<Result<NegotiationHistory[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        negotiationsCache = await loadNegotiationsFromStorage();
+        return ok(negotiationsCache.filter(
+          (n) =>
+            n.status === 'IN_PROGRESS' &&
+            (n.coachId === userId || n.parentId === userId)
+        ));
+      }
 
-    const response = await fetch(`/api/negotiations?userId=${userId}&status=IN_PROGRESS`);
-    return response.json();
+      const response = await fetch(`/api/negotiations?userId=${userId}&status=IN_PROGRESS`);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get active negotiations', { userId, error });
+      return err(storageError('Failed to load active negotiations'));
+    }
   },
 
   /**
@@ -537,82 +619,103 @@ export const counterOfferService = {
    * Check and expire old counter-offers
    * Would be called periodically in production
    */
-  async expireOldOffers(): Promise<number> {
-    if (USE_MOCK) {
-      counterOffersCache = await loadCounterOffersFromStorage();
-      const now = new Date();
-      let expiredCount = 0;
+  async expireOldOffers(): Promise<Result<number, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        counterOffersCache = await loadCounterOffersFromStorage();
+        const now = new Date();
+        let expiredCount = 0;
 
-      counterOffersCache = counterOffersCache.map((offer) => {
-        if (offer.status === 'PENDING' && new Date(offer.expiresAt) <= now) {
-          expiredCount++;
-          return { ...offer, status: 'EXPIRED' as CounterOfferStatus };
-        }
-        return offer;
-      });
+        counterOffersCache = counterOffersCache.map((offer) => {
+          if (offer.status === 'PENDING' && new Date(offer.expiresAt) <= now) {
+            expiredCount++;
+            return { ...offer, status: 'EXPIRED' as CounterOfferStatus };
+          }
+          return offer;
+        });
 
-      await saveCounterOffersToStorage(counterOffersCache);
-      return expiredCount;
+        await saveCounterOffersToStorage(counterOffersCache);
+        return ok(expiredCount);
+      }
+
+      const response = await fetch('/api/counter-offers/expire', { method: 'POST' });
+      const result = await response.json();
+      return ok(result.expiredCount);
+    } catch (error) {
+      logger.error('Failed to expire counter-offers', { error });
+      return err(storageError('Failed to expire counter-offers'));
     }
-
-    const response = await fetch('/api/counter-offers/expire', { method: 'POST' });
-    const result = await response.json();
-    return result.expiredCount;
   },
 
   /**
    * Get stats for a booking's negotiation
    */
-  async getNegotiationStats(bookingId: string): Promise<{
+  async getNegotiationStats(bookingId: string): Promise<Result<{
     totalOffers: number;
     pendingOffers: number;
     acceptedOffers: number;
     rejectedOffers: number;
     isResolved: boolean;
     latestOffer: CounterOffer | null;
-  }> {
-    const negotiation = await this.getNegotiationHistory(bookingId);
+  }, ServiceError>> {
+    const negotiationResult = await this.getNegotiationHistory(bookingId);
+    if (!negotiationResult.success) {
+      return negotiationResult;
+    }
+    const negotiation = negotiationResult.data;
 
     if (!negotiation) {
-      return {
+      return ok({
         totalOffers: 0,
         pendingOffers: 0,
         acceptedOffers: 0,
         rejectedOffers: 0,
         isResolved: false,
         latestOffer: null,
-      };
+      });
     }
 
     const offers = negotiation.offers;
-    return {
+    return ok({
       totalOffers: offers.length,
       pendingOffers: offers.filter((o) => o.status === 'PENDING').length,
       acceptedOffers: offers.filter((o) => o.status === 'ACCEPTED').length,
       rejectedOffers: offers.filter((o) => o.status === 'REJECTED').length,
       isResolved: negotiation.status === 'RESOLVED',
       latestOffer: offers.length > 0 ? offers[offers.length - 1] : null,
-    };
+    });
   },
 
   /**
    * Seed demo data for testing
    */
-  async seedDemoData(): Promise<void> {
-    await saveCounterOffersToStorage(MOCK_COUNTER_OFFERS);
-    await saveNegotiationsToStorage(MOCK_NEGOTIATIONS);
-    counterOffersCache = [...MOCK_COUNTER_OFFERS];
-    negotiationsCache = [...MOCK_NEGOTIATIONS];
-    logger.info('Demo data seeded');
+  async seedDemoData(): Promise<Result<void, ServiceError>> {
+    try {
+      await saveCounterOffersToStorage(MOCK_COUNTER_OFFERS);
+      await saveNegotiationsToStorage(MOCK_NEGOTIATIONS);
+      counterOffersCache = [...MOCK_COUNTER_OFFERS];
+      negotiationsCache = [...MOCK_NEGOTIATIONS];
+      logger.info('Demo data seeded');
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to seed counter-offer demo data', { error });
+      return err(storageError('Failed to seed demo data'));
+    }
   },
 
   /**
    * Clear all data (for testing)
    */
-  async clearAll(): Promise<void> {
-    await apiClient.remove(STORAGE_KEYS.COUNTER_OFFERS);
-    await apiClient.remove(STORAGE_KEYS.NEGOTIATIONS);
-    counterOffersCache = [];
-    negotiationsCache = [];
+  async clearAll(): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.remove(STORAGE_KEYS.COUNTER_OFFERS);
+      await apiClient.remove(STORAGE_KEYS.NEGOTIATIONS);
+      counterOffersCache = [];
+      negotiationsCache = [];
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to clear counter-offer data', { error });
+      return err(storageError('Failed to clear counter-offer data'));
+    }
   },
 };

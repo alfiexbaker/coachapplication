@@ -22,14 +22,13 @@ export function useIdVerification() {
   const [uploaded, setUploaded] = useState(false);
 
   const loadStatus = useCallback(async () => {
-    try {
-      const data = await verificationService.getStatus(COACH_ID);
-      setStatus(data);
-    } catch (error) {
-      logger.error('Failed to load verification status:', error);
-    } finally {
-      setLoading(false);
+    const result = await verificationService.getStatus(COACH_ID);
+    if (result.success) {
+      setStatus(result.data);
+    } else {
+      logger.error('Failed to load verification status:', result.error);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
@@ -43,8 +42,12 @@ export function useIdVerification() {
     if (!selectedType || !uploaded) return;
     setSubmitting(true);
     try {
-      await verificationService.submitIdVerification(COACH_ID, `mock://id-document-${selectedType}.jpg`);
-      router.back();
+      const result = await verificationService.submitIdVerification(COACH_ID, `mock://id-document-${selectedType}.jpg`);
+      if (result.success) {
+        router.back();
+      } else {
+        logger.error('Failed to submit ID:', result.error);
+      }
     } catch (error) {
       logger.error('Failed to submit ID:', error);
     } finally {
@@ -55,8 +58,12 @@ export function useIdVerification() {
   const handleMockApprove = useCallback(async () => {
     setSubmitting(true);
     try {
-      await verificationService.mockApproveVerification(COACH_ID, 'identity');
-      router.back();
+      const result = await verificationService.mockApproveVerification(COACH_ID, 'identity');
+      if (result.success) {
+        router.back();
+      } else {
+        logger.error('Failed to approve:', result.error);
+      }
     } catch (error) {
       logger.error('Failed to approve:', error);
     } finally {

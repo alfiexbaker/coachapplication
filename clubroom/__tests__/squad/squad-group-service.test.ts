@@ -13,9 +13,32 @@ import assert from 'node:assert/strict';
 import test, { describe, beforeEach, afterEach } from 'node:test';
 
 import { squadGroupService } from '@/services/squad-group-service';
-import { communityGroupService } from '@/services/community/community-group-service';
+import { communityGroupService as communityGroupServiceResult } from '@/services/community/community-group-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+
+const legacyCommunityGroupService = {
+  async createGroup(params: Parameters<typeof communityGroupServiceResult.createGroup>[0]) {
+    const result = await communityGroupServiceResult.createGroup(params);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
+  },
+  async getGroup(groupId: string) {
+    const result = await communityGroupServiceResult.getGroup(groupId);
+    return result.success ? result.data : undefined;
+  },
+  async addMemberDirect(groupId: string, parentId: string, parentName: string, role?: 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER') {
+    return communityGroupServiceResult.addMemberDirect(groupId, parentId, parentName, role);
+  },
+  async removeMemberDirect(groupId: string, parentId: string) {
+    return communityGroupServiceResult.removeMemberDirect(groupId, parentId);
+  },
+  async deleteGroup(groupId: string) {
+    return communityGroupServiceResult.deleteGroup(groupId);
+  },
+};
 
 // ============================================================================
 // HELPERS
@@ -263,7 +286,7 @@ describe('SquadGroupService', () => {
 
       // Simulate external deletion of the group via the community service
       // (this clears both in-memory and persisted state, but leaves squad-group mapping intact)
-      await communityGroupService.deleteGroup(firstGroupId);
+      await legacyCommunityGroupService.deleteGroup(firstGroupId);
 
       // Re-inject the stale mapping (deleteGroup above only deleted the group itself)
       const map = await apiClient.get<Record<string, string>>(STORAGE_KEYS.SQUAD_GROUP_MAP, {});
@@ -318,7 +341,7 @@ describe('SquadGroupService', () => {
       assert.ok(syncResult.success);
 
       // Verify member was added
-      const group = await communityGroupService.getGroup(groupId);
+      const group = await legacyCommunityGroupService.getGroup(groupId);
       assert.ok(group, 'Group should exist');
       const newMember = group.members.find(
         (m: { parentId: string }) => m.parentId === 'parent_new_member',
@@ -359,7 +382,7 @@ describe('SquadGroupService', () => {
       assert.ok(secondSync.success);
 
       // Should only appear once
-      const group = await communityGroupService.getGroup(groupId);
+      const group = await legacyCommunityGroupService.getGroup(groupId);
       assert.ok(group);
       const count = group.members.filter(
         (m: { parentId: string }) => m.parentId === 'parent_dup',
@@ -414,7 +437,7 @@ describe('SquadGroupService', () => {
       assert.ok(removeResult.success);
 
       // Verify member is gone
-      const group = await communityGroupService.getGroup(groupId);
+      const group = await legacyCommunityGroupService.getGroup(groupId);
       assert.ok(group);
       const removed = group.members.find(
         (m: { parentId: string }) => m.parentId === 'parent_remove_me',
@@ -491,7 +514,7 @@ describe('SquadGroupService', () => {
       assert.equal(mappedId, null, 'Mapping should be removed');
 
       // Group should be gone
-      const group = await communityGroupService.getGroup(groupId);
+      const group = await legacyCommunityGroupService.getGroup(groupId);
       assert.equal(group, undefined, 'Group should be deleted');
     });
 
@@ -555,7 +578,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
   describe('addMemberDirect', () => {
     test('adds a member to an existing group', async () => {
       // Create a group first
-      const group = await communityGroupService.createGroup({
+      const group = await legacyCommunityGroupService.createGroup({
         name: 'Direct Add Test Group',
         type: 'GENERAL',
         memberIds: [],
@@ -565,7 +588,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
         isPublic: false,
       });
 
-      const result = await communityGroupService.addMemberDirect(
+      const result = await legacyCommunityGroupService.addMemberDirect(
         group.id,
         'parent_direct_add',
         'Direct Add Parent',
@@ -582,7 +605,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
     });
 
     test('is a no-op if member is already in the group', async () => {
-      const group = await communityGroupService.createGroup({
+      const group = await legacyCommunityGroupService.createGroup({
         name: 'Direct Add Noop Group',
         type: 'GENERAL',
         memberIds: ['parent_already_in'],
@@ -594,7 +617,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
 
       const initialCount = group.members.length;
 
-      const result = await communityGroupService.addMemberDirect(
+      const result = await legacyCommunityGroupService.addMemberDirect(
         group.id,
         'parent_already_in',
         'Already In',
@@ -605,7 +628,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
     });
 
     test('returns NOT_FOUND for non-existent group', async () => {
-      const result = await communityGroupService.addMemberDirect(
+      const result = await legacyCommunityGroupService.addMemberDirect(
         'group_nonexistent_direct',
         'parent_x',
         'Parent X',
@@ -616,7 +639,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
     });
 
     test('respects maxMembers limit', async () => {
-      const group = await communityGroupService.createGroup({
+      const group = await legacyCommunityGroupService.createGroup({
         name: 'Max Members Group',
         type: 'GENERAL',
         memberIds: [],
@@ -627,7 +650,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
         maxMembers: 1, // Owner takes the only slot
       });
 
-      const result = await communityGroupService.addMemberDirect(
+      const result = await legacyCommunityGroupService.addMemberDirect(
         group.id,
         'parent_overflow',
         'Overflow Parent',
@@ -644,7 +667,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
 
   describe('removeMemberDirect', () => {
     test('removes a member from an existing group', async () => {
-      const group = await communityGroupService.createGroup({
+      const group = await legacyCommunityGroupService.createGroup({
         name: 'Direct Remove Test Group',
         type: 'GENERAL',
         memberIds: ['parent_to_remove'],
@@ -654,7 +677,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
         isPublic: false,
       });
 
-      const result = await communityGroupService.removeMemberDirect(
+      const result = await legacyCommunityGroupService.removeMemberDirect(
         group.id,
         'parent_to_remove',
       );
@@ -662,7 +685,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
       assert.ok(result.success);
 
       // Verify member is gone
-      const updatedGroup = await communityGroupService.getGroup(group.id);
+      const updatedGroup = await legacyCommunityGroupService.getGroup(group.id);
       assert.ok(updatedGroup);
       const found = updatedGroup.members.find(
         (m: { parentId: string }) => m.parentId === 'parent_to_remove',
@@ -671,7 +694,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
     });
 
     test('is a no-op if member is not in the group', async () => {
-      const group = await communityGroupService.createGroup({
+      const group = await legacyCommunityGroupService.createGroup({
         name: 'Direct Remove Noop Group',
         type: 'GENERAL',
         memberIds: [],
@@ -681,7 +704,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
         isPublic: false,
       });
 
-      const result = await communityGroupService.removeMemberDirect(
+      const result = await legacyCommunityGroupService.removeMemberDirect(
         group.id,
         'parent_not_in_group',
       );
@@ -690,7 +713,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
     });
 
     test('returns NOT_FOUND for non-existent group', async () => {
-      const result = await communityGroupService.removeMemberDirect(
+      const result = await legacyCommunityGroupService.removeMemberDirect(
         'group_nonexistent_remove',
         'parent_y',
       );
@@ -706,7 +729,7 @@ describe('CommunityGroupService — Direct Member Management', () => {
 
   describe('deleteGroup', () => {
     test('deletes an existing group', async () => {
-      const group = await communityGroupService.createGroup({
+      const group = await legacyCommunityGroupService.createGroup({
         name: 'Delete Me Group',
         type: 'GENERAL',
         memberIds: [],
@@ -716,17 +739,17 @@ describe('CommunityGroupService — Direct Member Management', () => {
         isPublic: false,
       });
 
-      const result = await communityGroupService.deleteGroup(group.id);
+      const result = await legacyCommunityGroupService.deleteGroup(group.id);
 
       assert.ok(result.success);
 
       // Verify group is gone
-      const found = await communityGroupService.getGroup(group.id);
+      const found = await legacyCommunityGroupService.getGroup(group.id);
       assert.equal(found, undefined, 'Group should be deleted');
     });
 
     test('returns NOT_FOUND for non-existent group', async () => {
-      const result = await communityGroupService.deleteGroup('group_nonexistent_delete');
+      const result = await legacyCommunityGroupService.deleteGroup('group_nonexistent_delete');
 
       assert.equal(result.success, false);
       assert.equal(result.error.code, 'NOT_FOUND');

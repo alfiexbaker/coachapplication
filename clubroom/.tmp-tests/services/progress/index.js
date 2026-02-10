@@ -30,6 +30,9 @@ const progress_skills_service_2 = require("./progress-skills-service");
 const progress_feedback_service_2 = require("./progress-feedback-service");
 const progress_goals_service_2 = require("./progress-goals-service");
 const progress_report_service_2 = require("./progress-report-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('ProgressFacade');
+void logger;
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY
 // ============================================================================

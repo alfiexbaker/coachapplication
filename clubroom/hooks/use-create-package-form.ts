@@ -50,12 +50,16 @@ export function useCreatePackageForm({ editPackage, onSuccess, onError }: UseCre
     setSubmitting(true);
     try {
       if (isEditing && editPackage) {
-        const updatedPkg = await packageService.updatePackage(editPackage.id, {
+        const updatedResult = await packageService.updatePackage(editPackage.id, {
           name: name.trim(), description: description.trim() || undefined,
           sessionCount, price: parseFloat(price), discountPercent: parseFloat(discountPercent) || 0,
           validDays, focus: selectedFocus,
         });
-        if (updatedPkg) onSuccess?.(updatedPkg);
+        if (!updatedResult.success) {
+          onError?.(updatedResult.error.message);
+          return;
+        }
+        if (updatedResult.data) onSuccess?.(updatedResult.data);
         else onError?.('Failed to update package');
       } else {
         const params: CreatePackageParams = {
@@ -64,8 +68,12 @@ export function useCreatePackageForm({ editPackage, onSuccess, onError }: UseCre
           sessionCount, price: parseFloat(price), discountPercent: parseFloat(discountPercent) || 0,
           validDays, focus: selectedFocus,
         };
-        const newPkg = await packageService.createPackage(params);
-        onSuccess?.(newPkg);
+        const createResult = await packageService.createPackage(params);
+        if (!createResult.success) {
+          onError?.(createResult.error.message);
+          return;
+        }
+        onSuccess?.(createResult.data);
       }
     } catch (error) {
       onError?.(error instanceof Error ? error.message : 'An error occurred');

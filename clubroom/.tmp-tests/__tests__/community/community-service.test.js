@@ -45,11 +45,69 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const community_service_1 = require("../../services/community-service");
+const legacyCommunityService = {
+    ...community_service_1.communityService,
+    async getParentGroups(parentId) {
+        const result = await community_service_1.communityService.getParentGroups(parentId);
+        return result.success ? result.data : [];
+    },
+    async getPublicGroups() {
+        const result = await community_service_1.communityService.getPublicGroups();
+        return result.success ? result.data : [];
+    },
+    async getGroup(groupId) {
+        const result = await community_service_1.communityService.getGroup(groupId);
+        return result.success ? result.data : undefined;
+    },
+    async createGroup(params) {
+        const result = await community_service_1.communityService.createGroup(params);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        return result.data;
+    },
+    async getGroupMessages(groupId) {
+        const result = await community_service_1.communityService.getGroupMessages(groupId);
+        return result.success ? result.data : [];
+    },
+    async sendGroupMessage(groupId, senderId, senderName, body) {
+        const result = await community_service_1.communityService.sendGroupMessage(groupId, senderId, senderName, body);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        return result.data;
+    },
+    async markMessagesRead(groupId, parentId) {
+        const result = await community_service_1.communityService.markMessagesRead(groupId, parentId);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+    },
+    async getCarpoolOffers(sessionId) {
+        const result = await community_service_1.communityService.getCarpoolOffers(sessionId);
+        return result.success ? result.data : [];
+    },
+    async getAvailableCarpoolOffers(excludeParentId) {
+        const result = await community_service_1.communityService.getAvailableCarpoolOffers(excludeParentId);
+        return result.success ? result.data : [];
+    },
+    async getCarpoolOffer(offerId) {
+        const result = await community_service_1.communityService.getCarpoolOffer(offerId);
+        return result.success ? result.data : undefined;
+    },
+    async createCarpoolOffer(params) {
+        const result = await community_service_1.communityService.createCarpoolOffer(params);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        return result.data;
+    },
+};
 (0, node_test_1.describe)('Community Service', () => {
     (0, node_test_1.describe)('Group Management', () => {
         (0, node_test_1.describe)('getParentGroups', () => {
             (0, node_test_1.default)('should return groups for a specific parent', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 node_assert_1.default.ok(Array.isArray(groups));
                 node_assert_1.default.ok(groups.length > 0);
                 groups.forEach((group) => {
@@ -58,14 +116,14 @@ const community_service_1 = require("../../services/community-service");
                 });
             });
             (0, node_test_1.default)('should return empty array for parent with no groups', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('non_existent_parent');
+                const groups = await legacyCommunityService.getParentGroups('non_existent_parent');
                 node_assert_1.default.ok(Array.isArray(groups));
                 node_assert_1.default.strictEqual(groups.length, 0);
             });
         });
         (0, node_test_1.describe)('getPublicGroups', () => {
             (0, node_test_1.default)('should return only public groups', async () => {
-                const groups = await community_service_1.communityService.getPublicGroups();
+                const groups = await legacyCommunityService.getPublicGroups();
                 node_assert_1.default.ok(Array.isArray(groups));
                 groups.forEach((group) => {
                     node_assert_1.default.strictEqual(group.isPublic, true, 'All returned groups should be public');
@@ -74,15 +132,15 @@ const community_service_1 = require("../../services/community-service");
         });
         (0, node_test_1.describe)('getGroup', () => {
             (0, node_test_1.default)('should return group by ID', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const firstGroup = groups[0];
-                const group = await community_service_1.communityService.getGroup(firstGroup.id);
+                const group = await legacyCommunityService.getGroup(firstGroup.id);
                 node_assert_1.default.ok(group);
                 node_assert_1.default.strictEqual(group.id, firstGroup.id);
                 node_assert_1.default.strictEqual(group.name, firstGroup.name);
             });
             (0, node_test_1.default)('should return undefined for non-existent group', async () => {
-                const group = await community_service_1.communityService.getGroup('non_existent');
+                const group = await legacyCommunityService.getGroup('non_existent');
                 node_assert_1.default.strictEqual(group, undefined);
             });
         });
@@ -96,7 +154,7 @@ const community_service_1 = require("../../services/community-service");
                     creatorId: 'test_parent',
                     creatorName: 'Test Parent',
                 };
-                const group = await community_service_1.communityService.createGroup(params);
+                const group = await legacyCommunityService.createGroup(params);
                 node_assert_1.default.ok(group.id.startsWith('group_'));
                 node_assert_1.default.strictEqual(group.name, 'Test Group');
                 node_assert_1.default.strictEqual(group.type, 'GENERAL');
@@ -123,7 +181,7 @@ const community_service_1 = require("../../services/community-service");
                     clubId: 'club_1',
                     maxMembers: 50,
                 };
-                const group = await community_service_1.communityService.createGroup(params);
+                const group = await legacyCommunityService.createGroup(params);
                 node_assert_1.default.strictEqual(group.name, 'Full Group');
                 node_assert_1.default.strictEqual(group.description, 'A detailed description');
                 node_assert_1.default.strictEqual(group.type, 'CLUB');
@@ -144,7 +202,7 @@ const community_service_1 = require("../../services/community-service");
                         creatorId: 'test_parent',
                         creatorName: 'Test Parent',
                     };
-                    const group = await community_service_1.communityService.createGroup(params);
+                    const group = await legacyCommunityService.createGroup(params);
                     node_assert_1.default.strictEqual(group.type, type);
                 }
             });
@@ -161,8 +219,8 @@ const community_service_1 = require("../../services/community-service");
                     creatorName: 'Creator Parent',
                     isPublic: true,
                 };
-                const createdGroup = await community_service_1.communityService.createGroup(createParams);
-                const result = await community_service_1.communityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
+                const createdGroup = await legacyCommunityService.createGroup(createParams);
+                const result = await legacyCommunityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
                 node_assert_1.default.strictEqual(result.success, true);
                 if (!result.success)
                     return;
@@ -184,18 +242,18 @@ const community_service_1 = require("../../services/community-service");
                     creatorName: 'Creator Parent',
                     isPublic: false,
                 };
-                const createdGroup = await community_service_1.communityService.createGroup(createParams);
-                const result = await community_service_1.communityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
+                const createdGroup = await legacyCommunityService.createGroup(createParams);
+                const result = await legacyCommunityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
                 node_assert_1.default.strictEqual(result.success, false);
                 if (result.success)
                     return;
                 node_assert_1.default.strictEqual(result.error.message, 'Cannot join private group without invitation');
             });
             (0, node_test_1.default)('should return error when already a member', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups.find((g) => g.isPublic);
                 if (group) {
-                    const result = await community_service_1.communityService.joinGroup(group.id, 'parent1', 'John Henderson');
+                    const result = await legacyCommunityService.joinGroup(group.id, 'parent1', 'John Henderson');
                     node_assert_1.default.strictEqual(result.success, false);
                     if (result.success)
                         return;
@@ -215,11 +273,11 @@ const community_service_1 = require("../../services/community-service");
                     creatorName: 'Admin Parent',
                     isPublic: true,
                 };
-                const createdGroup = await community_service_1.communityService.createGroup(createParams);
+                const createdGroup = await legacyCommunityService.createGroup(createParams);
                 node_assert_1.default.strictEqual(createdGroup.members.length, 2);
-                const leaveResult = await community_service_1.communityService.leaveGroup(createdGroup.id, 'member_to_leave');
+                const leaveResult = await legacyCommunityService.leaveGroup(createdGroup.id, 'member_to_leave');
                 node_assert_1.default.strictEqual(leaveResult.success, true);
-                const updatedGroup = await community_service_1.communityService.getGroup(createdGroup.id);
+                const updatedGroup = await legacyCommunityService.getGroup(createdGroup.id);
                 node_assert_1.default.ok(updatedGroup);
                 node_assert_1.default.strictEqual(updatedGroup.members.length, 1);
                 node_assert_1.default.ok(!updatedGroup.members.find((m) => m.parentId === 'member_to_leave'));
@@ -235,17 +293,17 @@ const community_service_1 = require("../../services/community-service");
                     creatorName: 'Only Admin',
                     isPublic: true,
                 };
-                const createdGroup = await community_service_1.communityService.createGroup(createParams);
-                const result = await community_service_1.communityService.leaveGroup(createdGroup.id, 'only_admin');
+                const createdGroup = await legacyCommunityService.createGroup(createParams);
+                const result = await legacyCommunityService.leaveGroup(createdGroup.id, 'only_admin');
                 node_assert_1.default.strictEqual(result.success, false);
                 if (result.success)
                     return;
                 node_assert_1.default.strictEqual(result.error.message, 'Cannot leave group as the only admin. Promote another member first.');
             });
             (0, node_test_1.default)('should return error for non-member', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups[0];
-                const result = await community_service_1.communityService.leaveGroup(group.id, 'non_member');
+                const result = await legacyCommunityService.leaveGroup(group.id, 'non_member');
                 node_assert_1.default.strictEqual(result.success, false);
                 if (result.success)
                     return;
@@ -256,15 +314,15 @@ const community_service_1 = require("../../services/community-service");
     (0, node_test_1.describe)('Group Messaging', () => {
         (0, node_test_1.describe)('getGroupMessages', () => {
             (0, node_test_1.default)('should return messages for a group', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups[0];
-                const messages = await community_service_1.communityService.getGroupMessages(group.id);
+                const messages = await legacyCommunityService.getGroupMessages(group.id);
                 node_assert_1.default.ok(Array.isArray(messages));
             });
             (0, node_test_1.default)('should return messages sorted by time', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups[0];
-                const messages = await community_service_1.communityService.getGroupMessages(group.id);
+                const messages = await legacyCommunityService.getGroupMessages(group.id);
                 for (let i = 1; i < messages.length; i++) {
                     const prevTime = new Date(messages[i - 1].createdAt).getTime();
                     const currTime = new Date(messages[i].createdAt).getTime();
@@ -274,9 +332,9 @@ const community_service_1 = require("../../services/community-service");
         });
         (0, node_test_1.describe)('sendGroupMessage', () => {
             (0, node_test_1.default)('should send a message to a group', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups[0];
-                const message = await community_service_1.communityService.sendGroupMessage(group.id, 'parent1', 'John Henderson', 'Hello, world!');
+                const message = await legacyCommunityService.sendGroupMessage(group.id, 'parent1', 'John Henderson', 'Hello, world!');
                 node_assert_1.default.ok(message.id.startsWith('gmsg_'));
                 node_assert_1.default.strictEqual(message.groupId, group.id);
                 node_assert_1.default.strictEqual(message.senderId, 'parent1');
@@ -287,11 +345,11 @@ const community_service_1 = require("../../services/community-service");
                 node_assert_1.default.ok(message.readBy.includes('parent1'));
             });
             (0, node_test_1.default)('should update group last message info', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups[0];
                 const messageBody = 'Test message for update';
-                await community_service_1.communityService.sendGroupMessage(group.id, 'parent1', 'John', messageBody);
-                const updatedGroup = await community_service_1.communityService.getGroup(group.id);
+                await legacyCommunityService.sendGroupMessage(group.id, 'parent1', 'John', messageBody);
+                const updatedGroup = await legacyCommunityService.getGroup(group.id);
                 node_assert_1.default.ok(updatedGroup);
                 node_assert_1.default.ok(updatedGroup.lastMessageAt);
                 node_assert_1.default.ok(updatedGroup.lastMessagePreview?.includes('Test message'));
@@ -299,12 +357,12 @@ const community_service_1 = require("../../services/community-service");
         });
         (0, node_test_1.describe)('markMessagesRead', () => {
             (0, node_test_1.default)('should mark messages as read for a parent', async () => {
-                const groups = await community_service_1.communityService.getParentGroups('parent1');
+                const groups = await legacyCommunityService.getParentGroups('parent1');
                 const group = groups[0];
                 // Send a message first
-                await community_service_1.communityService.sendGroupMessage(group.id, 'parent1', 'John', 'Read test message');
-                await community_service_1.communityService.markMessagesRead(group.id, 'parent2');
-                const messages = await community_service_1.communityService.getGroupMessages(group.id);
+                await legacyCommunityService.sendGroupMessage(group.id, 'parent1', 'John', 'Read test message');
+                await legacyCommunityService.markMessagesRead(group.id, 'parent2');
+                const messages = await legacyCommunityService.getGroupMessages(group.id);
                 const latestMessage = messages[messages.length - 1];
                 node_assert_1.default.ok(latestMessage.readBy.includes('parent2'));
             });
@@ -313,7 +371,7 @@ const community_service_1 = require("../../services/community-service");
     (0, node_test_1.describe)('Carpool Management', () => {
         (0, node_test_1.describe)('getCarpoolOffers', () => {
             (0, node_test_1.default)('should return active offers for a session', async () => {
-                const offers = await community_service_1.communityService.getCarpoolOffers('session_1');
+                const offers = await legacyCommunityService.getCarpoolOffers('session_1');
                 node_assert_1.default.ok(Array.isArray(offers));
                 offers.forEach((offer) => {
                     node_assert_1.default.strictEqual(offer.sessionId, 'session_1');
@@ -323,13 +381,13 @@ const community_service_1 = require("../../services/community-service");
         });
         (0, node_test_1.describe)('getAvailableCarpoolOffers', () => {
             (0, node_test_1.default)('should exclude current user offers', async () => {
-                const offers = await community_service_1.communityService.getAvailableCarpoolOffers('parent1');
+                const offers = await legacyCommunityService.getAvailableCarpoolOffers('parent1');
                 offers.forEach((offer) => {
                     node_assert_1.default.notStrictEqual(offer.parentId, 'parent1');
                 });
             });
             (0, node_test_1.default)('should only return active offers with available seats', async () => {
-                const offers = await community_service_1.communityService.getAvailableCarpoolOffers('some_parent');
+                const offers = await legacyCommunityService.getAvailableCarpoolOffers('some_parent');
                 offers.forEach((offer) => {
                     node_assert_1.default.strictEqual(offer.status, 'ACTIVE');
                     node_assert_1.default.ok(offer.seatsAvailable > offer.seatsTaken);
@@ -351,7 +409,7 @@ const community_service_1 = require("../../services/community-service");
                     returnTime: '13:00',
                     notes: 'Test notes',
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(params);
+                const offer = await legacyCommunityService.createCarpoolOffer(params);
                 node_assert_1.default.ok(offer.id.startsWith('carpool_'));
                 node_assert_1.default.strictEqual(offer.parentId, 'test_parent');
                 node_assert_1.default.strictEqual(offer.parentName, 'Test Parent');
@@ -380,7 +438,7 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '09:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(params);
+                const offer = await legacyCommunityService.createCarpoolOffer(params);
                 node_assert_1.default.strictEqual(offer.returnOffered, false);
                 node_assert_1.default.strictEqual(offer.returnTime, undefined);
             });
@@ -399,7 +457,7 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '08:30',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
                 const requestParams = {
                     offerId: offer.id,
                     parentId: 'requester_parent',
@@ -408,7 +466,7 @@ const community_service_1 = require("../../services/community-service");
                     seatsRequested: 1,
                     message: 'Would like to join!',
                 };
-                const result = await community_service_1.communityService.requestCarpoolSeat(requestParams);
+                const result = await legacyCommunityService.requestCarpoolSeat(requestParams);
                 node_assert_1.default.strictEqual(result.success, true);
                 if (!result.success)
                     return;
@@ -434,7 +492,7 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '09:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
                 const requestParams = {
                     offerId: offer.id,
                     parentId: 'greedy_parent',
@@ -442,7 +500,7 @@ const community_service_1 = require("../../services/community-service");
                     childNames: ['Kid 1', 'Kid 2', 'Kid 3'],
                     seatsRequested: 3,
                 };
-                const result = await community_service_1.communityService.requestCarpoolSeat(requestParams);
+                const result = await legacyCommunityService.requestCarpoolSeat(requestParams);
                 node_assert_1.default.strictEqual(result.success, false);
                 if (result.success)
                     return;
@@ -463,7 +521,7 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '10:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
                 // Create request
                 const requestParams = {
                     offerId: offer.id,
@@ -472,15 +530,15 @@ const community_service_1 = require("../../services/community-service");
                     childNames: ['Child'],
                     seatsRequested: 1,
                 };
-                const requestResult = await community_service_1.communityService.requestCarpoolSeat(requestParams);
+                const requestResult = await legacyCommunityService.requestCarpoolSeat(requestParams);
                 node_assert_1.default.strictEqual(requestResult.success, true);
                 if (!requestResult.success)
                     return;
                 const request = requestResult.data;
                 // Accept request
-                const acceptResult = await community_service_1.communityService.acceptCarpoolRequest(offer.id, request.id);
+                const acceptResult = await legacyCommunityService.acceptCarpoolRequest(offer.id, request.id);
                 node_assert_1.default.strictEqual(acceptResult.success, true);
-                const updatedOffer = await community_service_1.communityService.getCarpoolOffer(offer.id);
+                const updatedOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
                 node_assert_1.default.ok(updatedOffer);
                 const acceptedRequest = updatedOffer.requests.find((r) => r.id === request.id);
                 node_assert_1.default.ok(acceptedRequest);
@@ -501,7 +559,7 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '11:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
                 const requestParams = {
                     offerId: offer.id,
                     parentId: 'filler_parent',
@@ -509,14 +567,14 @@ const community_service_1 = require("../../services/community-service");
                     childNames: ['Kid'],
                     seatsRequested: 1,
                 };
-                const requestResult = await community_service_1.communityService.requestCarpoolSeat(requestParams);
+                const requestResult = await legacyCommunityService.requestCarpoolSeat(requestParams);
                 node_assert_1.default.strictEqual(requestResult.success, true);
                 if (!requestResult.success)
                     return;
                 const request = requestResult.data;
-                const acceptResult = await community_service_1.communityService.acceptCarpoolRequest(offer.id, request.id);
+                const acceptResult = await legacyCommunityService.acceptCarpoolRequest(offer.id, request.id);
                 node_assert_1.default.strictEqual(acceptResult.success, true);
-                const updatedOffer = await community_service_1.communityService.getCarpoolOffer(offer.id);
+                const updatedOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
                 node_assert_1.default.ok(updatedOffer);
                 node_assert_1.default.strictEqual(updatedOffer.status, 'FULL');
             });
@@ -534,7 +592,7 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '12:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
                 const requestParams = {
                     offerId: offer.id,
                     parentId: 'declined_parent',
@@ -542,14 +600,14 @@ const community_service_1 = require("../../services/community-service");
                     childNames: ['Kid'],
                     seatsRequested: 1,
                 };
-                const requestResult = await community_service_1.communityService.requestCarpoolSeat(requestParams);
+                const requestResult = await legacyCommunityService.requestCarpoolSeat(requestParams);
                 node_assert_1.default.strictEqual(requestResult.success, true);
                 if (!requestResult.success)
                     return;
                 const request = requestResult.data;
-                const declineResult = await community_service_1.communityService.declineCarpoolRequest(offer.id, request.id);
+                const declineResult = await legacyCommunityService.declineCarpoolRequest(offer.id, request.id);
                 node_assert_1.default.strictEqual(declineResult.success, true);
-                const updatedOffer = await community_service_1.communityService.getCarpoolOffer(offer.id);
+                const updatedOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
                 node_assert_1.default.ok(updatedOffer);
                 const declinedRequest = updatedOffer.requests.find((r) => r.id === request.id);
                 node_assert_1.default.ok(declinedRequest);
@@ -572,10 +630,10 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '13:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
-                const cancelResult = await community_service_1.communityService.cancelCarpoolOffer(offer.id, 'cancel_test_parent');
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
+                const cancelResult = await legacyCommunityService.cancelCarpoolOffer(offer.id, 'cancel_test_parent');
                 node_assert_1.default.strictEqual(cancelResult.success, true);
-                const cancelledOffer = await community_service_1.communityService.getCarpoolOffer(offer.id);
+                const cancelledOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
                 node_assert_1.default.ok(cancelledOffer);
                 node_assert_1.default.strictEqual(cancelledOffer.status, 'CANCELLED');
             });
@@ -591,8 +649,8 @@ const community_service_1 = require("../../services/community-service");
                     pickupTime: '14:00',
                     returnOffered: false,
                 };
-                const offer = await community_service_1.communityService.createCarpoolOffer(offerParams);
-                const result = await community_service_1.communityService.cancelCarpoolOffer(offer.id, 'not_owner');
+                const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
+                const result = await legacyCommunityService.cancelCarpoolOffer(offer.id, 'not_owner');
                 node_assert_1.default.strictEqual(result.success, false);
                 if (result.success)
                     return;

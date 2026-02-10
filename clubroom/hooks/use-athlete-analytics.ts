@@ -30,14 +30,14 @@ export function useAthleteAnalytics() {
   const loadAnalytics = useCallback(async () => {
     if (!athleteId) return;
     setLoading(true);
-    try {
-      const data = await analyticsService.getAthleteAnalytics(athleteId, period);
-      setAnalytics(data);
-    } catch (error) {
-      logger.error('Failed to load analytics:', error);
-    } finally {
-      setLoading(false);
+    const result = await analyticsService.getAthleteAnalytics(athleteId, period);
+    if (result.success) {
+      setAnalytics(result.data);
+    } else {
+      logger.error('Failed to load analytics:', result.error);
+      setAnalytics(null);
     }
+    setLoading(false);
   }, [athleteId, period]);
 
   useEffect(() => {
@@ -45,11 +45,11 @@ export function useAthleteAnalytics() {
   }, [loadAnalytics]);
 
   const handleCompleteMilestone = useCallback(async (goalId: string, milestoneId: string) => {
-    try {
-      await analyticsService.completeMilestone(goalId, milestoneId);
+    const result = await analyticsService.completeMilestone(goalId, milestoneId);
+    if (result.success) {
       loadAnalytics();
-    } catch (error) {
-      logger.error('Failed to complete milestone:', error);
+    } else {
+      logger.error('Failed to complete milestone:', result.error);
     }
   }, [loadAnalytics]);
 

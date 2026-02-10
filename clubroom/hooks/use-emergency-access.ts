@@ -29,8 +29,13 @@ export function useEmergencyAccess() {
     try {
       setError(null);
       const entry = await rosterService.getRosterEntry(coachId, athleteId);
-      const data = await safetyService.getAthleteEmergency(athleteId, entry?.athleteName);
-      setEmergencyData(data);
+      const dataResult = await safetyService.getAthleteEmergency(athleteId, entry?.athleteName);
+      if (!dataResult.success) {
+        setError(dataResult.error.message);
+        setEmergencyData(null);
+        return;
+      }
+      setEmergencyData(dataResult.data);
     } catch (err) {
       logger.error('Failed to load emergency data:', err);
       setError('Failed to load emergency information');

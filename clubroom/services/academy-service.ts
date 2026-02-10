@@ -15,7 +15,7 @@
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { Academy, AcademyMembership, AcademyInvite, AcademyPermission, SportCategory, FootballObjective } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -224,130 +224,159 @@ export const academyService = {
   async discoverAcademies(filters?: {
     postcode?: string;
     sport?: SportCategory;
-  }): Promise<Academy[]> {
-    if (USE_MOCK) {
-      academiesCache = await loadAcademies();
-      return academiesCache
-        .filter((a) => a.isPublic)
-        .sort((a, b) => (b.rating?.average || 0) - (a.rating?.average || 0));
-    }
+  }): Promise<Result<Academy[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        academiesCache = await loadAcademies();
+        const filtered = academiesCache
+          .filter((a) => a.isPublic)
+          .filter((a) => !filters?.postcode || a.postcode === filters.postcode)
+          .filter((a) => !filters?.sport || a.sports.includes(filters.sport))
+          .sort((a, b) => (b.rating?.average || 0) - (a.rating?.average || 0));
+        return ok(filtered);
+      }
 
-    const response = await fetch('/api/academies');
-    return response.json();
+      const response = await fetch('/api/academies');
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to discover academies', error);
+      return err(storageError('Failed to discover academies'));
+    }
   },
 
   /**
    * Get academy by ID
    */
-  async getAcademy(academyId: string): Promise<Academy | null> {
-    if (USE_MOCK) {
-      academiesCache = await loadAcademies();
-      return academiesCache.find((a) => a.id === academyId) || null;
-    }
+  async getAcademy(academyId: string): Promise<Result<Academy | null, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        academiesCache = await loadAcademies();
+        return ok(academiesCache.find((a) => a.id === academyId) || null);
+      }
 
-    const response = await fetch(`/api/academies/${academyId}`);
-    if (!response.ok) return null;
-    return response.json();
+      const response = await fetch(`/api/academies/${academyId}`);
+      if (!response.ok) return ok(null);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get academy', error);
+      return err(storageError('Failed to load academy'));
+    }
   },
 
   /**
    * Get academy by slug
    */
-  async getAcademyBySlug(slug: string): Promise<Academy | null> {
-    if (USE_MOCK) {
-      academiesCache = await loadAcademies();
-      return academiesCache.find((a) => a.slug === slug) || null;
-    }
+  async getAcademyBySlug(slug: string): Promise<Result<Academy | null, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        academiesCache = await loadAcademies();
+        return ok(academiesCache.find((a) => a.slug === slug) || null);
+      }
 
-    const response = await fetch(`/api/academies/slug/${slug}`);
-    if (!response.ok) return null;
-    return response.json();
+      const response = await fetch(`/api/academies/slug/${slug}`);
+      if (!response.ok) return ok(null);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get academy by slug', error);
+      return err(storageError('Failed to load academy'));
+    }
   },
 
   /**
    * Get academies where user is a member
    */
-  async getUserAcademies(userId: string): Promise<(Academy & { membership: AcademyMembership })[]> {
-    if (USE_MOCK) {
-      academiesCache = await loadAcademies();
-      membershipsCache = await loadMemberships();
+  async getUserAcademies(userId: string): Promise<Result<(Academy & { membership: AcademyMembership })[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        academiesCache = await loadAcademies();
+        membershipsCache = await loadMemberships();
 
-      const userMemberships = membershipsCache.filter(
-        (m) => m.userId === userId && m.status === 'ACTIVE'
-      );
+        const userMemberships = membershipsCache.filter(
+          (m) => m.userId === userId && m.status === 'ACTIVE'
+        );
 
-      return userMemberships
-        .map((m) => {
-          const academy = academiesCache.find((a) => a.id === m.academyId);
-          if (!academy) return null;
-          return { ...academy, membership: m };
-        })
-        .filter(Boolean) as (Academy & { membership: AcademyMembership })[];
+        const data = userMemberships
+          .map((m) => {
+            const academy = academiesCache.find((a) => a.id === m.academyId);
+            if (!academy) return null;
+            return { ...academy, membership: m };
+          })
+          .filter(Boolean) as (Academy & { membership: AcademyMembership })[];
+        return ok(data);
+      }
+
+      const response = await fetch(`/api/users/${userId}/academies`);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get user academies', error);
+      return err(storageError('Failed to load user academies'));
     }
-
-    const response = await fetch(`/api/users/${userId}/academies`);
-    return response.json();
   },
 
   /**
    * Create a new academy
    */
-  async createAcademy(input: CreateAcademyInput): Promise<Academy> {
-    const slug = input.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+  async createAcademy(input: CreateAcademyInput): Promise<Result<Academy, ServiceError>> {
+    try {
+      const slug = input.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
 
-    const newAcademy: Academy = {
-      id: `academy_${Date.now()}`,
-      name: input.name,
-      slug,
-      description: input.description,
-      postcode: input.postcode,
-      city: input.city,
-      coachCount: 1,
-      athleteCount: 0,
-      sessionCount: 0,
-      isPublic: true,
-      requiresApproval: false,
-      ownerId: input.ownerId,
-      ownerName: input.ownerName,
-      createdAt: new Date().toISOString(),
-      sports: input.sports || ['Football'],
-      specialties: input.specialties || [],
-    };
+      const newAcademy: Academy = {
+        id: `academy_${Date.now()}`,
+        name: input.name,
+        slug,
+        description: input.description,
+        postcode: input.postcode,
+        city: input.city,
+        coachCount: 1,
+        athleteCount: 0,
+        sessionCount: 0,
+        isPublic: true,
+        requiresApproval: false,
+        ownerId: input.ownerId,
+        ownerName: input.ownerName,
+        createdAt: new Date().toISOString(),
+        sports: input.sports || ['Football'],
+        specialties: input.specialties || [],
+      };
 
-    // Create owner membership
-    const ownerMembership: AcademyMembership = {
-      id: `mem_${Date.now()}`,
-      academyId: newAcademy.id,
-      userId: input.ownerId,
-      userName: input.ownerName,
-      role: 'OWNER',
-      permissions: ['MANAGE_STAFF', 'MANAGE_SETTINGS', 'CREATE_SESSIONS', 'VIEW_ANALYTICS', 'MANAGE_BILLING', 'POST_AS_ACADEMY', 'INVITE_MEMBERS'],
-      status: 'ACTIVE',
-      joinedAt: new Date().toISOString(),
-    };
+      // Create owner membership
+      const ownerMembership: AcademyMembership = {
+        id: `mem_${Date.now()}`,
+        academyId: newAcademy.id,
+        userId: input.ownerId,
+        userName: input.ownerName,
+        role: 'OWNER',
+        permissions: ['MANAGE_STAFF', 'MANAGE_SETTINGS', 'CREATE_SESSIONS', 'VIEW_ANALYTICS', 'MANAGE_BILLING', 'POST_AS_ACADEMY', 'INVITE_MEMBERS'],
+        status: 'ACTIVE',
+        joinedAt: new Date().toISOString(),
+      };
 
-    if (USE_MOCK) {
-      academiesCache = await loadAcademies();
-      membershipsCache = await loadMemberships();
+      if (USE_MOCK) {
+        academiesCache = await loadAcademies();
+        membershipsCache = await loadMemberships();
 
-      academiesCache.push(newAcademy);
-      membershipsCache.push(ownerMembership);
+        academiesCache.push(newAcademy);
+        membershipsCache.push(ownerMembership);
 
-      await saveAcademies(academiesCache);
-      await saveMemberships(membershipsCache);
+        await saveAcademies(academiesCache);
+        await saveMemberships(membershipsCache);
 
-      return newAcademy;
+        return ok(newAcademy);
+      }
+
+      const response = await fetch('/api/academies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAcademy),
+      });
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to create academy', error);
+      return err(storageError('Failed to create academy'));
     }
-
-    const response = await fetch('/api/academies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newAcademy),
-    });
-    return response.json();
   },
 
   /**
@@ -400,19 +429,25 @@ export const academyService = {
   /**
    * Get academy staff
    */
-  async getStaff(academyId: string): Promise<AcademyMembership[]> {
-    if (USE_MOCK) {
-      membershipsCache = await loadMemberships();
-      return membershipsCache
-        .filter((m) => m.academyId === academyId && m.status === 'ACTIVE')
-        .sort((a, b) => {
-          const roleOrder = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH', 'ASSISTANT', 'MEMBER'];
-          return roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role);
-        });
-    }
+  async getStaff(academyId: string): Promise<Result<AcademyMembership[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        membershipsCache = await loadMemberships();
+        const staff = membershipsCache
+          .filter((m) => m.academyId === academyId && m.status === 'ACTIVE')
+          .sort((a, b) => {
+            const roleOrder = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH', 'ASSISTANT', 'MEMBER'];
+            return roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role);
+          });
+        return ok(staff);
+      }
 
-    const response = await fetch(`/api/academies/${academyId}/staff`);
-    return response.json();
+      const response = await fetch(`/api/academies/${academyId}/staff`);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get academy staff', error);
+      return err(storageError('Failed to load academy staff'));
+    }
   },
 
   /**
@@ -427,39 +462,44 @@ export const academyService = {
     createdByName: string,
     expiresInDays: number = 30,
     maxUses: number = 10
-  ): Promise<AcademyInvite> {
-    const code = `${academyName.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, '')}${Date.now().toString(36).toUpperCase().slice(-4)}`;
+  ): Promise<Result<AcademyInvite, ServiceError>> {
+    try {
+      const code = `${academyName.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, '')}${Date.now().toString(36).toUpperCase().slice(-4)}`;
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    const invite: AcademyInvite = {
-      id: `ainv_${Date.now()}`,
-      academyId,
-      academyName,
-      code,
-      role,
-      permissions,
-      createdBy,
-      createdByName,
-      expiresAt: expiresAt.toISOString(),
-      maxUses,
-      currentUses: 0,
-    };
+      const invite: AcademyInvite = {
+        id: `ainv_${Date.now()}`,
+        academyId,
+        academyName,
+        code,
+        role,
+        permissions,
+        createdBy,
+        createdByName,
+        expiresAt: expiresAt.toISOString(),
+        maxUses,
+        currentUses: 0,
+      };
 
-    if (USE_MOCK) {
-      invitesCache = await loadInvites();
-      invitesCache.push(invite);
-      await saveInvites(invitesCache);
-      return invite;
+      if (USE_MOCK) {
+        invitesCache = await loadInvites();
+        invitesCache.push(invite);
+        await saveInvites(invitesCache);
+        return ok(invite);
+      }
+
+      const response = await fetch(`/api/academies/${academyId}/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(invite),
+      });
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to create academy invite', error);
+      return err(storageError('Failed to create academy invite'));
     }
-
-    const response = await fetch(`/api/academies/${academyId}/invites`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(invite),
-    });
-    return response.json();
   },
 
   /**
@@ -577,20 +617,25 @@ export const academyService = {
   /**
    * Check if user has permission
    */
-  async hasPermission(academyId: string, userId: string, permission: AcademyPermission): Promise<boolean> {
-    if (USE_MOCK) {
-      membershipsCache = await loadMemberships();
-      const membership = membershipsCache.find(
-        (m) => m.academyId === academyId && m.userId === userId && m.status === 'ACTIVE'
-      );
-      if (!membership) return false;
-      if (membership.role === 'OWNER') return true; // Owner has all permissions
-      return membership.permissions.includes(permission);
-    }
+  async hasPermission(academyId: string, userId: string, permission: AcademyPermission): Promise<Result<boolean, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        membershipsCache = await loadMemberships();
+        const membership = membershipsCache.find(
+          (m) => m.academyId === academyId && m.userId === userId && m.status === 'ACTIVE'
+        );
+        if (!membership) return ok(false);
+        if (membership.role === 'OWNER') return ok(true);
+        return ok(membership.permissions.includes(permission));
+      }
 
-    const response = await fetch(`/api/academies/${academyId}/permissions/${userId}/${permission}`);
-    const data = await response.json();
-    return data.hasPermission;
+      const response = await fetch(`/api/academies/${academyId}/permissions/${userId}/${permission}`);
+      const data = await response.json();
+      return ok(data.hasPermission);
+    } catch (error) {
+      logger.error('Failed to check academy permission', error);
+      return err(storageError('Failed to check academy permission'));
+    }
   },
 
   /**

@@ -9,6 +9,7 @@
 
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import {
   type Result,
   type ServiceError,
@@ -25,13 +26,6 @@ const logger = createLogger('AuthService');
 
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false'; // defaults to true
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-
-const STORAGE_KEYS = {
-  USER: 'auth_user',
-  TOKEN: 'auth_token',
-  TOKENS: 'auth_tokens',
-  ONBOARDING_COMPLETE: 'onboarding_complete',
-};
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -249,7 +243,7 @@ export const authService = {
     }
 
     await this.storeTokens(result.data.tokens);
-    await apiClient.set(STORAGE_KEYS.USER, result.data.user);
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, result.data.user);
     currentUser = result.data.user;
     logger.success('Login successful', { userId: result.data.user.id });
     return ok({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
@@ -273,7 +267,7 @@ export const authService = {
     }
 
     await this.storeTokens(result.data.tokens);
-    await apiClient.set(STORAGE_KEYS.USER, result.data.user);
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, result.data.user);
     currentUser = result.data.user;
     logger.success('Registration successful', { userId: result.data.user.id });
     return ok({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
@@ -281,8 +275,8 @@ export const authService = {
 
   async storeTokens(tokens: AuthTokens): Promise<void> {
     try {
-      await apiClient.set(STORAGE_KEYS.TOKENS, tokens);
-      await apiClient.set(STORAGE_KEYS.TOKEN, tokens.accessToken);
+      await apiClient.set(STORAGE_KEYS.AUTH_TOKENS, tokens);
+      await apiClient.set(STORAGE_KEYS.AUTH_TOKEN, tokens.accessToken);
     } catch (error) {
       logger.error('Failed to store tokens', error);
     }
@@ -290,7 +284,7 @@ export const authService = {
 
   async getTokens(): Promise<AuthTokens | null> {
     try {
-      const stored = await apiClient.get<AuthTokens | null>(STORAGE_KEYS.TOKENS, null);
+      const stored = await apiClient.get<AuthTokens | null>(STORAGE_KEYS.AUTH_TOKENS, null);
       return stored;
     } catch (error) {
       logger.error('Failed to get tokens', error);
@@ -344,9 +338,9 @@ export const authService = {
       }
     }
 
-    await apiClient.remove(STORAGE_KEYS.USER);
-    await apiClient.remove(STORAGE_KEYS.TOKEN);
-    await apiClient.remove(STORAGE_KEYS.TOKENS);
+    await apiClient.remove(STORAGE_KEYS.AUTH_USER);
+    await apiClient.remove(STORAGE_KEYS.AUTH_TOKEN);
+    await apiClient.remove(STORAGE_KEYS.AUTH_TOKENS);
     currentUser = null;
   },
 
@@ -355,7 +349,7 @@ export const authService = {
 
     try {
       const tokens = await this.getTokens();
-      const storedUser = await apiClient.get<UserProfile | null>(STORAGE_KEYS.USER, null);
+      const storedUser = await apiClient.get<UserProfile | null>(STORAGE_KEYS.AUTH_USER, null);
 
       if (!tokens || !storedUser) {
         return { isAuthenticated: false, user: null, tokens: null };
@@ -428,7 +422,7 @@ export const authService = {
     if (currentUser) return currentUser;
 
     try {
-      const stored = await apiClient.get<UserProfile | null>(STORAGE_KEYS.USER, null);
+      const stored = await apiClient.get<UserProfile | null>(STORAGE_KEYS.AUTH_USER, null);
       if (stored) {
         currentUser = stored;
         return currentUser;
@@ -460,7 +454,7 @@ export const authService = {
       usersCache[userIndex] = updatedUser;
 
       const { password, ...userWithoutPassword } = updatedUser;
-      await apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, userWithoutPassword);
       currentUser = userWithoutPassword;
       logger.info('Profile updated', { userId: currentUser.id });
       return ok({ user: userWithoutPassword });
@@ -477,7 +471,7 @@ export const authService = {
       return result;
     }
 
-    await apiClient.set(STORAGE_KEYS.USER, result.data.user);
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, result.data.user);
     currentUser = result.data.user;
     return ok({ user: result.data.user });
   },
@@ -593,7 +587,7 @@ export const authService = {
     const legacyToken = generateToken();
     const { password: _, ...userWithoutPassword } = user;
 
-    await apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, userWithoutPassword);
     await this.storeTokens(tokens);
     currentUser = userWithoutPassword;
 
@@ -638,7 +632,7 @@ export const authService = {
     const legacyToken = generateToken();
 
     const { password: _, ...userWithoutPassword } = newUser;
-    await apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
+    await apiClient.set(STORAGE_KEYS.AUTH_USER, userWithoutPassword);
     await this.storeTokens(tokens);
     currentUser = userWithoutPassword;
 

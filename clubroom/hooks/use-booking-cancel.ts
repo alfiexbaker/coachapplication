@@ -110,7 +110,11 @@ export function useBookingCancel(id: string, mode?: string) {
         setAthleteName(booking.athleteName || 'Athlete');
         setSessionTitle((bookingExt.sessionTitle as string) || booking.service || 'Session');
 
-        const coachPolicy = await schedulingRulesService.getCancellationPolicy(booking.coachId);
+        const coachPolicyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);
+        const coachPolicy = coachPolicyResult.success ? coachPolicyResult.data : null;
+        if (!coachPolicyResult.success) {
+          logger.error('Failed to load coach cancellation policy', coachPolicyResult.error);
+        }
         setPolicy(coachPolicy);
 
         const calculation = schedulingRulesService.calculateRefund(

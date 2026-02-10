@@ -48,62 +48,69 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const comparison_service_1 = require("../../services/comparison-service");
 const discover_service_1 = require("../../services/discover-service");
+const expectOk = (result) => {
+    node_assert_1.default.strictEqual(result.success, true);
+    if (!result.success) {
+        throw new Error('Expected successful result');
+    }
+    return result.data;
+};
 // Reset services before each test
 (0, node_test_1.beforeEach)(async () => {
-    await comparison_service_1.comparisonService.reset();
-    await discover_service_1.discoverService.resetToMockData();
+    expectOk(await comparison_service_1.comparisonService.reset());
+    expectOk(await discover_service_1.discoverService.resetToMockData());
 });
 (0, node_test_1.describe)('CompareButton Component Logic', () => {
     (0, node_test_1.describe)('Initial State', () => {
         (0, node_test_1.default)('should show not in comparison initially', async () => {
-            const isIn = await comparison_service_1.comparisonService.isInComparison('coach_mike');
+            const isIn = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_mike'));
             node_assert_1.default.strictEqual(isIn, false);
         });
         (0, node_test_1.default)('should allow adding when list is empty', async () => {
-            const canAdd = await comparison_service_1.comparisonService.canAddMore();
+            const canAdd = expectOk(await comparison_service_1.comparisonService.canAddMore());
             node_assert_1.default.strictEqual(canAdd, true);
         });
     });
     (0, node_test_1.describe)('Add Behavior', () => {
         (0, node_test_1.default)('should successfully add coach on press', async () => {
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_mike');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
             node_assert_1.default.strictEqual(result.success, true);
-            const isIn = await comparison_service_1.comparisonService.isInComparison('coach_mike');
+            const isIn = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_mike'));
             node_assert_1.default.strictEqual(isIn, true);
         });
         (0, node_test_1.default)('should update state after adding', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            const count = await comparison_service_1.comparisonService.getComparisonCount();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            const count = expectOk(await comparison_service_1.comparisonService.getComparisonCount());
             node_assert_1.default.strictEqual(count, 1);
-            const canAdd = await comparison_service_1.comparisonService.canAddMore();
+            const canAdd = expectOk(await comparison_service_1.comparisonService.canAddMore());
             node_assert_1.default.strictEqual(canAdd, true);
         });
     });
     (0, node_test_1.describe)('Remove Behavior', () => {
         (0, node_test_1.default)('should successfully remove coach on press when in comparison', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.removeFromComparison('coach_mike');
-            const isIn = await comparison_service_1.comparisonService.isInComparison('coach_mike');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.removeFromComparison('coach_mike'));
+            const isIn = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_mike'));
             node_assert_1.default.strictEqual(isIn, false);
         });
     });
     (0, node_test_1.describe)('Disabled State', () => {
         (0, node_test_1.default)('should be disabled when at max capacity and coach not in list', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.addToComparison('coach_amy');
-            const canAdd = await comparison_service_1.comparisonService.canAddMore();
-            const isOliverIn = await comparison_service_1.comparisonService.isInComparison('coach_oliver');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_amy'));
+            const canAdd = expectOk(await comparison_service_1.comparisonService.canAddMore());
+            const isOliverIn = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_oliver'));
             // Button should be disabled for coach_oliver
             node_assert_1.default.strictEqual(canAdd, false);
             node_assert_1.default.strictEqual(isOliverIn, false);
         });
         (0, node_test_1.default)('should NOT be disabled for coach already in comparison even at max', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.addToComparison('coach_amy');
-            const canAdd = await comparison_service_1.comparisonService.canAddMore();
-            const isMikeIn = await comparison_service_1.comparisonService.isInComparison('coach_mike');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_amy'));
+            const canAdd = expectOk(await comparison_service_1.comparisonService.canAddMore());
+            const isMikeIn = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_mike'));
             // Mike should still be able to be removed
             node_assert_1.default.strictEqual(canAdd, false);
             node_assert_1.default.strictEqual(isMikeIn, true);
@@ -111,15 +118,15 @@ const discover_service_1 = require("../../services/discover-service");
     });
     (0, node_test_1.describe)('State Change Callback', () => {
         (0, node_test_1.default)('should provide correct state after add', async () => {
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_mike');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
             node_assert_1.default.strictEqual(result.success, true);
             node_assert_1.default.strictEqual(result.currentCount, 1);
         });
         (0, node_test_1.default)('should provide correct state after remove', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.removeFromComparison('coach_mike');
-            const count = await comparison_service_1.comparisonService.getComparisonCount();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.removeFromComparison('coach_mike'));
+            const count = expectOk(await comparison_service_1.comparisonService.getComparisonCount());
             node_assert_1.default.strictEqual(count, 1);
         });
     });
@@ -128,21 +135,21 @@ const discover_service_1 = require("../../services/discover-service");
     (0, node_test_1.describe)('Icon Variant', () => {
         (0, node_test_1.default)('should work with icon variant behavior', async () => {
             // Icon variant should still add/remove correctly
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_mike');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
             node_assert_1.default.strictEqual(result.success, true);
         });
     });
     (0, node_test_1.describe)('Compact Variant', () => {
         (0, node_test_1.default)('should work with compact variant behavior', async () => {
             // Compact variant should still add/remove correctly
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_david');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
             node_assert_1.default.strictEqual(result.success, true);
         });
     });
     (0, node_test_1.describe)('Full Variant', () => {
         (0, node_test_1.default)('should work with full variant behavior', async () => {
             // Full variant should still add/remove correctly
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_amy');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_amy'));
             node_assert_1.default.strictEqual(result.success, true);
         });
     });

@@ -20,6 +20,14 @@ import type {
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  networkError,
+} from '@/types/result';
 
 const logger = createLogger('AnalyticsQueryService');
 
@@ -216,118 +224,161 @@ export const analyticsQueryService = {
   /**
    * Get analytics for an athlete
    */
-  async getAthleteAnalytics(athleteId: string, period: AnalyticsPeriod = 'MONTH'): Promise<AthleteAnalytics | null> {
-    if (USE_MOCK) {
-      analyticsCache = await loadAnalytics();
-      goalsCache = await loadGoals();
+  async getAthleteAnalytics(
+    athleteId: string,
+    period: AnalyticsPeriod = 'MONTH',
+  ): Promise<Result<AthleteAnalytics | null, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        analyticsCache = await loadAnalytics();
+        goalsCache = await loadGoals();
 
-      const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
-      if (analytics) {
-        // Attach goals
-        analytics.activeGoals = goalsCache.filter(
-          (g) => g.athleteId === athleteId && g.status === 'ACTIVE'
-        );
-        analytics.completedGoals = goalsCache.filter(
-          (g) => g.athleteId === athleteId && g.status === 'COMPLETED'
-        );
-        analytics.period = period;
-        return analytics;
+        const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
+        if (analytics) {
+          // Attach goals
+          analytics.activeGoals = goalsCache.filter(
+            (g) => g.athleteId === athleteId && g.status === 'ACTIVE',
+          );
+          analytics.completedGoals = goalsCache.filter(
+            (g) => g.athleteId === athleteId && g.status === 'COMPLETED',
+          );
+          analytics.period = period;
+          return ok(analytics);
+        }
+
+        // Return mock analytics for any athlete
+        return ok({
+          athleteId,
+          athleteName: 'Athlete',
+          period,
+          totalSessions: 0,
+          sessionsThisPeriod: 0,
+          averageSessionRating: 0,
+          attendanceRate: 0,
+          skills: [],
+          activeGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'ACTIVE'),
+          completedGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'COMPLETED'),
+          improvementRate: 0,
+          consistencyScore: 0,
+          percentileRank: 50,
+        });
       }
 
-      // Return mock analytics for any athlete
-      return {
-        athleteId,
-        athleteName: 'Athlete',
-        period,
-        totalSessions: 0,
-        sessionsThisPeriod: 0,
-        averageSessionRating: 0,
-        attendanceRate: 0,
-        skills: [],
-        activeGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'ACTIVE'),
-        completedGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'COMPLETED'),
-        improvementRate: 0,
-        consistencyScore: 0,
-        percentileRank: 50,
-      };
+      const response = await fetch(`/api/athletes/${athleteId}/analytics?period=${period}`);
+      if (!response.ok) {
+        return ok(null);
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get athlete analytics', { athleteId, period, error });
+      return err(networkError('Failed to load athlete analytics'));
     }
-
-    const response = await fetch(`/api/athletes/${athleteId}/analytics?period=${period}`);
-    if (!response.ok) return null;
-    return response.json();
   },
 
   /**
    * Get skill progression history for an athlete
    */
-  async getSkillHistory(athleteId: string, skillName?: string): Promise<SkillProgress[]> {
-    if (USE_MOCK) {
-      analyticsCache = await loadAnalytics();
-      const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
-      if (!analytics) return [];
+  async getSkillHistory(
+    athleteId: string,
+    skillName?: string,
+  ): Promise<Result<SkillProgress[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        analyticsCache = await loadAnalytics();
+        const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
+        if (!analytics) return ok([]);
 
-      if (skillName) {
-        const skill = analytics.skills.find((s) => s.skillName === skillName);
-        return skill ? [skill] : [];
+        if (skillName) {
+          const skill = analytics.skills.find((s) => s.skillName === skillName);
+          return ok(skill ? [skill] : []);
+        }
+
+        return ok(analytics.skills);
       }
 
-      return analytics.skills;
+      let url = `/api/athletes/${athleteId}/skills/history`;
+      if (skillName) url += `?skill=${encodeURIComponent(skillName)}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        return err(networkError('Failed to load skill history'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get skill history', { athleteId, skillName, error });
+      return err(storageError('Failed to load skill history'));
     }
-
-    let url = `/api/athletes/${athleteId}/skills/history`;
-    if (skillName) url += `?skill=${encodeURIComponent(skillName)}`;
-
-    const response = await fetch(url);
-    return response.json();
   },
 
   /**
    * Get all goals for an athlete
    */
-  async getAthleteGoals(athleteId: string, status?: Goal['status']): Promise<Goal[]> {
-    if (USE_MOCK) {
-      goalsCache = await loadGoals();
-      let filtered = goalsCache.filter((g) => g.athleteId === athleteId);
-      if (status) {
-        filtered = filtered.filter((g) => g.status === status);
+  async getAthleteGoals(
+    athleteId: string,
+    status?: Goal['status'],
+  ): Promise<Result<Goal[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        goalsCache = await loadGoals();
+        let filtered = goalsCache.filter((g) => g.athleteId === athleteId);
+        if (status) {
+          filtered = filtered.filter((g) => g.status === status);
+        }
+        return ok(
+          filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+        );
       }
-      return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+      let url = `/api/athletes/${athleteId}/goals`;
+      if (status) url += `?status=${status}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        return err(networkError('Failed to load athlete goals'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get athlete goals', { athleteId, status, error });
+      return err(storageError('Failed to load athlete goals'));
     }
-
-    let url = `/api/athletes/${athleteId}/goals`;
-    if (status) url += `?status=${status}`;
-
-    const response = await fetch(url);
-    return response.json();
   },
 
   /**
    * Get comparison stats (for radar chart)
    */
-  async getSkillComparison(athleteId: string): Promise<{
+  async getSkillComparison(athleteId: string): Promise<Result<{
     skills: { name: string; athleteLevel: number; averageLevel: number }[];
-  }> {
-    const analytics = await this.getAthleteAnalytics(athleteId);
-    if (!analytics) {
-      return { skills: [] };
+  }, ServiceError>> {
+    try {
+      const analyticsResult = await this.getAthleteAnalytics(athleteId);
+      if (!analyticsResult.success) {
+        return analyticsResult;
+      }
+
+      if (!analyticsResult.data) {
+        return ok({ skills: [] });
+      }
+
+      // Mock average levels for comparison
+      const averageLevels: Record<string, number> = {
+        Dribbling: 60,
+        Passing: 62,
+        Finishing: 55,
+        Defending: 50,
+        Goalkeeping: 45,
+        Conditioning: 65,
+      };
+
+      return ok({
+        skills: analyticsResult.data.skills.map((s) => ({
+          name: s.skillName,
+          athleteLevel: s.currentLevel,
+          averageLevel: averageLevels[s.skillName] || 50,
+        })),
+      });
+    } catch (error) {
+      logger.error('Failed to get skill comparison', { athleteId, error });
+      return err(storageError('Failed to load skill comparison'));
     }
-
-    // Mock average levels for comparison
-    const averageLevels: Record<string, number> = {
-      Dribbling: 60,
-      Passing: 62,
-      Finishing: 55,
-      Defending: 50,
-      Goalkeeping: 45,
-      Conditioning: 65,
-    };
-
-    return {
-      skills: analytics.skills.map((s) => ({
-        name: s.skillName,
-        athleteLevel: s.currentLevel,
-        averageLevel: averageLevels[s.skillName] || 50,
-      })),
-    };
   },
 };

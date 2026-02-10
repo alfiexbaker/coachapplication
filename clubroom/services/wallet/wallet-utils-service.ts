@@ -9,11 +9,12 @@ import {
   Wallet,
   WalletTransaction,
 } from '@/constants/types';
-import { storageService } from '../storage-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { walletCrudService } from './wallet-crud-service';
 import { walletTransactionService } from './wallet-transaction-service';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('WalletUtilsService');
 
@@ -25,15 +26,21 @@ class WalletUtilsService {
   /**
    * Check if user has sufficient balance for a payment
    */
-  async hasSufficientBalance(userId: string, amount: number): Promise<boolean> {
-    const balance = await walletCrudService.getBalance(userId);
-    return balance >= amount;
+  async hasSufficientBalance(
+    userId: string,
+    amount: number,
+  ): Promise<Result<boolean, ServiceError>> {
+    const balanceResult = await walletCrudService.getBalance(userId);
+    if (!balanceResult.success) {
+      return balanceResult;
+    }
+    return ok(balanceResult.data >= amount);
   }
 
   /**
    * Get wallet summary for display
    */
-  async getWalletSummary(userId: string): Promise<{
+  async getWalletSummary(userId: string): Promise<Result<{
     wallet: Wallet;
     recentTransactions: WalletTransaction[];
     stats: {
@@ -42,9 +49,17 @@ class WalletUtilsService {
       totalRefunds: number;
       transactionCount: number;
     };
-  }> {
-    const wallet = await walletCrudService.getWallet(userId);
-    const transactions = await walletTransactionService.getTransactions(userId);
+  }, ServiceError>> {
+    const walletResult = await walletCrudService.getWallet(userId);
+    if (!walletResult.success) {
+      return walletResult;
+    }
+    const transactionsResult = await walletTransactionService.getTransactions(userId);
+    if (!transactionsResult.success) {
+      return transactionsResult;
+    }
+    const wallet = walletResult.data;
+    const transactions = transactionsResult.data;
     const recentTransactions = transactions.slice(0, 5);
 
     const stats = {
@@ -62,7 +77,7 @@ class WalletUtilsService {
       transactionCount: transactions.length,
     };
 
-    return { wallet, recentTransactions, stats };
+    return ok({ wallet, recentTransactions, stats });
   }
 
   /**
@@ -78,22 +93,39 @@ class WalletUtilsService {
   /**
    * Seed demo wallet data (for testing/demos)
    */
-  async seedDemoData(): Promise<void> {
-    await walletCrudService.saveWallets(walletCrudService.getMockWallets());
-    await walletTransactionService.saveTransactions(walletTransactionService.getMockTransactions());
+  async seedDemoData(): Promise<Result<void, ServiceError>> {
+    const saveWalletsResult = await walletCrudService.saveWallets(walletCrudService.getMockWallets());
+    if (!saveWalletsResult.success) {
+      return saveWalletsResult;
+    }
+
+    const saveTransactionsResult = await walletTransactionService.saveTransactions(
+      walletTransactionService.getMockTransactions(),
+    );
+    if (!saveTransactionsResult.success) {
+      return saveTransactionsResult;
+    }
+
     logger.info('demo_data_seeded', {
       walletCount: walletCrudService.getMockWallets().length,
       transactionCount: walletTransactionService.getMockTransactions().length,
     });
+    return ok(undefined);
   }
 
   /**
    * Clear all wallet data (for testing)
    */
-  async clearAllData(): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.WALLETS, []);
-    await storageService.setItem(STORAGE_KEYS.WALLET_TRANSACTIONS, []);
-    logger.info('wallet_data_cleared');
+  async clearAllData(): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.set(STORAGE_KEYS.WALLETS, []);
+      await apiClient.set(STORAGE_KEYS.WALLET_TRANSACTIONS, []);
+      logger.info('wallet_data_cleared');
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to clear wallet data', error);
+      return err(storageError('Failed to clear wallet data'));
+    }
   }
 }
 

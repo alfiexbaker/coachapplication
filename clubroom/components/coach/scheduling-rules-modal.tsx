@@ -57,21 +57,27 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
     if (!visible) return;
     setLoading(true);
     try {
-      const [data, policy] = await Promise.all([
+      const [dataResult, policyResult] = await Promise.all([
         schedulingRulesService.getCoachRules(coachId),
         schedulingRulesService.getCancellationPolicy(coachId),
       ]);
-      if (data) {
+      if (dataResult.success) {
+        const data = dataResult.data;
         setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
         setMaxAdvanceDays(data.maxAdvanceBookingDays);
         setBufferMinutes(data.bufferMinutesDefault);
         setAllowSameDayBookings(data.allowSameDayBookings);
         setAllowRescheduling(data.allowRescheduling);
         setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
+      } else {
+        logger.error('Failed to load coach scheduling rules', dataResult.error);
       }
-      if (policy) {
+      if (policyResult.success && policyResult.data) {
+        const policy = policyResult.data;
         const pName = policy.name.toLowerCase();
         setCancellationPreset(pName === 'flexible' || pName === 'standard' || pName === 'strict' ? pName : 'standard');
+      } else if (!policyResult.success) {
+        logger.error('Failed to load cancellation policy', policyResult.error);
       }
     } catch (error) {
       logger.error('Failed to load scheduling rules', error);
@@ -85,7 +91,7 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await Promise.all([
+      const [rulesResult, policyResult] = await Promise.all([
         schedulingRulesService.updateCoachRules(coachId, {
           minimumAdvanceBookingHours: minimumAdvanceHours, maxAdvanceBookingDays: maxAdvanceDays,
           bufferMinutesDefault: bufferMinutes, maxConcurrentDefault: 1,
@@ -93,6 +99,16 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
         }),
         schedulingRulesService.setCancellationPolicy(coachId, cancellationPreset as keyof typeof POLICY_TEMPLATES),
       ]);
+      if (!rulesResult.success) {
+        logger.error('Failed to save scheduling rules', rulesResult.error);
+        Alert.alert('Error', 'Failed to save scheduling rules. Please try again.');
+        return;
+      }
+      if (!policyResult.success) {
+        logger.error('Failed to save cancellation policy', policyResult.error);
+        Alert.alert('Error', 'Failed to save cancellation policy. Please try again.');
+        return;
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSaved?.();
       onClose();

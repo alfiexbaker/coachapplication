@@ -59,9 +59,15 @@ export default function MapScreen() {
   const loadCoaches = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await discoverService.searchCoaches(filters);
-      setCoaches(response.results);
-      setFilterOptions(response.filterOptions);
+      const responseResult = await discoverService.searchCoaches(filters);
+      if (!responseResult.success) {
+        logger.error('Failed to load coaches', responseResult.error);
+        setCoaches([]);
+        setFilterOptions(null);
+        return;
+      }
+      setCoaches(responseResult.data.results);
+      setFilterOptions(responseResult.data.filterOptions);
     } catch (error) {
       logger.error('Failed to load coaches', error);
     } finally {

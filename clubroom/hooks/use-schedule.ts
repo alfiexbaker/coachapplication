@@ -86,7 +86,14 @@ export function useSchedule() {
       ]);
 
       if (results[0].status === 'fulfilled') setTemplates(results[0].value);
-      if (results[1].status === 'fulfilled') setRules(results[1].value);
+      if (results[1].status === 'fulfilled') {
+        if (results[1].value.success) {
+          setRules(results[1].value.data);
+        } else {
+          logger.error('Failed to load scheduling rules', results[1].value.error);
+          setRules(null);
+        }
+      }
       if (results[2].status === 'fulfilled') setSessionTemplates(results[2].value);
       if (results[3].status === 'fulfilled') setOverrides(results[3].value);
       if (results[4].status === 'fulfilled') setVenues(results[4].value);

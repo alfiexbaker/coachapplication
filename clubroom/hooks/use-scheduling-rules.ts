@@ -75,8 +75,9 @@ export function useSchedulingRules() {
   const loadRules = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await schedulingRulesService.getCoachRules(coachId);
-      if (data) {
+      const dataResult = await schedulingRulesService.getCoachRules(coachId);
+      if (dataResult.success) {
+        const data = dataResult.data;
         setRules(data);
         setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
         setMaxAdvanceDays(data.maxAdvanceBookingDays);
@@ -84,6 +85,8 @@ export function useSchedulingRules() {
         setAllowSameDayBookings(data.allowSameDayBookings);
         setAllowRescheduling(data.allowRescheduling);
         setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
+      } else {
+        logger.error('Failed to load scheduling rules', dataResult.error);
       }
     } catch (error) {
       logger.error('Failed to load scheduling rules', error);
@@ -99,7 +102,7 @@ export function useSchedulingRules() {
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await schedulingRulesService.updateCoachRules(coachId, {
+      const saveResult = await schedulingRulesService.updateCoachRules(coachId, {
         minimumAdvanceBookingHours: minimumAdvanceHours,
         maxAdvanceBookingDays: maxAdvanceDays,
         bufferMinutesDefault: bufferMinutes,
@@ -108,6 +111,11 @@ export function useSchedulingRules() {
         allowRescheduling,
         rescheduleDeadlineHours,
       });
+      if (!saveResult.success) {
+        logger.error('Failed to save scheduling rules', saveResult.error);
+        Alert.alert('Error', 'Failed to save scheduling rules. Please try again.');
+        return;
+      }
 
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setHasChanges(false);

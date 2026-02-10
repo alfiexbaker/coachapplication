@@ -32,12 +32,14 @@ export default function AcademyDetailScreen() {
     load: async () => {
       if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
       try {
-        const [academy, staff] = await Promise.all([
+        const [academyResult, staffResult] = await Promise.all([
           academyService.getAcademy(id),
           academyService.getStaff(id),
         ]);
-        if (!academy) return err(notFound('Academy', id));
-        return ok({ academy, staff });
+        if (!academyResult.success) return err(academyResult.error);
+        if (!staffResult.success) return err(staffResult.error);
+        if (!academyResult.data) return err(notFound('Academy', id));
+        return ok({ academy: academyResult.data, staff: staffResult.data });
       } catch (e) {
         return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load academy'));
       }

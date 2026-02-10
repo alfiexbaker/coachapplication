@@ -6,11 +6,11 @@
  * milestone management, goal analytics, and helper functions.
  *
  * API Integration Notes:
- * - Goals are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Goals are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.progressGoalsService = void 0;
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('ProgressGoalsService');
@@ -123,7 +123,7 @@ const MOCK_GOALS = [
 // GOALS MANAGEMENT
 // ============================================================================
 async function getAllGoals() {
-    const goals = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GOALS, []);
+    const goals = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GOALS, []);
     // Return mock data if no goals stored
     if (goals.length === 0) {
         return [...MOCK_GOALS];
@@ -131,7 +131,7 @@ async function getAllGoals() {
     return goals;
 }
 async function saveGoals(goals) {
-    await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.GOALS, goals);
+    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.GOALS, goals);
 }
 async function getGoalsForAthlete(athleteId) {
     const allGoals = await getAllGoals();

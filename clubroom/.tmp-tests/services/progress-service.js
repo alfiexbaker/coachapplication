@@ -1,4 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.progressService = void 0;
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('ProgressService');
 /**
  * Progress Service - Re-export Facade
  *
@@ -12,7 +16,5 @@
  * - services/progress/progress-report-service.ts (comprehensive athlete progress)
  * - services/progress/index.ts (unified facade)
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.progressService = void 0;
 var index_1 = require("./progress/index");
 Object.defineProperty(exports, "progressService", { enumerable: true, get: function () { return index_1.progressService; } });

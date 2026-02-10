@@ -8,7 +8,7 @@ import {
   InvoiceFilter,
   GenerateInvoiceParams,
 } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { generateInvoiceHtml } from './invoice-template';
@@ -361,17 +361,17 @@ class InvoiceService {
    */
   private async getAllInvoices(): Promise<Invoice[]> {
     if (USE_MOCK) {
-      return storageService.getItem<Invoice[]>(STORAGE_KEY_INVOICES, MOCK_INVOICES);
+      return apiClient.get<Invoice[]>(STORAGE_KEY_INVOICES, MOCK_INVOICES);
     }
     // TODO: API call when ready
-    return storageService.getItem<Invoice[]>(STORAGE_KEY_INVOICES, []);
+    return apiClient.get<Invoice[]>(STORAGE_KEY_INVOICES, []);
   }
 
   /**
    * Save invoices to storage
    */
   private async saveInvoices(invoices: Invoice[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_INVOICES, invoices);
+    await apiClient.set(STORAGE_KEY_INVOICES, invoices);
   }
 
   // ==========================================================================
@@ -747,7 +747,7 @@ class InvoiceService {
    * Clear all invoice data (for testing)
    */
   async clearAllData(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_INVOICES, []);
+    await apiClient.set(STORAGE_KEY_INVOICES, []);
     logger.info('invoice_data_cleared');
   }
 }

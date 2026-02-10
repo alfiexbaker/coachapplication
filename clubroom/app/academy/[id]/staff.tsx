@@ -34,12 +34,14 @@ export default function AcademyStaffScreen() {
     load: async () => {
       if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
       try {
-        const [academy, staffList] = await Promise.all([
+        const [academyResult, staffResult] = await Promise.all([
           academyService.getAcademy(id),
           academyService.getStaff(id),
         ]);
-        if (!academy) return err(notFound('Academy', id));
-        return ok({ academy, staff: staffList });
+        if (!academyResult.success) return err(academyResult.error);
+        if (!staffResult.success) return err(staffResult.error);
+        if (!academyResult.data) return err(notFound('Academy', id));
+        return ok({ academy: academyResult.data, staff: staffResult.data });
       } catch (e) {
         return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load staff'));
       }
@@ -62,21 +64,24 @@ export default function AcademyStaffScreen() {
     if (!id) return;
     setCreatingInvite(true);
     try {
-      const invite = await academyService.createInvite(id, data!.academy.name, inviteRole, [], currentUser?.id ?? '', currentUser?.name ?? '');
-      setInviteCode(invite.code);
+      const result = await academyService.createInvite(id, data!.academy.name, inviteRole, [], currentUser?.id ?? '', currentUser?.name ?? '');
+      if (!result.success) return;
+      setInviteCode(result.data.code);
     } finally { setCreatingInvite(false); }
   }, [id, inviteRole]);
 
   const handleUpdateRole = useCallback(async () => {
     if (!editingMember || !id) return;
-    await academyService.updateMemberRole(editingMember.id, editRole, editingMember.permissions);
+    const result = await academyService.updateMemberRole(editingMember.id, editRole, editingMember.permissions);
+    if (!result.success) return;
     setEditingMember(null);
     onRefresh();
   }, [editingMember, id, editRole, onRefresh]);
 
   const handleRemoveMember = useCallback(async (member: AcademyMembership) => {
     if (!id) return;
-    await academyService.removeMember(member.id);
+    const result = await academyService.removeMember(member.id);
+    if (!result.success) return;
     onRefresh();
   }, [id, onRefresh]);
 

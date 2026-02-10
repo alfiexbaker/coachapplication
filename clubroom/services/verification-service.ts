@@ -1,6 +1,11 @@
 import { VerificationItem, VerificationStatus } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from './event-bus';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+
+const logger = createLogger('VerificationService');
 
 // Default verification status for a new coach
 const createDefaultVerificationStatus = (coachId: string): VerificationStatus => ({
@@ -112,12 +117,17 @@ class VerificationService {
   /**
    * Get verification status for a coach
    */
-  async getStatus(coachId: string): Promise<VerificationStatus> {
-    const allStatuses = await storageService.getItem<Record<string, VerificationStatus>>(
-      STORAGE_KEYS.VERIFICATION,
-      MOCK_VERIFICATION_STATUSES
-    );
-    return allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
+  async getStatus(coachId: string): Promise<Result<VerificationStatus, ServiceError>> {
+    try {
+      const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
+        STORAGE_KEYS.VERIFICATION,
+        MOCK_VERIFICATION_STATUSES
+      );
+      return ok(allStatuses[coachId] ?? createDefaultVerificationStatus(coachId));
+    } catch (error) {
+      logger.error('Failed to get verification status', { coachId, error });
+      return err(storageError('Failed to load verification status'));
+    }
   }
 
   /**
@@ -127,29 +137,41 @@ class VerificationService {
     coachId: string,
     field: 'email' | 'phone' | 'identity' | 'backgroundCheck' | 'insurance',
     update: Partial<VerificationItem>
-  ): Promise<VerificationStatus> {
-    const allStatuses = await storageService.getItem<Record<string, VerificationStatus>>(
-      STORAGE_KEYS.VERIFICATION,
-      MOCK_VERIFICATION_STATUSES
-    );
+  ): Promise<Result<VerificationStatus, ServiceError>> {
+    try {
+      const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
+        STORAGE_KEYS.VERIFICATION,
+        MOCK_VERIFICATION_STATUSES
+      );
 
-    const currentStatus = allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
-    const updatedStatus: VerificationStatus = {
-      ...currentStatus,
-      [field]: {
-        ...currentStatus[field],
-        ...update,
-      },
-      lastUpdated: new Date().toISOString(),
-    };
+      const currentStatus = allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
+      const updatedStatus: VerificationStatus = {
+        ...currentStatus,
+        [field]: {
+          ...currentStatus[field],
+          ...update,
+        },
+        lastUpdated: new Date().toISOString(),
+      };
 
-    // Recalculate overall level
-    updatedStatus.overallLevel = this.calculateOverallLevel(updatedStatus);
+      // Recalculate overall level
+      updatedStatus.overallLevel = this.calculateOverallLevel(updatedStatus);
 
-    allStatuses[coachId] = updatedStatus;
-    await storageService.setItem(STORAGE_KEYS.VERIFICATION, allStatuses);
+      allStatuses[coachId] = updatedStatus;
+      await apiClient.set(STORAGE_KEYS.VERIFICATION, allStatuses);
+      emitTyped(ServiceEvents.VERIFICATION_UPDATED, {
+        coachId,
+        field,
+        status: updatedStatus[field].status,
+        overallLevel: updatedStatus.overallLevel,
+        lastUpdated: updatedStatus.lastUpdated,
+      });
 
-    return updatedStatus;
+      return ok(updatedStatus);
+    } catch (error) {
+      logger.error('Failed to update verification item', { coachId, field, error });
+      return err(storageError('Failed to update verification'));
+    }
   }
 
   /**
@@ -158,31 +180,46 @@ class VerificationService {
   async addCredential(
     coachId: string,
     credential: VerificationItem
-  ): Promise<VerificationStatus> {
-    const allStatuses = await storageService.getItem<Record<string, VerificationStatus>>(
-      STORAGE_KEYS.VERIFICATION,
-      MOCK_VERIFICATION_STATUSES
-    );
+  ): Promise<Result<VerificationStatus, ServiceError>> {
+    try {
+      const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
+        STORAGE_KEYS.VERIFICATION,
+        MOCK_VERIFICATION_STATUSES
+      );
 
-    const currentStatus = allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
-    const updatedStatus: VerificationStatus = {
-      ...currentStatus,
-      credentials: [...currentStatus.credentials, credential],
-      lastUpdated: new Date().toISOString(),
-    };
+      const currentStatus = allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
+      const updatedStatus: VerificationStatus = {
+        ...currentStatus,
+        credentials: [...currentStatus.credentials, credential],
+        lastUpdated: new Date().toISOString(),
+      };
 
-    updatedStatus.overallLevel = this.calculateOverallLevel(updatedStatus);
+      updatedStatus.overallLevel = this.calculateOverallLevel(updatedStatus);
 
-    allStatuses[coachId] = updatedStatus;
-    await storageService.setItem(STORAGE_KEYS.VERIFICATION, allStatuses);
+      allStatuses[coachId] = updatedStatus;
+      await apiClient.set(STORAGE_KEYS.VERIFICATION, allStatuses);
+      emitTyped(ServiceEvents.VERIFICATION_UPDATED, {
+        coachId,
+        field: 'credentials',
+        status: credential.status,
+        overallLevel: updatedStatus.overallLevel,
+        lastUpdated: updatedStatus.lastUpdated,
+      });
 
-    return updatedStatus;
+      return ok(updatedStatus);
+    } catch (error) {
+      logger.error('Failed to add credential', { coachId, error });
+      return err(storageError('Failed to add credential'));
+    }
   }
 
   /**
    * Submit ID for verification (mock - immediately sets to PENDING)
    */
-  async submitIdVerification(coachId: string, documentUrl: string): Promise<VerificationStatus> {
+  async submitIdVerification(
+    coachId: string,
+    documentUrl: string,
+  ): Promise<Result<VerificationStatus, ServiceError>> {
     return this.updateVerificationItem(coachId, 'identity', {
       status: 'PENDING',
       documentUrl,
@@ -193,7 +230,7 @@ class VerificationService {
   /**
    * Start background check process (mock - immediately sets to PENDING)
    */
-  async startBackgroundCheck(coachId: string): Promise<VerificationStatus> {
+  async startBackgroundCheck(coachId: string): Promise<Result<VerificationStatus, ServiceError>> {
     return this.updateVerificationItem(coachId, 'backgroundCheck', {
       status: 'PENDING',
       notes: 'Background check initiated',
@@ -207,7 +244,7 @@ class VerificationService {
     coachId: string,
     documentUrl: string,
     notes: string
-  ): Promise<VerificationStatus> {
+  ): Promise<Result<VerificationStatus, ServiceError>> {
     return this.addCredential(coachId, {
       status: 'PENDING',
       documentUrl,
@@ -221,7 +258,7 @@ class VerificationService {
   async mockApproveVerification(
     coachId: string,
     field: 'identity' | 'backgroundCheck' | 'insurance'
-  ): Promise<VerificationStatus> {
+  ): Promise<Result<VerificationStatus, ServiceError>> {
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 3);
 

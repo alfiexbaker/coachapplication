@@ -8,6 +8,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.skillDefinitionService = exports.SKILL_TREE_CATEGORIES = exports.SKILL_TREES = void 0;
 const logger_1 = require("@/utils/logger");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('SkillDefinitionService');
 // ============================================================================
 // MOCK SKILL TREE DATA
@@ -985,30 +986,48 @@ class SkillDefinitionService {
      * Get all available skill trees
      */
     async getSkillTrees() {
-        logger.info('get_all_skill_trees');
-        return exports.SKILL_TREES;
+        try {
+            logger.info('get_all_skill_trees');
+            return (0, result_1.ok)(exports.SKILL_TREES);
+        }
+        catch (error) {
+            logger.error('get_all_skill_trees_failed', { error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load skill trees'));
+        }
     }
     /**
      * Get a specific skill tree by category
      */
     async getSkillTree(category) {
-        const tree = exports.SKILL_TREES.find((t) => t.category === category);
-        if (!tree) {
-            logger.warn('skill_tree_not_found', { category });
-            return null;
+        try {
+            const tree = exports.SKILL_TREES.find((t) => t.category === category);
+            if (!tree) {
+                logger.warn('skill_tree_not_found', { category });
+                return (0, result_1.ok)(null);
+            }
+            return (0, result_1.ok)(tree);
         }
-        return tree;
+        catch (error) {
+            logger.error('get_skill_tree_failed', { category, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load skill tree'));
+        }
     }
     /**
      * Get a skill tree by its ID
      */
     async getSkillTreeById(treeId) {
-        const tree = exports.SKILL_TREES.find((t) => t.id === treeId);
-        if (!tree) {
-            logger.warn('skill_tree_not_found_by_id', { treeId });
-            return null;
+        try {
+            const tree = exports.SKILL_TREES.find((t) => t.id === treeId);
+            if (!tree) {
+                logger.warn('skill_tree_not_found_by_id', { treeId });
+                return (0, result_1.ok)(null);
+            }
+            return (0, result_1.ok)(tree);
         }
-        return tree;
+        catch (error) {
+            logger.error('get_skill_tree_by_id_failed', { treeId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load skill tree'));
+        }
     }
     /**
      * Find a node by ID across all trees

@@ -15,9 +15,13 @@ import type {
   ComparisonState,
   TrainingFormat,
 } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { discoverService } from './discover-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+const logger = createLogger('ComparisonService');
+
 const MAX_COACHES = 3;
 
 /**
@@ -74,139 +78,213 @@ class ComparisonService {
   /**
    * Initialize the service by loading persisted state
    */
-  async initialize(): Promise<void> {
-    if (this.initialized) return;
-    this.selectedCoachIds = await storageService.getItem<string[]>(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, []);
-    this.initialized = true;
+  async initialize(): Promise<Result<void, ServiceError>> {
+    try {
+      if (this.initialized) return ok(undefined);
+      this.selectedCoachIds = await apiClient.get<string[]>(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, []);
+      this.initialized = true;
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to initialize comparison service', error);
+      return err(storageError('Failed to initialize comparison service'));
+    }
   }
 
   /**
    * Get comparison data for specific coach IDs
    */
-  async getComparisonData(coachIds: string[]): Promise<CoachComparison[]> {
-    const comparisons: CoachComparison[] = [];
+  async getComparisonData(coachIds: string[]): Promise<Result<CoachComparison[], ServiceError>> {
+    try {
+      const comparisons: CoachComparison[] = [];
 
-    for (const coachId of coachIds) {
-      const coach = await discoverService.getCoachById(coachId);
-      if (coach) {
-        comparisons.push(transformToComparison(coach));
+      for (const coachId of coachIds) {
+        const coachResult = await discoverService.getCoachById(coachId);
+        if (!coachResult.success) {
+          logger.warn('Failed to load coach for comparison', { coachId, error: coachResult.error });
+          continue;
+        }
+        if (coachResult.data) {
+          comparisons.push(transformToComparison(coachResult.data));
+        }
       }
-    }
 
-    return comparisons;
+      return ok(comparisons);
+    } catch (error) {
+      logger.error('Failed to get comparison data', { coachIds, error });
+      return err(storageError('Failed to get comparison data'));
+    }
   }
 
   /**
    * Add a coach to the comparison list
    */
-  async addToComparison(coachId: string): Promise<AddToComparisonResult> {
-    await this.initialize();
+  async addToComparison(coachId: string): Promise<Result<AddToComparisonResult, ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
 
-    // Check if already in comparison
-    if (this.selectedCoachIds.includes(coachId)) {
-      return {
-        success: false,
-        message: 'Coach is already in your comparison list',
+      // Check if already in comparison
+      if (this.selectedCoachIds.includes(coachId)) {
+        return ok({
+          success: false,
+          message: 'Coach is already in your comparison list',
+          currentCount: this.selectedCoachIds.length,
+          maxCount: MAX_COACHES,
+        });
+      }
+
+      // Check if max limit reached
+      if (this.selectedCoachIds.length >= MAX_COACHES) {
+        return ok({
+          success: false,
+          message: `Maximum ${MAX_COACHES} coaches can be compared at once`,
+          currentCount: this.selectedCoachIds.length,
+          maxCount: MAX_COACHES,
+        });
+      }
+
+      // Verify coach exists
+      const coachResult = await discoverService.getCoachById(coachId);
+      if (!coachResult.success) {
+        return err(coachResult.error);
+      }
+      if (!coachResult.data) {
+        return ok({
+          success: false,
+          message: 'Coach not found',
+          currentCount: this.selectedCoachIds.length,
+          maxCount: MAX_COACHES,
+        });
+      }
+
+      // Add to comparison
+      this.selectedCoachIds.push(coachId);
+      await this.persistState();
+
+      return ok({
+        success: true,
+        message: `${coachResult.data.fullName} added to comparison`,
         currentCount: this.selectedCoachIds.length,
         maxCount: MAX_COACHES,
-      };
+      });
+    } catch (error) {
+      logger.error('Failed to add coach to comparison', { coachId, error });
+      return err(storageError('Failed to update comparison list'));
     }
-
-    // Check if max limit reached
-    if (this.selectedCoachIds.length >= MAX_COACHES) {
-      return {
-        success: false,
-        message: `Maximum ${MAX_COACHES} coaches can be compared at once`,
-        currentCount: this.selectedCoachIds.length,
-        maxCount: MAX_COACHES,
-      };
-    }
-
-    // Verify coach exists
-    const coach = await discoverService.getCoachById(coachId);
-    if (!coach) {
-      return {
-        success: false,
-        message: 'Coach not found',
-        currentCount: this.selectedCoachIds.length,
-        maxCount: MAX_COACHES,
-      };
-    }
-
-    // Add to comparison
-    this.selectedCoachIds.push(coachId);
-    await this.persistState();
-
-    return {
-      success: true,
-      message: `${coach.fullName} added to comparison`,
-      currentCount: this.selectedCoachIds.length,
-      maxCount: MAX_COACHES,
-    };
   }
 
   /**
    * Remove a coach from the comparison list
    */
-  async removeFromComparison(coachId: string): Promise<void> {
-    await this.initialize();
-    this.selectedCoachIds = this.selectedCoachIds.filter((id) => id !== coachId);
-    await this.persistState();
+  async removeFromComparison(coachId: string): Promise<Result<void, ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
+
+      this.selectedCoachIds = this.selectedCoachIds.filter((id) => id !== coachId);
+      await this.persistState();
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to remove coach from comparison', { coachId, error });
+      return err(storageError('Failed to update comparison list'));
+    }
   }
 
   /**
    * Get the current comparison list (coach IDs only)
    */
-  async getComparisonList(): Promise<string[]> {
-    await this.initialize();
-    return [...this.selectedCoachIds];
+  async getComparisonList(): Promise<Result<string[], ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
+
+      return ok([...this.selectedCoachIds]);
+    } catch (error) {
+      logger.error('Failed to get comparison list', error);
+      return err(storageError('Failed to load comparison list'));
+    }
   }
 
   /**
    * Get full comparison state including coach data
    */
-  async getComparisonState(): Promise<ComparisonState> {
-    await this.initialize();
-    const coaches = await this.getComparisonData(this.selectedCoachIds);
+  async getComparisonState(): Promise<Result<ComparisonState, ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
 
-    return {
-      selectedCoachIds: [...this.selectedCoachIds],
-      coaches,
-      maxCoaches: MAX_COACHES,
-      highlightCriteria: null,
-    };
+      const coachesResult = await this.getComparisonData(this.selectedCoachIds);
+      if (!coachesResult.success) return coachesResult;
+
+      return ok({
+        selectedCoachIds: [...this.selectedCoachIds],
+        coaches: coachesResult.data,
+        maxCoaches: MAX_COACHES,
+        highlightCriteria: null,
+      });
+    } catch (error) {
+      logger.error('Failed to get comparison state', error);
+      return err(storageError('Failed to load comparison state'));
+    }
   }
 
   /**
    * Clear all coaches from comparison
    */
-  async clearComparison(): Promise<void> {
-    this.selectedCoachIds = [];
-    await this.persistState();
+  async clearComparison(): Promise<Result<void, ServiceError>> {
+    try {
+      this.selectedCoachIds = [];
+      await this.persistState();
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to clear comparison', error);
+      return err(storageError('Failed to clear comparison list'));
+    }
   }
 
   /**
    * Check if a coach is in the comparison list
    */
-  async isInComparison(coachId: string): Promise<boolean> {
-    await this.initialize();
-    return this.selectedCoachIds.includes(coachId);
+  async isInComparison(coachId: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
+
+      return ok(this.selectedCoachIds.includes(coachId));
+    } catch (error) {
+      logger.error('Failed to check comparison membership', { coachId, error });
+      return err(storageError('Failed to check comparison status'));
+    }
   }
 
   /**
    * Get the count of coaches in comparison
    */
-  async getComparisonCount(): Promise<number> {
-    await this.initialize();
-    return this.selectedCoachIds.length;
+  async getComparisonCount(): Promise<Result<number, ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
+
+      return ok(this.selectedCoachIds.length);
+    } catch (error) {
+      logger.error('Failed to get comparison count', error);
+      return err(storageError('Failed to load comparison count'));
+    }
   }
 
   /**
    * Check if comparison list can accept more coaches
    */
-  async canAddMore(): Promise<boolean> {
-    await this.initialize();
-    return this.selectedCoachIds.length < MAX_COACHES;
+  async canAddMore(): Promise<Result<boolean, ServiceError>> {
+    try {
+      const initResult = await this.initialize();
+      if (!initResult.success) return initResult;
+
+      return ok(this.selectedCoachIds.length < MAX_COACHES);
+    } catch (error) {
+      logger.error('Failed to check comparison capacity', error);
+      return err(storageError('Failed to check comparison capacity'));
+    }
   }
 
   /**
@@ -271,16 +349,22 @@ class ComparisonService {
    * Persist current state to storage
    */
   private async persistState(): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, this.selectedCoachIds);
+    await apiClient.set(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, this.selectedCoachIds);
   }
 
   /**
    * Reset service state (for testing)
    */
-  async reset(): Promise<void> {
-    this.selectedCoachIds = [];
-    this.initialized = false;
-    await storageService.removeItem(STORAGE_KEYS.COMPARISON_SELECTED_COACHES);
+  async reset(): Promise<Result<void, ServiceError>> {
+    try {
+      this.selectedCoachIds = [];
+      this.initialized = false;
+      await apiClient.remove(STORAGE_KEYS.COMPARISON_SELECTED_COACHES);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to reset comparison service', error);
+      return err(storageError('Failed to reset comparison service'));
+    }
   }
 }
 

@@ -78,12 +78,16 @@ export function useCounterOffer() {
     if (!booking) return;
     try {
       setIsSubmitting(true);
-      await counterOfferService.createCounterOffer({
+      const createResult = await counterOfferService.createCounterOffer({
         bookingId: booking.id, proposedBy: userRole,
         proposerId: currentUser?.id || '',
         proposerName: currentUser?.name || currentUser?.fullName || 'User',
         originalTime: getOriginalTime(), proposedTime, message,
       });
+      if (!createResult.success) {
+        Alert.alert('Error', createResult.error.message || 'Failed to send your proposal. Please try again.');
+        return;
+      }
       Alert.alert('Proposal Sent',
         `Your time change request has been sent to ${booking.coachName}. They will be notified and can accept, decline, or propose an alternative.`,
         [{ text: 'OK', onPress: () => router.back() }]);

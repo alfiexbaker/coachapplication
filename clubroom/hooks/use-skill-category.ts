@@ -35,15 +35,23 @@ export function useSkillCategory() {
     if (!currentUser) return;
 
     try {
-      const loadedTree = await skillTreeService.getSkillTreeWithProgress(currentUser.id, categoryUpper);
+      const loadedTreeResult = await skillTreeService.getSkillTreeWithProgress(currentUser.id, categoryUpper);
+      if (!loadedTreeResult.success) {
+        logger.error('skill_tree_load_failed', loadedTreeResult.error);
+        setTree(null);
+        return;
+      }
+      const loadedTree = loadedTreeResult.data;
       setTree(loadedTree);
 
       if (loadedTree) {
         const canUnlock = new Set<string>();
         for (const node of loadedTree.nodes) {
           if (!node.isUnlocked) {
-            const canUnlockNode = await skillTreeService.canUnlockNode(currentUser.id, node.id);
-            if (canUnlockNode) canUnlock.add(node.id);
+            const canUnlockNodeResult = await skillTreeService.canUnlockNode(currentUser.id, node.id);
+            if (canUnlockNodeResult.success && canUnlockNodeResult.data) {
+              canUnlock.add(node.id);
+            }
           }
         }
         setCanUnlockNodes(canUnlock);
@@ -91,15 +99,17 @@ export function useSkillCategory() {
 
     try {
       const result = await skillTreeService.addXpToNode(currentUser.id, selectedNode.id, amount);
-      if (result) {
-        if (result.justUnlocked) {
+      if (result.success) {
+        if (result.data.justUnlocked) {
           setAnimateUnlocks(true);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('Skill Unlocked!', `You have unlocked "${result.node.name}"!${result.badgeAwarded ? '\n\nYou also earned a badge!' : ''}`, [{ text: 'Awesome!', style: 'default' }]);
+          Alert.alert('Skill Unlocked!', `You have unlocked "${result.data.node.name}"!${result.data.badgeAwarded ? '\n\nYou also earned a badge!' : ''}`, [{ text: 'Awesome!', style: 'default' }]);
         }
         await loadTree();
-        setSelectedNode(result.node);
+        setSelectedNode(result.data.node);
         setTimeout(() => setAnimateUnlocks(false), 1000);
+      } else {
+        Alert.alert('Error', result.error.message);
       }
     } catch (error) {
       logger.error('add_xp_failed', { error });
@@ -114,20 +124,22 @@ export function useSkillCategory() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Unlock',
-        onPress: async () => {
-          try {
-            const result = await skillTreeService.unlockNode(currentUser.id, selectedNode.id);
-            if (result) {
+          onPress: async () => {
+            try {
+              const result = await skillTreeService.unlockNode(currentUser.id, selectedNode.id);
+              if (!result.success) {
+                Alert.alert('Error', result.error.message);
+                return;
+              }
               setAnimateUnlocks(true);
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Skill Unlocked!', `You have unlocked "${result.node.name}"!${result.badgeAwarded ? '\n\nYou also earned a badge!' : ''}`);
+              Alert.alert('Skill Unlocked!', `You have unlocked "${result.data.node.name}"!${result.data.badgeAwarded ? '\n\nYou also earned a badge!' : ''}`);
               await loadTree();
               handleCloseModal();
               setTimeout(() => setAnimateUnlocks(false), 1000);
-            }
-          } catch (error) {
-            logger.error('unlock_node_failed', { error });
-            Alert.alert('Error', 'Failed to unlock skill');
+            } catch (error) {
+              logger.error('unlock_node_failed', { error });
+              Alert.alert('Error', 'Failed to unlock skill');
           }
         },
       },

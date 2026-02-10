@@ -64,10 +64,10 @@ export const squadGroupService = {
     const existingGroupId = map[squadId];
 
     if (existingGroupId) {
-      const existingGroup = await communityGroupService.getGroup(existingGroupId);
-      if (existingGroup) {
+      const existingGroupResult = await communityGroupService.getGroup(existingGroupId);
+      if (existingGroupResult.success) {
         logger.info('Returning existing squad group', { squadId, groupId: existingGroupId });
-        return ok(existingGroup);
+        return ok(existingGroupResult.data);
       }
       // Mapping exists but group was deleted — remove stale entry
       delete map[squadId];
@@ -112,9 +112,12 @@ export const squadGroupService = {
         isPublic: false,
         clubId: squad.clubId,
       });
+      if (!newGroup.success) {
+        return err(newGroup.error);
+      }
 
       // 4. Save mapping
-      map[squadId] = newGroup.id;
+      map[squadId] = newGroup.data.id;
       const mapResult = await saveMap(map);
       if (!mapResult.success) {
         return err(mapResult.error);
@@ -128,7 +131,7 @@ export const squadGroupService = {
         );
         const idx = storedSquads.findIndex((s) => s.id === squadId);
         if (idx !== -1) {
-          storedSquads[idx].groupId = newGroup.id;
+          storedSquads[idx].groupId = newGroup.data.id;
           await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, storedSquads);
         }
       } catch (error) {
@@ -137,11 +140,11 @@ export const squadGroupService = {
 
       logger.info('Created squad group', {
         squadId,
-        groupId: newGroup.id,
-        memberCount: newGroup.members.length,
+        groupId: newGroup.data.id,
+        memberCount: newGroup.data.members.length,
       });
 
-      return ok(newGroup);
+      return ok(newGroup.data);
     } catch (error) {
       logger.error('Failed to create squad group', error);
       return err(storageError('Failed to create squad group'));

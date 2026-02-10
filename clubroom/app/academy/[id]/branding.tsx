@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,8 +26,9 @@ export default function AcademyBrandingScreen() {
       if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
       try {
         const result = await academyService.getAcademy(id);
-        if (!result) return err(notFound('Academy', id));
-        return ok(result);
+        if (!result.success) return err(result.error);
+        if (!result.data) return err(notFound('Academy', id));
+        return ok(result.data);
       } catch (e) {
         return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load'));
       }
@@ -52,7 +53,10 @@ export default function AcademyBrandingScreen() {
     if (!id) return;
     setSaving(true);
     try {
-      await academyService.updateBranding(id, { logoUrl, bannerUrl, primaryColor, secondaryColor, email, phone, website, address });
+      const result = await academyService.updateBranding(id, { logoUrl, bannerUrl, primaryColor, secondaryColor, email, phone, website, address });
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+      }
     } finally {
       setSaving(false);
     }

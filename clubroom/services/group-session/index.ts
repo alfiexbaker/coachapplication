@@ -28,6 +28,10 @@ import { sessionCrudService } from './session-crud-service';
 import { sessionRegistrationService } from './session-registration-service';
 import { sessionSchedulingService } from './session-scheduling-service';
 import { sessionDisplayService } from './session-display-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GroupSessionFacade');
+void logger;
 
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY

@@ -8,6 +8,7 @@
 import { notificationStore, type ExtendedNotificationItem } from './notification-store';
 import { notificationPreferencesService } from './notification-preferences';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('NotificationSender');
 
@@ -15,25 +16,37 @@ class NotificationSenderService {
   /**
    * Send a notification, respecting user preferences.
    */
-  private async send(notification: ExtendedNotificationItem): Promise<void> {
+  private async send(notification: ExtendedNotificationItem): Promise<Result<void, ServiceError>> {
     // Check if user wants this notification
     if (notification.recipientId && notification.notificationType) {
-      const shouldSend = await notificationPreferencesService.shouldSendNotification(
+      const shouldSendResult = await notificationPreferencesService.shouldSendNotification(
         notification.recipientId,
         notification.notificationType as import('@/constants/types').NotificationType,
         'PUSH'
       );
+      if (!shouldSendResult.success) {
+        logger.error('Failed to evaluate notification preferences', {
+          recipientId: notification.recipientId,
+          type: notification.notificationType,
+          error: shouldSendResult.error,
+        });
+        return shouldSendResult;
+      }
 
-      if (!shouldSend) {
+      if (!shouldSendResult.data) {
         logger.info('Notification suppressed by preferences', {
           recipientId: notification.recipientId,
           type: notification.notificationType,
         });
-        return;
+        return ok(undefined);
       }
     }
 
-    await notificationStore.create(notification);
+    const createResult = await notificationStore.create(notification);
+    if (!createResult.success) {
+      return err(storageError(createResult.error.message));
+    }
+    return ok(undefined);
   }
 
   // ============================================================================
@@ -46,8 +59,8 @@ class NotificationSenderService {
     childName: string;
     date: string;
     bookingId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_booking_${Date.now()}`,
       type: 'booking',
       notificationType: 'BOOKING_RECEIVED',
@@ -70,8 +83,8 @@ class NotificationSenderService {
     parentName: string;
     date: string;
     bookingId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_cancel_${Date.now()}`,
       type: 'booking',
       notificationType: 'BOOKING_CANCELLED',
@@ -90,8 +103,8 @@ class NotificationSenderService {
     parentName: string;
     childName: string;
     inviteId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_invite_accept_${Date.now()}`,
       type: 'booking',
       notificationType: 'SESSION_INVITE_RESPONSE',
@@ -113,8 +126,8 @@ class NotificationSenderService {
     coachId: string;
     parentName: string;
     inviteId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_invite_decline_${Date.now()}`,
       type: 'booking',
       notificationType: 'SESSION_INVITE_RESPONSE',
@@ -132,8 +145,8 @@ class NotificationSenderService {
     coachId: string;
     parentName: string;
     threadId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_msg_${Date.now()}`,
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
@@ -152,8 +165,8 @@ class NotificationSenderService {
     parentName: string;
     rating: number;
     reviewId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_review_${Date.now()}`,
       type: 'review',
       notificationType: 'REVIEW_RECEIVED',
@@ -175,8 +188,8 @@ class NotificationSenderService {
     coachId: string;
     athleteName: string;
     bookingId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_reminder_${Date.now()}`,
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',
@@ -199,8 +212,8 @@ class NotificationSenderService {
     coachName: string;
     date: string;
     bookingId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_confirm_${Date.now()}`,
       type: 'booking',
       notificationType: 'BOOKING_CONFIRMED',
@@ -219,8 +232,8 @@ class NotificationSenderService {
     coachName: string;
     childName: string;
     inviteId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_invite_${Date.now()}`,
       type: 'booking',
       notificationType: 'SESSION_INVITE',
@@ -244,8 +257,8 @@ class NotificationSenderService {
     badgeName: string;
     coachName: string;
     badgeAwardId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_badge_${Date.now()}`,
       type: 'badge',
       notificationType: 'BADGE_AWARDED',
@@ -272,8 +285,8 @@ class NotificationSenderService {
     coachName: string;
     childName: string;
     bookingId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_feedback_${Date.now()}`,
       type: 'review',
       notificationType: 'REVIEW_RECEIVED',
@@ -295,8 +308,8 @@ class NotificationSenderService {
     parentId: string;
     coachName: string;
     threadId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_msg_${Date.now()}`,
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
@@ -315,8 +328,8 @@ class NotificationSenderService {
     childName: string;
     coachName: string;
     bookingId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_reminder_${Date.now()}`,
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',
@@ -339,8 +352,8 @@ class NotificationSenderService {
     clubName: string;
     postId: string;
     clubId: string;
-  }): Promise<void> {
-    await this.send({
+  }): Promise<Result<void, ServiceError>> {
+    return this.send({
       id: `notif_post_${Date.now()}`,
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',

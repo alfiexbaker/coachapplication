@@ -51,20 +51,17 @@ export function ReportFlow({
     if (!selectedType || !currentUser) return;
 
     setSubmitting(true);
-    try {
-      await reportService.submitReport({
-        reportedUserId,
-        reportedByUserId: currentUser.id,
-        type: selectedType,
-        description: description.trim() || undefined,
-        context,
-      });
+    const result = await reportService.submitReport({
+      reportedUserId,
+      reportedByUserId: currentUser.id,
+      type: selectedType,
+      description: description.trim() || undefined,
+      context,
+    });
+    if (result.success) {
       setSubmitted(true);
-    } catch {
-      // Silently handle — in production this would show an error toast
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   }, [selectedType, currentUser, reportedUserId, description, context]);
 
   const handleClose = useCallback(() => {

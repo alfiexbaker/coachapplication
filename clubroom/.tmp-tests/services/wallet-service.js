@@ -1,4 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.walletService = void 0;
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('WalletService');
 /**
  * Wallet Service - Re-export Facade
  *
@@ -12,7 +16,5 @@
  * - services/wallet/wallet-utils-service.ts (summaries, formatting, demo data)
  * - services/wallet/index.ts (unified facade)
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.walletService = void 0;
 var index_1 = require("./wallet/index");
 Object.defineProperty(exports, "walletService", { enumerable: true, get: function () { return index_1.walletService; } });

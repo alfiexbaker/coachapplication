@@ -30,6 +30,10 @@ import { progressSkillsService } from './progress-skills-service';
 import { progressFeedbackService } from './progress-feedback-service';
 import { progressGoalsService } from './progress-goals-service';
 import { progressReportService } from './progress-report-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ProgressFacade');
+void logger;
 
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY

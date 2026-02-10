@@ -32,20 +32,26 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
   const loadComparisonData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      let data: CoachComparison[];
-      if (coachIds && coachIds.length > 0) {
-        data = await comparisonService.getComparisonData(coachIds);
-      } else {
-        const state = await comparisonService.getComparisonState();
-        data = state.coaches;
+    let data: CoachComparison[] = [];
+    if (coachIds && coachIds.length > 0) {
+      const comparisonResult = await comparisonService.getComparisonData(coachIds);
+      if (!comparisonResult.success) {
+        setError(comparisonResult.error.message);
+        setIsLoading(false);
+        return;
       }
-      setCoaches(data);
-    } catch {
-      setError('Failed to load comparison data');
-    } finally {
-      setIsLoading(false);
+      data = comparisonResult.data;
+    } else {
+      const stateResult = await comparisonService.getComparisonState();
+      if (!stateResult.success) {
+        setError(stateResult.error.message);
+        setIsLoading(false);
+        return;
+      }
+      data = stateResult.data.coaches;
     }
+    setCoaches(data);
+    setIsLoading(false);
   }, [coachIds]);
 
   useEffect(() => {
@@ -63,7 +69,11 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
 
   const handleRemove = useCallback(
     async (coachId: string) => {
-      await comparisonService.removeFromComparison(coachId);
+      const removeResult = await comparisonService.removeFromComparison(coachId);
+      if (!removeResult.success) {
+        setError(removeResult.error.message);
+        return;
+      }
       setCoaches((prev) => prev.filter((c) => c.coachId !== coachId));
       onCoachRemoved?.(coachId);
     },

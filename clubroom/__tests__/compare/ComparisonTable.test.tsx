@@ -13,20 +13,29 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { comparisonService } from '../../services/comparison-service';
 import { discoverService } from '../../services/discover-service';
+import type { Result, ServiceError } from '../../types/result';
+
+const expectOk = <T,>(result: Result<T, ServiceError>): T => {
+  assert.strictEqual(result.success, true);
+  if (!result.success) {
+    throw new Error('Expected successful result');
+  }
+  return result.data;
+};
 
 // Reset services before each test
 beforeEach(async () => {
-  await comparisonService.reset();
-  await discoverService.resetToMockData();
+  expectOk(await comparisonService.reset());
+  expectOk(await discoverService.resetToMockData());
 });
 
 describe('ComparisonTable Component Logic', () => {
   describe('Data Loading', () => {
     test('should load comparison data for selected coaches', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
 
-      const state = await comparisonService.getComparisonState();
+      const state = expectOk(await comparisonService.getComparisonState());
 
       assert.strictEqual(state.coaches.length, 2);
       assert.ok(state.coaches.some((c) => c.coachId === 'coach_mike'));
@@ -34,11 +43,13 @@ describe('ComparisonTable Component Logic', () => {
     });
 
     test('should load data for specific coach IDs', async () => {
-      const data = await comparisonService.getComparisonData([
-        'coach_mike',
-        'coach_amy',
-        'coach_oliver',
-      ]);
+      const data = expectOk(
+        await comparisonService.getComparisonData([
+          'coach_mike',
+          'coach_amy',
+          'coach_oliver',
+        ]),
+      );
 
       assert.strictEqual(data.length, 3);
     });
@@ -46,7 +57,7 @@ describe('ComparisonTable Component Logic', () => {
 
   describe('Empty State', () => {
     test('should return empty coaches when none selected', async () => {
-      const state = await comparisonService.getComparisonState();
+      const state = expectOk(await comparisonService.getComparisonState());
 
       assert.strictEqual(state.coaches.length, 0);
       assert.strictEqual(state.selectedCoachIds.length, 0);
@@ -55,11 +66,13 @@ describe('ComparisonTable Component Logic', () => {
 
   describe('Best Value Highlighting', () => {
     test('should correctly identify best price', async () => {
-      const data = await comparisonService.getComparisonData([
-        'coach_mike',
-        'coach_david',
-        'coach_harry', // Harry has lowest price ($35-50)
-      ]);
+      const data = expectOk(
+        await comparisonService.getComparisonData([
+          'coach_mike',
+          'coach_david',
+          'coach_harry', // Harry has lowest price ($35-50)
+        ]),
+      );
 
       const bestPrice = comparisonService.getBestValue(data, 'PRICE');
 
@@ -68,11 +81,13 @@ describe('ComparisonTable Component Logic', () => {
     });
 
     test('should correctly identify best rating', async () => {
-      const data = await comparisonService.getComparisonData([
-        'coach_mike',
-        'coach_david',
-        'coach_oliver', // Oliver has highest rating (4.9)
-      ]);
+      const data = expectOk(
+        await comparisonService.getComparisonData([
+          'coach_mike',
+          'coach_david',
+          'coach_oliver', // Oliver has highest rating (4.9)
+        ]),
+      );
 
       const bestRating = comparisonService.getBestValue(data, 'RATING');
 
@@ -80,11 +95,13 @@ describe('ComparisonTable Component Logic', () => {
     });
 
     test('should correctly identify most experienced', async () => {
-      const data = await comparisonService.getComparisonData([
-        'coach_mike',
-        'coach_david',
-        'coach_oliver', // Oliver has most sessions (260)
-      ]);
+      const data = expectOk(
+        await comparisonService.getComparisonData([
+          'coach_mike',
+          'coach_david',
+          'coach_oliver', // Oliver has most sessions (260)
+        ]),
+      );
 
       const bestExperience = comparisonService.getBestValue(data, 'EXPERIENCE');
 
@@ -94,13 +111,13 @@ describe('ComparisonTable Component Logic', () => {
 
   describe('Coach Removal', () => {
     test('should update table after coach removal', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
-      await comparisonService.addToComparison('coach_amy');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
+      expectOk(await comparisonService.addToComparison('coach_amy'));
 
-      await comparisonService.removeFromComparison('coach_david');
+      expectOk(await comparisonService.removeFromComparison('coach_david'));
 
-      const state = await comparisonService.getComparisonState();
+      const state = expectOk(await comparisonService.getComparisonState());
 
       assert.strictEqual(state.coaches.length, 2);
       assert.ok(!state.coaches.some((c) => c.coachId === 'coach_david'));
@@ -109,7 +126,7 @@ describe('ComparisonTable Component Logic', () => {
 
   describe('Coach Data Transformation', () => {
     test('should include all required comparison fields', async () => {
-      const data = await comparisonService.getComparisonData(['coach_mike']);
+      const data = expectOk(await comparisonService.getComparisonData(['coach_mike']));
       const coach = data[0];
 
       assert.ok(coach);
@@ -132,7 +149,7 @@ describe('ComparisonTable Component Logic', () => {
     });
 
     test('should calculate years of experience correctly', async () => {
-      const data = await comparisonService.getComparisonData(['coach_oliver']);
+      const data = expectOk(await comparisonService.getComparisonData(['coach_oliver']));
       const coach = data[0];
 
       // Oliver joined 4 years ago (based on mock data)
@@ -145,11 +162,13 @@ describe('ComparisonTable Component Logic', () => {
 describe('ComparisonTable with Specific IDs', () => {
   test('should load only specified coaches', async () => {
     // Add some coaches to the general comparison list
-    await comparisonService.addToComparison('coach_mike');
-    await comparisonService.addToComparison('coach_david');
+    expectOk(await comparisonService.addToComparison('coach_mike'));
+    expectOk(await comparisonService.addToComparison('coach_david'));
 
     // But request specific different coaches
-    const data = await comparisonService.getComparisonData(['coach_amy', 'coach_oliver']);
+    const data = expectOk(
+      await comparisonService.getComparisonData(['coach_amy', 'coach_oliver']),
+    );
 
     assert.strictEqual(data.length, 2);
     assert.ok(data.some((c) => c.coachId === 'coach_amy'));
@@ -158,12 +177,14 @@ describe('ComparisonTable with Specific IDs', () => {
   });
 
   test('should handle mix of valid and invalid IDs', async () => {
-    const data = await comparisonService.getComparisonData([
-      'coach_mike',
-      'invalid_id_1',
-      'coach_david',
-      'invalid_id_2',
-    ]);
+    const data = expectOk(
+      await comparisonService.getComparisonData([
+        'coach_mike',
+        'invalid_id_1',
+        'coach_david',
+        'invalid_id_2',
+      ]),
+    );
 
     assert.strictEqual(data.length, 2);
   });

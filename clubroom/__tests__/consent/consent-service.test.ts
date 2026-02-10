@@ -11,16 +11,25 @@ import test, { describe, beforeEach } from 'node:test';
 import { consentService, CONSENT_TYPE_LABELS, CONSENT_TYPE_ICONS } from '../../services/consent-service';
 import { safetyService } from '../../services/safety-service';
 import type { AthleteConsent, Consent } from '../../constants/types';
+import type { Result, ServiceError } from '../../types/result';
+
+const expectOk = <T>(result: Result<T, ServiceError>): T => {
+  assert.strictEqual(result.success, true);
+  if (!result.success) {
+    throw new Error('Expected successful result');
+  }
+  return result.data;
+};
 
 // Reset to mock data before each test
 beforeEach(async () => {
-  await safetyService.resetToMockData();
+  expectOk(await safetyService.resetToMockData());
 });
 
 describe('Consent Service', () => {
   describe('getAthleteConsents', () => {
     test('should return consent data for an existing athlete', async () => {
-      const consents = await consentService.getAthleteConsents('athlete1');
+      const consents = expectOk(await consentService.getAthleteConsents('athlete1'));
 
       assert.ok(consents);
       assert.strictEqual(consents.athleteId, 'athlete1');
@@ -30,7 +39,7 @@ describe('Consent Service', () => {
 
     test('should return null for non-existent athlete', async () => {
       // The service returns an object with default values for non-existent athletes
-      const consents = await consentService.getAthleteConsents('non_existent');
+      const consents = expectOk(await consentService.getAthleteConsents('non_existent'));
 
       assert.ok(consents);
       assert.strictEqual(consents.athleteId, 'non_existent');
@@ -39,7 +48,7 @@ describe('Consent Service', () => {
 
   describe('getRosterConsents', () => {
     test('should return consents for all athletes in roster', async () => {
-      const consents = await consentService.getRosterConsents('coach1');
+      const consents = expectOk(await consentService.getRosterConsents('coach1'));
 
       assert.ok(Array.isArray(consents));
       assert.ok(consents.length > 0);
@@ -47,17 +56,19 @@ describe('Consent Service', () => {
     });
 
     test('should include athlete photo URL when available', async () => {
-      const consents = await consentService.getRosterConsents('coach1');
+      const consents = expectOk(await consentService.getRosterConsents('coach1'));
 
       const athleteWithPhoto = consents.find((c) => c.athletePhotoUrl);
       assert.ok(athleteWithPhoto);
     });
 
     test('should filter by consent type granted', async () => {
-      const consents = await consentService.getRosterConsents('coach1', {
-        type: 'PHOTO',
-        status: 'granted',
-      });
+      const consents = expectOk(
+        await consentService.getRosterConsents('coach1', {
+          type: 'PHOTO',
+          status: 'granted',
+        }),
+      );
 
       // All returned athletes should have PHOTO consent granted
       for (const c of consents) {
@@ -67,10 +78,12 @@ describe('Consent Service', () => {
     });
 
     test('should filter by consent type denied', async () => {
-      const consents = await consentService.getRosterConsents('coach1', {
-        type: 'SOCIAL_MEDIA',
-        status: 'denied',
-      });
+      const consents = expectOk(
+        await consentService.getRosterConsents('coach1', {
+          type: 'SOCIAL_MEDIA',
+          status: 'denied',
+        }),
+      );
 
       // All returned athletes should have SOCIAL_MEDIA consent denied
       for (const c of consents) {
@@ -80,9 +93,11 @@ describe('Consent Service', () => {
     });
 
     test('should filter by search query', async () => {
-      const consents = await consentService.getRosterConsents('coach1', {
-        search: 'Baker',
-      });
+      const consents = expectOk(
+        await consentService.getRosterConsents('coach1', {
+          search: 'Baker',
+        }),
+      );
 
       // All returned athletes should match the search
       for (const c of consents) {
@@ -95,21 +110,23 @@ describe('Consent Service', () => {
 
   describe('checkConsent', () => {
     test('should return true for granted consent', async () => {
-      const hasPhotoConsent = await consentService.checkConsent('athlete1', 'PHOTO');
+      const hasPhotoConsent = expectOk(await consentService.checkConsent('athlete1', 'PHOTO'));
 
       // athlete1 has PHOTO consent in mock data
       assert.strictEqual(hasPhotoConsent, true);
     });
 
     test('should return false for denied consent', async () => {
-      const hasSocialConsent = await consentService.checkConsent('athlete1', 'SOCIAL_MEDIA');
+      const hasSocialConsent = expectOk(
+        await consentService.checkConsent('athlete1', 'SOCIAL_MEDIA'),
+      );
 
       // athlete1 does not have SOCIAL_MEDIA consent in mock data
       assert.strictEqual(hasSocialConsent, false);
     });
 
     test('should return false for non-existent athlete', async () => {
-      const hasConsent = await consentService.checkConsent('non_existent', 'PHOTO');
+      const hasConsent = expectOk(await consentService.checkConsent('non_existent', 'PHOTO'));
 
       assert.strictEqual(hasConsent, false);
     });
@@ -117,7 +134,9 @@ describe('Consent Service', () => {
 
   describe('getConsentedAthletes', () => {
     test('should return athletes with granted consent', async () => {
-      const consentedAthletes = await consentService.getConsentedAthletes('coach1', 'PHOTO');
+      const consentedAthletes = expectOk(
+        await consentService.getConsentedAthletes('coach1', 'PHOTO'),
+      );
 
       assert.ok(Array.isArray(consentedAthletes));
       for (const athlete of consentedAthletes) {
@@ -128,7 +147,9 @@ describe('Consent Service', () => {
 
     test('should return empty array if no athletes have consent', async () => {
       // Update all athletes to not have a specific consent (this may need mock data adjustment)
-      const athletes = await consentService.getNonConsentedAthletes('coach1', 'EMERGENCY_TREATMENT');
+      const athletes = expectOk(
+        await consentService.getNonConsentedAthletes('coach1', 'EMERGENCY_TREATMENT'),
+      );
 
       // The non-consented athletes should not have EMERGENCY_TREATMENT granted
       for (const athlete of athletes) {
@@ -140,7 +161,9 @@ describe('Consent Service', () => {
 
   describe('getNonConsentedAthletes', () => {
     test('should return athletes without granted consent', async () => {
-      const nonConsentedAthletes = await consentService.getNonConsentedAthletes('coach1', 'SOCIAL_MEDIA');
+      const nonConsentedAthletes = expectOk(
+        await consentService.getNonConsentedAthletes('coach1', 'SOCIAL_MEDIA'),
+      );
 
       assert.ok(Array.isArray(nonConsentedAthletes));
       for (const athlete of nonConsentedAthletes) {
@@ -152,7 +175,7 @@ describe('Consent Service', () => {
 
   describe('getConsentSummary', () => {
     test('should return summary with correct structure', async () => {
-      const summary = await consentService.getConsentSummary('coach1');
+      const summary = expectOk(await consentService.getConsentSummary('coach1'));
 
       assert.ok(summary);
       assert.ok(typeof summary.totalAthletes === 'number');
@@ -164,7 +187,7 @@ describe('Consent Service', () => {
     });
 
     test('should have correct counts for each consent type', async () => {
-      const summary = await consentService.getConsentSummary('coach1');
+      const summary = expectOk(await consentService.getConsentSummary('coach1'));
 
       for (const type of consentService.getConsentTypes()) {
         const stat = summary.byType[type];

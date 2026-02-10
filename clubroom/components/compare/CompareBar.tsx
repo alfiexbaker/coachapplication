@@ -41,7 +41,8 @@ export function CompareBar({
   const translateY = useSharedValue(100);
 
   const refreshCount = useCallback(async () => {
-    const newCount = await comparisonService.getComparisonCount();
+    const countResult = await comparisonService.getComparisonCount();
+    const newCount = countResult.success ? countResult.data : 0;
     setCount(newCount);
     onCountChange?.(newCount);
   }, [onCountChange]);
@@ -65,7 +66,10 @@ export function CompareBar({
 
   const handleClear = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await comparisonService.clearComparison();
+    const clearResult = await comparisonService.clearComparison();
+    if (!clearResult.success) {
+      return;
+    }
     setCount(0);
     onCountChange?.(0);
   }, [onCountChange]);

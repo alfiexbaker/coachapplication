@@ -18,6 +18,7 @@ const api_client_1 = require("./api-client");
 const scheduling_rules_service_1 = require("@/services/scheduling-rules-service");
 const logger_1 = require("@/utils/logger");
 const result_1 = require("@/types/result");
+const event_bus_1 = require("./event-bus");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('CancellationService');
 // ---------------------------------------------------------------------------
@@ -61,7 +62,7 @@ exports.cancellationService = {
         }
         catch (error) {
             logger.error('Failed to get cancellation policy', error);
-            return null;
+            return (0, result_1.err)((0, result_1.storageError)('Failed to get cancellation policy'));
         }
     },
     /**
@@ -70,7 +71,10 @@ exports.cancellationService = {
      */
     async saveCancellationPolicy(coachId, policy) {
         try {
-            await scheduling_rules_service_1.schedulingRulesService.setCancellationPolicy(coachId, policy.preset, policy.customTiers);
+            const saveResult = await scheduling_rules_service_1.schedulingRulesService.setCancellationPolicy(coachId, policy.preset, policy.customTiers);
+            if (!saveResult.success) {
+                return saveResult;
+            }
             logger.debug('Cancellation policy saved', { coachId, preset: policy.preset });
             return (0, result_1.ok)(undefined);
         }
@@ -83,71 +87,116 @@ exports.cancellationService = {
      * Cancel a booking and record the cancellation.
      */
     async cancelBooking(bookingId, cancelledBy, details) {
-        const records = await loadRecords();
-        const record = {
-            id: `cancel_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-            bookingId,
-            cancelledBy: cancelledBy,
-            cancelledAt: new Date().toISOString(),
-            reason: details.reason,
-            reasonCategory: details.reason,
-            note: details.note ?? '',
-            refundAmount: details.refundCalculation?.netRefundAmount ?? 0,
-            refundPercentage: details.refundCalculation?.refundPercentage ?? 0,
-            hoursBeforeSession: details.refundCalculation?.hoursUntilSession ?? 0,
-            coachId: details.coachId ?? '',
-            familyId: details.familyId,
-        };
-        records.push(record);
-        await saveRecords(records);
-        logger.info('Booking cancelled', {
-            bookingId,
-            cancelledBy,
-            reason: details.reason,
-            refundAmount: record.refundAmount,
-        });
-        return record;
+        try {
+            const records = await loadRecords();
+            const record = {
+                id: `cancel_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                bookingId,
+                cancelledBy: cancelledBy,
+                cancelledAt: new Date().toISOString(),
+                reason: details.reason,
+                reasonCategory: details.reason,
+                note: details.note ?? '',
+                refundAmount: details.refundCalculation?.netRefundAmount ?? 0,
+                refundPercentage: details.refundCalculation?.refundPercentage ?? 0,
+                hoursBeforeSession: details.refundCalculation?.hoursUntilSession ?? 0,
+                coachId: details.coachId ?? '',
+                familyId: details.familyId,
+            };
+            records.push(record);
+            await saveRecords(records);
+            logger.info('Booking cancelled', {
+                bookingId,
+                cancelledBy,
+                reason: details.reason,
+                refundAmount: record.refundAmount,
+            });
+            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.CANCELLATION_RECORDED, {
+                cancellationId: record.id,
+                bookingId: record.bookingId,
+                cancelledBy: record.cancelledBy,
+                coachId: record.coachId,
+                familyId: record.familyId,
+            });
+            return (0, result_1.ok)(record);
+        }
+        catch (error) {
+            logger.error('Failed to cancel booking', { bookingId, cancelledBy, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to cancel booking'));
+        }
     },
     /**
      * Get all cancellation records, optionally filtered by coachId.
      */
     async getCancellationRecords(coachId) {
-        const records = await loadRecords();
-        if (!coachId)
-            return records;
-        return records.filter((r) => r.coachId === coachId);
+        try {
+            const records = await loadRecords();
+            if (!coachId)
+                return (0, result_1.ok)(records);
+            return (0, result_1.ok)(records.filter((r) => r.coachId === coachId));
+        }
+        catch (error) {
+            logger.error('Failed to get cancellation records', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to get cancellation records'));
+        }
     },
     /**
      * Get a single cancellation record by booking ID.
      */
     async getCancellationByBooking(bookingId) {
-        const records = await loadRecords();
-        return records.find((r) => r.bookingId === bookingId) ?? null;
+        try {
+            const records = await loadRecords();
+            return (0, result_1.ok)(records.find((r) => r.bookingId === bookingId) ?? null);
+        }
+        catch (error) {
+            logger.error('Failed to get cancellation by booking', { bookingId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to get cancellation by booking'));
+        }
     },
     /**
      * Get the no-show count for a family.
      */
     async getNoShowCount(familyId) {
-        const counts = await loadNoShowCounts();
-        return counts[familyId] ?? 0;
+        try {
+            const counts = await loadNoShowCounts();
+            return (0, result_1.ok)(counts[familyId] ?? 0);
+        }
+        catch (error) {
+            logger.error('Failed to get no-show count', { familyId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to get no-show count'));
+        }
     },
     /**
      * Increment the no-show counter for a family.
      */
     async incrementNoShow(familyId) {
-        const counts = await loadNoShowCounts();
-        counts[familyId] = (counts[familyId] ?? 0) + 1;
-        await saveNoShowCounts(counts);
-        logger.warn('No-show recorded', { familyId, total: counts[familyId] });
+        try {
+            const counts = await loadNoShowCounts();
+            counts[familyId] = (counts[familyId] ?? 0) + 1;
+            await saveNoShowCounts(counts);
+            logger.warn('No-show recorded', { familyId, total: counts[familyId] });
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to increment no-show', { familyId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to increment no-show'));
+        }
     },
     /**
      * Reset no-show count for a family (e.g. after a grace period).
      */
     async resetNoShowCount(familyId) {
-        const counts = await loadNoShowCounts();
-        delete counts[familyId];
-        await saveNoShowCounts(counts);
-        logger.info('No-show count reset', { familyId });
+        try {
+            const counts = await loadNoShowCounts();
+            delete counts[familyId];
+            await saveNoShowCounts(counts);
+            logger.info('No-show count reset', { familyId });
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to reset no-show count', { familyId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to reset no-show count'));
+        }
     },
     /**
      * Get the default cancellation tiers for a preset policy.
@@ -195,28 +244,34 @@ exports.cancellationService = {
      * Get cancellation stats for a coach (for analytics).
      */
     async getCancellationStats(coachId) {
-        const records = await loadRecords();
-        const coachRecords = records.filter((r) => r.coachId === coachId);
-        const byCoach = coachRecords.filter((r) => r.cancelledBy === 'coach').length;
-        const byParent = coachRecords.filter((r) => r.cancelledBy === 'parent').length;
-        // Count reasons
-        const reasonCounts = {};
-        for (const r of coachRecords) {
-            reasonCounts[r.reasonCategory] = (reasonCounts[r.reasonCategory] ?? 0) + 1;
+        try {
+            const records = await loadRecords();
+            const coachRecords = records.filter((r) => r.coachId === coachId);
+            const byCoach = coachRecords.filter((r) => r.cancelledBy === 'coach').length;
+            const byParent = coachRecords.filter((r) => r.cancelledBy === 'parent').length;
+            // Count reasons
+            const reasonCounts = {};
+            for (const r of coachRecords) {
+                reasonCounts[r.reasonCategory] = (reasonCounts[r.reasonCategory] ?? 0) + 1;
+            }
+            const topReasons = Object.entries(reasonCounts)
+                .map(([reason, count]) => ({ reason, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5);
+            const avgHours = coachRecords.length > 0
+                ? coachRecords.reduce((sum, r) => sum + r.hoursBeforeSession, 0) / coachRecords.length
+                : 0;
+            return (0, result_1.ok)({
+                totalCancellations: coachRecords.length,
+                byCoach,
+                byParent,
+                topReasons,
+                avgHoursBeforeSession: Math.round(avgHours * 10) / 10,
+            });
         }
-        const topReasons = Object.entries(reasonCounts)
-            .map(([reason, count]) => ({ reason, count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-        const avgHours = coachRecords.length > 0
-            ? coachRecords.reduce((sum, r) => sum + r.hoursBeforeSession, 0) / coachRecords.length
-            : 0;
-        return {
-            totalCancellations: coachRecords.length,
-            byCoach,
-            byParent,
-            topReasons,
-            avgHoursBeforeSession: Math.round(avgHours * 10) / 10,
-        };
+        catch (error) {
+            logger.error('Failed to get cancellation stats', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to get cancellation stats'));
+        }
     },
 };

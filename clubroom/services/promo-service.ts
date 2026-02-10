@@ -16,7 +16,7 @@
  * - GET /api/promo-codes/stats - Get overall promo code statistics
  */
 
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, validationError, conflictError } from '@/types/result';
@@ -204,7 +204,7 @@ function getCodeStatus(code: PromoCode): 'active' | 'expired' | 'exhausted' | 'i
 // ============================================================================
 
 async function getAllCodes(): Promise<PromoCode[]> {
-  const codes = await storageService.getItem<PromoCode[]>(STORAGE_KEY_CODES, []);
+  const codes = await apiClient.get<PromoCode[]>(STORAGE_KEY_CODES, []);
   if (codes.length === 0) {
     return [...MOCK_PROMO_CODES];
   }
@@ -212,11 +212,11 @@ async function getAllCodes(): Promise<PromoCode[]> {
 }
 
 async function saveCodes(codes: PromoCode[]): Promise<void> {
-  await storageService.setItem(STORAGE_KEY_CODES, codes);
+  await apiClient.set(STORAGE_KEY_CODES, codes);
 }
 
 async function getAllUsage(): Promise<PromoCodeUsage[]> {
-  const usage = await storageService.getItem<PromoCodeUsage[]>(STORAGE_KEY_USAGE, []);
+  const usage = await apiClient.get<PromoCodeUsage[]>(STORAGE_KEY_USAGE, []);
   if (usage.length === 0) {
     return [...MOCK_PROMO_USAGE];
   }
@@ -224,7 +224,7 @@ async function getAllUsage(): Promise<PromoCodeUsage[]> {
 }
 
 async function saveUsage(usage: PromoCodeUsage[]): Promise<void> {
-  await storageService.setItem(STORAGE_KEY_USAGE, usage);
+  await apiClient.set(STORAGE_KEY_USAGE, usage);
 }
 
 // ============================================================================
@@ -701,8 +701,8 @@ async function resetToMockData(): Promise<void> {
  * Clear all promo code data (for testing)
  */
 async function clearAllData(): Promise<void> {
-  await storageService.setItem(STORAGE_KEY_CODES, []);
-  await storageService.setItem(STORAGE_KEY_USAGE, []);
+  await apiClient.set(STORAGE_KEY_CODES, []);
+  await apiClient.set(STORAGE_KEY_USAGE, []);
   logger.info('promo_data_cleared');
 }
 

@@ -53,6 +53,10 @@ import { matchInviteService } from './match-invite-service';
 import { eventInviteService } from './event-invite-service';
 import { apiClient } from '../api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('InviteFacade');
+void logger;
 
 // Import storage functions for clearCache
 import {

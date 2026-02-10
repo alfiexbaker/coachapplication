@@ -27,8 +27,9 @@ export default function AcademySettingsScreen() {
       if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
       try {
         const result = await academyService.getAcademy(id);
-        if (!result) return err(notFound('Academy', id));
-        return ok(result);
+        if (!result.success) return err(result.error);
+        if (!result.data) return err(notFound('Academy', id));
+        return ok(result.data);
       } catch (e) {
         return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load'));
       }
@@ -49,7 +50,11 @@ export default function AcademySettingsScreen() {
     if (!id) return;
     setSaving(true);
     try {
-      await academyService.updateSettings(id, { name, description, isPublic, requiresApproval });
+      const result = await academyService.updateSettings(id, { name, description, isPublic, requiresApproval });
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+        return;
+      }
     } finally {
       setSaving(false);
     }
@@ -61,7 +66,13 @@ export default function AcademySettingsScreen() {
     Alert.alert('Delete Academy', 'This action cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        if (id) await academyService.deleteAcademy(id);
+        if (id) {
+          const result = await academyService.deleteAcademy(id);
+          if (!result.success) {
+            Alert.alert('Error', result.error.message);
+            return;
+          }
+        }
         router.back();
       }},
     ]);

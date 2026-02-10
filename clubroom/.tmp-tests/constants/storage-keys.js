@@ -295,6 +295,14 @@ exports.STORAGE_KEYS = {
     // ============================================================================
     // ONBOARDING & TUTORIAL DOMAIN
     // ============================================================================
+    /** Persisted auth user profile for active session */
+    AUTH_USER: 'auth_user',
+    /** Persisted access token for active session */
+    AUTH_TOKEN: 'auth_token',
+    /** Persisted auth token bundle (access + refresh + expiry) */
+    AUTH_TOKENS: 'auth_tokens',
+    /** Tracks whether onboarding flow is complete for current user */
+    ONBOARDING_COMPLETE: 'onboarding_complete',
     /** Whether the availability tutorial has been completed by the coach */
     AVAILABILITY_TUTORIAL_COMPLETED: 'clubroom.availability_tutorial_completed',
     // ============================================================================

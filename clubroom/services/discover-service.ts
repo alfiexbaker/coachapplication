@@ -20,8 +20,12 @@ import type {
   FootballObjective,
   TrainingFormat,
 } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+const logger = createLogger('DiscoverService');
+
 const MAX_RECENT_SEARCHES = 10;
 
 // Try to import coach profiles from mock data, fall back to empty array
@@ -326,124 +330,134 @@ class DiscoverService {
     filters: CoachSearchFilters = {},
     page: number = 1,
     pageSize: number = 20
-  ): Promise<CoachSearchResponse> {
-    let results = [...this.coaches];
+  ): Promise<Result<CoachSearchResponse, ServiceError>> {
+    try {
+      let results = [...this.coaches];
 
-    // Apply text search
-    if (filters.query) {
-      results = results.filter((coach) => matchesQuery(coach, filters.query!));
-    }
+      // Apply text search
+      if (filters.query) {
+        results = results.filter((coach) => matchesQuery(coach, filters.query!));
+      }
 
-    // Apply price filter
-    if (filters.priceMin !== undefined) {
-      results = results.filter((coach) => coach.priceRange.maxUsd >= filters.priceMin!);
-    }
-    if (filters.priceMax !== undefined) {
-      results = results.filter((coach) => coach.priceRange.minUsd <= filters.priceMax!);
-    }
+      // Apply price filter
+      if (filters.priceMin !== undefined) {
+        results = results.filter((coach) => coach.priceRange.maxUsd >= filters.priceMin!);
+      }
+      if (filters.priceMax !== undefined) {
+        results = results.filter((coach) => coach.priceRange.minUsd <= filters.priceMax!);
+      }
 
-    // Apply rating filter
-    if (filters.rating !== undefined) {
-      results = results.filter((coach) => coach.rating.average >= filters.rating!);
-    }
+      // Apply rating filter
+      if (filters.rating !== undefined) {
+        results = results.filter((coach) => coach.rating.average >= filters.rating!);
+      }
 
-    // Apply focuses filter
-    if (filters.focuses && filters.focuses.length > 0) {
-      results = results.filter((coach) =>
-        filters.focuses!.some((focus) => coach.footballFocuses.includes(focus))
-      );
-    }
-
-    // Apply formats filter
-    if (filters.formats && filters.formats.length > 0) {
-      results = results.filter((coach) =>
-        filters.formats!.some((format) => coach.sessionFormats.includes(format))
-      );
-    }
-
-    // Apply languages filter
-    if (filters.languages && filters.languages.length > 0) {
-      results = results.filter((coach) =>
-        filters.languages!.some((lang) =>
-          coach.languages?.some((l) => l.name.toLowerCase() === lang.toLowerCase())
-        )
-      );
-    }
-
-    // Apply location/distance filter
-    let resultsWithDistance: { coach: CoachProfile; distanceKm?: number }[] = results.map(
-      (coach) => ({ coach })
-    );
-
-    if (filters.location) {
-      resultsWithDistance = results.map((coach) => {
-        const distanceKm = calculateDistance(
-          filters.location!.lat,
-          filters.location!.lng,
-          coach.location.lat,
-          coach.location.lng
-        );
-        return { coach, distanceKm };
-      });
-
-      // Filter by radius
-      if (filters.distance) {
-        resultsWithDistance = resultsWithDistance.filter(
-          (r) => r.distanceKm !== undefined && r.distanceKm <= filters.distance!
+      // Apply focuses filter
+      if (filters.focuses && filters.focuses.length > 0) {
+        results = results.filter((coach) =>
+          filters.focuses!.some((focus) => coach.footballFocuses.includes(focus))
         );
       }
+
+      // Apply formats filter
+      if (filters.formats && filters.formats.length > 0) {
+        results = results.filter((coach) =>
+          filters.formats!.some((format) => coach.sessionFormats.includes(format))
+        );
+      }
+
+      // Apply languages filter
+      if (filters.languages && filters.languages.length > 0) {
+        results = results.filter((coach) =>
+          filters.languages!.some((lang) =>
+            coach.languages?.some((l) => l.name.toLowerCase() === lang.toLowerCase())
+          )
+        );
+      }
+
+      // Apply location/distance filter
+      let resultsWithDistance: { coach: CoachProfile; distanceKm?: number }[] = results.map(
+        (coach) => ({ coach })
+      );
+
+      if (filters.location) {
+        resultsWithDistance = results.map((coach) => {
+          const distanceKm = calculateDistance(
+            filters.location!.lat,
+            filters.location!.lng,
+            coach.location.lat,
+            coach.location.lng
+          );
+          return { coach, distanceKm };
+        });
+
+        // Filter by radius
+        if (filters.distance) {
+          resultsWithDistance = resultsWithDistance.filter(
+            (r) => r.distanceKm !== undefined && r.distanceKm <= filters.distance!
+          );
+        }
+      }
+
+      // Calculate relevance scores and create search results
+      const searchResults: CoachSearchResult[] = resultsWithDistance.map((r) => ({
+        coach: r.coach,
+        relevanceScore: calculateRelevanceScore(r.coach, filters, r.distanceKm),
+        distanceKm: r.distanceKm,
+        matchedTerms: filters.query
+          ? filters.query.split(' ').filter((term) => matchesQuery(r.coach, term))
+          : undefined,
+      }));
+
+      // Sort results
+      switch (filters.sortBy) {
+        case 'distance':
+          searchResults.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+          break;
+        case 'rating':
+          searchResults.sort((a, b) => b.coach.rating.average - a.coach.rating.average);
+          break;
+        case 'price_low':
+          searchResults.sort((a, b) => a.coach.priceRange.minUsd - b.coach.priceRange.minUsd);
+          break;
+        case 'price_high':
+          searchResults.sort((a, b) => b.coach.priceRange.maxUsd - a.coach.priceRange.maxUsd);
+          break;
+        case 'reviews':
+          searchResults.sort((a, b) => b.coach.rating.reviewCount - a.coach.rating.reviewCount);
+          break;
+        default:
+          // Default: sort by relevance
+          searchResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      }
+
+      // Paginate
+      const totalCount = searchResults.length;
+      const startIndex = (page - 1) * pageSize;
+      const paginatedResults = searchResults.slice(startIndex, startIndex + pageSize);
+
+      // Save search to recent searches
+      if (filters.query) {
+        await this.saveRecentSearch(filters.query);
+      }
+
+      const filterOptionsResult = await this.getFilterOptions(filters);
+      if (!filterOptionsResult.success) {
+        return filterOptionsResult;
+      }
+
+      return ok({
+        results: paginatedResults,
+        totalCount,
+        page,
+        pageSize,
+        hasMore: startIndex + pageSize < totalCount,
+        filterOptions: filterOptionsResult.data,
+      });
+    } catch (error) {
+      logger.error('Failed to search coaches', { filters, page, pageSize, error });
+      return err(storageError('Failed to search coaches'));
     }
-
-    // Calculate relevance scores and create search results
-    const searchResults: CoachSearchResult[] = resultsWithDistance.map((r) => ({
-      coach: r.coach,
-      relevanceScore: calculateRelevanceScore(r.coach, filters, r.distanceKm),
-      distanceKm: r.distanceKm,
-      matchedTerms: filters.query
-        ? filters.query.split(' ').filter((term) => matchesQuery(r.coach, term))
-        : undefined,
-    }));
-
-    // Sort results
-    switch (filters.sortBy) {
-      case 'distance':
-        searchResults.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
-        break;
-      case 'rating':
-        searchResults.sort((a, b) => b.coach.rating.average - a.coach.rating.average);
-        break;
-      case 'price_low':
-        searchResults.sort((a, b) => a.coach.priceRange.minUsd - b.coach.priceRange.minUsd);
-        break;
-      case 'price_high':
-        searchResults.sort((a, b) => b.coach.priceRange.maxUsd - a.coach.priceRange.maxUsd);
-        break;
-      case 'reviews':
-        searchResults.sort((a, b) => b.coach.rating.reviewCount - a.coach.rating.reviewCount);
-        break;
-      default:
-        // Default: sort by relevance
-        searchResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    }
-
-    // Paginate
-    const totalCount = searchResults.length;
-    const startIndex = (page - 1) * pageSize;
-    const paginatedResults = searchResults.slice(startIndex, startIndex + pageSize);
-
-    // Save search to recent searches
-    if (filters.query) {
-      await this.saveRecentSearch(filters.query);
-    }
-
-    return {
-      results: paginatedResults,
-      totalCount,
-      page,
-      pageSize,
-      hasMore: startIndex + pageSize < totalCount,
-      filterOptions: await this.getFilterOptions(filters),
-    };
   }
 
   /**
@@ -453,34 +467,40 @@ class DiscoverService {
     lat: number,
     lng: number,
     radiusKm: number = 10
-  ): Promise<CoachSearchResult[]> {
-    const results = this.coaches
-      .map((coach) => {
-        const distanceKm = calculateDistance(lat, lng, coach.location.lat, coach.location.lng);
-        return {
-          coach,
-          relevanceScore: calculateRelevanceScore(coach, {}, distanceKm),
-          distanceKm,
-        };
-      })
-      .filter((r) => r.distanceKm <= radiusKm)
-      .sort((a, b) => a.distanceKm - b.distanceKm);
+  ): Promise<Result<CoachSearchResult[], ServiceError>> {
+    try {
+      const results = this.coaches
+        .map((coach) => {
+          const distanceKm = calculateDistance(lat, lng, coach.location.lat, coach.location.lng);
+          return {
+            coach,
+            relevanceScore: calculateRelevanceScore(coach, {}, distanceKm),
+            distanceKm,
+          };
+        })
+        .filter((r) => r.distanceKm <= radiusKm)
+        .sort((a, b) => a.distanceKm - b.distanceKm);
 
-    return results;
+      return ok(results);
+    } catch (error) {
+      logger.error('Failed to get coaches near location', { lat, lng, radiusKm, error });
+      return err(storageError('Failed to get nearby coaches'));
+    }
   }
 
   /**
    * Get available filter options with counts
    */
-  async getFilterOptions(currentFilters: CoachSearchFilters = {}): Promise<FilterOptions> {
+  async getFilterOptions(currentFilters: CoachSearchFilters = {}): Promise<Result<FilterOptions, ServiceError>> {
+    try {
     // Get all coaches that match current filters (except the filter being counted)
-    const matchingCoaches = this.coaches.filter((coach) => {
-      if (currentFilters.query && !matchesQuery(coach, currentFilters.query)) return false;
-      if (currentFilters.priceMin && coach.priceRange.maxUsd < currentFilters.priceMin) return false;
-      if (currentFilters.priceMax && coach.priceRange.minUsd > currentFilters.priceMax) return false;
-      if (currentFilters.rating && coach.rating.average < currentFilters.rating) return false;
-      return true;
-    });
+      const matchingCoaches = this.coaches.filter((coach) => {
+        if (currentFilters.query && !matchesQuery(coach, currentFilters.query)) return false;
+        if (currentFilters.priceMin && coach.priceRange.maxUsd < currentFilters.priceMin) return false;
+        if (currentFilters.priceMax && coach.priceRange.minUsd > currentFilters.priceMax) return false;
+        if (currentFilters.rating && coach.rating.average < currentFilters.rating) return false;
+        return true;
+      });
 
     // Collect unique values with counts
     const focusCounts = new Map<string, number>();
@@ -570,28 +590,33 @@ class DiscoverService {
       .map(([rating, count]) => ({ rating, count }))
       .sort((a, b) => b.rating - a.rating);
 
-    return {
-      sports: [{ value: 'Football', label: 'Football', count: matchingCoaches.length }],
-      focuses,
-      languages,
-      genders,
-      verificationLevels,
-      formats,
-      priceRange: {
-        min: minPrice === Infinity ? 0 : minPrice,
-        max: maxPrice === 0 ? 100 : maxPrice,
-      },
-      ratingDistribution,
-      totalCount: matchingCoaches.length,
-    };
+      return ok({
+        sports: [{ value: 'Football', label: 'Football', count: matchingCoaches.length }],
+        focuses,
+        languages,
+        genders,
+        verificationLevels,
+        formats,
+        priceRange: {
+          min: minPrice === Infinity ? 0 : minPrice,
+          max: maxPrice === 0 ? 100 : maxPrice,
+        },
+        ratingDistribution,
+        totalCount: matchingCoaches.length,
+      });
+    } catch (error) {
+      logger.error('Failed to get filter options', { currentFilters, error });
+      return err(storageError('Failed to load filter options'));
+    }
   }
 
   /**
    * Get suggested coaches for a user
    */
-  async getSuggestedCoaches(userId: string): Promise<SuggestedCoach[]> {
+  async getSuggestedCoaches(userId: string): Promise<Result<SuggestedCoach[], ServiceError>> {
+    try {
     // For demo, return a mix of suggestions
-    const suggestions: SuggestedCoach[] = [];
+      const suggestions: SuggestedCoach[] = [];
 
     // Top rated coaches
     const topRated = [...this.coaches]
@@ -655,52 +680,80 @@ class DiscoverService {
       }
     });
 
-    return suggestions.slice(0, 6);
+      return ok(suggestions.slice(0, 6));
+    } catch (error) {
+      logger.error('Failed to get suggested coaches', { userId, error });
+      return err(storageError('Failed to load suggested coaches'));
+    }
   }
 
   /**
    * Save a recent search query
    */
   private async saveRecentSearch(query: string): Promise<void> {
-    const recent = await this.getRecentSearches();
+    const recent = await apiClient.get<string[]>(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
     const updated = [query, ...recent.filter((q) => q !== query)].slice(0, MAX_RECENT_SEARCHES);
-    await storageService.setItem(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, updated);
+    await apiClient.set(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, updated);
   }
 
   /**
    * Get recent search queries
    */
-  async getRecentSearches(): Promise<string[]> {
-    return storageService.getItem<string[]>(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
+  async getRecentSearches(): Promise<Result<string[], ServiceError>> {
+    try {
+      return ok(await apiClient.get<string[]>(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []));
+    } catch (error) {
+      logger.error('Failed to get recent searches', error);
+      return err(storageError('Failed to load recent searches'));
+    }
   }
 
   /**
    * Clear recent searches
    */
-  async clearRecentSearches(): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
+  async clearRecentSearches(): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.set(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to clear recent searches', error);
+      return err(storageError('Failed to clear recent searches'));
+    }
   }
 
   /**
    * Get a specific coach by ID
    */
-  async getCoachById(coachId: string): Promise<CoachProfile | null> {
-    return this.coaches.find((c) => c.id === coachId) ?? null;
+  async getCoachById(coachId: string): Promise<Result<CoachProfile | null, ServiceError>> {
+    try {
+      return ok(this.coaches.find((c) => c.id === coachId) ?? null);
+    } catch (error) {
+      logger.error('Failed to get coach by id', { coachId, error });
+      return err(storageError('Failed to load coach'));
+    }
   }
 
   /**
    * Get all coaches (for map view)
    */
-  async getAllCoaches(): Promise<CoachProfile[]> {
-    return this.coaches;
+  async getAllCoaches(): Promise<Result<CoachProfile[], ServiceError>> {
+    try {
+      return ok(this.coaches);
+    } catch (error) {
+      logger.error('Failed to get all coaches', error);
+      return err(storageError('Failed to load coaches'));
+    }
   }
 
   /**
    * Count coaches matching filters (for filter count badges)
    */
-  async countCoaches(filters: CoachSearchFilters): Promise<number> {
-    const response = await this.searchCoaches(filters, 1, 1);
-    return response.totalCount;
+  async countCoaches(filters: CoachSearchFilters): Promise<Result<number, ServiceError>> {
+    const responseResult = await this.searchCoaches(filters, 1, 1);
+    if (!responseResult.success) {
+      return responseResult;
+    }
+    return ok(responseResult.data.totalCount);
   }
 
   /**
@@ -740,9 +793,18 @@ class DiscoverService {
   /**
    * Reset to mock data (for testing)
    */
-  async resetToMockData(): Promise<void> {
-    this.coaches = [...MOCK_DISCOVERY_COACHES];
-    await this.clearRecentSearches();
+  async resetToMockData(): Promise<Result<void, ServiceError>> {
+    try {
+      this.coaches = [...MOCK_DISCOVERY_COACHES];
+      const clearResult = await this.clearRecentSearches();
+      if (!clearResult.success) {
+        return clearResult;
+      }
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to reset discover mock data', error);
+      return err(storageError('Failed to reset discover data'));
+    }
   }
 }
 

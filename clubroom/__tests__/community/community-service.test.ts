@@ -9,18 +9,87 @@ import assert from 'node:assert';
 import test, { describe } from 'node:test';
 
 import {
-  communityService,
+  communityService as communityServiceResult,
   CreateGroupParams,
   CreateCarpoolOfferParams,
   RequestCarpoolSeatParams,
 } from '../../services/community-service';
 import type { GroupType } from '../../constants/types';
 
+const legacyCommunityService = {
+  ...communityServiceResult,
+  async getParentGroups(parentId: string) {
+    const result = await communityServiceResult.getParentGroups(parentId);
+    return result.success ? result.data : [];
+  },
+  async getPublicGroups() {
+    const result = await communityServiceResult.getPublicGroups();
+    return result.success ? result.data : [];
+  },
+  async getGroup(groupId: string) {
+    const result = await communityServiceResult.getGroup(groupId);
+    return result.success ? result.data : undefined;
+  },
+  async createGroup(params: CreateGroupParams) {
+    const result = await communityServiceResult.createGroup(params);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
+  },
+  async getGroupMessages(groupId: string) {
+    const result = await communityServiceResult.getGroupMessages(groupId);
+    return result.success ? result.data : [];
+  },
+  async sendGroupMessage(
+    groupId: string,
+    senderId: string,
+    senderName: string,
+    body: string,
+  ) {
+    const result = await communityServiceResult.sendGroupMessage(
+      groupId,
+      senderId,
+      senderName,
+      body,
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
+  },
+  async markMessagesRead(groupId: string, parentId: string) {
+    const result = await communityServiceResult.markMessagesRead(groupId, parentId);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+  },
+  async getCarpoolOffers(sessionId: string) {
+    const result = await communityServiceResult.getCarpoolOffers(sessionId);
+    return result.success ? result.data : [];
+  },
+  async getAvailableCarpoolOffers(excludeParentId: string) {
+    const result = await communityServiceResult.getAvailableCarpoolOffers(excludeParentId);
+    return result.success ? result.data : [];
+  },
+  async getCarpoolOffer(offerId: string) {
+    const result = await communityServiceResult.getCarpoolOffer(offerId);
+    return result.success ? result.data : undefined;
+  },
+  async createCarpoolOffer(params: CreateCarpoolOfferParams) {
+    const result = await communityServiceResult.createCarpoolOffer(params);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
+  },
+};
+
 describe('Community Service', () => {
   describe('Group Management', () => {
     describe('getParentGroups', () => {
       test('should return groups for a specific parent', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
 
         assert.ok(Array.isArray(groups));
         assert.ok(groups.length > 0);
@@ -32,7 +101,7 @@ describe('Community Service', () => {
       });
 
       test('should return empty array for parent with no groups', async () => {
-        const groups = await communityService.getParentGroups('non_existent_parent');
+        const groups = await legacyCommunityService.getParentGroups('non_existent_parent');
 
         assert.ok(Array.isArray(groups));
         assert.strictEqual(groups.length, 0);
@@ -41,7 +110,7 @@ describe('Community Service', () => {
 
     describe('getPublicGroups', () => {
       test('should return only public groups', async () => {
-        const groups = await communityService.getPublicGroups();
+        const groups = await legacyCommunityService.getPublicGroups();
 
         assert.ok(Array.isArray(groups));
         groups.forEach((group) => {
@@ -52,10 +121,10 @@ describe('Community Service', () => {
 
     describe('getGroup', () => {
       test('should return group by ID', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const firstGroup = groups[0];
 
-        const group = await communityService.getGroup(firstGroup.id);
+        const group = await legacyCommunityService.getGroup(firstGroup.id);
 
         assert.ok(group);
         assert.strictEqual(group.id, firstGroup.id);
@@ -63,7 +132,7 @@ describe('Community Service', () => {
       });
 
       test('should return undefined for non-existent group', async () => {
-        const group = await communityService.getGroup('non_existent');
+        const group = await legacyCommunityService.getGroup('non_existent');
 
         assert.strictEqual(group, undefined);
       });
@@ -80,7 +149,7 @@ describe('Community Service', () => {
           creatorName: 'Test Parent',
         };
 
-        const group = await communityService.createGroup(params);
+        const group = await legacyCommunityService.createGroup(params);
 
         assert.ok(group.id.startsWith('group_'));
         assert.strictEqual(group.name, 'Test Group');
@@ -111,7 +180,7 @@ describe('Community Service', () => {
           maxMembers: 50,
         };
 
-        const group = await communityService.createGroup(params);
+        const group = await legacyCommunityService.createGroup(params);
 
         assert.strictEqual(group.name, 'Full Group');
         assert.strictEqual(group.description, 'A detailed description');
@@ -137,7 +206,7 @@ describe('Community Service', () => {
             creatorName: 'Test Parent',
           };
 
-          const group = await communityService.createGroup(params);
+          const group = await legacyCommunityService.createGroup(params);
           assert.strictEqual(group.type, type);
         }
       });
@@ -156,9 +225,9 @@ describe('Community Service', () => {
           isPublic: true,
         };
 
-        const createdGroup = await communityService.createGroup(createParams);
+        const createdGroup = await legacyCommunityService.createGroup(createParams);
 
-        const result = await communityService.joinGroup(
+        const result = await legacyCommunityService.joinGroup(
           createdGroup.id,
           'new_parent',
           'New Parent'
@@ -187,9 +256,9 @@ describe('Community Service', () => {
           isPublic: false,
         };
 
-        const createdGroup = await communityService.createGroup(createParams);
+        const createdGroup = await legacyCommunityService.createGroup(createParams);
 
-        const result = await communityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
+        const result = await legacyCommunityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
 
         assert.strictEqual(result.success, false);
         if (result.success) return;
@@ -197,11 +266,11 @@ describe('Community Service', () => {
       });
 
       test('should return error when already a member', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups.find((g) => g.isPublic);
 
         if (group) {
-          const result = await communityService.joinGroup(group.id, 'parent1', 'John Henderson');
+          const result = await legacyCommunityService.joinGroup(group.id, 'parent1', 'John Henderson');
 
           assert.strictEqual(result.success, false);
           if (result.success) return;
@@ -223,13 +292,13 @@ describe('Community Service', () => {
           isPublic: true,
         };
 
-        const createdGroup = await communityService.createGroup(createParams);
+        const createdGroup = await legacyCommunityService.createGroup(createParams);
         assert.strictEqual(createdGroup.members.length, 2);
 
-        const leaveResult = await communityService.leaveGroup(createdGroup.id, 'member_to_leave');
+        const leaveResult = await legacyCommunityService.leaveGroup(createdGroup.id, 'member_to_leave');
         assert.strictEqual(leaveResult.success, true);
 
-        const updatedGroup = await communityService.getGroup(createdGroup.id);
+        const updatedGroup = await legacyCommunityService.getGroup(createdGroup.id);
         assert.ok(updatedGroup);
         assert.strictEqual(updatedGroup.members.length, 1);
         assert.ok(!updatedGroup.members.find((m) => m.parentId === 'member_to_leave'));
@@ -247,9 +316,9 @@ describe('Community Service', () => {
           isPublic: true,
         };
 
-        const createdGroup = await communityService.createGroup(createParams);
+        const createdGroup = await legacyCommunityService.createGroup(createParams);
 
-        const result = await communityService.leaveGroup(createdGroup.id, 'only_admin');
+        const result = await legacyCommunityService.leaveGroup(createdGroup.id, 'only_admin');
 
         assert.strictEqual(result.success, false);
         if (result.success) return;
@@ -257,10 +326,10 @@ describe('Community Service', () => {
       });
 
       test('should return error for non-member', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups[0];
 
-        const result = await communityService.leaveGroup(group.id, 'non_member');
+        const result = await legacyCommunityService.leaveGroup(group.id, 'non_member');
 
         assert.strictEqual(result.success, false);
         if (result.success) return;
@@ -272,19 +341,19 @@ describe('Community Service', () => {
   describe('Group Messaging', () => {
     describe('getGroupMessages', () => {
       test('should return messages for a group', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups[0];
 
-        const messages = await communityService.getGroupMessages(group.id);
+        const messages = await legacyCommunityService.getGroupMessages(group.id);
 
         assert.ok(Array.isArray(messages));
       });
 
       test('should return messages sorted by time', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups[0];
 
-        const messages = await communityService.getGroupMessages(group.id);
+        const messages = await legacyCommunityService.getGroupMessages(group.id);
 
         for (let i = 1; i < messages.length; i++) {
           const prevTime = new Date(messages[i - 1].createdAt).getTime();
@@ -296,10 +365,10 @@ describe('Community Service', () => {
 
     describe('sendGroupMessage', () => {
       test('should send a message to a group', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups[0];
 
-        const message = await communityService.sendGroupMessage(
+        const message = await legacyCommunityService.sendGroupMessage(
           group.id,
           'parent1',
           'John Henderson',
@@ -317,13 +386,13 @@ describe('Community Service', () => {
       });
 
       test('should update group last message info', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups[0];
         const messageBody = 'Test message for update';
 
-        await communityService.sendGroupMessage(group.id, 'parent1', 'John', messageBody);
+        await legacyCommunityService.sendGroupMessage(group.id, 'parent1', 'John', messageBody);
 
-        const updatedGroup = await communityService.getGroup(group.id);
+        const updatedGroup = await legacyCommunityService.getGroup(group.id);
         assert.ok(updatedGroup);
         assert.ok(updatedGroup.lastMessageAt);
         assert.ok(updatedGroup.lastMessagePreview?.includes('Test message'));
@@ -332,20 +401,20 @@ describe('Community Service', () => {
 
     describe('markMessagesRead', () => {
       test('should mark messages as read for a parent', async () => {
-        const groups = await communityService.getParentGroups('parent1');
+        const groups = await legacyCommunityService.getParentGroups('parent1');
         const group = groups[0];
 
         // Send a message first
-        await communityService.sendGroupMessage(
+        await legacyCommunityService.sendGroupMessage(
           group.id,
           'parent1',
           'John',
           'Read test message'
         );
 
-        await communityService.markMessagesRead(group.id, 'parent2');
+        await legacyCommunityService.markMessagesRead(group.id, 'parent2');
 
-        const messages = await communityService.getGroupMessages(group.id);
+        const messages = await legacyCommunityService.getGroupMessages(group.id);
         const latestMessage = messages[messages.length - 1];
         assert.ok(latestMessage.readBy.includes('parent2'));
       });
@@ -355,7 +424,7 @@ describe('Community Service', () => {
   describe('Carpool Management', () => {
     describe('getCarpoolOffers', () => {
       test('should return active offers for a session', async () => {
-        const offers = await communityService.getCarpoolOffers('session_1');
+        const offers = await legacyCommunityService.getCarpoolOffers('session_1');
 
         assert.ok(Array.isArray(offers));
         offers.forEach((offer) => {
@@ -367,7 +436,7 @@ describe('Community Service', () => {
 
     describe('getAvailableCarpoolOffers', () => {
       test('should exclude current user offers', async () => {
-        const offers = await communityService.getAvailableCarpoolOffers('parent1');
+        const offers = await legacyCommunityService.getAvailableCarpoolOffers('parent1');
 
         offers.forEach((offer) => {
           assert.notStrictEqual(offer.parentId, 'parent1');
@@ -375,7 +444,7 @@ describe('Community Service', () => {
       });
 
       test('should only return active offers with available seats', async () => {
-        const offers = await communityService.getAvailableCarpoolOffers('some_parent');
+        const offers = await legacyCommunityService.getAvailableCarpoolOffers('some_parent');
 
         offers.forEach((offer) => {
           assert.strictEqual(offer.status, 'ACTIVE');
@@ -400,7 +469,7 @@ describe('Community Service', () => {
           notes: 'Test notes',
         };
 
-        const offer = await communityService.createCarpoolOffer(params);
+        const offer = await legacyCommunityService.createCarpoolOffer(params);
 
         assert.ok(offer.id.startsWith('carpool_'));
         assert.strictEqual(offer.parentId, 'test_parent');
@@ -432,7 +501,7 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(params);
+        const offer = await legacyCommunityService.createCarpoolOffer(params);
 
         assert.strictEqual(offer.returnOffered, false);
         assert.strictEqual(offer.returnTime, undefined);
@@ -454,7 +523,7 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
         const requestParams: RequestCarpoolSeatParams = {
           offerId: offer.id,
@@ -465,7 +534,7 @@ describe('Community Service', () => {
           message: 'Would like to join!',
         };
 
-        const result = await communityService.requestCarpoolSeat(requestParams);
+        const result = await legacyCommunityService.requestCarpoolSeat(requestParams);
 
         assert.strictEqual(result.success, true);
         if (!result.success) return;
@@ -494,7 +563,7 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
         const requestParams: RequestCarpoolSeatParams = {
           offerId: offer.id,
@@ -504,7 +573,7 @@ describe('Community Service', () => {
           seatsRequested: 3,
         };
 
-        const result = await communityService.requestCarpoolSeat(requestParams);
+        const result = await legacyCommunityService.requestCarpoolSeat(requestParams);
 
         assert.strictEqual(result.success, false);
         if (result.success) return;
@@ -527,7 +596,7 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
         // Create request
         const requestParams: RequestCarpoolSeatParams = {
@@ -538,16 +607,16 @@ describe('Community Service', () => {
           seatsRequested: 1,
         };
 
-        const requestResult = await communityService.requestCarpoolSeat(requestParams);
+        const requestResult = await legacyCommunityService.requestCarpoolSeat(requestParams);
         assert.strictEqual(requestResult.success, true);
         if (!requestResult.success) return;
         const request = requestResult.data;
 
         // Accept request
-        const acceptResult = await communityService.acceptCarpoolRequest(offer.id, request.id);
+        const acceptResult = await legacyCommunityService.acceptCarpoolRequest(offer.id, request.id);
         assert.strictEqual(acceptResult.success, true);
 
-        const updatedOffer = await communityService.getCarpoolOffer(offer.id);
+        const updatedOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
         assert.ok(updatedOffer);
 
         const acceptedRequest = updatedOffer.requests.find((r) => r.id === request.id);
@@ -572,7 +641,7 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
         const requestParams: RequestCarpoolSeatParams = {
           offerId: offer.id,
@@ -582,15 +651,15 @@ describe('Community Service', () => {
           seatsRequested: 1,
         };
 
-        const requestResult = await communityService.requestCarpoolSeat(requestParams);
+        const requestResult = await legacyCommunityService.requestCarpoolSeat(requestParams);
         assert.strictEqual(requestResult.success, true);
         if (!requestResult.success) return;
         const request = requestResult.data;
 
-        const acceptResult = await communityService.acceptCarpoolRequest(offer.id, request.id);
+        const acceptResult = await legacyCommunityService.acceptCarpoolRequest(offer.id, request.id);
         assert.strictEqual(acceptResult.success, true);
 
-        const updatedOffer = await communityService.getCarpoolOffer(offer.id);
+        const updatedOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
         assert.ok(updatedOffer);
         assert.strictEqual(updatedOffer.status, 'FULL');
       });
@@ -610,7 +679,7 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
         const requestParams: RequestCarpoolSeatParams = {
           offerId: offer.id,
@@ -620,15 +689,15 @@ describe('Community Service', () => {
           seatsRequested: 1,
         };
 
-        const requestResult = await communityService.requestCarpoolSeat(requestParams);
+        const requestResult = await legacyCommunityService.requestCarpoolSeat(requestParams);
         assert.strictEqual(requestResult.success, true);
         if (!requestResult.success) return;
         const request = requestResult.data;
 
-        const declineResult = await communityService.declineCarpoolRequest(offer.id, request.id);
+        const declineResult = await legacyCommunityService.declineCarpoolRequest(offer.id, request.id);
         assert.strictEqual(declineResult.success, true);
 
-        const updatedOffer = await communityService.getCarpoolOffer(offer.id);
+        const updatedOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
         assert.ok(updatedOffer);
 
         const declinedRequest = updatedOffer.requests.find((r) => r.id === request.id);
@@ -655,12 +724,12 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
-        const cancelResult = await communityService.cancelCarpoolOffer(offer.id, 'cancel_test_parent');
+        const cancelResult = await legacyCommunityService.cancelCarpoolOffer(offer.id, 'cancel_test_parent');
         assert.strictEqual(cancelResult.success, true);
 
-        const cancelledOffer = await communityService.getCarpoolOffer(offer.id);
+        const cancelledOffer = await legacyCommunityService.getCarpoolOffer(offer.id);
         assert.ok(cancelledOffer);
         assert.strictEqual(cancelledOffer.status, 'CANCELLED');
       });
@@ -678,9 +747,9 @@ describe('Community Service', () => {
           returnOffered: false,
         };
 
-        const offer = await communityService.createCarpoolOffer(offerParams);
+        const offer = await legacyCommunityService.createCarpoolOffer(offerParams);
 
-        const result = await communityService.cancelCarpoolOffer(offer.id, 'not_owner');
+        const result = await legacyCommunityService.cancelCarpoolOffer(offer.id, 'not_owner');
 
         assert.strictEqual(result.success, false);
         if (result.success) return;

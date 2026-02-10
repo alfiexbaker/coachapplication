@@ -26,6 +26,9 @@ Object.defineProperty(exports, "bookingSearchService", { enumerable: true, get: 
 const booking_crud_service_2 = require("./booking-crud-service");
 const booking_status_service_2 = require("./booking-status-service");
 const booking_search_service_2 = require("./booking-search-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('BookingFacade');
+void logger;
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY
 // ============================================================================

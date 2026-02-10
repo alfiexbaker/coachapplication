@@ -167,10 +167,14 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const loadAcademies = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
-      const academies = await academyService.getUserAcademies(currentUser.id);
-      setMyAcademies(academies);
-      if (academies.length === 1) {
-        setSelectedClub(academies[0]);
+      const academiesResult = await academyService.getUserAcademies(currentUser.id);
+      if (!academiesResult.success) {
+        logger.error('Failed to load academies', academiesResult.error);
+        return;
+      }
+      setMyAcademies(academiesResult.data);
+      if (academiesResult.data.length === 1) {
+        setSelectedClub(academiesResult.data[0]);
       }
     } catch (error) {
       logger.error('Failed to load academies', error);

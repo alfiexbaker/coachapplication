@@ -83,7 +83,7 @@ const mockCreateParams = {
         userName: 'Test User 2',
     });
     const bookings = await recurring_booking_service_1.recurringBookingService.list();
-    node_assert_1.default.strictEqual(bookings.length, 2, 'Should return 2 bookings');
+    node_assert_1.default.strictEqual(bookings.success ? bookings.data.length : 0, 2, 'Should return 2 bookings');
 });
 (0, node_test_1.default)('getById returns specific booking', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
@@ -91,12 +91,13 @@ const mockCreateParams = {
     const id = result.data?.id;
     node_assert_1.default.ok(id, 'Should have created booking with ID');
     const booking = await recurring_booking_service_1.recurringBookingService.getById(id);
-    node_assert_1.default.ok(booking, 'Should find booking by ID');
-    node_assert_1.default.strictEqual(booking.id, id);
+    node_assert_1.default.ok(booking.success && booking.data, 'Should find booking by ID');
+    node_assert_1.default.strictEqual(booking.success && booking.data ? booking.data.id : undefined, id);
 });
 (0, node_test_1.default)('getById returns undefined for non-existent ID', async () => {
     const booking = await recurring_booking_service_1.recurringBookingService.getById('non_existent_id');
-    node_assert_1.default.strictEqual(booking, undefined);
+    node_assert_1.default.strictEqual(booking.success, true);
+    node_assert_1.default.strictEqual(booking.data, undefined);
 });
 (0, node_test_1.default)('getUserRecurringBookings returns bookings for specific user', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
@@ -108,8 +109,8 @@ const mockCreateParams = {
         userName: 'Test User 2',
     });
     const userBookings = await recurring_booking_service_1.recurringBookingService.getUserRecurringBookings('test_user_1');
-    node_assert_1.default.strictEqual(userBookings.length, 1);
-    node_assert_1.default.strictEqual(userBookings[0].userId, 'test_user_1');
+    node_assert_1.default.strictEqual(userBookings.success ? userBookings.data.length : 0, 1);
+    node_assert_1.default.strictEqual(userBookings.success ? userBookings.data[0].userId : '', 'test_user_1');
 });
 (0, node_test_1.default)('getCoachRecurringBookings returns bookings for specific coach', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
@@ -122,8 +123,8 @@ const mockCreateParams = {
         coachName: 'Test Coach 2',
     });
     const coachBookings = await recurring_booking_service_1.recurringBookingService.getCoachRecurringBookings('test_coach_1');
-    node_assert_1.default.strictEqual(coachBookings.length, 1);
-    node_assert_1.default.strictEqual(coachBookings[0].coachId, 'test_coach_1');
+    node_assert_1.default.strictEqual(coachBookings.success ? coachBookings.data.length : 0, 1);
+    node_assert_1.default.strictEqual(coachBookings.success ? coachBookings.data[0].coachId : '', 'test_coach_1');
 });
 // ============================================================================
 // Pause/Resume Tests
@@ -148,7 +149,7 @@ const mockCreateParams = {
     await recurring_booking_service_1.recurringBookingService.pauseRecurring(id);
     const secondPauseResult = await recurring_booking_service_1.recurringBookingService.pauseRecurring(id);
     node_assert_1.default.strictEqual(secondPauseResult.success, false);
-    node_assert_1.default.ok(secondPauseResult.error?.includes('paused'));
+    node_assert_1.default.ok(secondPauseResult.error?.message.includes('paused'));
 });
 (0, node_test_1.default)('resumeRecurring resumes a paused subscription', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
@@ -170,7 +171,7 @@ const mockCreateParams = {
     node_assert_1.default.ok(id);
     const resumeResult = await recurring_booking_service_1.recurringBookingService.resumeRecurring(id);
     node_assert_1.default.strictEqual(resumeResult.success, false);
-    node_assert_1.default.ok(resumeResult.error?.includes('active'));
+    node_assert_1.default.ok(resumeResult.error?.message.includes('active'));
 });
 // ============================================================================
 // Cancellation Tests
@@ -195,7 +196,7 @@ const mockCreateParams = {
     await recurring_booking_service_1.recurringBookingService.cancelRecurring(id);
     const secondCancelResult = await recurring_booking_service_1.recurringBookingService.cancelRecurring(id);
     node_assert_1.default.strictEqual(secondCancelResult.success, false);
-    node_assert_1.default.ok(secondCancelResult.error?.includes('cancelled'));
+    node_assert_1.default.ok(secondCancelResult.error?.message.includes('cancelled'));
 });
 (0, node_test_1.default)('cancelRecurring can cancel a paused subscription', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
@@ -236,7 +237,7 @@ const mockCreateParams = {
     await recurring_booking_service_1.recurringBookingService.pauseRecurring(id);
     const generateResult = await recurring_booking_service_1.recurringBookingService.generateUpcomingBookings(id);
     node_assert_1.default.strictEqual(generateResult.success, false);
-    node_assert_1.default.ok(generateResult.error?.includes('paused'));
+    node_assert_1.default.ok(generateResult.error?.message.includes('paused'));
 });
 (0, node_test_1.default)('generateUpcomingBookings updates recurring booking with generated IDs', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
@@ -245,8 +246,10 @@ const mockCreateParams = {
     node_assert_1.default.ok(id);
     await recurring_booking_service_1.recurringBookingService.generateUpcomingBookings(id, 2);
     const updatedBooking = await recurring_booking_service_1.recurringBookingService.getById(id);
-    node_assert_1.default.ok(updatedBooking);
-    node_assert_1.default.ok(updatedBooking.generatedBookingIds.length > 0, 'Should have generated booking IDs');
+    node_assert_1.default.ok(updatedBooking.success && updatedBooking.data);
+    node_assert_1.default.ok(updatedBooking.success && updatedBooking.data
+        ? updatedBooking.data.generatedBookingIds.length > 0
+        : false, 'Should have generated booking IDs');
 });
 // ============================================================================
 // Update Tests
@@ -275,7 +278,7 @@ const mockCreateParams = {
     await recurring_booking_service_1.recurringBookingService.cancelRecurring(id);
     const updateResult = await recurring_booking_service_1.recurringBookingService.updateRecurring(id, { time: '16:00' });
     node_assert_1.default.strictEqual(updateResult.success, false);
-    node_assert_1.default.ok(updateResult.error?.includes('cancelled'));
+    node_assert_1.default.ok(updateResult.error?.message.includes('cancelled'));
 });
 // ============================================================================
 // Session Completion Tests
@@ -320,12 +323,13 @@ const mockCreateParams = {
     const deleteResult = await recurring_booking_service_1.recurringBookingService.deleteRecurring(id);
     node_assert_1.default.strictEqual(deleteResult.success, true);
     const booking = await recurring_booking_service_1.recurringBookingService.getById(id);
-    node_assert_1.default.strictEqual(booking, undefined, 'Booking should be deleted');
+    node_assert_1.default.strictEqual(booking.success, true);
+    node_assert_1.default.strictEqual(booking.data, undefined, 'Booking should be deleted');
 });
 (0, node_test_1.default)('deleteRecurring fails for non-existent booking', async () => {
     const deleteResult = await recurring_booking_service_1.recurringBookingService.deleteRecurring('non_existent_id');
     node_assert_1.default.strictEqual(deleteResult.success, false);
-    node_assert_1.default.ok(deleteResult.error?.includes('not found'));
+    node_assert_1.default.ok(deleteResult.error?.message.includes('not found'));
 });
 // ============================================================================
 // Frequency-Specific Tests
@@ -342,7 +346,7 @@ const mockCreateParams = {
         node_assert_1.default.strictEqual(result.data?.frequency, frequency);
     }
     const bookings = await recurring_booking_service_1.recurringBookingService.list();
-    node_assert_1.default.strictEqual(bookings.length, 3, 'Should have 3 bookings');
+    node_assert_1.default.strictEqual(bookings.success ? bookings.data.length : 0, 3, 'Should have 3 bookings');
 });
 // ============================================================================
 // Active Bookings Filter Tests
@@ -360,12 +364,12 @@ const mockCreateParams = {
         await recurring_booking_service_1.recurringBookingService.pauseRecurring(paused.data.id);
     }
     const activeBookings = await recurring_booking_service_1.recurringBookingService.getActiveUserRecurringBookings(mockCreateParams.userId);
-    node_assert_1.default.strictEqual(activeBookings.length, 1, 'Should only return active booking');
-    node_assert_1.default.strictEqual(activeBookings[0].status, 'ACTIVE');
+    node_assert_1.default.strictEqual(activeBookings.success ? activeBookings.data.length : 0, 1, 'Should only return active booking');
+    node_assert_1.default.strictEqual(activeBookings.success ? activeBookings.data[0].status : '', 'ACTIVE');
 });
 // Clean up after all tests
 (0, node_test_1.default)('cleanup test data', async () => {
     await recurring_booking_service_1.recurringBookingService.clearAll();
     const bookings = await recurring_booking_service_1.recurringBookingService.list();
-    node_assert_1.default.strictEqual(bookings.length, 0, 'Should be empty after cleanup');
+    node_assert_1.default.strictEqual(bookings.success ? bookings.data.length : 0, 0, 'Should be empty after cleanup');
 });

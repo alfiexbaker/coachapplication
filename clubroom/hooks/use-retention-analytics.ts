@@ -28,18 +28,26 @@ export function useRetentionAnalytics() {
 
   const fetchData = useCallback(async () => {
     if (!currentUser?.id) return;
-    try {
-      const [retentionData, cancellationData] = await Promise.all([
+    const [retentionResult, cancellationResult] = await Promise.all([
         coachAnalyticsService.getRetentionMetrics(currentUser.id),
         coachAnalyticsService.getCancellationPatterns(currentUser.id),
       ]);
-      setRetention(retentionData);
-      setCancellations(cancellationData);
-    } catch (error) {
-      logger.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
+
+    if (retentionResult.success) {
+      setRetention(retentionResult.data);
+    } else {
+      logger.error('Failed to fetch retention metrics', retentionResult.error);
+      setRetention(null);
     }
+
+    if (cancellationResult.success) {
+      setCancellations(cancellationResult.data);
+    } else {
+      logger.error('Failed to fetch cancellation metrics', cancellationResult.error);
+      setCancellations(null);
+    }
+
+    setLoading(false);
   }, [currentUser?.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);

@@ -11,16 +11,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authService = void 0;
 const api_client_1 = require("./api-client");
 const logger_1 = require("@/utils/logger");
+const storage_keys_1 = require("@/constants/storage-keys");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('AuthService');
 const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false'; // defaults to true
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-const STORAGE_KEYS = {
-    USER: 'auth_user',
-    TOKEN: 'auth_token',
-    TOKENS: 'auth_tokens',
-    ONBOARDING_COMPLETE: 'onboarding_complete',
-};
 // ============================================================================
 // MOCK DATA STORE
 // ============================================================================
@@ -90,7 +85,7 @@ exports.authService = {
             return result;
         }
         await this.storeTokens(result.data.tokens);
-        await api_client_1.apiClient.set(STORAGE_KEYS.USER, result.data.user);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, result.data.user);
         currentUser = result.data.user;
         logger.success('Login successful', { userId: result.data.user.id });
         return (0, result_1.ok)({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
@@ -109,15 +104,15 @@ exports.authService = {
             return result;
         }
         await this.storeTokens(result.data.tokens);
-        await api_client_1.apiClient.set(STORAGE_KEYS.USER, result.data.user);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, result.data.user);
         currentUser = result.data.user;
         logger.success('Registration successful', { userId: result.data.user.id });
         return (0, result_1.ok)({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
     },
     async storeTokens(tokens) {
         try {
-            await api_client_1.apiClient.set(STORAGE_KEYS.TOKENS, tokens);
-            await api_client_1.apiClient.set(STORAGE_KEYS.TOKEN, tokens.accessToken);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_TOKENS, tokens);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_TOKEN, tokens.accessToken);
         }
         catch (error) {
             logger.error('Failed to store tokens', error);
@@ -125,7 +120,7 @@ exports.authService = {
     },
     async getTokens() {
         try {
-            const stored = await api_client_1.apiClient.get(STORAGE_KEYS.TOKENS, null);
+            const stored = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.AUTH_TOKENS, null);
             return stored;
         }
         catch (error) {
@@ -172,16 +167,16 @@ exports.authService = {
                 logger.warn('Server logout failed, continuing local cleanup', error);
             }
         }
-        await api_client_1.apiClient.remove(STORAGE_KEYS.USER);
-        await api_client_1.apiClient.remove(STORAGE_KEYS.TOKEN);
-        await api_client_1.apiClient.remove(STORAGE_KEYS.TOKENS);
+        await api_client_1.apiClient.remove(storage_keys_1.STORAGE_KEYS.AUTH_USER);
+        await api_client_1.apiClient.remove(storage_keys_1.STORAGE_KEYS.AUTH_TOKEN);
+        await api_client_1.apiClient.remove(storage_keys_1.STORAGE_KEYS.AUTH_TOKENS);
         currentUser = null;
     },
     async checkAuth() {
         logger.info('Checking auth state');
         try {
             const tokens = await this.getTokens();
-            const storedUser = await api_client_1.apiClient.get(STORAGE_KEYS.USER, null);
+            const storedUser = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.AUTH_USER, null);
             if (!tokens || !storedUser) {
                 return { isAuthenticated: false, user: null, tokens: null };
             }
@@ -242,7 +237,7 @@ exports.authService = {
         if (currentUser)
             return currentUser;
         try {
-            const stored = await api_client_1.apiClient.get(STORAGE_KEYS.USER, null);
+            const stored = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.AUTH_USER, null);
             if (stored) {
                 currentUser = stored;
                 return currentUser;
@@ -269,7 +264,7 @@ exports.authService = {
             };
             usersCache[userIndex] = updatedUser;
             const { password, ...userWithoutPassword } = updatedUser;
-            await api_client_1.apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, userWithoutPassword);
             currentUser = userWithoutPassword;
             logger.info('Profile updated', { userId: currentUser.id });
             return (0, result_1.ok)({ user: userWithoutPassword });
@@ -283,7 +278,7 @@ exports.authService = {
         if (!result.success) {
             return result;
         }
-        await api_client_1.apiClient.set(STORAGE_KEYS.USER, result.data.user);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, result.data.user);
         currentUser = result.data.user;
         return (0, result_1.ok)({ user: result.data.user });
     },
@@ -319,12 +314,12 @@ exports.authService = {
             hourlyRate: data.hourlyRate,
             onboardingComplete: true,
         });
-        await api_client_1.apiClient.set(STORAGE_KEYS.ONBOARDING_COMPLETE, true);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.ONBOARDING_COMPLETE, true);
         logger.success('Onboarding complete', { userId: currentUser?.id });
         return updateResult;
     },
     async isOnboardingComplete() {
-        const complete = await api_client_1.apiClient.get(STORAGE_KEYS.ONBOARDING_COMPLETE, false);
+        const complete = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.ONBOARDING_COMPLETE, false);
         return complete === true;
     },
     async requestPasswordReset(email) {
@@ -377,7 +372,7 @@ exports.authService = {
         const tokens = generateMockTokens();
         const legacyToken = generateToken();
         const { password: _, ...userWithoutPassword } = user;
-        await api_client_1.apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, userWithoutPassword);
         await this.storeTokens(tokens);
         currentUser = userWithoutPassword;
         logger.success('Login successful', { userId: user.id });
@@ -415,7 +410,7 @@ exports.authService = {
         const tokens = generateMockTokens();
         const legacyToken = generateToken();
         const { password: _, ...userWithoutPassword } = newUser;
-        await api_client_1.apiClient.set(STORAGE_KEYS.USER, userWithoutPassword);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, userWithoutPassword);
         await this.storeTokens(tokens);
         currentUser = userWithoutPassword;
         logger.success('Registration successful', { userId, accountType: input.accountType });

@@ -32,6 +32,9 @@ Object.defineProperty(exports, "analyticsExportService", { enumerable: true, get
 const analytics_tracking_service_2 = require("./analytics-tracking-service");
 const analytics_query_service_2 = require("./analytics-query-service");
 const analytics_export_service_2 = require("./analytics-export-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('AnalyticsFacade');
+void logger;
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY
 // ============================================================================
@@ -46,46 +49,46 @@ exports.analyticsService = {
     /**
      * Get analytics for an athlete
      */
-    getAthleteAnalytics: analytics_query_service_2.analyticsQueryService.getAthleteAnalytics.bind(analytics_query_service_2.analyticsQueryService),
+    getAthleteAnalytics: (...args) => analytics_query_service_2.analyticsQueryService.getAthleteAnalytics(...args),
     /**
      * Get skill progression history for an athlete
      */
-    getSkillHistory: analytics_query_service_2.analyticsQueryService.getSkillHistory.bind(analytics_query_service_2.analyticsQueryService),
+    getSkillHistory: (...args) => analytics_query_service_2.analyticsQueryService.getSkillHistory(...args),
     /**
      * Get all goals for an athlete
      */
-    getAthleteGoals: analytics_query_service_2.analyticsQueryService.getAthleteGoals.bind(analytics_query_service_2.analyticsQueryService),
+    getAthleteGoals: (...args) => analytics_query_service_2.analyticsQueryService.getAthleteGoals(...args),
     /**
      * Get comparison stats (for radar chart)
      */
-    getSkillComparison: analytics_query_service_2.analyticsQueryService.getSkillComparison.bind(analytics_query_service_2.analyticsQueryService),
+    getSkillComparison: (...args) => analytics_query_service_2.analyticsQueryService.getSkillComparison(...args),
     // ==========================================================================
     // TRACKING METHODS (from analyticsTrackingService)
     // ==========================================================================
     /**
      * Create a new goal
      */
-    createGoal: analytics_tracking_service_2.analyticsTrackingService.createGoal.bind(analytics_tracking_service_2.analyticsTrackingService),
+    createGoal: (...args) => analytics_tracking_service_2.analyticsTrackingService.createGoal(...args),
     /**
      * Update goal progress
      */
-    updateGoalProgress: analytics_tracking_service_2.analyticsTrackingService.updateGoalProgress.bind(analytics_tracking_service_2.analyticsTrackingService),
+    updateGoalProgress: (...args) => analytics_tracking_service_2.analyticsTrackingService.updateGoalProgress(...args),
     /**
      * Complete a milestone
      */
-    completeMilestone: analytics_tracking_service_2.analyticsTrackingService.completeMilestone.bind(analytics_tracking_service_2.analyticsTrackingService),
+    completeMilestone: (...args) => analytics_tracking_service_2.analyticsTrackingService.completeMilestone(...args),
     /**
      * Add milestone to goal
      */
-    addMilestone: analytics_tracking_service_2.analyticsTrackingService.addMilestone.bind(analytics_tracking_service_2.analyticsTrackingService),
+    addMilestone: (...args) => analytics_tracking_service_2.analyticsTrackingService.addMilestone(...args),
     /**
      * Abandon a goal
      */
-    abandonGoal: analytics_tracking_service_2.analyticsTrackingService.abandonGoal.bind(analytics_tracking_service_2.analyticsTrackingService),
+    abandonGoal: (...args) => analytics_tracking_service_2.analyticsTrackingService.abandonGoal(...args),
     /**
      * Update skill level (called after session)
      */
-    updateSkillLevel: analytics_tracking_service_2.analyticsTrackingService.updateSkillLevel.bind(analytics_tracking_service_2.analyticsTrackingService),
+    updateSkillLevel: (...args) => analytics_tracking_service_2.analyticsTrackingService.updateSkillLevel(...args),
 };
 /**
  * Coach analytics service facade that maintains the original API surface.
@@ -95,33 +98,33 @@ exports.coachAnalyticsService = {
     /**
      * Get comprehensive analytics for a coach
      */
-    getCoachAnalytics: analytics_export_service_2.analyticsExportService.getCoachAnalytics.bind(analytics_export_service_2.analyticsExportService),
+    getCoachAnalytics: (...args) => analytics_export_service_2.analyticsExportService.getCoachAnalytics(...args),
     /**
      * Get revenue chart data for a specific period
      */
-    getRevenueChart: analytics_export_service_2.analyticsExportService.getRevenueChart.bind(analytics_export_service_2.analyticsExportService),
+    getRevenueChart: (...args) => analytics_export_service_2.analyticsExportService.getRevenueChart(...args),
     /**
      * Get retention metrics for a coach
      */
-    getRetentionMetrics: analytics_export_service_2.analyticsExportService.getRetentionMetrics.bind(analytics_export_service_2.analyticsExportService),
+    getRetentionMetrics: (...args) => analytics_export_service_2.analyticsExportService.getRetentionMetrics(...args),
     /**
      * Get cancellation patterns and statistics
      */
-    getCancellationPatterns: analytics_export_service_2.analyticsExportService.getCancellationPatterns.bind(analytics_export_service_2.analyticsExportService),
+    getCancellationPatterns: (...args) => analytics_export_service_2.analyticsExportService.getCancellationPatterns(...args),
     /**
      * Get peak hours data for heatmap visualization
      */
-    getPeakHours: analytics_export_service_2.analyticsExportService.getPeakHours.bind(analytics_export_service_2.analyticsExportService),
+    getPeakHours: (...args) => analytics_export_service_2.analyticsExportService.getPeakHours(...args),
     /**
      * Get top skills taught by the coach
      */
-    getTopSkills: analytics_export_service_2.analyticsExportService.getTopSkills.bind(analytics_export_service_2.analyticsExportService),
+    getTopSkills: (...args) => analytics_export_service_2.analyticsExportService.getTopSkills(...args),
     /**
      * Get session statistics
      */
-    getSessionStats: analytics_export_service_2.analyticsExportService.getSessionStats.bind(analytics_export_service_2.analyticsExportService),
+    getSessionStats: (...args) => analytics_export_service_2.analyticsExportService.getSessionStats(...args),
     /**
      * Reset to mock data (useful for testing)
      */
-    resetToMockData: analytics_export_service_2.analyticsExportService.resetToMockData.bind(analytics_export_service_2.analyticsExportService),
+    resetToMockData: (...args) => analytics_export_service_2.analyticsExportService.resetToMockData(...args),
 };

@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('BookingService');
+
 /**
  * Booking Service - Re-export Facade
  *

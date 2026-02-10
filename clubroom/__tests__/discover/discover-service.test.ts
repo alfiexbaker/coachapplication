@@ -10,16 +10,22 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { discoverService } from '../../services/discover-service';
 import type { CoachSearchFilters } from '../../constants/types';
+import type { Result, ServiceError } from '../../types/result';
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.ok(result.success, result.success ? undefined : result.error.message);
+  return result.data;
+}
 
 // Reset to mock data before each test
 beforeEach(async () => {
-  await discoverService.resetToMockData();
+  expectOk(await discoverService.resetToMockData());
 });
 
 describe('Discover Service', () => {
   describe('searchCoaches', () => {
     test('should return all coaches when no filters applied', async () => {
-      const response = await discoverService.searchCoaches({});
+      const response = expectOk(await discoverService.searchCoaches({}));
 
       assert.ok(response.results.length > 0);
       assert.ok(response.totalCount > 0);
@@ -29,7 +35,7 @@ describe('Discover Service', () => {
 
     test('should filter by text query', async () => {
       // Use a coach name that exists in the mock data
-      const response = await discoverService.searchCoaches({ query: 'Mike' });
+      const response = expectOk(await discoverService.searchCoaches({ query: 'Mike' }));
 
       assert.ok(response.results.length > 0);
       assert.ok(
@@ -43,7 +49,7 @@ describe('Discover Service', () => {
 
     test('should filter by minimum price', async () => {
       const minPrice = 50;
-      const response = await discoverService.searchCoaches({ priceMin: minPrice });
+      const response = expectOk(await discoverService.searchCoaches({ priceMin: minPrice }));
 
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
@@ -56,7 +62,7 @@ describe('Discover Service', () => {
 
     test('should filter by maximum price', async () => {
       const maxPrice = 60;
-      const response = await discoverService.searchCoaches({ priceMax: maxPrice });
+      const response = expectOk(await discoverService.searchCoaches({ priceMax: maxPrice }));
 
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
@@ -69,7 +75,7 @@ describe('Discover Service', () => {
 
     test('should filter by minimum rating', async () => {
       const minRating = 4.7;
-      const response = await discoverService.searchCoaches({ rating: minRating });
+      const response = expectOk(await discoverService.searchCoaches({ rating: minRating }));
 
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
@@ -82,9 +88,9 @@ describe('Discover Service', () => {
 
     test('should filter by football focuses', async () => {
       // Use a focus that exists in the mock data
-      const response = await discoverService.searchCoaches({
+      const response = expectOk(await discoverService.searchCoaches({
         focuses: ['Finishing'],
-      });
+      }));
 
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
@@ -96,9 +102,9 @@ describe('Discover Service', () => {
     });
 
     test('should filter by session formats', async () => {
-      const response = await discoverService.searchCoaches({
+      const response = expectOk(await discoverService.searchCoaches({
         formats: ['Virtual'],
-      });
+      }));
 
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
@@ -110,9 +116,9 @@ describe('Discover Service', () => {
     });
 
     test('should filter by languages', async () => {
-      const response = await discoverService.searchCoaches({
+      const response = expectOk(await discoverService.searchCoaches({
         languages: ['Spanish'],
-      });
+      }));
 
       assert.ok(response.results.length > 0);
       response.results.forEach((r) => {
@@ -126,9 +132,9 @@ describe('Discover Service', () => {
     });
 
     test('should sort by rating when specified', async () => {
-      const response = await discoverService.searchCoaches({
+      const response = expectOk(await discoverService.searchCoaches({
         sortBy: 'rating',
-      });
+      }));
 
       assert.ok(response.results.length > 1);
       for (let i = 1; i < response.results.length; i++) {
@@ -141,9 +147,9 @@ describe('Discover Service', () => {
     });
 
     test('should sort by price low to high', async () => {
-      const response = await discoverService.searchCoaches({
+      const response = expectOk(await discoverService.searchCoaches({
         sortBy: 'price_low',
-      });
+      }));
 
       assert.ok(response.results.length > 1);
       for (let i = 1; i < response.results.length; i++) {
@@ -156,9 +162,9 @@ describe('Discover Service', () => {
     });
 
     test('should sort by price high to low', async () => {
-      const response = await discoverService.searchCoaches({
+      const response = expectOk(await discoverService.searchCoaches({
         sortBy: 'price_high',
-      });
+      }));
 
       assert.ok(response.results.length > 1);
       for (let i = 1; i < response.results.length; i++) {
@@ -172,8 +178,8 @@ describe('Discover Service', () => {
 
     test('should paginate results correctly', async () => {
       const pageSize = 2;
-      const page1 = await discoverService.searchCoaches({}, 1, pageSize);
-      const page2 = await discoverService.searchCoaches({}, 2, pageSize);
+      const page1 = expectOk(await discoverService.searchCoaches({}, 1, pageSize));
+      const page2 = expectOk(await discoverService.searchCoaches({}, 2, pageSize));
 
       assert.strictEqual(page1.results.length, pageSize);
       assert.strictEqual(page1.page, 1);
@@ -195,7 +201,7 @@ describe('Discover Service', () => {
         priceMax: 80,
         formats: ['In-person'],
       };
-      const response = await discoverService.searchCoaches(filters);
+      const response = expectOk(await discoverService.searchCoaches(filters));
 
       response.results.forEach((r) => {
         assert.ok(r.coach.rating.average >= 4.5);
@@ -211,7 +217,7 @@ describe('Discover Service', () => {
       const lng = -0.1278;
       const radiusKm = 5;
 
-      const results = await discoverService.getCoachesNearLocation(lat, lng, radiusKm);
+      const results = expectOk(await discoverService.getCoachesNearLocation(lat, lng, radiusKm));
 
       assert.ok(results.length > 0);
       results.forEach((r) => {
@@ -227,7 +233,7 @@ describe('Discover Service', () => {
       const lng = -0.1278;
       const radiusKm = 20;
 
-      const results = await discoverService.getCoachesNearLocation(lat, lng, radiusKm);
+      const results = expectOk(await discoverService.getCoachesNearLocation(lat, lng, radiusKm));
 
       assert.ok(results.length > 1);
       for (let i = 1; i < results.length; i++) {
@@ -241,7 +247,7 @@ describe('Discover Service', () => {
 
   describe('getFilterOptions', () => {
     test('should return filter options with counts', async () => {
-      const options = await discoverService.getFilterOptions({});
+      const options = expectOk(await discoverService.getFilterOptions({}));
 
       assert.ok(options.focuses.length > 0);
       assert.ok(options.languages.length > 0);
@@ -257,10 +263,10 @@ describe('Discover Service', () => {
     });
 
     test('should update counts based on current filters', async () => {
-      const allOptions = await discoverService.getFilterOptions({});
-      const filteredOptions = await discoverService.getFilterOptions({
+      const allOptions = expectOk(await discoverService.getFilterOptions({}));
+      const filteredOptions = expectOk(await discoverService.getFilterOptions({
         rating: 4.8,
-      });
+      }));
 
       assert.ok(
         filteredOptions.totalCount <= allOptions.totalCount,
@@ -271,7 +277,7 @@ describe('Discover Service', () => {
 
   describe('getSuggestedCoaches', () => {
     test('should return suggested coaches', async () => {
-      const suggestions = await discoverService.getSuggestedCoaches('user1');
+      const suggestions = expectOk(await discoverService.getSuggestedCoaches('user1'));
 
       assert.ok(suggestions.length > 0);
       assert.ok(suggestions.length <= 6);
@@ -286,7 +292,7 @@ describe('Discover Service', () => {
     });
 
     test('should include various suggestion reasons', async () => {
-      const suggestions = await discoverService.getSuggestedCoaches('user1');
+      const suggestions = expectOk(await discoverService.getSuggestedCoaches('user1'));
       const reasons = new Set(suggestions.map((s) => s.reason));
 
       // Should have at least 2 different reasons
@@ -297,14 +303,14 @@ describe('Discover Service', () => {
   describe('getCoachById', () => {
     test('should return coach by ID', async () => {
       // Use a coach ID that exists in the mock data
-      const coach = await discoverService.getCoachById('coach_mike');
+      const coach = expectOk(await discoverService.getCoachById('coach_mike'));
 
       assert.ok(coach);
       assert.strictEqual(coach.id, 'coach_mike');
     });
 
     test('should return null for non-existent coach', async () => {
-      const coach = await discoverService.getCoachById('non_existent');
+      const coach = expectOk(await discoverService.getCoachById('non_existent'));
 
       assert.strictEqual(coach, null);
     });
@@ -312,7 +318,7 @@ describe('Discover Service', () => {
 
   describe('getAllCoaches', () => {
     test('should return all coaches', async () => {
-      const coaches = await discoverService.getAllCoaches();
+      const coaches = expectOk(await discoverService.getAllCoaches());
 
       assert.ok(Array.isArray(coaches));
       assert.ok(coaches.length > 0);
@@ -336,7 +342,7 @@ describe('Discover Service', () => {
       await discoverService.searchCoaches({ query: 'goalkeeper' });
       await discoverService.searchCoaches({ query: 'striker' });
 
-      const recent = await discoverService.getRecentSearches();
+      const recent = expectOk(await discoverService.getRecentSearches());
 
       assert.ok(recent.includes('striker'));
       assert.ok(recent.includes('goalkeeper'));
@@ -352,7 +358,7 @@ describe('Discover Service', () => {
         await discoverService.searchCoaches({ query: `search${i}` });
       }
 
-      const recent = await discoverService.getRecentSearches();
+      const recent = expectOk(await discoverService.getRecentSearches());
 
       // Should be capped at 10
       assert.ok(recent.length <= 10);
@@ -362,7 +368,7 @@ describe('Discover Service', () => {
       await discoverService.searchCoaches({ query: 'test' });
       await discoverService.clearRecentSearches();
 
-      const recent = await discoverService.getRecentSearches();
+      const recent = expectOk(await discoverService.getRecentSearches());
 
       assert.strictEqual(recent.length, 0);
     });
@@ -403,8 +409,8 @@ describe('Discover Service', () => {
 
   describe('countCoaches', () => {
     test('should return correct count for filters', async () => {
-      const allCount = await discoverService.countCoaches({});
-      const filteredCount = await discoverService.countCoaches({ rating: 4.8 });
+      const allCount = expectOk(await discoverService.countCoaches({}));
+      const filteredCount = expectOk(await discoverService.countCoaches({ rating: 4.8 }));
 
       assert.ok(allCount > 0);
       assert.ok(filteredCount <= allCount);

@@ -42,9 +42,13 @@ export default function FiltersScreen() {
         }
 
         // Load filter options
-        const options = await discoverService.getFilterOptions(filters);
-        setFilterOptions(options);
-        setResultCount(options.totalCount);
+        const optionsResult = await discoverService.getFilterOptions(filters);
+        if (!optionsResult.success) {
+          logger.error('Failed to load filter options', optionsResult.error);
+          return;
+        }
+        setFilterOptions(optionsResult.data);
+        setResultCount(optionsResult.data.totalCount);
       } catch (error) {
         logger.error('Failed to parse filters', error);
       } finally {
@@ -60,8 +64,12 @@ export default function FiltersScreen() {
   // Update result count when filters change
   useEffect(() => {
     const updateCount = async () => {
-      const count = await discoverService.countCoaches(filters);
-      setResultCount(count);
+      const countResult = await discoverService.countCoaches(filters);
+      if (!countResult.success) {
+        logger.error('Failed to count coaches', countResult.error);
+        return;
+      }
+      setResultCount(countResult.data);
     };
 
     if (!loading) {

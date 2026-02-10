@@ -27,8 +27,14 @@ export function usePackageDetail() {
         if (!id) return;
         setLoading(true);
         try {
-          const data = await packageService.getPackageById(id);
-          setPkg(data);
+          const result = await packageService.getPackageById(id);
+          if (!result.success) {
+            logger.error('Failed to load package', result.error);
+            showToast(result.error.message, 'error');
+            setPkg(null);
+            return;
+          }
+          setPkg(result.data);
         } catch (error) {
           logger.error('Failed to load package:', error);
           showToast('Failed to load package', 'error');

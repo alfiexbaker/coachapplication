@@ -173,16 +173,16 @@ async function flushQueue() {
         let processed = 0;
         const failedActions = [];
         for (const action of queue) {
-            try {
-                await (0, api_client_1.apiFetch)(action.path, {
-                    method: action.method,
-                    body: action.body ? JSON.stringify(action.body) : undefined,
-                });
+            const apiResult = await (0, api_client_1.apiFetch)(action.path, {
+                method: action.method,
+                body: action.body ? JSON.stringify(action.body) : undefined,
+            });
+            if (apiResult.success) {
                 await removeFromQueue(action.id);
                 processed++;
             }
-            catch (error) {
-                const message = String(error);
+            else {
+                const message = apiResult.error.message || 'Unknown queue flush error';
                 logger.error('Queue flush action failed', { id: action.id, error: message });
                 failedActions.push(action.id);
                 (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.QUEUE_ACTION_FAILED, {

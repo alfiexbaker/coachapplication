@@ -13,7 +13,7 @@
  * - GET /api/referrals/history/:userId - Get referral history
  */
 
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
@@ -170,7 +170,7 @@ function isReferralExpired(referral: Referral): boolean {
 // ============================================================================
 
 async function getAllCodes(): Promise<ReferralCode[]> {
-  const codes = await storageService.getItem<ReferralCode[]>(STORAGE_KEY_CODES, []);
+  const codes = await apiClient.get<ReferralCode[]>(STORAGE_KEY_CODES, []);
   if (codes.length === 0) {
     return [...MOCK_CODES];
   }
@@ -178,11 +178,11 @@ async function getAllCodes(): Promise<ReferralCode[]> {
 }
 
 async function saveCodes(codes: ReferralCode[]): Promise<void> {
-  await storageService.setItem(STORAGE_KEY_CODES, codes);
+  await apiClient.set(STORAGE_KEY_CODES, codes);
 }
 
 async function getAllReferrals(): Promise<Referral[]> {
-  const referrals = await storageService.getItem<Referral[]>(STORAGE_KEY_REFERRALS, []);
+  const referrals = await apiClient.get<Referral[]>(STORAGE_KEY_REFERRALS, []);
   if (referrals.length === 0) {
     return [...MOCK_REFERRALS];
   }
@@ -190,7 +190,7 @@ async function getAllReferrals(): Promise<Referral[]> {
 }
 
 async function saveReferrals(referrals: Referral[]): Promise<void> {
-  await storageService.setItem(STORAGE_KEY_REFERRALS, referrals);
+  await apiClient.set(STORAGE_KEY_REFERRALS, referrals);
 }
 
 // ============================================================================
@@ -665,8 +665,8 @@ async function resetToMockData(): Promise<void> {
  * Clear all referral data (for testing)
  */
 async function clearAllData(): Promise<void> {
-  await storageService.setItem(STORAGE_KEY_CODES, []);
-  await storageService.setItem(STORAGE_KEY_REFERRALS, []);
+  await apiClient.set(STORAGE_KEY_CODES, []);
+  await apiClient.set(STORAGE_KEY_REFERRALS, []);
   logger.info('referral_data_cleared');
 }
 

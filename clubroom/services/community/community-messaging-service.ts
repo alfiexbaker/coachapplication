@@ -5,7 +5,7 @@
  * marking as read, and message status updates.
  *
  * API Integration Notes:
- * - Messages are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Messages are persisted via apiClient (AsyncStorage in dev, API in prod)
  * - Group metadata (lastMessageAt, unreadCount) is updated on message events
  */
 
@@ -14,8 +14,8 @@ import {
   GroupMessage,
   ChatAttachment,
 } from '@/constants/types';
-import { storageService } from '../storage-service';
-import { type Result, type ServiceError } from '@/types/result';
+import { apiClient } from '../api-client';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { communityGroupService } from './community-group-service';
@@ -64,16 +64,23 @@ class CommunityMessagingService {
   /**
    * Get messages for a group
    */
-  async getGroupMessages(groupId: string): Promise<GroupMessage[]> {
-    const persisted = await storageService.getItem<Record<string, GroupMessage[]>>(
-      STORAGE_KEYS.GROUP_MESSAGES,
-      {}
-    );
-    const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
+  async getGroupMessages(groupId: string): Promise<Result<GroupMessage[], ServiceError>> {
+    try {
+      const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
+        STORAGE_KEYS.GROUP_MESSAGES,
+        {}
+      );
+      const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
-    return messages.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+      return ok(
+        messages.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      );
+    } catch (error) {
+      logger.error('Failed to get group messages', error);
+      return err(storageError(`Failed to get group messages: ${String(error)}`));
+    }
   }
 
   /**
@@ -86,77 +93,91 @@ class CommunityMessagingService {
     body: string,
     senderAvatar?: string,
     attachments?: ChatAttachment[]
-  ): Promise<GroupMessage> {
-    const timestamp = new Date().toISOString();
+  ): Promise<Result<GroupMessage, ServiceError>> {
+    try {
+      const timestamp = new Date().toISOString();
 
-    const newMessage: GroupMessage = {
-      id: `gmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      groupId,
-      senderId,
-      senderName,
-      senderAvatar,
-      body,
-      createdAt: timestamp,
-      status: 'sent',
-      readBy: [senderId],
-      attachments,
-    };
+      const newMessage: GroupMessage = {
+        id: `gmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        groupId,
+        senderId,
+        senderName,
+        senderAvatar,
+        body,
+        createdAt: timestamp,
+        status: 'sent',
+        readBy: [senderId],
+        attachments,
+      };
 
-    const persisted = await storageService.getItem<Record<string, GroupMessage[]>>(
-      STORAGE_KEYS.GROUP_MESSAGES,
-      {}
-    );
-    const currentMessages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
-    persisted[groupId] = [...currentMessages, newMessage];
+      const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
+        STORAGE_KEYS.GROUP_MESSAGES,
+        {}
+      );
+      const currentMessages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
+      persisted[groupId] = [...currentMessages, newMessage];
 
-    this.inMemoryMessages[groupId] = persisted[groupId];
-    await storageService.setItem(STORAGE_KEYS.GROUP_MESSAGES, persisted);
+      this.inMemoryMessages[groupId] = persisted[groupId];
+      await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, persisted);
 
-    // Update group's last message info
-    const allGroups = await communityGroupService.getAllGroups();
-    const group = allGroups.find((g) => g.id === groupId);
+      // Update group's last message info
+      const allGroupsResult = await communityGroupService.getAllGroups();
+      if (allGroupsResult.success) {
+        const group = allGroupsResult.data.find((g) => g.id === groupId);
+        if (group) {
+          group.lastMessageAt = timestamp;
+          group.lastMessagePreview = body.substring(0, 50) + (body.length > 50 ? '...' : '');
+          group.updatedAt = timestamp;
+          await communityGroupService.persistGroups();
+        }
+      }
 
-    if (group) {
-      group.lastMessageAt = timestamp;
-      group.lastMessagePreview = body.substring(0, 50) + (body.length > 50 ? '...' : '');
-      group.updatedAt = timestamp;
-      await communityGroupService.persistGroups();
+      // Simulate delivery after a delay
+      setTimeout(() => this.updateMessageStatus(groupId, newMessage.id, 'delivered'), 500);
+
+      return ok(newMessage);
+    } catch (error) {
+      logger.error('Failed to send group message', error);
+      return err(storageError(`Failed to send group message: ${String(error)}`));
     }
-
-    // Simulate delivery after a delay
-    setTimeout(() => this.updateMessageStatus(groupId, newMessage.id, 'delivered'), 500);
-
-    return newMessage;
   }
 
   /**
    * Mark messages as read
    */
-  async markMessagesRead(groupId: string, parentId: string): Promise<void> {
-    const persisted = await storageService.getItem<Record<string, GroupMessage[]>>(
-      STORAGE_KEYS.GROUP_MESSAGES,
-      {}
-    );
-    const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
+  async markMessagesRead(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
+    try {
+      const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
+        STORAGE_KEYS.GROUP_MESSAGES,
+        {}
+      );
+      const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
-    const updated = messages.map((msg) => {
-      if (!msg.readBy.includes(parentId)) {
-        return { ...msg, readBy: [...msg.readBy, parentId] };
+      const updated = messages.map((msg) => {
+        if (!msg.readBy.includes(parentId)) {
+          return { ...msg, readBy: [...msg.readBy, parentId] };
+        }
+        return msg;
+      });
+
+      persisted[groupId] = updated;
+      this.inMemoryMessages[groupId] = updated;
+      await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, persisted);
+
+      // Clear unread count for this group
+      const allGroupsResult = await communityGroupService.getAllGroups();
+      if (allGroupsResult.success) {
+        const group = allGroupsResult.data.find((g) => g.id === groupId);
+        if (group) {
+          group.unreadCount = 0;
+          await communityGroupService.persistGroups();
+        }
       }
-      return msg;
-    });
 
-    persisted[groupId] = updated;
-    this.inMemoryMessages[groupId] = updated;
-    await storageService.setItem(STORAGE_KEYS.GROUP_MESSAGES, persisted);
-
-    // Clear unread count for this group
-    const allGroups = await communityGroupService.getAllGroups();
-    const group = allGroups.find((g) => g.id === groupId);
-
-    if (group) {
-      group.unreadCount = 0;
-      await communityGroupService.persistGroups();
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to mark messages read', error);
+      return err(storageError(`Failed to mark messages read: ${String(error)}`));
     }
   }
 
@@ -165,7 +186,7 @@ class CommunityMessagingService {
     messageId: string,
     status: GroupMessage['status']
   ): Promise<void> {
-    const persisted = await storageService.getItem<Record<string, GroupMessage[]>>(
+    const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
       STORAGE_KEYS.GROUP_MESSAGES,
       {}
     );
@@ -177,7 +198,7 @@ class CommunityMessagingService {
 
     persisted[groupId] = updated;
     this.inMemoryMessages[groupId] = updated;
-    await storageService.setItem(STORAGE_KEYS.GROUP_MESSAGES, persisted);
+    await apiClient.set(STORAGE_KEYS.GROUP_MESSAGES, persisted);
   }
 }
 

@@ -5,15 +5,15 @@
  * accepting/declining requests, and cancellation management.
  *
  * API Integration Notes:
- * - Carpool data is persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Carpool data is persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 
 import {
   CarpoolOffer,
   CarpoolRequest,
 } from '@/constants/types';
-import { storageService } from '../storage-service';
-import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, unauthorized } from '@/types/result';
+import { apiClient } from '../api-client';
+import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, unauthorized, storageError } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
@@ -119,7 +119,7 @@ class CommunityCarpoolService {
    */
   async getCarpoolOffers(sessionId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
     try {
-      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
       const filtered = allOffers.filter(
@@ -130,7 +130,7 @@ class CommunityCarpoolService {
       return ok(filtered);
     } catch (error) {
       logger.error('Failed to get carpool offers', error);
-      return err({ code: 'STORAGE_ERROR', message: `Failed to get carpool offers: ${String(error)}` });
+      return err(storageError(`Failed to get carpool offers: ${String(error)}`));
     }
   }
 
@@ -139,7 +139,7 @@ class CommunityCarpoolService {
    */
   async getParentCarpoolOffers(parentId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
     try {
-      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
       const filtered = allOffers.filter((offer) => offer.parentId === parentId);
@@ -148,7 +148,7 @@ class CommunityCarpoolService {
       return ok(filtered);
     } catch (error) {
       logger.error('Failed to get parent carpool offers', error);
-      return err({ code: 'STORAGE_ERROR', message: `Failed to get parent carpool offers: ${String(error)}` });
+      return err(storageError(`Failed to get parent carpool offers: ${String(error)}`));
     }
   }
 
@@ -157,7 +157,7 @@ class CommunityCarpoolService {
    */
   async getAvailableCarpoolOffers(excludeParentId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
     try {
-      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
       const filtered = allOffers.filter(
@@ -171,7 +171,7 @@ class CommunityCarpoolService {
       return ok(filtered);
     } catch (error) {
       logger.error('Failed to get available carpool offers', error);
-      return err({ code: 'STORAGE_ERROR', message: `Failed to get available carpool offers: ${String(error)}` });
+      return err(storageError(`Failed to get available carpool offers: ${String(error)}`));
     }
   }
 
@@ -180,7 +180,7 @@ class CommunityCarpoolService {
    */
   async getCarpoolOffer(offerId: string): Promise<Result<CarpoolOffer, ServiceError>> {
     try {
-      const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+      const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
       const offer = allOffers.find((offer) => offer.id === offerId);
@@ -193,7 +193,7 @@ class CommunityCarpoolService {
       return ok(offer);
     } catch (error) {
       logger.error('Failed to get carpool offer', error);
-      return err({ code: 'STORAGE_ERROR', message: `Failed to get carpool offer: ${String(error)}` });
+      return err(storageError(`Failed to get carpool offer: ${String(error)}`));
     }
   }
 
@@ -244,7 +244,7 @@ class CommunityCarpoolService {
       return ok(newOffer);
     } catch (error) {
       logger.error('Failed to create carpool offer', error);
-      return err({ code: 'STORAGE_ERROR', message: `Failed to create carpool offer: ${String(error)}` });
+      return err(storageError(`Failed to create carpool offer: ${String(error)}`));
     }
   }
 
@@ -252,7 +252,7 @@ class CommunityCarpoolService {
    * Request a seat on a carpool offer
    */
   async requestCarpoolSeat(params: RequestCarpoolSeatParams): Promise<Result<CarpoolRequest, ServiceError>> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+    const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
     const offerIndex = allOffers.findIndex((o) => o.id === params.offerId);
@@ -298,7 +298,7 @@ class CommunityCarpoolService {
    * Accept a carpool seat request
    */
   async acceptCarpoolRequest(offerId: string, requestId: string): Promise<Result<void, ServiceError>> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+    const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
     const offer = allOffers.find((o) => o.id === offerId);
@@ -341,7 +341,7 @@ class CommunityCarpoolService {
    * Decline a carpool seat request
    */
   async declineCarpoolRequest(offerId: string, requestId: string): Promise<Result<void, ServiceError>> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+    const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
     const offer = allOffers.find((o) => o.id === offerId);
@@ -371,7 +371,7 @@ class CommunityCarpoolService {
    * Cancel a carpool offer
    */
   async cancelCarpoolOffer(offerId: string, parentId: string): Promise<Result<void, ServiceError>> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+    const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
     const offer = allOffers.find((o) => o.id === offerId);
@@ -403,7 +403,7 @@ class CommunityCarpoolService {
    * Cancel a carpool seat request
    */
   async cancelCarpoolRequest(offerId: string, requestId: string, parentId: string): Promise<Result<void, ServiceError>> {
-    const persisted = await storageService.getItem<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
+    const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
     const offer = allOffers.find((o) => o.id === offerId);
@@ -441,7 +441,7 @@ class CommunityCarpoolService {
   }
 
   private async persistCarpools(): Promise<void> {
-    await storageService.setItem(STORAGE_KEYS.CARPOOL_OFFERS, this.inMemoryCarpools);
+    await apiClient.set(STORAGE_KEYS.CARPOOL_OFFERS, this.inMemoryCarpools);
   }
 }
 

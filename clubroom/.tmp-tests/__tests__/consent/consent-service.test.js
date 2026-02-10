@@ -46,14 +46,21 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const consent_service_1 = require("../../services/consent-service");
 const safety_service_1 = require("../../services/safety-service");
+const expectOk = (result) => {
+    node_assert_1.default.strictEqual(result.success, true);
+    if (!result.success) {
+        throw new Error('Expected successful result');
+    }
+    return result.data;
+};
 // Reset to mock data before each test
 (0, node_test_1.beforeEach)(async () => {
-    await safety_service_1.safetyService.resetToMockData();
+    expectOk(await safety_service_1.safetyService.resetToMockData());
 });
 (0, node_test_1.describe)('Consent Service', () => {
     (0, node_test_1.describe)('getAthleteConsents', () => {
         (0, node_test_1.default)('should return consent data for an existing athlete', async () => {
-            const consents = await consent_service_1.consentService.getAthleteConsents('athlete1');
+            const consents = expectOk(await consent_service_1.consentService.getAthleteConsents('athlete1'));
             node_assert_1.default.ok(consents);
             node_assert_1.default.strictEqual(consents.athleteId, 'athlete1');
             node_assert_1.default.ok(Array.isArray(consents.consents));
@@ -61,28 +68,28 @@ const safety_service_1 = require("../../services/safety-service");
         });
         (0, node_test_1.default)('should return null for non-existent athlete', async () => {
             // The service returns an object with default values for non-existent athletes
-            const consents = await consent_service_1.consentService.getAthleteConsents('non_existent');
+            const consents = expectOk(await consent_service_1.consentService.getAthleteConsents('non_existent'));
             node_assert_1.default.ok(consents);
             node_assert_1.default.strictEqual(consents.athleteId, 'non_existent');
         });
     });
     (0, node_test_1.describe)('getRosterConsents', () => {
         (0, node_test_1.default)('should return consents for all athletes in roster', async () => {
-            const consents = await consent_service_1.consentService.getRosterConsents('coach1');
+            const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1'));
             node_assert_1.default.ok(Array.isArray(consents));
             node_assert_1.default.ok(consents.length > 0);
             node_assert_1.default.ok(consents.every((c) => c.athleteId && c.athleteName));
         });
         (0, node_test_1.default)('should include athlete photo URL when available', async () => {
-            const consents = await consent_service_1.consentService.getRosterConsents('coach1');
+            const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1'));
             const athleteWithPhoto = consents.find((c) => c.athletePhotoUrl);
             node_assert_1.default.ok(athleteWithPhoto);
         });
         (0, node_test_1.default)('should filter by consent type granted', async () => {
-            const consents = await consent_service_1.consentService.getRosterConsents('coach1', {
+            const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1', {
                 type: 'PHOTO',
                 status: 'granted',
-            });
+            }));
             // All returned athletes should have PHOTO consent granted
             for (const c of consents) {
                 const photoConsent = c.consents.find((consent) => consent.type === 'PHOTO');
@@ -90,10 +97,10 @@ const safety_service_1 = require("../../services/safety-service");
             }
         });
         (0, node_test_1.default)('should filter by consent type denied', async () => {
-            const consents = await consent_service_1.consentService.getRosterConsents('coach1', {
+            const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1', {
                 type: 'SOCIAL_MEDIA',
                 status: 'denied',
-            });
+            }));
             // All returned athletes should have SOCIAL_MEDIA consent denied
             for (const c of consents) {
                 const socialConsent = c.consents.find((consent) => consent.type === 'SOCIAL_MEDIA');
@@ -101,9 +108,9 @@ const safety_service_1 = require("../../services/safety-service");
             }
         });
         (0, node_test_1.default)('should filter by search query', async () => {
-            const consents = await consent_service_1.consentService.getRosterConsents('coach1', {
+            const consents = expectOk(await consent_service_1.consentService.getRosterConsents('coach1', {
                 search: 'Baker',
-            });
+            }));
             // All returned athletes should match the search
             for (const c of consents) {
                 const matchesAthlete = c.athleteName.toLowerCase().includes('baker');
@@ -114,23 +121,23 @@ const safety_service_1 = require("../../services/safety-service");
     });
     (0, node_test_1.describe)('checkConsent', () => {
         (0, node_test_1.default)('should return true for granted consent', async () => {
-            const hasPhotoConsent = await consent_service_1.consentService.checkConsent('athlete1', 'PHOTO');
+            const hasPhotoConsent = expectOk(await consent_service_1.consentService.checkConsent('athlete1', 'PHOTO'));
             // athlete1 has PHOTO consent in mock data
             node_assert_1.default.strictEqual(hasPhotoConsent, true);
         });
         (0, node_test_1.default)('should return false for denied consent', async () => {
-            const hasSocialConsent = await consent_service_1.consentService.checkConsent('athlete1', 'SOCIAL_MEDIA');
+            const hasSocialConsent = expectOk(await consent_service_1.consentService.checkConsent('athlete1', 'SOCIAL_MEDIA'));
             // athlete1 does not have SOCIAL_MEDIA consent in mock data
             node_assert_1.default.strictEqual(hasSocialConsent, false);
         });
         (0, node_test_1.default)('should return false for non-existent athlete', async () => {
-            const hasConsent = await consent_service_1.consentService.checkConsent('non_existent', 'PHOTO');
+            const hasConsent = expectOk(await consent_service_1.consentService.checkConsent('non_existent', 'PHOTO'));
             node_assert_1.default.strictEqual(hasConsent, false);
         });
     });
     (0, node_test_1.describe)('getConsentedAthletes', () => {
         (0, node_test_1.default)('should return athletes with granted consent', async () => {
-            const consentedAthletes = await consent_service_1.consentService.getConsentedAthletes('coach1', 'PHOTO');
+            const consentedAthletes = expectOk(await consent_service_1.consentService.getConsentedAthletes('coach1', 'PHOTO'));
             node_assert_1.default.ok(Array.isArray(consentedAthletes));
             for (const athlete of consentedAthletes) {
                 const photoConsent = athlete.consents.find((c) => c.type === 'PHOTO');
@@ -139,7 +146,7 @@ const safety_service_1 = require("../../services/safety-service");
         });
         (0, node_test_1.default)('should return empty array if no athletes have consent', async () => {
             // Update all athletes to not have a specific consent (this may need mock data adjustment)
-            const athletes = await consent_service_1.consentService.getNonConsentedAthletes('coach1', 'EMERGENCY_TREATMENT');
+            const athletes = expectOk(await consent_service_1.consentService.getNonConsentedAthletes('coach1', 'EMERGENCY_TREATMENT'));
             // The non-consented athletes should not have EMERGENCY_TREATMENT granted
             for (const athlete of athletes) {
                 const emergencyConsent = athlete.consents.find((c) => c.type === 'EMERGENCY_TREATMENT');
@@ -149,7 +156,7 @@ const safety_service_1 = require("../../services/safety-service");
     });
     (0, node_test_1.describe)('getNonConsentedAthletes', () => {
         (0, node_test_1.default)('should return athletes without granted consent', async () => {
-            const nonConsentedAthletes = await consent_service_1.consentService.getNonConsentedAthletes('coach1', 'SOCIAL_MEDIA');
+            const nonConsentedAthletes = expectOk(await consent_service_1.consentService.getNonConsentedAthletes('coach1', 'SOCIAL_MEDIA'));
             node_assert_1.default.ok(Array.isArray(nonConsentedAthletes));
             for (const athlete of nonConsentedAthletes) {
                 const socialConsent = athlete.consents.find((c) => c.type === 'SOCIAL_MEDIA');
@@ -159,7 +166,7 @@ const safety_service_1 = require("../../services/safety-service");
     });
     (0, node_test_1.describe)('getConsentSummary', () => {
         (0, node_test_1.default)('should return summary with correct structure', async () => {
-            const summary = await consent_service_1.consentService.getConsentSummary('coach1');
+            const summary = expectOk(await consent_service_1.consentService.getConsentSummary('coach1'));
             node_assert_1.default.ok(summary);
             node_assert_1.default.ok(typeof summary.totalAthletes === 'number');
             node_assert_1.default.ok(summary.byType);
@@ -169,7 +176,7 @@ const safety_service_1 = require("../../services/safety-service");
             node_assert_1.default.ok(summary.byType.EMERGENCY_TREATMENT);
         });
         (0, node_test_1.default)('should have correct counts for each consent type', async () => {
-            const summary = await consent_service_1.consentService.getConsentSummary('coach1');
+            const summary = expectOk(await consent_service_1.consentService.getConsentSummary('coach1'));
             for (const type of consent_service_1.consentService.getConsentTypes()) {
                 const stat = summary.byType[type];
                 node_assert_1.default.ok(typeof stat.granted === 'number');

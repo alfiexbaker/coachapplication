@@ -1,4 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.coachAnalyticsService = exports.analyticsService = void 0;
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('AnalyticsService');
 /**
  * Analytics Service - Re-export Facade
  *
@@ -11,8 +15,6 @@
  * - services/analytics/analytics-export-service.ts (coach analytics, revenue, retention)
  * - services/analytics/index.ts (unified facade)
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.coachAnalyticsService = exports.analyticsService = void 0;
 var index_1 = require("./analytics/index");
 Object.defineProperty(exports, "analyticsService", { enumerable: true, get: function () { return index_1.analyticsService; } });
 Object.defineProperty(exports, "coachAnalyticsService", { enumerable: true, get: function () { return index_1.coachAnalyticsService; } });

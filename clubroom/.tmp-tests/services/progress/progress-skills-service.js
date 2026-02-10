@@ -6,11 +6,11 @@
  * skill progression over time with trend analysis.
  *
  * API Integration Notes:
- * - Skill levels are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Skill levels are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.progressSkillsService = void 0;
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('ProgressSkillsService');
@@ -18,7 +18,7 @@ const logger = (0, logger_1.createLogger)('ProgressSkillsService');
 // SKILL LEVEL MANAGEMENT
 // ============================================================================
 async function getAllSkillLevels() {
-    return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.SKILL_LEVELS, {});
+    return api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SKILL_LEVELS, {});
 }
 async function getAthleteSkillLevels(athleteId) {
     const allLevels = await getAllSkillLevels();
@@ -65,7 +65,7 @@ async function updateSkillLevel(athleteId, skill, newLevel, coachId) {
     athleteData.skills[skill] = updatedSkill;
     athleteData.lastUpdated = new Date().toISOString();
     allLevels[athleteId] = athleteData;
-    await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.SKILL_LEVELS, allLevels);
+    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SKILL_LEVELS, allLevels);
     logger.info('skill_level_updated', {
         athleteId,
         skill,

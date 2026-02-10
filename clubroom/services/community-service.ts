@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('CommunityService');
+
 /**
  * Community Service - Thin Re-export Facade
  *

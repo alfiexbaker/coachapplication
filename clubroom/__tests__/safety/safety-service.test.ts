@@ -13,16 +13,24 @@ import type {
   EmergencyContact,
   MedicalInfo,
 } from '../../constants/types';
+import type { Result, ServiceError } from '../../types/result';
+
+const expectOk = <T>(result: Result<T, ServiceError>): T => {
+  if (!result.success) {
+    throw new Error(`Expected success but got error: ${result.error.message}`);
+  }
+  return result.data;
+};
 
 // Reset to mock data before each test
 beforeEach(async () => {
-  await safetyService.resetToMockData();
+  expectOk(await safetyService.resetToMockData());
 });
 
 describe('Safety Service', () => {
   describe('getEmergencyInfo', () => {
     test('should return emergency info for an existing athlete', async () => {
-      const info = await safetyService.getEmergencyInfo('athlete1');
+      const info = expectOk(await safetyService.getEmergencyInfo('athlete1'));
 
       assert.ok(info);
       assert.strictEqual(info.athleteId, 'athlete1');
@@ -32,7 +40,7 @@ describe('Safety Service', () => {
     });
 
     test('should return default empty info for non-existent athlete', async () => {
-      const info = await safetyService.getEmergencyInfo('non_existent_athlete');
+      const info = expectOk(await safetyService.getEmergencyInfo('non_existent_athlete'));
 
       assert.ok(info);
       assert.strictEqual(info.athleteId, 'non_existent_athlete');
@@ -44,7 +52,7 @@ describe('Safety Service', () => {
 
   describe('getAthleteEmergency', () => {
     test('should return quick view data for an athlete', async () => {
-      const quickView = await safetyService.getAthleteEmergency('athlete1', 'Test Athlete');
+      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1', 'Test Athlete'));
 
       assert.ok(quickView);
       assert.strictEqual(quickView.athleteId, 'athlete1');
@@ -59,7 +67,7 @@ describe('Safety Service', () => {
     });
 
     test('should include primary contact if available', async () => {
-      const quickView = await safetyService.getAthleteEmergency('athlete1');
+      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1'));
 
       assert.ok(quickView.primaryContact);
       assert.ok(quickView.primaryContact.name);
@@ -67,7 +75,7 @@ describe('Safety Service', () => {
     });
 
     test('should include all contacts', async () => {
-      const quickView = await safetyService.getAthleteEmergency('athlete1');
+      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1'));
 
       assert.ok(quickView.allContacts.length >= 1);
       assert.ok(quickView.allContacts.every(c => c.name && c.phone));
@@ -75,7 +83,7 @@ describe('Safety Service', () => {
 
     test('should correctly identify alert level based on medical info', async () => {
       // athlete1 has medical alerts in mock data
-      const quickView = await safetyService.getAthleteEmergency('athlete1');
+      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1'));
 
       assert.ok(quickView.hasAlerts);
       assert.notStrictEqual(quickView.alertLevel, 'none');
@@ -89,7 +97,7 @@ describe('Safety Service', () => {
         { athleteId: 'athlete2', athleteName: 'Athlete Two' },
       ];
 
-      const sessionInfo = await safetyService.getSessionSafetyInfo('session_1', attendees);
+      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
 
       assert.ok(sessionInfo);
       assert.strictEqual(sessionInfo.sessionId, 'session_1');
@@ -106,7 +114,7 @@ describe('Safety Service', () => {
         { athleteId: 'athlete2', athleteName: 'Athlete Two' },
       ];
 
-      const sessionInfo = await safetyService.getSessionSafetyInfo('session_1', attendees);
+      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
 
       assert.ok(typeof sessionInfo.athletesWithAlerts === 'number');
       assert.ok(sessionInfo.athletesWithAlerts >= 0);
@@ -118,7 +126,7 @@ describe('Safety Service', () => {
         { athleteId: 'athlete1', athleteName: 'Athlete One' },
       ];
 
-      const sessionInfo = await safetyService.getSessionSafetyInfo('session_1', attendees);
+      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
 
       // Allergies should be sorted alphabetically
       for (let i = 0; i < sessionInfo.allAllergies.length - 1; i++) {
@@ -131,14 +139,14 @@ describe('Safety Service', () => {
         { athleteId: 'non_existent', athleteName: 'No Contact Athlete' },
       ];
 
-      const sessionInfo = await safetyService.getSessionSafetyInfo('session_1', attendees);
+      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
 
       // Non-existent athlete should be in missingEmergencyInfo
       assert.ok(sessionInfo.missingEmergencyInfo.includes('No Contact Athlete'));
     });
 
     test('should handle empty attendee list', async () => {
-      const sessionInfo = await safetyService.getSessionSafetyInfo('session_1', []);
+      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', []));
 
       assert.strictEqual(sessionInfo.totalAthletes, 0);
       assert.strictEqual(sessionInfo.athletes.length, 0);
@@ -148,7 +156,7 @@ describe('Safety Service', () => {
 
   describe('getPrimaryContact', () => {
     test('should return primary contact if exists', async () => {
-      const contact = await safetyService.getPrimaryContact('athlete1');
+      const contact = expectOk(await safetyService.getPrimaryContact('athlete1'));
 
       assert.ok(contact);
       assert.ok(contact.isPrimary);
@@ -156,7 +164,7 @@ describe('Safety Service', () => {
 
     test('should return first contact if no primary is set', async () => {
       // Create athlete with non-primary contacts
-      await safetyService.updateEmergencyInfo('test_athlete', {
+      expectOk(await safetyService.updateEmergencyInfo('test_athlete', {
         contacts: [
           {
             id: 'c1',
@@ -167,16 +175,16 @@ describe('Safety Service', () => {
             canPickup: true,
           },
         ],
-      });
+      }));
 
-      const contact = await safetyService.getPrimaryContact('test_athlete');
+      const contact = expectOk(await safetyService.getPrimaryContact('test_athlete'));
 
       assert.ok(contact);
       assert.strictEqual(contact.name, 'Contact One');
     });
 
     test('should return null if no contacts exist', async () => {
-      const contact = await safetyService.getPrimaryContact('non_existent');
+      const contact = expectOk(await safetyService.getPrimaryContact('non_existent'));
 
       assert.strictEqual(contact, null);
     });
@@ -367,23 +375,23 @@ describe('Safety Service', () => {
 
   describe('hasAlerts', () => {
     test('should return true if athlete has medical alerts', async () => {
-      const hasAlerts = await safetyService.hasAlerts('athlete1');
+      const hasAlerts = expectOk(await safetyService.hasAlerts('athlete1'));
 
       assert.strictEqual(hasAlerts, true);
     });
 
     test('should return false for athlete without alerts', async () => {
       // Create athlete without alerts
-      await safetyService.updateEmergencyInfo('no_alerts', {
+      expectOk(await safetyService.updateEmergencyInfo('no_alerts', {
         medical: {
           conditions: [],
           allergies: [],
           medications: [],
           restrictions: [],
         },
-      });
+      }));
 
-      const hasAlerts = await safetyService.hasAlerts('no_alerts');
+      const hasAlerts = expectOk(await safetyService.hasAlerts('no_alerts'));
 
       assert.strictEqual(hasAlerts, false);
     });
@@ -392,13 +400,13 @@ describe('Safety Service', () => {
   describe('isComplete', () => {
     test('should return true if has contact and emergency consent', async () => {
       // athlete1 has contacts and emergency consent in mock data
-      const isComplete = await safetyService.isComplete('athlete1');
+      const isComplete = expectOk(await safetyService.isComplete('athlete1'));
 
       assert.strictEqual(isComplete, true);
     });
 
     test('should return false if no contacts', async () => {
-      const isComplete = await safetyService.isComplete('non_existent');
+      const isComplete = expectOk(await safetyService.isComplete('non_existent'));
 
       assert.strictEqual(isComplete, false);
     });
@@ -406,9 +414,9 @@ describe('Safety Service', () => {
 
   describe('updateEmergencyInfo', () => {
     test('should update medical info', async () => {
-      const updated = await safetyService.updateMedicalInfo('athlete1', {
+      const updated = expectOk(await safetyService.updateMedicalInfo('athlete1', {
         allergies: ['New Allergy'],
-      });
+      }));
 
       assert.ok(updated.medical.allergies.includes('New Allergy'));
     });
@@ -422,18 +430,18 @@ describe('Safety Service', () => {
         canPickup: true,
       };
 
-      const updated = await safetyService.addContact('athlete1', newContact);
+      const updated = expectOk(await safetyService.addContact('athlete1', newContact));
 
       assert.ok(updated.contacts.some(c => c.name === 'New Contact'));
     });
 
     test('should update consent', async () => {
-      const updated = await safetyService.updateConsent(
+      const updated = expectOk(await safetyService.updateConsent(
         'athlete1',
         'PHOTO',
         true,
         'Test Parent'
-      );
+      ));
 
       const photoConsent = updated.consents.find(c => c.type === 'PHOTO');
       assert.ok(photoConsent);
@@ -444,7 +452,7 @@ describe('Safety Service', () => {
 
   describe('caching', () => {
     test('should clear cache successfully', async () => {
-      await safetyService.clearCache();
+      expectOk(await safetyService.clearCache());
       // Should not throw
       assert.ok(true);
     });
@@ -455,7 +463,7 @@ describe('Safety Service', () => {
         { athleteId: 'athlete2', athleteName: 'Athlete Two' },
       ];
 
-      await safetyService.preCacheSessionEmergencyInfo(attendees);
+      expectOk(await safetyService.preCacheSessionEmergencyInfo(attendees));
       // Should not throw
       assert.ok(true);
     });

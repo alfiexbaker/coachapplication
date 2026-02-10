@@ -34,21 +34,27 @@ export default function ManageWaitlistScreen() {
   const loadWaitlists = useCallback(async () => {
     if (!currentUser) return;
 
-    try {
-      const data = await waitlistService.getCoachWaitlistSummaries(currentUser.id);
-      setSummaries(data);
-
-      // If a session was selected, reload its entries
-      if (selectedSession) {
-        const entries = await waitlistService.getSessionWaitlist(selectedSession);
-        setSessionEntries(entries);
-      }
-    } catch (error) {
-      logger.error('Failed to load waitlists', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    const summariesResult = await waitlistService.getCoachWaitlistSummaries(currentUser.id);
+    if (summariesResult.success) {
+      setSummaries(summariesResult.data);
+    } else {
+      logger.error('Failed to load waitlist summaries', summariesResult.error);
+      setSummaries([]);
     }
+
+    // If a session was selected, reload its entries
+    if (selectedSession) {
+      const entriesResult = await waitlistService.getSessionWaitlist(selectedSession);
+      if (entriesResult.success) {
+        setSessionEntries(entriesResult.data);
+      } else {
+        logger.error('Failed to load session waitlist', entriesResult.error);
+        setSessionEntries([]);
+      }
+    }
+
+    setLoading(false);
+    setRefreshing(false);
   }, [currentUser, selectedSession]);
 
   useEffect(() => {
@@ -68,11 +74,12 @@ export default function ManageWaitlistScreen() {
     }
 
     setSelectedSession(sessionId);
-    try {
-      const entries = await waitlistService.getSessionWaitlist(sessionId);
-      setSessionEntries(entries);
-    } catch (error) {
-      logger.error('Failed to load session waitlist', error);
+    const result = await waitlistService.getSessionWaitlist(sessionId);
+    if (result.success) {
+      setSessionEntries(result.data);
+    } else {
+      logger.error('Failed to load session waitlist', result.error);
+      setSessionEntries([]);
     }
   };
 
@@ -80,12 +87,18 @@ export default function ManageWaitlistScreen() {
     setActionLoading(sessionId);
     try {
       const result = await waitlistService.notifyNextInLine(sessionId);
-      if (result) {
+      if (!result.success) {
+        logger.error('Failed to notify', result.error);
+        Alert.alert('Error', 'Failed to send notification. Please try again.');
+        return;
+      }
+
+      if (result.data) {
         Alert.alert(
           'Notification Sent',
-          `${result.userName} has been notified that a spot is available.`
+          `${result.data.userName} has been notified that a spot is available.`
         );
-        loadWaitlists();
+        await loadWaitlists();
       } else {
         Alert.alert('No One on Waitlist', 'There is no one waiting for this session.');
       }
@@ -109,14 +122,19 @@ export default function ManageWaitlistScreen() {
             setActionLoading(sessionId);
             try {
               const result = await waitlistService.promoteFromWaitlist(sessionId);
-              if (result.success && result.entry) {
+              if (!result.success) {
+                Alert.alert('Error', result.error.message || 'Failed to promote from waitlist.');
+                return;
+              }
+
+              if (result.data.success && result.data.entry) {
                 Alert.alert(
                   'Success',
-                  `${result.entry.userName} has been booked for the session.`
+                  `${result.data.entry.userName} has been booked for the session.`
                 );
-                loadWaitlists();
+                await loadWaitlists();
               } else {
-                Alert.alert('Error', result.error || 'Failed to promote from waitlist.');
+                Alert.alert('Error', result.data.error || 'Failed to promote from waitlist.');
               }
             } catch (error) {
               logger.error('Failed to promote', error);
@@ -142,12 +160,14 @@ export default function ManageWaitlistScreen() {
           onPress: async () => {
             setActionLoading(entryId);
             try {
-              await waitlistService.removeFromWaitlist(entryId);
-              setSessionEntries((prev) => prev.filter((e) => e.id !== entryId));
-              loadWaitlists();
-            } catch (error) {
-              logger.error('Failed to remove', error);
-              Alert.alert('Error', 'Failed to remove. Please try again.');
+              const removeResult = await waitlistService.removeFromWaitlist(entryId);
+              if (removeResult.success && removeResult.data) {
+                setSessionEntries((prev) => prev.filter((e) => e.id !== entryId));
+                await loadWaitlists();
+              } else {
+                logger.error('Failed to remove', removeResult.success ? undefined : removeResult.error);
+                Alert.alert('Error', 'Failed to remove. Please try again.');
+              }
             } finally {
               setActionLoading(null);
             }

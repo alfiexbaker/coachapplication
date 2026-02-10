@@ -6,12 +6,12 @@
  * Manages wallet storage and retrieval.
  *
  * API Integration Notes:
- * - Wallets are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Wallets are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walletCrudService = void 0;
 const config_1 = require("@/constants/config");
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
 const storage_keys_1 = require("@/constants/storage-keys");
 const result_1 = require("@/types/result");
@@ -56,65 +56,110 @@ class WalletCrudService {
      * Get wallet for a user, creating one if it doesn't exist
      */
     async getWallet(userId) {
-        const wallets = await this.getAllWallets();
-        let wallet = wallets.find((w) => w.userId === userId);
-        if (!wallet) {
-            wallet = await this.createWallet(userId);
+        try {
+            const walletsResult = await this.getAllWallets();
+            if (!walletsResult.success) {
+                return walletsResult;
+            }
+            let wallet = walletsResult.data.find((w) => w.userId === userId);
+            if (!wallet) {
+                const createResult = await this.createWallet(userId);
+                if (!createResult.success) {
+                    return createResult;
+                }
+                wallet = createResult.data;
+            }
+            logger.info('wallet_retrieved', { userId, walletId: wallet.id, balance: wallet.balance });
+            return (0, result_1.ok)(wallet);
         }
-        logger.info('wallet_retrieved', { userId, walletId: wallet.id, balance: wallet.balance });
-        return wallet;
+        catch (error) {
+            logger.error('Failed to get wallet', { userId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to retrieve wallet'));
+        }
     }
     /**
      * Quick balance check for a user
      */
     async getBalance(userId) {
-        const wallet = await this.getWallet(userId);
-        return wallet.balance;
+        const walletResult = await this.getWallet(userId);
+        if (!walletResult.success) {
+            return walletResult;
+        }
+        return (0, result_1.ok)(walletResult.data.balance);
     }
     /**
      * Get all wallets (internal use)
      */
     async getAllWallets() {
-        if (USE_MOCK) {
-            return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.WALLETS, MOCK_WALLETS);
+        try {
+            if (USE_MOCK) {
+                return (0, result_1.ok)(await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.WALLETS, MOCK_WALLETS));
+            }
+            // TODO: API call when ready
+            return (0, result_1.ok)(await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.WALLETS, []));
         }
-        // TODO: API call when ready
-        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.WALLETS, []);
+        catch (error) {
+            logger.error('Failed to get wallets', error);
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load wallets'));
+        }
     }
     /**
      * Save wallets to storage
      */
     async saveWallets(wallets) {
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.WALLETS, wallets);
+        try {
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.WALLETS, wallets);
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to save wallets', error);
+            return (0, result_1.err)((0, result_1.storageError)('Failed to save wallets'));
+        }
     }
     /**
      * Create a new wallet for a user
      */
     async createWallet(userId, userName) {
-        const wallets = await this.getAllWallets();
-        const newWallet = {
-            id: `wallet_${userId}`,
-            userId,
-            userName: userName || `User ${userId}`,
-            balance: 0,
-            currency: 'GBP',
-            pendingBalance: 0,
-            totalDeposited: 0,
-            totalSpent: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isActive: true,
-        };
-        wallets.push(newWallet);
-        await this.saveWallets(wallets);
-        logger.info('wallet_created', { userId, walletId: newWallet.id });
-        return newWallet;
+        try {
+            const walletsResult = await this.getAllWallets();
+            if (!walletsResult.success) {
+                return walletsResult;
+            }
+            const newWallet = {
+                id: `wallet_${userId}`,
+                userId,
+                userName: userName || `User ${userId}`,
+                balance: 0,
+                currency: 'GBP',
+                pendingBalance: 0,
+                totalDeposited: 0,
+                totalSpent: 0,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                isActive: true,
+            };
+            walletsResult.data.push(newWallet);
+            const saveResult = await this.saveWallets(walletsResult.data);
+            if (!saveResult.success) {
+                return saveResult;
+            }
+            logger.info('wallet_created', { userId, walletId: newWallet.id });
+            return (0, result_1.ok)(newWallet);
+        }
+        catch (error) {
+            logger.error('Failed to create wallet', { userId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to create wallet'));
+        }
     }
     /**
      * Update wallet balance and stats
      */
     async updateWallet(userId, updates) {
-        const wallets = await this.getAllWallets();
+        const walletsResult = await this.getAllWallets();
+        if (!walletsResult.success) {
+            return walletsResult;
+        }
+        const wallets = walletsResult.data;
         const index = wallets.findIndex((w) => w.userId === userId);
         if (index === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Wallet', userId));
@@ -124,7 +169,10 @@ class WalletCrudService {
             ...updates,
             updatedAt: new Date().toISOString(),
         };
-        await this.saveWallets(wallets);
+        const saveResult = await this.saveWallets(wallets);
+        if (!saveResult.success) {
+            return saveResult;
+        }
         return (0, result_1.ok)(wallets[index]);
     }
     /**

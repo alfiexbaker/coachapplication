@@ -45,6 +45,9 @@ __exportStar(require("./types"), exports);
 const family_member_service_2 = require("./family-member-service");
 const family_relationship_service_2 = require("./family-relationship-service");
 const family_permission_service_2 = require("./family-permission-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('FamilyFacade');
+void logger;
 /**
  * Backward-compatible facade that delegates to focused services.
  * Use individual services for new code.

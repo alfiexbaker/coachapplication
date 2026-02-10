@@ -6,11 +6,11 @@
  * with role-based visibility control.
  *
  * API Integration Notes:
- * - Feedback and notes are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Feedback and notes are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.progressFeedbackService = void 0;
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
 const storage_keys_1 = require("@/constants/storage-keys");
 const progress_skills_service_1 = require("./progress-skills-service");
@@ -19,7 +19,7 @@ const logger = (0, logger_1.createLogger)('ProgressFeedbackService');
 // SESSION FEEDBACK MANAGEMENT
 // ============================================================================
 async function getAllSessionFeedback() {
-    return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.SESSION_FEEDBACK, []);
+    return api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SESSION_FEEDBACK, []);
 }
 async function addSessionFeedback(feedback) {
     const allFeedback = await getAllSessionFeedback();
@@ -33,7 +33,7 @@ async function addSessionFeedback(feedback) {
         await progress_skills_service_1.progressSkillsService.updateMultipleSkillLevels(feedback.athleteId, feedback.skillRatings.map(r => ({ skill: r.skill, level: r.rating })), feedback.coachId);
     }
     allFeedback.unshift(newFeedback);
-    await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);
+    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);
     logger.info('session_feedback_added', {
         feedbackId: newFeedback.id,
         sessionId: feedback.sessionId,
@@ -70,7 +70,7 @@ async function getFeedbackForAthlete(athleteId, viewerRole, limit) {
 // SESSION NOTES MANAGEMENT
 // ============================================================================
 async function getAllSessionNotes() {
-    return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.SESSION_NOTES, {});
+    return api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SESSION_NOTES, {});
 }
 async function getSessionNote(bookingId) {
     const notes = await getAllSessionNotes();
@@ -82,7 +82,7 @@ async function saveSessionNote(bookingId, payload) {
         ...payload,
         updatedAt: new Date().toISOString(),
     };
-    await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });
+    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });
     logger.info('session_note_saved', {
         bookingId,
         focusAreas: payload.focus.length,

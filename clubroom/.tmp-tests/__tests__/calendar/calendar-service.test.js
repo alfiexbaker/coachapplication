@@ -63,7 +63,9 @@ const mockBooking = {
 const mockBookingNoOptionals = {
     id: 'booking_456',
     coachId: 'coach_2',
+    coachName: '',
     athleteId: 'athlete_2',
+    athleteName: '',
     bookedById: 'parent_2',
     status: 'PENDING',
     scheduledAt: '2026-03-01T10:00:00.000Z',

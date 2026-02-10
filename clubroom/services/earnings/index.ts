@@ -23,6 +23,10 @@ import { earningsCalculatorService } from './earnings-calculator-service';
 import { payoutService } from './payout-service';
 import { earningsReportService, type TransactionFilter } from './earnings-report-service';
 import { type Result, type ServiceError } from '@/types/result';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('EarningsFacade');
+void logger;
 
 // Re-export types
 export type { TransactionFilter } from './earnings-report-service';

@@ -17,7 +17,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.injuryService = void 0;
-const storage_service_1 = require("./storage-service");
+const api_client_1 = require("./api-client");
 const logger_1 = require("@/utils/logger");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('InjuryService');
@@ -329,7 +329,7 @@ function getStatusInfo(status) {
  * Get all injuries from storage
  */
 async function getAllInjuries() {
-    const injuries = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.INJURIES, []);
+    const injuries = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.INJURIES, []);
     // Return mock data if no injuries stored
     if (injuries.length === 0) {
         return [...MOCK_INJURIES];
@@ -340,7 +340,7 @@ async function getAllInjuries() {
  * Save all injuries to storage
  */
 async function saveInjuries(injuries) {
-    await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.INJURIES, injuries);
+    await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.INJURIES, injuries);
 }
 // ============================================================================
 // INJURY CRUD OPERATIONS

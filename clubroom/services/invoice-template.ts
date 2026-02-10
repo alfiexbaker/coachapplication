@@ -20,6 +20,12 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     return `\u00A3${amount.toFixed(2)}`;
   };
 
+  const dueDate = invoice.dueDate ?? invoice.createdAt;
+  const lineItemDescription = invoice.sessionType ?? 'Coaching Session';
+  const lineItemDetails = [invoice.sessionDate ? `Date: ${formatDate(invoice.sessionDate)}` : null, invoice.sessionLocation]
+    .filter((item): item is string => Boolean(item))
+    .join(' · ');
+
   const statusColor = {
     DRAFT: '#6B7280',
     SENT: '#2563EB',
@@ -84,7 +90,7 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     <div class="logo">Clubroom</div>
     <div class="invoice-number">
       <h1>${invoice.invoiceNumber}</h1>
-      <div class="date">Issued ${formatDate(invoice.issuedAt)}</div>
+      <div class="date">Issued ${formatDate(invoice.createdAt)}</div>
       <span class="status">${invoice.status}</span>
     </div>
   </div>
@@ -93,19 +99,19 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     <div class="party">
       <h3>From</h3>
       <p>
-        <strong>${invoice.from.name}</strong><br/>
-        ${invoice.from.email}<br/>
-        ${invoice.from.address ? `${invoice.from.address}<br/>` : ''}
-        ${invoice.from.phone || ''}
+        <strong>${invoice.coachBusinessName ?? invoice.coachName}</strong><br/>
+        ${invoice.coachBusinessEmail ?? ''}<br/>
+        ${invoice.coachBusinessAddress ? `${invoice.coachBusinessAddress}<br/>` : ''}
+        ${invoice.coachBusinessPhone ?? ''}
       </p>
     </div>
     <div class="party">
       <h3>To</h3>
       <p>
-        <strong>${invoice.to.name}</strong><br/>
-        ${invoice.to.email}<br/>
-        ${invoice.to.address ? `${invoice.to.address}<br/>` : ''}
-        ${invoice.to.phone || ''}
+        <strong>${invoice.userName ?? invoice.athleteName}</strong><br/>
+        ${invoice.sentTo ?? ''}<br/>
+        ${invoice.billingAddress ? `${invoice.billingAddress}<br/>` : ''}
+        ${invoice.athleteName}
       </p>
     </div>
   </div>
@@ -120,31 +126,23 @@ export function generateInvoiceHtml(invoice: Invoice): string {
       </tr>
     </thead>
     <tbody>
-      ${invoice.items.map(item => `
-        <tr>
-          <td>
-            <div style="font-weight: 500;">${item.description}</div>
-            ${item.details ? `<div class="description">${item.details}</div>` : ''}
-          </td>
-          <td style="text-align: center;">${item.quantity}</td>
-          <td style="text-align: right;">${formatCurrency(item.unitPrice)}</td>
-          <td style="text-align: right;">${formatCurrency(item.total)}</td>
-        </tr>
-      `).join('')}
+      <tr>
+        <td>
+          <div style="font-weight: 500;">${lineItemDescription}</div>
+          ${lineItemDetails ? `<div class="description">${lineItemDetails}</div>` : ''}
+        </td>
+        <td style="text-align: center;">1</td>
+        <td style="text-align: right;">${formatCurrency(invoice.amount)}</td>
+        <td style="text-align: right;">${formatCurrency(invoice.amount)}</td>
+      </tr>
     </tbody>
   </table>
 
   <table class="totals">
     <tr>
       <td class="label">Subtotal</td>
-      <td class="amount">${formatCurrency(invoice.subtotal)}</td>
+      <td class="amount">${formatCurrency(invoice.amount)}</td>
     </tr>
-    ${invoice.discount > 0 ? `
-      <tr>
-        <td class="label">Discount</td>
-        <td class="amount">-${formatCurrency(invoice.discount)}</td>
-      </tr>
-    ` : ''}
     <tr>
       <td class="label">VAT (${invoice.taxRate}%)</td>
       <td class="amount">${formatCurrency(invoice.tax)}</td>
@@ -163,7 +161,7 @@ export function generateInvoiceHtml(invoice: Invoice): string {
   ` : ''}
 
   <div class="footer">
-    <p>Payment due by ${formatDate(invoice.dueDate)}</p>
+    <p>Payment due by ${formatDate(dueDate)}</p>
     ${invoice.status === 'PAID' && invoice.paidAt ? `
       <p style="margin-top: 8px; color: #059669; font-weight: 500;">
         ✓ Paid on ${formatDate(invoice.paidAt)}

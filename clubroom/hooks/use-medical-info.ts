@@ -27,7 +27,12 @@ export function useMedicalInfo() {
   const loadInfo = useCallback(async () => {
     if (!id) return;
     try {
-      const data = await safetyService.getEmergencyInfo(id);
+      const result = await safetyService.getEmergencyInfo(id);
+      if (!result.success) {
+        logger.error('Failed to load medical info', result.error);
+        return;
+      }
+      const data = result.data;
       setConditions(data.medical.conditions);
       setAllergies(data.medical.allergies);
       setMedications(data.medical.medications);
@@ -72,10 +77,23 @@ export function useMedicalInfo() {
         notes: notes || undefined,
       };
 
-      await safetyService.updateMedicalInfo(id, medicalUpdate);
+      const updateMedicalResult = await safetyService.updateMedicalInfo(id, medicalUpdate);
+      if (!updateMedicalResult.success) {
+        logger.error('Failed to update medical info', updateMedicalResult.error);
+        return;
+      }
 
       for (const consent of consents) {
-        await safetyService.updateConsent(id, consent.type, consent.granted, consent.grantedBy);
+        const consentResult = await safetyService.updateConsent(
+          id,
+          consent.type,
+          consent.granted,
+          consent.grantedBy
+        );
+        if (!consentResult.success) {
+          logger.error('Failed to update consent', consentResult.error);
+          return;
+        }
       }
 
       router.back();

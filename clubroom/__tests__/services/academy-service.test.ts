@@ -12,6 +12,10 @@ import { academyService } from '../../services/academy-service';
 import { apiClient } from '../../services/api-client';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
+const expectOk = <T>(result: { success: boolean; data?: T; error?: { message: string } }): T => {
+  assert.equal(result.success, true);
+  return result.data as T;
+};
 
 describe('academyService', () => {
   beforeEach(async () => {
@@ -25,7 +29,7 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('discoverAcademies', () => {
     test('returns public academies sorted by rating', async () => {
-      const academies = await academyService.discoverAcademies();
+      const academies = expectOk(await academyService.discoverAcademies());
       assert.ok(Array.isArray(academies));
       assert.ok(academies.length >= 2);
       // Should be sorted by rating descending
@@ -42,13 +46,13 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('getAcademy', () => {
     test('returns academy for known id', async () => {
-      const academy = await academyService.getAcademy('academy_1');
+      const academy = expectOk(await academyService.getAcademy('academy_1'));
       assert.ok(academy);
       assert.equal(academy!.id, 'academy_1');
     });
 
     test('returns null for unknown id', async () => {
-      const result = await academyService.getAcademy(`unknown_${rid()}`);
+      const result = expectOk(await academyService.getAcademy(`unknown_${rid()}`));
       assert.equal(result, null);
     });
   });
@@ -58,13 +62,13 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('getAcademyBySlug', () => {
     test('returns academy by slug', async () => {
-      const academy = await academyService.getAcademyBySlug('east-london-fc');
+      const academy = expectOk(await academyService.getAcademyBySlug('east-london-fc'));
       assert.ok(academy);
       assert.equal(academy!.slug, 'east-london-fc');
     });
 
     test('returns null for unknown slug', async () => {
-      const result = await academyService.getAcademyBySlug(`no-slug-${rid()}`);
+      const result = expectOk(await academyService.getAcademyBySlug(`no-slug-${rid()}`));
       assert.equal(result, null);
     });
   });
@@ -74,14 +78,14 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('createAcademy', () => {
     test('creates academy with correct fields', async () => {
-      const academy = await academyService.createAcademy({
+      const academy = expectOk(await academyService.createAcademy({
         name: `Test Academy ${rid()}`,
         description: 'A test academy',
         postcode: 'SW1A 1AA',
         city: 'London',
         ownerId: `owner_${rid()}`,
         ownerName: 'Test Owner',
-      });
+      }));
 
       assert.ok(academy.id);
       assert.ok(academy.slug);
@@ -141,7 +145,7 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('getStaff', () => {
     test('returns staff for known academy sorted by role', async () => {
-      const staff = await academyService.getStaff('academy_1');
+      const staff = expectOk(await academyService.getStaff('academy_1'));
       assert.ok(Array.isArray(staff));
       assert.ok(staff.length >= 1);
       // First should be OWNER
@@ -154,7 +158,7 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('createInvite', () => {
     test('creates invite with code', async () => {
-      const invite = await academyService.createInvite(
+      const invite = expectOk(await academyService.createInvite(
         'academy_1',
         'East London FC Academy',
         'COACH',
@@ -163,7 +167,7 @@ describe('academyService', () => {
         'Marcus Thompson',
         30,
         5,
-      );
+      ));
 
       assert.ok(invite.id);
       assert.ok(invite.code);
@@ -179,7 +183,7 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('joinWithCode', () => {
     test('joins with valid code', async () => {
-      const invite = await academyService.createInvite(
+      const invite = expectOk(await academyService.createInvite(
         'academy_1',
         'East London FC Academy',
         'COACH',
@@ -188,7 +192,7 @@ describe('academyService', () => {
         'Marcus Thompson',
         30,
         5,
-      );
+      ));
 
       const userId = `user_${rid()}`;
       const result = await academyService.joinWithCode(invite.code, userId, 'New Coach');
@@ -261,20 +265,20 @@ describe('academyService', () => {
   // ---------------------------------------------------------------------------
   describe('hasPermission', () => {
     test('owner has all permissions', async () => {
-      const has = await academyService.hasPermission('academy_1', 'coach1', 'MANAGE_BILLING');
+      const has = expectOk(await academyService.hasPermission('academy_1', 'coach1', 'MANAGE_BILLING'));
       assert.equal(has, true);
     });
 
     test('coach only has assigned permissions', async () => {
-      const has = await academyService.hasPermission('academy_1', 'coach_3', 'CREATE_SESSIONS');
+      const has = expectOk(await academyService.hasPermission('academy_1', 'coach_3', 'CREATE_SESSIONS'));
       assert.equal(has, true);
 
-      const noHas = await academyService.hasPermission('academy_1', 'coach_3', 'MANAGE_BILLING');
+      const noHas = expectOk(await academyService.hasPermission('academy_1', 'coach_3', 'MANAGE_BILLING'));
       assert.equal(noHas, false);
     });
 
     test('unknown user has no permissions', async () => {
-      const has = await academyService.hasPermission('academy_1', `nobody_${rid()}`, 'CREATE_SESSIONS');
+      const has = expectOk(await academyService.hasPermission('academy_1', `nobody_${rid()}`, 'CREATE_SESSIONS'));
       assert.equal(has, false);
     });
   });

@@ -36,19 +36,29 @@ export function useAcademySettings(id: string | undefined) {
     if (!id) return;
     setLoading(true);
     try {
-      const [academyData, staffData] = await Promise.all([
+      const [academyResult, staffResult] = await Promise.all([
         academyService.getAcademy(id),
         academyService.getStaff(id),
       ]);
-      setAcademy(academyData);
-      if (academyData) {
-        setName(academyData.name);
-        setDescription(academyData.description);
-        setIsPublic(academyData.isPublic);
-        setRequiresApproval(academyData.requiresApproval);
+      if (!academyResult.success) {
+        logger.error('Failed to load academy', academyResult.error);
+        setAcademy(null);
+        return;
+      }
+      if (!staffResult.success) {
+        logger.error('Failed to load academy staff', staffResult.error);
+        setAcademy(null);
+        return;
+      }
+      setAcademy(academyResult.data);
+      if (academyResult.data) {
+        setName(academyResult.data.name);
+        setDescription(academyResult.data.description);
+        setIsPublic(academyResult.data.isPublic);
+        setRequiresApproval(academyResult.data.requiresApproval);
       }
       if (currentUser?.id) {
-        const membership = staffData.find((m) => m.userId === currentUser.id);
+        const membership = staffResult.data.find((m) => m.userId === currentUser.id);
         setUserMembership(membership || null);
       }
     } catch (error) {
@@ -64,7 +74,11 @@ export function useAcademySettings(id: string | undefined) {
     if (!academy) return;
     setSaving(true);
     try {
-      await academyService.updateSettings(academy.id, { name, description, isPublic, requiresApproval });
+      const result = await academyService.updateSettings(academy.id, { name, description, isPublic, requiresApproval });
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+        return;
+      }
       Alert.alert('Success', 'Settings saved successfully');
       router.back();
     } catch (error) {

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.badgeService = void 0;
 const mock_data_1 = require("@/constants/mock-data");
-const storage_service_1 = require("./storage-service");
+const api_client_1 = require("./api-client");
 const social_feed_service_1 = require("./social-feed-service");
 const notification_service_1 = require("./notification-service");
 const booking_service_1 = require("./booking-service");
@@ -17,7 +17,7 @@ class BadgeService {
         this.logger = (0, logger_1.createLogger)('BadgeService');
     }
     async getStoredAwards() {
-        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, []);
+        return api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, []);
     }
     mergeAwards(stored) {
         const merged = new Map();
@@ -89,7 +89,7 @@ class BadgeService {
             badgePointValue: definition?.pointValue,
         };
         const updated = [award, ...stored];
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, updated);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, updated);
         this.logger.info('badge_awarded', {
             badgeId: input.badgeId,
             athleteId: input.athleteId,
@@ -214,7 +214,7 @@ class BadgeService {
             });
         const updatedAward = { ...target, shared: true, feedPostId: feedPost?.id ?? target.feedPostId };
         const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
         this.logger.info('badge_shared', {
             badgeId: target.badgeId,
             athleteId: target.athleteId,
@@ -244,7 +244,7 @@ class BadgeService {
         // Mark as shared/posted
         const updatedAward = { ...award, shared: true, addedToFeedAt: new Date().toISOString() };
         const nextStored = [updatedAward, ...stored.filter((a) => a.id !== awardId)];
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
         this.logger.info('badge_posted_to_feed_by_user', {
             awardId,
             athleteId: award.athleteId,
@@ -266,7 +266,7 @@ class BadgeService {
             seenAt: new Date().toISOString(),
         };
         const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
         this.logger.info('badge_seen_by_parent', { awardId });
         return updatedAward;
     }
@@ -280,7 +280,7 @@ class BadgeService {
         const updated = merged.map((award) => award.athleteId === athleteId && !award.seenByParent
             ? { ...award, seenByParent: true, seenAt: now }
             : award);
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, updated);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, updated);
         this.logger.info('all_badges_seen_by_parent', { athleteId });
     }
     /**

@@ -49,69 +49,76 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const comparison_service_1 = require("../../services/comparison-service");
 const discover_service_1 = require("../../services/discover-service");
+const expectOk = (result) => {
+    node_assert_1.default.strictEqual(result.success, true);
+    if (!result.success) {
+        throw new Error('Expected successful result');
+    }
+    return result.data;
+};
 // Reset services before each test
 (0, node_test_1.beforeEach)(async () => {
-    await comparison_service_1.comparisonService.reset();
-    await discover_service_1.discoverService.resetToMockData();
+    expectOk(await comparison_service_1.comparisonService.reset());
+    expectOk(await discover_service_1.discoverService.resetToMockData());
 });
 (0, node_test_1.describe)('Comparison Service', () => {
     (0, node_test_1.describe)('addToComparison', () => {
         (0, node_test_1.default)('should successfully add a coach to comparison', async () => {
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_mike');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
             node_assert_1.default.strictEqual(result.success, true);
             node_assert_1.default.strictEqual(result.currentCount, 1);
             node_assert_1.default.strictEqual(result.maxCount, 3);
             node_assert_1.default.ok(result.message.includes('Mike'));
         });
         (0, node_test_1.default)('should not add the same coach twice', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_mike');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
             node_assert_1.default.strictEqual(result.success, false);
             node_assert_1.default.strictEqual(result.currentCount, 1);
             node_assert_1.default.ok(result.message.includes('already'));
         });
         (0, node_test_1.default)('should enforce maximum 3 coaches limit', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.addToComparison('coach_amy');
-            const result = await comparison_service_1.comparisonService.addToComparison('coach_oliver');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_amy'));
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('coach_oliver'));
             node_assert_1.default.strictEqual(result.success, false);
             node_assert_1.default.strictEqual(result.currentCount, 3);
             node_assert_1.default.ok(result.message.includes('Maximum'));
         });
         (0, node_test_1.default)('should fail for non-existent coach', async () => {
-            const result = await comparison_service_1.comparisonService.addToComparison('non_existent_coach');
+            const result = expectOk(await comparison_service_1.comparisonService.addToComparison('non_existent_coach'));
             node_assert_1.default.strictEqual(result.success, false);
             node_assert_1.default.ok(result.message.includes('not found'));
         });
     });
     (0, node_test_1.describe)('removeFromComparison', () => {
         (0, node_test_1.default)('should successfully remove a coach from comparison', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.removeFromComparison('coach_mike');
-            const list = await comparison_service_1.comparisonService.getComparisonList();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.removeFromComparison('coach_mike'));
+            const list = expectOk(await comparison_service_1.comparisonService.getComparisonList());
             node_assert_1.default.strictEqual(list.length, 1);
             node_assert_1.default.ok(!list.includes('coach_mike'));
             node_assert_1.default.ok(list.includes('coach_david'));
         });
         (0, node_test_1.default)('should handle removing non-existent coach gracefully', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
             // Should not throw
-            await comparison_service_1.comparisonService.removeFromComparison('non_existent');
-            const list = await comparison_service_1.comparisonService.getComparisonList();
+            expectOk(await comparison_service_1.comparisonService.removeFromComparison('non_existent'));
+            const list = expectOk(await comparison_service_1.comparisonService.getComparisonList());
             node_assert_1.default.strictEqual(list.length, 1);
         });
     });
     (0, node_test_1.describe)('getComparisonList', () => {
         (0, node_test_1.default)('should return empty list initially', async () => {
-            const list = await comparison_service_1.comparisonService.getComparisonList();
+            const list = expectOk(await comparison_service_1.comparisonService.getComparisonList());
             node_assert_1.default.strictEqual(list.length, 0);
         });
         (0, node_test_1.default)('should return all added coach IDs', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            const list = await comparison_service_1.comparisonService.getComparisonList();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            const list = expectOk(await comparison_service_1.comparisonService.getComparisonList());
             node_assert_1.default.strictEqual(list.length, 2);
             node_assert_1.default.ok(list.includes('coach_mike'));
             node_assert_1.default.ok(list.includes('coach_david'));
@@ -119,7 +126,7 @@ const discover_service_1 = require("../../services/discover-service");
     });
     (0, node_test_1.describe)('getComparisonData', () => {
         (0, node_test_1.default)('should return coach comparison data for valid IDs', async () => {
-            const data = await comparison_service_1.comparisonService.getComparisonData(['coach_mike', 'coach_david']);
+            const data = expectOk(await comparison_service_1.comparisonService.getComparisonData(['coach_mike', 'coach_david']));
             node_assert_1.default.strictEqual(data.length, 2);
             const mike = data.find((c) => c.coachId === 'coach_mike');
             node_assert_1.default.ok(mike);
@@ -129,23 +136,23 @@ const discover_service_1 = require("../../services/discover-service");
             node_assert_1.default.ok(mike.specialties.length > 0);
         });
         (0, node_test_1.default)('should skip invalid coach IDs', async () => {
-            const data = await comparison_service_1.comparisonService.getComparisonData([
+            const data = expectOk(await comparison_service_1.comparisonService.getComparisonData([
                 'coach_mike',
                 'invalid_coach',
                 'coach_david',
-            ]);
+            ]));
             node_assert_1.default.strictEqual(data.length, 2);
         });
         (0, node_test_1.default)('should return empty array for all invalid IDs', async () => {
-            const data = await comparison_service_1.comparisonService.getComparisonData(['invalid1', 'invalid2']);
+            const data = expectOk(await comparison_service_1.comparisonService.getComparisonData(['invalid1', 'invalid2']));
             node_assert_1.default.strictEqual(data.length, 0);
         });
     });
     (0, node_test_1.describe)('getComparisonState', () => {
         (0, node_test_1.default)('should return full comparison state', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            const state = await comparison_service_1.comparisonService.getComparisonState();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            const state = expectOk(await comparison_service_1.comparisonService.getComparisonState());
             node_assert_1.default.strictEqual(state.selectedCoachIds.length, 2);
             node_assert_1.default.strictEqual(state.coaches.length, 2);
             node_assert_1.default.strictEqual(state.maxCoaches, 3);
@@ -154,46 +161,46 @@ const discover_service_1 = require("../../services/discover-service");
     });
     (0, node_test_1.describe)('clearComparison', () => {
         (0, node_test_1.default)('should remove all coaches from comparison', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.addToComparison('coach_amy');
-            await comparison_service_1.comparisonService.clearComparison();
-            const list = await comparison_service_1.comparisonService.getComparisonList();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_amy'));
+            expectOk(await comparison_service_1.comparisonService.clearComparison());
+            const list = expectOk(await comparison_service_1.comparisonService.getComparisonList());
             node_assert_1.default.strictEqual(list.length, 0);
         });
     });
     (0, node_test_1.describe)('isInComparison', () => {
         (0, node_test_1.default)('should return true for coaches in comparison', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            const result = await comparison_service_1.comparisonService.isInComparison('coach_mike');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            const result = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_mike'));
             node_assert_1.default.strictEqual(result, true);
         });
         (0, node_test_1.default)('should return false for coaches not in comparison', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            const result = await comparison_service_1.comparisonService.isInComparison('coach_david');
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            const result = expectOk(await comparison_service_1.comparisonService.isInComparison('coach_david'));
             node_assert_1.default.strictEqual(result, false);
         });
     });
     (0, node_test_1.describe)('getComparisonCount', () => {
         (0, node_test_1.default)('should return correct count', async () => {
-            node_assert_1.default.strictEqual(await comparison_service_1.comparisonService.getComparisonCount(), 0);
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            node_assert_1.default.strictEqual(await comparison_service_1.comparisonService.getComparisonCount(), 1);
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            node_assert_1.default.strictEqual(await comparison_service_1.comparisonService.getComparisonCount(), 2);
+            node_assert_1.default.strictEqual(expectOk(await comparison_service_1.comparisonService.getComparisonCount()), 0);
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            node_assert_1.default.strictEqual(expectOk(await comparison_service_1.comparisonService.getComparisonCount()), 1);
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            node_assert_1.default.strictEqual(expectOk(await comparison_service_1.comparisonService.getComparisonCount()), 2);
         });
     });
     (0, node_test_1.describe)('canAddMore', () => {
         (0, node_test_1.default)('should return true when under limit', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            const canAdd = await comparison_service_1.comparisonService.canAddMore();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            const canAdd = expectOk(await comparison_service_1.comparisonService.canAddMore());
             node_assert_1.default.strictEqual(canAdd, true);
         });
         (0, node_test_1.default)('should return false when at limit', async () => {
-            await comparison_service_1.comparisonService.addToComparison('coach_mike');
-            await comparison_service_1.comparisonService.addToComparison('coach_david');
-            await comparison_service_1.comparisonService.addToComparison('coach_amy');
-            const canAdd = await comparison_service_1.comparisonService.canAddMore();
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_mike'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_david'));
+            expectOk(await comparison_service_1.comparisonService.addToComparison('coach_amy'));
+            const canAdd = expectOk(await comparison_service_1.comparisonService.canAddMore());
             node_assert_1.default.strictEqual(canAdd, false);
         });
     });

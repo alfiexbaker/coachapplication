@@ -34,14 +34,33 @@ export function useCommunityHub() {
 
   const loadData = useCallback(async () => {
     try {
-      const [groups, publicG, carpools] = await Promise.all([
+      const [groupsResult, publicResult, carpoolsResult] = await Promise.all([
         communityService.getParentGroups(parentId),
         communityService.getPublicGroups(),
         communityService.getAvailableCarpoolOffers(parentId),
       ]);
-      setMyGroups(groups);
-      setPublicGroups(publicG.filter((pg) => !groups.some((g) => g.id === pg.id)));
-      setCarpoolOffers(carpools);
+      if (!groupsResult.success) {
+        Alert.alert('Error', groupsResult.error.message);
+        setMyGroups([]);
+      } else {
+        setMyGroups(groupsResult.data);
+      }
+
+      if (!publicResult.success) {
+        Alert.alert('Error', publicResult.error.message);
+        setPublicGroups([]);
+      } else if (!groupsResult.success) {
+        setPublicGroups(publicResult.data);
+      } else {
+        setPublicGroups(publicResult.data.filter((pg) => !groupsResult.data.some((g) => g.id === pg.id)));
+      }
+
+      if (!carpoolsResult.success) {
+        Alert.alert('Error', carpoolsResult.error.message);
+        setCarpoolOffers([]);
+      } else {
+        setCarpoolOffers(carpoolsResult.data);
+      }
     } catch (error) {
       logger.error('Failed to load community data:', error);
     } finally {
@@ -63,10 +82,14 @@ export function useCommunityHub() {
   const handleCreateGroup = useCallback(async (data: CreateGroupFormData) => {
     setCreatingGroup(true);
     try {
-      await communityService.createGroup({
+      const result = await communityService.createGroup({
         name: data.name, description: data.description, type: data.type,
         memberIds: [], memberNames: [], creatorId: parentId, creatorName: parentName, isPublic: data.isPublic,
       });
+      if (!result.success) {
+        Alert.alert('Could not create group', result.error.message);
+        return;
+      }
       setShowCreateModal(false);
       loadData();
     } catch (error) {

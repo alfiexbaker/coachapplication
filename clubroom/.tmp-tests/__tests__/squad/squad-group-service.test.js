@@ -52,6 +52,28 @@ const squad_group_service_1 = require("@/services/squad-group-service");
 const community_group_service_1 = require("@/services/community/community-group-service");
 const api_client_1 = require("@/services/api-client");
 const storage_keys_1 = require("@/constants/storage-keys");
+const legacyCommunityGroupService = {
+    async createGroup(params) {
+        const result = await community_group_service_1.communityGroupService.createGroup(params);
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        return result.data;
+    },
+    async getGroup(groupId) {
+        const result = await community_group_service_1.communityGroupService.getGroup(groupId);
+        return result.success ? result.data : undefined;
+    },
+    async addMemberDirect(groupId, parentId, parentName, role) {
+        return community_group_service_1.communityGroupService.addMemberDirect(groupId, parentId, parentName, role);
+    },
+    async removeMemberDirect(groupId, parentId) {
+        return community_group_service_1.communityGroupService.removeMemberDirect(groupId, parentId);
+    },
+    async deleteGroup(groupId) {
+        return community_group_service_1.communityGroupService.deleteGroup(groupId);
+    },
+};
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -215,7 +237,7 @@ async function seedSquadMembers(members) {
             const firstGroupId = first.data.id;
             // Simulate external deletion of the group via the community service
             // (this clears both in-memory and persisted state, but leaves squad-group mapping intact)
-            await community_group_service_1.communityGroupService.deleteGroup(firstGroupId);
+            await legacyCommunityGroupService.deleteGroup(firstGroupId);
             // Re-inject the stale mapping (deleteGroup above only deleted the group itself)
             const map = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SQUAD_GROUP_MAP, {});
             map[squadId] = firstGroupId;
@@ -250,7 +272,7 @@ async function seedSquadMembers(members) {
             const syncResult = await squad_group_service_1.squadGroupService.syncMemberToGroup(squadId, 'parent_new_member', 'New Parent');
             strict_1.default.ok(syncResult.success);
             // Verify member was added
-            const group = await community_group_service_1.communityGroupService.getGroup(groupId);
+            const group = await legacyCommunityGroupService.getGroup(groupId);
             strict_1.default.ok(group, 'Group should exist');
             const newMember = group.members.find((m) => m.parentId === 'parent_new_member');
             strict_1.default.ok(newMember, 'New member should be in group');
@@ -276,7 +298,7 @@ async function seedSquadMembers(members) {
             const secondSync = await squad_group_service_1.squadGroupService.syncMemberToGroup(squadId, 'parent_dup', 'Dup Parent');
             strict_1.default.ok(secondSync.success);
             // Should only appear once
-            const group = await community_group_service_1.communityGroupService.getGroup(groupId);
+            const group = await legacyCommunityGroupService.getGroup(groupId);
             strict_1.default.ok(group);
             const count = group.members.filter((m) => m.parentId === 'parent_dup').length;
             strict_1.default.equal(count, 1, 'Member should appear only once');
@@ -310,7 +332,7 @@ async function seedSquadMembers(members) {
             const removeResult = await squad_group_service_1.squadGroupService.syncMemberRemovalFromGroup(squadId, 'parent_remove_me');
             strict_1.default.ok(removeResult.success);
             // Verify member is gone
-            const group = await community_group_service_1.communityGroupService.getGroup(groupId);
+            const group = await legacyCommunityGroupService.getGroup(groupId);
             strict_1.default.ok(group);
             const removed = group.members.find((m) => m.parentId === 'parent_remove_me');
             strict_1.default.equal(removed, undefined, 'Member should be removed');
@@ -362,7 +384,7 @@ async function seedSquadMembers(members) {
             const mappedId = await squad_group_service_1.squadGroupService.getGroupIdForSquad(squadId);
             strict_1.default.equal(mappedId, null, 'Mapping should be removed');
             // Group should be gone
-            const group = await community_group_service_1.communityGroupService.getGroup(groupId);
+            const group = await legacyCommunityGroupService.getGroup(groupId);
             strict_1.default.equal(group, undefined, 'Group should be deleted');
         });
         (0, node_test_1.default)('returns ok(undefined) if no group mapping exists', async () => {
@@ -410,7 +432,7 @@ async function seedSquadMembers(members) {
     (0, node_test_1.describe)('addMemberDirect', () => {
         (0, node_test_1.default)('adds a member to an existing group', async () => {
             // Create a group first
-            const group = await community_group_service_1.communityGroupService.createGroup({
+            const group = await legacyCommunityGroupService.createGroup({
                 name: 'Direct Add Test Group',
                 type: 'GENERAL',
                 memberIds: [],
@@ -419,7 +441,7 @@ async function seedSquadMembers(members) {
                 creatorName: 'Owner Direct',
                 isPublic: false,
             });
-            const result = await community_group_service_1.communityGroupService.addMemberDirect(group.id, 'parent_direct_add', 'Direct Add Parent');
+            const result = await legacyCommunityGroupService.addMemberDirect(group.id, 'parent_direct_add', 'Direct Add Parent');
             strict_1.default.ok(result.success);
             strict_1.default.ok(result.data);
             const added = result.data.members.find((m) => m.parentId === 'parent_direct_add');
@@ -428,7 +450,7 @@ async function seedSquadMembers(members) {
             strict_1.default.equal(added.parentName, 'Direct Add Parent');
         });
         (0, node_test_1.default)('is a no-op if member is already in the group', async () => {
-            const group = await community_group_service_1.communityGroupService.createGroup({
+            const group = await legacyCommunityGroupService.createGroup({
                 name: 'Direct Add Noop Group',
                 type: 'GENERAL',
                 memberIds: ['parent_already_in'],
@@ -438,17 +460,17 @@ async function seedSquadMembers(members) {
                 isPublic: false,
             });
             const initialCount = group.members.length;
-            const result = await community_group_service_1.communityGroupService.addMemberDirect(group.id, 'parent_already_in', 'Already In');
+            const result = await legacyCommunityGroupService.addMemberDirect(group.id, 'parent_already_in', 'Already In');
             strict_1.default.ok(result.success);
             strict_1.default.equal(result.data.members.length, initialCount, 'Member count should not change');
         });
         (0, node_test_1.default)('returns NOT_FOUND for non-existent group', async () => {
-            const result = await community_group_service_1.communityGroupService.addMemberDirect('group_nonexistent_direct', 'parent_x', 'Parent X');
+            const result = await legacyCommunityGroupService.addMemberDirect('group_nonexistent_direct', 'parent_x', 'Parent X');
             strict_1.default.equal(result.success, false);
             strict_1.default.equal(result.error.code, 'NOT_FOUND');
         });
         (0, node_test_1.default)('respects maxMembers limit', async () => {
-            const group = await community_group_service_1.communityGroupService.createGroup({
+            const group = await legacyCommunityGroupService.createGroup({
                 name: 'Max Members Group',
                 type: 'GENERAL',
                 memberIds: [],
@@ -458,7 +480,7 @@ async function seedSquadMembers(members) {
                 isPublic: false,
                 maxMembers: 1, // Owner takes the only slot
             });
-            const result = await community_group_service_1.communityGroupService.addMemberDirect(group.id, 'parent_overflow', 'Overflow Parent');
+            const result = await legacyCommunityGroupService.addMemberDirect(group.id, 'parent_overflow', 'Overflow Parent');
             strict_1.default.equal(result.success, false);
             strict_1.default.equal(result.error.code, 'VALIDATION');
         });
@@ -468,7 +490,7 @@ async function seedSquadMembers(members) {
     // --------------------------------------------------------------------------
     (0, node_test_1.describe)('removeMemberDirect', () => {
         (0, node_test_1.default)('removes a member from an existing group', async () => {
-            const group = await community_group_service_1.communityGroupService.createGroup({
+            const group = await legacyCommunityGroupService.createGroup({
                 name: 'Direct Remove Test Group',
                 type: 'GENERAL',
                 memberIds: ['parent_to_remove'],
@@ -477,16 +499,16 @@ async function seedSquadMembers(members) {
                 creatorName: 'Owner Remove',
                 isPublic: false,
             });
-            const result = await community_group_service_1.communityGroupService.removeMemberDirect(group.id, 'parent_to_remove');
+            const result = await legacyCommunityGroupService.removeMemberDirect(group.id, 'parent_to_remove');
             strict_1.default.ok(result.success);
             // Verify member is gone
-            const updatedGroup = await community_group_service_1.communityGroupService.getGroup(group.id);
+            const updatedGroup = await legacyCommunityGroupService.getGroup(group.id);
             strict_1.default.ok(updatedGroup);
             const found = updatedGroup.members.find((m) => m.parentId === 'parent_to_remove');
             strict_1.default.equal(found, undefined, 'Member should be removed');
         });
         (0, node_test_1.default)('is a no-op if member is not in the group', async () => {
-            const group = await community_group_service_1.communityGroupService.createGroup({
+            const group = await legacyCommunityGroupService.createGroup({
                 name: 'Direct Remove Noop Group',
                 type: 'GENERAL',
                 memberIds: [],
@@ -495,11 +517,11 @@ async function seedSquadMembers(members) {
                 creatorName: 'Owner Noop Remove',
                 isPublic: false,
             });
-            const result = await community_group_service_1.communityGroupService.removeMemberDirect(group.id, 'parent_not_in_group');
+            const result = await legacyCommunityGroupService.removeMemberDirect(group.id, 'parent_not_in_group');
             strict_1.default.ok(result.success, 'Should succeed even if member not found');
         });
         (0, node_test_1.default)('returns NOT_FOUND for non-existent group', async () => {
-            const result = await community_group_service_1.communityGroupService.removeMemberDirect('group_nonexistent_remove', 'parent_y');
+            const result = await legacyCommunityGroupService.removeMemberDirect('group_nonexistent_remove', 'parent_y');
             strict_1.default.equal(result.success, false);
             strict_1.default.equal(result.error.code, 'NOT_FOUND');
         });
@@ -509,7 +531,7 @@ async function seedSquadMembers(members) {
     // --------------------------------------------------------------------------
     (0, node_test_1.describe)('deleteGroup', () => {
         (0, node_test_1.default)('deletes an existing group', async () => {
-            const group = await community_group_service_1.communityGroupService.createGroup({
+            const group = await legacyCommunityGroupService.createGroup({
                 name: 'Delete Me Group',
                 type: 'GENERAL',
                 memberIds: [],
@@ -518,14 +540,14 @@ async function seedSquadMembers(members) {
                 creatorName: 'Owner Delete',
                 isPublic: false,
             });
-            const result = await community_group_service_1.communityGroupService.deleteGroup(group.id);
+            const result = await legacyCommunityGroupService.deleteGroup(group.id);
             strict_1.default.ok(result.success);
             // Verify group is gone
-            const found = await community_group_service_1.communityGroupService.getGroup(group.id);
+            const found = await legacyCommunityGroupService.getGroup(group.id);
             strict_1.default.equal(found, undefined, 'Group should be deleted');
         });
         (0, node_test_1.default)('returns NOT_FOUND for non-existent group', async () => {
-            const result = await community_group_service_1.communityGroupService.deleteGroup('group_nonexistent_delete');
+            const result = await legacyCommunityGroupService.deleteGroup('group_nonexistent_delete');
             strict_1.default.equal(result.success, false);
             strict_1.default.equal(result.error.code, 'NOT_FOUND');
         });

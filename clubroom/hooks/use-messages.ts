@@ -52,7 +52,11 @@ export function useMessages(): UseMessagesResult {
   }, [params.coachId]);
 
   useEffect(() => {
-    messagingService.listThreads().then(setThreads);
+    messagingService.listThreads().then((result) => {
+      if (result.success) {
+        setThreads(result.data);
+      }
+    });
   }, []);
 
   const filteredThreads = useMemo(() => {

@@ -21,14 +21,13 @@ export function useBackgroundCheck() {
   const [submitting, setSubmitting] = useState(false);
 
   const loadStatus = useCallback(async () => {
-    try {
-      const data = await verificationService.getStatus(COACH_ID);
-      setStatus(data);
-    } catch (error) {
-      logger.error('Failed to load verification status:', error);
-    } finally {
-      setLoading(false);
+    const result = await verificationService.getStatus(COACH_ID);
+    if (result.success) {
+      setStatus(result.data);
+    } else {
+      logger.error('Failed to load verification status:', result.error);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
@@ -36,8 +35,12 @@ export function useBackgroundCheck() {
   const handleStartCheck = useCallback(async () => {
     setSubmitting(true);
     try {
-      await verificationService.startBackgroundCheck(COACH_ID);
-      await loadStatus();
+      const result = await verificationService.startBackgroundCheck(COACH_ID);
+      if (result.success) {
+        await loadStatus();
+      } else {
+        logger.error('Failed to start background check:', result.error);
+      }
     } catch (error) {
       logger.error('Failed to start background check:', error);
     } finally {
@@ -48,8 +51,12 @@ export function useBackgroundCheck() {
   const handleMockApprove = useCallback(async () => {
     setSubmitting(true);
     try {
-      await verificationService.mockApproveVerification(COACH_ID, 'backgroundCheck');
-      router.back();
+      const result = await verificationService.mockApproveVerification(COACH_ID, 'backgroundCheck');
+      if (result.success) {
+        router.back();
+      } else {
+        logger.error('Failed to approve:', result.error);
+      }
     } catch (error) {
       logger.error('Failed to approve:', error);
     } finally {

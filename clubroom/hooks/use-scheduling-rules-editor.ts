@@ -25,8 +25,15 @@ export function useSchedulingRulesEditor(coachId: string, onSaved?: (rules: Coac
     let cancelled = false;
     (async () => {
       try {
-        const data = await schedulingRulesService.getCoachRules(coachId);
-        if (!cancelled) setRules(data);
+        const dataResult = await schedulingRulesService.getCoachRules(coachId);
+        if (!cancelled) {
+          if (dataResult.success) {
+            setRules(dataResult.data);
+          } else {
+            logger.error('Failed to load scheduling rules', dataResult.error);
+            setRules(schedulingRulesService.getDefaultRules(coachId));
+          }
+        }
       } catch (err) {
         logger.error('Failed to load scheduling rules', err);
       } finally {
@@ -56,11 +63,15 @@ export function useSchedulingRulesEditor(coachId: string, onSaved?: (rules: Coac
       const toSave = { ...pendingUpdatesRef.current };
       pendingUpdatesRef.current = {};
       try {
-        const updated = await schedulingRulesService.updateCoachRules(coachId, toSave);
-        setRules(updated);
+        const updatedResult = await schedulingRulesService.updateCoachRules(coachId, toSave);
+        if (!updatedResult.success) {
+          logger.error('Failed to auto-save scheduling rules', updatedResult.error);
+          return;
+        }
+        setRules(updatedResult.data);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showSavedToast();
-        onSaved?.(updated);
+        onSaved?.(updatedResult.data);
         logger.debug('Auto-saved scheduling rules', toSave);
       } catch (err) { logger.error('Failed to auto-save scheduling rules', err); }
     }, 500);

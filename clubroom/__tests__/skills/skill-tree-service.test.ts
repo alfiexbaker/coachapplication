@@ -10,23 +10,31 @@ import test, { describe, beforeEach, after } from 'node:test';
 
 import { skillTreeService, SKILL_TREE_CATEGORIES } from '../../services/skills';
 import type { SkillTreeCategory } from '../../constants/types';
+import type { Result, ServiceError } from '../../types/result';
 
 const TEST_USER_ID = 'test_user_skills';
 
+const expectOk = <T>(result: Result<T, ServiceError>): T => {
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data;
+};
+
 // Reset progress before each test
 beforeEach(async () => {
-  await skillTreeService.resetUserProgress(TEST_USER_ID);
+  expectOk(await skillTreeService.resetUserProgress(TEST_USER_ID));
 });
 
 // Clean up after all tests
 after(async () => {
-  await skillTreeService.resetUserProgress(TEST_USER_ID);
+  expectOk(await skillTreeService.resetUserProgress(TEST_USER_ID));
 });
 
 describe('Skill Tree Service', () => {
   describe('getSkillTrees', () => {
     test('should return all skill trees', async () => {
-      const trees = await skillTreeService.getSkillTrees();
+      const trees = expectOk(await skillTreeService.getSkillTrees());
 
       assert.ok(Array.isArray(trees));
       assert.ok(trees.length >= 6, 'Should have at least 6 skill trees');
@@ -41,7 +49,7 @@ describe('Skill Tree Service', () => {
     });
 
     test('should have valid category for each tree', async () => {
-      const trees = await skillTreeService.getSkillTrees();
+      const trees = expectOk(await skillTreeService.getSkillTrees());
       const validCategories: SkillTreeCategory[] = [
         'DRIBBLING',
         'PASSING',
@@ -63,7 +71,7 @@ describe('Skill Tree Service', () => {
 
   describe('getSkillTree', () => {
     test('should return a specific skill tree by category', async () => {
-      const tree = await skillTreeService.getSkillTree('DRIBBLING');
+      const tree = expectOk(await skillTreeService.getSkillTree('DRIBBLING'));
 
       assert.ok(tree);
       assert.strictEqual(tree.category, 'DRIBBLING');
@@ -73,7 +81,7 @@ describe('Skill Tree Service', () => {
 
     test('should return null for invalid category', async () => {
       // @ts-expect-error Testing invalid input
-      const tree = await skillTreeService.getSkillTree('INVALID_CATEGORY');
+      const tree = expectOk(await skillTreeService.getSkillTree('INVALID_CATEGORY'));
 
       assert.strictEqual(tree, null);
     });
@@ -81,21 +89,21 @@ describe('Skill Tree Service', () => {
 
   describe('getUserProgress', () => {
     test('should return null for user with no progress', async () => {
-      const progress = await skillTreeService.getUserProgress(
+      const progress = expectOk(await skillTreeService.getUserProgress(
         TEST_USER_ID,
         'tree_dribbling'
-      );
+      ));
 
       assert.strictEqual(progress, null);
     });
 
     test('should return progress after XP is added', async () => {
-      await skillTreeService.addXpToNode(TEST_USER_ID, 'drib_1_basic', 50);
+      expectOk(await skillTreeService.addXpToNode(TEST_USER_ID, 'drib_1_basic', 50));
 
-      const progress = await skillTreeService.getUserProgress(
+      const progress = expectOk(await skillTreeService.getUserProgress(
         TEST_USER_ID,
         'tree_dribbling'
-      );
+      ));
 
       assert.ok(progress);
       assert.strictEqual(progress.userId, TEST_USER_ID);
@@ -107,11 +115,11 @@ describe('Skill Tree Service', () => {
 
   describe('addXpToNode', () => {
     test('should add XP to a node with no prerequisites', async () => {
-      const result = await skillTreeService.addXpToNode(
+      const result = expectOk(await skillTreeService.addXpToNode(
         TEST_USER_ID,
         'drib_1_basic',
         50
-      );
+      ));
 
       assert.ok(result);
       assert.strictEqual(result.progress.currentXp, 50);
@@ -120,11 +128,11 @@ describe('Skill Tree Service', () => {
     });
 
     test('should unlock node when XP reaches threshold', async () => {
-      const result = await skillTreeService.addXpToNode(
+      const result = expectOk(await skillTreeService.addXpToNode(
         TEST_USER_ID,
         'drib_1_basic',
         100
-      );
+      ));
 
       assert.ok(result);
       assert.strictEqual(result.progress.currentXp, 100);
@@ -134,12 +142,12 @@ describe('Skill Tree Service', () => {
     });
 
     test('should not exceed max XP', async () => {
-      await skillTreeService.addXpToNode(TEST_USER_ID, 'drib_1_basic', 100);
-      const result = await skillTreeService.addXpToNode(
+      expectOk(await skillTreeService.addXpToNode(TEST_USER_ID, 'drib_1_basic', 100));
+      const result = expectOk(await skillTreeService.addXpToNode(
         TEST_USER_ID,
         'drib_1_basic',
         50
-      );
+      ));
 
       assert.ok(result);
       assert.strictEqual(result.progress.currentXp, 100); // Capped at max
@@ -152,7 +160,10 @@ describe('Skill Tree Service', () => {
         50
       );
 
-      assert.strictEqual(result, null);
+      assert.strictEqual(result.success, false);
+      if (!result.success) {
+        assert.strictEqual(result.error.code, 'VALIDATION');
+      }
     });
 
     test('should fail when prerequisites not met', async () => {
@@ -163,21 +174,24 @@ describe('Skill Tree Service', () => {
         50
       );
 
-      assert.strictEqual(result, null);
+      assert.strictEqual(result.success, false);
+      if (!result.success) {
+        assert.strictEqual(result.error.code, 'VALIDATION');
+      }
     });
 
     test('should succeed after prerequisites are unlocked', async () => {
       // Unlock prerequisite nodes first
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic');
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_running');
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_shield');
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic'));
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_running'));
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_shield'));
 
       // Now should be able to add XP to drib_2_turns
-      const result = await skillTreeService.addXpToNode(
+      const result = expectOk(await skillTreeService.addXpToNode(
         TEST_USER_ID,
         'drib_2_turns',
         50
-      );
+      ));
 
       assert.ok(result);
       assert.strictEqual(result.progress.currentXp, 50);
@@ -186,10 +200,10 @@ describe('Skill Tree Service', () => {
 
   describe('unlockNode', () => {
     test('should directly unlock a node', async () => {
-      const result = await skillTreeService.unlockNode(
+      const result = expectOk(await skillTreeService.unlockNode(
         TEST_USER_ID,
         'drib_1_basic'
-      );
+      ));
 
       assert.ok(result);
       assert.strictEqual(result.progress.isUnlocked, true);
@@ -202,16 +216,19 @@ describe('Skill Tree Service', () => {
         'invalid_node'
       );
 
-      assert.strictEqual(result, null);
+      assert.strictEqual(result.success, false);
+      if (!result.success) {
+        assert.strictEqual(result.error.code, 'VALIDATION');
+      }
     });
   });
 
   describe('calculateTreeProgress', () => {
     test('should return zero progress for new user', async () => {
-      const progress = await skillTreeService.calculateTreeProgress(
+      const progress = expectOk(await skillTreeService.calculateTreeProgress(
         TEST_USER_ID,
         'tree_dribbling'
-      );
+      ));
 
       assert.strictEqual(progress.unlockedNodes, 0);
       assert.strictEqual(progress.percentComplete, 0);
@@ -219,12 +236,12 @@ describe('Skill Tree Service', () => {
     });
 
     test('should calculate progress after unlocking nodes', async () => {
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic');
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic'));
 
-      const progress = await skillTreeService.calculateTreeProgress(
+      const progress = expectOk(await skillTreeService.calculateTreeProgress(
         TEST_USER_ID,
         'tree_dribbling'
-      );
+      ));
 
       assert.strictEqual(progress.unlockedNodes, 1);
       assert.ok(progress.percentComplete > 0);
@@ -234,7 +251,7 @@ describe('Skill Tree Service', () => {
 
   describe('getTreesSummary', () => {
     test('should return summary for all trees', async () => {
-      const summary = await skillTreeService.getTreesSummary(TEST_USER_ID);
+      const summary = expectOk(await skillTreeService.getTreesSummary(TEST_USER_ID));
 
       assert.ok(Array.isArray(summary));
       assert.ok(summary.length >= 6);
@@ -254,41 +271,41 @@ describe('Skill Tree Service', () => {
 
   describe('canUnlockNode', () => {
     test('should return true for node with no prerequisites', async () => {
-      const canUnlock = await skillTreeService.canUnlockNode(
+      const canUnlock = expectOk(await skillTreeService.canUnlockNode(
         TEST_USER_ID,
         'drib_1_basic'
-      );
+      ));
 
       assert.strictEqual(canUnlock, true);
     });
 
     test('should return false for node with unmet prerequisites', async () => {
-      const canUnlock = await skillTreeService.canUnlockNode(
+      const canUnlock = expectOk(await skillTreeService.canUnlockNode(
         TEST_USER_ID,
         'drib_2_turns'
-      );
+      ));
 
       assert.strictEqual(canUnlock, false);
     });
 
     test('should return true after prerequisites are met', async () => {
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic');
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_running');
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_shield');
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic'));
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_running'));
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_shield'));
 
-      const canUnlock = await skillTreeService.canUnlockNode(
+      const canUnlock = expectOk(await skillTreeService.canUnlockNode(
         TEST_USER_ID,
         'drib_2_turns'
-      );
+      ));
 
       assert.strictEqual(canUnlock, true);
     });
 
     test('should return false for invalid node', async () => {
-      const canUnlock = await skillTreeService.canUnlockNode(
+      const canUnlock = expectOk(await skillTreeService.canUnlockNode(
         TEST_USER_ID,
         'invalid_node'
-      );
+      ));
 
       assert.strictEqual(canUnlock, false);
     });
@@ -296,12 +313,12 @@ describe('Skill Tree Service', () => {
 
   describe('getSkillTreeWithProgress', () => {
     test('should merge progress into tree nodes', async () => {
-      await skillTreeService.addXpToNode(TEST_USER_ID, 'drib_1_basic', 50);
+      expectOk(await skillTreeService.addXpToNode(TEST_USER_ID, 'drib_1_basic', 50));
 
-      const tree = await skillTreeService.getSkillTreeWithProgress(
+      const tree = expectOk(await skillTreeService.getSkillTreeWithProgress(
         TEST_USER_ID,
         'DRIBBLING'
-      );
+      ));
 
       assert.ok(tree);
       const basicNode = tree.nodes.find((n) => n.id === 'drib_1_basic');
@@ -311,12 +328,12 @@ describe('Skill Tree Service', () => {
     });
 
     test('should update unlocked count', async () => {
-      await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic');
+      expectOk(await skillTreeService.unlockNode(TEST_USER_ID, 'drib_1_basic'));
 
-      const tree = await skillTreeService.getSkillTreeWithProgress(
+      const tree = expectOk(await skillTreeService.getSkillTreeWithProgress(
         TEST_USER_ID,
         'DRIBBLING'
-      );
+      ));
 
       assert.ok(tree);
       assert.strictEqual(tree.unlockedNodes, 1);
@@ -369,7 +386,7 @@ describe('Skill Tree Service', () => {
 
   describe('Node Structure Validation', () => {
     test('all nodes should have required fields', async () => {
-      const trees = await skillTreeService.getSkillTrees();
+      const trees = expectOk(await skillTreeService.getSkillTrees());
 
       trees.forEach((tree) => {
         tree.nodes.forEach((node) => {
@@ -388,7 +405,7 @@ describe('Skill Tree Service', () => {
     });
 
     test('all prerequisite references should be valid', async () => {
-      const trees = await skillTreeService.getSkillTrees();
+      const trees = expectOk(await skillTreeService.getSkillTrees());
 
       trees.forEach((tree) => {
         const nodeIds = new Set(tree.nodes.map((n) => n.id));
@@ -405,7 +422,7 @@ describe('Skill Tree Service', () => {
     });
 
     test('level 1 nodes should have no prerequisites', async () => {
-      const trees = await skillTreeService.getSkillTrees();
+      const trees = expectOk(await skillTreeService.getSkillTrees());
 
       trees.forEach((tree) => {
         const level1Nodes = tree.nodes.filter((n) => n.level === 1);

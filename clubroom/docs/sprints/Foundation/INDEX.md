@@ -27,6 +27,8 @@ Building features on this foundation means every feature inherits the debt. Fix 
 | **4** | `PHASE-4-UI-CONSISTENCY.md` | Decompose oversized components. Pressable→Clickable. flexDirection→Row. Tokens. |
 | **5** | `PHASE-5-TEST-COVERAGE.md` | 70%+ service coverage. strict:true. Critical path tests. |
 
+**Status update (2026-02-10):** Phase 1 service hardening quality gates are now passing.
+
 ## Execution Order
 
 Phases MUST run in order. Each phase depends on the previous:

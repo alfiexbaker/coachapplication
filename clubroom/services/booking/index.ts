@@ -25,6 +25,10 @@ export type { BookingDraft, CreateBookingParams } from './booking-crud-service';
 import { bookingCrudService } from './booking-crud-service';
 import { bookingStatusService } from './booking-status-service';
 import { bookingSearchService } from './booking-search-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BookingFacade');
+void logger;
 
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY

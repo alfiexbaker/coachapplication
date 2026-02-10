@@ -22,6 +22,7 @@ const booking_types_1 = require("@/constants/booking-types");
 const logger_1 = require("@/utils/logger");
 const format_1 = require("@/utils/format");
 const config_1 = require("@/constants/config");
+const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('AnalyticsExportService');
 const USE_MOCK = config_1.api.useMock;
@@ -356,42 +357,110 @@ exports.analyticsExportService = {
      * Get comprehensive analytics for a coach
      */
     async getCoachAnalytics(coachId, period = 'MONTH') {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            if (analytics) {
-                // Update period and date range
-                const dateRange = getDateRangeForPeriod(period);
-                return {
-                    ...analytics,
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                if (analytics) {
+                    // Update period and date range
+                    const dateRange = getDateRangeForPeriod(period);
+                    return (0, result_1.ok)({
+                        ...analytics,
+                        period,
+                        dateRange,
+                        revenueChart: generateMockRevenueChart(period, analytics.totalRevenue),
+                        computedAt: new Date().toISOString(),
+                    });
+                }
+                // Return default analytics for unknown coach
+                return (0, result_1.ok)({
+                    coachId,
+                    coachName: 'Coach',
                     period,
-                    dateRange,
-                    revenueChart: generateMockRevenueChart(period, analytics.totalRevenue),
+                    dateRange: getDateRangeForPeriod(period),
+                    totalRevenue: 0,
+                    revenueChange: 0,
+                    revenueChangePercent: 0,
+                    revenueTrend: 'STABLE',
+                    revenueChart: [],
+                    avgRevenuePerSession: 0,
+                    sessions: {
+                        totalSessions: 0,
+                        sessionsChange: 0,
+                        sessionsChangePercent: 0,
+                        avgSessionsPerWeek: 0,
+                        avgDuration: 0,
+                        popularSessionType: 'N/A',
+                        bySessionType: [],
+                    },
+                    retention: {
+                        newClients: 0,
+                        returningClients: 0,
+                        churnRate: 0,
+                        retentionRate: 100,
+                        avgSessionsPerClient: 0,
+                        totalActiveClients: 0,
+                        clientsLost: 0,
+                    },
+                    cancellations: {
+                        totalCancellations: 0,
+                        cancellationRate: 0,
+                        byReason: [],
+                        byDayOfWeek: [],
+                        avgNoticeHours: 0,
+                        revenueLost: 0,
+                    },
+                    peakHours: [],
+                    busiestDay: { dayOfWeek: 6, dayName: 'Saturday', sessionCount: 0 },
+                    busiestHour: { hour: 17, sessionCount: 0 },
+                    topSkills: [],
+                    avgRating: 0,
+                    ratingChange: 0,
+                    reviewCount: 0,
                     computedAt: new Date().toISOString(),
-                };
+                });
             }
-            // Return default analytics for unknown coach
-            return {
-                coachId,
-                coachName: 'Coach',
-                period,
-                dateRange: getDateRangeForPeriod(period),
-                totalRevenue: 0,
-                revenueChange: 0,
-                revenueChangePercent: 0,
-                revenueTrend: 'STABLE',
-                revenueChart: [],
-                avgRevenuePerSession: 0,
-                sessions: {
-                    totalSessions: 0,
-                    sessionsChange: 0,
-                    sessionsChangePercent: 0,
-                    avgSessionsPerWeek: 0,
-                    avgDuration: 0,
-                    popularSessionType: 'N/A',
-                    bySessionType: [],
-                },
-                retention: {
+            const response = await fetch(`/api/coaches/${coachId}/analytics?period=${period}`);
+            if (!response.ok)
+                return (0, result_1.ok)(null);
+            return (0, result_1.ok)(await response.json());
+        }
+        catch (error) {
+            logger.error('Failed to get coach analytics', { coachId, period, error });
+            return (0, result_1.err)((0, result_1.networkError)('Failed to load coach analytics'));
+        }
+    },
+    /**
+     * Get revenue chart data for a specific period
+     */
+    async getRevenueChart(coachId, period = 'MONTH') {
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                const baseRevenue = analytics?.totalRevenue || 1000;
+                return (0, result_1.ok)(generateMockRevenueChart(period, baseRevenue));
+            }
+            const response = await fetch(`/api/coaches/${coachId}/revenue?period=${period}`);
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to load revenue chart'));
+            }
+            return (0, result_1.ok)(await response.json());
+        }
+        catch (error) {
+            logger.error('Failed to get revenue chart', { coachId, period, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load revenue chart'));
+        }
+    },
+    /**
+     * Get retention metrics for a coach
+     */
+    async getRetentionMetrics(coachId) {
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                return (0, result_1.ok)(analytics?.retention || {
                     newClients: 0,
                     returningClients: 0,
                     churnRate: 0,
@@ -399,131 +468,130 @@ exports.analyticsExportService = {
                     avgSessionsPerClient: 0,
                     totalActiveClients: 0,
                     clientsLost: 0,
-                },
-                cancellations: {
+                });
+            }
+            const response = await fetch(`/api/coaches/${coachId}/retention`);
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to load retention metrics'));
+            }
+            return (0, result_1.ok)(await response.json());
+        }
+        catch (error) {
+            logger.error('Failed to get retention metrics', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load retention metrics'));
+        }
+    },
+    /**
+     * Get cancellation patterns and statistics
+     */
+    async getCancellationPatterns(coachId) {
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                return (0, result_1.ok)(analytics?.cancellations || {
                     totalCancellations: 0,
                     cancellationRate: 0,
                     byReason: [],
                     byDayOfWeek: [],
                     avgNoticeHours: 0,
                     revenueLost: 0,
-                },
-                peakHours: [],
-                busiestDay: { dayOfWeek: 6, dayName: 'Saturday', sessionCount: 0 },
-                busiestHour: { hour: 17, sessionCount: 0 },
-                topSkills: [],
-                avgRating: 0,
-                ratingChange: 0,
-                reviewCount: 0,
-                computedAt: new Date().toISOString(),
-            };
+                });
+            }
+            const response = await fetch(`/api/coaches/${coachId}/cancellations`);
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to load cancellation patterns'));
+            }
+            return (0, result_1.ok)(await response.json());
         }
-        const response = await fetch(`/api/coaches/${coachId}/analytics?period=${period}`);
-        if (!response.ok)
-            return null;
-        return response.json();
-    },
-    /**
-     * Get revenue chart data for a specific period
-     */
-    async getRevenueChart(coachId, period = 'MONTH') {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            const baseRevenue = analytics?.totalRevenue || 1000;
-            return generateMockRevenueChart(period, baseRevenue);
+        catch (error) {
+            logger.error('Failed to get cancellation patterns', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load cancellation patterns'));
         }
-        const response = await fetch(`/api/coaches/${coachId}/revenue?period=${period}`);
-        return response.json();
-    },
-    /**
-     * Get retention metrics for a coach
-     */
-    async getRetentionMetrics(coachId) {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            return analytics?.retention || {
-                newClients: 0,
-                returningClients: 0,
-                churnRate: 0,
-                retentionRate: 100,
-                avgSessionsPerClient: 0,
-                totalActiveClients: 0,
-                clientsLost: 0,
-            };
-        }
-        const response = await fetch(`/api/coaches/${coachId}/retention`);
-        return response.json();
-    },
-    /**
-     * Get cancellation patterns and statistics
-     */
-    async getCancellationPatterns(coachId) {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            return analytics?.cancellations || {
-                totalCancellations: 0,
-                cancellationRate: 0,
-                byReason: [],
-                byDayOfWeek: [],
-                avgNoticeHours: 0,
-                revenueLost: 0,
-            };
-        }
-        const response = await fetch(`/api/coaches/${coachId}/cancellations`);
-        return response.json();
     },
     /**
      * Get peak hours data for heatmap visualization
      */
     async getPeakHours(coachId) {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            return analytics?.peakHours || generateMockPeakHours();
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                return (0, result_1.ok)(analytics?.peakHours || generateMockPeakHours());
+            }
+            const response = await fetch(`/api/coaches/${coachId}/peak-hours`);
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to load peak hours'));
+            }
+            return (0, result_1.ok)(await response.json());
         }
-        const response = await fetch(`/api/coaches/${coachId}/peak-hours`);
-        return response.json();
+        catch (error) {
+            logger.error('Failed to get peak hours', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load peak hours'));
+        }
     },
     /**
      * Get top skills taught by the coach
      */
     async getTopSkills(coachId) {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            return analytics?.topSkills || [];
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                return (0, result_1.ok)(analytics?.topSkills || []);
+            }
+            const response = await fetch(`/api/coaches/${coachId}/top-skills`);
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to load top skills'));
+            }
+            return (0, result_1.ok)(await response.json());
         }
-        const response = await fetch(`/api/coaches/${coachId}/top-skills`);
-        return response.json();
+        catch (error) {
+            logger.error('Failed to get top skills', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load top skills'));
+        }
     },
     /**
      * Get session statistics
      */
     async getSessionStats(coachId) {
-        if (USE_MOCK) {
-            coachAnalyticsCache = await loadCoachAnalytics();
-            const analytics = coachAnalyticsCache[coachId];
-            return analytics?.sessions || {
-                totalSessions: 0,
-                sessionsChange: 0,
-                sessionsChangePercent: 0,
-                avgSessionsPerWeek: 0,
-                avgDuration: 0,
-                popularSessionType: 'N/A',
-                bySessionType: [],
-            };
+        try {
+            if (USE_MOCK) {
+                coachAnalyticsCache = await loadCoachAnalytics();
+                const analytics = coachAnalyticsCache[coachId];
+                return (0, result_1.ok)(analytics?.sessions || {
+                    totalSessions: 0,
+                    sessionsChange: 0,
+                    sessionsChangePercent: 0,
+                    avgSessionsPerWeek: 0,
+                    avgDuration: 0,
+                    popularSessionType: 'N/A',
+                    bySessionType: [],
+                });
+            }
+            const response = await fetch(`/api/coaches/${coachId}/sessions`);
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to load session stats'));
+            }
+            return (0, result_1.ok)(await response.json());
         }
-        const response = await fetch(`/api/coaches/${coachId}/sessions`);
-        return response.json();
+        catch (error) {
+            logger.error('Failed to get session stats', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load session stats'));
+        }
     },
     /**
      * Reset to mock data (useful for testing)
      */
     async resetToMockData() {
-        coachAnalyticsCache = { ...MOCK_COACH_ANALYTICS };
-        await saveCoachAnalytics(coachAnalyticsCache);
+        try {
+            coachAnalyticsCache = { ...MOCK_COACH_ANALYTICS };
+            await saveCoachAnalytics(coachAnalyticsCache);
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to reset coach analytics mock data', error);
+            return (0, result_1.err)((0, result_1.storageError)('Failed to reset analytics data'));
+        }
     },
 };

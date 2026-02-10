@@ -301,7 +301,7 @@ export const apiClient = {
     });
     if (!result.success) {
       logger.error(`API set failed for ${key}`, result.error);
-      throw new Error(result.error.message);
+      throw new ApiError(500, 'API_SET_FAILED', result.error.message);
     }
   },
 
@@ -325,7 +325,7 @@ export const apiClient = {
     const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });
     if (!result.success) {
       logger.error(`API remove failed for ${key}`, result.error);
-      throw new Error(result.error.message);
+      throw new ApiError(500, 'API_REMOVE_FAILED', result.error.message);
     }
   },
 

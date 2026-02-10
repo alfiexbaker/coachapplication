@@ -38,7 +38,11 @@ export default function CancellationPolicyEditor({ onSave }: CancellationPolicyE
   useEffect(() => {
     (async () => {
       try {
-        const existing = await schedulingRulesService.getCancellationPolicy(coachId);
+        const existingResult = await schedulingRulesService.getCancellationPolicy(coachId);
+        if (!existingResult.success) {
+          return;
+        }
+        const existing = existingResult.data;
         if (existing) {
           const matched = (['flexible', 'standard', 'strict'] as const).find(k => POLICY_TEMPLATES[k].name === existing.name);
           setSelectedPreset(matched ?? 'custom');
@@ -59,8 +63,16 @@ export default function CancellationPolicyEditor({ onSave }: CancellationPolicyE
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const policy = await schedulingRulesService.setCancellationPolicy(coachId, selectedPreset === 'custom' ? 'custom' : selectedPreset, selectedPreset === 'custom' ? customTiers : undefined);
-      onSave?.(policy);
+      const policyResult = await schedulingRulesService.setCancellationPolicy(
+        coachId,
+        selectedPreset === 'custom' ? 'custom' : selectedPreset,
+        selectedPreset === 'custom' ? customTiers : undefined
+      );
+      if (!policyResult.success) {
+        Alert.alert('Error', policyResult.error.message || 'Failed to save cancellation policy. Please try again.');
+        return;
+      }
+      onSave?.(policyResult.data);
       Alert.alert('Policy saved', 'Your cancellation policy has been updated.');
     } catch { Alert.alert('Error', 'Failed to save cancellation policy. Please try again.'); }
     finally { setSaving(false); }

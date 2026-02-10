@@ -136,6 +136,28 @@ exports.ServiceEvents = {
     NOTIFICATION_CREATED: 'notification:created',
     NOTIFICATION_READ: 'notification:read',
     NOTIFICATION_DISMISSED: 'notification:dismissed',
+    // Messaging events
+    MESSAGE_SENT: 'message:sent',
+    MESSAGE_EDITED: 'message:edited',
+    MESSAGE_DELETED: 'message:deleted',
+    // Waitlist events
+    WAITLIST_JOINED: 'waitlist:joined',
+    WAITLIST_LEFT: 'waitlist:left',
+    WAITLIST_PROMOTED: 'waitlist:promoted',
+    // Counter-offer events
+    COUNTER_OFFER_CREATED: 'counter_offer:created',
+    COUNTER_OFFER_ACCEPTED: 'counter_offer:accepted',
+    COUNTER_OFFER_REJECTED: 'counter_offer:rejected',
+    // Recurring booking events
+    RECURRING_CREATED: 'recurring:created',
+    RECURRING_CANCELLED: 'recurring:cancelled',
+    // Verification events
+    VERIFICATION_UPDATED: 'verification:updated',
+    // Favourite events
+    FAVOURITE_ADDED: 'favourite:added',
+    FAVOURITE_REMOVED: 'favourite:removed',
+    // Cancellation events
+    CANCELLATION_RECORDED: 'cancellation:recorded',
     // Club events
     CLUB_MEMBER_JOINED: 'club:member:joined',
     CLUB_MEMBER_LEFT: 'club:member:left',

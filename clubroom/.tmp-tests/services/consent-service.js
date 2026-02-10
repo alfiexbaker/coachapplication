@@ -14,6 +14,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.consentService = exports.CONSENT_TYPE_DESCRIPTIONS = exports.CONSENT_TYPE_ICONS = exports.CONSENT_TYPE_LABELS = void 0;
 const safety_service_1 = require("./safety-service");
 const roster_service_1 = require("./roster-service");
+const logger_1 = require("@/utils/logger");
+const result_1 = require("@/types/result");
+const logger = (0, logger_1.createLogger)('ConsentService');
 const CONSENT_TYPES = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT'];
 /**
  * Labels for consent types
@@ -48,7 +51,11 @@ class ConsentService {
      */
     async getAthleteConsents(athleteId, coachId) {
         try {
-            const emergencyInfo = await safety_service_1.safetyService.getEmergencyInfo(athleteId);
+            const emergencyInfoResult = await safety_service_1.safetyService.getEmergencyInfo(athleteId);
+            if (!emergencyInfoResult.success) {
+                return (0, result_1.err)(emergencyInfoResult.error);
+            }
+            const emergencyInfo = emergencyInfoResult.data;
             // Get athlete name from roster if coachId provided
             let athleteName = 'Unknown';
             let parentName = 'Unknown';
@@ -62,39 +69,41 @@ class ConsentService {
                     athletePhotoUrl = entry.athletePhotoUrl;
                 }
             }
-            return {
+            return (0, result_1.ok)({
                 athleteId,
                 athleteName,
                 athletePhotoUrl,
                 parentName,
                 consents: emergencyInfo.consents,
                 lastUpdated: emergencyInfo.updatedAt,
-            };
+            });
         }
-        catch {
-            return null;
+        catch (error) {
+            logger.error('Failed to get athlete consents', { athleteId, coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load athlete consents'));
         }
     }
     /**
      * Get all athletes' consent status for a coach's roster
      */
     async getRosterConsents(coachId, filters) {
-        // Get all athletes from roster
-        const roster = await roster_service_1.rosterService.getRoster(coachId);
-        // Get consent data for each athlete
-        const consentsPromises = roster.map(async (entry) => {
-            try {
-                const emergencyInfo = await safety_service_1.safetyService.getEmergencyInfo(entry.athleteId);
-                return {
-                    athleteId: entry.athleteId,
-                    athleteName: entry.athleteName,
-                    athletePhotoUrl: entry.athletePhotoUrl,
-                    parentName: entry.parentName,
-                    consents: emergencyInfo.consents,
-                    lastUpdated: emergencyInfo.updatedAt,
-                };
-            }
-            catch {
+        try {
+            // Get all athletes from roster
+            const roster = await roster_service_1.rosterService.getRoster(coachId);
+            // Get consent data for each athlete
+            const consentsPromises = roster.map(async (entry) => {
+                const emergencyInfoResult = await safety_service_1.safetyService.getEmergencyInfo(entry.athleteId);
+                if (emergencyInfoResult.success) {
+                    const emergencyInfo = emergencyInfoResult.data;
+                    return {
+                        athleteId: entry.athleteId,
+                        athleteName: entry.athleteName,
+                        athletePhotoUrl: entry.athletePhotoUrl,
+                        parentName: entry.parentName,
+                        consents: emergencyInfo.consents,
+                        lastUpdated: emergencyInfo.updatedAt,
+                    };
+                }
                 // Return default consents if no emergency info exists
                 return {
                     athleteId: entry.athleteId,
@@ -108,77 +117,118 @@ class ConsentService {
                     })),
                     lastUpdated: new Date().toISOString(),
                 };
-            }
-        });
-        let athleteConsents = await Promise.all(consentsPromises);
-        // Apply filters
-        if (filters?.search) {
-            const search = filters.search.toLowerCase();
-            athleteConsents = athleteConsents.filter((ac) => ac.athleteName.toLowerCase().includes(search) ||
-                ac.parentName.toLowerCase().includes(search));
-        }
-        if (filters?.type && filters?.status && filters.status !== 'all') {
-            const isGranted = filters.status === 'granted';
-            athleteConsents = athleteConsents.filter((ac) => {
-                const consent = ac.consents.find((c) => c.type === filters.type);
-                return consent?.granted === isGranted;
             });
+            let athleteConsents = await Promise.all(consentsPromises);
+            // Apply filters
+            if (filters?.search) {
+                const search = filters.search.toLowerCase();
+                athleteConsents = athleteConsents.filter((ac) => ac.athleteName.toLowerCase().includes(search) ||
+                    ac.parentName.toLowerCase().includes(search));
+            }
+            if (filters?.type && filters?.status && filters.status !== 'all') {
+                const isGranted = filters.status === 'granted';
+                athleteConsents = athleteConsents.filter((ac) => {
+                    const consent = ac.consents.find((c) => c.type === filters.type);
+                    return consent?.granted === isGranted;
+                });
+            }
+            return (0, result_1.ok)(athleteConsents);
         }
-        return athleteConsents;
+        catch (error) {
+            logger.error('Failed to get roster consents', { coachId, filters, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load roster consents'));
+        }
     }
     /**
      * Check if an athlete has a specific consent
      */
     async checkConsent(athleteId, type) {
-        const consent = await safety_service_1.safetyService.getConsent(athleteId, type);
-        return consent?.granted ?? false;
+        try {
+            const consentResult = await safety_service_1.safetyService.getConsent(athleteId, type);
+            if (!consentResult.success) {
+                return (0, result_1.err)(consentResult.error);
+            }
+            return (0, result_1.ok)(consentResult.data?.granted ?? false);
+        }
+        catch (error) {
+            logger.error('Failed to check consent', { athleteId, type, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to check consent'));
+        }
     }
     /**
      * Get all athletes who have granted a specific consent type
      */
     async getConsentedAthletes(coachId, type) {
-        const allConsents = await this.getRosterConsents(coachId);
-        return allConsents.filter((ac) => {
-            const consent = ac.consents.find((c) => c.type === type);
-            return consent?.granted === true;
-        });
+        try {
+            const allConsentsResult = await this.getRosterConsents(coachId);
+            if (!allConsentsResult.success) {
+                return allConsentsResult;
+            }
+            return (0, result_1.ok)(allConsentsResult.data.filter((ac) => {
+                const consent = ac.consents.find((c) => c.type === type);
+                return consent?.granted === true;
+            }));
+        }
+        catch (error) {
+            logger.error('Failed to get consented athletes', { coachId, type, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load consented athletes'));
+        }
     }
     /**
      * Get all athletes who have NOT granted a specific consent type
      */
     async getNonConsentedAthletes(coachId, type) {
-        const allConsents = await this.getRosterConsents(coachId);
-        return allConsents.filter((ac) => {
-            const consent = ac.consents.find((c) => c.type === type);
-            return consent?.granted === false;
-        });
+        try {
+            const allConsentsResult = await this.getRosterConsents(coachId);
+            if (!allConsentsResult.success) {
+                return allConsentsResult;
+            }
+            return (0, result_1.ok)(allConsentsResult.data.filter((ac) => {
+                const consent = ac.consents.find((c) => c.type === type);
+                return consent?.granted === false;
+            }));
+        }
+        catch (error) {
+            logger.error('Failed to get non-consented athletes', { coachId, type, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load non-consented athletes'));
+        }
     }
     /**
      * Get consent summary/statistics for a coach's roster
      */
     async getConsentSummary(coachId) {
-        const allConsents = await this.getRosterConsents(coachId);
-        const totalAthletes = allConsents.length;
-        const byType = {
-            PHOTO: { granted: 0, denied: 0 },
-            VIDEO: { granted: 0, denied: 0 },
-            SOCIAL_MEDIA: { granted: 0, denied: 0 },
-            EMERGENCY_TREATMENT: { granted: 0, denied: 0 },
-        };
-        for (const ac of allConsents) {
-            for (const consent of ac.consents) {
-                if (consent.granted) {
-                    byType[consent.type].granted++;
-                }
-                else {
-                    byType[consent.type].denied++;
+        try {
+            const allConsentsResult = await this.getRosterConsents(coachId);
+            if (!allConsentsResult.success) {
+                return allConsentsResult;
+            }
+            const allConsents = allConsentsResult.data;
+            const totalAthletes = allConsents.length;
+            const byType = {
+                PHOTO: { granted: 0, denied: 0 },
+                VIDEO: { granted: 0, denied: 0 },
+                SOCIAL_MEDIA: { granted: 0, denied: 0 },
+                EMERGENCY_TREATMENT: { granted: 0, denied: 0 },
+            };
+            for (const ac of allConsents) {
+                for (const consent of ac.consents) {
+                    if (consent.granted) {
+                        byType[consent.type].granted++;
+                    }
+                    else {
+                        byType[consent.type].denied++;
+                    }
                 }
             }
+            return (0, result_1.ok)({
+                totalAthletes,
+                byType,
+            });
         }
-        return {
-            totalAthletes,
-            byType,
-        };
+        catch (error) {
+            logger.error('Failed to get consent summary', { coachId, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load consent summary'));
+        }
     }
     /**
      * Get the consent status for an athlete for a specific type

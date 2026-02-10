@@ -55,10 +55,10 @@ exports.squadGroupService = {
         const map = await loadMap();
         const existingGroupId = map[squadId];
         if (existingGroupId) {
-            const existingGroup = await community_group_service_1.communityGroupService.getGroup(existingGroupId);
-            if (existingGroup) {
+            const existingGroupResult = await community_group_service_1.communityGroupService.getGroup(existingGroupId);
+            if (existingGroupResult.success) {
                 logger.info('Returning existing squad group', { squadId, groupId: existingGroupId });
-                return (0, result_1.ok)(existingGroup);
+                return (0, result_1.ok)(existingGroupResult.data);
             }
             // Mapping exists but group was deleted — remove stale entry
             delete map[squadId];
@@ -100,8 +100,11 @@ exports.squadGroupService = {
                 isPublic: false,
                 clubId: squad.clubId,
             });
+            if (!newGroup.success) {
+                return (0, result_1.err)(newGroup.error);
+            }
             // 4. Save mapping
-            map[squadId] = newGroup.id;
+            map[squadId] = newGroup.data.id;
             const mapResult = await saveMap(map);
             if (!mapResult.success) {
                 return (0, result_1.err)(mapResult.error);
@@ -111,7 +114,7 @@ exports.squadGroupService = {
                 const storedSquads = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CLUB_SQUADS, []);
                 const idx = storedSquads.findIndex((s) => s.id === squadId);
                 if (idx !== -1) {
-                    storedSquads[idx].groupId = newGroup.id;
+                    storedSquads[idx].groupId = newGroup.data.id;
                     await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.CLUB_SQUADS, storedSquads);
                 }
             }
@@ -120,10 +123,10 @@ exports.squadGroupService = {
             }
             logger.info('Created squad group', {
                 squadId,
-                groupId: newGroup.id,
-                memberCount: newGroup.members.length,
+                groupId: newGroup.data.id,
+                memberCount: newGroup.data.members.length,
             });
-            return (0, result_1.ok)(newGroup);
+            return (0, result_1.ok)(newGroup.data);
         }
         catch (error) {
             logger.error('Failed to create squad group', error);

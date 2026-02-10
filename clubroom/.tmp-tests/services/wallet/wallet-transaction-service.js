@@ -6,14 +6,15 @@
  * Manages transaction storage and retrieval.
  *
  * API Integration Notes:
- * - Transactions are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Transactions are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.walletTransactionService = void 0;
 const config_1 = require("@/constants/config");
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
 const storage_keys_1 = require("@/constants/storage-keys");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('WalletTransactionService');
 const USE_MOCK = config_1.api.useMock;
 // ============================================================================
@@ -219,21 +220,34 @@ class WalletTransactionService {
      * Get transactions for a user with optional limit
      */
     async getTransactions(userId, limit) {
-        const allTransactions = await this.getAllTransactions();
-        let userTransactions = allTransactions
-            .filter((t) => t.userId === userId)
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        if (limit && limit > 0) {
-            userTransactions = userTransactions.slice(0, limit);
+        try {
+            const allTransactionsResult = await this.getAllTransactions();
+            if (!allTransactionsResult.success) {
+                return allTransactionsResult;
+            }
+            let userTransactions = allTransactionsResult.data
+                .filter((t) => t.userId === userId)
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            if (limit && limit > 0) {
+                userTransactions = userTransactions.slice(0, limit);
+            }
+            logger.info('transactions_retrieved', { userId, count: userTransactions.length });
+            return (0, result_1.ok)(userTransactions);
         }
-        logger.info('transactions_retrieved', { userId, count: userTransactions.length });
-        return userTransactions;
+        catch (error) {
+            logger.error('Failed to get transactions', { userId, limit, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load transactions'));
+        }
     }
     /**
      * Get transactions with filters
      */
     async getTransactionsFiltered(userId, filter, limit) {
-        let transactions = await this.getTransactions(userId);
+        const transactionsResult = await this.getTransactions(userId);
+        if (!transactionsResult.success) {
+            return transactionsResult;
+        }
+        let transactions = transactionsResult.data;
         // Filter by type
         if (filter.type) {
             const types = Array.isArray(filter.type) ? filter.type : [filter.type];
@@ -256,112 +270,155 @@ class WalletTransactionService {
         if (limit && limit > 0) {
             transactions = transactions.slice(0, limit);
         }
-        return transactions;
+        return (0, result_1.ok)(transactions);
     }
     /**
      * Get a single transaction by ID
      */
     async getTransactionById(transactionId) {
-        const allTransactions = await this.getAllTransactions();
-        return allTransactions.find((t) => t.id === transactionId) || null;
+        const allTransactionsResult = await this.getAllTransactions();
+        if (!allTransactionsResult.success) {
+            return allTransactionsResult;
+        }
+        return (0, result_1.ok)(allTransactionsResult.data.find((t) => t.id === transactionId) || null);
     }
     /**
      * Get all transactions (internal use)
      */
     async getAllTransactions() {
-        if (USE_MOCK) {
-            return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.WALLET_TRANSACTIONS, MOCK_TRANSACTIONS);
+        try {
+            if (USE_MOCK) {
+                return (0, result_1.ok)(await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.WALLET_TRANSACTIONS, MOCK_TRANSACTIONS));
+            }
+            // TODO: API call when ready
+            return (0, result_1.ok)(await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.WALLET_TRANSACTIONS, []));
         }
-        // TODO: API call when ready
-        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.WALLET_TRANSACTIONS, []);
+        catch (error) {
+            logger.error('Failed to get all transactions', error);
+            return (0, result_1.err)((0, result_1.storageError)('Failed to load wallet transactions'));
+        }
     }
     /**
      * Save transactions to storage
      */
     async saveTransactions(transactions) {
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.WALLET_TRANSACTIONS, transactions);
+        try {
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.WALLET_TRANSACTIONS, transactions);
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to save transactions', error);
+            return (0, result_1.err)((0, result_1.storageError)('Failed to save wallet transactions'));
+        }
     }
     /**
      * Create a new transaction record
      */
     async createTransaction(params) {
-        const transactions = await this.getAllTransactions();
+        const transactionsResult = await this.getAllTransactions();
+        if (!transactionsResult.success) {
+            return transactionsResult;
+        }
+        const transactions = transactionsResult.data;
         const newTransaction = {
             ...params,
             id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             createdAt: new Date().toISOString(),
         };
         transactions.unshift(newTransaction);
-        await this.saveTransactions(transactions);
+        const saveResult = await this.saveTransactions(transactions);
+        if (!saveResult.success) {
+            return saveResult;
+        }
         logger.info('transaction_created', {
             id: newTransaction.id,
             type: newTransaction.type,
             amount: newTransaction.amount,
             userId: newTransaction.userId,
         });
-        return newTransaction;
+        return (0, result_1.ok)(newTransaction);
     }
     /**
      * Update a transaction (e.g., mark as completed)
      */
     async updateTransaction(transactionId, updates) {
-        const transactions = await this.getAllTransactions();
+        const transactionsResult = await this.getAllTransactions();
+        if (!transactionsResult.success) {
+            return transactionsResult;
+        }
+        const transactions = transactionsResult.data;
         const index = transactions.findIndex((t) => t.id === transactionId);
         if (index === -1) {
-            return null;
+            return (0, result_1.ok)(null);
         }
         transactions[index] = {
             ...transactions[index],
             ...updates,
         };
-        await this.saveTransactions(transactions);
-        return transactions[index];
+        const saveResult = await this.saveTransactions(transactions);
+        if (!saveResult.success) {
+            return saveResult;
+        }
+        return (0, result_1.ok)(transactions[index]);
     }
     /**
      * Create a custom transaction (for admin/special cases)
      */
     async createCustomTransaction(params, walletId) {
-        const transaction = await this.createTransaction({
+        return this.createTransaction({
             ...params,
             walletId,
         });
-        return transaction;
     }
     /**
      * Cancel a pending transaction
      */
     async cancelTransaction(transactionId) {
-        const transaction = await this.getTransactionById(transactionId);
+        const transactionResult = await this.getTransactionById(transactionId);
+        if (!transactionResult.success) {
+            return transactionResult;
+        }
+        const transaction = transactionResult.data;
         if (!transaction) {
             logger.warn('cancel_transaction_not_found', { transactionId });
-            return null;
+            return (0, result_1.ok)(null);
         }
         if (transaction.status !== 'PENDING') {
             logger.warn('cancel_transaction_not_pending', {
                 transactionId,
                 status: transaction.status,
             });
-            return null;
+            return (0, result_1.ok)(null);
         }
-        const updatedTransaction = await this.updateTransaction(transactionId, {
+        const updatedResult = await this.updateTransaction(transactionId, {
             status: 'CANCELLED',
         });
+        if (!updatedResult.success) {
+            return updatedResult;
+        }
         logger.info('transaction_cancelled', { transactionId });
-        return updatedTransaction;
+        return (0, result_1.ok)(updatedResult.data);
     }
     /**
      * Delete a transaction (admin only, use with caution)
      */
     async deleteTransaction(transactionId) {
-        const transactions = await this.getAllTransactions();
+        const transactionsResult = await this.getAllTransactions();
+        if (!transactionsResult.success) {
+            return transactionsResult;
+        }
+        const transactions = transactionsResult.data;
         const index = transactions.findIndex((t) => t.id === transactionId);
         if (index === -1) {
-            return false;
+            return (0, result_1.ok)(false);
         }
         transactions.splice(index, 1);
-        await this.saveTransactions(transactions);
+        const saveResult = await this.saveTransactions(transactions);
+        if (!saveResult.success) {
+            return saveResult;
+        }
         logger.info('transaction_deleted', { transactionId });
-        return true;
+        return (0, result_1.ok)(true);
     }
     /**
      * Get pending transactions for a user

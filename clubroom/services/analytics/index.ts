@@ -31,6 +31,10 @@ export type { AnalyticsPeriod } from './analytics-query-service';
 import { analyticsTrackingService } from './analytics-tracking-service';
 import { analyticsQueryService } from './analytics-query-service';
 import { analyticsExportService } from './analytics-export-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AnalyticsFacade');
+void logger;
 
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY
@@ -48,22 +52,30 @@ export const analyticsService = {
   /**
    * Get analytics for an athlete
    */
-  getAthleteAnalytics: analyticsQueryService.getAthleteAnalytics.bind(analyticsQueryService),
+  getAthleteAnalytics: (
+    ...args: Parameters<typeof analyticsQueryService.getAthleteAnalytics>
+  ) => analyticsQueryService.getAthleteAnalytics(...args),
 
   /**
    * Get skill progression history for an athlete
    */
-  getSkillHistory: analyticsQueryService.getSkillHistory.bind(analyticsQueryService),
+  getSkillHistory: (
+    ...args: Parameters<typeof analyticsQueryService.getSkillHistory>
+  ) => analyticsQueryService.getSkillHistory(...args),
 
   /**
    * Get all goals for an athlete
    */
-  getAthleteGoals: analyticsQueryService.getAthleteGoals.bind(analyticsQueryService),
+  getAthleteGoals: (
+    ...args: Parameters<typeof analyticsQueryService.getAthleteGoals>
+  ) => analyticsQueryService.getAthleteGoals(...args),
 
   /**
    * Get comparison stats (for radar chart)
    */
-  getSkillComparison: analyticsQueryService.getSkillComparison.bind(analyticsQueryService),
+  getSkillComparison: (
+    ...args: Parameters<typeof analyticsQueryService.getSkillComparison>
+  ) => analyticsQueryService.getSkillComparison(...args),
 
   // ==========================================================================
   // TRACKING METHODS (from analyticsTrackingService)
@@ -72,32 +84,44 @@ export const analyticsService = {
   /**
    * Create a new goal
    */
-  createGoal: analyticsTrackingService.createGoal.bind(analyticsTrackingService),
+  createGoal: (
+    ...args: Parameters<typeof analyticsTrackingService.createGoal>
+  ) => analyticsTrackingService.createGoal(...args),
 
   /**
    * Update goal progress
    */
-  updateGoalProgress: analyticsTrackingService.updateGoalProgress.bind(analyticsTrackingService),
+  updateGoalProgress: (
+    ...args: Parameters<typeof analyticsTrackingService.updateGoalProgress>
+  ) => analyticsTrackingService.updateGoalProgress(...args),
 
   /**
    * Complete a milestone
    */
-  completeMilestone: analyticsTrackingService.completeMilestone.bind(analyticsTrackingService),
+  completeMilestone: (
+    ...args: Parameters<typeof analyticsTrackingService.completeMilestone>
+  ) => analyticsTrackingService.completeMilestone(...args),
 
   /**
    * Add milestone to goal
    */
-  addMilestone: analyticsTrackingService.addMilestone.bind(analyticsTrackingService),
+  addMilestone: (
+    ...args: Parameters<typeof analyticsTrackingService.addMilestone>
+  ) => analyticsTrackingService.addMilestone(...args),
 
   /**
    * Abandon a goal
    */
-  abandonGoal: analyticsTrackingService.abandonGoal.bind(analyticsTrackingService),
+  abandonGoal: (
+    ...args: Parameters<typeof analyticsTrackingService.abandonGoal>
+  ) => analyticsTrackingService.abandonGoal(...args),
 
   /**
    * Update skill level (called after session)
    */
-  updateSkillLevel: analyticsTrackingService.updateSkillLevel.bind(analyticsTrackingService),
+  updateSkillLevel: (
+    ...args: Parameters<typeof analyticsTrackingService.updateSkillLevel>
+  ) => analyticsTrackingService.updateSkillLevel(...args),
 };
 
 /**
@@ -108,40 +132,56 @@ export const coachAnalyticsService = {
   /**
    * Get comprehensive analytics for a coach
    */
-  getCoachAnalytics: analyticsExportService.getCoachAnalytics.bind(analyticsExportService),
+  getCoachAnalytics: (
+    ...args: Parameters<typeof analyticsExportService.getCoachAnalytics>
+  ) => analyticsExportService.getCoachAnalytics(...args),
 
   /**
    * Get revenue chart data for a specific period
    */
-  getRevenueChart: analyticsExportService.getRevenueChart.bind(analyticsExportService),
+  getRevenueChart: (
+    ...args: Parameters<typeof analyticsExportService.getRevenueChart>
+  ) => analyticsExportService.getRevenueChart(...args),
 
   /**
    * Get retention metrics for a coach
    */
-  getRetentionMetrics: analyticsExportService.getRetentionMetrics.bind(analyticsExportService),
+  getRetentionMetrics: (
+    ...args: Parameters<typeof analyticsExportService.getRetentionMetrics>
+  ) => analyticsExportService.getRetentionMetrics(...args),
 
   /**
    * Get cancellation patterns and statistics
    */
-  getCancellationPatterns: analyticsExportService.getCancellationPatterns.bind(analyticsExportService),
+  getCancellationPatterns: (
+    ...args: Parameters<typeof analyticsExportService.getCancellationPatterns>
+  ) => analyticsExportService.getCancellationPatterns(...args),
 
   /**
    * Get peak hours data for heatmap visualization
    */
-  getPeakHours: analyticsExportService.getPeakHours.bind(analyticsExportService),
+  getPeakHours: (
+    ...args: Parameters<typeof analyticsExportService.getPeakHours>
+  ) => analyticsExportService.getPeakHours(...args),
 
   /**
    * Get top skills taught by the coach
    */
-  getTopSkills: analyticsExportService.getTopSkills.bind(analyticsExportService),
+  getTopSkills: (
+    ...args: Parameters<typeof analyticsExportService.getTopSkills>
+  ) => analyticsExportService.getTopSkills(...args),
 
   /**
    * Get session statistics
    */
-  getSessionStats: analyticsExportService.getSessionStats.bind(analyticsExportService),
+  getSessionStats: (
+    ...args: Parameters<typeof analyticsExportService.getSessionStats>
+  ) => analyticsExportService.getSessionStats(...args),
 
   /**
    * Reset to mock data (useful for testing)
    */
-  resetToMockData: analyticsExportService.resetToMockData.bind(analyticsExportService),
+  resetToMockData: (
+    ...args: Parameters<typeof analyticsExportService.resetToMockData>
+  ) => analyticsExportService.resetToMockData(...args),
 };

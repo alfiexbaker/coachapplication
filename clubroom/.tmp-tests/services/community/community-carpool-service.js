@@ -6,11 +6,11 @@
  * accepting/declining requests, and cancellation management.
  *
  * API Integration Notes:
- * - Carpool data is persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Carpool data is persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.communityCarpoolService = void 0;
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
@@ -90,7 +90,7 @@ class CommunityCarpoolService {
      */
     async getCarpoolOffers(sessionId) {
         try {
-            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
             const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
             const filtered = allOffers.filter((offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE');
             logger.info('carpool_offers_retrieved', { sessionId, count: filtered.length });
@@ -98,7 +98,7 @@ class CommunityCarpoolService {
         }
         catch (error) {
             logger.error('Failed to get carpool offers', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get carpool offers: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get carpool offers: ${String(error)}`));
         }
     }
     /**
@@ -106,7 +106,7 @@ class CommunityCarpoolService {
      */
     async getParentCarpoolOffers(parentId) {
         try {
-            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
             const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
             const filtered = allOffers.filter((offer) => offer.parentId === parentId);
             logger.info('parent_carpool_offers_retrieved', { parentId, count: filtered.length });
@@ -114,7 +114,7 @@ class CommunityCarpoolService {
         }
         catch (error) {
             logger.error('Failed to get parent carpool offers', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get parent carpool offers: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get parent carpool offers: ${String(error)}`));
         }
     }
     /**
@@ -122,7 +122,7 @@ class CommunityCarpoolService {
      */
     async getAvailableCarpoolOffers(excludeParentId) {
         try {
-            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
             const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
             const filtered = allOffers.filter((offer) => offer.parentId !== excludeParentId &&
                 offer.status === 'ACTIVE' &&
@@ -132,7 +132,7 @@ class CommunityCarpoolService {
         }
         catch (error) {
             logger.error('Failed to get available carpool offers', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get available carpool offers: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get available carpool offers: ${String(error)}`));
         }
     }
     /**
@@ -140,7 +140,7 @@ class CommunityCarpoolService {
      */
     async getCarpoolOffer(offerId) {
         try {
-            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+            const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
             const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
             const offer = allOffers.find((offer) => offer.id === offerId);
             if (!offer) {
@@ -151,7 +151,7 @@ class CommunityCarpoolService {
         }
         catch (error) {
             logger.error('Failed to get carpool offer', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get carpool offer: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get carpool offer: ${String(error)}`));
         }
     }
     /**
@@ -198,14 +198,14 @@ class CommunityCarpoolService {
         }
         catch (error) {
             logger.error('Failed to create carpool offer', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to create carpool offer: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to create carpool offer: ${String(error)}`));
         }
     }
     /**
      * Request a seat on a carpool offer
      */
     async requestCarpoolSeat(params) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+        const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
         const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
         const offerIndex = allOffers.findIndex((o) => o.id === params.offerId);
         if (offerIndex === -1) {
@@ -242,7 +242,7 @@ class CommunityCarpoolService {
      * Accept a carpool seat request
      */
     async acceptCarpoolRequest(offerId, requestId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+        const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
         const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
         const offer = allOffers.find((o) => o.id === offerId);
         if (!offer) {
@@ -276,7 +276,7 @@ class CommunityCarpoolService {
      * Decline a carpool seat request
      */
     async declineCarpoolRequest(offerId, requestId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+        const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
         const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
         const offer = allOffers.find((o) => o.id === offerId);
         if (!offer) {
@@ -300,7 +300,7 @@ class CommunityCarpoolService {
      * Cancel a carpool offer
      */
     async cancelCarpoolOffer(offerId, parentId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+        const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
         const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
         const offer = allOffers.find((o) => o.id === offerId);
         if (!offer) {
@@ -326,7 +326,7 @@ class CommunityCarpoolService {
      * Cancel a carpool seat request
      */
     async cancelCarpoolRequest(offerId, requestId, parentId) {
-        const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
+        const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
         const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
         const offer = allOffers.find((o) => o.id === offerId);
         if (!offer) {
@@ -356,7 +356,7 @@ class CommunityCarpoolService {
         return (0, result_1.ok)(undefined);
     }
     async persistCarpools() {
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, this.inMemoryCarpools);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, this.inMemoryCarpools);
     }
 }
 exports.communityCarpoolService = new CommunityCarpoolService();

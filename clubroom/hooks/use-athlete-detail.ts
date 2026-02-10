@@ -45,11 +45,18 @@ export function useAthleteDetail(athleteId: string) {
           if (!entry) {
             return err({ code: 'NOT_FOUND', message: 'Athlete not found' });
           }
-          const [emergencyData, childData] = await Promise.all([
+          const [emergencyResult, childData] = await Promise.all([
             safetyService.getAthleteEmergency(athleteId, entry.athleteName),
             childService.getChild(athleteId),
           ]);
-          return ok({ entry, emergencyData, childData });
+          if (!emergencyResult.success) {
+            logger.warn('Failed to load athlete emergency data', emergencyResult.error);
+          }
+          return ok({
+            entry,
+            emergencyData: emergencyResult.success ? emergencyResult.data : null,
+            childData,
+          });
         } catch (e) {
           logger.error('Failed to load athlete profile', e);
           return err(storageError('Failed to load athlete profile'));

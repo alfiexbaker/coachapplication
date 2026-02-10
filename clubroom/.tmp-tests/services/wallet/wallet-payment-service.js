@@ -15,6 +15,7 @@ const logger_1 = require("@/utils/logger");
 const event_bus_1 = require("@/services/event-bus");
 const wallet_crud_service_1 = require("./wallet-crud-service");
 const wallet_transaction_service_1 = require("./wallet-transaction-service");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('WalletPaymentService');
 // Simulated payment processing delay (ms)
 const PAYMENT_PROCESSING_DELAY = 1500;
@@ -29,15 +30,19 @@ class WalletPaymentService {
         const { userId, amount, paymentMethod, cardLast4 } = params;
         // Validate amount
         if (amount <= 0) {
-            return { success: false, error: 'Amount must be greater than zero' };
+            return (0, result_1.ok)({ success: false, error: 'Amount must be greater than zero' });
         }
         if (amount > 1000) {
-            return { success: false, error: 'Maximum top-up amount is 1000 GBP' };
+            return (0, result_1.ok)({ success: false, error: 'Maximum top-up amount is 1000 GBP' });
         }
         try {
-            const wallet = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            const walletResult = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            if (!walletResult.success) {
+                return walletResult;
+            }
+            const wallet = walletResult.data;
             // Create pending transaction
-            const pendingTransaction = await wallet_transaction_service_1.walletTransactionService.createTransaction({
+            const pendingTransactionResult = await wallet_transaction_service_1.walletTransactionService.createTransaction({
                 walletId: wallet.id,
                 userId,
                 type: 'TOP_UP',
@@ -51,38 +56,46 @@ class WalletPaymentService {
                     ...(cardLast4 && { last4: cardLast4 }),
                 },
             });
+            if (!pendingTransactionResult.success) {
+                return pendingTransactionResult;
+            }
+            const pendingTransaction = pendingTransactionResult.data;
             // Simulate payment processing
             await this.simulatePaymentProcessing();
             // Update wallet balance
             const newBalance = wallet.balance + amount;
-            await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
+            const walletUpdateResult = await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
                 balance: newBalance,
                 totalDeposited: wallet.totalDeposited + amount,
             });
+            if (!walletUpdateResult.success) {
+                return walletUpdateResult;
+            }
             // Mark transaction as completed
-            const completedTransaction = await wallet_transaction_service_1.walletTransactionService.updateTransaction(pendingTransaction.id, {
+            const completedTransactionResult = await wallet_transaction_service_1.walletTransactionService.updateTransaction(pendingTransaction.id, {
                 status: 'COMPLETED',
                 balanceAfter: newBalance,
                 completedAt: new Date().toISOString(),
             });
+            if (!completedTransactionResult.success) {
+                return completedTransactionResult;
+            }
+            const completedTransaction = completedTransactionResult.data;
             logger.info('topup_completed', {
                 userId,
                 amount,
                 newBalance,
                 transactionId: pendingTransaction.id,
             });
-            return {
+            return (0, result_1.ok)({
                 success: true,
-                transaction: completedTransaction,
+                transaction: completedTransaction ?? pendingTransaction,
                 newBalance,
-            };
+            });
         }
         catch (error) {
             logger.error('topup_failed', { userId, amount, error });
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Top-up failed',
-            };
+            return (0, result_1.err)((0, result_1.storageError)(error instanceof Error ? error.message : 'Top-up failed'));
         }
     }
     /**
@@ -91,20 +104,24 @@ class WalletPaymentService {
     async payForBooking(userId, bookingId, amount, metadata) {
         // Validate amount
         if (amount <= 0) {
-            return { success: false, error: 'Amount must be greater than zero' };
+            return (0, result_1.ok)({ success: false, error: 'Amount must be greater than zero' });
         }
         try {
-            const wallet = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            const walletResult = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            if (!walletResult.success) {
+                return walletResult;
+            }
+            const wallet = walletResult.data;
             // Check sufficient balance
             if (wallet.balance < amount) {
-                return {
+                return (0, result_1.ok)({
                     success: false,
                     error: `Insufficient balance. Current balance: ${wallet.currency} ${wallet.balance.toFixed(2)}`,
-                };
+                });
             }
             const newBalance = wallet.balance - amount;
             // Create transaction
-            const transaction = await wallet_transaction_service_1.walletTransactionService.createTransaction({
+            const transactionResult = await wallet_transaction_service_1.walletTransactionService.createTransaction({
                 walletId: wallet.id,
                 userId,
                 type: 'BOOKING_PAYMENT',
@@ -120,11 +137,18 @@ class WalletPaymentService {
                     ...metadata,
                 },
             });
+            if (!transactionResult.success) {
+                return transactionResult;
+            }
+            const transaction = transactionResult.data;
             // Update wallet
-            await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
+            const walletUpdateResult = await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
                 balance: newBalance,
                 totalSpent: wallet.totalSpent + amount,
             });
+            if (!walletUpdateResult.success) {
+                return walletUpdateResult;
+            }
             logger.info('booking_payment_completed', {
                 userId,
                 bookingId,
@@ -140,11 +164,11 @@ class WalletPaymentService {
                 amount,
                 currency: wallet.currency,
             });
-            return {
+            return (0, result_1.ok)({
                 success: true,
                 transaction,
                 newBalance,
-            };
+            });
         }
         catch (error) {
             logger.error('booking_payment_failed', { userId, bookingId, amount, error });
@@ -155,10 +179,7 @@ class WalletPaymentService {
                 amount,
                 error: error instanceof Error ? error.message : 'Payment failed',
             });
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Payment failed',
-            };
+            return (0, result_1.err)((0, result_1.storageError)(error instanceof Error ? error.message : 'Payment failed'));
         }
     }
     /**
@@ -167,16 +188,23 @@ class WalletPaymentService {
     async refundBooking(userId, bookingId, amount, reason) {
         // Validate amount
         if (amount <= 0) {
-            return { success: false, error: 'Refund amount must be greater than zero' };
+            return (0, result_1.ok)({ success: false, error: 'Refund amount must be greater than zero' });
         }
         try {
-            const wallet = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            const walletResult = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            if (!walletResult.success) {
+                return walletResult;
+            }
+            const wallet = walletResult.data;
             const newBalance = wallet.balance + amount;
             // Find original payment transaction
-            const transactions = await wallet_transaction_service_1.walletTransactionService.getTransactions(userId);
-            const originalPayment = transactions.find((t) => t.reference === bookingId && t.type === 'BOOKING_PAYMENT');
+            const transactionsResult = await wallet_transaction_service_1.walletTransactionService.getTransactions(userId);
+            if (!transactionsResult.success) {
+                return transactionsResult;
+            }
+            const originalPayment = transactionsResult.data.find((t) => t.reference === bookingId && t.type === 'BOOKING_PAYMENT');
             // Create refund transaction
-            const transaction = await wallet_transaction_service_1.walletTransactionService.createTransaction({
+            const transactionResult = await wallet_transaction_service_1.walletTransactionService.createTransaction({
                 walletId: wallet.id,
                 userId,
                 type: 'BOOKING_REFUND',
@@ -193,11 +221,18 @@ class WalletPaymentService {
                     ...(originalPayment && { originalPaymentId: originalPayment.id }),
                 },
             });
+            if (!transactionResult.success) {
+                return transactionResult;
+            }
+            const transaction = transactionResult.data;
             // Update wallet - refund reduces totalSpent
-            await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
+            const walletUpdateResult = await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
                 balance: newBalance,
                 totalSpent: Math.max(0, wallet.totalSpent - amount),
             });
+            if (!walletUpdateResult.success) {
+                return walletUpdateResult;
+            }
             logger.info('booking_refund_completed', {
                 userId,
                 bookingId,
@@ -213,18 +248,15 @@ class WalletPaymentService {
                 amount,
                 reason,
             });
-            return {
+            return (0, result_1.ok)({
                 success: true,
                 transaction,
                 newBalance,
-            };
+            });
         }
         catch (error) {
             logger.error('booking_refund_failed', { userId, bookingId, amount, error });
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Refund failed',
-            };
+            return (0, result_1.err)((0, result_1.storageError)(error instanceof Error ? error.message : 'Refund failed'));
         }
     }
     /**
@@ -232,12 +264,16 @@ class WalletPaymentService {
      */
     async applyPromoCredit(userId, amount, promoCode) {
         if (amount <= 0) {
-            return { success: false, error: 'Credit amount must be greater than zero' };
+            return (0, result_1.ok)({ success: false, error: 'Credit amount must be greater than zero' });
         }
         try {
-            const wallet = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            const walletResult = await wallet_crud_service_1.walletCrudService.getWallet(userId);
+            if (!walletResult.success) {
+                return walletResult;
+            }
+            const wallet = walletResult.data;
             const newBalance = wallet.balance + amount;
-            const transaction = await wallet_transaction_service_1.walletTransactionService.createTransaction({
+            const transactionResult = await wallet_transaction_service_1.walletTransactionService.createTransaction({
                 walletId: wallet.id,
                 userId,
                 type: 'PROMO_CREDIT',
@@ -249,28 +285,32 @@ class WalletPaymentService {
                 completedAt: new Date().toISOString(),
                 metadata: { promoCode },
             });
-            await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
+            if (!transactionResult.success) {
+                return transactionResult;
+            }
+            const transaction = transactionResult.data;
+            const walletUpdateResult = await wallet_crud_service_1.walletCrudService.updateWallet(userId, {
                 balance: newBalance,
                 totalDeposited: wallet.totalDeposited + amount,
             });
+            if (!walletUpdateResult.success) {
+                return walletUpdateResult;
+            }
             logger.info('promo_credit_applied', {
                 userId,
                 amount,
                 promoCode,
                 newBalance,
             });
-            return {
+            return (0, result_1.ok)({
                 success: true,
                 transaction,
                 newBalance,
-            };
+            });
         }
         catch (error) {
             logger.error('promo_credit_failed', { userId, amount, promoCode, error });
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Failed to apply promo credit',
-            };
+            return (0, result_1.err)((0, result_1.storageError)(error instanceof Error ? error.message : 'Failed to apply promo credit'));
         }
     }
     /**

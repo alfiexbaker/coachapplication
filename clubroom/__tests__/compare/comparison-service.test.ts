@@ -14,17 +14,26 @@ import test, { describe, beforeEach } from 'node:test';
 import { comparisonService } from '../../services/comparison-service';
 import { discoverService } from '../../services/discover-service';
 import type { CoachComparison } from '../../constants/types';
+import type { Result, ServiceError } from '../../types/result';
+
+const expectOk = <T>(result: Result<T, ServiceError>): T => {
+  assert.strictEqual(result.success, true);
+  if (!result.success) {
+    throw new Error('Expected successful result');
+  }
+  return result.data;
+};
 
 // Reset services before each test
 beforeEach(async () => {
-  await comparisonService.reset();
-  await discoverService.resetToMockData();
+  expectOk(await comparisonService.reset());
+  expectOk(await discoverService.resetToMockData());
 });
 
 describe('Comparison Service', () => {
   describe('addToComparison', () => {
     test('should successfully add a coach to comparison', async () => {
-      const result = await comparisonService.addToComparison('coach_mike');
+      const result = expectOk(await comparisonService.addToComparison('coach_mike'));
 
       assert.strictEqual(result.success, true);
       assert.strictEqual(result.currentCount, 1);
@@ -33,8 +42,8 @@ describe('Comparison Service', () => {
     });
 
     test('should not add the same coach twice', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      const result = await comparisonService.addToComparison('coach_mike');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      const result = expectOk(await comparisonService.addToComparison('coach_mike'));
 
       assert.strictEqual(result.success, false);
       assert.strictEqual(result.currentCount, 1);
@@ -42,11 +51,11 @@ describe('Comparison Service', () => {
     });
 
     test('should enforce maximum 3 coaches limit', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
-      await comparisonService.addToComparison('coach_amy');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
+      expectOk(await comparisonService.addToComparison('coach_amy'));
 
-      const result = await comparisonService.addToComparison('coach_oliver');
+      const result = expectOk(await comparisonService.addToComparison('coach_oliver'));
 
       assert.strictEqual(result.success, false);
       assert.strictEqual(result.currentCount, 3);
@@ -54,7 +63,7 @@ describe('Comparison Service', () => {
     });
 
     test('should fail for non-existent coach', async () => {
-      const result = await comparisonService.addToComparison('non_existent_coach');
+      const result = expectOk(await comparisonService.addToComparison('non_existent_coach'));
 
       assert.strictEqual(result.success, false);
       assert.ok(result.message.includes('not found'));
@@ -63,39 +72,39 @@ describe('Comparison Service', () => {
 
   describe('removeFromComparison', () => {
     test('should successfully remove a coach from comparison', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
 
-      await comparisonService.removeFromComparison('coach_mike');
+      expectOk(await comparisonService.removeFromComparison('coach_mike'));
 
-      const list = await comparisonService.getComparisonList();
+      const list = expectOk(await comparisonService.getComparisonList());
       assert.strictEqual(list.length, 1);
       assert.ok(!list.includes('coach_mike'));
       assert.ok(list.includes('coach_david'));
     });
 
     test('should handle removing non-existent coach gracefully', async () => {
-      await comparisonService.addToComparison('coach_mike');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
 
       // Should not throw
-      await comparisonService.removeFromComparison('non_existent');
+      expectOk(await comparisonService.removeFromComparison('non_existent'));
 
-      const list = await comparisonService.getComparisonList();
+      const list = expectOk(await comparisonService.getComparisonList());
       assert.strictEqual(list.length, 1);
     });
   });
 
   describe('getComparisonList', () => {
     test('should return empty list initially', async () => {
-      const list = await comparisonService.getComparisonList();
+      const list = expectOk(await comparisonService.getComparisonList());
       assert.strictEqual(list.length, 0);
     });
 
     test('should return all added coach IDs', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
 
-      const list = await comparisonService.getComparisonList();
+      const list = expectOk(await comparisonService.getComparisonList());
 
       assert.strictEqual(list.length, 2);
       assert.ok(list.includes('coach_mike'));
@@ -105,7 +114,9 @@ describe('Comparison Service', () => {
 
   describe('getComparisonData', () => {
     test('should return coach comparison data for valid IDs', async () => {
-      const data = await comparisonService.getComparisonData(['coach_mike', 'coach_david']);
+      const data = expectOk(
+        await comparisonService.getComparisonData(['coach_mike', 'coach_david']),
+      );
 
       assert.strictEqual(data.length, 2);
 
@@ -118,17 +129,19 @@ describe('Comparison Service', () => {
     });
 
     test('should skip invalid coach IDs', async () => {
-      const data = await comparisonService.getComparisonData([
-        'coach_mike',
-        'invalid_coach',
-        'coach_david',
-      ]);
+      const data = expectOk(
+        await comparisonService.getComparisonData([
+          'coach_mike',
+          'invalid_coach',
+          'coach_david',
+        ]),
+      );
 
       assert.strictEqual(data.length, 2);
     });
 
     test('should return empty array for all invalid IDs', async () => {
-      const data = await comparisonService.getComparisonData(['invalid1', 'invalid2']);
+      const data = expectOk(await comparisonService.getComparisonData(['invalid1', 'invalid2']));
 
       assert.strictEqual(data.length, 0);
     });
@@ -136,10 +149,10 @@ describe('Comparison Service', () => {
 
   describe('getComparisonState', () => {
     test('should return full comparison state', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
 
-      const state = await comparisonService.getComparisonState();
+      const state = expectOk(await comparisonService.getComparisonState());
 
       assert.strictEqual(state.selectedCoachIds.length, 2);
       assert.strictEqual(state.coaches.length, 2);
@@ -150,59 +163,59 @@ describe('Comparison Service', () => {
 
   describe('clearComparison', () => {
     test('should remove all coaches from comparison', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
-      await comparisonService.addToComparison('coach_amy');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
+      expectOk(await comparisonService.addToComparison('coach_amy'));
 
-      await comparisonService.clearComparison();
+      expectOk(await comparisonService.clearComparison());
 
-      const list = await comparisonService.getComparisonList();
+      const list = expectOk(await comparisonService.getComparisonList());
       assert.strictEqual(list.length, 0);
     });
   });
 
   describe('isInComparison', () => {
     test('should return true for coaches in comparison', async () => {
-      await comparisonService.addToComparison('coach_mike');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
 
-      const result = await comparisonService.isInComparison('coach_mike');
+      const result = expectOk(await comparisonService.isInComparison('coach_mike'));
       assert.strictEqual(result, true);
     });
 
     test('should return false for coaches not in comparison', async () => {
-      await comparisonService.addToComparison('coach_mike');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
 
-      const result = await comparisonService.isInComparison('coach_david');
+      const result = expectOk(await comparisonService.isInComparison('coach_david'));
       assert.strictEqual(result, false);
     });
   });
 
   describe('getComparisonCount', () => {
     test('should return correct count', async () => {
-      assert.strictEqual(await comparisonService.getComparisonCount(), 0);
+      assert.strictEqual(expectOk(await comparisonService.getComparisonCount()), 0);
 
-      await comparisonService.addToComparison('coach_mike');
-      assert.strictEqual(await comparisonService.getComparisonCount(), 1);
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      assert.strictEqual(expectOk(await comparisonService.getComparisonCount()), 1);
 
-      await comparisonService.addToComparison('coach_david');
-      assert.strictEqual(await comparisonService.getComparisonCount(), 2);
+      expectOk(await comparisonService.addToComparison('coach_david'));
+      assert.strictEqual(expectOk(await comparisonService.getComparisonCount()), 2);
     });
   });
 
   describe('canAddMore', () => {
     test('should return true when under limit', async () => {
-      await comparisonService.addToComparison('coach_mike');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
 
-      const canAdd = await comparisonService.canAddMore();
+      const canAdd = expectOk(await comparisonService.canAddMore());
       assert.strictEqual(canAdd, true);
     });
 
     test('should return false when at limit', async () => {
-      await comparisonService.addToComparison('coach_mike');
-      await comparisonService.addToComparison('coach_david');
-      await comparisonService.addToComparison('coach_amy');
+      expectOk(await comparisonService.addToComparison('coach_mike'));
+      expectOk(await comparisonService.addToComparison('coach_david'));
+      expectOk(await comparisonService.addToComparison('coach_amy'));
 
-      const canAdd = await comparisonService.canAddMore();
+      const canAdd = expectOk(await comparisonService.canAddMore());
       assert.strictEqual(canAdd, false);
     });
   });

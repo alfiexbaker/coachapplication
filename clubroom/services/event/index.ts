@@ -28,6 +28,10 @@ import { eventCrudService } from './event-crud-service';
 import { eventRsvpService } from './event-rsvp-service';
 import { eventAttendanceService } from './event-attendance-service';
 import { eventDisplayService } from './event-display-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('EventFacade');
+void logger;
 
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY

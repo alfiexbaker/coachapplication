@@ -34,14 +34,13 @@ export function useCredentials() {
   const [uploaded, setUploaded] = useState(false);
 
   const loadStatus = useCallback(async () => {
-    try {
-      const data = await verificationService.getStatus(COACH_ID);
-      setStatus(data);
-    } catch (error) {
-      logger.error('Failed to load verification status:', error);
-    } finally {
-      setLoading(false);
+    const result = await verificationService.getStatus(COACH_ID);
+    if (result.success) {
+      setStatus(result.data);
+    } else {
+      logger.error('Failed to load verification status:', result.error);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -61,12 +60,20 @@ export function useCredentials() {
 
     setSubmitting(true);
     try {
-      await verificationService.submitCredential(COACH_ID, `mock://credential-${selectedType}.pdf`, credentialLabel);
-      await loadStatus();
-      setShowForm(false);
-      setSelectedType(null);
-      setCustomName('');
-      setUploaded(false);
+      const result = await verificationService.submitCredential(
+        COACH_ID,
+        `mock://credential-${selectedType}.pdf`,
+        credentialLabel,
+      );
+      if (result.success) {
+        await loadStatus();
+        setShowForm(false);
+        setSelectedType(null);
+        setCustomName('');
+        setUploaded(false);
+      } else {
+        logger.error('Failed to submit credential:', result.error);
+      }
     } catch (error) {
       logger.error('Failed to submit credential:', error);
     } finally {

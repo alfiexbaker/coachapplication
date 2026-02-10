@@ -81,10 +81,10 @@ export function PurchaseButton({
         pkg.id
       );
 
-      if (result.success && result.purchase) {
-        onPurchaseSuccess?.(result.purchase.id);
+      if (result.success) {
+        onPurchaseSuccess?.(result.data.purchase.id);
       } else {
-        onPurchaseError?.(result.error || 'Purchase failed');
+        onPurchaseError?.(result.error.message || 'Purchase failed');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred';

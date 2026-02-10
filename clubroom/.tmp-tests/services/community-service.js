@@ -1,4 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.communityCarpoolService = exports.communityMessagingService = exports.communityGroupService = exports.communityService = void 0;
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('CommunityService');
 /**
  * Community Service - Thin Re-export Facade
  *
@@ -10,8 +14,6 @@
  *
  * New code should import directly from '@/services/community' instead.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.communityCarpoolService = exports.communityMessagingService = exports.communityGroupService = exports.communityService = void 0;
 var community_1 = require("./community");
 Object.defineProperty(exports, "communityService", { enumerable: true, get: function () { return community_1.communityService; } });
 Object.defineProperty(exports, "communityGroupService", { enumerable: true, get: function () { return community_1.communityGroupService; } });

@@ -45,14 +45,27 @@ export default function GroupChatScreen() {
   const loadData = useCallback(async () => {
     if (!groupId) return;
     try {
-      const [groupData, messagesData] = await Promise.all([
+      const [groupResult, messagesResult] = await Promise.all([
         communityService.getGroup(groupId),
         communityService.getGroupMessages(groupId),
       ]);
-      setGroup(groupData);
-      setMessages(messagesData);
-      if (groupData) {
-        await communityService.markMessagesRead(groupId, parentId);
+      if (!groupResult.success) {
+        setGroup(undefined);
+        Alert.alert('Error', groupResult.error.message);
+        return;
+      }
+      setGroup(groupResult.data);
+
+      if (!messagesResult.success) {
+        setMessages([]);
+        Alert.alert('Error', messagesResult.error.message);
+      } else {
+        setMessages(messagesResult.data);
+      }
+
+      const markReadResult = await communityService.markMessagesRead(groupId, parentId);
+      if (!markReadResult.success) {
+        logger.warn('Failed to mark group messages as read', markReadResult.error);
       }
     } catch (error) {
       logger.error('Failed to load group data:', error);
@@ -73,7 +86,12 @@ export default function GroupChatScreen() {
     setInputValue('');
     setSending(true);
     try {
-      await communityService.sendGroupMessage(groupId, parentId, parentName, messageText);
+      const sendResult = await communityService.sendGroupMessage(groupId, parentId, parentName, messageText);
+      if (!sendResult.success) {
+        Alert.alert('Send Failed', sendResult.error.message);
+        setInputValue(messageText);
+        return;
+      }
       await loadData();
     } catch (error) {
       logger.error('Failed to send message:', error);
@@ -97,7 +115,11 @@ export default function GroupChatScreen() {
         onPress: async () => {
           try {
             if (!groupId) return;
-            await communityService.leaveGroup(groupId, parentId);
+            const leaveResult = await communityService.leaveGroup(groupId, parentId);
+            if (!leaveResult.success) {
+              Alert.alert('Error', leaveResult.error.message);
+              return;
+            }
             router.back();
           } catch (error) {
             Alert.alert('Error', String(error));

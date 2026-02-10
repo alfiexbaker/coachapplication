@@ -17,6 +17,7 @@ import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { walletCrudService } from './wallet-crud-service';
 import { walletTransactionService } from './wallet-transaction-service';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('WalletPaymentService');
 
@@ -51,23 +52,27 @@ class WalletPaymentService {
   /**
    * Add funds to wallet with simulated payment processing
    */
-  async topUp(params: TopUpParams): Promise<PaymentResult> {
+  async topUp(params: TopUpParams): Promise<Result<PaymentResult, ServiceError>> {
     const { userId, amount, paymentMethod, cardLast4 } = params;
 
     // Validate amount
     if (amount <= 0) {
-      return { success: false, error: 'Amount must be greater than zero' };
+      return ok({ success: false, error: 'Amount must be greater than zero' });
     }
 
     if (amount > 1000) {
-      return { success: false, error: 'Maximum top-up amount is 1000 GBP' };
+      return ok({ success: false, error: 'Maximum top-up amount is 1000 GBP' });
     }
 
     try {
-      const wallet = await walletCrudService.getWallet(userId);
+      const walletResult = await walletCrudService.getWallet(userId);
+      if (!walletResult.success) {
+        return walletResult;
+      }
+      const wallet = walletResult.data;
 
       // Create pending transaction
-      const pendingTransaction = await walletTransactionService.createTransaction({
+      const pendingTransactionResult = await walletTransactionService.createTransaction({
         walletId: wallet.id,
         userId,
         type: 'TOP_UP',
@@ -81,23 +86,37 @@ class WalletPaymentService {
           ...(cardLast4 && { last4: cardLast4 }),
         },
       });
+      if (!pendingTransactionResult.success) {
+        return pendingTransactionResult;
+      }
+      const pendingTransaction = pendingTransactionResult.data;
 
       // Simulate payment processing
       await this.simulatePaymentProcessing();
 
       // Update wallet balance
       const newBalance = wallet.balance + amount;
-      await walletCrudService.updateWallet(userId, {
+      const walletUpdateResult = await walletCrudService.updateWallet(userId, {
         balance: newBalance,
         totalDeposited: wallet.totalDeposited + amount,
       });
+      if (!walletUpdateResult.success) {
+        return walletUpdateResult;
+      }
 
       // Mark transaction as completed
-      const completedTransaction = await walletTransactionService.updateTransaction(pendingTransaction.id, {
-        status: 'COMPLETED',
-        balanceAfter: newBalance,
-        completedAt: new Date().toISOString(),
-      });
+      const completedTransactionResult = await walletTransactionService.updateTransaction(
+        pendingTransaction.id,
+        {
+          status: 'COMPLETED',
+          balanceAfter: newBalance,
+          completedAt: new Date().toISOString(),
+        },
+      );
+      if (!completedTransactionResult.success) {
+        return completedTransactionResult;
+      }
+      const completedTransaction = completedTransactionResult.data;
 
       logger.info('topup_completed', {
         userId,
@@ -106,17 +125,14 @@ class WalletPaymentService {
         transactionId: pendingTransaction.id,
       });
 
-      return {
+      return ok({
         success: true,
-        transaction: completedTransaction!,
+        transaction: completedTransaction ?? pendingTransaction,
         newBalance,
-      };
+      });
     } catch (error) {
       logger.error('topup_failed', { userId, amount, error });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Top-up failed',
-      };
+      return err(storageError(error instanceof Error ? error.message : 'Top-up failed'));
     }
   }
 
@@ -128,27 +144,31 @@ class WalletPaymentService {
     bookingId: string,
     amount: number,
     metadata?: Record<string, string | number | boolean>
-  ): Promise<PaymentResult> {
+  ): Promise<Result<PaymentResult, ServiceError>> {
     // Validate amount
     if (amount <= 0) {
-      return { success: false, error: 'Amount must be greater than zero' };
+      return ok({ success: false, error: 'Amount must be greater than zero' });
     }
 
     try {
-      const wallet = await walletCrudService.getWallet(userId);
+      const walletResult = await walletCrudService.getWallet(userId);
+      if (!walletResult.success) {
+        return walletResult;
+      }
+      const wallet = walletResult.data;
 
       // Check sufficient balance
       if (wallet.balance < amount) {
-        return {
+        return ok({
           success: false,
           error: `Insufficient balance. Current balance: ${wallet.currency} ${wallet.balance.toFixed(2)}`,
-        };
+        });
       }
 
       const newBalance = wallet.balance - amount;
 
       // Create transaction
-      const transaction = await walletTransactionService.createTransaction({
+      const transactionResult = await walletTransactionService.createTransaction({
         walletId: wallet.id,
         userId,
         type: 'BOOKING_PAYMENT',
@@ -164,12 +184,19 @@ class WalletPaymentService {
           ...metadata,
         },
       });
+      if (!transactionResult.success) {
+        return transactionResult;
+      }
+      const transaction = transactionResult.data;
 
       // Update wallet
-      await walletCrudService.updateWallet(userId, {
+      const walletUpdateResult = await walletCrudService.updateWallet(userId, {
         balance: newBalance,
         totalSpent: wallet.totalSpent + amount,
       });
+      if (!walletUpdateResult.success) {
+        return walletUpdateResult;
+      }
 
       logger.info('booking_payment_completed', {
         userId,
@@ -188,11 +215,11 @@ class WalletPaymentService {
         currency: wallet.currency,
       });
 
-      return {
+      return ok({
         success: true,
         transaction,
         newBalance,
-      };
+      });
     } catch (error) {
       logger.error('booking_payment_failed', { userId, bookingId, amount, error });
 
@@ -204,10 +231,7 @@ class WalletPaymentService {
         error: error instanceof Error ? error.message : 'Payment failed',
       });
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Payment failed',
-      };
+      return err(storageError(error instanceof Error ? error.message : 'Payment failed'));
     }
   }
 
@@ -219,24 +243,31 @@ class WalletPaymentService {
     bookingId: string,
     amount: number,
     reason?: string
-  ): Promise<PaymentResult> {
+  ): Promise<Result<PaymentResult, ServiceError>> {
     // Validate amount
     if (amount <= 0) {
-      return { success: false, error: 'Refund amount must be greater than zero' };
+      return ok({ success: false, error: 'Refund amount must be greater than zero' });
     }
 
     try {
-      const wallet = await walletCrudService.getWallet(userId);
+      const walletResult = await walletCrudService.getWallet(userId);
+      if (!walletResult.success) {
+        return walletResult;
+      }
+      const wallet = walletResult.data;
       const newBalance = wallet.balance + amount;
 
       // Find original payment transaction
-      const transactions = await walletTransactionService.getTransactions(userId);
-      const originalPayment = transactions.find(
+      const transactionsResult = await walletTransactionService.getTransactions(userId);
+      if (!transactionsResult.success) {
+        return transactionsResult;
+      }
+      const originalPayment = transactionsResult.data.find(
         (t) => t.reference === bookingId && t.type === 'BOOKING_PAYMENT'
       );
 
       // Create refund transaction
-      const transaction = await walletTransactionService.createTransaction({
+      const transactionResult = await walletTransactionService.createTransaction({
         walletId: wallet.id,
         userId,
         type: 'BOOKING_REFUND',
@@ -253,12 +284,19 @@ class WalletPaymentService {
           ...(originalPayment && { originalPaymentId: originalPayment.id }),
         },
       });
+      if (!transactionResult.success) {
+        return transactionResult;
+      }
+      const transaction = transactionResult.data;
 
       // Update wallet - refund reduces totalSpent
-      await walletCrudService.updateWallet(userId, {
+      const walletUpdateResult = await walletCrudService.updateWallet(userId, {
         balance: newBalance,
         totalSpent: Math.max(0, wallet.totalSpent - amount),
       });
+      if (!walletUpdateResult.success) {
+        return walletUpdateResult;
+      }
 
       logger.info('booking_refund_completed', {
         userId,
@@ -277,17 +315,14 @@ class WalletPaymentService {
         reason,
       });
 
-      return {
+      return ok({
         success: true,
         transaction,
         newBalance,
-      };
+      });
     } catch (error) {
       logger.error('booking_refund_failed', { userId, bookingId, amount, error });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Refund failed',
-      };
+      return err(storageError(error instanceof Error ? error.message : 'Refund failed'));
     }
   }
 
@@ -298,16 +333,20 @@ class WalletPaymentService {
     userId: string,
     amount: number,
     promoCode: string
-  ): Promise<PaymentResult> {
+  ): Promise<Result<PaymentResult, ServiceError>> {
     if (amount <= 0) {
-      return { success: false, error: 'Credit amount must be greater than zero' };
+      return ok({ success: false, error: 'Credit amount must be greater than zero' });
     }
 
     try {
-      const wallet = await walletCrudService.getWallet(userId);
+      const walletResult = await walletCrudService.getWallet(userId);
+      if (!walletResult.success) {
+        return walletResult;
+      }
+      const wallet = walletResult.data;
       const newBalance = wallet.balance + amount;
 
-      const transaction = await walletTransactionService.createTransaction({
+      const transactionResult = await walletTransactionService.createTransaction({
         walletId: wallet.id,
         userId,
         type: 'PROMO_CREDIT',
@@ -319,11 +358,18 @@ class WalletPaymentService {
         completedAt: new Date().toISOString(),
         metadata: { promoCode },
       });
+      if (!transactionResult.success) {
+        return transactionResult;
+      }
+      const transaction = transactionResult.data;
 
-      await walletCrudService.updateWallet(userId, {
+      const walletUpdateResult = await walletCrudService.updateWallet(userId, {
         balance: newBalance,
         totalDeposited: wallet.totalDeposited + amount,
       });
+      if (!walletUpdateResult.success) {
+        return walletUpdateResult;
+      }
 
       logger.info('promo_credit_applied', {
         userId,
@@ -332,17 +378,14 @@ class WalletPaymentService {
         newBalance,
       });
 
-      return {
+      return ok({
         success: true,
         transaction,
         newBalance,
-      };
+      });
     } catch (error) {
       logger.error('promo_credit_failed', { userId, amount, promoCode, error });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to apply promo credit',
-      };
+      return err(storageError(error instanceof Error ? error.message : 'Failed to apply promo credit'));
     }
   }
 

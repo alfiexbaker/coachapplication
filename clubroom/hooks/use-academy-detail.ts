@@ -26,15 +26,27 @@ export function useAcademyDetail(id: string | undefined) {
     if (!id) return;
     setLoading(true);
     try {
-      const [academyData, staffData] = await Promise.all([
+      const [academyResult, staffResult] = await Promise.all([
         academyService.getAcademy(id),
         academyService.getStaff(id),
       ]);
-      setAcademy(academyData);
-      setStaff(staffData);
+      if (!academyResult.success) {
+        logger.error('Failed to load academy', academyResult.error);
+        setAcademy(null);
+        setStaff([]);
+        return;
+      }
+      if (!staffResult.success) {
+        logger.error('Failed to load academy staff', staffResult.error);
+        setAcademy(null);
+        setStaff([]);
+        return;
+      }
+      setAcademy(academyResult.data);
+      setStaff(staffResult.data);
 
       if (currentUser?.id) {
-        const membership = staffData.find((m) => m.userId === currentUser.id);
+        const membership = staffResult.data.find((m) => m.userId === currentUser.id);
         setUserMembership(membership || null);
       }
     } catch (error) {

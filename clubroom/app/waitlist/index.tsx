@@ -31,15 +31,16 @@ export default function WaitlistScreen() {
   const loadWaitlists = useCallback(async () => {
     if (!currentUser) return;
 
-    try {
-      const data = await waitlistService.getUserWaitlists(currentUser.id);
-      setEntries(data);
-    } catch (error) {
-      logger.error('Failed to load waitlists', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    const result = await waitlistService.getUserWaitlists(currentUser.id);
+    if (result.success) {
+      setEntries(result.data);
+    } else {
+      logger.error('Failed to load waitlists', result.error);
+      setEntries([]);
     }
+
+    setLoading(false);
+    setRefreshing(false);
   }, [currentUser]);
 
   useEffect(() => {
@@ -52,24 +53,22 @@ export default function WaitlistScreen() {
   };
 
   const handleLeaveWaitlist = async (entryId: string) => {
-    try {
-      await waitlistService.leaveWaitlist(entryId);
+    const result = await waitlistService.leaveWaitlist(entryId);
+    if (result.success && result.data) {
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
-    } catch (error) {
-      logger.error('Failed to leave waitlist', error);
+    } else {
+      logger.error('Failed to leave waitlist', result.success ? undefined : result.error);
     }
   };
 
   const handleToggleAutoBook = async (entryId: string, currentValue: boolean) => {
-    try {
-      const updated = await waitlistService.updateAutoBook(entryId, !currentValue);
-      if (updated) {
-        setEntries((prev) =>
-          prev.map((e) => (e.id === entryId ? { ...e, autoBook: !currentValue } : e))
-        );
-      }
-    } catch (error) {
-      logger.error('Failed to update auto-book', error);
+    const result = await waitlistService.updateAutoBook(entryId, !currentValue);
+    if (result.success && result.data) {
+      setEntries((prev) =>
+        prev.map((e) => (e.id === entryId ? { ...e, autoBook: !currentValue } : e))
+      );
+    } else if (!result.success) {
+      logger.error('Failed to update auto-book', result.error);
     }
   };
 

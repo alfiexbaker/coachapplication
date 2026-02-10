@@ -10,6 +10,10 @@
 
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+
+const logger = createLogger('SeenService');
 
 interface SeenEntry {
   entityType: string;
@@ -26,25 +30,32 @@ export const seenService = {
     entityType: string,
     entityId: string,
     userId: string
-  ): Promise<void> {
-    const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
+  ): Promise<Result<void, ServiceError>> {
+    try {
+      const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
 
-    // Check if already marked as seen
-    const existing = entries.find(
-      (e) =>
-        e.entityType === entityType &&
-        e.entityId === entityId &&
-        e.seenBy === userId
-    );
+      // Check if already marked as seen
+      const existing = entries.find(
+        (e) =>
+          e.entityType === entityType &&
+          e.entityId === entityId &&
+          e.seenBy === userId,
+      );
 
-    if (!existing) {
-      entries.push({
-        entityType,
-        entityId,
-        seenBy: userId,
-        seenAt: new Date().toISOString(),
-      });
-      await apiClient.set(STORAGE_KEYS.SEEN_STATUSES, entries);
+      if (!existing) {
+        entries.push({
+          entityType,
+          entityId,
+          seenBy: userId,
+          seenAt: new Date().toISOString(),
+        });
+        await apiClient.set(STORAGE_KEYS.SEEN_STATUSES, entries);
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to mark entity as seen', { entityType, entityId, userId, error });
+      return err(storageError('Failed to update seen status'));
     }
   },
 
@@ -55,15 +66,20 @@ export const seenService = {
   async getSeenStatus(
     entityType: string,
     entityId: string
-  ): Promise<{ seenBy: string; seenAt: string } | null> {
-    const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
-    const match = entries.find(
-      (e) => e.entityType === entityType && e.entityId === entityId
-    );
+  ): Promise<Result<{ seenBy: string; seenAt: string } | null, ServiceError>> {
+    try {
+      const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
+      const match = entries.find(
+        (e) => e.entityType === entityType && e.entityId === entityId,
+      );
 
-    if (!match) return null;
+      if (!match) return ok(null);
 
-    return { seenBy: match.seenBy, seenAt: match.seenAt };
+      return ok({ seenBy: match.seenBy, seenAt: match.seenAt });
+    } catch (error) {
+      logger.error('Failed to get seen status', { entityType, entityId, error });
+      return err(storageError('Failed to load seen status'));
+    }
   },
 
   /**
@@ -72,16 +88,23 @@ export const seenService = {
   async getSeenStatuses(
     entityType: string,
     entityIds: string[]
-  ): Promise<{ entityId: string; seenBy: string; seenAt: string }[]> {
-    const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
-    const idSet = new Set(entityIds);
+  ): Promise<Result<{ entityId: string; seenBy: string; seenAt: string }[], ServiceError>> {
+    try {
+      const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
+      const idSet = new Set(entityIds);
 
-    return entries
-      .filter((e) => e.entityType === entityType && idSet.has(e.entityId))
-      .map((e) => ({
-        entityId: e.entityId,
-        seenBy: e.seenBy,
-        seenAt: e.seenAt,
-      }));
+      return ok(
+        entries
+          .filter((e) => e.entityType === entityType && idSet.has(e.entityId))
+          .map((e) => ({
+            entityId: e.entityId,
+            seenBy: e.seenBy,
+            seenAt: e.seenAt,
+          })),
+      );
+    } catch (error) {
+      logger.error('Failed to get seen statuses', { entityType, entityIds, error });
+      return err(storageError('Failed to load seen statuses'));
+    }
   },
 };

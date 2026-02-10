@@ -48,9 +48,15 @@ export function MyPackages({
         if (!currentUser?.id) return;
         setLoading(true);
         try {
-          const data = activeOnly
+          const dataResult = activeOnly
             ? await packageService.getActiveUserPackages(currentUser.id)
             : await packageService.getUserPackages(currentUser.id);
+          if (!dataResult.success) {
+            logger.error('Failed to load purchases', dataResult.error);
+            setPurchases([]);
+            return;
+          }
+          const data = dataResult.data;
           setPurchases(limit ? data.slice(0, limit) : data);
         } catch (error) {
           logger.error('Failed to load purchases', error);

@@ -8,13 +8,13 @@
  * Role hierarchy: OWNER > ADMIN > MODERATOR > MEMBER
  *
  * API Integration Notes:
- * - Groups are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Groups are persisted via apiClient (AsyncStorage in dev, API in prod)
  * - Notifications are triggered on invite/join/role-change actions
  * - Role changes emit typed events via event bus
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.communityGroupService = void 0;
-const storage_service_1 = require("../storage-service");
+const api_client_1 = require("../api-client");
 const notification_service_1 = require("../notification-service");
 const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
@@ -121,7 +121,7 @@ class CommunityGroupService {
      */
     async getAllGroups() {
         try {
-            const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, []);
+            const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, []);
             if (persisted.length > 0) {
                 this.inMemoryGroups = persisted;
             }
@@ -130,7 +130,7 @@ class CommunityGroupService {
         }
         catch (error) {
             logger.error('Failed to get all groups', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get all groups: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get all groups: ${String(error)}`));
         }
     }
     /**
@@ -147,7 +147,7 @@ class CommunityGroupService {
         }
         catch (error) {
             logger.error('Failed to get parent groups', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get parent groups: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get parent groups: ${String(error)}`));
         }
     }
     /**
@@ -164,7 +164,7 @@ class CommunityGroupService {
         }
         catch (error) {
             logger.error('Failed to get public groups', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get public groups: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get public groups: ${String(error)}`));
         }
     }
     /**
@@ -184,7 +184,7 @@ class CommunityGroupService {
         }
         catch (error) {
             logger.error('Failed to get group', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get group: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get group: ${String(error)}`));
         }
     }
     /**
@@ -237,7 +237,7 @@ class CommunityGroupService {
         }
         catch (error) {
             logger.error('Failed to create group', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to create group: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to create group: ${String(error)}`));
         }
     }
     /**
@@ -365,9 +365,9 @@ class CommunityGroupService {
             createdAt: new Date().toISOString(),
         };
         // Save invite
-        const allInvites = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
+        const allInvites = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
         allInvites.push(invite);
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
         // Send notification to invitee
         await notification_service_1.notificationService.create({
             id: `notif_group_invite_${Date.now()}`,
@@ -385,14 +385,14 @@ class CommunityGroupService {
      */
     async getGroupInvites(userId) {
         try {
-            const allInvites = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
+            const allInvites = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
             const filtered = allInvites.filter((i) => i.inviteeId === userId);
             logger.info('group_invites_retrieved', { userId, count: filtered.length });
             return (0, result_1.ok)(filtered);
         }
         catch (error) {
             logger.error('Failed to get group invites', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get group invites: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get group invites: ${String(error)}`));
         }
     }
     /**
@@ -409,14 +409,14 @@ class CommunityGroupService {
         }
         catch (error) {
             logger.error('Failed to get pending invites', error);
-            return (0, result_1.err)({ code: 'STORAGE_ERROR', message: `Failed to get pending invites: ${String(error)}` });
+            return (0, result_1.err)((0, result_1.storageError)(`Failed to get pending invites: ${String(error)}`));
         }
     }
     /**
      * Accept a group invite
      */
     async acceptGroupInvite(inviteId) {
-        const allInvites = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
+        const allInvites = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
         const inviteIndex = allInvites.findIndex((i) => i.id === inviteId);
         if (inviteIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Invite', inviteId));
@@ -428,7 +428,7 @@ class CommunityGroupService {
         // Update invite status
         allInvites[inviteIndex].status = 'ACCEPTED';
         allInvites[inviteIndex].respondedAt = new Date().toISOString();
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
         // Add member to group
         const groupResult = await this.getGroup(invite.groupId);
         if (groupResult.success) {
@@ -458,7 +458,7 @@ class CommunityGroupService {
      * Decline a group invite
      */
     async declineGroupInvite(inviteId) {
-        const allInvites = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
+        const allInvites = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
         const inviteIndex = allInvites.findIndex((i) => i.id === inviteId);
         if (inviteIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Invite', inviteId));
@@ -469,7 +469,7 @@ class CommunityGroupService {
         }
         allInvites[inviteIndex].status = 'DECLINED';
         allInvites[inviteIndex].respondedAt = new Date().toISOString();
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, allInvites);
         return (0, result_1.ok)(undefined);
     }
     // ============================================================================
@@ -684,7 +684,7 @@ class CommunityGroupService {
      * Persist groups to storage
      */
     async persistGroups() {
-        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, this.inMemoryGroups);
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, this.inMemoryGroups);
     }
 }
 exports.communityGroupService = new CommunityGroupService();

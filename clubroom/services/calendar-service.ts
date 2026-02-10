@@ -90,8 +90,8 @@ function bookingToCalendarEvent(booking: Booking): CalendarEvent {
     location: booking.location || '',
     description: description.trim(),
     bookingId: booking.id,
-    coachName: booking.coachName,
-    athleteName: booking.athleteName,
+    coachName: booking.coachName || undefined,
+    athleteName: booking.athleteName || undefined,
   };
 }
 

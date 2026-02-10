@@ -29,6 +29,10 @@ export * from './types';
 import { familyMemberService } from './family-member-service';
 import { familyRelationshipService } from './family-relationship-service';
 import { familyPermissionService } from './family-permission-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('FamilyFacade');
+void logger;
 
 /**
  * Backward-compatible facade that delegates to focused services.

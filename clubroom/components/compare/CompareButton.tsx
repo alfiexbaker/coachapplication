@@ -36,16 +36,13 @@ export function CompareButton({
   const [canAddMore, setCanAddMore] = useState(true);
 
   const checkState = useCallback(async () => {
-    try {
-      const inComparison = await comparisonService.isInComparison(coachId);
-      const canAdd = await comparisonService.canAddMore();
-      setIsInComparison(inComparison);
-      setCanAddMore(canAdd || inComparison);
-    } catch {
-      // Silent fail
-    } finally {
-      setIsLoading(false);
-    }
+    const inComparisonResult = await comparisonService.isInComparison(coachId);
+    const canAddResult = await comparisonService.canAddMore();
+    const inComparison = inComparisonResult.success ? inComparisonResult.data : false;
+    const canAdd = canAddResult.success ? canAddResult.data : false;
+    setIsInComparison(inComparison);
+    setCanAddMore(canAdd || inComparison);
+    setIsLoading(false);
   }, [coachId]);
 
   useEffect(() => {
@@ -54,24 +51,31 @@ export function CompareButton({
 
   const handlePress = useCallback(async () => {
     setIsLoading(true);
+    let nextInComparison = isInComparison;
     try {
       if (isInComparison) {
-        await comparisonService.removeFromComparison(coachId);
-        setIsInComparison(false);
-        onStateChange?.(false);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        const removeResult = await comparisonService.removeFromComparison(coachId);
+        if (removeResult.success) {
+          nextInComparison = false;
+          setIsInComparison(false);
+          onStateChange?.(false);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
       } else {
         const result = await comparisonService.addToComparison(coachId);
-        if (result.success) {
+        if (result.success && result.data.success) {
+          nextInComparison = true;
           setIsInComparison(true);
           onStateChange?.(true);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
+          nextInComparison = false;
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         }
       }
-      const canAdd = await comparisonService.canAddMore();
-      setCanAddMore(canAdd || !isInComparison);
+      const canAddResult = await comparisonService.canAddMore();
+      const canAdd = canAddResult.success ? canAddResult.data : false;
+      setCanAddMore(canAdd || nextInComparison);
     } catch {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {

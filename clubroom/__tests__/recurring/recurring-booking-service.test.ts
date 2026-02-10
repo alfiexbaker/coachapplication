@@ -101,7 +101,7 @@ test('list returns all recurring bookings', async () => {
 
   const bookings = await recurringBookingService.list();
 
-  assert.strictEqual(bookings.length, 2, 'Should return 2 bookings');
+  assert.strictEqual(bookings.success ? bookings.data.length : 0, 2, 'Should return 2 bookings');
 });
 
 test('getById returns specific booking', async () => {
@@ -113,14 +113,15 @@ test('getById returns specific booking', async () => {
 
   const booking = await recurringBookingService.getById(id);
 
-  assert.ok(booking, 'Should find booking by ID');
-  assert.strictEqual(booking.id, id);
+  assert.ok(booking.success && booking.data, 'Should find booking by ID');
+  assert.strictEqual(booking.success && booking.data ? booking.data.id : undefined, id);
 });
 
 test('getById returns undefined for non-existent ID', async () => {
   const booking = await recurringBookingService.getById('non_existent_id');
 
-  assert.strictEqual(booking, undefined);
+  assert.strictEqual(booking.success, true);
+  assert.strictEqual(booking.data, undefined);
 });
 
 test('getUserRecurringBookings returns bookings for specific user', async () => {
@@ -136,8 +137,8 @@ test('getUserRecurringBookings returns bookings for specific user', async () => 
 
   const userBookings = await recurringBookingService.getUserRecurringBookings('test_user_1');
 
-  assert.strictEqual(userBookings.length, 1);
-  assert.strictEqual(userBookings[0].userId, 'test_user_1');
+  assert.strictEqual(userBookings.success ? userBookings.data.length : 0, 1);
+  assert.strictEqual(userBookings.success ? userBookings.data[0].userId : '', 'test_user_1');
 });
 
 test('getCoachRecurringBookings returns bookings for specific coach', async () => {
@@ -154,8 +155,8 @@ test('getCoachRecurringBookings returns bookings for specific coach', async () =
 
   const coachBookings = await recurringBookingService.getCoachRecurringBookings('test_coach_1');
 
-  assert.strictEqual(coachBookings.length, 1);
-  assert.strictEqual(coachBookings[0].coachId, 'test_coach_1');
+  assert.strictEqual(coachBookings.success ? coachBookings.data.length : 0, 1);
+  assert.strictEqual(coachBookings.success ? coachBookings.data[0].coachId : '', 'test_coach_1');
 });
 
 // ============================================================================
@@ -189,7 +190,7 @@ test('pauseRecurring fails for already paused subscription', async () => {
   const secondPauseResult = await recurringBookingService.pauseRecurring(id);
 
   assert.strictEqual(secondPauseResult.success, false);
-  assert.ok(secondPauseResult.error?.includes('paused'));
+  assert.ok(secondPauseResult.error?.message.includes('paused'));
 });
 
 test('resumeRecurring resumes a paused subscription', async () => {
@@ -219,7 +220,7 @@ test('resumeRecurring fails for non-paused subscription', async () => {
   const resumeResult = await recurringBookingService.resumeRecurring(id);
 
   assert.strictEqual(resumeResult.success, false);
-  assert.ok(resumeResult.error?.includes('active'));
+  assert.ok(resumeResult.error?.message.includes('active'));
 });
 
 // ============================================================================
@@ -253,7 +254,7 @@ test('cancelRecurring fails for already cancelled subscription', async () => {
   const secondCancelResult = await recurringBookingService.cancelRecurring(id);
 
   assert.strictEqual(secondCancelResult.success, false);
-  assert.ok(secondCancelResult.error?.includes('cancelled'));
+  assert.ok(secondCancelResult.error?.message.includes('cancelled'));
 });
 
 test('cancelRecurring can cancel a paused subscription', async () => {
@@ -308,7 +309,7 @@ test('generateUpcomingBookings fails for paused subscription', async () => {
   const generateResult = await recurringBookingService.generateUpcomingBookings(id);
 
   assert.strictEqual(generateResult.success, false);
-  assert.ok(generateResult.error?.includes('paused'));
+  assert.ok(generateResult.error?.message.includes('paused'));
 });
 
 test('generateUpcomingBookings updates recurring booking with generated IDs', async () => {
@@ -322,8 +323,13 @@ test('generateUpcomingBookings updates recurring booking with generated IDs', as
 
   const updatedBooking = await recurringBookingService.getById(id);
 
-  assert.ok(updatedBooking);
-  assert.ok(updatedBooking.generatedBookingIds.length > 0, 'Should have generated booking IDs');
+  assert.ok(updatedBooking.success && updatedBooking.data);
+  assert.ok(
+    updatedBooking.success && updatedBooking.data
+      ? updatedBooking.data.generatedBookingIds.length > 0
+      : false,
+    'Should have generated booking IDs'
+  );
 });
 
 // ============================================================================
@@ -361,7 +367,7 @@ test('updateRecurring fails for cancelled subscription', async () => {
   const updateResult = await recurringBookingService.updateRecurring(id, { time: '16:00' });
 
   assert.strictEqual(updateResult.success, false);
-  assert.ok(updateResult.error?.includes('cancelled'));
+  assert.ok(updateResult.error?.message.includes('cancelled'));
 });
 
 // ============================================================================
@@ -424,14 +430,15 @@ test('deleteRecurring removes booking', async () => {
   assert.strictEqual(deleteResult.success, true);
 
   const booking = await recurringBookingService.getById(id);
-  assert.strictEqual(booking, undefined, 'Booking should be deleted');
+  assert.strictEqual(booking.success, true);
+  assert.strictEqual(booking.data, undefined, 'Booking should be deleted');
 });
 
 test('deleteRecurring fails for non-existent booking', async () => {
   const deleteResult = await recurringBookingService.deleteRecurring('non_existent_id');
 
   assert.strictEqual(deleteResult.success, false);
-  assert.ok(deleteResult.error?.includes('not found'));
+  assert.ok(deleteResult.error?.message.includes('not found'));
 });
 
 // ============================================================================
@@ -454,7 +461,7 @@ test('recurring booking supports all frequency types', async () => {
   }
 
   const bookings = await recurringBookingService.list();
-  assert.strictEqual(bookings.length, 3, 'Should have 3 bookings');
+  assert.strictEqual(bookings.success ? bookings.data.length : 0, 3, 'Should have 3 bookings');
 });
 
 // ============================================================================
@@ -480,13 +487,13 @@ test('getActiveUserRecurringBookings returns only active bookings', async () => 
     mockCreateParams.userId
   );
 
-  assert.strictEqual(activeBookings.length, 1, 'Should only return active booking');
-  assert.strictEqual(activeBookings[0].status, 'ACTIVE');
+  assert.strictEqual(activeBookings.success ? activeBookings.data.length : 0, 1, 'Should only return active booking');
+  assert.strictEqual(activeBookings.success ? activeBookings.data[0].status : '', 'ACTIVE');
 });
 
 // Clean up after all tests
 test('cleanup test data', async () => {
   await recurringBookingService.clearAll();
   const bookings = await recurringBookingService.list();
-  assert.strictEqual(bookings.length, 0, 'Should be empty after cleanup');
+  assert.strictEqual(bookings.success ? bookings.data.length : 0, 0, 'Should be empty after cleanup');
 });

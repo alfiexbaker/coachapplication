@@ -15,7 +15,7 @@
  * - GET /api/athletes/:id/injuries - Coach view of athlete injuries
  */
 
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import type {
   Injury,
@@ -349,7 +349,7 @@ function getStatusInfo(status: InjuryStatus): { label: string; color: string; ic
  * Get all injuries from storage
  */
 async function getAllInjuries(): Promise<Injury[]> {
-  const injuries = await storageService.getItem<Injury[]>(STORAGE_KEYS.INJURIES, []);
+  const injuries = await apiClient.get<Injury[]>(STORAGE_KEYS.INJURIES, []);
   // Return mock data if no injuries stored
   if (injuries.length === 0) {
     return [...MOCK_INJURIES];
@@ -361,7 +361,7 @@ async function getAllInjuries(): Promise<Injury[]> {
  * Save all injuries to storage
  */
 async function saveInjuries(injuries: Injury[]): Promise<void> {
-  await storageService.setItem(STORAGE_KEYS.INJURIES, injuries);
+  await apiClient.set(STORAGE_KEYS.INJURIES, injuries);
 }
 
 // ============================================================================

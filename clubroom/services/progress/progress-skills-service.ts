@@ -5,10 +5,10 @@
  * skill progression over time with trend analysis.
  *
  * API Integration Notes:
- * - Skill levels are persisted via storageService (AsyncStorage in dev, API in prod)
+ * - Skill levels are persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 
-import { storageService } from '../storage-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -39,7 +39,7 @@ export interface AthleteSkillLevels {
 // ============================================================================
 
 async function getAllSkillLevels(): Promise<Record<string, AthleteSkillLevels>> {
-  return storageService.getItem<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {});
+  return apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {});
 }
 
 async function getAthleteSkillLevels(athleteId: string): Promise<AthleteSkillLevels | null> {
@@ -98,7 +98,7 @@ async function updateSkillLevel(
   athleteData.lastUpdated = new Date().toISOString();
   allLevels[athleteId] = athleteData;
 
-  await storageService.setItem(STORAGE_KEYS.SKILL_LEVELS, allLevels);
+  await apiClient.set(STORAGE_KEYS.SKILL_LEVELS, allLevels);
 
   logger.info('skill_level_updated', {
     athleteId,

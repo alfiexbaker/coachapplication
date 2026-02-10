@@ -11,6 +11,10 @@
 
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+
+const logger = createLogger('ReportService');
 
 export interface Report {
   id: string;
@@ -29,25 +33,35 @@ export const reportService = {
    */
   async submitReport(
     report: Omit<Report, 'id' | 'createdAt' | 'status'>
-  ): Promise<Report> {
-    const newReport: Report = {
-      ...report,
-      id: apiClient.generateId('report'),
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-    };
+  ): Promise<Result<Report, ServiceError>> {
+    try {
+      const newReport: Report = {
+        ...report,
+        id: apiClient.generateId('report'),
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+      };
 
-    const existing = await apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
-    existing.push(newReport);
-    await apiClient.set(STORAGE_KEYS.REPORTS, existing);
-
-    return newReport;
+      const existing = await apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
+      existing.push(newReport);
+      await apiClient.set(STORAGE_KEYS.REPORTS, existing);
+      return ok(newReport);
+    } catch (error) {
+      logger.error('Failed to submit report', { report, error });
+      return err(storageError('Failed to submit report'));
+    }
   },
 
   /**
    * Get all reports submitted by the current user or against a user.
    */
-  async getReports(): Promise<Report[]> {
-    return apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
+  async getReports(): Promise<Result<Report[], ServiceError>> {
+    try {
+      const reports = await apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
+      return ok(reports);
+    } catch (error) {
+      logger.error('Failed to get reports', error);
+      return err(storageError('Failed to load reports'));
+    }
   },
 };

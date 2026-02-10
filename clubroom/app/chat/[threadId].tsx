@@ -29,13 +29,18 @@ export default function ChatScreen() {
 
   const refresh = useCallback(async () => {
     if (!threadId) return;
-    const list = await messagingService.listMessages(threadId);
-    setMessages(list);
+    const listResult = await messagingService.listMessages(threadId);
+    if (listResult.success) {
+      setMessages(listResult.data);
+    }
   }, [threadId]);
 
   useEffect(() => {
-    messagingService.listThreads().then((threads) => {
-      const found = threads.find((t) => t.id === threadId) || threads[0];
+    messagingService.listThreads().then((threadsResult) => {
+      if (!threadsResult.success) {
+        return;
+      }
+      const found = threadsResult.data.find((t) => t.id === threadId) || threadsResult.data[0];
       setThread(found);
       setPostingAs(found?.postingAsOptions?.[0]);
     });
@@ -45,7 +50,11 @@ export default function ChatScreen() {
   const handleSend = async (body: string) => {
     if (!threadId) return;
     const senderLabel = postingAs ? `You (${postingAs})` : 'You';
-    await messagingService.sendMessage(threadId, body, 'parent', senderLabel);
+    const sendResult = await messagingService.sendMessage(threadId, body, 'parent', senderLabel);
+    if (!sendResult.success) {
+      Alert.alert('Unable to send message', sendResult.error.message);
+      return;
+    }
     await messagingService.simulateIncoming(threadId, 'Coach is typing...');
     refresh();
   };

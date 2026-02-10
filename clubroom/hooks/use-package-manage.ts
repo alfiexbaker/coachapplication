@@ -27,12 +27,22 @@ export function usePackageManage() {
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
-      const [packagesData, statsData] = await Promise.all([
+      const [packagesResult, statsResult] = await Promise.all([
         packageService.getCoachPackages(currentUser.id),
         packageService.getCoachPackageStats(currentUser.id),
       ]);
-      setPackages(packagesData);
-      setStats(statsData);
+      if (!packagesResult.success) {
+        showToast(packagesResult.error.message, 'error');
+        setPackages([]);
+        return;
+      }
+      if (!statsResult.success) {
+        showToast(statsResult.error.message, 'error');
+        setStats({ totalPackagesSold: 0, totalRevenue: 0, activePackages: 0, sessionsRedeemed: 0 });
+        return;
+      }
+      setPackages(packagesResult.data);
+      setStats(statsResult.data);
     } catch (error) {
       logger.error('Failed to load packages:', error);
       showToast('Failed to load packages', 'error');
@@ -63,8 +73,12 @@ export function usePackageManage() {
 
   const handleToggleActive = useCallback(async (pkg: SessionPackage) => {
     try {
-      const updated = await packageService.updatePackage(pkg.id, { isActive: !pkg.isActive });
-      if (updated) {
+      const updatedResult = await packageService.updatePackage(pkg.id, { isActive: !pkg.isActive });
+      if (!updatedResult.success) {
+        showToast(updatedResult.error.message, 'error');
+        return;
+      }
+      if (updatedResult.data) {
         showToast(pkg.isActive ? 'Package deactivated' : 'Package activated', 'success');
         loadData();
       }
@@ -76,8 +90,12 @@ export function usePackageManage() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
-          const success = await packageService.deletePackage(pkg.id);
-          if (success) { showToast('Package deleted', 'success'); loadData(); }
+          const result = await packageService.deletePackage(pkg.id);
+          if (!result.success) {
+            showToast(result.error.message, 'error');
+            return;
+          }
+          if (result.data) { showToast('Package deleted', 'success'); loadData(); }
         } catch { showToast('Failed to delete package', 'error'); }
       }},
     ]);

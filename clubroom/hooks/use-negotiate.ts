@@ -35,7 +35,15 @@ export function useNegotiate() {
     if (!id) { setError('Booking ID not provided'); setIsLoading(false); return; }
     try {
       setError(null);
-      const history = await counterOfferService.getNegotiationHistory(id);
+      const historyResult = await counterOfferService.getNegotiationHistory(id);
+      if (!historyResult.success) {
+        logger.error('Failed to load negotiation history', historyResult.error);
+        setError('Failed to load negotiation details');
+        setNegotiation(null);
+        setPendingOffer(null);
+        return;
+      }
+      const history = historyResult.data;
       setNegotiation(history);
       if (history) {
         const pending = history.offers.find((offer) => offer.status === 'PENDING' && offer.proposerId !== currentUserId);
@@ -57,7 +65,11 @@ export function useNegotiate() {
   const handleAccept = useCallback(async (offerId: string) => {
     try {
       setIsProcessing(true);
-      await counterOfferService.acceptCounterOffer(offerId);
+      const acceptResult = await counterOfferService.acceptCounterOffer(offerId);
+      if (!acceptResult.success) {
+        Alert.alert('Error', acceptResult.error.message || 'Failed to accept the proposal. Please try again.');
+        return;
+      }
       Alert.alert('Time Change Accepted', 'The booking has been updated with the new time. Both parties will be notified.', [{ text: 'OK', onPress: () => loadData() }]);
     } catch (err) {
       logger.error('Failed to accept offer', err);
@@ -78,7 +90,14 @@ export function useNegotiate() {
     try {
       setIsProcessing(true);
       setShowRejectModal(false);
-      await counterOfferService.rejectCounterOffer({ offerId: offerToReject, reason: rejectReason.trim() || undefined });
+      const rejectResult = await counterOfferService.rejectCounterOffer({
+        offerId: offerToReject,
+        reason: rejectReason.trim() || undefined
+      });
+      if (!rejectResult.success) {
+        Alert.alert('Error', rejectResult.error.message || 'Failed to decline the proposal. Please try again.');
+        return;
+      }
       Alert.alert('Proposal Declined', 'The other party has been notified. They may propose an alternative time.', [{ text: 'OK', onPress: () => loadData() }]);
     } catch (err) {
       logger.error('Failed to reject offer', err);

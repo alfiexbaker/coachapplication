@@ -46,14 +46,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const analytics_service_1 = require("../../services/analytics-service");
+const expectOk = (result) => {
+    node_assert_1.default.strictEqual(result.success, true);
+    if (!result.success) {
+        throw new Error('Expected successful result');
+    }
+    return result.data;
+};
 // Reset to mock data before each test
 (0, node_test_1.beforeEach)(async () => {
-    await analytics_service_1.coachAnalyticsService.resetToMockData();
+    expectOk(await analytics_service_1.coachAnalyticsService.resetToMockData());
 });
 (0, node_test_1.describe)('Coach Analytics Service', () => {
     (0, node_test_1.describe)('getCoachAnalytics', () => {
         (0, node_test_1.default)('should return analytics for a known coach', async () => {
-            const analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1');
+            const analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1'));
             node_assert_1.default.ok(analytics);
             node_assert_1.default.strictEqual(analytics.coachId, 'coach1');
             node_assert_1.default.strictEqual(analytics.coachName, 'Marcus Thompson');
@@ -66,7 +73,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             node_assert_1.default.ok(Array.isArray(analytics.revenueChart));
         });
         (0, node_test_1.default)('should return default analytics for unknown coach', async () => {
-            const analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('unknown_coach');
+            const analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('unknown_coach'));
             node_assert_1.default.ok(analytics);
             node_assert_1.default.strictEqual(analytics.coachId, 'unknown_coach');
             node_assert_1.default.strictEqual(analytics.totalRevenue, 0);
@@ -76,7 +83,7 @@ const analytics_service_1 = require("../../services/analytics-service");
         (0, node_test_1.default)('should respect period parameter', async () => {
             const periods = ['WEEK', 'MONTH', 'QUARTER', 'YEAR'];
             for (const period of periods) {
-                const analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1', period);
+                const analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1', period));
                 node_assert_1.default.ok(analytics);
                 node_assert_1.default.strictEqual(analytics.period, period);
                 node_assert_1.default.ok(analytics.dateRange);
@@ -85,7 +92,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             }
         });
         (0, node_test_1.default)('should include all required analytics fields', async () => {
-            const analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1');
+            const analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1'));
             node_assert_1.default.ok(analytics);
             // Revenue fields
             node_assert_1.default.ok(typeof analytics.totalRevenue === 'number');
@@ -124,12 +131,12 @@ const analytics_service_1 = require("../../services/analytics-service");
         });
         (0, node_test_1.default)('should return correct trend direction based on revenue change', async () => {
             // Coach1 has positive revenue change (UP trend)
-            const coach1Analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1');
+            const coach1Analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1'));
             node_assert_1.default.ok(coach1Analytics);
             node_assert_1.default.ok(coach1Analytics.revenueChangePercent > 0);
             node_assert_1.default.strictEqual(coach1Analytics.revenueTrend, 'UP');
             // Coach2 has negative revenue change (DOWN trend)
-            const coach2Analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach2');
+            const coach2Analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach2'));
             node_assert_1.default.ok(coach2Analytics);
             node_assert_1.default.ok(coach2Analytics.revenueChangePercent < 0);
             node_assert_1.default.strictEqual(coach2Analytics.revenueTrend, 'DOWN');
@@ -137,7 +144,7 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('getRevenueChart', () => {
         (0, node_test_1.default)('should return revenue data points', async () => {
-            const revenueData = await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'MONTH');
+            const revenueData = expectOk(await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'MONTH'));
             node_assert_1.default.ok(Array.isArray(revenueData));
             node_assert_1.default.ok(revenueData.length > 0);
             revenueData.forEach((point) => {
@@ -146,9 +153,9 @@ const analytics_service_1 = require("../../services/analytics-service");
             });
         });
         (0, node_test_1.default)('should return different data points for different periods', async () => {
-            const weekData = await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'WEEK');
-            const monthData = await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'MONTH');
-            const yearData = await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'YEAR');
+            const weekData = expectOk(await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'WEEK'));
+            const monthData = expectOk(await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'MONTH'));
+            const yearData = expectOk(await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'YEAR'));
             // Week should have 7 data points (daily)
             node_assert_1.default.strictEqual(weekData.length, 7);
             // Month should have 4 data points (weekly)
@@ -157,7 +164,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             node_assert_1.default.strictEqual(yearData.length, 12);
         });
         (0, node_test_1.default)('should include session count in revenue data points', async () => {
-            const revenueData = await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'MONTH');
+            const revenueData = expectOk(await analytics_service_1.coachAnalyticsService.getRevenueChart('coach1', 'MONTH'));
             revenueData.forEach((point) => {
                 node_assert_1.default.ok(typeof point.sessionCount === 'number');
             });
@@ -165,7 +172,7 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('getRetentionMetrics', () => {
         (0, node_test_1.default)('should return retention metrics', async () => {
-            const metrics = await analytics_service_1.coachAnalyticsService.getRetentionMetrics('coach1');
+            const metrics = expectOk(await analytics_service_1.coachAnalyticsService.getRetentionMetrics('coach1'));
             node_assert_1.default.ok(metrics);
             node_assert_1.default.ok(typeof metrics.newClients === 'number');
             node_assert_1.default.ok(typeof metrics.returningClients === 'number');
@@ -176,7 +183,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             node_assert_1.default.ok(typeof metrics.clientsLost === 'number');
         });
         (0, node_test_1.default)('should return default metrics for unknown coach', async () => {
-            const metrics = await analytics_service_1.coachAnalyticsService.getRetentionMetrics('unknown_coach');
+            const metrics = expectOk(await analytics_service_1.coachAnalyticsService.getRetentionMetrics('unknown_coach'));
             node_assert_1.default.ok(metrics);
             node_assert_1.default.strictEqual(metrics.newClients, 0);
             node_assert_1.default.strictEqual(metrics.returningClients, 0);
@@ -184,7 +191,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             node_assert_1.default.strictEqual(metrics.retentionRate, 100);
         });
         (0, node_test_1.default)('should have retention rate between 0 and 100', async () => {
-            const metrics = await analytics_service_1.coachAnalyticsService.getRetentionMetrics('coach1');
+            const metrics = expectOk(await analytics_service_1.coachAnalyticsService.getRetentionMetrics('coach1'));
             node_assert_1.default.ok(metrics.retentionRate >= 0);
             node_assert_1.default.ok(metrics.retentionRate <= 100);
             node_assert_1.default.ok(metrics.churnRate >= 0);
@@ -193,7 +200,7 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('getCancellationPatterns', () => {
         (0, node_test_1.default)('should return cancellation statistics', async () => {
-            const stats = await analytics_service_1.coachAnalyticsService.getCancellationPatterns('coach1');
+            const stats = expectOk(await analytics_service_1.coachAnalyticsService.getCancellationPatterns('coach1'));
             node_assert_1.default.ok(stats);
             node_assert_1.default.ok(typeof stats.totalCancellations === 'number');
             node_assert_1.default.ok(typeof stats.cancellationRate === 'number');
@@ -203,7 +210,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             node_assert_1.default.ok(typeof stats.revenueLost === 'number');
         });
         (0, node_test_1.default)('should include valid cancellation reasons', async () => {
-            const stats = await analytics_service_1.coachAnalyticsService.getCancellationPatterns('coach1');
+            const stats = expectOk(await analytics_service_1.coachAnalyticsService.getCancellationPatterns('coach1'));
             const validReasons = [
                 'CLIENT_REQUEST',
                 'WEATHER',
@@ -220,7 +227,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             });
         });
         (0, node_test_1.default)('should include day of week breakdown with valid days', async () => {
-            const stats = await analytics_service_1.coachAnalyticsService.getCancellationPatterns('coach1');
+            const stats = expectOk(await analytics_service_1.coachAnalyticsService.getCancellationPatterns('coach1'));
             stats.byDayOfWeek.forEach((day) => {
                 node_assert_1.default.ok(day.dayOfWeek >= 0 && day.dayOfWeek <= 6);
                 node_assert_1.default.ok(typeof day.dayName === 'string');
@@ -231,12 +238,12 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('getPeakHours', () => {
         (0, node_test_1.default)('should return peak hours data', async () => {
-            const peakHours = await analytics_service_1.coachAnalyticsService.getPeakHours('coach1');
+            const peakHours = expectOk(await analytics_service_1.coachAnalyticsService.getPeakHours('coach1'));
             node_assert_1.default.ok(Array.isArray(peakHours));
             node_assert_1.default.ok(peakHours.length > 0);
         });
         (0, node_test_1.default)('should have valid day and hour values', async () => {
-            const peakHours = await analytics_service_1.coachAnalyticsService.getPeakHours('coach1');
+            const peakHours = expectOk(await analytics_service_1.coachAnalyticsService.getPeakHours('coach1'));
             peakHours.forEach((data) => {
                 node_assert_1.default.ok(data.dayOfWeek >= 0 && data.dayOfWeek <= 6);
                 node_assert_1.default.ok(data.hour >= 0 && data.hour <= 23);
@@ -247,7 +254,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             });
         });
         (0, node_test_1.default)('should cover all days of the week', async () => {
-            const peakHours = await analytics_service_1.coachAnalyticsService.getPeakHours('coach1');
+            const peakHours = expectOk(await analytics_service_1.coachAnalyticsService.getPeakHours('coach1'));
             const daysFound = new Set(peakHours.map((d) => d.dayOfWeek));
             // Should have data for all 7 days
             for (let day = 0; day < 7; day++) {
@@ -257,12 +264,12 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('getTopSkills', () => {
         (0, node_test_1.default)('should return top skills data', async () => {
-            const topSkills = await analytics_service_1.coachAnalyticsService.getTopSkills('coach1');
+            const topSkills = expectOk(await analytics_service_1.coachAnalyticsService.getTopSkills('coach1'));
             node_assert_1.default.ok(Array.isArray(topSkills));
             node_assert_1.default.ok(topSkills.length > 0);
         });
         (0, node_test_1.default)('should have valid skill data structure', async () => {
-            const topSkills = await analytics_service_1.coachAnalyticsService.getTopSkills('coach1');
+            const topSkills = expectOk(await analytics_service_1.coachAnalyticsService.getTopSkills('coach1'));
             topSkills.forEach((skill) => {
                 node_assert_1.default.ok(typeof skill.skill === 'string');
                 node_assert_1.default.ok(typeof skill.sessionCount === 'number');
@@ -271,12 +278,12 @@ const analytics_service_1 = require("../../services/analytics-service");
             });
         });
         (0, node_test_1.default)('should return empty array for unknown coach', async () => {
-            const topSkills = await analytics_service_1.coachAnalyticsService.getTopSkills('unknown_coach');
+            const topSkills = expectOk(await analytics_service_1.coachAnalyticsService.getTopSkills('unknown_coach'));
             node_assert_1.default.ok(Array.isArray(topSkills));
             node_assert_1.default.strictEqual(topSkills.length, 0);
         });
         (0, node_test_1.default)('should have percentages that are non-negative', async () => {
-            const topSkills = await analytics_service_1.coachAnalyticsService.getTopSkills('coach1');
+            const topSkills = expectOk(await analytics_service_1.coachAnalyticsService.getTopSkills('coach1'));
             topSkills.forEach((skill) => {
                 node_assert_1.default.ok(skill.percentage >= 0);
                 node_assert_1.default.ok(skill.percentage <= 100);
@@ -285,7 +292,7 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('getSessionStats', () => {
         (0, node_test_1.default)('should return session statistics', async () => {
-            const stats = await analytics_service_1.coachAnalyticsService.getSessionStats('coach1');
+            const stats = expectOk(await analytics_service_1.coachAnalyticsService.getSessionStats('coach1'));
             node_assert_1.default.ok(stats);
             node_assert_1.default.ok(typeof stats.totalSessions === 'number');
             node_assert_1.default.ok(typeof stats.sessionsChange === 'number');
@@ -296,7 +303,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             node_assert_1.default.ok(Array.isArray(stats.bySessionType));
         });
         (0, node_test_1.default)('should include session type breakdown', async () => {
-            const stats = await analytics_service_1.coachAnalyticsService.getSessionStats('coach1');
+            const stats = expectOk(await analytics_service_1.coachAnalyticsService.getSessionStats('coach1'));
             stats.bySessionType.forEach((sessionType) => {
                 node_assert_1.default.ok(typeof sessionType.type === 'string');
                 node_assert_1.default.ok(typeof sessionType.count === 'number');
@@ -305,7 +312,7 @@ const analytics_service_1 = require("../../services/analytics-service");
             });
         });
         (0, node_test_1.default)('should return default stats for unknown coach', async () => {
-            const stats = await analytics_service_1.coachAnalyticsService.getSessionStats('unknown_coach');
+            const stats = expectOk(await analytics_service_1.coachAnalyticsService.getSessionStats('unknown_coach'));
             node_assert_1.default.ok(stats);
             node_assert_1.default.strictEqual(stats.totalSessions, 0);
             node_assert_1.default.strictEqual(stats.popularSessionType, 'N/A');
@@ -314,9 +321,9 @@ const analytics_service_1 = require("../../services/analytics-service");
     });
     (0, node_test_1.describe)('Multiple Coaches', () => {
         (0, node_test_1.default)('should return different data for different coaches', async () => {
-            const coach1Analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1');
-            const coach2Analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach2');
-            const coach3Analytics = await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach3');
+            const coach1Analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach1'));
+            const coach2Analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach2'));
+            const coach3Analytics = expectOk(await analytics_service_1.coachAnalyticsService.getCoachAnalytics('coach3'));
             node_assert_1.default.ok(coach1Analytics);
             node_assert_1.default.ok(coach2Analytics);
             node_assert_1.default.ok(coach3Analytics);

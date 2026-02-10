@@ -217,92 +217,108 @@ exports.analyticsTrackingService = {
      * Update skill level (called after session)
      */
     async updateSkillLevel(athleteId, skill, newLevel) {
-        if (USE_MOCK) {
-            analyticsCache = await loadAnalytics();
-            let analytics = analyticsCache.find((a) => a.athleteId === athleteId);
-            if (!analytics) {
-                // Create new analytics record
-                analytics = {
-                    athleteId,
-                    athleteName: 'Athlete',
-                    period: 'MONTH',
-                    totalSessions: 0,
-                    sessionsThisPeriod: 0,
-                    averageSessionRating: 0,
-                    attendanceRate: 0,
-                    skills: [],
-                    activeGoals: [],
-                    completedGoals: [],
-                    improvementRate: 0,
-                    consistencyScore: 0,
-                    percentileRank: 50,
-                };
-                analyticsCache.push(analytics);
+        try {
+            if (USE_MOCK) {
+                analyticsCache = await loadAnalytics();
+                let analytics = analyticsCache.find((a) => a.athleteId === athleteId);
+                if (!analytics) {
+                    // Create new analytics record
+                    analytics = {
+                        athleteId,
+                        athleteName: 'Athlete',
+                        period: 'MONTH',
+                        totalSessions: 0,
+                        sessionsThisPeriod: 0,
+                        averageSessionRating: 0,
+                        attendanceRate: 0,
+                        skills: [],
+                        activeGoals: [],
+                        completedGoals: [],
+                        improvementRate: 0,
+                        consistencyScore: 0,
+                        percentileRank: 50,
+                    };
+                    analyticsCache.push(analytics);
+                }
+                let skillProgress = analytics.skills.find((s) => s.skillName === skill);
+                const today = (0, format_1.toDateStr)(new Date());
+                if (skillProgress) {
+                    skillProgress.previousLevel = skillProgress.currentLevel;
+                    skillProgress.currentLevel = newLevel;
+                    skillProgress.changePercent = skillProgress.previousLevel > 0
+                        ? ((newLevel - skillProgress.previousLevel) / skillProgress.previousLevel) * 100
+                        : 0;
+                    skillProgress.history.push({ date: today, level: newLevel });
+                }
+                else {
+                    skillProgress = {
+                        skillName: skill,
+                        category: 'Technical',
+                        currentLevel: newLevel,
+                        previousLevel: 0,
+                        changePercent: 0,
+                        history: [{ date: today, level: newLevel }],
+                    };
+                    analytics.skills.push(skillProgress);
+                }
+                await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.ATHLETE_ANALYTICS, analyticsCache);
             }
-            let skillProgress = analytics.skills.find((s) => s.skillName === skill);
-            const today = (0, format_1.toDateStr)(new Date());
-            if (skillProgress) {
-                skillProgress.previousLevel = skillProgress.currentLevel;
-                skillProgress.currentLevel = newLevel;
-                skillProgress.changePercent = skillProgress.previousLevel > 0
-                    ? ((newLevel - skillProgress.previousLevel) / skillProgress.previousLevel) * 100
-                    : 0;
-                skillProgress.history.push({ date: today, level: newLevel });
-            }
-            else {
-                skillProgress = {
-                    skillName: skill,
-                    category: 'Technical',
-                    currentLevel: newLevel,
-                    previousLevel: 0,
-                    changePercent: 0,
-                    history: [{ date: today, level: newLevel }],
-                };
-                analytics.skills.push(skillProgress);
-            }
-            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.ATHLETE_ANALYTICS, analyticsCache);
+            return (0, result_1.ok)(undefined);
+        }
+        catch (error) {
+            logger.error('Failed to update skill level', { athleteId, skill, newLevel, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to update skill level'));
         }
     },
     /**
      * Create a new goal
      */
     async createGoal(input) {
-        const now = new Date().toISOString();
-        const goalId = `goal_${Date.now()}`;
-        const newGoal = {
-            id: goalId,
-            userId: input.athleteId,
-            athleteId: input.athleteId,
-            title: input.title,
-            description: input.description,
-            category: input.category || 'OTHER',
-            targetDate: input.targetDate,
-            progress: 0,
-            milestones: (input.milestones || []).map((title, index) => ({
-                id: `ms_${Date.now()}_${index}`,
-                goalId: goalId,
-                title,
-                order: index,
-                isCompleted: false,
-            })),
-            status: 'ACTIVE',
-            createdBy: input.createdBy,
-            createdById: input.createdById,
-            createdAt: now,
-            updatedAt: now,
-        };
-        if (USE_MOCK) {
-            goalsCache = await loadGoals();
-            goalsCache.push(newGoal);
-            await saveGoals(goalsCache);
-            return newGoal;
+        try {
+            const now = new Date().toISOString();
+            const goalId = `goal_${Date.now()}`;
+            const newGoal = {
+                id: goalId,
+                userId: input.athleteId,
+                athleteId: input.athleteId,
+                title: input.title,
+                description: input.description,
+                category: input.category || 'OTHER',
+                targetDate: input.targetDate,
+                progress: 0,
+                milestones: (input.milestones || []).map((title, index) => ({
+                    id: `ms_${Date.now()}_${index}`,
+                    goalId: goalId,
+                    title,
+                    order: index,
+                    isCompleted: false,
+                })),
+                status: 'ACTIVE',
+                createdBy: input.createdBy,
+                createdById: input.createdById,
+                createdAt: now,
+                updatedAt: now,
+            };
+            if (USE_MOCK) {
+                goalsCache = await loadGoals();
+                goalsCache.push(newGoal);
+                await saveGoals(goalsCache);
+                return (0, result_1.ok)(newGoal);
+            }
+            const response = await fetch(`/api/athletes/${input.athleteId}/goals`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newGoal),
+            });
+            if (!response.ok) {
+                return (0, result_1.err)((0, result_1.networkError)('Failed to create goal'));
+            }
+            return (0, result_1.ok)(await response.json());
         }
-        const response = await fetch(`/api/athletes/${input.athleteId}/goals`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newGoal),
-        });
-        return response.json();
+        catch (error) {
+            logger.error('Failed to create goal', { input, error });
+            return (0, result_1.err)((0, result_1.storageError)('Failed to create goal'));
+        }
     },
     /**
      * Update goal progress

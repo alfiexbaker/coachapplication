@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('WalletService');
+
 /**
  * Wallet Service - Re-export Facade
  *

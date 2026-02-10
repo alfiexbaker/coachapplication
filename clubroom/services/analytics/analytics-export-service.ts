@@ -31,6 +31,14 @@ import { DAY_NAMES } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  networkError,
+} from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -386,75 +394,80 @@ export const analyticsExportService = {
   async getCoachAnalytics(
     coachId: string,
     period: CoachAnalyticsPeriod = 'MONTH'
-  ): Promise<CoachAnalytics | null> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
+  ): Promise<Result<CoachAnalytics | null, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
 
-      if (analytics) {
-        // Update period and date range
-        const dateRange = getDateRangeForPeriod(period);
-        return {
-          ...analytics,
+        if (analytics) {
+          // Update period and date range
+          const dateRange = getDateRangeForPeriod(period);
+          return ok({
+            ...analytics,
+            period,
+            dateRange,
+            revenueChart: generateMockRevenueChart(period, analytics.totalRevenue),
+            computedAt: new Date().toISOString(),
+          });
+        }
+
+        // Return default analytics for unknown coach
+        return ok({
+          coachId,
+          coachName: 'Coach',
           period,
-          dateRange,
-          revenueChart: generateMockRevenueChart(period, analytics.totalRevenue),
+          dateRange: getDateRangeForPeriod(period),
+          totalRevenue: 0,
+          revenueChange: 0,
+          revenueChangePercent: 0,
+          revenueTrend: 'STABLE',
+          revenueChart: [],
+          avgRevenuePerSession: 0,
+          sessions: {
+            totalSessions: 0,
+            sessionsChange: 0,
+            sessionsChangePercent: 0,
+            avgSessionsPerWeek: 0,
+            avgDuration: 0,
+            popularSessionType: 'N/A',
+            bySessionType: [],
+          },
+          retention: {
+            newClients: 0,
+            returningClients: 0,
+            churnRate: 0,
+            retentionRate: 100,
+            avgSessionsPerClient: 0,
+            totalActiveClients: 0,
+            clientsLost: 0,
+          },
+          cancellations: {
+            totalCancellations: 0,
+            cancellationRate: 0,
+            byReason: [],
+            byDayOfWeek: [],
+            avgNoticeHours: 0,
+            revenueLost: 0,
+          },
+          peakHours: [],
+          busiestDay: { dayOfWeek: 6, dayName: 'Saturday', sessionCount: 0 },
+          busiestHour: { hour: 17, sessionCount: 0 },
+          topSkills: [],
+          avgRating: 0,
+          ratingChange: 0,
+          reviewCount: 0,
           computedAt: new Date().toISOString(),
-        };
+        });
       }
 
-      // Return default analytics for unknown coach
-      return {
-        coachId,
-        coachName: 'Coach',
-        period,
-        dateRange: getDateRangeForPeriod(period),
-        totalRevenue: 0,
-        revenueChange: 0,
-        revenueChangePercent: 0,
-        revenueTrend: 'STABLE',
-        revenueChart: [],
-        avgRevenuePerSession: 0,
-        sessions: {
-          totalSessions: 0,
-          sessionsChange: 0,
-          sessionsChangePercent: 0,
-          avgSessionsPerWeek: 0,
-          avgDuration: 0,
-          popularSessionType: 'N/A',
-          bySessionType: [],
-        },
-        retention: {
-          newClients: 0,
-          returningClients: 0,
-          churnRate: 0,
-          retentionRate: 100,
-          avgSessionsPerClient: 0,
-          totalActiveClients: 0,
-          clientsLost: 0,
-        },
-        cancellations: {
-          totalCancellations: 0,
-          cancellationRate: 0,
-          byReason: [],
-          byDayOfWeek: [],
-          avgNoticeHours: 0,
-          revenueLost: 0,
-        },
-        peakHours: [],
-        busiestDay: { dayOfWeek: 6, dayName: 'Saturday', sessionCount: 0 },
-        busiestHour: { hour: 17, sessionCount: 0 },
-        topSkills: [],
-        avgRating: 0,
-        ratingChange: 0,
-        reviewCount: 0,
-        computedAt: new Date().toISOString(),
-      };
+      const response = await fetch(`/api/coaches/${coachId}/analytics?period=${period}`);
+      if (!response.ok) return ok(null);
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get coach analytics', { coachId, period, error });
+      return err(networkError('Failed to load coach analytics'));
     }
-
-    const response = await fetch(`/api/coaches/${coachId}/analytics?period=${period}`);
-    if (!response.ok) return null;
-    return response.json();
   },
 
   /**
@@ -463,116 +476,176 @@ export const analyticsExportService = {
   async getRevenueChart(
     coachId: string,
     period: CoachAnalyticsPeriod = 'MONTH'
-  ): Promise<RevenueDataPoint[]> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
-      const baseRevenue = analytics?.totalRevenue || 1000;
-      return generateMockRevenueChart(period, baseRevenue);
-    }
+  ): Promise<Result<RevenueDataPoint[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
+        const baseRevenue = analytics?.totalRevenue || 1000;
+        return ok(generateMockRevenueChart(period, baseRevenue));
+      }
 
-    const response = await fetch(`/api/coaches/${coachId}/revenue?period=${period}`);
-    return response.json();
+      const response = await fetch(`/api/coaches/${coachId}/revenue?period=${period}`);
+      if (!response.ok) {
+        return err(networkError('Failed to load revenue chart'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get revenue chart', { coachId, period, error });
+      return err(storageError('Failed to load revenue chart'));
+    }
   },
 
   /**
    * Get retention metrics for a coach
    */
-  async getRetentionMetrics(coachId: string): Promise<RetentionMetrics> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
-      return analytics?.retention || {
-        newClients: 0,
-        returningClients: 0,
-        churnRate: 0,
-        retentionRate: 100,
-        avgSessionsPerClient: 0,
-        totalActiveClients: 0,
-        clientsLost: 0,
-      };
-    }
+  async getRetentionMetrics(coachId: string): Promise<Result<RetentionMetrics, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
+        return ok(
+          analytics?.retention || {
+            newClients: 0,
+            returningClients: 0,
+            churnRate: 0,
+            retentionRate: 100,
+            avgSessionsPerClient: 0,
+            totalActiveClients: 0,
+            clientsLost: 0,
+          },
+        );
+      }
 
-    const response = await fetch(`/api/coaches/${coachId}/retention`);
-    return response.json();
+      const response = await fetch(`/api/coaches/${coachId}/retention`);
+      if (!response.ok) {
+        return err(networkError('Failed to load retention metrics'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get retention metrics', { coachId, error });
+      return err(storageError('Failed to load retention metrics'));
+    }
   },
 
   /**
    * Get cancellation patterns and statistics
    */
-  async getCancellationPatterns(coachId: string): Promise<CancellationStats> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
-      return analytics?.cancellations || {
-        totalCancellations: 0,
-        cancellationRate: 0,
-        byReason: [],
-        byDayOfWeek: [],
-        avgNoticeHours: 0,
-        revenueLost: 0,
-      };
-    }
+  async getCancellationPatterns(coachId: string): Promise<Result<CancellationStats, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
+        return ok(
+          analytics?.cancellations || {
+            totalCancellations: 0,
+            cancellationRate: 0,
+            byReason: [],
+            byDayOfWeek: [],
+            avgNoticeHours: 0,
+            revenueLost: 0,
+          },
+        );
+      }
 
-    const response = await fetch(`/api/coaches/${coachId}/cancellations`);
-    return response.json();
+      const response = await fetch(`/api/coaches/${coachId}/cancellations`);
+      if (!response.ok) {
+        return err(networkError('Failed to load cancellation patterns'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get cancellation patterns', { coachId, error });
+      return err(storageError('Failed to load cancellation patterns'));
+    }
   },
 
   /**
    * Get peak hours data for heatmap visualization
    */
-  async getPeakHours(coachId: string): Promise<PeakHoursData[]> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
-      return analytics?.peakHours || generateMockPeakHours();
-    }
+  async getPeakHours(coachId: string): Promise<Result<PeakHoursData[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
+        return ok(analytics?.peakHours || generateMockPeakHours());
+      }
 
-    const response = await fetch(`/api/coaches/${coachId}/peak-hours`);
-    return response.json();
+      const response = await fetch(`/api/coaches/${coachId}/peak-hours`);
+      if (!response.ok) {
+        return err(networkError('Failed to load peak hours'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get peak hours', { coachId, error });
+      return err(storageError('Failed to load peak hours'));
+    }
   },
 
   /**
    * Get top skills taught by the coach
    */
-  async getTopSkills(coachId: string): Promise<TopSkillData[]> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
-      return analytics?.topSkills || [];
-    }
+  async getTopSkills(coachId: string): Promise<Result<TopSkillData[], ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
+        return ok(analytics?.topSkills || []);
+      }
 
-    const response = await fetch(`/api/coaches/${coachId}/top-skills`);
-    return response.json();
+      const response = await fetch(`/api/coaches/${coachId}/top-skills`);
+      if (!response.ok) {
+        return err(networkError('Failed to load top skills'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get top skills', { coachId, error });
+      return err(storageError('Failed to load top skills'));
+    }
   },
 
   /**
    * Get session statistics
    */
-  async getSessionStats(coachId: string): Promise<SessionStats> {
-    if (USE_MOCK) {
-      coachAnalyticsCache = await loadCoachAnalytics();
-      const analytics = coachAnalyticsCache[coachId];
-      return analytics?.sessions || {
-        totalSessions: 0,
-        sessionsChange: 0,
-        sessionsChangePercent: 0,
-        avgSessionsPerWeek: 0,
-        avgDuration: 0,
-        popularSessionType: 'N/A',
-        bySessionType: [],
-      };
-    }
+  async getSessionStats(coachId: string): Promise<Result<SessionStats, ServiceError>> {
+    try {
+      if (USE_MOCK) {
+        coachAnalyticsCache = await loadCoachAnalytics();
+        const analytics = coachAnalyticsCache[coachId];
+        return ok(
+          analytics?.sessions || {
+            totalSessions: 0,
+            sessionsChange: 0,
+            sessionsChangePercent: 0,
+            avgSessionsPerWeek: 0,
+            avgDuration: 0,
+            popularSessionType: 'N/A',
+            bySessionType: [],
+          },
+        );
+      }
 
-    const response = await fetch(`/api/coaches/${coachId}/sessions`);
-    return response.json();
+      const response = await fetch(`/api/coaches/${coachId}/sessions`);
+      if (!response.ok) {
+        return err(networkError('Failed to load session stats'));
+      }
+      return ok(await response.json());
+    } catch (error) {
+      logger.error('Failed to get session stats', { coachId, error });
+      return err(storageError('Failed to load session stats'));
+    }
   },
 
   /**
    * Reset to mock data (useful for testing)
    */
-  async resetToMockData(): Promise<void> {
-    coachAnalyticsCache = { ...MOCK_COACH_ANALYTICS };
-    await saveCoachAnalytics(coachAnalyticsCache);
+  async resetToMockData(): Promise<Result<void, ServiceError>> {
+    try {
+      coachAnalyticsCache = { ...MOCK_COACH_ANALYTICS };
+      await saveCoachAnalytics(coachAnalyticsCache);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to reset coach analytics mock data', error);
+      return err(storageError('Failed to reset analytics data'));
+    }
   },
 };

@@ -46,14 +46,11 @@ export function BlockUserModal({
     if (!currentUser) return;
 
     setBlocking(true);
-    try {
-      await blockService.blockUser(currentUser.id, userId);
+    const result = await blockService.blockUser(currentUser.id, userId);
+    if (result.success) {
       setBlocked(true);
-    } catch {
-      // Silently handle — in production this would show an error toast
-    } finally {
-      setBlocking(false);
     }
+    setBlocking(false);
   };
 
   const handleClose = () => {

@@ -25,6 +25,9 @@ Object.defineProperty(exports, "communityCarpoolService", { enumerable: true, ge
 const community_group_service_2 = require("./community-group-service");
 const community_messaging_service_2 = require("./community-messaging-service");
 const community_carpool_service_2 = require("./community-carpool-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('CommunityFacade');
+void logger;
 // ============================================================================
 // UNIFIED FACADE FOR BACKWARD COMPATIBILITY
 // ============================================================================

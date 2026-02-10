@@ -21,6 +21,8 @@
 import { apiClient } from './api-client';
 import type { FavouriteCoach, SportCategory } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from './event-bus';
+import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -112,185 +114,265 @@ export const favouriteService = {
    * Add a coach to user's favourites
    * Returns the new favourite if created, or existing favourite if already exists
    */
-  async addFavourite(input: AddFavouriteInput): Promise<FavouriteCoach> {
-    favouritesCache = await loadFavourites();
+  async addFavourite(input: AddFavouriteInput): Promise<Result<FavouriteCoach, ServiceError>> {
+    try {
+      favouritesCache = await loadFavourites();
 
-    // Check if already favourited
-    const existing = favouritesCache.find(
-      (f) => f.userId === input.userId && f.coachId === input.coachId && f.isFavourite
-    );
+      // Check if already favourited
+      const existing = favouritesCache.find(
+        (f) => f.userId === input.userId && f.coachId === input.coachId && f.isFavourite
+      );
 
-    if (existing) {
-      logger.debug('Already favourited', { coachId: input.coachId });
-      return existing;
-    }
-
-    // Check for soft-deleted favourite to restore
-    const softDeleted = favouritesCache.find(
-      (f) => f.userId === input.userId && f.coachId === input.coachId && !f.isFavourite
-    );
-
-    if (softDeleted) {
-      // Restore the soft-deleted favourite
-      softDeleted.isFavourite = true;
-      softDeleted.updatedAt = new Date().toISOString();
-      softDeleted.coachName = input.coachName;
-      softDeleted.coachAvatar = input.coachAvatar;
-      softDeleted.coachSport = input.coachSport;
-      softDeleted.coachRating = input.coachRating;
-      softDeleted.coachPriceMin = input.coachPriceMin;
-      softDeleted.coachPriceMax = input.coachPriceMax;
-      softDeleted.coachCity = input.coachCity;
-      if (input.note) {
-        softDeleted.note = input.note;
+      if (existing) {
+        logger.debug('Already favourited', { coachId: input.coachId });
+        return ok(existing);
       }
 
+      const softDeleted = favouritesCache.find(
+        (f) => f.userId === input.userId && f.coachId === input.coachId && !f.isFavourite
+      );
+
+      if (softDeleted) {
+        softDeleted.isFavourite = true;
+        softDeleted.updatedAt = new Date().toISOString();
+        softDeleted.coachName = input.coachName;
+        softDeleted.coachAvatar = input.coachAvatar;
+        softDeleted.coachSport = input.coachSport;
+        softDeleted.coachRating = input.coachRating;
+        softDeleted.coachPriceMin = input.coachPriceMin;
+        softDeleted.coachPriceMax = input.coachPriceMax;
+        softDeleted.coachCity = input.coachCity;
+        if (input.note) {
+          softDeleted.note = input.note;
+        }
+
+        await saveFavourites(favouritesCache);
+        logger.debug('Restored favourite', { id: softDeleted.id });
+        emitTyped(ServiceEvents.FAVOURITE_ADDED, {
+          userId: softDeleted.userId,
+          coachId: softDeleted.coachId,
+          favouriteId: softDeleted.id,
+        });
+        return ok(softDeleted);
+      }
+
+      const newFavourite: FavouriteCoach = {
+        id: `fav_${Date.now()}`,
+        userId: input.userId,
+        coachId: input.coachId,
+        coachName: input.coachName,
+        coachAvatar: input.coachAvatar,
+        coachSport: input.coachSport,
+        coachRating: input.coachRating,
+        coachPriceMin: input.coachPriceMin,
+        coachPriceMax: input.coachPriceMax,
+        coachCity: input.coachCity,
+        isFavourite: true,
+        createdAt: new Date().toISOString(),
+        note: input.note,
+      };
+
+      favouritesCache.push(newFavourite);
       await saveFavourites(favouritesCache);
-      logger.debug('Restored favourite', { id: softDeleted.id });
-      return softDeleted;
+
+      logger.debug('Created favourite', { id: newFavourite.id });
+      emitTyped(ServiceEvents.FAVOURITE_ADDED, {
+        userId: newFavourite.userId,
+        coachId: newFavourite.coachId,
+        favouriteId: newFavourite.id,
+      });
+      return ok(newFavourite);
+    } catch (error) {
+      logger.error('Failed to add favourite', { input, error });
+      return err(storageError('Failed to add favourite'));
     }
-
-    const newFavourite: FavouriteCoach = {
-      id: `fav_${Date.now()}`,
-      userId: input.userId,
-      coachId: input.coachId,
-      coachName: input.coachName,
-      coachAvatar: input.coachAvatar,
-      coachSport: input.coachSport,
-      coachRating: input.coachRating,
-      coachPriceMin: input.coachPriceMin,
-      coachPriceMax: input.coachPriceMax,
-      coachCity: input.coachCity,
-      isFavourite: true,
-      createdAt: new Date().toISOString(),
-      note: input.note,
-    };
-
-    favouritesCache.push(newFavourite);
-    await saveFavourites(favouritesCache);
-
-    logger.debug('Created favourite', { id: newFavourite.id });
-    return newFavourite;
   },
 
   /**
    * Remove a coach from user's favourites (soft delete)
    */
-  async removeFavourite(userId: string, coachId: string): Promise<void> {
-    favouritesCache = await loadFavourites();
+  async removeFavourite(userId: string, coachId: string): Promise<Result<void, ServiceError>> {
+    try {
+      favouritesCache = await loadFavourites();
 
-    const favourite = favouritesCache.find(
-      (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
-    );
+      const favourite = favouritesCache.find(
+        (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
+      );
 
-    if (!favourite) {
-      logger.debug('Not favourited', { coachId });
-      return;
+      if (!favourite) {
+        logger.debug('Not favourited', { coachId });
+        return err(notFound('Favourite'));
+      }
+
+      favourite.isFavourite = false;
+      favourite.updatedAt = new Date().toISOString();
+
+      await saveFavourites(favouritesCache);
+      logger.debug('Removed favourite', { id: favourite.id });
+      emitTyped(ServiceEvents.FAVOURITE_REMOVED, {
+        userId: favourite.userId,
+        coachId: favourite.coachId,
+        favouriteId: favourite.id,
+      });
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to remove favourite', { userId, coachId, error });
+      return err(storageError('Failed to remove favourite'));
     }
-
-    // Soft delete - mark as not favourite
-    favourite.isFavourite = false;
-    favourite.updatedAt = new Date().toISOString();
-
-    await saveFavourites(favouritesCache);
-    logger.debug('Removed favourite', { id: favourite.id });
   },
 
   /**
    * Get all favourited coaches for a user
    */
-  async getFavourites(userId: string): Promise<FavouriteCoach[]> {
-    favouritesCache = await loadFavourites();
-    return favouritesCache
-      .filter((f) => f.userId === userId && f.isFavourite)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  async getFavourites(userId: string): Promise<Result<FavouriteCoach[], ServiceError>> {
+    try {
+      favouritesCache = await loadFavourites();
+      return ok(
+        favouritesCache
+          .filter((f) => f.userId === userId && f.isFavourite)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      );
+    } catch (error) {
+      logger.error('Failed to get favourites', { userId, error });
+      return err(storageError('Failed to load favourites'));
+    }
   },
 
   /**
    * Check if a user has favourited a specific coach
    */
-  async isFavourite(userId: string, coachId: string): Promise<boolean> {
-    favouritesCache = await loadFavourites();
-    return favouritesCache.some(
-      (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
-    );
+  async isFavourite(userId: string, coachId: string): Promise<Result<boolean, ServiceError>> {
+    try {
+      favouritesCache = await loadFavourites();
+      return ok(
+        favouritesCache.some(
+          (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
+        ),
+      );
+    } catch (error) {
+      logger.error('Failed to check favourite status', { userId, coachId, error });
+      return err(storageError('Failed to check favourite status'));
+    }
   },
 
   /**
    * Toggle favourite status for a coach
    * Returns the updated favourite status (true = favourited, false = removed)
    */
-  async toggleFavourite(input: AddFavouriteInput): Promise<{ isFavourite: boolean; favourite: FavouriteCoach | null }> {
-    const currentlyFavourited = await this.isFavourite(input.userId, input.coachId);
-
-    if (currentlyFavourited) {
-      await this.removeFavourite(input.userId, input.coachId);
-      return { isFavourite: false, favourite: null };
-    } else {
-      const favourite = await this.addFavourite(input);
-      return { isFavourite: true, favourite };
+  async toggleFavourite(
+    input: AddFavouriteInput,
+  ): Promise<Result<{ isFavourite: boolean; favourite: FavouriteCoach | null }, ServiceError>> {
+    const currentlyFavouritedResult = await this.isFavourite(input.userId, input.coachId);
+    if (!currentlyFavouritedResult.success) {
+      return currentlyFavouritedResult;
     }
+
+    if (currentlyFavouritedResult.data) {
+      const removeResult = await this.removeFavourite(input.userId, input.coachId);
+      if (!removeResult.success && removeResult.error.code !== 'NOT_FOUND') {
+        return removeResult;
+      }
+      return ok({ isFavourite: false, favourite: null });
+    }
+
+    const favouriteResult = await this.addFavourite(input);
+    if (!favouriteResult.success) {
+      return favouriteResult;
+    }
+    return ok({ isFavourite: true, favourite: favouriteResult.data });
   },
 
   /**
    * Get favourite count for a user
    */
-  async getFavouriteCount(userId: string): Promise<number> {
-    const favourites = await this.getFavourites(userId);
-    return favourites.length;
+  async getFavouriteCount(userId: string): Promise<Result<number, ServiceError>> {
+    const favouritesResult = await this.getFavourites(userId);
+    if (!favouritesResult.success) {
+      return favouritesResult;
+    }
+    return ok(favouritesResult.data.length);
   },
 
   /**
    * Get favourite by ID
    */
-  async getFavouriteById(favouriteId: string): Promise<FavouriteCoach | null> {
-    favouritesCache = await loadFavourites();
-    return favouritesCache.find((f) => f.id === favouriteId && f.isFavourite) || null;
+  async getFavouriteById(favouriteId: string): Promise<Result<FavouriteCoach | null, ServiceError>> {
+    try {
+      favouritesCache = await loadFavourites();
+      return ok(favouritesCache.find((f) => f.id === favouriteId && f.isFavourite) || null);
+    } catch (error) {
+      logger.error('Failed to get favourite by id', { favouriteId, error });
+      return err(storageError('Failed to load favourite'));
+    }
   },
 
   /**
    * Update favourite note
    */
-  async updateNote(userId: string, coachId: string, note: string): Promise<FavouriteCoach | null> {
-    favouritesCache = await loadFavourites();
+  async updateNote(
+    userId: string,
+    coachId: string,
+    note: string,
+  ): Promise<Result<FavouriteCoach | null, ServiceError>> {
+    try {
+      favouritesCache = await loadFavourites();
 
-    const favourite = favouritesCache.find(
-      (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
-    );
+      const favourite = favouritesCache.find(
+        (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
+      );
 
-    if (!favourite) {
-      return null;
+      if (!favourite) {
+        return ok(null);
+      }
+
+      favourite.note = note;
+      favourite.updatedAt = new Date().toISOString();
+
+      await saveFavourites(favouritesCache);
+      return ok(favourite);
+    } catch (error) {
+      logger.error('Failed to update favourite note', { userId, coachId, error });
+      return err(storageError('Failed to update note'));
     }
-
-    favourite.note = note;
-    favourite.updatedAt = new Date().toISOString();
-
-    await saveFavourites(favouritesCache);
-    return favourite;
   },
 
   /**
    * Get IDs of all favourited coaches for a user
    * Useful for filtering or highlighting favourites in lists
    */
-  async getFavouriteCoachIds(userId: string): Promise<string[]> {
-    const favourites = await this.getFavourites(userId);
-    return favourites.map((f) => f.coachId);
+  async getFavouriteCoachIds(userId: string): Promise<Result<string[], ServiceError>> {
+    const favouritesResult = await this.getFavourites(userId);
+    if (!favouritesResult.success) {
+      return favouritesResult;
+    }
+    return ok(favouritesResult.data.map((f) => f.coachId));
   },
 
   /**
    * Reset to mock data (for testing)
    */
-  async resetToMockData(): Promise<void> {
-    favouritesCache = [...MOCK_FAVOURITES];
-    await saveFavourites(favouritesCache);
+  async resetToMockData(): Promise<Result<void, ServiceError>> {
+    try {
+      favouritesCache = [...MOCK_FAVOURITES];
+      await saveFavourites(favouritesCache);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to reset favourites', error);
+      return err(storageError('Failed to reset favourites'));
+    }
   },
 
   /**
    * Clear all favourites (for testing)
    */
-  async clearAll(): Promise<void> {
-    favouritesCache = [];
-    await saveFavourites(favouritesCache);
+  async clearAll(): Promise<Result<void, ServiceError>> {
+    try {
+      favouritesCache = [];
+      await saveFavourites(favouritesCache);
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to clear favourites', error);
+      return err(storageError('Failed to clear favourites'));
+    }
   },
 };

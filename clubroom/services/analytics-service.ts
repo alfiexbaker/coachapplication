@@ -1,3 +1,6 @@
+import { createLogger } from '@/utils/logger';
+const logger = createLogger('AnalyticsService');
+
 /**
  * Analytics Service - Re-export Facade
  *
