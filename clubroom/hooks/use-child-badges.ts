@@ -1,11 +1,13 @@
-import { useCallback, useState } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 
+import { useScreen } from '@/hooks/use-screen';
 import { badgeService } from '@/services/badge-service';
 import { userService } from '@/services/user-service';
 import type { BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { Ionicons } from '@expo/vector-icons';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useChildBadges');
 
@@ -26,24 +28,30 @@ type ProgressionData = {
   categoryBreakdown: { category: BadgeCategory; label: string; badgeCount: number }[];
 };
 
+interface ChildBadgesData {
+  child: User | null;
+  awards: BadgeAward[];
+  progressionData: ProgressionData | null;
+}
+
 export function useChildBadges() {
   const { childId, highlightBadge } = useLocalSearchParams<{ childId: string; highlightBadge?: string }>();
 
-  const [child, setChild] = useState<User | null>(null);
-  const [awards, setAwards] = useState<BadgeAward[]>([]);
-  const [progressionData, setProgressionData] = useState<ProgressionData | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const loadData = useCallback(async () => {
-    if (!childId) return;
-    setLoading(true);
+    if (!childId) {
+      return ok<ChildBadgesData>({
+        child: null,
+        awards: [],
+        progressionData: null,
+      });
+    }
 
     try {
       const childResult = await userService.getUserById(childId);
+      let child: User | null = null;
       if (childResult.success) {
-        setChild(childResult.data);
+        child = childResult.data;
       } else {
-        setChild(null);
         logger.error('Failed to load child profile for badges', {
           childId,
           error: childResult.error,
@@ -56,26 +64,44 @@ export function useChildBadges() {
       ]);
 
       const visibleAwards = awardsData.filter(a => a.visibility !== 'coach_only');
-      setAwards(visibleAwards);
-      setProgressionData(progression);
-
       await badgeService.markAllSeenByParent(childId);
+      return ok<ChildBadgesData>({
+        child,
+        awards: visibleAwards,
+        progressionData: progression,
+      });
     } catch (error) {
       logger.error('Failed to load child badges data', { childId, error });
-      setChild(null);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load child badges.', error));
     }
   }, [childId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<ChildBadgesData>({
+    load: loadData,
+    deps: [childId],
+    isEmpty: (value) => !value.child || value.awards.length === 0,
+    refetchOnFocus: true,
+  });
 
   return {
-    child, awards, progressionData, loading, highlightBadge, loadData,
+    child: data?.child ?? null,
+    awards: data?.awards ?? [],
+    progressionData: data?.progressionData ?? null,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    highlightBadge,
+    loadData: onRefresh,
   };
 }
 

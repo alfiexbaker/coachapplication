@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
-import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -108,11 +109,11 @@ export function MyPackages({
             My Packages
           </ThemedText>
           {onViewAll && purchases.length > 0 && (
-            <Pressable onPress={onViewAll}>
+            <Clickable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all packages">
               <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
                 View All
               </ThemedText>
-            </Pressable>
+            </Clickable>
           )}
         </Row>
       )}

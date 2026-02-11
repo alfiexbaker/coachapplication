@@ -9,6 +9,7 @@ import {
   storageError,
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { accountIdsMatch, normalizeAccountId } from '@/utils/account-id';
 
 import { apiClient } from './api-client';
 import { ServiceEvents, emitTyped } from './event-bus';
@@ -92,7 +93,7 @@ class UserService {
   async getUserById(id: string): Promise<Result<User, ServiceError>> {
     try {
       const users = await this.loadUsers();
-      const user = users.find((candidate) => candidate.id === id);
+      const user = users.find((candidate) => accountIdsMatch(candidate.id, id));
 
       if (!user) {
         return err(notFound('User', id));
@@ -113,9 +114,11 @@ class UserService {
       }
 
       const users = await this.loadUsers();
-      const usersById = new Map(users.map((user) => [user.id, user]));
+      const usersByNormalizedId = new Map(
+        users.map((user) => [normalizeAccountId(user.id), user] as const)
+      );
       const result = uniqueIds
-        .map((id) => usersById.get(id))
+        .map((id) => usersByNormalizedId.get(normalizeAccountId(id)))
         .filter((user): user is User => Boolean(user));
 
       return ok(result);
@@ -184,7 +187,7 @@ class UserService {
   async updateUserProfile(userId: string, changes: UserChanges): Promise<Result<User, ServiceError>> {
     try {
       const users = await this.loadUsers();
-      const userIndex = users.findIndex((user) => user.id === userId);
+      const userIndex = users.findIndex((user) => accountIdsMatch(user.id, userId));
       if (userIndex === -1) {
         return err(notFound('User', userId));
       }

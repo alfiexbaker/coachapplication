@@ -9,6 +9,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { DrillList } from '@/components/drills';
 import { DrillCategoryFilter } from '@/components/drills/drill-category-filter';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -19,9 +20,41 @@ import { scaleFont } from '@/utils/scale';
 export default function DrillLibraryScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    drills, filteredDrills, loading, refreshing, categoryFilter, searchQuery, categoryCounts,
-    handleRefresh, handleDrillPress, handleCreateDrill, handleCategoryChange,
+    drills, filteredDrills, loading, status, error, refreshing, onRefresh, retry, categoryFilter, searchQuery, categoryCounts,
+    handleDrillPress, handleCreateDrill, handleCategoryChange,
   } = useDrillLibrary();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row justify="space-between" align="center" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>Drill Library</ThemedText>
+          </Row>
+        </Row>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row justify="space-between" align="center" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>Drill Library</ThemedText>
+          </Row>
+        </Row>
+        <ErrorState message={error?.message ?? 'Failed to load drill library.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -81,20 +114,32 @@ export default function DrillLibraryScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <View style={styles.listContainer}>
-          <DrillList
-            drills={filteredDrills}
-            onDrillPress={handleDrillPress}
-            loading={loading}
-            showAssignmentCount
-            emptyMessage={categoryFilter ? `No ${drillService.getCategoryInfo(categoryFilter).label.toLowerCase()} drills` : 'No drills yet'}
-            emptyDescription={categoryFilter ? 'Create a drill in this category to get started.' : 'Build your drill library to assign homework to athletes.'}
-            onEmptyAction={handleCreateDrill}
-            emptyActionLabel="Create First Drill"
-          />
-        </View>
+        {status === 'empty' ? (
+          <View style={styles.emptyContainer}>
+            <EmptyState
+              icon="library-outline"
+              title="No drills yet"
+              message="Build your drill library to start assigning drills to athletes."
+              actionLabel="Create drill"
+              onPressAction={handleCreateDrill}
+            />
+          </View>
+        ) : (
+          <View style={styles.listContainer}>
+            <DrillList
+              drills={filteredDrills}
+              onDrillPress={handleDrillPress}
+              loading={loading}
+              showAssignmentCount
+              emptyMessage={categoryFilter ? `No ${drillService.getCategoryInfo(categoryFilter).label.toLowerCase()} drills` : 'No drills yet'}
+              emptyDescription={categoryFilter ? 'Create a drill in this category to get started.' : 'Build your drill library to assign homework to athletes.'}
+              onEmptyAction={handleCreateDrill}
+              emptyActionLabel="Create First Drill"
+            />
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -114,5 +159,6 @@ const styles = StyleSheet.create({
   statLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), marginTop: Spacing.micro },
   statDivider: { width: 1, height: 28 },
   scrollContent: { paddingBottom: Spacing.xl },
+  emptyContainer: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xl },
   listContainer: { paddingHorizontal: Spacing.lg },
 });

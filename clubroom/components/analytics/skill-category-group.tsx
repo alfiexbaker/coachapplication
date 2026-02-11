@@ -2,10 +2,11 @@
  * SkillCategoryGroup — Expandable category with skill bars.
  */
 import { memo, useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -33,7 +34,12 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
 
   return (
     <SurfaceCard style={styles.card}>
-      <Pressable onPress={() => setExpanded(!expanded)}>
+      <Clickable
+        onPress={() => setExpanded(!expanded)}
+        accessibilityRole="button"
+        accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${category} skill group`}
+        accessibilityState={{ expanded }}
+      >
         <Row style={styles.header}>
           <Row style={styles.left}>
             <View style={[styles.icon, { backgroundColor: withAlpha(levelInfo.color, 0.09) }]}>
@@ -57,7 +63,7 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
             <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
           </Row>
         </Row>
-      </Pressable>
+      </Clickable>
 
       {expanded && (
         <Animated.View entering={FadeIn} style={[styles.skills, { borderTopColor: palette.border }]}>

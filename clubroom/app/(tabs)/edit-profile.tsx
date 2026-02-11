@@ -13,18 +13,70 @@ import { EditSpecialtiesSection } from '@/components/profile/edit-specialties-se
 import { EditExperienceSection } from '@/components/profile/edit-experience-section';
 import { EditLanguagesSection } from '@/components/profile/edit-languages-section';
 import { EditCertificationsSection } from '@/components/profile/edit-certifications-section';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { useEditProfile } from '@/hooks/use-edit-profile';
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
+  const { currentUser, isLoading: authLoading, error: authError } = useAuth();
   const profile = useEditProfile();
 
   const coverPhotoUrl = profile.userIsCoach ? profile.coach?.coverPhotoUrl : undefined;
   const profilePhotoUrl = profile.userIsCoach
     ? profile.coach?.profilePhotoUrl
     : profile.user?.profilePhotoUrl;
+
+  if (authLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Edit Profile" showBack />
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (authError) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Edit Profile" showBack />
+        <ErrorState message={authError} onRetry={() => {}} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Edit Profile" showBack />
+        <EmptyState
+          icon="person-outline"
+          title="Sign in required"
+          message="Please sign in to edit your profile."
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (profile.initializing) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Edit Profile" showBack />
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (profile.loadError) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Edit Profile" showBack />
+        <ErrorState message={profile.loadError} onRetry={profile.retryLoad} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>

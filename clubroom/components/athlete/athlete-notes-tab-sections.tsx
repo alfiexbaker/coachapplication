@@ -1,12 +1,3 @@
-/**
- * Extracted sub-components for AthleteNotesTab.
- *
- * FOCUS_OPTIONS — available football objectives.
- * NoteCard — single note with delete (memo).
- * PrimaryFocusSection — focus badge + picker (accepts palette).
- * NoteSearchBar — search input for notes (accepts palette).
- */
-
 import React, { memo, useCallback } from 'react';
 import { View, StyleSheet, TextInput, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +12,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterNote, FootballObjective } from '@/constants/types';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
 export const FOCUS_OPTIONS: FootballObjective[] = [
   'Dribbling',
   'Passing',
@@ -31,8 +20,6 @@ export const FOCUS_OPTIONS: FootballObjective[] = [
   'Goalkeeping',
   'Conditioning',
 ];
-
-// ─── NoteCard ────────────────────────────────────────────────────────────────
 
 interface NoteCardProps {
   note: RosterNote;
@@ -85,8 +72,6 @@ export const NoteCard = memo(function NoteCard({
     </View>
   );
 });
-
-// ─── PrimaryFocusSection ─────────────────────────────────────────────────────
 
 interface PrimaryFocusSectionProps {
   primaryFocus: FootballObjective | undefined;
@@ -143,8 +128,6 @@ export const PrimaryFocusSection = memo(function PrimaryFocusSection({
   );
 });
 
-// ─── NoteSearchBar ───────────────────────────────────────────────────────────
-
 interface NoteSearchBarProps {
   searchQuery: string;
   onChangeQuery: (query: string) => void;
@@ -175,8 +158,6 @@ export const NoteSearchBar = memo(function NoteSearchBar({
     </Row>
   );
 });
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 export const styles = StyleSheet.create({
   container: {

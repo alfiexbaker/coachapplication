@@ -4,7 +4,7 @@
  * Inspired by Rust's Result type - forces explicit error handling.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.all = exports.andThen = exports.mapErr = exports.map = exports.unwrapOr = exports.unwrap = exports.isErr = exports.isOk = exports.conflictError = exports.unauthorized = exports.storageError = exports.networkError = exports.validationError = exports.notFound = exports.serviceError = exports.err = exports.ok = void 0;
+exports.combineResults = exports.all = exports.andThen = exports.mapErr = exports.map = exports.unwrapOr = exports.unwrap = exports.isErr = exports.isOk = exports.conflictError = exports.unauthorized = exports.storageError = exports.networkError = exports.validationError = exports.notFound = exports.serviceError = exports.err = exports.ok = void 0;
 // Helper functions for creating Results
 const ok = (data) => ({
     success: true,
@@ -72,3 +72,18 @@ const all = (results) => {
     return (0, exports.ok)(data);
 };
 exports.all = all;
+/**
+ * Combine heterogenous Result values into a single Result tuple.
+ * Returns the first error encountered, preserving order.
+ */
+const combineResults = (results) => {
+    const data = [];
+    for (const result of results) {
+        if (!result.success) {
+            return (0, exports.err)(result.error);
+        }
+        data.push(result.data);
+    }
+    return (0, exports.ok)(data);
+};
+exports.combineResults = combineResults;

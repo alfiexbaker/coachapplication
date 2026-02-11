@@ -7,7 +7,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
@@ -15,8 +15,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { styles } from './video-upload-styles';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -115,12 +116,16 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
           {video.thumbnailUri && (
             <Image source={{ uri: video.thumbnailUri }} style={styles.previewImage} resizeMode="cover" />
           )}
-          <View style={styles.playOverlay}>
+          <View style={[styles.playOverlay, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
             <Ionicons name="play-circle" size={48} color={palette.onPrimary} />
           </View>
 
           {!uploading && (
-            <Clickable accessibilityLabel="Close" onPress={onClear} style={styles.clearButton}>
+            <Clickable
+              accessibilityLabel="Close"
+              onPress={onClear}
+              style={[styles.clearButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+            >
               <Ionicons name="close" size={20} color={palette.onPrimary} />
             </Clickable>
           )}
@@ -203,94 +208,4 @@ export const RequirementsList = memo(function RequirementsList({
       </View>
     </View>
   );
-});
-
-// ─── Styles ─────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  pickerCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.xl,
-    borderRadius: Radii.lg,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    gap: Spacing.sm,
-  },
-  pickerIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  pickerHint: { ...Typography.caption },
-  previewCard: {
-    padding: 0,
-    overflow: 'hidden',
-  },
-  previewContainer: {
-    position: 'relative',
-    height: 180,
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  playOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoInfo: {
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  metaText: { ...Typography.caption },
-  progressSection: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  progressBar: {
-    height: 6,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  progressText: { ...Typography.caption, textAlign: 'center' },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    margin: Spacing.md,
-    marginTop: 0,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  requirements: {
-    gap: Spacing.sm,
-  },
-  requirementsTitle: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
-  requirementsList: {
-    gap: Spacing.xs,
-  },
-  requirementText: { ...Typography.small },
 });

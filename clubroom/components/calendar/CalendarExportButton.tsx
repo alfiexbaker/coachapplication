@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { calendarService } from '@/services/calendar-service';
@@ -101,9 +102,11 @@ export function CalendarExportButton({
   // Icon-only variant
   if (variant === 'icon') {
     return (
-      <Pressable
+      <Clickable
         onPress={handleExport}
         disabled={disabled || isExporting}
+        accessibilityRole="button"
+        accessibilityLabel={label ?? 'Export to calendar'}
         style={({ pressed }) => [
           styles.iconButton,
           {
@@ -118,7 +121,7 @@ export function CalendarExportButton({
         ) : (
           <Ionicons name="calendar-outline" size={sizeStyles.iconSize} color={palette.accent} />
         )}
-      </Pressable>
+      </Clickable>
     );
   }
 
@@ -128,9 +131,11 @@ export function CalendarExportButton({
   const textColor = variant === 'primary' ? palette.onPrimary : palette.accent;
 
   return (
-    <Pressable
+    <Clickable
       onPress={handleExport}
       disabled={disabled || isExporting}
+      accessibilityRole="button"
+      accessibilityLabel={buttonLabel}
       style={({ pressed }) => [
         styles.button,
         {
@@ -160,7 +165,7 @@ export function CalendarExportButton({
           </ThemedText>
         </>
       )}
-    </Pressable>
+    </Clickable>
   );
 }
 
@@ -168,6 +173,7 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
     gap: Spacing.xs,
     borderRadius: Radii.md,
   },
@@ -175,8 +181,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',

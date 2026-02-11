@@ -15,18 +15,53 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useCreateClub, CLUB_FEATURES } from '@/hooks/use-create-club';
 
 export default function CreateClubScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { status, error, retry, colors: palette } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const {
     name, setName, tagline, setTagline, city, setCity,
     country, setCountry, badge, handleBadgeChange,
     isSubmitting, isValid, handleCreate,
     previewBadge, previewName, previewLocation,
   } = useCreateClub();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to open club creation flow.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="business-outline"
+          title="Creation unavailable"
+          message="The club creation flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

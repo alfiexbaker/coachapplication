@@ -12,6 +12,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import type { ScreenStatus } from '@/hooks/use-screen';
+import { serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useVideoReview');
 
@@ -20,6 +22,7 @@ export function useVideoReview(id: string | undefined) {
 
   const [video, setVideo] = useState<SessionVideo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ServiceError | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [activeAnnotation, setActiveAnnotation] = useState<VideoAnnotation | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<VideoAnnotationType[]>([]);
@@ -39,6 +42,7 @@ export function useVideoReview(id: string | undefined) {
   const loadVideo = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await videoService.getVideo(id);
       setVideo(data);
@@ -47,9 +51,10 @@ export function useVideoReview(id: string | undefined) {
         const stats = await videoService.getAnnotationStats(id);
         setAnnotationStats(stats);
       }
-    } catch (error) {
-      logger.error('Failed to load video:', error);
-      Alert.alert('Error', 'Failed to load video. Please try again.');
+    } catch (loadError) {
+      logger.error('Failed to load video:', loadError);
+      setVideo(null);
+      setError(serviceError('UNKNOWN', 'Failed to load review video.', loadError));
     } finally {
       setLoading(false);
     }
@@ -126,9 +131,19 @@ export function useVideoReview(id: string | undefined) {
     (ann) => selectedTypes.length === 0 || selectedTypes.includes(ann.type)
   ) ?? [];
 
+  const status: ScreenStatus = loading && !video
+    ? 'loading'
+    : error && !video
+      ? 'error'
+      : !video
+        ? 'empty'
+        : 'success';
+
   return {
     video,
     loading,
+    status,
+    error,
     currentTime,
     activeAnnotation,
     selectedTypes,
@@ -136,6 +151,7 @@ export function useVideoReview(id: string | undefined) {
     annotationStats,
     hasAccess,
     filteredAnnotations,
+    retry: loadVideo,
     handleTimeUpdate,
     handleSeek,
     handleAnnotationSelect,

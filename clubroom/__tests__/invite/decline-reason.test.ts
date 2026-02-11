@@ -83,6 +83,12 @@ type Result<T, E = ServiceError> =
 let invitesCache: SessionInvite[] = [];
 let mockNotifications: NotificationItem[] = [];
 let releasedInviteIds: string[] = [];
+let notificationIdSeq = 0;
+
+function nextNotificationId(prefix: string = 'notif'): string {
+  notificationIdSeq += 1;
+  return `${prefix}_${notificationIdSeq}`;
+}
 
 // Mock notificationService
 const notificationService = {
@@ -137,7 +143,7 @@ async function respondToInviteDecline(input: RespondToInviteInput): Promise<Resu
 
   // Build notification
   const notification: NotificationItem = {
-    id: `notif_${Date.now()}`,
+    id: nextNotificationId(),
     type: 'booking',
     title: '',
     body: '',
@@ -194,6 +200,7 @@ beforeEach(() => {
   invitesCache = [JSON.parse(JSON.stringify(MOCK_INVITE))];
   mockNotifications = [];
   releasedInviteIds = [];
+  notificationIdSeq = 0;
 });
 
 // --------------------------------------------------------------------------

@@ -16,6 +16,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { createLogger } from '@/utils/logger';
 import type { Goal, GoalStatus } from '@/constants/types';
+import type { ScreenStatus } from '@/hooks/use-screen';
+import { serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('GoalDetailScreen');
 
@@ -26,6 +28,7 @@ export function useGoalDetail() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<ServiceError | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const confettiRef = useRef<ConfettiCannon>(null);
 
@@ -39,11 +42,15 @@ export function useGoalDetail() {
 
   const loadGoal = useCallback(async () => {
     if (!id) return;
+    setError(null);
+    setLoading(true);
     try {
       const data = await progressService.getGoalById(id);
       setGoal(data);
-    } catch (error) {
-      logger.error('Failed to load goal', error);
+    } catch (loadError) {
+      logger.error('Failed to load goal', loadError);
+      setGoal(null);
+      setError(serviceError('UNKNOWN', 'Failed to load goal details.', loadError));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -152,9 +159,22 @@ export function useGoalDetail() {
   }, [goal]);
 
   const isOwner = goal ? (goal.userId === currentUser?.id || goal.athleteId === currentUser?.id) : false;
+  const status: ScreenStatus = loading && !goal
+    ? 'loading'
+    : error && !goal
+      ? 'error'
+      : !goal
+        ? 'empty'
+        : 'success';
 
   return {
-    goal, loading, refreshing, showCelebration,
+    goal,
+    loading,
+    status,
+    error,
+    refreshing,
+    retry: loadGoal,
+    showCelebration,
     confettiRef, celebrationStyle, isOwner,
     handleRefresh, handleToggleMilestone, handleAddMilestone,
     handleDeleteMilestone, handleStatusChange, handleDelete,

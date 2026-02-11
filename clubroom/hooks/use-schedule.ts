@@ -20,18 +20,32 @@ import { availabilityService } from '@/services/availability-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { sessionTemplateService } from '@/services/session-template-service';
 import { coachVenueService } from '@/services/coach-venue-service';
+import { ServiceEvents } from '@/services/event-bus';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import type { AvailabilityTemplate, AvailabilityOverride, SessionOffering, CoachSchedulingRules, BlockedDateRange, Booking, CoachVenue } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
 import type { Segment, DayData, SessionData, DayEditorConfig, TimeOffConfig } from '@/components/schedule/schedule-types';
+import { err, ok, serviceError } from '@/types/result';
 
 const logger = createLogger('Schedule');
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+interface ScheduleLoadData {
+  templates: AvailabilityTemplate[];
+  offerings: SessionOffering[];
+  bookings: Booking[];
+  rules: CoachSchedulingRules | null;
+  blockedDates: Set<string>;
+  overrides: AvailabilityOverride[];
+  sessionTemplates: SessionTemplate[];
+  venues: CoachVenue[];
+}
 
 export function useSchedule() {
   const { currentUser } = useAuth();
@@ -44,8 +58,6 @@ export function useSchedule() {
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
 
   // Availability segment state
@@ -72,12 +84,11 @@ export function useSchedule() {
     }
   }, [params.segment]);
 
-  // Load all data
-  const loadData = useCallback(async (showSpinner = true) => {
-    if (showSpinner) setLoading(true);
-    setError(null);
+  // Load all schedule data through useScreen so schedule follows the standard
+  // loading/error/empty/success + refresh contract.
+  const refreshFromServer = useCallback(async () => {
     try {
-      const results = await Promise.allSettled([
+      const [templatesData, rulesResult, sessionTemplatesData, overridesData, venuesData] = await Promise.all([
         availabilityService.getTemplates(coachId),
         schedulingRulesService.getCoachRules(coachId),
         sessionTemplateService.getTemplates(coachId),
@@ -85,21 +96,8 @@ export function useSchedule() {
         coachVenueService.ensureDefaultVenues(coachId),
       ]);
 
-      if (results[0].status === 'fulfilled') setTemplates(results[0].value);
-      if (results[1].status === 'fulfilled') {
-        if (results[1].value.success) {
-          setRules(results[1].value.data);
-        } else {
-          logger.error('Failed to load scheduling rules', results[1].value.error);
-          setRules(null);
-        }
-      }
-      if (results[2].status === 'fulfilled') setSessionTemplates(results[2].value);
-      if (results[3].status === 'fulfilled') setOverrides(results[3].value);
-      if (results[4].status === 'fulfilled') setVenues(results[4].value);
-
-      const all = await apiClient.get<SessionOffering[]>('session_offerings', []);
-      setOfferings(all.filter(o => o.coachId === coachId));
+      const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+      const offeringsData = allOfferings.filter((offering) => offering.coachId === coachId);
 
       const today = new Date();
       const weekStart = new Date(today);
@@ -107,44 +105,88 @@ export function useSchedule() {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 13);
 
-      const coachBookings = await availabilityService.getCoachBookings(
+      const bookingsData = await availabilityService.getCoachBookings(
         coachId,
         toDateStr(weekStart),
         toDateStr(weekEnd)
       );
-      setBookings(coachBookings);
 
+      let blockedDatesData = new Set<string>();
       try {
         const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]> | null>(STORAGE_KEYS.BLOCKED_DATES, null);
         const coachBlocked = allBlocked?.[coachId] ?? [];
-        const blockedSet = new Set<string>();
-        for (const bd of coachBlocked) {
-          let cur = bd.startDate;
-          while (cur <= bd.endDate) {
-            blockedSet.add(cur);
-            const d = new Date(cur + 'T12:00:00');
-            d.setDate(d.getDate() + 1);
-            cur = toDateStr(d);
+        for (const blockedDate of coachBlocked) {
+          let cursor = blockedDate.startDate;
+          while (cursor <= blockedDate.endDate) {
+            blockedDatesData.add(cursor);
+            const day = new Date(cursor + 'T12:00:00');
+            day.setDate(day.getDate() + 1);
+            cursor = toDateStr(day);
           }
         }
-        setBlockedDates(blockedSet);
-      } catch (err) {
-        logger.warn('Failed to load blocked dates', err);
-        setBlockedDates(new Set());
+      } catch (blockedError) {
+        logger.warn('Failed to load blocked dates', blockedError);
+        blockedDatesData = new Set();
       }
-    } catch (err) {
-      logger.error('Failed to load schedule', err);
-      setError('Failed to load schedule. Pull down to retry.');
-    } finally {
-      if (showSpinner) setLoading(false);
+
+      if (!rulesResult.success) {
+        logger.error('Failed to load scheduling rules', rulesResult.error);
+      }
+
+      return ok({
+        templates: templatesData,
+        offerings: offeringsData,
+        bookings: bookingsData,
+        rules: rulesResult.success ? rulesResult.data : null,
+        blockedDates: blockedDatesData,
+        overrides: overridesData,
+        sessionTemplates: sessionTemplatesData,
+        venues: venuesData,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load schedule', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load schedule. Pull down to retry.', loadError));
     }
   }, [coachId]);
 
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ScheduleLoadData>({
+    load: refreshFromServer,
+    deps: [coachId],
+    events: [
+      ServiceEvents.BOOKING_CREATED,
+      ServiceEvents.BOOKING_UPDATED,
+      ServiceEvents.BOOKING_CANCELLED,
+      ServiceEvents.BOOKING_CONFIRMED,
+      ServiceEvents.SESSION_UPDATED,
+      ServiceEvents.SESSION_CANCELLED,
+    ],
+    refetchOnFocus: true,
+  });
+
+  useEffect(() => {
+    if (!data) return;
+    setTemplates(data.templates);
+    setOfferings(data.offerings);
+    setBookings(data.bookings);
+    setRules(data.rules);
+    setBlockedDates(data.blockedDates);
+    setOverrides(data.overrides);
+    setSessionTemplates(data.sessionTemplates);
+    setVenues(data.venues);
+  }, [data]);
+
+  const loadData = useCallback(async (showSpinner = true) => {
+    if (showSpinner) {
+      retry();
+      return;
+    }
+    onRefresh();
+  }, [onRefresh, retry]);
+
   useFocusEffect(
     useCallback(() => {
-      loadData();
       setSelectedDayIndex(new Date().getDay());
-    }, [loadData])
+    }, [])
   );
 
   // Build week data
@@ -479,9 +521,11 @@ export function useSchedule() {
 
   return {
     // State
-    loading,
-    error,
-    retry: loadData,
+    loading: status === 'loading',
+    error: error?.message ?? null,
+    refreshing,
+    onRefresh,
+    retry: () => retry(),
     segment,
     weekData,
     todayData,

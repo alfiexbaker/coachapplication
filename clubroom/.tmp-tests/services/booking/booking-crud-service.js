@@ -211,6 +211,9 @@ class BookingCrudService {
      */
     async createBooking(params) {
         const { coachId, coachName, athleteIds, athleteNames, bookedById, bookedByName, scheduledAt, duration, location, service, serviceType, objectives, price, notes, sessionInviteId, } = params;
+        if (!scheduledAt) {
+            return (0, result_1.err)((0, result_1.validationError)('Scheduled date/time is required'));
+        }
         // Extract date and time from scheduledAt
         const date = scheduledAt.split('T')[0];
         const time = scheduledAt.split('T')[1]?.substring(0, 5) || '10:00';

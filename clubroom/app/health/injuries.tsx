@@ -15,8 +15,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { InjuryCard } from '@/components/health';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useInjuries, type StatusFilter } from '@/hooks/use-injuries';
 import { scaleFont } from '@/utils/scale';
 
@@ -32,7 +34,7 @@ const EMPTY_ICONS: Record<StatusFilter, string> = {
 };
 
 export default function InjuryHistoryScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useInjuries();
 
   return (
@@ -76,7 +78,9 @@ export default function InjuryHistoryScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}>
         {c.loading ? (
-          <View style={styles.loadingState}><ThemedText style={{ color: palette.muted }}>Loading injuries...</ThemedText></View>
+          <LoadingState variant="list" />
+        ) : c.status === 'error' ? (
+          <ErrorState message={c.error?.message ?? 'Failed to load injury history.'} onRetry={c.retry} />
         ) : c.filteredInjuries.length === 0 ? (
           <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -116,7 +120,6 @@ const styles = StyleSheet.create({
   filterCount: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.md, minWidth: 20, alignItems: 'center' },
   filterCountText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.xl },
-  loadingState: { padding: Spacing.xl, alignItems: 'center' },
   emptyState: { alignItems: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
   emptyIcon: { width: 96, height: 96, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
   emptyTitle: { textAlign: 'center' },

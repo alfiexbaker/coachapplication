@@ -3,14 +3,13 @@
  * invites, review prompts, and nearby coach search.
  */
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, ScrollView, ActivityIndicator } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
@@ -19,55 +18,27 @@ import { availabilityService } from '@/services/availability-service';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { bookingService } from '@/services/booking-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import { childService, type ChildProfile } from '@/services/child-service';
+import { childService } from '@/services/child-service';
 import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import type { AvailabilitySlot, SessionInvite, Club, CoachProfile } from '@/constants/types';
+import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
-
 import { DiscoverHeader } from './discover-header';
 import { DiscoverClubHub } from './discover-club-hub';
 import { DiscoverReviewPrompt } from './discover-review-prompt';
 import { DiscoverPendingInvites } from './discover-pending-invites';
 import { DiscoverCoachList } from './discover-coach-list';
-
+import { styles } from './discover-screen-styles';
+import {
+  type ChildOption,
+  type CoachOption,
+  DiscoverEmptyState,
+  formatChildName,
+  mapCoachOption,
+} from './discover-screen-sections';
 const logger = createLogger('ParentDiscoverScreen');
-
 const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
-
-type ChildOption = {
-  id: string;
-  name: string;
-};
-
-type CoachOption = {
-  id: string;
-  name: string;
-  avatar?: string;
-  distance: number;
-  profile: {
-    rating?: number;
-    sessionRate?: number;
-    specialties?: string[];
-  };
-};
-
-const formatChildName = (child: ChildProfile) =>
-  child.nickname || `${child.firstName} ${child.lastName}`.trim();
-
-const mapCoachOption = (coach: CoachProfile): CoachOption => ({
-  id: coach.id,
-  name: coach.fullName,
-  avatar: coach.profilePhotoUrl,
-  distance: coach.distanceMiles,
-  profile: {
-    rating: coach.rating.average,
-    sessionRate: coach.sessionRate ?? coach.priceRange.minUsd,
-    specialties: coach.footballFocuses,
-  },
-});
-
 export function ParentDiscoverScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
@@ -80,19 +51,15 @@ export function ParentDiscoverScreen() {
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [invitesError, setInvitesError] = useState<string | null>(null);
   const [completedSessions, setCompletedSessions] = useState<Booking[]>([]);
-
   const userClubs = useMemo((): Club[] => {
     if (!currentUser?.id) return [];
     return socialFeedService.getUserClubs(currentUser.id);
   }, [currentUser?.id]);
-
   useEffect(() => {
     if (children.length > 0 && !selectedChildId) setSelectedChildId(children[0].id);
   }, [children, selectedChildId]);
-
   useEffect(() => {
     let active = true;
-
     const loadChildren = async () => {
       if (!currentUser?.id) {
         if (active) {
@@ -100,21 +67,18 @@ export function ParentDiscoverScreen() {
         }
         return;
       }
-
       const linkedChildren = (currentUser.children || [])
         .filter((child) => Boolean(child.childId))
         .map((child) => ({
           id: child.childId,
           name: child.childName || 'Child',
         }));
-
       if (linkedChildren.length > 0) {
         if (active) {
           setChildren(linkedChildren);
         }
         return;
       }
-
       const childProfiles = await childService.getChildren(currentUser.id);
       if (active) {
         setChildren(
@@ -125,38 +89,29 @@ export function ParentDiscoverScreen() {
         );
       }
     };
-
     void loadChildren();
-
     return () => {
       active = false;
     };
   }, [currentUser?.id, currentUser?.children]);
-
   useEffect(() => {
     let active = true;
-
     const loadCoaches = async () => {
       const result = await discoverService.getAllCoaches();
       if (!active) {
         return;
       }
-
       if (!result.success) {
         setAllCoaches([]);
         return;
       }
-
       setAllCoaches(result.data.map(mapCoachOption));
     };
-
     void loadCoaches();
-
     return () => {
       active = false;
     };
   }, []);
-
   const loadCompletedSessions = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
@@ -171,7 +126,6 @@ export function ParentDiscoverScreen() {
       setCompletedSessions(needsReview.slice(0, 2));
     } catch (e) { logger.error('Failed to load completed sessions', e); }
   }, [currentUser?.id]);
-
   const dismissReview = useCallback(async (bookingId: string) => {
     try {
       const map = await apiClient.get<Record<string, number>>('dismissed_reviews', {});
@@ -180,7 +134,6 @@ export function ParentDiscoverScreen() {
       setCompletedSessions((prev) => prev.filter((b) => b.id !== bookingId));
     } catch (e) { logger.error('Failed to dismiss review', e); }
   }, []);
-
   const loadPendingInvites = useCallback(async () => {
     if (!currentUser?.id) return;
     setLoadingInvites(true);
@@ -196,7 +149,6 @@ export function ParentDiscoverScreen() {
       setLoadingInvites(false);
     }
   }, [currentUser?.id]);
-
   useFocusEffect(
     useCallback(() => {
       if (currentUser?.id) {
@@ -205,21 +157,18 @@ export function ParentDiscoverScreen() {
       }
     }, [currentUser?.id, loadPendingInvites, loadCompletedSessions]),
   );
-
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3 || !currentUser) return [];
     return allCoaches
       .filter((coach) => coach.distance <= 5)
       .sort((a, b) => a.distance - b.distance);
   }, [allCoaches, postcode, currentUser]);
-
   useEffect(() => {
     const fetchSlots = async () => {
       if (nearbyCoaches.length === 0) {
         setNextAvailableSlots({});
         return;
       }
-
       const today = toDateStr(new Date());
       const twoWeeks = new Date();
       twoWeeks.setDate(twoWeeks.getDate() + 14);
@@ -245,45 +194,17 @@ export function ParentDiscoverScreen() {
     };
     void fetchSlots();
   }, [nearbyCoaches]);
-
   if (!currentUser) return null;
-
   const selectedChild = children.find((c) => c.id === selectedChildId);
-
-  const renderEmptyState = () => {
-    if (children.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <ThemedText type="subtitle" style={styles.emptyTitle}>No children added</ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-            Add your children to start discovering coaches
-          </ThemedText>
-        </View>
-      );
-    }
-    if (!postcode || postcode.length < 3) {
-      return (
-        <View style={styles.emptyState}>
-          <Ionicons name="search" size={48} color={palette.icon} style={{ opacity: 0.3 }} />
-          <ThemedText type="subtitle" style={styles.emptyTitle}>Find expert coaches</ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-            Enter postcode to discover coaches for {selectedChild?.name}
-          </ThemedText>
-        </View>
-      );
-    }
-    if (nearbyCoaches.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <Ionicons name="location-outline" size={48} color={palette.icon} style={{ opacity: 0.3 }} />
-          <ThemedText type="subtitle" style={styles.emptyTitle}>No coaches nearby</ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>Try a different postcode</ThemedText>
-        </View>
-      );
-    }
-    return null;
-  };
-
+  const emptyState = (
+    <DiscoverEmptyState
+      childrenCount={children.length}
+      postcode={postcode}
+      selectedChildName={selectedChild?.name}
+      nearbyCoachCount={nearbyCoaches.length}
+      palette={palette}
+    />
+  );
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[0]}>
@@ -296,7 +217,6 @@ export function ParentDiscoverScreen() {
         />
         <DiscoverClubHub userClubs={userClubs} />
         <DiscoverReviewPrompt sessions={completedSessions} onDismiss={dismissReview} />
-
         {loadingInvites && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={palette.tint} />
@@ -311,10 +231,8 @@ export function ParentDiscoverScreen() {
             </Clickable>
           </Row>
         )}
-
         {!loadingInvites && <DiscoverPendingInvites invites={pendingInvites} />}
-
-        {renderEmptyState() || (
+        {emptyState || (
           nearbyCoaches.length > 0 && (
             <DiscoverCoachList
               coaches={nearbyCoaches}
@@ -328,17 +246,3 @@ export function ParentDiscoverScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
-  loadingContainer: { padding: Spacing.lg, alignItems: 'center' },
-  errorContainer: {
-    marginHorizontal: Spacing.lg, padding: Spacing.md, borderRadius: 12, borderWidth: 1,
-  },
-  errorText: { ...Typography.small, flex: 1 },
-  retryLink: { ...Typography.smallSemiBold },
-  emptyState: { paddingTop: Spacing['3xl'], paddingHorizontal: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
-  emptyTitle: { ...Typography.heading, marginTop: Spacing.sm },
-  emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
-});

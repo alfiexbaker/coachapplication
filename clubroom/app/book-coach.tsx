@@ -5,7 +5,7 @@
  * All state/logic in useBookCoach hook.
  */
 
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,14 +20,12 @@ import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
-import { ok } from '@/types/result';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useBookCoach, TOTAL_STEPS } from '@/hooks/use-book-coach';
 
 export default function BookCoachScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useBookCoach();
+  const palette = c.colors;
 
   if (!c.coach || !c.coachProfile) {
     return (
@@ -35,7 +33,13 @@ export default function BookCoachScreen() {
         <Row align="center" justify="between" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
         </Row>
-        <View style={styles.errorContainer}><ThemedText>Coach not found</ThemedText></View>
+        <EmptyState
+          icon="person-outline"
+          title="Coach not found"
+          message="We could not load this coach profile. Please go back and choose another coach."
+          actionLabel="Go back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -50,7 +54,10 @@ export default function BookCoachScreen() {
 
       <BookingStepper step={c.step} totalSteps={TOTAL_STEPS[c.userHasChildren ? 'parent' : 'athlete']} isParent={c.userHasChildren} />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+      >
         <CoachSummaryCard coach={c.coach} coachProfile={c.coachProfile} />
 
         {c.step === 0 && c.userHasChildren && (
@@ -65,18 +72,17 @@ export default function BookCoachScreen() {
 
         {c.step === 2 && (
           c.loadingAvailability ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={palette.tint} />
-              <ThemedText style={{ color: palette.muted, marginTop: Spacing.md }}>Loading available times...</ThemedText>
-            </View>
+            <LoadingState variant="list" />
+          ) : c.availabilityError ? (
+            <ErrorState message={c.availabilityError} onRetry={c.retry} />
           ) : c.filteredAvailability.length === 0 ? (
-            <View style={styles.emptyAvailability}>
-              <Ionicons name="calendar-outline" size={48} color={palette.muted} />
-              <ThemedText type="defaultSemiBold" style={{ marginTop: Spacing.md }}>No available slots</ThemedText>
-              <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }}>
-                This coach has no available times in the next 2 weeks. Try a different service type or check back later.
-              </ThemedText>
-            </View>
+            <EmptyState
+              icon="calendar-outline"
+              title="No available slots"
+              message="This coach has no available times in the next 2 weeks. Pull to refresh, try another service type, or check back later."
+              actionLabel="Refresh availability"
+              onPressAction={c.onRefresh}
+            />
           ) : (
             <AvailabilityPicker availability={c.filteredAvailability} selectedDayId={c.selectedDayId}
               selectedSlotId={c.selectedSlotId} selectedService={c.selectedService}
@@ -106,10 +112,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   continueButton: { paddingVertical: Spacing.md, borderRadius: Spacing.md, alignItems: 'center' },
   continueButtonText: { ...Typography.subheading },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'] },
-  emptyAvailability: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.xl },
 });

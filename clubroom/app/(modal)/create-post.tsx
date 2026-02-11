@@ -8,7 +8,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,6 +18,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { CreatePostForm } from '@/components/social/create-post-form';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -86,7 +87,9 @@ export default function CreatePostScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
       <View style={styles.loading}>
-        <ActivityIndicator size="small" color={palette.tint} />
+        <View style={styles.loadingState}>
+          <LoadingState variant="card" />
+        </View>
         <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>Loading...</ThemedText>
       </View>
     </SafeAreaView>
@@ -105,4 +108,5 @@ const styles = StyleSheet.create({
   button: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: Radii.md, marginTop: Spacing.md, minHeight: 44 },
   buttonText: { ...Typography.subheading },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingState: { width: '100%', maxWidth: 320, height: 96 },
 });

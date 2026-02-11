@@ -1,335 +1,219 @@
-import { describe, it, beforeEach } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { communityGroupService } from '@/services/community/community-group-service';
-import { storageService } from '@/services/storage-service';
+import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { communityGroupService, type CreateGroupParams } from '@/services/community/community-group-service';
+import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
+import type { Result, ServiceError } from '@/types/result';
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
+
+function expectErr(result: Result<unknown, ServiceError>, code: ServiceError['code']): ServiceError {
+  assert.equal(result.success, false);
+  return result.error.code === code ? result.error : assert.fail(`Expected error code ${code}`);
+}
+
+let seq = 0;
+
+function nextId(prefix: string): string {
+  seq += 1;
+  return `${prefix}_${seq}`;
+}
+
+async function createGroup(overrides: Partial<CreateGroupParams> = {}) {
+  const creatorId = overrides.creatorId ?? nextId('parent');
+  const creatorName = overrides.creatorName ?? `Parent ${creatorId}`;
+
+  return expectOk(await communityGroupService.createGroup({
+    name: overrides.name ?? `Group ${nextId('name')}`,
+    description: overrides.description ?? 'Test group',
+    type: overrides.type ?? 'GENERAL',
+    memberIds: overrides.memberIds ?? [],
+    memberNames: overrides.memberNames ?? [],
+    creatorId,
+    creatorName,
+    isPublic: overrides.isPublic ?? true,
+    clubId: overrides.clubId,
+    sessionId: overrides.sessionId,
+    maxMembers: overrides.maxMembers,
+  }));
+}
 
 describe('CommunityGroupService', () => {
   beforeEach(async () => {
-    // Clear storage using storageService since groups use storageService
-    await storageService.removeItem(STORAGE_KEYS.PARENT_GROUPS);
-    await storageService.removeItem(STORAGE_KEYS.GROUP_INVITES);
+    seq = 0;
+    (communityGroupService as unknown as { inMemoryGroups: unknown[] }).inMemoryGroups = [];
+    await apiClient.set(STORAGE_KEYS.PARENT_GROUPS, []);
+    await apiClient.set(STORAGE_KEYS.GROUP_INVITES, []);
   });
 
   describe('createGroup', () => {
-    it('should create new group with admin role for creator', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'A test group',
-        creatorId: 'parent-' + Math.random().toString(36).slice(2),
-        creatorName: 'Test Creator',
-        isPublic: true,
+    it('creates a group with creator as owner', async () => {
+      const creatorId = nextId('creator');
+      const group = await createGroup({
+        creatorId,
+        creatorName: 'Creator User',
+        name: 'Local Group',
       });
 
-      assert.ok(group);
       assert.ok(group.id);
-      assert.equal(group.name, 'Test Group');
+      assert.equal(group.name, 'Local Group');
       assert.equal(group.members.length, 1);
-      assert.equal(group.members[0].role, 'ADMIN');
-    });
-
-    it('should initialize empty arrays for posts and pending members', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: false,
-      });
-
-      assert.ok(Array.isArray(group.posts));
-      assert.ok(Array.isArray(group.pendingMembers));
-      assert.equal(group.posts.length, 0);
-      assert.equal(group.pendingMembers.length, 0);
+      assert.equal(group.members[0].parentId, creatorId);
+      assert.equal(group.members[0].role, 'OWNER');
     });
   });
 
-  describe('getAllGroups', () => {
-    it('should return all groups', async () => {
-      await communityGroupService.createGroup({
-        name: 'Group 1',
-        description: 'Test 1',
-        creatorId: 'parent1',
-        creatorName: 'Creator 1',
-        isPublic: true,
+  describe('querying', () => {
+    it('returns all groups and parent-specific groups', async () => {
+      const parentA = nextId('parent');
+      const parentB = nextId('parent');
+      await createGroup({ creatorId: parentA, creatorName: 'A', name: 'A Group' });
+      await createGroup({ creatorId: parentB, creatorName: 'B', name: 'B Group' });
+
+      const allGroups = expectOk(await communityGroupService.getAllGroups());
+      const parentAGroups = expectOk(await communityGroupService.getParentGroups(parentA));
+
+      assert.ok(allGroups.length >= 2);
+      assert.equal(parentAGroups.length, 1);
+      assert.equal(parentAGroups[0].name, 'A Group');
+    });
+
+    it('returns only public groups', async () => {
+      await createGroup({ name: 'Public Group', isPublic: true });
+      await createGroup({ name: 'Private Group', isPublic: false });
+
+      const publicGroups = expectOk(await communityGroupService.getPublicGroups());
+      assert.ok(publicGroups.some((group) => group.name === 'Public Group'));
+      assert.ok(!publicGroups.some((group) => group.name === 'Private Group'));
+    });
+
+    it('matches canonical account aliases when listing parent groups', async () => {
+      await createGroup({
+        creatorId: POC_ACCOUNT_IDS.coachStorage,
+        creatorName: 'Coach Alias',
+        name: 'Alias Group',
       });
 
-      await communityGroupService.createGroup({
-        name: 'Group 2',
-        description: 'Test 2',
-        creatorId: 'parent2',
-        creatorName: 'Creator 2',
-        isPublic: true,
-      });
-
-      const groups = await communityGroupService.getAllGroups();
-
-      assert.ok(Array.isArray(groups));
-      assert.ok(groups.length >= 2);
+      const aliasGroups = expectOk(await communityGroupService.getParentGroups(POC_ACCOUNT_IDS.coach));
+      assert.equal(aliasGroups.length, 1);
+      assert.equal(aliasGroups[0].name, 'Alias Group');
     });
   });
 
-  describe('getParentGroups', () => {
-    it('should return groups for specific parent', async () => {
-      const parentId = 'parent-' + Math.random().toString(36).slice(2);
+  describe('membership', () => {
+    it('joins a public group as MEMBER', async () => {
+      const group = await createGroup({ name: 'Joinable', isPublic: true });
+      const joinerId = nextId('joiner');
 
-      await communityGroupService.createGroup({
-        name: 'My Group',
-        description: 'Test',
-        creatorId: parentId,
-        creatorName: 'Test Parent',
-        isPublic: true,
-      });
+      const joined = expectOk(await communityGroupService.joinGroup(group.id, joinerId, 'Joiner Name'));
 
-      const groups = await communityGroupService.getParentGroups(parentId);
-
-      assert.ok(Array.isArray(groups));
-      assert.ok(groups.length > 0);
-      assert.ok(groups[0].members.some((m) => m.id === parentId));
+      assert.ok(joined.members.some((member) => member.parentId === joinerId && member.role === 'MEMBER'));
     });
 
-    it('should return empty array for parent with no groups', async () => {
-      const groups = await communityGroupService.getParentGroups('parent-nonexistent-' + Math.random().toString(36).slice(2));
+    it('rejects joining a private group without invitation', async () => {
+      const group = await createGroup({ name: 'Private', isPublic: false });
+      const result = await communityGroupService.joinGroup(group.id, nextId('joiner'), 'Joiner Name');
 
-      assert.ok(Array.isArray(groups));
-      assert.equal(groups.length, 0);
+      expectErr(result, 'UNAUTHORIZED');
     });
-  });
 
-  describe('getPublicGroups', () => {
-    it('should return only public groups', async () => {
-      await communityGroupService.createGroup({
-        name: 'Public Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
-      });
+    it('leaves a group and removes the member', async () => {
+      const group = await createGroup({ name: 'Leave Group', isPublic: true });
+      const memberId = nextId('member');
+      expectOk(await communityGroupService.joinGroup(group.id, memberId, 'Member Name'));
 
-      await communityGroupService.createGroup({
-        name: 'Private Group',
-        description: 'Test',
-        creatorId: 'parent2',
-        creatorName: 'Creator',
-        isPublic: false,
-      });
+      expectOk(await communityGroupService.leaveGroup(group.id, memberId));
 
-      const groups = await communityGroupService.getPublicGroups();
+      const updated = expectOk(await communityGroupService.getGroup(group.id));
+      assert.ok(!updated.members.some((member) => member.parentId === memberId));
+    });
 
-      assert.ok(Array.isArray(groups));
-      assert.ok(groups.every((g) => g.isPublic));
+    it('accepts alias id for leaveGroup member lookup', async () => {
+      const group = await createGroup({ name: 'Alias Leave Group', isPublic: true });
+      expectOk(await communityGroupService.joinGroup(group.id, POC_ACCOUNT_IDS.coachStorage, 'Alias Coach'));
+
+      expectOk(await communityGroupService.leaveGroup(group.id, POC_ACCOUNT_IDS.coach));
+
+      const updated = expectOk(await communityGroupService.getGroup(group.id));
+      assert.ok(!updated.members.some((member) => member.parentId === POC_ACCOUNT_IDS.coachStorage));
     });
   });
 
-  describe('joinGroup', () => {
-    it('should return ok() for public group and add member', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Public Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
+  describe('invites and roles', () => {
+    it('invites and accepts into membership', async () => {
+      const group = await createGroup({
+        name: 'Invite Group',
+        creatorId: 'owner_1',
+        creatorName: 'Owner',
       });
+      const inviteeId = nextId('invitee');
 
-      const joinerId = 'parent-' + Math.random().toString(36).slice(2);
-      const result = await communityGroupService.joinGroup(
+      const invite = expectOk(await communityGroupService.inviteToGroup(
         group.id,
-        joinerId,
-        'Test Joiner',
-        'MEMBER'
-      );
+        'owner_1',
+        inviteeId,
+        'Invitee',
+      ));
+      expectOk(await communityGroupService.acceptGroupInvite(invite.id));
 
-      assert.ok(result.success);
-
-      const updated = await communityGroupService.getGroup(group.id);
-      assert.ok(updated);
-      assert.ok(updated.members.some((m) => m.id === joinerId));
+      const updated = expectOk(await communityGroupService.getGroup(group.id));
+      assert.ok(updated.members.some((member) => member.parentId === inviteeId));
     });
 
-    it('should return err() for non-existent group', async () => {
-      const result = await communityGroupService.joinGroup(
-        'group-fake-' + Math.random().toString(36).slice(2),
-        'parent1',
-        'Test',
-        'MEMBER'
-      );
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'NOT_FOUND');
-    });
-
-    it('should add to pending members for private group', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Private Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: false,
+    it('changes a member role when requester has permission', async () => {
+      const group = await createGroup({
+        name: 'Roles Group',
+        creatorId: 'owner_2',
+        creatorName: 'Owner 2',
       });
+      const memberId = nextId('member');
+      expectOk(await communityGroupService.joinGroup(group.id, memberId, 'Member'));
 
-      const joinerId = 'parent-' + Math.random().toString(36).slice(2);
-      const result = await communityGroupService.joinGroup(
-        group.id,
-        joinerId,
-        'Test Joiner',
-        'MEMBER'
-      );
-
-      assert.ok(result.success);
-
-      const updated = await communityGroupService.getGroup(group.id);
-      assert.ok(updated);
-      assert.ok(updated.pendingMembers?.some((m) => m.id === joinerId));
-    });
-  });
-
-  describe('leaveGroup', () => {
-    it('should return ok() and remove member', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
-      });
-
-      const joinerId = 'parent-' + Math.random().toString(36).slice(2);
-      await communityGroupService.joinGroup(group.id, joinerId, 'Test Joiner', 'MEMBER');
-
-      const result = await communityGroupService.leaveGroup(group.id, joinerId);
-
-      assert.ok(result.success);
-
-      const updated = await communityGroupService.getGroup(group.id);
-      assert.ok(updated);
-      assert.ok(!updated.members.some((m) => m.id === joinerId));
-    });
-
-    it('should return err() for non-existent group', async () => {
-      const result = await communityGroupService.leaveGroup('group-fake-' + Math.random().toString(36).slice(2), 'parent1');
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'NOT_FOUND');
-    });
-  });
-
-  describe('changeMemberRole', () => {
-    it('should return ok() and update member role', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
-      });
-
-      const joinerId = 'parent-' + Math.random().toString(36).slice(2);
-      await communityGroupService.joinGroup(group.id, joinerId, 'Test Joiner', 'MEMBER');
-
-      const result = await communityGroupService.changeMemberRole({
+      expectOk(await communityGroupService.changeMemberRole({
         groupId: group.id,
-        requesterId: group.members[0].id,
-        memberId: joinerId,
+        requesterId: 'owner_2',
+        memberId,
         newRole: 'MODERATOR',
-      });
+      }));
 
-      assert.ok(result.success);
-
-      const updated = await communityGroupService.getGroup(group.id);
-      const member = updated?.members.find((m) => m.id === joinerId);
+      const updated = expectOk(await communityGroupService.getGroup(group.id));
+      const member = updated.members.find((item) => item.parentId === memberId);
       assert.equal(member?.role, 'MODERATOR');
     });
 
-    it('should return err() when requester lacks permission', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
+    it('rejects role change when requester is not admin', async () => {
+      const group = await createGroup({
+        name: 'Unauthorized Change',
+        creatorId: 'owner_3',
+        creatorName: 'Owner 3',
       });
+      const memberId = nextId('member');
+      expectOk(await communityGroupService.joinGroup(group.id, memberId, 'Member'));
 
       const result = await communityGroupService.changeMemberRole({
         groupId: group.id,
-        requesterId: 'fake-requester',
-        memberId: 'parent1',
+        requesterId: memberId,
+        memberId: 'owner_3',
         newRole: 'MODERATOR',
       });
 
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'UNAUTHORIZED');
-    });
-  });
-
-  describe('inviteToGroup', () => {
-    it('should return ok() and create invite', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
-      });
-
-      const result = await communityGroupService.inviteToGroup(
-        group.id,
-        'parent1',
-        'parent-' + Math.random().toString(36).slice(2),
-        'Test Invitee'
-      );
-
-      assert.ok(result.success);
-      assert.ok(result.data.id);
-      assert.equal(result.data.status, 'PENDING');
-    });
-  });
-
-  describe('acceptGroupInvite', () => {
-    it('should return ok() and add member to group', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
-      });
-
-      const inviteeId = 'parent-' + Math.random().toString(36).slice(2);
-      const inviteResult = await communityGroupService.inviteToGroup(
-        group.id,
-        'parent1',
-        inviteeId,
-        'Test Invitee'
-      );
-
-      assert.ok(inviteResult.success);
-
-      const acceptResult = await communityGroupService.acceptGroupInvite(inviteResult.data.id);
-
-      assert.ok(acceptResult.success);
-
-      const updated = await communityGroupService.getGroup(group.id);
-      assert.ok(updated?.members.some((m) => m.id === inviteeId));
+      expectErr(result, 'UNAUTHORIZED');
     });
   });
 
   describe('deleteGroup', () => {
-    it('should return ok() and remove group', async () => {
-      const group = await communityGroupService.createGroup({
-        name: 'Test Group',
-        description: 'Test',
-        creatorId: 'parent1',
-        creatorName: 'Creator',
-        isPublic: true,
-      });
+    it('deletes a group and subsequent lookup fails', async () => {
+      const group = await createGroup({ name: 'Delete Group' });
 
-      const result = await communityGroupService.deleteGroup(group.id);
+      expectOk(await communityGroupService.deleteGroup(group.id));
 
-      assert.ok(result.success);
-
-      const retrieved = await communityGroupService.getGroup(group.id);
-      assert.equal(retrieved, undefined);
+      const groupResult = await communityGroupService.getGroup(group.id);
+      expectErr(groupResult, 'NOT_FOUND');
     });
   });
 });

@@ -6,11 +6,18 @@
  */
 
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ThemedText } from '@/components/themed-text';
+import { LoadingState } from '@/components/ui/screen-states';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 
 export default function AvailabilityScreen() {
+  const { colors } = useScreen<null>({
+    load: async () => ok(null),
+    isEmpty: () => false,
+  });
+
   useEffect(() => {
     router.replace({
       pathname: '/(tabs)/schedule',
@@ -19,8 +26,8 @@ export default function AvailabilityScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <ThemedText>Redirecting...</ThemedText>
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <LoadingState variant="detail" />
+    </SafeAreaView>
   );
 }

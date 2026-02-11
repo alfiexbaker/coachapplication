@@ -6,8 +6,9 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -58,7 +59,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({
     <SurfaceCard style={styles.codeCard}>
       <Column gap="xs">
         <Row justify="between" align="center">
-          <Pressable
+          <Clickable
             onPress={handleCopy}
             style={[styles.codeBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}
             accessibilityLabel={`Copy code ${item.code}`}
@@ -67,7 +68,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({
             <ThemedText style={[styles.codeText, { color: statusColor }]}>
               {item.code}
             </ThemedText>
-          </Pressable>
+          </Clickable>
           <Row
             style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}
           >
@@ -102,7 +103,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({
         </Column>
       </Row>
 
-      <Pressable
+      <Clickable
         onPress={handleDeactivate}
         style={[styles.actionButton, { backgroundColor: palette.border }]}
         accessibilityLabel={item.status === 'active' ? 'Deactivate code' : 'Reactivate code'}
@@ -111,7 +112,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({
         <ThemedText style={styles.actionButtonText}>
           {item.status === 'active' ? 'Deactivate' : 'Reactivate'}
         </ThemedText>
-      </Pressable>
+      </Clickable>
     </SurfaceCard>
   );
 });

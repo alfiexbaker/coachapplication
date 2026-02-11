@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCalendarSync } from '@/hooks/use-calendar-sync';
@@ -18,12 +18,13 @@ import { useCalendarSync } from '@/hooks/use-calendar-sync';
 export default function CalendarSyncScreen() {
   const { colors: palette } = useTheme();
   const {
-    isLoading, isSaving, isExporting, settings,
+    status, error, refreshing, onRefresh, retry,
+    isSaving, isExporting, settings,
     handleToggleEnabled, handleToggleAutoSync, handleToggleLocation, handleToggleNotes,
     handleProviderChange, handleReminderChange, handleExportAllSessions,
   } = useCalendarSync();
 
-  if (isLoading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Row align="center" justify="space-between" style={styles.header}>
@@ -38,6 +39,24 @@ export default function CalendarSyncScreen() {
     );
   }
 
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
+          <ThemedText type="title" style={styles.headerTitle}>Calendar Sync</ThemedText>
+          <View style={{ width: 24 }} />
+        </Row>
+        <ErrorState
+          message={error ?? 'Failed to load calendar settings.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <Row align="center" justify="space-between" style={styles.header}>
@@ -48,23 +67,33 @@ export default function CalendarSyncScreen() {
         {isSaving ? <ActivityIndicator size="small" color={palette.accent} /> : <View style={{ width: 24 }} />}
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={palette.accent}
+          />
+        }
+      >
         <SettingsSection title="Sync Settings">
-          <SettingsToggleRow icon="sync" title="Enable Calendar Sync" subtitle="Sync your sessions with your calendar" value={settings?.enabled ?? false} onValueChange={handleToggleEnabled} />
-          <SettingsToggleRow icon="flash" title="Auto-Sync New Bookings" subtitle="Automatically add new bookings to calendar" value={settings?.autoSync ?? false} onValueChange={handleToggleAutoSync} disabled={!settings?.enabled} />
+          <SettingsToggleRow icon="sync" title="Enable Calendar Sync" subtitle="Sync your sessions with your calendar" value={settings.enabled} onValueChange={handleToggleEnabled} />
+          <SettingsToggleRow icon="flash" title="Auto-Sync New Bookings" subtitle="Automatically add new bookings to calendar" value={settings.autoSync} onValueChange={handleToggleAutoSync} disabled={!settings.enabled} />
         </SettingsSection>
 
         <SettingsSection title="Calendar Provider">
-          <CalendarProviderSelect selectedProvider={settings?.provider ?? 'APPLE'} onProviderChange={handleProviderChange} disabled={!settings?.enabled} />
+          <CalendarProviderSelect selectedProvider={settings.provider} onProviderChange={handleProviderChange} disabled={!settings.enabled} />
         </SettingsSection>
 
         <SettingsSection title="Event Details">
-          <SettingsToggleRow icon="location" title="Include Location" subtitle="Add session location to calendar events" value={settings?.includeLocation ?? true} onValueChange={handleToggleLocation} disabled={!settings?.enabled} />
-          <SettingsToggleRow icon="document-text" title="Include Notes" subtitle="Add session notes and details" value={settings?.includeNotes ?? true} onValueChange={handleToggleNotes} disabled={!settings?.enabled} />
+          <SettingsToggleRow icon="location" title="Include Location" subtitle="Add session location to calendar events" value={settings.includeLocation} onValueChange={handleToggleLocation} disabled={!settings.enabled} />
+          <SettingsToggleRow icon="document-text" title="Include Notes" subtitle="Add session notes and details" value={settings.includeNotes} onValueChange={handleToggleNotes} disabled={!settings.enabled} />
         </SettingsSection>
 
         <SettingsSection title="Reminders">
-          <SyncSettingsCard reminderMinutes={settings?.reminderMinutes ?? 60} onReminderChange={handleReminderChange} disabled={!settings?.enabled} />
+          <SyncSettingsCard reminderMinutes={settings.reminderMinutes} onReminderChange={handleReminderChange} disabled={!settings.enabled} />
         </SettingsSection>
 
         <SettingsSection title="Export">
@@ -79,7 +108,7 @@ export default function CalendarSyncScreen() {
           </View>
         </SettingsSection>
 
-        {settings?.lastSyncAt && (
+        {settings.lastSyncAt && (
           <View style={styles.lastSyncContainer}>
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>Last synced: {new Date(settings.lastSyncAt).toLocaleString()}</ThemedText>
           </View>

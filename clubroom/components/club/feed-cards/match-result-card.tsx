@@ -29,13 +29,6 @@ export interface MatchResultCardProps {
   onPress?: () => void;
 }
 
-// Decorative: match result indicator colors (win/draw/loss)
-const RESULT_COLORS: Record<MatchResultData['result'], string> = {
-  W: '#1C8C5E', // Decorative: win (green)
-  D: '#6B7280', // Decorative: draw (neutral gray)
-  L: '#C03E47', // Decorative: loss (red)
-};
-
 const RESULT_LABELS: Record<MatchResultData['result'], string> = {
   W: 'Win',
   D: 'Draw',
@@ -45,7 +38,11 @@ const RESULT_LABELS: Record<MatchResultData['result'], string> = {
 export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResultCardProps) {
   const { colors: palette } = useTheme();
 
-  const resultColor = RESULT_COLORS[data.result];
+  const resultColor = data.result === 'W'
+    ? palette.success
+    : data.result === 'D'
+      ? palette.muted
+      : palette.error;
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

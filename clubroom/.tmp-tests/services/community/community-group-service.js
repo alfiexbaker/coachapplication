@@ -21,6 +21,7 @@ const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
 const event_bus_1 = require("../event-bus");
 const user_service_1 = require("../user-service");
+const account_id_1 = require("@/utils/account-id");
 const logger = (0, logger_1.createLogger)('CommunityGroupService');
 async function resolveMemberName(parentId, fallback = 'Member') {
     const userResult = await user_service_1.userService.getUserById(parentId);
@@ -145,7 +146,7 @@ class CommunityGroupService {
             const allGroupsResult = await this.getAllGroups();
             if (!allGroupsResult.success)
                 return allGroupsResult;
-            const filtered = allGroupsResult.data.filter((group) => group.members.some((member) => member.parentId === parentId));
+            const filtered = allGroupsResult.data.filter((group) => group.members.some((member) => (0, account_id_1.accountIdsMatch)(member.parentId, parentId)));
             logger.info('parent_groups_retrieved', { parentId, count: filtered.length });
             return (0, result_1.ok)(filtered);
         }
@@ -259,7 +260,7 @@ class CommunityGroupService {
         }
         const group = allGroups[groupIndex];
         // Check if already a member
-        if (group.members.some((m) => m.parentId === parentId)) {
+        if (group.members.some((m) => (0, account_id_1.accountIdsMatch)(m.parentId, parentId))) {
             return (0, result_1.err)((0, result_1.conflictError)('Already a member of this group'));
         }
         // Check max members limit
@@ -307,7 +308,7 @@ class CommunityGroupService {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
         }
         const group = allGroups[groupIndex];
-        const memberIndex = group.members.findIndex((m) => m.parentId === parentId);
+        const memberIndex = group.members.findIndex((m) => (0, account_id_1.accountIdsMatch)(m.parentId, parentId));
         if (memberIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Member', parentId));
         }
@@ -337,12 +338,12 @@ class CommunityGroupService {
             return groupResult;
         const group = groupResult.data;
         // Check if inviter has admin privileges
-        const inviter = group.members.find((m) => m.parentId === inviterId);
+        const inviter = group.members.find((m) => (0, account_id_1.accountIdsMatch)(m.parentId, inviterId));
         if (!inviter || !isAdminRole(inviter.role)) {
             return (0, result_1.err)((0, result_1.unauthorized)('Only group admins can invite members'));
         }
         // Check if already a member
-        if (group.members.some((m) => m.parentId === inviteeId)) {
+        if (group.members.some((m) => (0, account_id_1.accountIdsMatch)(m.parentId, inviteeId))) {
             return (0, result_1.err)((0, result_1.conflictError)('User is already a member'));
         }
         // Check for existing pending invite
@@ -386,7 +387,7 @@ class CommunityGroupService {
     async getGroupInvites(userId) {
         try {
             const allInvites = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_INVITES, []);
-            const filtered = allInvites.filter((i) => i.inviteeId === userId);
+            const filtered = allInvites.filter((i) => (0, account_id_1.accountIdsMatch)(i.inviteeId, userId));
             logger.info('group_invites_retrieved', { userId, count: filtered.length });
             return (0, result_1.ok)(filtered);
         }
@@ -499,14 +500,14 @@ class CommunityGroupService {
         if (!groupResult.success)
             return groupResult;
         const group = groupResult.data;
-        const requester = group.members.find((m) => m.parentId === requesterId);
+        const requester = group.members.find((m) => (0, account_id_1.accountIdsMatch)(m.parentId, requesterId));
         if (!requester || !isAdminRole(requester.role)) {
             return (0, result_1.err)((0, result_1.unauthorized)('Only group owners and admins can change member roles'));
         }
-        if (requesterId === memberId) {
+        if ((0, account_id_1.accountIdsMatch)(requesterId, memberId)) {
             return (0, result_1.err)((0, result_1.validationError)('Cannot change your own role'));
         }
-        const member = group.members.find((m) => m.parentId === memberId);
+        const member = group.members.find((m) => (0, account_id_1.accountIdsMatch)(m.parentId, memberId));
         if (!member) {
             return (0, result_1.err)((0, result_1.notFound)('Member', memberId));
         }
@@ -615,7 +616,7 @@ class CommunityGroupService {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
         }
         // Already a member — no-op success
-        if (group.members.some((m) => m.parentId === parentId)) {
+        if (group.members.some((m) => (0, account_id_1.accountIdsMatch)(m.parentId, parentId))) {
             return (0, result_1.ok)(group);
         }
         // Check max members limit
@@ -647,7 +648,7 @@ class CommunityGroupService {
         if (!group) {
             return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
         }
-        const memberIndex = group.members.findIndex((m) => m.parentId === parentId);
+        const memberIndex = group.members.findIndex((m) => (0, account_id_1.accountIdsMatch)(m.parentId, parentId));
         if (memberIndex === -1) {
             // Not a member — no-op success
             return (0, result_1.ok)(undefined);

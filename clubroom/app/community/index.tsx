@@ -16,8 +16,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useCommunityHub } from '@/hooks/use-community-hub';
 import { scaleFont } from '@/utils/scale';
 import type { TabType } from '@/hooks/use-community-hub';
@@ -29,7 +29,7 @@ const TABS: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap 
 ];
 
 export default function CommunityHubScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const c = useCommunityHub();
 
   return (
@@ -65,12 +65,32 @@ export default function CommunityHubScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}
       >
-        <CommunityTabContent
-          tab={c.activeTab} loading={c.loading} myGroups={c.myGroups} publicGroups={c.publicGroups}
-          carpoolOffers={c.carpoolOffers} parentId={c.parentId}
-          onCreateGroup={() => c.setShowCreateModal(true)} onGroupPress={c.handleGroupPress}
-          onJoinGroup={c.handleJoinGroup} onCarpoolPress={c.handleCarpoolPress}
-        />
+        {c.status === 'loading' ? (
+          <LoadingState variant="list" />
+        ) : c.status === 'error' ? (
+          <ErrorState message={c.error?.message || 'Failed to load community hub.'} onRetry={c.retry} />
+        ) : c.status === 'empty' ? (
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="No community activity yet"
+            message="Create a group to start conversations, discover other groups, and coordinate carpools."
+            actionLabel="Create Group"
+            onPressAction={() => c.setShowCreateModal(true)}
+          />
+        ) : (
+          <CommunityTabContent
+            tab={c.activeTab}
+            loading={false}
+            myGroups={c.myGroups}
+            publicGroups={c.publicGroups}
+            carpoolOffers={c.carpoolOffers}
+            parentId={c.parentId}
+            onCreateGroup={() => c.setShowCreateModal(true)}
+            onGroupPress={c.handleGroupPress}
+            onJoinGroup={c.handleJoinGroup}
+            onCarpoolPress={c.handleCarpoolPress}
+          />
+        )}
       </ScrollView>
 
       {/* Create Group Modal */}

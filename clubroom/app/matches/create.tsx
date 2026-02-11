@@ -7,16 +7,24 @@ import { Row } from '@/components/primitives/row';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { CreateMatchDetails } from '@/components/match/create-match-details';
 import { CreateMatchSchedule } from '@/components/match/create-match-schedule';
 import { CreateMatchSquad } from '@/components/match/create-match-squad';
 import { CreateMatchReview } from '@/components/match/create-match-review';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCreateMatch } from '@/hooks/use-create-match';
 
 export default function CreateMatchScreen() {
   const { colors } = useTheme();
+  const { status, error, retry } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const {
     step, currentStepIndex, totalSteps, isSubmitting,
     matchType, setMatchType, opponent, setOpponent, isHome, setIsHome,
@@ -27,6 +35,51 @@ export default function CreateMatchScreen() {
     squads, squadMemberCount, autoInvite, setAutoInvite,
     handleNext, handleBack, handleSubmit,
   } = useCreateMatch();
+
+  if (status === 'loading') {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={<PageHeader title="Create Match" subtitle="Preparing form" showBack onBackPress={handleBack} />}
+        >
+          <LoadingState variant="form" />
+        </PageContainer>
+      </>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={<PageHeader title="Create Match" subtitle="Unable to load form" showBack onBackPress={handleBack} />}
+        >
+          <ErrorState message={error?.message || 'Failed to open match creation flow.'} onRetry={retry} />
+        </PageContainer>
+      </>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={<PageHeader title="Create Match" subtitle="Unavailable" showBack onBackPress={handleBack} />}
+        >
+          <EmptyState
+            icon="football-outline"
+            title="Creation unavailable"
+            message="The match creation flow is currently unavailable."
+            actionLabel="Retry"
+            onPressAction={retry}
+          />
+        </PageContainer>
+      </>
+    );
+  }
 
   return (
     <>

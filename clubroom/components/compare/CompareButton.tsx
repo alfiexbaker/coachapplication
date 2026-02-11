@@ -1,15 +1,9 @@
-/**
- * CompareButton Component
- *
- * A button to add/remove coaches from the comparison list.
- * Shows different states based on whether the coach is already in comparison.
- */
-
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -87,7 +81,7 @@ export function CompareButton({
 
   if (variant === 'icon') {
     return (
-      <Pressable
+      <Clickable
         accessibilityRole="button"
         accessibilityLabel={isInComparison ? 'Remove from comparison' : 'Add to comparison'}
         accessibilityHint={
@@ -96,6 +90,7 @@ export function CompareButton({
             : `Add ${coachName} to comparison`
         }
         disabled={isDisabled}
+        accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
         onPress={handlePress}
         style={({ pressed }) => [
           styles.iconButton,
@@ -119,16 +114,17 @@ export function CompareButton({
             color={isInComparison ? palette.success : palette.icon}
           />
         )}
-      </Pressable>
+      </Clickable>
     );
   }
 
   if (variant === 'compact') {
     return (
-      <Pressable
+      <Clickable
         accessibilityRole="button"
         accessibilityLabel={isInComparison ? 'Remove from comparison' : 'Add to comparison'}
         disabled={isDisabled}
+        accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
         onPress={handlePress}
         style={({ pressed }) => [
           styles.compactButton,
@@ -162,16 +158,16 @@ export function CompareButton({
             </ThemedText>
           </>
         )}
-      </Pressable>
+      </Clickable>
     );
   }
 
-  // Full variant
   return (
-    <Pressable
+    <Clickable
       accessibilityRole="button"
       accessibilityLabel={isInComparison ? 'Remove from comparison' : 'Add to comparison'}
       disabled={isDisabled}
+      accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
       onPress={handlePress}
       style={({ pressed }) => [
         styles.fullButton,
@@ -214,7 +210,7 @@ export function CompareButton({
           </View>
         </Row>
       )}
-    </Pressable>
+    </Clickable>
   );
 }
 

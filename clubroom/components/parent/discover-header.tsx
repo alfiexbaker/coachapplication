@@ -2,7 +2,7 @@
  * DiscoverHeader — Sticky header with child selector tabs and postcode search.
  */
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -70,7 +70,7 @@ function DiscoverHeaderInner({
               {childOptions.map((child) => {
                 const isSelected = child.id === selectedChildId;
                 return (
-                  <Pressable
+                  <Clickable
                     key={child.id}
                     onPress={() => {
                       onSelectChild(child.id);
@@ -92,7 +92,7 @@ function DiscoverHeaderInner({
                     >
                       {child.name}
                     </ThemedText>
-                  </Pressable>
+                  </Clickable>
                 );
               })}
             </ScrollView>

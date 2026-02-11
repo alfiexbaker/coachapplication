@@ -54,7 +54,7 @@ describe('eventCrudService', () => {
   describe('publishEvent', () => {
     test('returns err for non-existent event', async () => {
       const result = await eventCrudService.publishEvent('nonexistent_abc');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
 
     test('publishes an existing event', async () => {
@@ -86,7 +86,7 @@ describe('eventCrudService', () => {
   describe('cancelEvent', () => {
     test('returns err for non-existent event', async () => {
       const result = await eventCrudService.cancelEvent('nonexistent_xyz');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

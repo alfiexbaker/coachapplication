@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet, View, TextInput, Modal, Pressable } from 'react-native';
+import { StyleSheet, View, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
@@ -110,8 +110,13 @@ export const GuestCountModal = memo(function GuestCountModal({
 }: GuestCountModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={[styles.modalContent, { backgroundColor: palette.surface }]}>
+      <Clickable
+        style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close guest count modal"
+      >
+        <Clickable style={[styles.modalContent, { backgroundColor: palette.surface }]} onPress={() => {}} accessibilityRole="none">
           <ThemedText type="subtitle" style={styles.modalTitle}>How many guests?</ThemedText>
           <ThemedText style={[styles.modalSubtitle, { color: palette.muted }]}>
             Including yourself, how many people are coming?
@@ -151,8 +156,8 @@ export const GuestCountModal = memo(function GuestCountModal({
             <Button variant="outline" onPress={onClose} style={styles.modalButton}>Cancel</Button>
             <Button onPress={onSubmit} style={styles.modalButton}>Confirm</Button>
           </Row>
-        </Pressable>
-      </Pressable>
+        </Clickable>
+      </Clickable>
     </Modal>
   );
 });
@@ -167,7 +172,7 @@ const styles = StyleSheet.create({
   banner: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
   bannerText: { fontSize: scaleFont(14), fontWeight: '600' },
   fullText: { fontSize: scaleFont(14), fontWeight: '500' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   modalContent: { width: '100%', maxWidth: 360, borderRadius: Radii.lg, padding: Spacing.lg, gap: Spacing.md },
   modalTitle: { textAlign: 'center' },
   modalSubtitle: { textAlign: 'center', fontSize: scaleFont(14) },

@@ -55,6 +55,11 @@ const node_test_1 = __importStar(require("node:test"));
 let invitesCache = [];
 let mockNotifications = [];
 let releasedInviteIds = [];
+let notificationIdSeq = 0;
+function nextNotificationId(prefix = 'notif') {
+    notificationIdSeq += 1;
+    return `${prefix}_${notificationIdSeq}`;
+}
 // Mock notificationService
 const notificationService = {
     async create(notification) {
@@ -99,7 +104,7 @@ async function respondToInviteDecline(input) {
     const athleteNames = invite.athleteNames.join(', ');
     // Build notification
     const notification = {
-        id: `notif_${Date.now()}`,
+        id: nextNotificationId(),
         type: 'booking',
         title: '',
         body: '',
@@ -148,6 +153,7 @@ const MOCK_INVITE = {
     invitesCache = [JSON.parse(JSON.stringify(MOCK_INVITE))];
     mockNotifications = [];
     releasedInviteIds = [];
+    notificationIdSeq = 0;
 });
 // --------------------------------------------------------------------------
 // DECLINE REASON PERSISTENCE

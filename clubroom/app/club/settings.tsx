@@ -8,18 +8,17 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { SettingsDetailsSection } from '@/components/club/settings-details-section';
 import { SettingsInvitesSection } from '@/components/club/settings-invites-section';
 import { SettingsSquadsSection } from '@/components/club/settings-squads-section';
 import { SettingsMembersSection } from '@/components/club/settings-members-section';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
 
 export default function ClubSettingsScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
     club, clubId, squads, members, inviteCodes, loading,
     activeSection, setActiveSection,
@@ -39,14 +38,13 @@ export default function ClubSettingsScreen() {
   if (!club) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.center}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-          <ThemedText type="subtitle" style={{ textAlign: 'center' }}>No club found</ThemedText>
-          <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>Join or create a club to manage settings.</ThemedText>
-          <Clickable onPress={() => router.back()} style={{ backgroundColor: colors.tint, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.button }}>
-            <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
-          </Clickable>
-        </View>
+        <EmptyState
+          icon="settings-outline"
+          title="No club found"
+          message="Join or create a club to manage settings."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }

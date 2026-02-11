@@ -17,6 +17,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { MatchCard } from '@/components/match/match-card';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useMatchesScreen, MATCH_FILTERS } from '@/hooks/use-matches-screen';
@@ -24,10 +25,36 @@ import { useMatchesScreen, MATCH_FILTERS } from '@/hooks/use-matches-screen';
 export default function MatchesScreen() {
   const { colors: palette } = useTheme();
   const {
-    matches, filter, setFilter, isLoading, isRefreshing, isCoach,
+    matches, filter, setFilter, status, error, refreshing, onRefresh, retry, isCoach,
     stats, groupedMatches,
-    handleRefresh, handleCreateMatch,
+    handleCreateMatch,
   } = useMatchesScreen();
+
+  if (status === 'loading') {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={<PageHeader title="Fixtures" subtitle="Loading matches" action={isCoach ? 'Create Match' : undefined} actionIcon="add" onActionPress={isCoach ? handleCreateMatch : undefined} />}
+        >
+          <LoadingState variant="list" />
+        </PageContainer>
+      </>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={<PageHeader title="Fixtures" subtitle="Unable to load matches" action={isCoach ? 'Create Match' : undefined} actionIcon="add" onActionPress={isCoach ? handleCreateMatch : undefined} />}
+        >
+          <ErrorState message={error?.message || 'Failed to load matches.'} onRetry={retry} />
+        </PageContainer>
+      </>
+    );
+  }
 
   return (
     <>
@@ -38,7 +65,7 @@ export default function MatchesScreen() {
         horizontalSpacing={0}
       >
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
 
           {/* Stats card for past matches */}
           {filter === 'past' && stats.total > 0 && (
@@ -82,28 +109,14 @@ export default function MatchesScreen() {
 
           {/* Matches list */}
           <View style={styles.matchesList}>
-            {isLoading ? (
-              <View style={styles.emptyContainer}>
-                <ThemedText style={{ color: palette.muted }}>Loading matches...</ThemedText>
-              </View>
-            ) : matches.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name={filter === 'upcoming' ? 'calendar-outline' : 'trophy-outline'} size={48} color={palette.muted} />
-                <ThemedText type="defaultSemiBold" style={{ textAlign: 'center' }}>
-                  {filter === 'upcoming' ? 'No upcoming matches' : filter === 'past' ? 'No completed matches yet' : 'No matches found'}
-                </ThemedText>
-                <ThemedText style={[Typography.bodySmall, { color: palette.muted, textAlign: 'center' }]}>
-                  {isCoach ? 'Create a new match to get started' : 'Check back later for scheduled fixtures'}
-                </ThemedText>
-                {isCoach && filter === 'upcoming' && (
-                  <Clickable style={[styles.createButton, { backgroundColor: palette.tint }]} onPress={() => router.push(Routes.MATCHES_CREATE)}>
-                    <Row align="center" gap="xs">
-                      <Ionicons name="add" size={20} color={palette.onPrimary} />
-                      <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Create Match</ThemedText>
-                    </Row>
-                  </Clickable>
-                )}
-              </View>
+            {matches.length === 0 ? (
+              <EmptyState
+                icon={filter === 'upcoming' ? 'calendar-outline' : 'trophy-outline'}
+                title={filter === 'upcoming' ? 'No upcoming matches' : filter === 'past' ? 'No completed matches yet' : 'No matches found'}
+                message={isCoach ? 'Create a new match to get started' : 'Check back later for scheduled fixtures'}
+                actionLabel={isCoach && filter === 'upcoming' ? 'Create Match' : undefined}
+                onPressAction={isCoach && filter === 'upcoming' ? () => router.push(Routes.MATCHES_CREATE) : undefined}
+              />
             ) : (
               groupedMatches.map(([month, monthMatches]) => (
                 <View key={month} style={styles.monthGroup}>
@@ -133,6 +146,4 @@ const styles = StyleSheet.create({
   matchesList: { padding: Spacing.md },
   monthGroup: { marginBottom: Spacing.md },
   monthHeader: { ...Typography.small, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: Spacing.sm },
-  emptyContainer: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.md },
-  createButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.sm },
 });

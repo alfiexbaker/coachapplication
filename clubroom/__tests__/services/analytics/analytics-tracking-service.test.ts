@@ -4,6 +4,12 @@ import assert from 'node:assert/strict';
 import { analyticsTrackingService } from '@/services/analytics/analytics-tracking-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { Result, ServiceError } from '@/types/result';
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
 
 describe('AnalyticsTrackingService', () => {
   beforeEach(async () => {
@@ -78,12 +84,12 @@ describe('AnalyticsTrackingService', () => {
 
   describe('createGoal', () => {
     it('should create new goal with required fields', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Improve weak foot',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
       assert.ok(goal);
       assert.ok(goal.id);
@@ -94,13 +100,13 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should create goal with milestones', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Complete 10 sessions',
         milestones: ['5 sessions', '8 sessions', '10 sessions'],
         createdBy: 'ATHLETE',
         createdById: 'athlete_1',
-      });
+      }));
 
       assert.ok(goal);
       assert.equal(goal.milestones.length, 3);
@@ -108,14 +114,14 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should save goal to storage', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      const goals = await apiClient.get(STORAGE_KEYS.ATHLETE_GOALS, []);
+      const goals: any[] = await apiClient.get(STORAGE_KEYS.ATHLETE_GOALS, []);
       const saved = goals.find((g: any) => g.id === goal.id);
 
       assert.ok(saved);
@@ -123,12 +129,12 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should set default category if not provided', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Generic goal',
         createdBy: 'PARENT',
         createdById: 'parent1',
-      });
+      }));
 
       assert.equal(goal.category, 'OTHER');
     });
@@ -136,17 +142,16 @@ describe('AnalyticsTrackingService', () => {
 
   describe('updateGoalProgress', () => {
     it('should return success on successful update', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      const result = await analyticsTrackingService.updateGoalProgress(goal.id, 50);
+      const result = expectOk(await analyticsTrackingService.updateGoalProgress(goal.id, 50));
 
-      assert.ok(result.success);
-      assert.equal(result.data.progress, 50);
+      assert.equal(result.progress, 50);
     });
 
     it('should return error for non-existent goal', async () => {
@@ -158,52 +163,48 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should clamp progress between 0 and 100', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      const result1 = await analyticsTrackingService.updateGoalProgress(goal.id, 150);
-      assert.ok(result1.success);
-      assert.equal(result1.data.progress, 100);
+      const result1 = expectOk(await analyticsTrackingService.updateGoalProgress(goal.id, 150));
+      assert.equal(result1.progress, 100);
 
-      const result2 = await analyticsTrackingService.updateGoalProgress(goal.id, -10);
-      assert.ok(result2.success);
-      assert.equal(result2.data.progress, 0);
+      const result2 = expectOk(await analyticsTrackingService.updateGoalProgress(goal.id, -10));
+      assert.equal(result2.progress, 0);
     });
 
     it('should mark goal as COMPLETED when progress reaches 100', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      const result = await analyticsTrackingService.updateGoalProgress(goal.id, 100);
+      const result = expectOk(await analyticsTrackingService.updateGoalProgress(goal.id, 100));
 
-      assert.ok(result.success);
-      assert.equal(result.data.status, 'COMPLETED');
+      assert.equal(result.status, 'COMPLETED');
     });
   });
 
   describe('completeMilestone', () => {
     it('should return success and mark milestone as completed', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         milestones: ['Step 1', 'Step 2', 'Step 3'],
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
       const milestoneId = goal.milestones[0].id;
-      const result = await analyticsTrackingService.completeMilestone(goal.id, milestoneId);
+      const result = expectOk(await analyticsTrackingService.completeMilestone(goal.id, milestoneId));
 
-      assert.ok(result.success);
-      const milestone = result.data.milestones.find((m) => m.id === milestoneId);
+      const milestone = result.milestones.find((m) => m.id === milestoneId);
       assert.ok(milestone?.isCompleted);
       assert.ok(milestone?.completedAt);
     });
@@ -217,54 +218,51 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should recalculate progress based on completed milestones', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         milestones: ['Step 1', 'Step 2', 'Step 3', 'Step 4'],
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
       // Complete 2 out of 4 milestones
-      await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[0].id);
-      const result = await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[1].id);
+      expectOk(await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[0].id));
+      const result = expectOk(await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[1].id));
 
-      assert.ok(result.success);
-      assert.equal(result.data.progress, 50);
+      assert.equal(result.progress, 50);
     });
 
     it('should mark goal as COMPLETED when all milestones done', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         milestones: ['Step 1', 'Step 2'],
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[0].id);
-      const result = await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[1].id);
+      expectOk(await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[0].id));
+      const result = expectOk(await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[1].id));
 
-      assert.ok(result.success);
-      assert.equal(result.data.progress, 100);
-      assert.equal(result.data.status, 'COMPLETED');
+      assert.equal(result.progress, 100);
+      assert.equal(result.status, 'COMPLETED');
     });
   });
 
   describe('addMilestone', () => {
     it('should return success and add milestone to goal', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      const result = await analyticsTrackingService.addMilestone(goal.id, 'New milestone');
+      const result = expectOk(await analyticsTrackingService.addMilestone(goal.id, 'New milestone'));
 
-      assert.ok(result.success);
-      assert.equal(result.data.milestones.length, 1);
-      assert.equal(result.data.milestones[0].title, 'New milestone');
+      assert.equal(result.milestones.length, 1);
+      assert.equal(result.milestones[0].title, 'New milestone');
     });
 
     it('should return error for non-existent goal', async () => {
@@ -276,38 +274,36 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should recalculate progress when milestone added', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         milestones: ['Step 1', 'Step 2'],
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
       // Complete one milestone (50%)
-      await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[0].id);
+      expectOk(await analyticsTrackingService.completeMilestone(goal.id, goal.milestones[0].id));
 
       // Add a new milestone (now 1/3 = 33%)
-      const result = await analyticsTrackingService.addMilestone(goal.id, 'Step 3');
+      const result = expectOk(await analyticsTrackingService.addMilestone(goal.id, 'Step 3'));
 
-      assert.ok(result.success);
-      assert.equal(result.data.progress, 33);
+      assert.equal(result.progress, 33);
     });
   });
 
   describe('abandonGoal', () => {
     it('should return success and mark goal as ABANDONED', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      const result = await analyticsTrackingService.abandonGoal(goal.id);
+      const result = expectOk(await analyticsTrackingService.abandonGoal(goal.id));
 
-      assert.ok(result.success);
-      assert.equal(result.data.status, 'ABANDONED');
+      assert.equal(result.status, 'ABANDONED');
     });
 
     it('should return error for non-existent goal', async () => {
@@ -319,19 +315,18 @@ describe('AnalyticsTrackingService', () => {
     });
 
     it('should preserve progress when abandoning', async () => {
-      const goal = await analyticsTrackingService.createGoal({
+      const goal = expectOk(await analyticsTrackingService.createGoal({
         athleteId: 'athlete_1',
         title: 'Test goal',
         createdBy: 'COACH',
         createdById: 'coach1',
-      });
+      }));
 
-      await analyticsTrackingService.updateGoalProgress(goal.id, 75);
-      const result = await analyticsTrackingService.abandonGoal(goal.id);
+      expectOk(await analyticsTrackingService.updateGoalProgress(goal.id, 75));
+      const result = expectOk(await analyticsTrackingService.abandonGoal(goal.id));
 
-      assert.ok(result.success);
-      assert.equal(result.data.progress, 75);
-      assert.equal(result.data.status, 'ABANDONED');
+      assert.equal(result.progress, 75);
+      assert.equal(result.status, 'ABANDONED');
     });
   });
 });

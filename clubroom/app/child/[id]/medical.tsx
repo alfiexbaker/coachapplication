@@ -5,7 +5,7 @@
  * insurance, and consent toggles for a child.
  */
 
-import { View, ScrollView, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { MedicalTagInput } from '@/components/child/medical-tag-input';
 import { MedicalConsentToggle } from '@/components/child/medical-consent-toggle';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -25,7 +26,8 @@ import { useMedicalInfo } from '@/hooks/use-medical-info';
 export default function MedicalInfoScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    loading, saving,
+    loading, status, error, saving,
+    refreshing, onRefresh, retry,
     conditions, allergies, medications, restrictions,
     doctorName, setDoctorName, doctorPhone, setDoctorPhone,
     insuranceProvider, setInsuranceProvider, insuranceNumber, setInsuranceNumber,
@@ -38,7 +40,15 @@ export default function MedicalInfoScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.center}><ActivityIndicator size="large" color={colors.tint} /></View>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load medical information.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
@@ -47,7 +57,10 @@ export default function MedicalInfoScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+      >
         <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -122,7 +135,6 @@ export default function MedicalInfoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   section: { gap: Spacing.md },

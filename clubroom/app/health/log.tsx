@@ -19,11 +19,12 @@ import { InjuryForm } from '@/components/health';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Spacing, Typography } from '@/constants/theme';
 import type { LogInjuryInput } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
+import { ok } from '@/types/result';
 
 const logger = createLogger('LogInjuryScreen');
 
@@ -31,7 +32,7 @@ const logger = createLogger('LogInjuryScreen');
  * Log injury screen with multi-step form.
  */
 export default function LogInjuryScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(false);

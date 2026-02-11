@@ -5,13 +5,15 @@
 
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { Booking } from '@/constants/app-types';
 import type { SessionOffering } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('RateCoachScreen');
 
@@ -47,16 +49,42 @@ const RATING_LABELS: Record<number, string> = {
 
 export { FEEDBACK_CHIPS, RATING_LABELS };
 
+interface RateCoachData {
+  coaches: CoachToRate[];
+}
+
+export interface UseRateCoachResult {
+  coaches: CoachToRate[];
+  selectedCoach: CoachToRate | null;
+  rating: number;
+  reviewText: string;
+  submitting: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  setSelectedCoach: (coach: CoachToRate | null) => void;
+  setRating: (rating: number) => void;
+  handleSubmitReview: () => Promise<void>;
+  toggleChip: (label: string) => void;
+  goBack: () => void;
+}
+
 export function useRateCoach() {
   const { currentUser } = useAuth();
 
-  const [coaches, setCoaches] = useState<CoachToRate[]>([]);
   const [selectedCoach, setSelectedCoach] = useState<CoachToRate | null>(null);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const loadCoaches = useCallback(async () => {
+    if (!currentUser?.id) {
+      return ok<RateCoachData>({ coaches: [] });
+    }
+
     try {
       const bookings = await apiClient.get<Booking[]>('session_bookings', []);
       const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
@@ -102,26 +130,32 @@ export function useRateCoach() {
         }
       }
 
-      if (coachMap.size === 0) {
-        coachMap.set('demo-coach-1', {
-          id: 'demo-coach-1', name: 'Coach Sarah', photoUrl: 'https://i.pravatar.cc/100?u=sarah',
-          sessionCount: 5, lastSession: new Date(Date.now() - 86400000 * 3).toISOString(), hasReview: false,
-        });
-        coachMap.set('demo-coach-2', {
-          id: 'demo-coach-2', name: 'Coach Mike', photoUrl: 'https://i.pravatar.cc/100?u=mike',
-          sessionCount: 3, lastSession: new Date(Date.now() - 86400000 * 7).toISOString(), hasReview: false,
-        });
-      }
-
-      setCoaches(Array.from(coachMap.values()).sort((a, b) =>
+      const sortedCoaches = Array.from(coachMap.values()).sort((a, b) =>
         new Date(b.lastSession || 0).getTime() - new Date(a.lastSession || 0).getTime()
-      ));
-    } catch (error) {
-      logger.error('Failed to load coaches', error);
+      );
+
+      return ok<RateCoachData>({ coaches: sortedCoaches });
+    } catch (loadError) {
+      logger.error('Failed to load coaches', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load coaches to rate. Pull down to refresh.', loadError));
     }
   }, [currentUser?.id]);
 
-  useFocusEffect(useCallback(() => { loadCoaches(); }, [loadCoaches]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<RateCoachData>({
+    load: loadCoaches,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.coaches.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const coaches = data?.coaches ?? [];
 
   const handleSubmitReview = useCallback(async () => {
     if (!selectedCoach || rating === 0) {
@@ -162,9 +196,23 @@ export function useRateCoach() {
   }, [selectedCoach]);
 
   return {
-    coaches, selectedCoach, rating, reviewText, submitting,
-    setSelectedCoach, setRating, handleSubmitReview, toggleChip, goBack,
-  };
+    coaches,
+    selectedCoach,
+    rating,
+    reviewText,
+    submitting,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    setSelectedCoach,
+    setRating,
+    handleSubmitReview,
+    toggleChip,
+    goBack,
+  } satisfies UseRateCoachResult;
 }
 
 export function formatCoachDate(dateString?: string): string {

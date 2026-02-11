@@ -8,7 +8,7 @@
  * Usage:
  *   <Tag label="Active" color="success" />
  *   <Tag label="Beginner" color="info" size="sm" />
- *   <Tag label="Custom" color="#8B5CF6" />
+ *   <Tag label="Custom" color="custom-brand-color" />
  */
 
 import React, { useMemo } from 'react';

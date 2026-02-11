@@ -5,7 +5,7 @@
  * All state/logic in usePromoCodes hook. Usage modal extracted to component.
  */
 
-import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -18,20 +18,61 @@ import { PromoUsageModal } from '@/components/promo/promo-usage-modal';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { ok } from '@/types/result';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { useTheme } from '@/hooks/useTheme';
 import { usePromoCodes, type FilterType } from '@/hooks/use-promo-codes';
 import { promoService } from '@/services/promo-service';
 
 const FILTERS: FilterType[] = ['all', 'active', 'expired', 'exhausted', 'inactive'];
 
 export default function AdminPromoCodesScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const c = usePromoCodes();
+  const pageHeader = (
+    <PageHeader title="Promo Codes" subtitle="Manage promotional codes" showBack
+      right={
+        <Clickable style={[styles.createButton, { backgroundColor: palette.tint }]} onPress={c.handleCreateCode}>
+          <Row align="center" gap="xs">
+            <Ionicons name="add" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>New</ThemedText>
+          </Row>
+        </Clickable>
+      }
+    />
+  );
 
-  if (c.loading) return <LoadingState variant="list" />;
-  if (c.error) return <ErrorState message="Failed to load promo codes" onRetry={c.handleRefresh} />;
+  if (c.status === 'loading') {
+    return (
+      <PageContainer header={pageHeader}>
+        <LoadingState variant="list" />
+      </PageContainer>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <PageContainer header={pageHeader}>
+        <ErrorState
+          message={c.error?.message || 'Failed to load promo codes.'}
+          onRetry={c.retry}
+        />
+      </PageContainer>
+    );
+  }
+
+  if (c.status === 'empty') {
+    return (
+      <PageContainer header={pageHeader}>
+        <EmptyState
+          icon="pricetag-outline"
+          title="No promo codes yet"
+          message="Create your first promo code to start promotions."
+          actionLabel="Create code"
+          onPressAction={c.handleCreateCode}
+        />
+      </PageContainer>
+    );
+  }
 
   const renderHeader = () => (
     <>
@@ -80,21 +121,7 @@ export default function AdminPromoCodesScreen() {
   );
 
   return (
-    <PageContainer
-      header={
-        <PageHeader title="Promo Codes" subtitle="Manage promotional codes" showBack
-          right={
-            <Clickable style={[styles.createButton, { backgroundColor: palette.tint }]} onPress={c.handleCreateCode}>
-              <Row align="center" gap="xs">
-                <Ionicons name="add" size={20} color={palette.onPrimary} />
-                <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>New</ThemedText>
-              </Row>
-            </Clickable>
-          }
-        />
-      }
-      gap={Spacing.md} scrollable={false}
-    >
+    <PageContainer header={pageHeader} gap={Spacing.md} scrollable={false}>
       <FlatList data={c.filteredCodes} keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(150 + index * 50).springify()}>

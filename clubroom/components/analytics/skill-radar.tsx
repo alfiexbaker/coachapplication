@@ -2,9 +2,10 @@
  * SkillRadar — Composition root with radar/list toggle view.
  */
 import { useState, useMemo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -79,12 +80,24 @@ export function SkillRadar({
           </Row>
         </View>
         <Row style={[styles.viewToggle, { backgroundColor: palette.surface }]}>
-          <Pressable onPress={() => setViewMode('radar')} style={[styles.toggleButton, viewMode === 'radar' ? { backgroundColor: palette.tint } : undefined]}>
+          <Clickable
+            onPress={() => setViewMode('radar')}
+            style={[styles.toggleButton, viewMode === 'radar' ? { backgroundColor: palette.tint } : undefined]}
+            accessibilityRole="button"
+            accessibilityLabel="Show radar chart view"
+            accessibilityState={{ selected: viewMode === 'radar' }}
+          >
             <Ionicons name="pie-chart" size={16} color={viewMode === 'radar' ? palette.onPrimary : palette.icon} />
-          </Pressable>
-          <Pressable onPress={() => setViewMode('list')} style={[styles.toggleButton, viewMode === 'list' ? { backgroundColor: palette.tint } : undefined]}>
+          </Clickable>
+          <Clickable
+            onPress={() => setViewMode('list')}
+            style={[styles.toggleButton, viewMode === 'list' ? { backgroundColor: palette.tint } : undefined]}
+            accessibilityRole="button"
+            accessibilityLabel="Show list view"
+            accessibilityState={{ selected: viewMode === 'list' }}
+          >
             <Ionicons name="list" size={16} color={viewMode === 'list' ? palette.onPrimary : palette.icon} />
-          </Pressable>
+          </Clickable>
         </Row>
       </Row>
 
@@ -128,7 +141,7 @@ const styles = StyleSheet.create({
   avgText: { ...Typography.smallSemiBold },
   avgTrend: { alignItems: 'center', gap: Spacing.micro },
   viewToggle: { borderRadius: Radii.md, padding: Spacing.micro },
-  toggleButton: { padding: Spacing.xs, borderRadius: Radii.sm },
+  toggleButton: { minWidth: 44, minHeight: 44, padding: Spacing.xs, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
   emptyContainer: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.sm },
   emptyIconCircle: { width: 64, height: 64, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { ...Typography.subheading, marginTop: Spacing.xs },

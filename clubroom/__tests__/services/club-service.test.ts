@@ -10,7 +10,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { clubService } from '../../services/club-service';
 import { apiClient } from '../../services/api-client';
-import { onTyped, ServiceEvents } from '../../services/event-bus';
+import { eventBus, onTyped, ServiceEvents } from '../../services/event-bus';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 const CLUB_ID = `club_${rid()}`;
@@ -81,7 +81,7 @@ describe('clubService', () => {
         'INACTIVE',
         { id: 'coach1', name: 'Director Kelly' },
       );
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
@@ -105,7 +105,7 @@ describe('clubService', () => {
 
     test('returns err for unknown removal id', async () => {
       const result = await clubService.undoRemoval(CLUB_ID, `unknown_${rid()}`);
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
@@ -133,7 +133,7 @@ describe('clubService', () => {
         'MEMBER',
         { id: 'coach1', name: 'Director Kelly' },
       );
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
@@ -167,7 +167,7 @@ describe('clubService', () => {
         'Bad',
         { id: 'coach1', name: 'Director Kelly' },
       );
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
@@ -213,17 +213,17 @@ describe('clubService', () => {
   describe('canRemoveMembers', () => {
     test('OWNER can remove', () => assert.equal(clubService.canRemoveMembers('OWNER'), true));
     test('ADMIN can remove', () => assert.equal(clubService.canRemoveMembers('ADMIN'), true));
-    test('MEMBER cannot remove', () => assert.equal(clubService.canRemoveMembers('MEMBER'), false));
+    test('MEMBER cannot remove', () => assert.strictEqual(clubService.canRemoveMembers('MEMBER'), false));
   });
 
   describe('canBeRemoved', () => {
-    test('OWNER cannot be removed', () => assert.equal(clubService.canBeRemoved('OWNER'), false));
+    test('OWNER cannot be removed', () => assert.strictEqual(clubService.canBeRemoved('OWNER'), false));
     test('MEMBER can be removed', () => assert.equal(clubService.canBeRemoved('MEMBER'), true));
   });
 
   describe('canManageRole', () => {
     test('OWNER can manage ADMIN', () => assert.equal(clubService.canManageRole('OWNER', 'ADMIN'), true));
-    test('MEMBER cannot manage COACH', () => assert.equal(clubService.canManageRole('MEMBER', 'COACH'), false));
+    test('MEMBER cannot manage COACH', () => assert.strictEqual(clubService.canManageRole('MEMBER', 'COACH'), false));
   });
 
   describe('getAssignableRoles', () => {

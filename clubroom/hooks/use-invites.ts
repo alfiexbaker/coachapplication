@@ -3,18 +3,23 @@
  * Manages invite list, tab filtering, accept/decline/rsvp, slot picking.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { inviteService as sessionInviteService, inviteRsvpService } from '@/services/invite';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('InvitesScreen');
 
 export type TabFilter = 'pending' | 'maybe' | 'responded';
+
+interface InvitesLoadData {
+  invites: SessionInvite[];
+}
 
 export function formatExpiresIn(expiresAt: string): string {
   const expires = new Date(expiresAt);
@@ -30,33 +35,39 @@ export function formatExpiresIn(expiresAt: string): string {
 export function useInvites() {
   const { currentUser } = useAuth();
 
-  const [invites, setInvites] = useState<SessionInvite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [tabFilter, setTabFilter] = useState<TabFilter>('pending');
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
   const loadInvites = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      return ok<InvitesLoadData>({ invites: [] });
+    }
+
     try {
       const parentInvites = await sessionInviteService.getParentInvites(currentUser.id);
-      setInvites(parentInvites);
-      setError(null);
       logger.debug('Loaded invites', { count: parentInvites.length });
-    } catch (err) {
-      logger.error('Failed to load invites', err);
-      setError('Failed to load invites. Please try again.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return ok<InvitesLoadData>({ invites: parentInvites });
+    } catch (loadError) {
+      logger.error('Failed to load invites', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load invites. Please try again.', loadError));
     }
   }, [currentUser]);
 
-  useEffect(() => { loadInvites(); }, [loadInvites]);
-  useFocusEffect(useCallback(() => { loadInvites(); }, [loadInvites]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<InvitesLoadData>({
+    load: loadInvites,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.invites.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => { setRefreshing(true); loadInvites(); }, [loadInvites]);
+  const invites = data?.invites ?? [];
 
   const filteredInvites = invites.filter((invite) => {
     if (tabFilter === 'pending') return invite.status === 'PENDING' && new Date(invite.expiresAt) > new Date();
@@ -78,13 +89,13 @@ export function useInvites() {
       }
       const coachName = getSessionInviteCoachName(invite);
       Alert.alert('Booking Confirmed', `Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`, [{ text: 'Great!' }]);
-      loadInvites();
+      onRefresh();
     } catch {
       Alert.alert('Error', 'Failed to accept invite. Please try again.');
     } finally {
       setRespondingTo(null);
     }
-  }, [loadInvites]);
+  }, [onRefresh]);
 
   const handleDeclineInvite = useCallback((invite: SessionInvite) => {
     const coachName = getSessionInviteCoachName(invite);
@@ -96,12 +107,12 @@ export function useInvites() {
           setRespondingTo(invite.id);
           try {
             await sessionInviteService.respondToInvite({ inviteId: invite.id, response: 'DECLINED' });
-            loadInvites();
+            onRefresh();
           } catch { Alert.alert('Error', 'Failed to decline invite.'); } finally { setRespondingTo(null); }
         },
       },
     ]);
-  }, [loadInvites]);
+  }, [onRefresh]);
 
   const showSlotPicker = useCallback((invite: SessionInvite) => {
     if (invite.proposedSlots.length === 1) { handleAcceptInvite(invite, invite.proposedSlots[0]); return; }
@@ -119,14 +130,25 @@ export function useInvites() {
     try {
       const result = await inviteRsvpService.respondToInvite(inviteId, currentUser.id, currentUser.fullName || currentUser.username || 'User', rsvpStatus, undefined, undefined, currentUser.avatar);
       if (!result.success) { Alert.alert('Error', result.error.message); return; }
-      loadInvites();
+      onRefresh();
     } catch { Alert.alert('Error', 'Failed to respond. Please try again.'); }
-  }, [currentUser, loadInvites]);
+  }, [currentUser, onRefresh]);
 
   return {
-    invites, filteredInvites, loading, error, refreshing, tabFilter, setTabFilter,
+    invites,
+    filteredInvites,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    tabFilter,
+    setTabFilter,
     respondingTo, pendingCount, maybeCount,
-    handleRefresh, handleAcceptInvite, handleDeclineInvite, showSlotPicker, handleRsvp,
-    loadInvites,
+    handleRefresh: onRefresh,
+    handleAcceptInvite,
+    handleDeclineInvite,
+    showSlotPicker,
+    handleRsvp,
+    retry,
   };
 }

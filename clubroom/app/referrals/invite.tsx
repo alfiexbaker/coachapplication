@@ -5,7 +5,7 @@
  * share buttons, and terms. All state/logic in useReferralInvite hook.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ShareButton } from '@/components/referrals';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useReferralInvite } from '@/hooks/use-referral-invite';
@@ -26,6 +27,51 @@ export default function ReferralInviteScreen() {
   const { colors: palette } = useTheme();
   const c = useReferralInvite();
 
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="between" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="close" size={28} color={palette.text} /></Clickable>
+          <ThemedText type="subtitle" style={styles.headerTitle}>Invite Friends</ThemedText>
+          <View style={styles.headerSpacer} />
+        </Row>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="between" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="close" size={28} color={palette.text} /></Clickable>
+          <ThemedText type="subtitle" style={styles.headerTitle}>Invite Friends</ThemedText>
+          <View style={styles.headerSpacer} />
+        </Row>
+        <ErrorState message={c.error?.message || 'Unable to load your referral code.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty' || !c.referralCode) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="between" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="close" size={28} color={palette.text} /></Clickable>
+          <ThemedText type="subtitle" style={styles.headerTitle}>Invite Friends</ThemedText>
+          <View style={styles.headerSpacer} />
+        </Row>
+        <EmptyState
+          icon="gift-outline"
+          title="Referral code unavailable"
+          message="We could not find your referral code yet. Pull to refresh and try again."
+          actionLabel="Retry"
+          onPressAction={c.retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <Row align="center" justify="between" style={styles.header}>
@@ -34,10 +80,11 @@ export default function ReferralInviteScreen() {
         <View style={styles.headerSpacer} />
       </Row>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {c.loading ? (
-          <View style={styles.loadingContainer}><ThemedText style={{ color: palette.muted }}>Loading...</ThemedText></View>
-        ) : c.referralCode ? (
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}
+      >
           <>
             <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.illustrationContainer}>
               <View style={[styles.illustrationCircle, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
@@ -107,12 +154,6 @@ export default function ReferralInviteScreen() {
               </View>
             </Animated.View>
           </>
-        ) : (
-          <View style={styles.errorContainer}>
-            <Ionicons name="warning-outline" size={48} color={palette.warning} />
-            <ThemedText style={[styles.errorText, { color: palette.muted }]}>Unable to load your referral code. Please try again.</ThemedText>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -124,7 +165,6 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   headerSpacer: { width: 28 },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.lg },
-  loadingContainer: { padding: Spacing['3xl'], alignItems: 'center' },
   illustrationContainer: { alignItems: 'center', paddingVertical: Spacing.md },
   illustrationCircle: { width: 140, height: 140, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
   illustrationInner: { width: 100, height: 100, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
@@ -140,6 +180,4 @@ const styles = StyleSheet.create({
   shareOptions: {},
   termsContainer: { paddingHorizontal: Spacing.md },
   termsText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textAlign: 'center', lineHeight: scaleFont(18) },
-  errorContainer: { padding: Spacing['3xl'], alignItems: 'center', gap: Spacing.md },
-  errorText: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), textAlign: 'center' },
 });

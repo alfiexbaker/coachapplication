@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View, ScrollView } from 'react-native';
+import { Modal, StyleSheet, View, ScrollView } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -52,8 +52,8 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.15) }]} onPress={onClose}>
-        <Pressable style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]} onPress={(e) => e.stopPropagation()}>
+      <Clickable style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.15) }]} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close filter panel">
+        <Clickable style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]} onPress={() => {}} accessibilityRole="none">
           <Row style={styles.header}>
             <ThemedText type="subtitle">Filters</ThemedText>
             <Clickable onPress={reset}>
@@ -101,8 +101,8 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
               <ThemedText style={{ color: palette.muted }}>Close</ThemedText>
             </Clickable>
           </View>
-        </Pressable>
-      </Pressable>
+        </Clickable>
+      </Clickable>
     </Modal>
   );
 }

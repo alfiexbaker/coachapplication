@@ -15,7 +15,7 @@ import { ProgressBadgesTab } from '@/components/progress/progress-badges-tab';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { SessionJournal } from '@/components/development/session-journal';
 import type { JournalEntry } from '@/components/development/session-journal';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -28,10 +28,10 @@ import * as Haptics from 'expo-haptics';
 export default function MyProgressScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    currentUser, loading, refreshing, progress, feedback, badges,
+    currentUser, loading, status, error, refreshing, progress, feedback, badges,
     activeTab, setActiveTab, trendInfo,
     showGoalForm, setShowGoalForm, newGoalTitle, setNewGoalTitle,
-    handleRefresh, handleCreateGoal,
+    handleRefresh, handleCreateGoal, retry,
   } = useMyProgress();
 
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -69,7 +69,7 @@ export default function MyProgressScreen() {
     [currentUser?.id]
   );
 
-  if (loading || !currentUser) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <LoadingState variant="form" />
@@ -77,10 +77,18 @@ export default function MyProgressScreen() {
     );
   }
 
-  if (!progress) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.center}><ThemedText>Unable to load progress</ThemedText></View>
+        <ErrorState message={error?.message ?? 'Unable to load progress.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser || status === 'empty' || !progress) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <EmptyState icon="analytics-outline" title="No progress yet" message="Complete sessions to start tracking your progress." />
       </SafeAreaView>
     );
   }
@@ -191,7 +199,6 @@ export default function MyProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   headerCenter: { alignItems: 'center', gap: Spacing.xxs },
   trendBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },

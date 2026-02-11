@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
 import type { MedicalInfo, Consent, ConsentType } from '@/constants/types';
+import { useScreen } from '@/hooks/use-screen';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('MedicalInfoScreen');
+
+interface MedicalInfoData {
+  loadedAt: string;
+}
 
 export function useMedicalInfo() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [conditions, setConditions] = useState<string[]>([]);
@@ -25,12 +30,15 @@ export function useMedicalInfo() {
   const [consents, setConsents] = useState<Consent[]>([]);
 
   const loadInfo = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      return err(serviceError('VALIDATION', 'Missing child id for medical profile.'));
+    }
+
     try {
       const result = await safetyService.getEmergencyInfo(id);
       if (!result.success) {
         logger.error('Failed to load medical info', result.error);
-        return;
+        return err(result.error);
       }
       const data = result.data;
       setConditions(data.medical.conditions);
@@ -43,16 +51,25 @@ export function useMedicalInfo() {
       setInsuranceNumber(data.medical.insuranceNumber ?? '');
       setNotes(data.medical.notes ?? '');
       setConsents(data.consents);
+      return ok<MedicalInfoData>({ loadedAt: new Date().toISOString() });
     } catch (error) {
       logger.error('Failed to load medical info:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load medical information.', error));
     }
   }, [id]);
 
-  useEffect(() => {
-    loadInfo();
-  }, [loadInfo]);
+  const {
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<MedicalInfoData>({
+    load: loadInfo,
+    deps: [id],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
 
   const handleConsentToggle = useCallback((type: ConsentType, granted: boolean) => {
     setConsents((prev) =>
@@ -113,7 +130,12 @@ export function useMedicalInfo() {
   }, []);
 
   return {
-    loading, saving,
+    loading: status === 'loading', saving,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
     conditions, allergies, medications, restrictions,
     doctorName, setDoctorName, doctorPhone, setDoctorPhone,
     insuranceProvider, setInsuranceProvider, insuranceNumber, setInsuranceNumber,

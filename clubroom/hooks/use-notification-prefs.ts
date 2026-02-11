@@ -1,51 +1,68 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { notificationService } from '@/services/notification-service';
 import { createLogger } from '@/utils/logger';
 import type { EnhancedNotificationPreferences, NotificationChannel, NotificationType, QuietHours } from '@/constants/types';
+import { err, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useNotificationPrefs');
 
 export function useNotificationPrefs() {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id ?? 'demo_user';
+  const userId = currentUser?.id ?? 'current_user';
 
-  const [preferences, setPreferences] = useState<EnhancedNotificationPreferences | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [preferencesOverride, setPreferencesOverride] = useState<EnhancedNotificationPreferences | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
 
   const loadPreferences = useCallback(async () => {
     try {
       const prefsResult = await notificationService.getPreferences(userId);
       if (!prefsResult.success) {
-        const serviceError = new Error(prefsResult.error.message);
-        setError(serviceError);
         logger.error('Failed to load preferences', { userId, error: prefsResult.error });
-        return;
+        return err(prefsResult.error);
       }
-
-      setPreferences(prefsResult.data);
-      setError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error : new Error('Failed to load notification preferences'));
-      logger.error('Failed to load preferences', { error });
+      return prefsResult;
+    } catch (loadError) {
+      logger.error('Failed to load preferences', { loadError });
+      return err(serviceError('UNKNOWN', 'Failed to load notification preferences.', loadError));
     }
   }, [userId]);
 
-  useEffect(() => {
-    (async () => { setLoading(true); await loadPreferences(); setLoading(false); })();
-  }, [loadPreferences]);
+  const {
+    data,
+    status,
+    error: loadError,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<EnhancedNotificationPreferences>({
+    load: loadPreferences,
+    deps: [userId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true); await loadPreferences(); setRefreshing(false);
-  }, [loadPreferences]);
+  useEffect(() => {
+    if (data) {
+      setPreferencesOverride(data);
+      setActionError(null);
+    }
+  }, [data]);
+
+  const preferences = preferencesOverride ?? data;
+
+  const handleRefresh = useCallback(() => {
+    setActionError(null);
+    onRefresh();
+  }, [onRefresh]);
 
   const handleQuietHoursChange = useCallback(async (quietHours: QuietHours) => {
     if (!preferences) return;
     setUpdating(true);
+    setActionError(null);
     try {
       const updatedResult = await notificationService.setQuietHours(
         userId,
@@ -54,17 +71,15 @@ export function useNotificationPrefs() {
         quietHours.enabled
       );
       if (!updatedResult.success) {
-        const serviceError = new Error(updatedResult.error.message);
-        setError(serviceError);
+        setActionError(updatedResult.error.message);
         logger.error('Failed to update quiet hours', { userId, error: updatedResult.error });
         return;
       }
 
-      setPreferences(updatedResult.data);
-      setError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error : new Error('Failed to update quiet hours'));
-      logger.error('Failed to update quiet hours', { error });
+      setPreferencesOverride(updatedResult.data);
+    } catch (updateError) {
+      setActionError('Failed to update quiet hours');
+      logger.error('Failed to update quiet hours', { updateError });
     }
     finally { setUpdating(false); }
   }, [preferences, userId]);
@@ -72,20 +87,19 @@ export function useNotificationPrefs() {
   const handleChannelToggle = useCallback(async (channel: NotificationChannel, enabled: boolean) => {
     if (!preferences) return;
     setUpdating(true);
+    setActionError(null);
     try {
       const updatedResult = await notificationService.toggleChannel(userId, channel, enabled);
       if (!updatedResult.success) {
-        const serviceError = new Error(updatedResult.error.message);
-        setError(serviceError);
+        setActionError(updatedResult.error.message);
         logger.error('Failed to toggle channel', { userId, channel, enabled, error: updatedResult.error });
         return;
       }
 
-      setPreferences(updatedResult.data);
-      setError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error : new Error('Failed to toggle notification channel'));
-      logger.error('Failed to toggle channel', { error });
+      setPreferencesOverride(updatedResult.data);
+    } catch (updateError) {
+      setActionError('Failed to toggle notification channel');
+      logger.error('Failed to toggle channel', { updateError });
     }
     finally { setUpdating(false); }
   }, [preferences, userId]);
@@ -93,11 +107,11 @@ export function useNotificationPrefs() {
   const handleTypeToggle = useCallback(async (type: NotificationType, enabled: boolean) => {
     if (!preferences) return;
     setUpdating(true);
+    setActionError(null);
     try {
       const updatedResult = await notificationService.toggleNotificationType(userId, type, enabled);
       if (!updatedResult.success) {
-        const serviceError = new Error(updatedResult.error.message);
-        setError(serviceError);
+        setActionError(updatedResult.error.message);
         logger.error('Failed to toggle notification type', {
           userId,
           type,
@@ -107,11 +121,10 @@ export function useNotificationPrefs() {
         return;
       }
 
-      setPreferences(updatedResult.data);
-      setError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error : new Error('Failed to toggle notification type'));
-      logger.error('Failed to toggle notification type', { error });
+      setPreferencesOverride(updatedResult.data);
+    } catch (updateError) {
+      setActionError('Failed to toggle notification type');
+      logger.error('Failed to toggle notification type', { updateError });
     }
     finally { setUpdating(false); }
   }, [preferences, userId]);
@@ -119,26 +132,54 @@ export function useNotificationPrefs() {
   const handleUnmuteCoach = useCallback(async (coachId: string) => {
     if (!preferences) return;
     setUpdating(true);
+    setActionError(null);
     try {
       const updatedResult = await notificationService.unmuteCoach(userId, coachId);
       if (!updatedResult.success) {
-        const serviceError = new Error(updatedResult.error.message);
-        setError(serviceError);
+        setActionError(updatedResult.error.message);
         logger.error('Failed to unmute coach', { userId, coachId, error: updatedResult.error });
         return;
       }
 
-      setPreferences(updatedResult.data);
-      setError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error : new Error('Failed to unmute coach'));
-      logger.error('Failed to unmute coach', { error });
+      setPreferencesOverride(updatedResult.data);
+    } catch (updateError) {
+      setActionError('Failed to unmute coach');
+      logger.error('Failed to unmute coach', { updateError });
     }
     finally { setUpdating(false); }
   }, [preferences, userId]);
 
+  const error = actionError ?? (status === 'error'
+    ? (loadError as ServiceError | null)?.message ?? 'Failed to load notification preferences.'
+    : null);
+
   return {
-    preferences, error, loading, refreshing, updating,
-    handleRefresh, handleQuietHoursChange, handleChannelToggle, handleTypeToggle, handleUnmuteCoach,
+    preferences,
+    loading: status === 'loading',
+    status,
+    error,
+    refreshing,
+    onRefresh: handleRefresh,
+    retry,
+    updating,
+    handleRefresh,
+    handleQuietHoursChange,
+    handleChannelToggle,
+    handleTypeToggle,
+    handleUnmuteCoach,
+  } satisfies {
+    preferences: EnhancedNotificationPreferences | null;
+    loading: boolean;
+    status: ScreenStatus;
+    error: string | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    updating: boolean;
+    handleRefresh: () => void;
+    handleQuietHoursChange: (quietHours: QuietHours) => Promise<void>;
+    handleChannelToggle: (channel: NotificationChannel, enabled: boolean) => Promise<void>;
+    handleTypeToggle: (type: NotificationType, enabled: boolean) => Promise<void>;
+    handleUnmuteCoach: (coachId: string) => Promise<void>;
   };
 }

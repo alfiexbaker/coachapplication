@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,16 +10,26 @@ import { Clickable } from '@/components/primitives/clickable';
 import { VerificationBadge } from '@/components/verification/verification-badge';
 import { VerificationItemRow } from '@/components/verification/verification-item-row';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVerificationHub } from '@/hooks/use-verification-hub';
 
 export default function VerificationHubScreen() {
   const { colors: palette } = useTheme();
-  const { status, loading, loadStatus, progress, hasCredentials, credentialStatus } = useVerificationHub();
+  const {
+    status,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    progress,
+    hasCredentials,
+    credentialStatus,
+  } = useVerificationHub();
 
-  if (loading) {
+  if (screenStatus === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
         <LoadingState variant="detail" />
@@ -27,10 +37,24 @@ export default function VerificationHubScreen() {
     );
   }
 
-  if (!status) {
+  if (screenStatus === 'error') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message="Failed to load verification status" onRetry={loadStatus} />
+        <ErrorState message={error?.message || 'Failed to load verification status.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (screenStatus === 'empty' || !status) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="shield-checkmark-outline"
+          title="Verification unavailable"
+          message="Verification status is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -41,7 +65,10 @@ export default function VerificationHubScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.header}>
           <ThemedText type="title">Verification</ThemedText>
           <ThemedText style={{ color: palette.muted }}>Complete your verification to build trust with parents</ThemedText>

@@ -30,6 +30,12 @@ const RESCHEDULE_KEY = 'clubroom.reschedule_proposals';
 
 // Emitted events captured for assertions
 let emittedEvents: { event: string; data: unknown }[] = [];
+let rescheduleIdSeq = 0;
+
+function nextRescheduleId(): string {
+  rescheduleIdSeq += 1;
+  return `reschd_${rescheduleIdSeq}`;
+}
 
 // Notification triggers captured
 let notificationsSent: unknown[] = [];
@@ -112,7 +118,7 @@ const rescheduleService = {
     const expiresAt = new Date(now.getTime() + PROPOSAL_EXPIRY_HOURS * 60 * 60 * 1000);
 
     const proposal: RescheduleProposalRecord = {
-      id: `reschd_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: nextRescheduleId(),
       bookingId: params.bookingId,
       initiatedBy: params.initiatedBy,
       initiatorId: params.initiatorId,
@@ -345,6 +351,7 @@ describe('RescheduleService', () => {
     notificationsSent = [];
     bookingUpdates = [];
     validationResult = { isValid: true };
+    rescheduleIdSeq = 0;
   });
 
   // --------------------------------------------------------------------------

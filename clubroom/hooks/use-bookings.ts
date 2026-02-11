@@ -5,21 +5,23 @@
  * modal state, and all navigation/action handlers.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { bookingService } from '@/services/booking';
 import { inviteService as sessionInviteService } from '@/services/invite';
-import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { ServiceEvents } from '@/services/event-bus';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { getBookingAthleteName } from '@/utils/booking-display';
+import { err, ok, serviceError } from '@/types/result';
 import type { BookingSummary, SessionOffering, SessionInvite } from '@/constants/types';
 import type { TimeFilter } from '@/components/bookings/BookingsList';
 
@@ -35,6 +37,7 @@ export interface UseBookingsResult {
   // State
   loading: boolean;
   error: string | null;
+  refreshing: boolean;
   timeFilter: TimeFilter;
   showDetailModal: boolean;
   selectedOffering: SessionOffering | null;
@@ -54,93 +57,105 @@ export interface UseBookingsResult {
   handleOfferingPress: (offering: SessionOffering) => void;
   handleModalClose: () => void;
   handleModalUpdate: () => void;
+  onRefresh: () => void;
+  retry: () => void;
   handleAcceptInvite: (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => Promise<void>;
   handleDeclineInvite: (invite: SessionInvite) => void;
 }
 
+interface BookingsScreenData {
+  sessionBookings: BookingSummary[];
+  sessionOfferings: SessionOffering[];
+  pendingInvitesList: SessionInvite[];
+}
+
 export function useBookings(): UseBookingsResult {
   const { currentUser } = useAuth();
-  const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
-  const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pendingInvites, setPendingInvites] = useState(0);
-  const [pendingInvitesList, setPendingInvitesList] = useState<SessionInvite[]>([]);
 
   const userRole = currentUser?.role;
 
   // Load all data
   const loadData = useCallback(async () => {
-    setError(null);
     try {
       const bookings = await bookingService.list();
-      if (bookings.length > 0) {
-        const summaries: BookingSummary[] = bookings.map((booking) => ({
-          id: booking.id,
-          service: booking.service ?? 'Session',
-          start: booking.scheduledAt,
-          status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
-          locationLabel: booking.location,
-          coach: {
-            name: booking.coachName,
-            photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
-          },
-          client: {
-            name: getBookingAthleteName(booking),
-            photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
-          },
-          coachId: booking.coachId,
-          clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
-        }));
-        setSessionBookings(summaries);
-        logger.debug('Loaded session bookings', { count: summaries.length });
-      }
+      const summaries: BookingSummary[] = bookings.map((booking) => ({
+        id: booking.id,
+        service: booking.service ?? 'Session',
+        start: booking.scheduledAt,
+        status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
+        locationLabel: booking.location,
+        coach: {
+          name: booking.coachName,
+          photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
+        },
+        client: {
+          name: getBookingAthleteName(booking),
+          photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
+        },
+        coachId: booking.coachId,
+        clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
+      }));
+      logger.debug('Loaded session bookings', { count: summaries.length });
 
       const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      if (offerings.length > 0) {
-        setSessionOfferings(offerings);
-        logger.debug('Loaded session offerings', { count: offerings.length });
-      }
+      logger.debug('Loaded session offerings', { count: offerings.length });
 
+      let pendingInvitesList: SessionInvite[] = [];
       if (currentUser && currentUser.role !== 'COACH') {
         try {
           const invites = await sessionInviteService.getPendingInvites(currentUser.id);
-          setPendingInvitesList(invites);
-          setPendingInvites(invites.length);
+          pendingInvitesList = invites;
           logger.debug('Loaded pending invites', { count: invites.length });
         } catch (inviteErr) {
           logger.error('Failed to load pending invites', inviteErr);
         }
       }
-    } catch (err) {
-      logger.error('Failed to load bookings data', err);
-      setError('Failed to load bookings. Pull down to refresh.');
-    } finally {
-      setLoading(false);
+
+      return ok<BookingsScreenData>({
+        sessionBookings: summaries,
+        sessionOfferings: offerings,
+        pendingInvitesList,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load bookings data', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError));
     }
   }, [currentUser]);
 
-  // Reload on screen focus
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error: screenError,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<BookingsScreenData>({
+    load: loadData,
+    deps: [loadData],
+    events: [
+      ServiceEvents.BOOKING_CREATED,
+      ServiceEvents.BOOKING_UPDATED,
+      ServiceEvents.BOOKING_CANCELLED,
+      ServiceEvents.BOOKING_CONFIRMED,
+      ServiceEvents.INVITE_ACCEPTED,
+      ServiceEvents.INVITE_BOOKING_FAILED,
+    ],
+    isEmpty: (value) =>
+      value.sessionBookings.length === 0 &&
+      value.sessionOfferings.length === 0 &&
+      value.pendingInvitesList.length === 0,
+    refetchOnFocus: true,
+  });
 
-  // Event bus subscriptions
-  useEffect(() => {
-    const unsubCreated = onTyped(ServiceEvents.BOOKING_CREATED, () => { loadData(); });
-    const unsubCancelled = onTyped(ServiceEvents.BOOKING_CANCELLED, () => { loadData(); });
-    const unsubConfirmed = onTyped(ServiceEvents.BOOKING_CONFIRMED, () => { loadData(); });
-    return () => {
-      unsubCreated();
-      unsubCancelled();
-      unsubConfirmed();
-    };
-  }, [loadData]);
+  const sessionBookings = data?.sessionBookings ?? [];
+  const sessionOfferings = data?.sessionOfferings ?? [];
+  const pendingInvitesList = data?.pendingInvitesList ?? [];
+  const pendingInvites = pendingInvitesList.length;
+  const loading = status === 'loading';
+  const error = status === 'error' ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.') : null;
 
   // Compute display items
   const now = new Date();
@@ -225,8 +240,8 @@ export function useBookings(): UseBookingsResult {
   }, []);
 
   const handleModalUpdate = useCallback(() => {
-    loadData();
-  }, [loadData]);
+    onRefresh();
+  }, [onRefresh]);
 
   const handleAcceptInvite = useCallback(async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
     const slot = selectedSlot || invite.proposedSlots[0];
@@ -236,9 +251,9 @@ export function useBookings(): UseBookingsResult {
       selectedSlot: slot,
     });
     if (result.success) {
-      loadData();
+      onRefresh();
     }
-  }, [loadData]);
+  }, [onRefresh]);
 
   const handleDeclineInvite = useCallback((invite: SessionInvite) => {
     const coachName = getSessionInviteCoachName(invite);
@@ -256,13 +271,13 @@ export function useBookings(): UseBookingsResult {
               response: 'DECLINED',
             });
             if (result.success) {
-              loadData();
+              onRefresh();
             }
           },
         },
       ]
     );
-  }, [loadData]);
+  }, [onRefresh]);
 
   return {
     displayItems,
@@ -271,6 +286,7 @@ export function useBookings(): UseBookingsResult {
     userRole,
     loading,
     error,
+    refreshing,
     timeFilter,
     showDetailModal,
     selectedOffering,
@@ -286,6 +302,8 @@ export function useBookings(): UseBookingsResult {
     handleOfferingPress,
     handleModalClose,
     handleModalUpdate,
+    onRefresh,
+    retry,
     handleAcceptInvite,
     handleDeclineInvite,
   };

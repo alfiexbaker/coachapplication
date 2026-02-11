@@ -6,27 +6,30 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { drillService } from '@/services/drill-service';
 import type { AssignedDrill, DrillAssignmentStats } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 export type TabFilter = 'pending' | 'completed' | 'all';
 
 const logger = createLogger('useDrillsScreen');
 
+interface DrillsDashboardData {
+  assignments: AssignedDrill[];
+  stats: DrillAssignmentStats | null;
+}
+
 export function useDrillsScreen() {
   const { currentUser } = useAuth();
   const userId = currentUser?.id ?? 'user1';
 
-  const [assignments, setAssignments] = useState<AssignedDrill[]>([]);
-  const [stats, setStats] = useState<DrillAssignmentStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabFilter>('pending');
 
   const loadData = useCallback(async () => {
@@ -35,22 +38,33 @@ export function useDrillsScreen() {
         drillService.getAthleteAssignments(userId, true),
         drillService.getAssignmentStats(userId),
       ]);
-      setAssignments(assignmentsData);
-      setStats(statsData);
-    } catch (error) {
-      logger.error('Failed to load drills:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+
+      return ok<DrillsDashboardData>({
+        assignments: assignmentsData,
+        stats: statsData,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load drills', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load drills.', loadError));
     }
   }, [userId]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<DrillsDashboardData>({
+    load: loadData,
+    deps: [userId],
+    isEmpty: (value) => value.assignments.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const assignments = data?.assignments ?? [];
+  const stats = data?.stats ?? null;
 
   const filteredAssignments = useMemo(() => {
     if (activeTab === 'pending') return assignments.filter((a) => !a.isCompleted);
@@ -71,11 +85,11 @@ export function useDrillsScreen() {
       } else {
         await drillService.completeDrill(assignment.id);
       }
-      loadData();
+      retry();
     } catch (error) {
       logger.error('Failed to toggle completion:', error);
     }
-  }, [loadData]);
+  }, [retry]);
 
   const handleTabChange = useCallback((tab: TabFilter) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -83,7 +97,32 @@ export function useDrillsScreen() {
   }, []);
 
   return {
-    stats, loading, refreshing, activeTab, filteredAssignments,
-    handleRefresh, handleAssignmentPress, handleComplete, handleTabChange,
+    stats,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    activeTab,
+    filteredAssignments,
+    handleRefresh: onRefresh,
+    handleAssignmentPress,
+    handleComplete,
+    handleTabChange,
+  } satisfies {
+    stats: DrillAssignmentStats | null;
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    activeTab: TabFilter;
+    filteredAssignments: AssignedDrill[];
+    handleRefresh: () => void;
+    handleAssignmentPress: (assignment: AssignedDrill) => void;
+    handleComplete: (assignment: AssignedDrill) => Promise<void>;
+    handleTabChange: (tab: TabFilter) => void;
   };
 }

@@ -51,8 +51,10 @@ const event_bus_1 = require("../../services/event-bus");
 // Helpers
 // ---------------------------------------------------------------------------
 /** Generate a unique test ID to prevent cross-test collisions. */
+let testIdSeq = 0;
 function testId(prefix) {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    testIdSeq += 1;
+    return `${prefix}_${testIdSeq}`;
 }
 // ---------------------------------------------------------------------------
 // Tests
@@ -430,7 +432,7 @@ function testId(prefix) {
     });
     (0, node_test_1.default)('should return posts sorted by createdAt descending', () => {
         const coachId = testId('coach_sorted');
-        // Create two posts with a tiny delay difference (Date.now() ensures order)
+        // Create two posts and verify createdAt-based descending order.
         social_feed_service_1.clubFeedService.createCoachPost({
             coachId,
             coachName: 'Sort Coach',

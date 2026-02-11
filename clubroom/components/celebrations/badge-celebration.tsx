@@ -59,7 +59,7 @@ export function BadgeCelebration({
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
         <Confetti active={visible} />
 
         <Animated.View
@@ -124,7 +124,6 @@ export function BadgeCelebration({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,

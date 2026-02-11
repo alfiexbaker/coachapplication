@@ -1,7 +1,7 @@
 /**
  * useMemberManagement — All state, data loading, and handlers for the Member Management screen.
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
@@ -11,6 +11,9 @@ import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
 import type { Club, ClubSquad, ClubRole } from '@/constants/types';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { ServiceEvents } from '@/services/event-bus';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('MemberManagement');
 
@@ -21,38 +24,94 @@ const mapUserRoleToClubRole = (role: string | undefined): ClubRole | null => {
   return null;
 };
 
-export function useMemberManagement() {
+interface MemberManagementData {
+  member: ClubMember | null;
+  club: Club | null;
+  squads: ClubSquad[];
+  currentUserRole: ClubRole | null;
+}
+
+export interface UseMemberManagementResult {
+  member: ClubMember | null;
+  club: Club | null;
+  squads: ClubSquad[];
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  canManage: boolean;
+  showRolePicker: boolean;
+  setShowRolePicker: (value: boolean) => void;
+  assignableRoles: ClubRole[];
+  handleChangeRole: (newRole: ClubRole) => Promise<void>;
+  handleRemoveMember: () => void;
+  handleBanMember: () => void;
+  handleToggleSquad: (squadId: string) => Promise<void>;
+}
+
+export function useMemberManagement(): UseMemberManagementResult {
   const { clubId, memberId } = useLocalSearchParams<{ clubId: string; memberId: string }>();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
-  const [member, setMember] = useState<ClubMember | null>(null);
-  const [club, setClub] = useState<Club | null>(null);
-  const [squads, setSquads] = useState<ClubSquad[]>([]);
-  const [currentUserRole, setCurrentUserRole] = useState<ClubRole | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showRolePicker, setShowRolePicker] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!clubId || !memberId) return;
-    setLoading(true);
+    if (!clubId || !memberId) {
+      return ok<MemberManagementData>({
+        member: null,
+        club: null,
+        squads: [],
+        currentUserRole: mapUserRoleToClubRole(currentUser?.role),
+      });
+    }
+
     try {
       const clubData = currentUser?.id
         ? socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId)
         : undefined;
-      setClub(clubData || null);
       const memberData = await clubService.getMember(clubId, memberId);
-      setMember(memberData);
-      setSquads(await squadService.getSquads(clubId));
-      setCurrentUserRole(mapUserRoleToClubRole(currentUser?.role));
-    } catch (error) {
-      logger.error('Failed to load member data', error);
-    } finally {
-      setLoading(false);
+      const squads = await squadService.getSquads(clubId);
+
+      return ok<MemberManagementData>({
+        member: memberData,
+        club: clubData || null,
+        squads,
+        currentUserRole: mapUserRoleToClubRole(currentUser?.role),
+      });
+    } catch (loadError) {
+      logger.error('Failed to load member data', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load member data. Pull down to refresh.', loadError));
     }
   }, [clubId, memberId, currentUser?.id, currentUser?.role]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<MemberManagementData>({
+    load: loadData,
+    deps: [clubId, memberId, currentUser?.id, currentUser?.role],
+    events: [
+      ServiceEvents.CLUB_MEMBER_JOINED,
+      ServiceEvents.CLUB_MEMBER_LEFT,
+      ServiceEvents.SQUAD_MEMBER_ADDED,
+      ServiceEvents.SQUAD_MEMBER_REMOVED,
+    ],
+    isEmpty: (value) => value.member === null || value.club === null,
+    refetchOnFocus: true,
+  });
+
+  const member = data?.member ?? null;
+  const club = data?.club ?? null;
+  const squads = data?.squads ?? [];
+  const currentUserRole = data?.currentUserRole ?? mapUserRoleToClubRole(currentUser?.role);
+  const loading = status === 'loading';
 
   const canManage = currentUserRole
     ? clubService.canRemoveMembers(currentUserRole) &&
@@ -68,14 +127,14 @@ export function useMemberManagement() {
       const result = await clubService.changeMemberRole(clubId, memberId, newRole,
         { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Admin' });
       if (!result.success) { showToast('Failed to change role', 'error'); return; }
-      setMember(result.data);
       setShowRolePicker(false);
+      onRefresh();
       showToast(`${member.userName} is now ${clubService.formatRole(newRole)}`, 'success');
     } catch (error) {
       logger.error('Failed to change role', error);
       showToast('Failed to change role', 'error');
     }
-  }, [clubId, memberId, currentUser, member, showToast]);
+  }, [clubId, memberId, currentUser, member, onRefresh, showToast]);
 
   const handleRemoveMember = useCallback(() => {
     if (!member) return;
@@ -117,15 +176,24 @@ export function useMemberManagement() {
         ? await clubService.removeMemberFromSquad(clubId, memberId, squadId)
         : await clubService.addMemberToSquad(clubId, memberId, squadId);
       if (result.success) {
-        setMember(result.data);
+        onRefresh();
         const squad = squads.find((s) => s.id === squadId);
         showToast(isInSquad ? `Removed from ${squad?.name || 'squad'}` : `Added to ${squad?.name || 'squad'}`, 'success');
       } else showToast('Failed to update squad membership', 'error');
     } catch (error) { logger.error('Failed to toggle squad', error); showToast('Failed to update squad membership', 'error'); }
-  }, [clubId, memberId, member, squads, showToast]);
+  }, [clubId, memberId, member, squads, onRefresh, showToast]);
 
   return {
-    member, club, squads, loading, canManage,
+    member,
+    club,
+    squads,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    canManage,
     showRolePicker, setShowRolePicker, assignableRoles,
     handleChangeRole, handleRemoveMember, handleBanMember, handleToggleSquad,
   };

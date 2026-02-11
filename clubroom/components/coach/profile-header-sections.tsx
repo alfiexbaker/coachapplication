@@ -13,7 +13,6 @@ import React, { memo } from 'react';
 import {
   ActivityIndicator,
   Image,
-  StyleSheet,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -23,11 +22,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { styles } from './profile-header-section-styles';
 
 interface CoachBadge {
   id: string;
@@ -39,8 +37,6 @@ interface CoachRating {
   average: number;
   reviewCount: number;
 }
-
-// ─── CoverSection ────────────────────────────────────────────────────────────
 
 interface CoverSectionProps {
   coverPhotoUrl?: string;
@@ -61,8 +57,6 @@ export const CoverSection = memo(function CoverSection({
     </View>
   );
 });
-
-// ─── AvatarSection ───────────────────────────────────────────────────────────
 
 interface AvatarSectionProps {
   profilePhotoUrl?: string;
@@ -94,8 +88,6 @@ export const AvatarSection = memo(function AvatarSection({
     </View>
   );
 });
-
-// ─── ProfileStatsRow ─────────────────────────────────────────────────────────
 
 interface ProfileStatsRowProps {
   totalSessions: number;
@@ -129,8 +121,6 @@ export const ProfileStatsRow = memo(function ProfileStatsRow({
     </Row>
   );
 });
-
-// ─── FollowButton ────────────────────────────────────────────────────────────
 
 interface FollowButtonProps {
   isFollowing: boolean;
@@ -184,8 +174,6 @@ export const FollowButton = memo(function FollowButton({
   );
 });
 
-// ─── BadgesRow ───────────────────────────────────────────────────────────────
-
 interface BadgesRowProps {
   badges: CoachBadge[];
   palette: ThemeColors;
@@ -235,8 +223,6 @@ export const BadgesRow = memo(function BadgesRow({
   );
 });
 
-// ─── EditProfileButton ───────────────────────────────────────────────────────
-
 interface EditProfileButtonProps {
   palette: ThemeColors;
 }
@@ -256,103 +242,4 @@ export const EditProfileButton = memo(function EditProfileButton({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  coverContainer: {
-    position: 'relative',
-  },
-  coverPhoto: {
-    width: '100%',
-    height: 200,
-  },
-  profileHeader: {
-    padding: Spacing.lg,
-    paddingTop: 0,
-    gap: Spacing.md,
-  },
-  avatarContainer: {
-    marginTop: -50,
-    position: 'relative',
-    alignSelf: 'flex-start',
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: Radii.full,
-    borderWidth: 4,
-  },
-  editAvatarButton: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 32,
-    height: 32,
-    borderRadius: Radii.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  profileInfo: {
-    gap: Spacing.xs,
-  },
-  schoolName: {
-    ...Typography.subheading,
-    opacity: 0.8,
-  },
-  location: {
-    ...Typography.body,
-    opacity: 0.6,
-  },
-  statsRow: {
-    gap: Spacing.xl,
-    marginTop: Spacing.sm,
-  },
-  statItem: {
-    gap: Spacing.micro,
-  },
-  statLabel: {
-    ...Typography.caption,
-    opacity: 0.6,
-  },
-  followButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.pill,
-    gap: Spacing.xs,
-    marginTop: Spacing.md,
-    minWidth: 120,
-    height: 40,
-  },
-  followingButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-  },
-  followButtonText: {
-    ...Typography.bodySemiBold,
-  },
-  badgesRow: {
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
-  badgeText: {
-    ...Typography.caption,
-  },
-  editProfileButton: {
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    marginTop: Spacing.md,
-  },
-  editProfileText: {
-    ...Typography.bodySemiBold,
-  },
-});
+export { styles } from './profile-header-section-styles';

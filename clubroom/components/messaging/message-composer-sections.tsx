@@ -1,24 +1,13 @@
-/**
- * Extracted sub-components for MessageComposer.
- *
- * ReplyPreview — reply-to banner with cancel button.
- * AttachmentsPreview — row of attachment chips with remove.
- * ComposerInputRow — text input + action buttons + send/voice.
- * QuickActionsBar — quick response buttons.
- */
-
 import React, { memo } from 'react';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { styles } from './message-composer-section-styles';
 import type { Attachment } from '@/constants/types';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function getAttachmentIcon(type: Attachment['type']): string {
   switch (type) {
@@ -32,8 +21,6 @@ export function getAttachmentIcon(type: Attachment['type']): string {
       return 'attach';
   }
 }
-
-// ─── ReplyPreview ────────────────────────────────────────────────────────────
 
 interface ReplyPreviewProps {
   replyingTo: { id: string; preview: string };
@@ -62,8 +49,6 @@ export const ReplyPreview = memo(function ReplyPreview({
     </Row>
   );
 });
-
-// ─── AttachmentsPreview ──────────────────────────────────────────────────────
 
 interface AttachmentsPreviewProps {
   attachments: Attachment[];
@@ -106,8 +91,6 @@ export const AttachmentsPreview = memo(function AttachmentsPreview({
   );
 });
 
-// ─── ComposerInputRow ────────────────────────────────────────────────────────
-
 interface ComposerInputRowProps {
   inputRef: React.RefObject<TextInput | null>;
   text: string;
@@ -147,11 +130,21 @@ export const ComposerInputRow = memo(function ComposerInputRow({
     <Row align="flex-end" gap="xs" style={[styles.composerRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
       {/* Action Buttons */}
       <Row align="center" gap="xxs" style={styles.actionsRow}>
-        <Clickable onPress={onAttachPress} style={styles.actionButton} hitSlop={8}>
+        <Clickable
+          onPress={onAttachPress}
+          accessibilityLabel="Attach file"
+          style={styles.actionButton}
+          hitSlop={8}
+        >
           <Ionicons name="attach" size={22} color={palette.icon} />
         </Clickable>
         {onCameraPress && (
-          <Clickable onPress={onCameraPress} style={styles.actionButton} hitSlop={8}>
+          <Clickable
+            onPress={onCameraPress}
+            accessibilityLabel="Open camera"
+            style={styles.actionButton}
+            hitSlop={8}
+          >
             <Ionicons name="camera-outline" size={22} color={palette.icon} />
           </Clickable>
         )}
@@ -183,6 +176,7 @@ export const ComposerInputRow = memo(function ComposerInputRow({
       {canSend ? (
         <Clickable
           onPress={onSend}
+          accessibilityLabel="Send message"
           disabled={disabled}
           style={({ pressed }) => [
             styles.sendButton,
@@ -201,6 +195,7 @@ export const ComposerInputRow = memo(function ComposerInputRow({
       ) : onVoicePress ? (
         <Clickable
           onPress={onVoicePress}
+          accessibilityLabel="Record voice message"
           style={[styles.voiceButton, { borderColor: palette.border }]}
         >
           <Ionicons name="mic" size={20} color={palette.icon} />
@@ -211,8 +206,6 @@ export const ComposerInputRow = memo(function ComposerInputRow({
     </Row>
   );
 });
-
-// ─── QuickActionsBar ─────────────────────────────────────────────────────────
 
 interface QuickActionsBarProps {
   actions: { label: string; icon?: string; onPress: () => void }[];
@@ -245,89 +238,4 @@ export const QuickActionsBarInner = memo(function QuickActionsBarInner({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  replyPreview: {
-    padding: Spacing.sm,
-    marginHorizontal: Spacing.md,
-    borderRadius: Radii.sm,
-    borderLeftWidth: 3,
-  },
-  replyContent: {
-    flex: 1,
-  },
-  replyLabel: {
-    ...Typography.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  replyText: { ...Typography.small, marginTop: Spacing.micro },
-  attachmentsRow: {
-    paddingHorizontal: Spacing.md,
-  },
-  attachmentPreview: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    maxWidth: 150,
-  },
-  attachmentName: { ...Typography.caption, flex: 1 },
-  composerRow: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-  },
-  actionsRow: {
-    paddingBottom: 8,
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inputWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  input: {
-    ...Typography.subheading,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    paddingHorizontal: Spacing.xxs,
-    lineHeight: 20,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  voiceButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendPlaceholder: {
-    width: 40,
-  },
-  quickActionsContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  quickAction: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-  },
-  quickActionText: { ...Typography.smallSemiBold },
-});
+export { styles };

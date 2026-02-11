@@ -3,7 +3,8 @@
  * Sub-components: DevChildSelector, DevProfileCard, DevProgressTab, DevBadgesTab, DevGoalsTab
  * Hook: useParentDevelopment
  */
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,13 +86,16 @@ export function ParentDevelopmentScreen() {
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.key;
                 return (
-                  <Pressable
+                  <Clickable
                     key={tab.key}
                     onPress={() => handleSelectTab(tab.key)}
                     style={[
                       styles.tab,
                       isActive ? [styles.tabActive, { backgroundColor: palette.tint }] : undefined,
                     ]}
+                    accessibilityRole="tab"
+                    accessibilityLabel={tab.label}
+                    accessibilityState={{ selected: isActive }}
                   >
                     <Row align="center" justify="center" gap="xxs" flex>
                     <Ionicons name={tab.icon} size={16} color={isActive ? palette.onPrimary : palette.muted} />
@@ -105,7 +109,7 @@ export function ParentDevelopmentScreen() {
                       {tab.label}
                     </ThemedText>
                     </Row>
-                  </Pressable>
+                  </Clickable>
                 );
               })}
             </Row>

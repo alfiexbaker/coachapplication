@@ -6,10 +6,42 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
 import { ScreenHeader } from '@/components/primitives/screen-header';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 
 export default function MoreScreen() {
-  const { currentUser } = useAuth();
+  const { currentUser, isLoading, error } = useAuth();
   const { colors: palette } = useTheme();
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ScreenHeader title="More" subtitle="Settings and options" />
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ScreenHeader title="More" subtitle="Settings and options" />
+        <ErrorState message={error} onRetry={() => {}} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ScreenHeader title="More" subtitle="Settings and options" />
+        <EmptyState
+          icon="person-outline"
+          title="Sign in required"
+          message="Please sign in to access role-specific tools."
+        />
+      </SafeAreaView>
+    );
+  }
 
   // Route to appropriate screen based on role
   switch (currentUser?.role) {

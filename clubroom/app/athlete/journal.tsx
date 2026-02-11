@@ -6,10 +6,10 @@
  * of past entries.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -20,7 +20,7 @@ import { SessionJournal } from '@/components/development/session-journal';
 import type { JournalEntry } from '@/components/development/session-journal';
 import { useScreen } from '@/hooks/use-screen';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { ok } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient } from '@/services/api-client';
@@ -31,43 +31,39 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('AthleteJournalScreen');
 
 export default function AthleteJournalScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
-
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(false);
 
   const userId = currentUser?.id ?? 'user2';
 
   const loadData = useCallback(async () => {
     try {
-      setError(false);
       const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
-      const data = stored.length > 0
+      const entries = stored.length > 0
         ? stored.filter((e) => e.athleteId === userId)
         : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
-      setEntries(data);
-    } catch (err) {
-      logger.error('Failed to load journal', err);
-      setError(true);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return ok<{ entries: JournalEntry[] }>({ entries });
+    } catch (loadError) {
+      logger.error('Failed to load journal', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load journal entries.', loadError));
     }
   }, [userId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<{ entries: JournalEntry[] }>({
+    load: loadData,
+    deps: [userId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const entries = data?.entries ?? [];
 
   const handleSave = useCallback(
     async (entry: { personalNotes: string; mood: number; energyLevel: number }) => {
@@ -86,16 +82,16 @@ export default function AthleteJournalScreen() {
         await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, [newEntry, ...stored]);
 
         Platform.OS !== 'web' && void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setEntries((prev) => [newEntry, ...prev]);
+        onRefresh();
         logger.info('Journal entry saved', { entryId: newEntry.id });
-      } catch (err) {
-        logger.error('Failed to save journal entry', err);
+      } catch (saveError) {
+        logger.error('Failed to save journal entry', saveError);
       }
     },
-    [userId]
+    [userId, onRefresh]
   );
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <LoadingState variant="form" />
@@ -103,10 +99,10 @@ export default function AthleteJournalScreen() {
     );
   }
 
-  if (error) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message="Failed to load journal entries" onRetry={loadData} />
+        <ErrorState message={error?.message ?? 'Failed to load journal entries'} onRetry={retry} />
       </SafeAreaView>
     );
   }
@@ -125,7 +121,7 @@ export default function AthleteJournalScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <SessionJournal
           coachNotes={entries[0]?.coachNotes}

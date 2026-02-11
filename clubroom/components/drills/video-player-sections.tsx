@@ -7,15 +7,15 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
+import { styles } from './video-player-styles';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,9 +65,9 @@ export const VideoBottomControls = memo(function VideoBottomControls({
   palette,
 }: VideoBottomControlsProps) {
   return (
-    <View style={styles.bottomControls}>
+    <View style={[styles.bottomControls, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
       <View style={styles.progressBarContainer}>
-        <View style={styles.progressBarBackground}>
+        <View style={[styles.progressBarBackground, { backgroundColor: withAlpha(palette.onPrimary, 0.3) }]}>
           <View
             style={[
               styles.progressBarFill,
@@ -93,19 +93,21 @@ export const VideoBottomControls = memo(function VideoBottomControls({
 interface VideoTitleOverlayProps {
   title: string;
   duration?: number;
+  palette: ThemeColors;
 }
 
 export const VideoTitleOverlay = memo(function VideoTitleOverlay({
   title,
   duration,
+  palette,
 }: VideoTitleOverlayProps) {
   return (
-    <Row style={styles.titleOverlay}>
-      <ThemedText style={styles.titleText} numberOfLines={1}>
+    <Row style={[styles.titleOverlay, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
+      <ThemedText style={[styles.titleText, { color: palette.onPrimary }]} numberOfLines={1}>
         {title}
       </ThemedText>
       {duration && (
-        <ThemedText style={styles.durationText}>
+        <ThemedText style={[styles.durationText, { color: withAlpha(palette.onPrimary, 0.8) }]}>
           {duration} min
         </ThemedText>
       )}
@@ -127,7 +129,11 @@ export const VideoPlayButton = memo(function VideoPlayButton({
   palette,
 }: VideoPlayButtonProps) {
   return (
-    <Clickable onPress={onPress} style={styles.playButton}>
+    <Clickable
+      onPress={onPress}
+      accessibilityLabel={isPlaying ? 'Pause video' : 'Play video'}
+      style={[styles.playButton, { backgroundColor: withAlpha(palette.text, 0.6) }]}
+    >
       <Ionicons
         name={isPlaying ? 'pause' : 'play'}
         size={32}
@@ -147,7 +153,7 @@ export const VideoLoadingOverlay = memo(function VideoLoadingOverlay({
   palette,
 }: VideoLoadingOverlayProps) {
   return (
-    <View style={styles.loadingOverlay}>
+    <View style={[styles.loadingOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
       <ActivityIndicator size="large" color={palette.onPrimary} />
     </View>
   );
@@ -176,114 +182,4 @@ export const NoVideoPlaceholderInner = memo(function NoVideoPlaceholderInner({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-    backgroundColor: '#000000', // Decorative: video player black background
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  placeholder: {
-    width: '100%',
-    height: '100%',
-  },
-  controlsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Decorative: video overlay
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButton: {
-    width: 72,
-    height: 72,
-    borderRadius: Radii['3xl'],
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Decorative: play button overlay
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomControls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Decorative: controls overlay
-  },
-  progressBarContainer: {
-    width: '100%',
-    marginBottom: 8,
-  },
-  progressBarBackground: {
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Decorative: progress track
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  timeContainer: {
-    justifyContent: 'space-between',
-  },
-  timeText: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
-  },
-  titleOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Decorative: title overlay
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  titleText: {
-    color: 'rgba(255, 255, 255, 1)', // Decorative: white text on video
-    fontSize: scaleFont(14),
-    fontWeight: '600',
-    flex: 1,
-  },
-  durationText: {
-    color: 'rgba(255, 255, 255, 0.8)', // Decorative: duration text on video
-    fontSize: scaleFont(12),
-    marginLeft: Spacing.sm,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-  },
-  errorText: {
-    fontSize: scaleFont(14),
-  },
-  noVideoContainer: {
-    width: '100%',
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-  },
-  noVideoText: {
-    fontSize: scaleFont(14),
-  },
-});
+export { styles };

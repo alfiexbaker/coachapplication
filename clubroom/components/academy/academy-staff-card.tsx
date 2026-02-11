@@ -16,14 +16,6 @@ import { academyService } from '@/services/academy-service';
 import type { AcademyMembership } from '@/constants/types';
 import { Row } from '@/components/primitives';
 
-const ROLE_COLORS = {
-  OWNER: '#7C3AED',
-  ADMIN: '#0284C7',
-  HEAD_COACH: '#059669',
-  ASSISTANT: '#6B7280',
-  MEMBER: '#9CA3AF',
-} as const;
-
 interface AcademyStaffCardProps {
   member: AcademyMembership;
   index: number;
@@ -40,8 +32,12 @@ export const AcademyStaffCard = memo(function AcademyStaffCard({
   const { colors: palette } = useTheme();
 
   const roleColors: Record<AcademyMembership['role'], string> = {
-    ...ROLE_COLORS,
+    OWNER: palette.premium,
+    ADMIN: palette.info,
+    HEAD_COACH: palette.success,
     COACH: palette.tint,
+    ASSISTANT: palette.muted,
+    MEMBER: palette.tabIconDefault,
   };
 
   return (

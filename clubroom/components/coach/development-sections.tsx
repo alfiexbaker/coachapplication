@@ -2,7 +2,7 @@
  * CoachDevelopment — Section sub-components.
  */
 import { memo } from 'react';
-import { View, Platform, StyleSheet } from 'react-native';
+import { View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -10,7 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, withAlpha } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
 import type { Booking, Session } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
@@ -20,6 +20,7 @@ import { getSessionAthleteName } from '@/utils/session-display';
 import type { AthleteRosterEntry } from '@/hooks/use-coach-development';
 import { formatDate } from '@/hooks/use-coach-development';
 import { Row } from '@/components/primitives';
+import { styles } from './development-section-styles';
 
 // ---------------------------------------------------------------------------
 // QuickActions row
@@ -224,43 +225,3 @@ function BadgesShortcutInner({ logger }: { logger: { press: (event: string, data
 }
 
 export const BadgesShortcut = memo(BadgesShortcutInner);
-
-const styles = StyleSheet.create({
-  quickRow: { justifyContent: 'space-between', gap: Spacing.xs },
-  quickItem: { alignItems: 'center', gap: Spacing.xxs, flex: 1 },
-  quickIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  quickLabel: { ...Typography.caption },
-  sectionCard: { gap: Spacing.sm, padding: Spacing.sm },
-  sectionHeaderRow: { alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  sectionTitle: { ...Typography.subheading },
-  sectionHint: { ...Typography.caption },
-  completionCard: { borderLeftWidth: 3 },
-  completionHeader: { alignItems: 'center', gap: Spacing.sm },
-  completionIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  completionRow: { alignItems: 'center', padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1, gap: Spacing.sm },
-  completionRowContent: { flex: 1, gap: Spacing.micro },
-  completionRowTitle: { ...Typography.bodySmall, letterSpacing: -0.1 },
-  completionRowMeta: { ...Typography.caption },
-  completionHint: { ...Typography.caption, textAlign: 'center' },
-  attentionList: { gap: Spacing.xs },
-  rowCard: { padding: Spacing.sm, borderRadius: Radii.card, borderWidth: 1, gap: Spacing.sm, alignItems: 'stretch' },
-  rowTop: { alignItems: 'center', gap: Spacing.sm },
-  rowLeft: { flex: 1, alignItems: 'center', gap: Spacing.sm },
-  rowContent: { flex: 1, gap: Spacing.micro },
-  actionRow: { flexWrap: 'wrap', gap: Spacing.xxs },
-  pill: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
-  pillLabel: { ...Typography.caption, letterSpacing: -0.1 },
-  actionPill: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1 },
-  subtleMeta: { ...Typography.caption, lineHeight: 18 },
-  avatar: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Components.avatar.md / 2, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'visible' },
-  avatarText: { ...Typography.heading },
-  badge: { position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: Radii.sm, borderWidth: 2 },
-  athleteName: { ...Typography.bodySemiBold, letterSpacing: -0.1 },
-  athleteMetadata: { ...Typography.small },
-  recentRow: { padding: Spacing.sm, borderRadius: Radii.card, borderWidth: 1, alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  emptyState: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing['2xl'], paddingHorizontal: Spacing.xl },
-  emptyIconCircle: { width: Components.listItem.large, height: Components.listItem.large, borderRadius: Components.listItem.large / 2, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
-  emptyText: { ...Typography.bodySmall, lineHeight: 20, textAlign: 'center', maxWidth: 260 },
-  badgesShortcut: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.card, borderWidth: 1 },
-  badgesIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-});

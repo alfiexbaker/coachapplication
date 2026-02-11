@@ -57,7 +57,7 @@ describe('challengeService', () => {
 
       assert.ok(sub.id);
       assert.equal(sub.challengeId, challenge.id);
-      assert.equal(sub.awardedBadge, false);
+      assert.strictEqual(sub.awardedBadge, false);
     });
 
     test('increments totalParticipants on challenge', async () => {

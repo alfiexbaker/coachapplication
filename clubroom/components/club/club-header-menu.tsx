@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -42,7 +42,12 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
+      <Clickable
+        style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close club menu"
+      >
         <View onStartShouldSetResponder={() => true} style={[styles.menuContainer, { backgroundColor: palette.surface }]}>
           <Row style={styles.menuHeader}>
             <ThemedText type="defaultSemiBold">{clubName}</ThemedText>
@@ -78,7 +83,7 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
             ))}
           </View>
         </View>
-      </Pressable>
+      </Clickable>
     </Modal>
   );
 });
@@ -86,7 +91,7 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
   menuContainer: { borderTopLeftRadius: Components.modal.borderRadius, borderTopRightRadius: Components.modal.borderRadius, padding: Components.modal.padding, paddingBottom: Spacing.xl + 20 },
   menuHeader: { justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   inviteCodeSection: { justifyContent: 'space-between', alignItems: 'center', padding: Components.modal.padding, borderRadius: Radii.md, borderWidth: 1, marginBottom: Spacing.md },

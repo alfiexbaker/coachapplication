@@ -41,7 +41,7 @@ export function BadgeAwardModal({ visible, onClose, athletePhotoUrl, sessionLabe
         title: 'Badge Awarded!',
         subtitle: `${award.selectedBadge?.label} sent to ${award.resolvedAthleteName}`,
         icon: 'ribbon',
-        iconColor: '#FFD700',
+        iconColor: palette.warning,
         duration: 2500,
       });
       setTimeout(onClose, 2600);

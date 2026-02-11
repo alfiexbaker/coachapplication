@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { useCallback } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -9,13 +9,15 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { WaitlistCard } from '@/components/waitlist/WaitlistCard';
 import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { waitlistService } from '@/services/waitlist-service';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError } from '@/types/result';
 import type { WaitlistEntry } from '@/constants/types';
 
 const logger = createLogger('WaitlistScreen');
@@ -24,60 +26,67 @@ export default function WaitlistScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
-  const [entries, setEntries] = useState<WaitlistEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
   const loadWaitlists = useCallback(async () => {
-    if (!currentUser) return;
-
-    const result = await waitlistService.getUserWaitlists(currentUser.id);
-    if (result.success) {
-      setEntries(result.data);
-    } else {
-      logger.error('Failed to load waitlists', result.error);
-      setEntries([]);
+    if (!currentUser?.id) {
+      return ok<WaitlistEntry[]>([]);
     }
 
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const result = await waitlistService.getUserWaitlists(currentUser.id);
+      if (result.success) {
+        return ok(result.data);
+      }
+
+      logger.error('Failed to load waitlists', result.error);
+      return err(serviceError('UNKNOWN', result.error.message || 'Failed to load waitlists.'));
+    } catch (loadError) {
+      logger.error('Failed to load waitlists', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load waitlists.', loadError));
+    }
   }, [currentUser]);
 
-  useEffect(() => {
-    loadWaitlists();
-  }, [loadWaitlists]);
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<WaitlistEntry[]>({
+    load: loadWaitlists,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadWaitlists();
-  };
+  const entries = data ?? [];
 
   const handleLeaveWaitlist = async (entryId: string) => {
     const result = await waitlistService.leaveWaitlist(entryId);
-    if (result.success && result.data) {
-      setEntries((prev) => prev.filter((e) => e.id !== entryId));
-    } else {
+    if (!result.success || !result.data) {
       logger.error('Failed to leave waitlist', result.success ? undefined : result.error);
+      return;
     }
+    onRefresh();
   };
 
   const handleToggleAutoBook = async (entryId: string, currentValue: boolean) => {
     const result = await waitlistService.updateAutoBook(entryId, !currentValue);
-    if (result.success && result.data) {
-      setEntries((prev) =>
-        prev.map((e) => (e.id === entryId ? { ...e, autoBook: !currentValue } : e))
-      );
-    } else if (!result.success) {
+    if (!result.success || !result.data) {
       logger.error('Failed to update auto-book', result.error);
+      return;
     }
+    onRefresh();
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState
+          message={error?.message ?? 'Failed to load waitlists.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -104,7 +113,7 @@ export default function WaitlistScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={handleRefresh}
+            onRefresh={onRefresh}
             tintColor={palette.tint}
           />
         }

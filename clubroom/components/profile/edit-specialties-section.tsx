@@ -3,8 +3,9 @@
  */
 
 import React, { memo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -31,7 +32,7 @@ export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
         {objectives.map((focus) => {
           const isSelected = selectedFocuses.includes(focus);
           return (
-            <Pressable
+            <Clickable
               key={focus}
               onPress={() => onToggleFocus(focus)}
               style={[
@@ -47,7 +48,7 @@ export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
               <ThemedText style={[styles.focusText, isSelected && { color: colors.onPrimary }]}>
                 {focus}
               </ThemedText>
-            </Pressable>
+            </Clickable>
           );
         })}
       </Row>

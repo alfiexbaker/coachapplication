@@ -16,6 +16,7 @@ const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
 const community_group_service_1 = require("./community-group-service");
+const account_id_1 = require("@/utils/account-id");
 const logger = (0, logger_1.createLogger)('CommunityMessagingService');
 // Mock data for initial state
 const mockMessages = {
@@ -116,7 +117,7 @@ class CommunityMessagingService {
             const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_MESSAGES, {});
             const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
             const updated = messages.map((msg) => {
-                if (!msg.readBy.includes(parentId)) {
+                if (!msg.readBy.some((readerId) => (0, account_id_1.accountIdsMatch)(readerId, parentId))) {
                     return { ...msg, readBy: [...msg.readBy, parentId] };
                 }
                 return msg;

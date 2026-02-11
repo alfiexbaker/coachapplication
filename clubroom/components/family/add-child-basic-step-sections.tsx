@@ -9,16 +9,17 @@
  */
 
 import { memo } from 'react';
-import { Image, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Platform, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Gender, Relationship } from '@/services/child-service';
 import { Row } from '@/components/primitives';
+import { styles } from './add-child-basic-step-styles';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -233,82 +234,4 @@ export const OptionChipGrid = memo(function OptionChipGrid<T extends string>({
   );
 }) as <T extends string>(props: OptionChipGridProps<T>) => React.ReactElement;
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  stepContent: {
-    gap: Spacing.md,
-  },
-  photoSection: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  photoPickerContainer: {
-    position: 'relative',
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    borderRadius: Radii.full,
-  },
-  photoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: Radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoEditBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: Radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoHint: {
-    ...Typography.small,
-    marginTop: Spacing.xs,
-  },
-  row: {
-    gap: Spacing.md,
-  },
-  halfField: {
-    flex: 1,
-  },
-  field: {
-    gap: Spacing.xs,
-  },
-  label: {
-    ...Typography.bodySmall,
-    fontWeight: '500',
-  },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    ...Typography.body,
-  },
-  dateInput: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  optionGrid: {
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  optionChip: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1.5,
-  },
-  optionText: {
-    ...Typography.small,
-    fontWeight: '500',
-  },
-});
+export { styles };

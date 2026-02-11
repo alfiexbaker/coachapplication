@@ -5,7 +5,7 @@
  */
 
 import { memo, useState, useCallback } from 'react';
-import { View, StyleSheet, Modal, FlatList, Pressable } from 'react-native';
+import { View, StyleSheet, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -82,8 +82,8 @@ function AttendeeListModalComponent({ visible, onClose, responses, counts }: Att
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]} onPress={onClose}>
-        <Pressable style={[styles.sheet, { backgroundColor: palette.surface }]} onPress={() => {}}>
+      <Clickable style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close attendee list">
+        <Clickable style={[styles.sheet, { backgroundColor: palette.surface }]} onPress={() => {}} accessibilityRole="none">
           <View style={[styles.handleBar, { backgroundColor: palette.border }]} />
           <Row style={styles.header}>
             <ThemedText type="heading">Responses</ThemedText>
@@ -99,8 +99,8 @@ function AttendeeListModalComponent({ visible, onClose, responses, counts }: Att
           ) : (
             <FlatList data={sections} keyExtractor={(item) => item.key} renderItem={renderSectionItem} showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent} />
           )}
-        </Pressable>
-      </Pressable>
+        </Clickable>
+      </Clickable>
     </Modal>
   );
 }

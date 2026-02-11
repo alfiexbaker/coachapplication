@@ -102,7 +102,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
         ]}
       >
         <Clickable onPress={handlePress}>
-          <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.text }]}>
             {/* Icon */}
             <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
@@ -149,7 +149,7 @@ export function NotificationToast({
 
   return (
     <Clickable onPress={onPress}>
-      <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.text }]}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
         </View>
@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

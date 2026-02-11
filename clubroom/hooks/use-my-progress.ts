@@ -3,12 +3,13 @@
  */
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('MyProgressScreen');
 
@@ -24,30 +25,31 @@ export const PROGRESS_TABS: { id: ProgressTab; shortLabel: string; icon: string 
   { id: 'badges', shortLabel: 'Awards', icon: 'ribbon-outline' },
 ];
 
+interface MyProgressData {
+  progress: AthleteProgress | null;
+  feedback: SessionFeedback[];
+  badges: BadgeAward[];
+}
+
 export function useMyProgress() {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [progress, setProgress] = useState<AthleteProgress | null>(null);
-  const [feedback, setFeedback] = useState<SessionFeedback[]>([]);
-  const [badges, setBadges] = useState<BadgeAward[]>([]);
   const [activeTab, setActiveTab] = useState<ProgressTab>('overview');
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState('');
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return err(serviceError('VALIDATION', 'Missing user context for progress screen.'));
+    }
+
     try {
       const progressData = await progressService.getAthleteProgress(currentUser.id, 'athlete');
       progressData.athleteName = currentUser.name || 'Me';
-      setProgress(progressData);
 
       const feedbackData = await progressService.getFeedbackForAthlete(currentUser.id, 'athlete');
-      setFeedback(feedbackData);
-
       const badgesData = await badgeService.listAwardsForAthlete(currentUser.id);
-      setBadges(badgesData.filter(b => b.visibility !== 'coach_only'));
+      const visibleBadges = badgesData.filter((badge) => badge.visibility !== 'coach_only');
 
       logger.info('My progress loaded', {
         userId: currentUser.id,
@@ -55,17 +57,35 @@ export function useMyProgress() {
         feedbackCount: feedbackData.length,
         badgeCount: badgesData.length,
       });
+
+      return ok<MyProgressData>({
+        progress: progressData,
+        feedback: feedbackData,
+        badges: visibleBadges,
+      });
     } catch (error) {
       logger.error('Failed to load progress', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load progress data.', error));
     }
   }, [currentUser?.id, currentUser?.name]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<MyProgressData>({
+    load: loadData,
+    deps: [currentUser?.id],
+    isEmpty: (value) => !value.progress,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => { setRefreshing(true); loadData(); }, [loadData]);
+  const progress = data?.progress ?? null;
+  const feedback = data?.feedback ?? [];
+  const badges = data?.badges ?? [];
 
   const handleCreateGoal = useCallback(async () => {
     if (!newGoalTitle.trim() || !currentUser) return;
@@ -77,13 +97,13 @@ export function useMyProgress() {
       });
       setNewGoalTitle('');
       setShowGoalForm(false);
-      loadData();
+      onRefresh();
       Alert.alert('Success', 'Goal created!');
-    } catch (error) {
-      logger.error('Failed to create goal', error);
+    } catch (goalError) {
+      logger.error('Failed to create goal', goalError);
       Alert.alert('Error', 'Failed to create goal');
     }
-  }, [newGoalTitle, currentUser, loadData]);
+  }, [newGoalTitle, currentUser, onRefresh]);
 
   const trendInfo = progress ? (() => {
     switch (progress.overallTrend) {
@@ -94,9 +114,44 @@ export function useMyProgress() {
   })() : null;
 
   return {
-    currentUser, loading, refreshing, progress, feedback, badges,
-    activeTab, setActiveTab, trendInfo,
-    showGoalForm, setShowGoalForm, newGoalTitle, setNewGoalTitle,
-    handleRefresh, handleCreateGoal,
+    currentUser,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    progress,
+    feedback,
+    badges,
+    activeTab,
+    setActiveTab,
+    trendInfo,
+    showGoalForm,
+    setShowGoalForm,
+    newGoalTitle,
+    setNewGoalTitle,
+    handleRefresh: onRefresh,
+    handleCreateGoal,
+  } satisfies {
+    currentUser: typeof currentUser;
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    progress: AthleteProgress | null;
+    feedback: SessionFeedback[];
+    badges: BadgeAward[];
+    activeTab: ProgressTab;
+    setActiveTab: (value: ProgressTab) => void;
+    trendInfo: { icon: string; color: 'success' | 'error' | 'muted'; label: string } | null;
+    showGoalForm: boolean;
+    setShowGoalForm: (value: boolean) => void;
+    newGoalTitle: string;
+    setNewGoalTitle: (value: string) => void;
+    handleRefresh: () => void;
+    handleCreateGoal: () => Promise<void>;
   };
 }

@@ -1,34 +1,19 @@
-/**
- * Extracted sub-components for SlotPicker.
- *
- * Helpers: getWeekRange, formatSlotTime, formatDayHeader.
- * Constants: MAX_SELECTIONS, DAY_LABELS.
- * WeekNavigator — prev/next week arrows + label.
- * SelectionCounter — selected count banner.
- * SlotPickerLoading — loading state.
- * SlotChip — individual slot pill with status colouring.
- * DayRow — day header + slot chips for one date.
- */
-
 import React, { memo } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import { toDateStr } from '@/utils/format';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AvailabilitySlot } from '@/constants/types';
 import { Row } from '@/components/primitives';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
+import { styles } from './slot-picker-section-styles';
 
 export const MAX_SELECTIONS = 3;
 export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function getWeekRange(offset: number): { start: string; end: string; label: string } {
   const now = new Date();
@@ -68,8 +53,6 @@ export function formatDayHeader(dateStr: string): { day: string; date: string; i
   };
 }
 
-// ─── WeekNavigator ───────────────────────────────────────────────────────────
-
 interface WeekNavigatorProps {
   weekLabel: string;
   weekOffset: number;
@@ -108,8 +91,6 @@ export const WeekNavigator = memo(function WeekNavigator({
   );
 });
 
-// ─── SelectionCounter ────────────────────────────────────────────────────────
-
 interface SelectionCounterProps {
   count: number;
   palette: ThemeColors;
@@ -129,8 +110,6 @@ export const SelectionCounter = memo(function SelectionCounter({
   );
 });
 
-// ─── SlotPickerLoading ───────────────────────────────────────────────────────
-
 export function SlotPickerLoading({ palette }: { palette: ThemeColors }) {
   return (
     <View style={styles.loadingContainer}>
@@ -141,8 +120,6 @@ export function SlotPickerLoading({ palette }: { palette: ThemeColors }) {
     </View>
   );
 }
-
-// ─── SlotChip ────────────────────────────────────────────────────────────────
 
 interface SlotChipProps {
   slot: AvailabilitySlot;
@@ -217,8 +194,6 @@ export const SlotChip = memo(function SlotChip({
   );
 });
 
-// ─── DayRow ──────────────────────────────────────────────────────────────────
-
 interface DayRowProps {
   dateStr: string;
   slots: AvailabilitySlot[];
@@ -266,89 +241,4 @@ export const DayRow = memo(function DayRow({
       </Row>
     </Animated.View>
   );
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  weekNav: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xs,
-  },
-  navBtn: {
-    padding: Spacing.xs,
-  },
-  counterRow: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  counterText: {
-    ...Typography.smallSemiBold,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['2xl'],
-    gap: Spacing.sm,
-  },
-  loadingText: {
-    ...Typography.small,
-  },
-  dayColumn: {
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    gap: Spacing.md,
-  },
-  dayHeader: {
-    width: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.micro,
-  },
-  dayLabel: {
-    ...Typography.micro,
-    textTransform: 'uppercase',
-  },
-  dayDate: {
-    fontSize: 18,
-  },
-  slotsRow: {
-    flex: 1,
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    alignItems: 'center',
-  },
-  noSlots: {
-    ...Typography.small,
-    paddingVertical: Spacing.xs,
-  },
-  slotChip: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.xs,
-  },
-  slotContent: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  slotLocationRow: {
-    alignItems: 'center',
-    gap: Spacing.micro,
-  },
-  slotTime: {
-    ...Typography.smallSemiBold,
-  },
-  slotLocation: {
-    ...Typography.micro,
-  },
-  slotBadge: {
-    ...Typography.micro,
-  },
 });

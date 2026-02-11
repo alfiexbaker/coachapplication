@@ -1,6 +1,7 @@
 import { PropsWithChildren, useState } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import { StyleSheet } from 'react-native';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -14,9 +15,13 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
 
   return (
     <ThemedView>
-      <Pressable
+      <Clickable
         style={({ pressed }) => [pressed && { opacity: 0.7 }]}
-        onPress={() => setIsOpen((value) => !value)}>
+        onPress={() => setIsOpen((value) => !value)}
+        accessibilityRole="button"
+        accessibilityLabel={`Toggle ${title}`}
+        accessibilityState={{ expanded: isOpen }}
+      >
         <Row align="center" gap="xxs">
           <IconSymbol
             name="chevron.right"
@@ -28,7 +33,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
 
           <ThemedText type="defaultSemiBold">{title}</ThemedText>
         </Row>
-      </Pressable>
+      </Clickable>
       {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
     </ThemedView>
   );

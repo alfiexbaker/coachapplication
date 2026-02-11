@@ -1,87 +1,81 @@
-import { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
 import { GroupChatSection } from '@/components/community/group-chat-section';
 import { GroupMembersModal } from '@/components/community/group-members-modal';
 import { GroupRolePicker } from '@/components/community/group-role-picker';
-import { Spacing, Typography } from '@/constants/theme';
+import { GroupChatHeader } from '@/components/community/group-chat-header-sections';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import type { ParentGroup, GroupMessage, GroupMember, GroupMemberRole } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { communityGroupService } from '@/services/community/community-group-service';
-import { scaleFont } from '@/utils/scale';
+import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('GroupChatScreen');
 
+interface GroupChatData {
+  group: ParentGroup | null;
+  messages: GroupMessage[];
+}
+
 export default function GroupChatScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const parentId = currentUser?.id ?? 'parent1';
   const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
 
-  const [group, setGroup] = useState<ParentGroup | undefined>();
-  const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<GroupMember | null>(null);
   const [showRolePickerModal, setShowRolePickerModal] = useState(false);
 
-  // -------------------------------------------------------------------------
-  // Data loading
-  // -------------------------------------------------------------------------
-
   const loadData = useCallback(async () => {
-    if (!groupId) return;
+    if (!groupId) return ok<GroupChatData>({ group: null, messages: [] });
+
     try {
       const [groupResult, messagesResult] = await Promise.all([
         communityService.getGroup(groupId),
         communityService.getGroupMessages(groupId),
       ]);
-      if (!groupResult.success) {
-        setGroup(undefined);
-        Alert.alert('Error', groupResult.error.message);
-        return;
-      }
-      setGroup(groupResult.data);
 
-      if (!messagesResult.success) {
-        setMessages([]);
-        Alert.alert('Error', messagesResult.error.message);
-      } else {
-        setMessages(messagesResult.data);
-      }
+      if (!groupResult.success) return err(groupResult.error);
+      if (!messagesResult.success) return err(messagesResult.error);
 
       const markReadResult = await communityService.markMessagesRead(groupId, parentId);
       if (!markReadResult.success) {
         logger.warn('Failed to mark group messages as read', markReadResult.error);
       }
-    } catch (error) {
-      logger.error('Failed to load group data:', error);
-    } finally {
-      setLoading(false);
+
+      return ok<GroupChatData>({ group: groupResult.data, messages: messagesResult.data });
+    } catch (loadError) {
+      logger.error('Failed to load group data:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load group data. Pull down to refresh.', loadError));
     }
   }, [groupId, parentId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const { data, status, error, onRefresh, retry } = useScreen<GroupChatData>({
+    load: loadData,
+    deps: [groupId, parentId],
+    events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
+    isEmpty: (value) => value.group === null,
+    refetchOnFocus: true,
+  });
 
-  // -------------------------------------------------------------------------
-  // Send message
-  // -------------------------------------------------------------------------
+  const group = data?.group ?? null;
+  const messages = data?.messages ?? [];
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputValue.trim() || !groupId || sending) return;
+
     const messageText = inputValue.trim();
     setInputValue('');
     setSending(true);
@@ -92,21 +86,17 @@ export default function GroupChatScreen() {
         setInputValue(messageText);
         return;
       }
-      await loadData();
-    } catch (error) {
-      logger.error('Failed to send message:', error);
+      onRefresh();
+    } catch (sendError) {
+      logger.error('Failed to send message:', sendError);
       Alert.alert('Send Failed', 'Could not send your message. Please try again.');
       setInputValue(messageText);
     } finally {
       setSending(false);
     }
-  };
+  }, [groupId, inputValue, sending, parentId, parentName, onRefresh]);
 
-  // -------------------------------------------------------------------------
-  // Leave group
-  // -------------------------------------------------------------------------
-
-  const handleLeaveGroup = () => {
+  const handleLeaveGroup = useCallback(() => {
     Alert.alert('Leave Group', 'Are you sure you want to leave this group?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -121,120 +111,91 @@ export default function GroupChatScreen() {
               return;
             }
             router.back();
-          } catch (error) {
-            Alert.alert('Error', String(error));
+          } catch (leaveError) {
+            Alert.alert('Error', String(leaveError));
           }
         },
       },
     ]);
-  };
+  }, [groupId, parentId]);
 
-  // -------------------------------------------------------------------------
-  // Role management
-  // -------------------------------------------------------------------------
-
-  const currentMember = group?.members.find((m) => m.parentId === parentId);
+  const currentMember = group?.members.find((member) => member.parentId === parentId);
   const currentRole = currentMember?.role ?? 'MEMBER';
   const isAdmin = currentRole === 'OWNER' || currentRole === 'ADMIN';
   const assignableRoles = communityGroupService.getAssignableRoles(currentRole);
-
   const roleBreakdown = group ? communityGroupService.getRoleBreakdown(group.members) : null;
 
-  const renderRoleBreakdown = () => {
-    if (!roleBreakdown) return '';
-    const parts: string[] = [];
-    if (roleBreakdown.OWNER > 0) parts.push(`${roleBreakdown.OWNER} Owner`);
-    if (roleBreakdown.ADMIN > 0) parts.push(`${roleBreakdown.ADMIN} Admin${roleBreakdown.ADMIN > 1 ? 's' : ''}`);
-    if (roleBreakdown.MODERATOR > 0) parts.push(`${roleBreakdown.MODERATOR} Mod${roleBreakdown.MODERATOR > 1 ? 's' : ''}`);
-    if (roleBreakdown.MEMBER > 0) parts.push(`${roleBreakdown.MEMBER} Member${roleBreakdown.MEMBER > 1 ? 's' : ''}`);
-    return parts.join(' / ');
-  };
-
-  const handleMemberManage = (member: GroupMember) => {
+  const handleMemberManage = useCallback((member: GroupMember) => {
     if (member.parentId === parentId) return;
     setSelectedMember(member);
     setShowRolePickerModal(true);
-  };
+  }, [parentId]);
 
-  const handleRoleChange = async (newRole: GroupMemberRole) => {
-    if (!selectedMember || !groupId) return;
-    try {
-      const result = await communityService.changeMemberRole({
-        groupId,
-        requesterId: parentId,
-        memberId: selectedMember.parentId,
-        newRole,
-      });
-      if (!result.success) {
-        Alert.alert('Error', result.error.message);
-        return;
+  const handleRoleChange = useCallback(
+    async (newRole: GroupMemberRole) => {
+      if (!selectedMember || !groupId) return;
+      try {
+        const result = await communityService.changeMemberRole({
+          groupId,
+          requesterId: parentId,
+          memberId: selectedMember.parentId,
+          newRole,
+        });
+        if (!result.success) {
+          Alert.alert('Error', result.error.message);
+          return;
+        }
+        setShowRolePickerModal(false);
+        setSelectedMember(null);
+        onRefresh();
+      } catch (changeError) {
+        Alert.alert('Error', String(changeError));
       }
-      setShowRolePickerModal(false);
-      setSelectedMember(null);
-      await loadData();
-    } catch (error) {
-      Alert.alert('Error', String(error));
-    }
-  };
+    },
+    [selectedMember, groupId, parentId, onRefresh]
+  );
 
-  // -------------------------------------------------------------------------
-  // Loading / not-found states
-  // -------------------------------------------------------------------------
-
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.loadingContainer}>
-          <ThemedText style={{ color: palette.muted }}>Loading...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!group) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.loadingContainer}>
-          <ThemedText>Group not found</ThemedText>
-          <Clickable onPress={() => router.back()}>
-            <ThemedText style={{ color: palette.tint }}>Go back</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState message={error?.message || 'Failed to load this group.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
+  if (status === 'empty' || !group) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <EmptyState
+          icon="chatbubble-ellipses-outline"
+          title="Group not found"
+          message="This group could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
-      <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <Clickable style={styles.headerInfo} onPress={() => setShowMembersModal(true)}>
-          <ThemedText type="subtitle" style={styles.headerName}>
-            {group.name}
-          </ThemedText>
-          <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
-            {group.members.length} members{roleBreakdown ? ` \u00B7 ${renderRoleBreakdown()}` : ''}
-          </ThemedText>
-        </Clickable>
-        {group.type === 'SQUAD' ? (
-          <Clickable onPress={() => setShowMembersModal(true)} style={styles.moreButton}>
-            <Ionicons name="information-circle-outline" size={22} color={palette.tint} />
-          </Clickable>
-        ) : (
-          <Clickable onPress={handleLeaveGroup} style={styles.moreButton}>
-            <Ionicons name="exit-outline" size={22} color={palette.error} />
-          </Clickable>
-        )}
-      </Row>
+      <GroupChatHeader
+        colors={palette}
+        group={group}
+        roleBreakdown={roleBreakdown}
+        onBack={() => router.back()}
+        onInfoOrMembersPress={() => setShowMembersModal(true)}
+        onLeavePress={handleLeaveGroup}
+      />
 
-      {/* Chat */}
       <GroupChatSection
         messages={messages}
         parentId={parentId}
@@ -244,7 +205,6 @@ export default function GroupChatScreen() {
         onSend={handleSend}
       />
 
-      {/* Members modal */}
       <GroupMembersModal
         visible={showMembersModal}
         onClose={() => setShowMembersModal(false)}
@@ -255,7 +215,6 @@ export default function GroupChatScreen() {
         onMemberManage={handleMemberManage}
       />
 
-      {/* Role picker modal */}
       <GroupRolePicker
         visible={showRolePickerModal}
         onClose={() => {
@@ -273,37 +232,5 @@ export default function GroupChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-  },
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    gap: Spacing.sm,
-  },
-  backButton: {
-    padding: Spacing.xs,
-    marginLeft: -Spacing.xs,
-  },
-  headerInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  headerName: {
-    ...Typography.heading,
-    fontSize: scaleFont(Typography.heading.fontSize),
-  },
-  headerSubtitle: {
-    ...Typography.caption,
-    fontSize: scaleFont(Typography.caption.fontSize),
-  },
-  moreButton: {
-    padding: Spacing.xs,
   },
 });

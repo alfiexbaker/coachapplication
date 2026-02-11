@@ -3,9 +3,10 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -37,12 +38,12 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
       <SurfaceCard style={styles.section}>
         <Row justify="between" align="center">
           <ThemedText type="subtitle">Certifications</ThemedText>
-          <Pressable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add certification" accessibilityRole="button">
+          <Clickable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add certification" accessibilityRole="button">
             <Row align="center" gap="xs">
               <Ionicons name="add-circle" size={22} color={colors.tint} />
               <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
             </Row>
-          </Pressable>
+          </Clickable>
         </Row>
         <ThemedText style={styles.subtitle}>
           Show parents your coaching licenses, FA badges, and professional qualifications.
@@ -65,12 +66,12 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
                       </ThemedText>
                     </Row>
                     <Row gap="sm">
-                      <Pressable onPress={() => onOpenModal(cert)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Edit certification" accessibilityRole="button">
+                      <Clickable onPress={() => onOpenModal(cert)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Edit certification" accessibilityRole="button">
                         <Ionicons name="pencil" size={16} color={colors.muted} />
-                      </Pressable>
-                      <Pressable onPress={() => onRemove(cert.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Remove certification" accessibilityRole="button">
+                      </Clickable>
+                      <Clickable onPress={() => onRemove(cert.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Remove certification" accessibilityRole="button">
                         <Ionicons name="trash" size={16} color={colors.warning} />
-                      </Pressable>
+                      </Clickable>
                     </Row>
                   </Row>
                   <View style={styles.cardBody}>
@@ -99,13 +100,13 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
       </SurfaceCard>
 
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={onCloseModal}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.text, 0.35) }]}>
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Certification</ThemedText>
-              <Pressable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
+              <Clickable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
                 <Ionicons name="close" size={22} color={colors.foreground} />
-              </Pressable>
+              </Clickable>
             </Row>
             <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
               <View style={styles.fieldGroup}>
@@ -131,9 +132,9 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
                 <TextInput value={draft.credentialUrl || ''} onChangeText={(t) => onDraftChange((p) => ({ ...p, credentialUrl: t }))} placeholder="https://credentials.fa.com/..." keyboardType="url" autoCapitalize="none" placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Credential URL" />
                 <ThemedText style={styles.helper}>Link to your digital badge or certificate verification page</ThemedText>
               </View>
-              <Pressable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save certification" accessibilityRole="button">
+              <Clickable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save certification" accessibilityRole="button">
                 <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save certification</ThemedText>
-              </Pressable>
+              </Clickable>
             </ScrollView>
           </SurfaceCard>
         </View>
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
   emptyCard: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, borderStyle: 'dashed', alignItems: 'center', gap: Spacing.xs },
   emptyText: { textAlign: 'center', opacity: 0.7 },
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: Spacing.lg },
+  modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
   modalCard: { padding: Spacing.lg, gap: Spacing.md },
   modalContent: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },

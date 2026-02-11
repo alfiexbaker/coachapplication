@@ -1,15 +1,3 @@
-/**
- * Favourites Screen
- *
- * Displays the user's favourited coaches with quick re-booking functionality.
- * Features:
- * - List of favourite coaches
- * - Quick book button for each coach
- * - Pull to refresh
- * - Empty state with discover CTA
- * - Optimistic UI updates for favourite toggling
- */
-
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,62 +11,62 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { FavouriteCoachCard } from '@/components/favourites/FavouriteCoachCard';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { FavouriteCoach } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { favouriteService } from '@/services/favourite-service';
 import { scaleFont } from '@/utils/scale';
+import { ok } from '@/types/result';
 
 const logger = createLogger('FavouritesScreen');
 
-/**
- * Favourites screen showing saved coaches with quick re-booking.
- */
 export default function FavouritesScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
 
-  // State
   const [favourites, setFavourites] = useState<FavouriteCoach[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // Get current user ID
   const userId = currentUser?.id ?? 'parent1';
 
-  // Load favourites
   const loadFavourites = useCallback(async () => {
-    const result = await favouriteService.getFavourites(userId);
-    if (result.success) {
-      setFavourites(result.data);
-    } else {
-      logger.error('Failed to load favourites:', result.error);
+    setError(null);
+    try {
+      const result = await favouriteService.getFavourites(userId);
+      if (result.success) {
+        setFavourites(result.data);
+      } else {
+        logger.error('Failed to load favourites:', result.error);
+        setError('Failed to load favourites.');
+      }
+    } catch (loadError) {
+      logger.error('Failed to load favourites:', loadError);
+      setError('Failed to load favourites.');
     }
     setLoading(false);
     setRefreshing(false);
   }, [userId]);
 
-  // Reload on focus
   useFocusEffect(
     useCallback(() => {
       loadFavourites();
     }, [loadFavourites])
   );
 
-  // Pull to refresh
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     loadFavourites();
   }, [loadFavourites]);
 
-  // Handle toggle favourite (remove)
   const handleToggleFavourite = useCallback(
     async (favourite: FavouriteCoach) => {
-      // Optimistic UI update
       setTogglingId(favourite.id);
       setFavourites((prev) => prev.filter((f) => f.id !== favourite.id));
 
@@ -99,13 +87,11 @@ export default function FavouritesScreen() {
     [userId]
   );
 
-  // Handle book coach
   const handleBook = useCallback((coachId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(Routes.bookSessionType(coachId));
   }, []);
 
-  // Navigate to discover coaches
   const handleDiscoverCoaches = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.BOOK_COACH);
@@ -113,7 +99,6 @@ export default function FavouritesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -150,7 +135,6 @@ export default function FavouritesScreen() {
           />
         }
       >
-        {/* Stats Summary */}
         {favourites.length > 0 && (
           <Animated.View entering={FadeInDown.delay(50).springify()}>
             <Row align="center" justify="center" style={[styles.statsRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -167,11 +151,10 @@ export default function FavouritesScreen() {
           </Animated.View>
         )}
 
-        {/* Favourites List */}
         {loading ? (
-          <View style={styles.loadingPlaceholder}>
-            <ThemedText style={{ color: palette.muted }}>Loading favourites...</ThemedText>
-          </View>
+          <LoadingState variant="list" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={handleRefresh} />
         ) : favourites.length === 0 ? (
           <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.emptyContainer}>
             <EmptyState
@@ -239,12 +222,6 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-  },
-  loadingPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
   },
   emptyContainer: {
     flex: 1,

@@ -7,40 +7,68 @@
 
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { eventService } from '@/services/event-service';
 import type { ClubEvent, RSVPStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useEventDetail');
 
-export function useEventDetail(id: string | undefined) {
+export interface UseEventDetailResult {
+  event: ClubEvent | null;
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  showAttendees: boolean;
+  isCoach: boolean;
+  typeColor: string;
+  typeIcon: string;
+  attendeeCounts: { going: number; maybe: number; notGoing: number; totalGuests: number };
+  currentRSVP: ReturnType<typeof eventService.getUserRSVP>;
+  isCreator: boolean;
+  handleRSVP: (status: RSVPStatus, guestCount: number) => Promise<void>;
+  handlePublish: () => void;
+  handleCancel: () => void;
+  toggleAttendees: () => void;
+}
+
+export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
 
-  const [event, setEvent] = useState<ClubEvent | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showAttendees, setShowAttendees] = useState(false);
 
   const loadEvent = useCallback(async () => {
-    if (!id) return;
+    if (!id) return ok<ClubEvent | null>(null);
     try {
       const data = await eventService.getEvent(id);
-      setEvent(data);
-    } catch (error) {
-      logger.error('Failed to load event:', error);
-    } finally {
-      setLoading(false);
+      return ok(data);
+    } catch (loadError) {
+      logger.error('Failed to load event:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load event. Pull down to refresh.', loadError));
     }
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadEvent();
-    }, [loadEvent])
-  );
+  const {
+    data: event,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<ClubEvent | null>({
+    load: loadEvent,
+    deps: [id],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
+  const loading = status === 'loading';
 
   const handleRSVP = useCallback(async (status: RSVPStatus, guestCount: number) => {
     if (!event || !currentUser) return;
@@ -55,12 +83,12 @@ export function useEventDetail(id: string | undefined) {
         guestCount,
         currentUser.avatar
       );
-      await loadEvent();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to RSVP:', error);
       Alert.alert('Error', 'Failed to save your response. Please try again.');
     }
-  }, [event, currentUser, isCoach, loadEvent]);
+  }, [event, currentUser, isCoach, onRefresh]);
 
   const handlePublish = useCallback(async () => {
     if (!event) return;
@@ -73,7 +101,7 @@ export function useEventDetail(id: string | undefined) {
           try {
             await eventService.publishEvent(event.id);
             await eventService.inviteClub(event.id);
-            await loadEvent();
+            onRefresh();
             Alert.alert('Success', 'Event published and members notified!');
           } catch (error) {
             logger.error('Failed to publish:', error);
@@ -82,7 +110,7 @@ export function useEventDetail(id: string | undefined) {
         },
       },
     ]);
-  }, [event, loadEvent]);
+  }, [event, onRefresh]);
 
   const handleCancel = useCallback(async () => {
     if (!event) return;
@@ -95,7 +123,7 @@ export function useEventDetail(id: string | undefined) {
         onPress: async () => {
           try {
             await eventService.cancelEvent(event.id);
-            await loadEvent();
+            onRefresh();
           } catch (error) {
             logger.error('Failed to cancel:', error);
             Alert.alert('Error', 'Failed to cancel event.');
@@ -103,7 +131,7 @@ export function useEventDetail(id: string | undefined) {
         },
       },
     ]);
-  }, [event, loadEvent]);
+  }, [event, onRefresh]);
 
   const toggleAttendees = useCallback(() => {
     setShowAttendees((prev) => !prev);
@@ -118,6 +146,11 @@ export function useEventDetail(id: string | undefined) {
   return {
     event,
     loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     showAttendees,
     isCoach,
     typeColor,

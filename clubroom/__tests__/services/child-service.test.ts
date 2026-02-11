@@ -92,7 +92,7 @@ describe('childService', () => {
 
     test('returns err for unknown child', async () => {
       const result = await childService.updateChild(`unknown_${rid()}`, { firstName: 'X' });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
@@ -144,7 +144,7 @@ describe('childService', () => {
 
     test('addDisability returns err for unknown child', async () => {
       const result = await childService.addDisability(`unknown_${rid()}`, { type: 'X' });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

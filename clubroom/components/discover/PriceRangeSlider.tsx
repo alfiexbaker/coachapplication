@@ -1,10 +1,3 @@
-/**
- * PriceRangeSlider Component
- *
- * A dual-thumb slider for selecting a price range.
- * Shows min/max values and formatted currency display.
- */
-
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -45,7 +38,6 @@ export function PriceRangeSlider({
   const { colors: palette } = useTheme();
   const [sliderWidth, setSliderWidth] = useState(0);
 
-  // Convert value to position
   const valueToPosition = useCallback(
     (value: number) => {
       const range = max - min;
@@ -55,23 +47,19 @@ export function PriceRangeSlider({
     [min, max, sliderWidth]
   );
 
-  // Convert position to value
   const positionToValue = useCallback(
     (position: number) => {
       const range = max - min;
       const rawValue = (position / sliderWidth) * range + min;
-      // Snap to step
       const steppedValue = Math.round(rawValue / step) * step;
       return Math.max(min, Math.min(max, steppedValue));
     },
     [min, max, step, sliderWidth]
   );
 
-  // Shared values for thumb positions
   const minPosition = useSharedValue(valueToPosition(currentMin));
   const maxPosition = useSharedValue(valueToPosition(currentMax));
 
-  // Update positions when props change
   if (sliderWidth > 0) {
     const newMinPos = valueToPosition(currentMin);
     const newMaxPos = valueToPosition(currentMax);
@@ -99,7 +87,6 @@ export function PriceRangeSlider({
     [currentMin, step, onChange]
   );
 
-  // Min thumb gesture
   const minGesture = Gesture.Pan()
     .onUpdate((event) => {
       const newPosition = Math.max(0, Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE));
@@ -107,7 +94,6 @@ export function PriceRangeSlider({
       runOnJS(handleMinChange)(positionToValue(newPosition));
     });
 
-  // Max thumb gesture
   const maxGesture = Gesture.Pan()
     .onUpdate((event) => {
       const newPosition = Math.max(minPosition.value + THUMB_SIZE, Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth));
@@ -115,7 +101,6 @@ export function PriceRangeSlider({
       runOnJS(handleMaxChange)(positionToValue(newPosition));
     });
 
-  // Animated styles
   const minThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: minPosition.value }],
   }));
@@ -142,10 +127,8 @@ export function PriceRangeSlider({
         style={styles.sliderContainer}
         onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width - THUMB_SIZE)}
       >
-        {/* Track background */}
         <View style={[styles.track, { backgroundColor: palette.border }]} />
 
-        {/* Active range */}
         <Animated.View
           style={[
             styles.activeRange,
@@ -154,7 +137,6 @@ export function PriceRangeSlider({
           ]}
         />
 
-        {/* Min thumb */}
         <GestureDetector gesture={minGesture}>
           <Animated.View
             style={[
@@ -162,13 +144,13 @@ export function PriceRangeSlider({
               {
                 backgroundColor: palette.surface,
                 borderColor: palette.tint,
+                shadowColor: palette.text,
               },
               minThumbStyle,
             ]}
           />
         </GestureDetector>
 
-        {/* Max thumb */}
         <GestureDetector gesture={maxGesture}>
           <Animated.View
             style={[
@@ -176,6 +158,7 @@ export function PriceRangeSlider({
               {
                 backgroundColor: palette.surface,
                 borderColor: palette.tint,
+                shadowColor: palette.text,
               },
               maxThumbStyle,
             ]}
@@ -233,7 +216,6 @@ const styles = StyleSheet.create({
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
     borderWidth: 2,
-    shadowColor: '#000000', // Decorative: standard shadow base
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },

@@ -12,6 +12,13 @@ import { calendarService } from '../../services/calendar-service';
 import type { Booking } from '../../constants/app-types';
 import type { CalendarProvider } from '../../constants/types';
 
+let calendarUserIdSeq = 0;
+
+function nextCalendarUserId(prefix: string): string {
+  calendarUserIdSeq += 1;
+  return `${prefix}_${calendarUserIdSeq}`;
+}
+
 // Mock booking data
 const mockBooking: Booking = {
   id: 'booking_123',
@@ -184,7 +191,7 @@ describe('Calendar Service', () => {
 
   describe('updateSyncSettings', () => {
     test('should create new settings for user', async () => {
-      const userId = `test_user_${Date.now()}`;
+      const userId = nextCalendarUserId('test_user');
 
       const result = await calendarService.updateSyncSettings(userId, {
         enabled: true,
@@ -203,7 +210,7 @@ describe('Calendar Service', () => {
     });
 
     test('should update existing settings', async () => {
-      const userId = `test_user_${Date.now()}`;
+      const userId = nextCalendarUserId('test_user');
 
       // Create initial settings
       await calendarService.updateSyncSettings(userId, {
@@ -225,7 +232,7 @@ describe('Calendar Service', () => {
     });
 
     test('should persist settings between calls', async () => {
-      const userId = `persist_test_${Date.now()}`;
+      const userId = nextCalendarUserId('persist_test');
 
       await calendarService.updateSyncSettings(userId, {
         enabled: true,

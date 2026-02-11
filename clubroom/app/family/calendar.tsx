@@ -5,7 +5,7 @@
  * color legend, month stats, and quick actions.
  */
 
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { FamilyCalendar } from '@/components/family/FamilyCalendar';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilyCalendar } from '@/hooks/use-family-calendar';
@@ -26,23 +27,47 @@ import { useFamilyCalendar } from '@/hooks/use-family-calendar';
 export default function FamilyCalendarScreen() {
   const { colors: palette } = useTheme();
   const {
-    loading, members, events, selectedDate, selectedChildId, monthStats,
+    status, error, refreshing, onRefresh, retry, members, events, selectedDate, selectedChildId, monthStats,
     handleDateSelect, handleEventPress, handleChildFilterChange,
   } = useFamilyCalendar();
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>Loading calendar...</ThemedText>
-        </View>
+        <LoadingState variant="calendar" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
+        <ErrorState message={error?.message || 'Failed to load family calendar.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
+        <EmptyState
+          icon="calendar-outline"
+          title="No sessions scheduled"
+          message="Your family calendar will appear here once sessions or events are booked."
+          actionLabel="Book Session"
+          onPressAction={() => router.push(Routes.MORE)}
+        />
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />} gap={Spacing.md}>
+    <PageContainer
+      header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}
+      gap={Spacing.md}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    >
       {/* Month Stats */}
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <Row gap="sm">
@@ -121,7 +146,6 @@ export default function FamilyCalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   statCard: { flex: 1, padding: Spacing.md },
   statIcon: { width: 40, height: 40, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   statText: { gap: Spacing.micro },

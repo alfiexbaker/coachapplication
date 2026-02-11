@@ -1,14 +1,15 @@
 import { memo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { TIME_SLOTS, DURATION_OPTIONS, addMinutesToTime } from './time-proposal-helpers';
 import type { TimeSlot } from '@/constants/types';
+import { styles } from './time-proposal-styles';
 
 // ─── Original Time Card ─────────────────────────────────────────────────────
 
@@ -241,67 +242,4 @@ export const ProposalSummary = memo(function ProposalSummary({
   );
 });
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  originalTimeCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    gap: Spacing.xxs },
-  originalTimeHeader: {},
-  originalTimeLabel: {
-    ...Typography.small },
-  originalTimeValue: {
-    ...Typography.bodySemiBold },
-  locationRow: {
-    marginTop: Spacing.micro },
-  locationText: {
-    ...Typography.small },
-  section: {
-    gap: Spacing.sm },
-  sectionTitle: {
-    marginBottom: Spacing.xxs },
-  dateScrollContent: {
-    gap: Spacing.sm,
-    paddingRight: Spacing.lg },
-  dateChip: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    minWidth: 70 },
-  dateDayName: {
-    ...Typography.small,
-    fontWeight: '600' },
-  dateLabel: {
-    ...Typography.small },
-  timeGrid: {},
-  timeChip: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5 },
-  timeLabel: {
-    ...Typography.small,
-    fontWeight: '500' },
-  durationRow: {},
-  durationChip: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5 },
-  durationLabel: {
-    ...Typography.small,
-    fontWeight: '500' },
-  summaryCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.xs },
-  summaryTitle: {
-    ...Typography.small,
-    fontWeight: '600',
-    marginBottom: Spacing.xxs },
-  summaryRow: {} });
+export { styles };

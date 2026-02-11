@@ -1,17 +1,5 @@
-/**
- * Input Primitive
- *
- * TextInput with label, error state, helper text, and icon slots.
- *
- * Usage:
- *   <Input label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" />
- *   <Input label="Password" secureTextEntry error="Password is required" />
- *   <Input label="Bio" multiline helperText="Max 200 characters" />
- */
-
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -21,39 +9,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Components, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
+import { Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { styles } from './input-styles';
 
 export interface InputProps {
-  /** Field label displayed above the input */
   label?: string;
-  /** Current value */
   value?: string;
-  /** Change handler */
   onChangeText?: (text: string) => void;
-  /** Placeholder text */
   placeholder?: string;
-  /** Error message — triggers error styling when truthy */
   error?: string;
-  /** Helper text displayed below the input */
   helperText?: string;
-  /** Enable multiline mode */
   multiline?: boolean;
-  /** Secure text entry (password fields) */
   secureTextEntry?: boolean;
-  /** Ionicons icon name for left slot */
   leftIcon?: keyof typeof Ionicons.glyphMap;
-  /** Ionicons icon name for right slot */
   rightIcon?: keyof typeof Ionicons.glyphMap;
-  /** Whether the input is disabled */
   disabled?: boolean;
-  /** Additional container style */
   style?: StyleProp<ViewStyle>;
-  /** Additional TextInput props */
   keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: TextInputProps['autoCapitalize'];
   autoCorrect?: TextInputProps['autoCorrect'];
@@ -64,10 +36,6 @@ export interface InputProps {
   onFocus?: TextInputProps['onFocus'];
   testID?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 function InputInner({
   label,
@@ -201,57 +169,3 @@ function InputInner({
 }
 
 export const Input = React.memo(InputInner);
-
-// ---------------------------------------------------------------------------
-// Styles (color-independent)
-// ---------------------------------------------------------------------------
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xxs,
-  },
-  label: {
-    ...Typography.caption,
-    fontWeight: '500',
-    fontFamily: Fonts?.sans,
-  },
-  inputWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  input: {
-    height: Components.input.height,
-    borderRadius: Components.input.borderRadius,
-    paddingHorizontal: Components.input.paddingHorizontal,
-    borderWidth: 1,
-    fontSize: Typography.body.fontSize,
-    lineHeight: Typography.body.lineHeight,
-    fontFamily: Fonts?.sans,
-  },
-  inputWithLeftIcon: {
-    paddingLeft: Components.input.paddingHorizontal + Components.icon.md + Spacing.xs,
-  },
-  inputWithRightIcon: {
-    paddingRight: Components.input.paddingHorizontal + Components.icon.md + Spacing.xs,
-  },
-  multiline: {
-    height: undefined,
-    minHeight: 100,
-    paddingVertical: Spacing.sm,
-    textAlignVertical: 'top',
-  },
-  iconLeft: {
-    position: 'absolute',
-    left: Spacing.sm,
-    zIndex: 1,
-  },
-  iconRight: {
-    position: 'absolute',
-    right: Spacing.sm,
-    zIndex: 1,
-  },
-  helperBase: {
-    ...Typography.caption,
-    fontFamily: Fonts?.sans,
-  },
-});

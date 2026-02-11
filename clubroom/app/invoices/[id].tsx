@@ -13,6 +13,7 @@ import { Row } from '@/components/primitives/row';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { InvoicePreview, DownloadButton } from '@/components/invoices';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,25 +24,32 @@ export default function InvoiceDetailScreen() {
   const { colors: palette } = useTheme();
   const c = useInvoiceDetail();
 
-  if (c.loading) {
+  if (c.status === 'loading') {
     return (
       <PageContainer header={<PageHeader title="Invoice" showBack />}>
-        <View style={styles.centered}><ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>Loading invoice...</ThemedText></View>
+        <LoadingState variant="detail" />
       </PageContainer>
     );
   }
 
-  if (!c.invoice) {
+  if (c.status === 'error') {
     return (
       <PageContainer header={<PageHeader title="Invoice" showBack />}>
-        <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>Invoice not found</ThemedText>
-          <Clickable style={[styles.backButton, { backgroundColor: palette.tint }]} onPress={c.goBack}>
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState message={c.error?.message || 'Failed to load invoice details.'} onRetry={c.retry} />
+      </PageContainer>
+    );
+  }
+
+  if (c.status === 'empty' || !c.invoice) {
+    return (
+      <PageContainer header={<PageHeader title="Invoice" showBack />}>
+        <EmptyState
+          icon="receipt-outline"
+          title="Invoice not found"
+          message="This invoice may have been removed or is no longer available."
+          actionLabel="Go Back"
+          onPressAction={c.goBack}
+        />
       </PageContainer>
     );
   }
@@ -114,9 +122,6 @@ export default function InvoiceDetailScreen() {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
-  loadingText: { ...Typography.bodySmall },
-  errorText: { ...Typography.subheading },
-  backButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, marginTop: Spacing.sm },
   actionBar: { padding: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
   actionButtons: {},
   actionButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md },

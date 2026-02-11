@@ -24,6 +24,7 @@ export function ClusterMarker({ count, onPress }: ClusterMarkerProps) {
         styles.cluster,
         {
           backgroundColor: palette.tint,
+          shadowColor: palette.text,
         },
       ]}
     >
@@ -43,7 +44,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

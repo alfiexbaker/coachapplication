@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography , withAlpha, Shadows } from '@/constants/theme';
@@ -23,7 +24,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedClickable = Animated.createAnimatedComponent(Clickable);
 
 interface AnnotationMarkerProps {
   annotation: VideoAnnotation;
@@ -118,7 +119,7 @@ export function AnnotationMarker({
       )}
 
       {/* Marker */}
-      <AnimatedPressable
+      <AnimatedClickable
         onPress={onPress}
         onLongPress={onLongPress}
         onPressIn={handlePressIn}
@@ -136,7 +137,7 @@ export function AnnotationMarker({
             ...Shadows[scheme].subtle,
           },
         ]}
-      >
+        >
         {size === 'large' && (
           <Ionicons
             name={typeConfig.icon as keyof typeof Ionicons.glyphMap}
@@ -144,7 +145,7 @@ export function AnnotationMarker({
             color={palette.onPrimary}
           />
         )}
-      </AnimatedPressable>
+      </AnimatedClickable>
 
       {/* Active indicator line */}
       {isActive && (
@@ -167,12 +168,14 @@ export function CompactAnnotationMarker({ type, onPress }: CompactMarkerProps) {
   const typeConfig = ANNOTATION_TYPE_CONFIG[type];
 
   return (
-    <Pressable
+    <Clickable
       onPress={onPress}
       style={[styles.compactMarker, { backgroundColor: typeConfig.color }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${type} annotation`}
     >
       <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color={palette.onPrimary} />
-    </Pressable>
+    </Clickable>
   );
 }
 

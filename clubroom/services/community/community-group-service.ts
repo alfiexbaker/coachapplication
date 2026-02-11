@@ -25,6 +25,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
+import { accountIdsMatch } from '@/utils/account-id';
 
 const logger = createLogger('CommunityGroupService');
 
@@ -198,7 +199,7 @@ class CommunityGroupService {
       if (!allGroupsResult.success) return allGroupsResult;
 
       const filtered = allGroupsResult.data.filter((group) =>
-        group.members.some((member) => member.parentId === parentId)
+        group.members.some((member) => accountIdsMatch(member.parentId, parentId))
       );
 
       logger.info('parent_groups_retrieved', { parentId, count: filtered.length });
@@ -329,7 +330,7 @@ class CommunityGroupService {
     const group = allGroups[groupIndex];
 
     // Check if already a member
-    if (group.members.some((m) => m.parentId === parentId)) {
+    if (group.members.some((m) => accountIdsMatch(m.parentId, parentId))) {
       return err(conflictError('Already a member of this group'));
     }
 
@@ -388,7 +389,7 @@ class CommunityGroupService {
     }
 
     const group = allGroups[groupIndex];
-    const memberIndex = group.members.findIndex((m) => m.parentId === parentId);
+    const memberIndex = group.members.findIndex((m) => accountIdsMatch(m.parentId, parentId));
 
     if (memberIndex === -1) {
       return err(notFound('Member', parentId));
@@ -433,13 +434,13 @@ class CommunityGroupService {
     const group = groupResult.data;
 
     // Check if inviter has admin privileges
-    const inviter = group.members.find((m) => m.parentId === inviterId);
+    const inviter = group.members.find((m) => accountIdsMatch(m.parentId, inviterId));
     if (!inviter || !isAdminRole(inviter.role)) {
       return err(unauthorized('Only group admins can invite members'));
     }
 
     // Check if already a member
-    if (group.members.some((m) => m.parentId === inviteeId)) {
+    if (group.members.some((m) => accountIdsMatch(m.parentId, inviteeId))) {
       return err(conflictError('User is already a member'));
     }
 
@@ -489,7 +490,7 @@ class CommunityGroupService {
   async getGroupInvites(userId: string): Promise<Result<GroupInvite[], ServiceError>> {
     try {
       const allInvites = await apiClient.get<GroupInvite[]>(STORAGE_KEYS.GROUP_INVITES, []);
-      const filtered = allInvites.filter((i) => i.inviteeId === userId);
+      const filtered = allInvites.filter((i) => accountIdsMatch(i.inviteeId, userId));
 
       logger.info('group_invites_retrieved', { userId, count: filtered.length });
       return ok(filtered);
@@ -618,16 +619,16 @@ class CommunityGroupService {
 
     const group = groupResult.data;
 
-    const requester = group.members.find((m) => m.parentId === requesterId);
+    const requester = group.members.find((m) => accountIdsMatch(m.parentId, requesterId));
     if (!requester || !isAdminRole(requester.role)) {
       return err(unauthorized('Only group owners and admins can change member roles'));
     }
 
-    if (requesterId === memberId) {
+    if (accountIdsMatch(requesterId, memberId)) {
       return err(validationError('Cannot change your own role'));
     }
 
-    const member = group.members.find((m) => m.parentId === memberId);
+    const member = group.members.find((m) => accountIdsMatch(m.parentId, memberId));
     if (!member) {
       return err(notFound('Member', memberId));
     }
@@ -760,7 +761,7 @@ class CommunityGroupService {
     }
 
     // Already a member — no-op success
-    if (group.members.some((m) => m.parentId === parentId)) {
+    if (group.members.some((m) => accountIdsMatch(m.parentId, parentId))) {
       return ok(group);
     }
 
@@ -804,7 +805,7 @@ class CommunityGroupService {
       return err(notFound('Group', groupId));
     }
 
-    const memberIndex = group.members.findIndex((m) => m.parentId === parentId);
+    const memberIndex = group.members.findIndex((m) => accountIdsMatch(m.parentId, parentId));
     if (memberIndex === -1) {
       // Not a member — no-op success
       return ok(undefined);

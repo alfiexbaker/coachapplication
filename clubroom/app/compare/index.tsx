@@ -16,6 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -26,11 +27,27 @@ export default function CompareScreen() {
 
   const [coachCount, setCoachCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCount = async () => {
-      const countResult = await comparisonService.getComparisonCount();
-      setCoachCount(countResult.success ? countResult.data : 0);
+      setLoading(true);
+      setError(null);
+      try {
+        const countResult = await comparisonService.getComparisonCount();
+        if (!countResult.success) {
+          setError('Failed to load compared coaches.');
+          setCoachCount(0);
+          return;
+        }
+        setCoachCount(countResult.data);
+      } catch {
+        setError('Failed to load compared coaches.');
+        setCoachCount(0);
+      } finally {
+        setLoading(false);
+      }
     };
     void loadCount();
   }, [refreshKey]);
@@ -79,6 +96,12 @@ export default function CompareScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['bottom']}
       >
+        {loading ? (
+          <LoadingState variant="detail" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => setRefreshKey((k) => k + 1)} />
+        ) : (
+          <>
         {/* Status bar */}
         <Row style={[styles.statusBar, { borderBottomColor: palette.border }]}>
           <Row style={styles.statusInfo}>
@@ -142,6 +165,8 @@ export default function CompareScreen() {
               </Row>
             </Clickable>
           </View>
+        )}
+          </>
         )}
       </SafeAreaView>
     </>

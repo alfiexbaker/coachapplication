@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
@@ -95,12 +96,12 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                     style={[styles.input, { color: palette.foreground }]}
                   />
                   {hasValue && (
-                    <Pressable
+                    <Clickable
                       onPress={() => clearField(platform)}
                       style={styles.clearButton}
                       hitSlop={8}>
                       <Ionicons name="close-circle" size={18} color={palette.muted} />
-                    </Pressable>
+                    </Clickable>
                   )}
                 </Row>
               </View>

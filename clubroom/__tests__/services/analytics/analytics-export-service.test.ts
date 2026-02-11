@@ -4,6 +4,12 @@ import assert from 'node:assert/strict';
 import { analyticsExportService } from '@/services/analytics/analytics-export-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { Result, ServiceError } from '@/types/result';
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
 
 describe('AnalyticsExportService', () => {
   beforeEach(async () => {
@@ -13,7 +19,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getCoachAnalytics', () => {
     it('should return analytics for known coach', async () => {
-      const analytics = await analyticsExportService.getCoachAnalytics('coach1', 'MONTH');
+      const analytics = expectOk(await analyticsExportService.getCoachAnalytics('coach1', 'MONTH'));
 
       assert.ok(analytics);
       assert.equal(analytics.coachId, 'coach1');
@@ -25,7 +31,7 @@ describe('AnalyticsExportService', () => {
 
     it('should return default analytics for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const analytics = await analyticsExportService.getCoachAnalytics(coachId, 'WEEK');
+      const analytics = expectOk(await analyticsExportService.getCoachAnalytics(coachId, 'WEEK'));
 
       assert.ok(analytics);
       assert.equal(analytics.coachId, coachId);
@@ -34,8 +40,8 @@ describe('AnalyticsExportService', () => {
     });
 
     it('should update period and date range dynamically', async () => {
-      const week = await analyticsExportService.getCoachAnalytics('coach1', 'WEEK');
-      const month = await analyticsExportService.getCoachAnalytics('coach1', 'MONTH');
+      const week = expectOk(await analyticsExportService.getCoachAnalytics('coach1', 'WEEK'));
+      const month = expectOk(await analyticsExportService.getCoachAnalytics('coach1', 'MONTH'));
 
       assert.ok(week);
       assert.ok(month);
@@ -45,8 +51,8 @@ describe('AnalyticsExportService', () => {
     });
 
     it('should regenerate revenue chart for different periods', async () => {
-      const weekAnalytics = await analyticsExportService.getCoachAnalytics('coach1', 'WEEK');
-      const yearAnalytics = await analyticsExportService.getCoachAnalytics('coach1', 'YEAR');
+      const weekAnalytics = expectOk(await analyticsExportService.getCoachAnalytics('coach1', 'WEEK'));
+      const yearAnalytics = expectOk(await analyticsExportService.getCoachAnalytics('coach1', 'YEAR'));
 
       assert.ok(weekAnalytics);
       assert.ok(yearAnalytics);
@@ -56,7 +62,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getRevenueChart', () => {
     it('should return revenue data points', async () => {
-      const chart = await analyticsExportService.getRevenueChart('coach1', 'MONTH');
+      const chart = expectOk(await analyticsExportService.getRevenueChart('coach1', 'MONTH'));
 
       assert.ok(Array.isArray(chart));
       assert.ok(chart.length > 0);
@@ -67,15 +73,15 @@ describe('AnalyticsExportService', () => {
 
     it('should return mock data for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const chart = await analyticsExportService.getRevenueChart(coachId, 'WEEK');
+      const chart = expectOk(await analyticsExportService.getRevenueChart(coachId, 'WEEK'));
 
       assert.ok(Array.isArray(chart));
       assert.ok(chart.length > 0);
     });
 
     it('should vary data points by period', async () => {
-      const weekChart = await analyticsExportService.getRevenueChart('coach1', 'WEEK');
-      const yearChart = await analyticsExportService.getRevenueChart('coach1', 'YEAR');
+      const weekChart = expectOk(await analyticsExportService.getRevenueChart('coach1', 'WEEK'));
+      const yearChart = expectOk(await analyticsExportService.getRevenueChart('coach1', 'YEAR'));
 
       assert.ok(weekChart.length < yearChart.length);
     });
@@ -83,7 +89,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getRetentionMetrics', () => {
     it('should return retention data for known coach', async () => {
-      const retention = await analyticsExportService.getRetentionMetrics('coach1');
+      const retention = expectOk(await analyticsExportService.getRetentionMetrics('coach1'));
 
       assert.ok(retention);
       assert.ok(typeof retention.newClients === 'number');
@@ -94,7 +100,7 @@ describe('AnalyticsExportService', () => {
 
     it('should return default retention for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const retention = await analyticsExportService.getRetentionMetrics(coachId);
+      const retention = expectOk(await analyticsExportService.getRetentionMetrics(coachId));
 
       assert.ok(retention);
       assert.equal(retention.newClients, 0);
@@ -104,7 +110,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getCancellationPatterns', () => {
     it('should return cancellation stats for known coach', async () => {
-      const stats = await analyticsExportService.getCancellationPatterns('coach1');
+      const stats = expectOk(await analyticsExportService.getCancellationPatterns('coach1'));
 
       assert.ok(stats);
       assert.ok(typeof stats.totalCancellations === 'number');
@@ -115,7 +121,7 @@ describe('AnalyticsExportService', () => {
 
     it('should return empty stats for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const stats = await analyticsExportService.getCancellationPatterns(coachId);
+      const stats = expectOk(await analyticsExportService.getCancellationPatterns(coachId));
 
       assert.ok(stats);
       assert.equal(stats.totalCancellations, 0);
@@ -125,7 +131,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getPeakHours', () => {
     it('should return peak hours heatmap data', async () => {
-      const peakHours = await analyticsExportService.getPeakHours('coach1');
+      const peakHours = expectOk(await analyticsExportService.getPeakHours('coach1'));
 
       assert.ok(Array.isArray(peakHours));
       assert.ok(peakHours.length > 0);
@@ -137,7 +143,7 @@ describe('AnalyticsExportService', () => {
 
     it('should return generated peak hours for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const peakHours = await analyticsExportService.getPeakHours(coachId);
+      const peakHours = expectOk(await analyticsExportService.getPeakHours(coachId));
 
       assert.ok(Array.isArray(peakHours));
       assert.ok(peakHours.length > 0);
@@ -146,7 +152,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getTopSkills', () => {
     it('should return top skills for known coach', async () => {
-      const skills = await analyticsExportService.getTopSkills('coach1');
+      const skills = expectOk(await analyticsExportService.getTopSkills('coach1'));
 
       assert.ok(Array.isArray(skills));
       assert.ok(skills.length > 0);
@@ -158,13 +164,13 @@ describe('AnalyticsExportService', () => {
 
     it('should return empty array for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const skills = await analyticsExportService.getTopSkills(coachId);
+      const skills = expectOk(await analyticsExportService.getTopSkills(coachId));
 
       assert.ok(Array.isArray(skills));
     });
 
     it('should sort skills by session count descending', async () => {
-      const skills = await analyticsExportService.getTopSkills('coach1');
+      const skills = expectOk(await analyticsExportService.getTopSkills('coach1'));
 
       if (skills.length > 1) {
         assert.ok(skills[0].sessionCount >= skills[1].sessionCount);
@@ -174,7 +180,7 @@ describe('AnalyticsExportService', () => {
 
   describe('getSessionStats', () => {
     it('should return session statistics for known coach', async () => {
-      const stats = await analyticsExportService.getSessionStats('coach1');
+      const stats = expectOk(await analyticsExportService.getSessionStats('coach1'));
 
       assert.ok(stats);
       assert.ok(typeof stats.totalSessions === 'number');
@@ -184,7 +190,7 @@ describe('AnalyticsExportService', () => {
 
     it('should return default stats for unknown coach', async () => {
       const coachId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const stats = await analyticsExportService.getSessionStats(coachId);
+      const stats = expectOk(await analyticsExportService.getSessionStats(coachId));
 
       assert.ok(stats);
       assert.equal(stats.totalSessions, 0);
@@ -195,7 +201,7 @@ describe('AnalyticsExportService', () => {
     it('should reset analytics to mock data', async () => {
       await analyticsExportService.resetToMockData();
 
-      const analytics = await analyticsExportService.getCoachAnalytics('coach1', 'MONTH');
+      const analytics = expectOk(await analyticsExportService.getCoachAnalytics('coach1', 'MONTH'));
       assert.ok(analytics);
       assert.equal(analytics.coachId, 'coach1');
     });

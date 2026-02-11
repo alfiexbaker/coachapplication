@@ -15,7 +15,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { PromoCodeInput } from '@/components/promo';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useWalletPromo, formatTimeAgo } from '@/hooks/use-wallet-promo';
@@ -100,10 +100,18 @@ export default function PromoCodeScreen() {
     </>
   );
 
-  if (c.loading) {
+  if (c.status === 'loading') {
     return (
       <PageContainer header={<PageHeader title="Promo Codes" subtitle="Redeem codes for credits" showBack />}>
         <LoadingState variant="list" />
+      </PageContainer>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <PageContainer header={<PageHeader title="Promo Codes" subtitle="Redeem codes for credits" showBack />}>
+        <ErrorState message={c.error?.message || 'Failed to load promo code data.'} onRetry={c.retry} />
       </PageContainer>
     );
   }

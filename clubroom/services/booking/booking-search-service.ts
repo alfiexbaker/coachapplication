@@ -11,6 +11,7 @@
 
 import { Booking } from '@/constants/app-types';
 import { createLogger } from '@/utils/logger';
+import { accountIdsMatch } from '@/utils/account-id';
 import { bookingCrudService } from './booking-crud-service';
 
 const logger = createLogger('BookingSearchService');
@@ -26,11 +27,11 @@ export const bookingSearchService = {
 
       switch (role) {
         case 'coach':
-          return bookings.filter((b) => b.coachId === userId);
+          return bookings.filter((b) => accountIdsMatch(b.coachId, userId));
         case 'parent':
-          return bookings.filter((b) => b.bookedById === userId);
+          return bookings.filter((b) => accountIdsMatch(b.bookedById ?? '', userId));
         case 'athlete':
-          return bookings.filter((b) => b.athleteId === userId);
+          return bookings.filter((b) => accountIdsMatch(b.athleteId ?? '', userId));
         default:
           return [];
       }
@@ -49,7 +50,7 @@ export const bookingSearchService = {
     const now = new Date();
 
     return bookings.filter((b) => {
-      if (b.coachId !== coachId) return false;
+      if (!accountIdsMatch(b.coachId, coachId)) return false;
       if (b.status === 'AWAITING_COMPLETION') return true;
 
       // Auto-transition confirmed sessions that have passed
@@ -69,7 +70,7 @@ export const bookingSearchService = {
     const bookings = await bookingCrudService.list();
     const now = new Date();
     return bookings.filter((b) => {
-      if (b.coachId !== coachId) return false;
+      if (!accountIdsMatch(b.coachId, coachId)) return false;
       if (b.status !== 'CONFIRMED' && b.status !== 'PENDING') return false;
       return new Date(b.scheduledAt) > now;
     });

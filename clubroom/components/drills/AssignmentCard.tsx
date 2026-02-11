@@ -44,13 +44,13 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
           <View style={styles.thumbnailContainer}>
             <Image source={{ uri: drill.thumbnailUrl }} style={styles.thumbnail} />
             {assignment.isCompleted && (
-              <View style={styles.completedOverlay}>
+              <View style={[styles.completedOverlay, { backgroundColor: withAlpha(palette.success, 0.6) }]}>
                 <Ionicons name="checkmark-circle" size={48} color={palette.onPrimary} />
               </View>
             )}
             {hasVideo && !assignment.isCompleted && (
-              <View style={styles.playOverlay}>
-                <View style={styles.playButton}>
+              <View style={[styles.playOverlay, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
+                <View style={[styles.playButton, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
                   <Ionicons name="play" size={20} color={palette.onPrimary} />
                 </View>
               </View>
@@ -146,9 +146,9 @@ const styles = StyleSheet.create({
   cardContent: {},
   thumbnailContainer: { position: 'relative', width: '100%', height: 140 },
   thumbnail: { width: '100%', height: '100%' },
-  completedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16, 185, 129, 0.6)', alignItems: 'center', justifyContent: 'center' },
-  playOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.3)', alignItems: 'center', justifyContent: 'center' },
-  playButton: { width: 44, height: 44, borderRadius: Radii.xl, backgroundColor: 'rgba(0, 0, 0, 0.6)', alignItems: 'center', justifyContent: 'center' },
+  completedOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  playOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  playButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Components.card.padding, gap: Spacing.xs },
   header: { alignItems: 'center', gap: Spacing.xs },
   categoryBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },

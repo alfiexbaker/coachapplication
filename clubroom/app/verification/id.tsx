@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useIdVerification, ID_TYPES } from '@/hooks/use-id-verification';
@@ -16,12 +16,12 @@ import { useIdVerification, ID_TYPES } from '@/hooks/use-id-verification';
 export default function IdUploadScreen() {
   const { colors } = useTheme();
   const {
-    status, loading, submitting, selectedType, uploaded,
+    status, screenStatus, error, refreshing, onRefresh, retry, submitting, selectedType, uploaded,
     isVerified, isPending,
     setSelectedType, setUploaded, handleUpload, handleSubmit, handleMockApprove,
   } = useIdVerification();
 
-  if (loading) {
+  if (screenStatus === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
         <LoadingState variant="detail" />
@@ -29,9 +29,34 @@ export default function IdUploadScreen() {
     );
   }
 
+  if (screenStatus === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load ID verification status.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (screenStatus === 'empty' || !status) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState
+          icon="card-outline"
+          title="Verification unavailable"
+          message="ID verification data is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <Row align="center" gap="sm" style={styles.header}>
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />

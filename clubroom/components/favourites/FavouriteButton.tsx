@@ -10,7 +10,7 @@
  */
 
 import React, { useCallback, useEffect } from 'react';
-import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -22,10 +22,11 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedClickable = Animated.createAnimatedComponent(Clickable);
 
 export interface FavouriteButtonProps {
   /** Whether the coach is currently favourited */
@@ -120,7 +121,7 @@ export function FavouriteButton({
     : 'Add to favourites';
 
   return (
-    <AnimatedPressable
+    <AnimatedClickable
       onPress={handlePress}
       disabled={loading || disabled}
       accessibilityLabel={accessibilityLabel}
@@ -141,7 +142,7 @@ export function FavouriteButton({
           />
         </Animated.Text>
       </Animated.View>
-    </AnimatedPressable>
+    </AnimatedClickable>
   );
 }
 

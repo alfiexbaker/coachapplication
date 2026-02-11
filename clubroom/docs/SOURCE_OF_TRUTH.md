@@ -1,6 +1,6 @@
 # Clubroom — Single Source of Truth
 
-**Last Updated**: 2026-02-08
+**Last Updated**: 2026-02-11
 **Project**: Clubroom (football-first coaching marketplace + community)
 **Status**: Frontend MVP with persisted storage (AsyncStorage via apiClient), mock data layer, backend/API planned
 
@@ -20,14 +20,14 @@ Clubroom connects players, parents, coaches, and clubs around football training.
 
 ---
 
-## Current Phase: UI Quality Sprint
+## Current Phase: Quality Hardening + Feature Execution
 
-Architecture refactoring is complete (95/100). The app has 151 user stories built with a solid service layer. Current focus is:
+Architecture refactoring is complete (95/100). The app has 155 user stories built with a solid service layer. Current focus is:
 
-1. **Screen decomposition** — 132/185 screens exceed 300 lines, need sub-component extraction
-2. **Test coverage** — 27/123 services tested, shipping blind on regressions
-3. **Visual states** — Only 10/185 screens have proper error states
-4. **Hex color cleanup** — ~162 hardcoded hex colors need migration to `withAlpha()`
+1. **Component decomposition** — 61/924 components exceed 250 lines
+2. **Test depth** — 92 service-related test files for 126 service TypeScript files; integration/E2E still missing
+3. **Screen consistency** — 4/189 screens exceed 300 lines; `use-screen` adoption is 76/189 route files
+4. **Hex and semantic color cleanup** — 359 raw hex literals remain across `app/`, `components/`, `hooks/`, `services/`, and `constants/`
 
 ### Key Decisions In Force
 1. **Football-only** for now; multi-sport later
@@ -67,12 +67,12 @@ See `SPINE_CATEGORIES.md` for detailed guidance on applying these.
 ## Tech Stack
 
 - **Expo 54 / React Native 0.81 / React 19 / TypeScript 5.9**
-- Routing: Expo Router 6 (file-based, ~185 routes)
+- Routing: Expo Router 6 (file-based, 189 route files)
 - Design system: Custom tokens in `constants/theme.ts` — 14 UI primitives + 4 layout primitives
-- Services: 7 split modules + 43 single-file services, all extending `BaseService`
+- Services: 126 TypeScript files across 12 domain modules + core service files, centered on `BaseService`
 - Storage: `apiClient` wraps AsyncStorage — single data access layer
-- Events: `event-bus.ts` — 51 typed events with typed payloads
-- Tests: Node.js built-in test runner (`node --test`), NOT Jest
+- Events: `event-bus.ts` — 75 typed service events with typed payloads
+- Tests: Node.js built-in test runner (`node --test`) with 128 test files in `__tests__/`
 
 ---
 
@@ -81,12 +81,12 @@ See `SPINE_CATEGORIES.md` for detailed guidance on applying these.
 | Layer | Score | Status |
 |-------|-------|--------|
 | Service layer | 95/100 | Result<T>, event bus, base service, zero `any` |
-| Design tokens | 85/100 | TouchableOpacity: 0, Colors.light: ~3, Shadows.light: 0 |
-| Navigation | 98/100 | 185 routes, Routes.* constants, zero dead routes |
-| Screen layer | 42/100 | 132 screens >300 lines, 10 have error states |
-| Component layer | 50/100 | 195 components >250 lines |
-| Test coverage | 22/100 | 27/123 services tested |
-| **Overall** | **58/100** | Target: 95/100 by July 2026 |
+| Design tokens | 90/100 | TouchableOpacity: 0, Colors.light: 3, Shadows.light: 0 |
+| Navigation | 98/100 | 189 route files, Routes.* constants, zero dead routes |
+| Screen layer | 88/100 | 4 screens >300 lines, 76 screens on `use-screen` pattern |
+| Component layer | 72/100 | 61 components >250 lines |
+| Test coverage | 74/100 | 92 service-related tests across 126 service TS files, no E2E yet |
+| **Overall** | **74/100** | Target: 95/100 by July 2026 |
 
 ---
 
@@ -94,16 +94,16 @@ See `SPINE_CATEGORIES.md` for detailed guidance on applying these.
 
 | Doc | Purpose |
 |-----|---------|
-| `CLAUDE.md` (project root) | 9-agent pipeline, architecture rules, design tokens, key files |
-| `clubroom/docs/ROADMAP.md` | 5-month UI & product roadmap (March-July 2026) |
-| `clubroom/docs/USER-STORIES.md` | Feature map — 151 built, 100 to build, 24 to enhance |
-| `clubroom/docs/SPINE_CATEGORIES.md` | 4 product spines with application guidance |
-| `clubroom/docs/Sprints/INDEX.md` | Sprint index — CompletedSprints/, Todo/, Evaluation/ |
+| `README.md` (project root) | Setup, scripts, and high-level project orientation |
+| `docs/ROADMAP.md` | 5-month UI & product roadmap (March-July 2026) |
+| `docs/USER-STORIES.md` | Feature map — 155 built, 96 to build, 24 to enhance |
+| `docs/SPINE_CATEGORIES.md` | 4 product spines with application guidance |
+| `docs/sprints/INDEX.md` | Sprint index — CompletedSprints/, Foundation/, Reference/ |
 | `constants/theme.ts` | Design tokens — Colors, Typography, Spacing, Radii, Shadows |
 | `services/api-client.ts` | Single data access layer |
-| `services/event-bus.ts` | 51 typed events |
+| `services/event-bus.ts` | 75 typed service events |
 | `hooks/use-screen.ts` | Screen state machine (loading/error/empty/success) |
 
 ---
 
-*This document is the product vision anchor. For implementation details, see CLAUDE.md. For sprint planning, see ROADMAP.md.*
+*This document is the product vision anchor. For implementation details, see README.md and sprint docs. For execution planning, see ROADMAP.md.*

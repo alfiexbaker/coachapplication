@@ -2,9 +2,10 @@
  * CreatePackageForm — Sub-components.
  */
 import { memo } from 'react';
-import { View, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -23,10 +24,16 @@ export const OptionPicker = memo(function OptionPicker<T extends string | number
   return (
     <Row wrap gap="xs">
       {options.map((opt) => (
-        <Pressable key={String(opt.value)} onPress={() => onSelect(opt.value)}
-          style={[styles.optionButton, { backgroundColor: selected === opt.value ? palette.tint : palette.surface, borderColor: selected === opt.value ? palette.tint : palette.border }]}>
+        <Clickable
+          key={String(opt.value)}
+          onPress={() => onSelect(opt.value)}
+          style={[styles.optionButton, { backgroundColor: selected === opt.value ? palette.tint : palette.surface, borderColor: selected === opt.value ? palette.tint : palette.border }]}
+          accessibilityRole="button"
+          accessibilityLabel={opt.label}
+          accessibilityState={{ selected: selected === opt.value }}
+        >
           <ThemedText style={[styles.optionText, { color: selected === opt.value ? palette.onPrimary : palette.text }]}>{opt.label}</ThemedText>
-        </Pressable>
+        </Clickable>
       ))}
     </Row>
   );
@@ -41,11 +48,17 @@ export const FocusAreaPicker = memo(function FocusAreaPicker({ options, selected
       {options.map((focus) => {
         const isSelected = selected.includes(focus);
         return (
-          <Pressable key={focus} onPress={() => onToggle(focus)}
-            style={[styles.focusChip, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
+          <Clickable
+            key={focus}
+            onPress={() => onToggle(focus)}
+            style={[styles.focusChip, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}
+            accessibilityRole="button"
+            accessibilityLabel={focus}
+            accessibilityState={{ selected: isSelected }}
+          >
             {isSelected && <Ionicons name="checkmark" size={14} color={palette.tint} />}
             <ThemedText style={[styles.focusChipText, { color: isSelected ? palette.tint : palette.text }]}>{focus}</ThemedText>
-          </Pressable>
+          </Clickable>
         );
       })}
     </Row>
@@ -76,11 +89,11 @@ export const PackageFormFooter = memo(function PackageFormFooter({ onCancel, onS
   return (
     <Row gap="sm" style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
       {onCancel && (
-        <Pressable style={[styles.cancelButton, { borderColor: palette.border }]} onPress={onCancel} disabled={submitting}>
+        <Clickable style={[styles.cancelButton, { borderColor: palette.border }]} onPress={onCancel} disabled={submitting} accessibilityRole="button" accessibilityLabel="Cancel package form" accessibilityState={{ disabled: submitting }}>
           <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-        </Pressable>
+        </Clickable>
       )}
-      <Pressable style={[styles.submitButton, { backgroundColor: palette.tint }, submitting ? styles.buttonDisabled : undefined]} onPress={onSubmit} disabled={submitting}>
+      <Clickable style={[styles.submitButton, { backgroundColor: palette.tint }, submitting ? styles.buttonDisabled : undefined]} onPress={onSubmit} disabled={submitting} accessibilityRole="button" accessibilityLabel={isEditing ? 'Save package changes' : 'Create package'} accessibilityState={{ disabled: submitting }}>
         {submitting ? (
           <ActivityIndicator size="small" color={palette.onPrimary} />
         ) : (
@@ -89,7 +102,7 @@ export const PackageFormFooter = memo(function PackageFormFooter({ onCancel, onS
             <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>{isEditing ? 'Save Changes' : 'Create Package'}</ThemedText>
           </>
         )}
-      </Pressable>
+      </Clickable>
     </Row>
   );
 });

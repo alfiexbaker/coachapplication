@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
@@ -26,7 +27,7 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
         {objectives.map((objective) => {
           const isSelected = selectedObjectives.includes(objective);
           return (
-            <Pressable
+            <Clickable
               key={objective}
               onPress={() => onToggle(objective)}
               style={[
@@ -36,6 +37,9 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
                   borderColor: isSelected ? palette.tint : palette.border,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={objective}
+              accessibilityState={{ selected: isSelected }}
             >
               <Row align="center" gap="xs">
                 <Ionicons
@@ -47,7 +51,7 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
                   {objective}
                 </ThemedText>
               </Row>
-            </Pressable>
+            </Clickable>
           );
         })}
       </Row>

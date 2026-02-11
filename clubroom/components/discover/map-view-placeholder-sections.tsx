@@ -1,27 +1,12 @@
-/**
- * Extracted sub-components for MapViewPlaceholder.
- *
- * MOCK_MAP_COACHES — default mock data.
- * MapGridLines — simulated road grid (horizontal + vertical + diagonal).
- * MapParks — green park patches.
- * UserLocationDot — pulsing blue user location marker.
- * MapOverlayButtons — search area + GPS buttons.
- * MapInfoNote — bottom info bar.
- */
-
 import React, { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
-
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, Components, withAlpha, Shadows } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
 import { Row } from '@/components/primitives';
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
 export const MOCK_MAP_COACHES: MapCoach[] = [
   { id: 'm1', fullName: 'James Whitfield', pricePerHour: 35, lat: 51.515, lng: -0.09, rating: 4.9, distanceMiles: 1.2 },
   { id: 'm2', fullName: 'Priya Sharma', pricePerHour: 40, lat: 51.525, lng: -0.12, rating: 4.8, distanceMiles: 2.4 },
@@ -30,13 +15,9 @@ export const MOCK_MAP_COACHES: MapCoach[] = [
   { id: 'm5', fullName: 'Marcus Rivera', pricePerHour: 25, lat: 51.510, lng: -0.15, rating: 4.6, distanceMiles: 4.5 },
   { id: 'm6', fullName: 'Sarah Mitchell', pricePerHour: 50, lat: 51.520, lng: -0.10, rating: 4.9, distanceMiles: 1.0, saved: true },
 ];
-
-// ─── MapGridLines ─────────────────────────────────────────────────────────────
-
 interface MapGridLinesProps {
   palette: ThemeColors;
 }
-
 export const MapGridLines = memo(function MapGridLines({ palette }: MapGridLinesProps) {
   return (
     <>
@@ -73,13 +54,9 @@ export const MapGridLines = memo(function MapGridLines({ palette }: MapGridLines
     </>
   );
 });
-
-// ─── MapParks ─────────────────────────────────────────────────────────────────
-
 interface MapParksProps {
   palette: ThemeColors;
 }
-
 export const MapParks = memo(function MapParks({ palette }: MapParksProps) {
   return (
     <>
@@ -88,13 +65,9 @@ export const MapParks = memo(function MapParks({ palette }: MapParksProps) {
     </>
   );
 });
-
-// ─── UserLocationDot ──────────────────────────────────────────────────────────
-
 interface UserLocationDotProps {
   palette: ThemeColors;
 }
-
 export const UserLocationDot = memo(function UserLocationDot({ palette }: UserLocationDotProps) {
   return (
     <View style={[styles.userDot, { backgroundColor: palette.tint }]}>
@@ -102,16 +75,12 @@ export const UserLocationDot = memo(function UserLocationDot({ palette }: UserLo
     </View>
   );
 });
-
-// ─── MapOverlayButtons ────────────────────────────────────────────────────────
-
 interface MapOverlayButtonsProps {
   onSearchArea?: () => void;
   onGpsPress?: () => void;
   palette: ThemeColors;
   scheme: 'light' | 'dark';
 }
-
 export const MapOverlayButtons = memo(function MapOverlayButtons({
   onSearchArea,
   onGpsPress,
@@ -136,7 +105,6 @@ export const MapOverlayButtons = memo(function MapOverlayButtons({
           Search this area
         </ThemedText>
       </Clickable>
-
       <Clickable
         accessibilityLabel="My location"
         onPress={onGpsPress}
@@ -154,13 +122,9 @@ export const MapOverlayButtons = memo(function MapOverlayButtons({
     </>
   );
 });
-
-// ─── MapInfoNote ──────────────────────────────────────────────────────────────
-
 interface MapInfoNoteProps {
   palette: ThemeColors;
 }
-
 export const MapInfoNote = memo(function MapInfoNote({ palette }: MapInfoNoteProps) {
   return (
     <Row style={[styles.infoNote, { backgroundColor: palette.surfaceSecondary }]}>
@@ -171,9 +135,6 @@ export const MapInfoNote = memo(function MapInfoNote({ palette }: MapInfoNotePro
     </Row>
   );
 });
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 export const styles = StyleSheet.create({
   container: {
     flex: 1,

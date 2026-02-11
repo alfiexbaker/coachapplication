@@ -1,11 +1,5 @@
-/**
- * ProgressBadge Component
- *
- * Displays progress toward a skill tree with animated progress ring.
- */
-
 import { useEffect } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedProps,
@@ -19,12 +13,13 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedClickable = Animated.createAnimatedComponent(Clickable);
 
 export interface ProgressBadgeProps {
   icon: string;
@@ -100,10 +95,13 @@ export function ProgressBadge({
   const isComplete = progress === 100;
 
   return (
-    <AnimatedPressable
+    <AnimatedClickable
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} progress ${Math.round(progress)} percent`}
+      accessibilityState={{ disabled: !onPress }}
       style={[styles.container, animatedContainerStyle]}
     >
       {/* Progress Ring */}
@@ -197,7 +195,7 @@ export function ProgressBadge({
           {Math.round(progress)}%
         </ThemedText>
       </View>
-    </AnimatedPressable>
+    </AnimatedClickable>
   );
 }
 

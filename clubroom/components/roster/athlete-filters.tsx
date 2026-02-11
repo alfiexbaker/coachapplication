@@ -9,6 +9,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { RosterFilters } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import { rosterService } from '@/services/roster-service';
 
 interface AthleteFiltersProps {
   filters: RosterFilters;
@@ -17,12 +18,11 @@ interface AthleteFiltersProps {
   onClear: () => void;
 }
 
-// Decorative: status indicator colors for distinct visual identification
-const STATUS_OPTIONS: { key: RosterEntry['status']; label: string; color: string }[] = [
-  { key: 'ACTIVE', label: 'Active', color: '#16A34A' },     // Decorative: active status
-  { key: 'PAUSED', label: 'Paused', color: '#CA8A04' },     // Decorative: paused status
-  { key: 'GRADUATED', label: 'Graduated', color: '#2563EB' }, // Decorative: graduated status
-  { key: 'INACTIVE', label: 'Inactive', color: '#6B7280' },  // Decorative: inactive status
+const STATUS_OPTIONS: { key: RosterEntry['status']; label: string }[] = [
+  { key: 'ACTIVE', label: 'Active' },
+  { key: 'PAUSED', label: 'Paused' },
+  { key: 'GRADUATED', label: 'Graduated' },
+  { key: 'INACTIVE', label: 'Inactive' },
 ];
 
 type SkillLevelFilter = NonNullable<RosterFilters['skillLevel']>;
@@ -89,7 +89,9 @@ export function AthleteFilters({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
         >
-          {STATUS_OPTIONS.map((status) => (
+          {STATUS_OPTIONS.map((status) => {
+            const statusColor = rosterService.getStatusColor(status.key);
+            return (
             <Clickable
               key={status.key}
               onPress={() => toggleStatus(status.key)}
@@ -97,24 +99,25 @@ export function AthleteFilters({
                 styles.chip,
                 {
                   backgroundColor:
-                    filters.status === status.key ? withAlpha(status.color, 0.09) : palette.surfaceSecondary,
-                  borderColor: filters.status === status.key ? status.color : 'transparent',
+                    filters.status === status.key ? withAlpha(statusColor, 0.09) : palette.surfaceSecondary,
+                  borderColor: filters.status === status.key ? statusColor : 'transparent',
                 },
               ]}
             >
               <Row align="center" gap="xxs">
-                <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                 <ThemedText
                   style={[
                     styles.chipText,
-                    { color: filters.status === status.key ? status.color : palette.text },
+                    { color: filters.status === status.key ? statusColor : palette.text },
                   ]}
                 >
                   {status.label}
                 </ThemedText>
               </Row>
             </Clickable>
-          ))}
+            );
+          })}
         </ScrollView>
       </View>
 

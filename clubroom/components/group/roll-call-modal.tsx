@@ -1,9 +1,10 @@
 import React, { memo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -35,18 +36,23 @@ export const RollCallModal = memo(function RollCallModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Row style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={onClose}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
+          <Clickable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close roll call">
+            <Ionicons name="close" size={24} color={colors.text} />
+          </Clickable>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <ThemedText type="defaultSemiBold" style={Typography.heading}>Roll Call</ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>{sessionTitle}</ThemedText>
           </View>
-          <Pressable
+          <Clickable
             style={[styles.saveBtn, { backgroundColor: stats.unmarked === 0 ? colors.success : colors.border }]}
             onPress={onSave}
             disabled={stats.unmarked > 0}
+            accessibilityRole="button"
+            accessibilityLabel="Save attendance"
+            accessibilityState={{ disabled: stats.unmarked > 0 }}
           >
             <ThemedText style={{ color: stats.unmarked === 0 ? colors.onPrimary : colors.muted, fontWeight: '600' }}>Save</ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
 
         <Animated.View entering={FadeIn.delay(100)} style={[styles.stats, { backgroundColor: colors.surface }]}>
@@ -84,20 +90,25 @@ export const RollCallModal = memo(function RollCallModal({
                 </Row>
                 <Row gap="sm" justify="flex-end">
                   {([['present', 'checkmark', colors.success], ['late', 'time', colors.warning], ['absent', 'close', colors.error]] as const).map(([s, icon, color]) => (
-                    <Pressable
+                    <Clickable
                       key={s}
                       style={[styles.actionBtn, { backgroundColor: status === s ? color : 'transparent', borderColor: status === s ? color : colors.border }]}
                       onPress={() => onMarkStatus(reg.id, s)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Mark ${athleteName} as ${s}`}
+                      accessibilityState={{ selected: status === s }}
                     >
                       <Ionicons name={icon} size={s === 'late' ? 18 : 20} color={status === s ? colors.onPrimary : color} />
-                    </Pressable>
+                    </Clickable>
                   ))}
-                  <Pressable
+                  <Clickable
                     style={[styles.injuryBtn, { backgroundColor: withAlpha(colors.error, 0.09), borderColor: withAlpha(colors.error, 0.19) }]}
                     onPress={() => onReportInjury(reg)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Report injury for ${athleteName}`}
                   >
                     <Ionicons name="medkit" size={16} color={colors.error} />
-                  </Pressable>
+                  </Clickable>
                 </Row>
               </Animated.View>
             );
@@ -106,14 +117,14 @@ export const RollCallModal = memo(function RollCallModal({
         </ScrollView>
 
         <Row style={[styles.quickActions, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
-          <Pressable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.success, 0.09) }]} onPress={onMarkAllPresent}>
+          <Clickable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.success, 0.09) }]} onPress={onMarkAllPresent} accessibilityRole="button" accessibilityLabel="Mark all present">
             <Ionicons name="checkmark-done" size={18} color={colors.success} />
             <ThemedText style={[Typography.smallSemiBold, { color: colors.success }]}>All Present</ThemedText>
-          </Pressable>
-          <Pressable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.muted, 0.09) }]} onPress={onReset}>
+          </Clickable>
+          <Clickable style={[styles.quickBtn, { backgroundColor: withAlpha(colors.muted, 0.09) }]} onPress={onReset} accessibilityRole="button" accessibilityLabel="Reset attendance">
             <Ionicons name="refresh" size={18} color={colors.muted} />
             <ThemedText style={[Typography.smallSemiBold, { color: colors.muted }]}>Reset</ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
       </SafeAreaView>
     </Modal>

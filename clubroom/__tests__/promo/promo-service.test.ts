@@ -11,9 +11,17 @@ import test, { describe, beforeEach } from 'node:test';
 import { promoService } from '../../services/promo-service';
 import type { CreatePromoCodeParams } from '../../constants/types';
 
+let usageUserIdSeq = 0;
+
+function nextUsageUserId(): string {
+  usageUserIdSeq += 1;
+  return `usage_test_user_${usageUserIdSeq}`;
+}
+
 // Reset to mock data before each test
 beforeEach(async () => {
   await promoService.resetToMockData();
+  usageUserIdSeq = 0;
 });
 
 describe('Promo Service', () => {
@@ -274,7 +282,7 @@ describe('Promo Service', () => {
     });
 
     test('should create usage record after redemption', async () => {
-      const userId = 'usage_test_user_' + Date.now();
+      const userId = nextUsageUserId();
       await promoService.redeemCode(userId, 'COACH15', 'Usage Test');
 
       const usage = await promoService.getUserUsage(userId);

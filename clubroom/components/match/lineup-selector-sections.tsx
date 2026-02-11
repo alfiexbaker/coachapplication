@@ -8,17 +8,18 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { MatchPlayer } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 import { getMatchPlayerAthleteName } from '@/utils/match-display';
+import { styles } from './lineup-selector-styles';
 
 // ─── LineupSummaryRow ────────────────────────────────────────────────────────
 
@@ -213,56 +214,4 @@ export const SubmitLineupButton = memo(function SubmitLineupButton({
       </Clickable>
     </View>
   );
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  summaryRow: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    marginBottom: Spacing.md,
-  },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryLabel: { ...Typography.caption, marginBottom: Spacing.micro },
-  summaryDivider: { width: 1, height: '100%' },
-  playerRow: {
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    marginBottom: Spacing.xs,
-  },
-  disabledRow: { opacity: 0.6 },
-  playerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { ...Typography.bodySmallSemiBold },
-  playerDetails: { flex: 1 },
-  positionText: { ...Typography.caption },
-  selectionIndicator: { width: 28, alignItems: 'center' },
-  checkCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reserveText: { ...Typography.caption },
-  emptyCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-  },
-  footer: { padding: Spacing.md, borderTopWidth: 1 },
-  submitButton: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  disabledButton: { opacity: 0.5 },
-  submitText: { ...Typography.bodySemiBold },
 });

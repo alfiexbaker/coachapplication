@@ -5,7 +5,7 @@
  * All state/logic in useDiscoverSessions hook. Card extracted to component.
  */
 
-import { View, StyleSheet, FlatList, TextInput } from 'react-native';
+import { View, StyleSheet, FlatList, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,19 +16,59 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SessionOfferingCard } from '@/components/discover/session-offering-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useDiscoverSessions, SKILL_FILTERS, TYPE_FILTERS } from '@/hooks/use-discover-sessions';
 import type { FootballObjective } from '@/constants/types';
 
 export default function DiscoverSessionsScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const c = useDiscoverSessions();
+  const hasFilters = Boolean(c.searchQuery.trim() || c.skillFilter || c.typeFilter);
+  const header = (
+    <PageHeader title="Discover Sessions" subtitle="Find and book coaching sessions" showBack onBackPress={() => router.back()} />
+  );
+
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        {header}
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        {header}
+        <ErrorState
+          message={c.error?.message || 'Failed to load discover sessions.'}
+          onRetry={c.retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        {header}
+        <EmptyState
+          icon="search-outline"
+          title="No sessions available"
+          message="There are no active sessions to discover right now. Pull to refresh or check again later."
+          actionLabel="Refresh"
+          onPressAction={c.onRefresh}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <PageHeader title="Discover Sessions" subtitle="Find and book coaching sessions" showBack onBackPress={() => router.back()} />
+      {header}
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -80,17 +120,18 @@ export default function DiscoverSessionsScreen() {
       <FlatList data={c.filteredOfferings} keyExtractor={item => item.id}
         renderItem={({ item }) => <SessionOfferingCard offering={item} onPress={c.handleOfferingPress} />}
         contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons name="search-outline" size={40} color={palette.muted} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              {c.loading ? 'Loading sessions...' : 'No sessions found'}
+              {hasFilters ? 'No matching sessions' : 'No sessions found'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              {c.loading ? 'Please wait while we find available sessions'
-                : c.searchQuery || c.skillFilter || c.typeFilter ? 'Try adjusting your filters' : 'Check back later for new sessions'}
+              {hasFilters ? 'Try adjusting your search or filters'
+                : 'Check back later for new sessions'}
             </ThemedText>
           </View>
         }

@@ -1,9 +1,17 @@
-import { useRef } from 'react';
-import { View, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Animated, {
+  Extrapolate,
+  interpolate,
+  type SharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -28,45 +36,26 @@ export function AthleteRow({
   swipeEnabled = true,
 }: AthleteRowProps) {
   const { colors: palette } = useTheme();
-  const swipeableRef = useRef<Swipeable>(null);
   const athleteName = getRosterAthleteName(entry);
   const parentName = getRosterParentName(entry);
 
   const statusColor = rosterService.getStatusColor(entry.status);
 
-  const handleRemovePress = () => {
-    swipeableRef.current?.close();
-    onRemove?.();
-  };
-
   const renderRightActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    dragX: Animated.AnimatedInterpolation<number>
+    _progress: SharedValue<number>,
+    translation: SharedValue<number>,
+    swipeableMethods: SwipeableMethods
   ) => {
-    const scale = dragX.interpolate({
-      inputRange: [-100, 0],
-      outputRange: [1, 0.8],
-      extrapolate: 'clamp',
-    });
-
-    const opacity = dragX.interpolate({
-      inputRange: [-100, -50, 0],
-      outputRange: [1, 0.8, 0],
-      extrapolate: 'clamp',
-    });
-
     return (
-      <Animated.View style={[styles.swipeAction, { opacity }]}>
-        <Pressable
-          onPress={handleRemovePress}
-          style={[styles.removeButton, { backgroundColor: palette.error }]}
-        >
-          <Animated.View style={{ transform: [{ scale }] }}>
-            <Ionicons name="trash-outline" size={22} color={palette.onPrimary} />
-            <ThemedText style={[styles.removeText, { color: palette.onPrimary }]}>Remove</ThemedText>
-          </Animated.View>
-        </Pressable>
-      </Animated.View>
+      <RightActions
+        translation={translation}
+        onRemovePress={() => {
+          swipeableMethods.close();
+          onRemove?.();
+        }}
+        athleteName={athleteName}
+        palette={palette}
+      />
     );
   };
 
@@ -78,14 +67,12 @@ export function AthleteRow({
       delayLongPress={500}
     >
       <Row align="center" gap="md">
-        {/* Avatar */}
         <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
           <ThemedText style={styles.avatarText}>
             {athleteName.slice(0, 2).toUpperCase()}
           </ThemedText>
         </View>
 
-        {/* Info */}
         <View style={styles.info}>
           <Row align="center" gap="xs">
             <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
@@ -116,11 +103,9 @@ export function AthleteRow({
           </Row>
         </View>
 
-        {/* Chevron */}
         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
       </Row>
 
-      {/* Tags */}
       {entry.tags.length > 0 && (
         <Row wrap gap="xxs" style={[styles.tagsSection, { borderTopColor: palette.border }]}>
           {entry.tags.slice(0, 4).map((tag) => (
@@ -145,15 +130,56 @@ export function AthleteRow({
   }
 
   return (
-    <Swipeable
-      ref={swipeableRef}
+    <ReanimatedSwipeable
       renderRightActions={renderRightActions}
       friction={2}
       rightThreshold={40}
       overshootRight={false}
     >
       {content}
-    </Swipeable>
+    </ReanimatedSwipeable>
+  );
+}
+
+interface RightActionsProps {
+  translation: SharedValue<number>;
+  onRemovePress: () => void;
+  athleteName: string;
+  palette: ReturnType<typeof useTheme>['colors'];
+}
+
+function RightActions({
+  translation,
+  onRemovePress,
+  athleteName,
+  palette,
+}: RightActionsProps) {
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(translation.value, [-100, 0], [1, 0.8], Extrapolate.CLAMP),
+      },
+    ],
+  }));
+
+  const opacityStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translation.value, [-100, -50, 0], [1, 0.8, 0], Extrapolate.CLAMP),
+  }));
+
+  return (
+    <Animated.View style={[styles.swipeAction, opacityStyle]}>
+      <Clickable
+        onPress={onRemovePress}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${athleteName} from roster`}
+        style={[styles.removeButton, { backgroundColor: palette.error }]}
+      >
+        <Animated.View style={scaleStyle}>
+          <Ionicons name="trash-outline" size={22} color={palette.onPrimary} />
+          <ThemedText style={[styles.removeText, { color: palette.onPrimary }]}>Remove</ThemedText>
+        </Animated.View>
+      </Clickable>
+    </Animated.View>
   );
 }
 
@@ -161,11 +187,6 @@ const styles = StyleSheet.create({
   card: {
     padding: Spacing.md,
     gap: 0,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 48,
@@ -220,6 +241,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radii.md,
   },
-  removeText: { ...Typography.caption,
-    marginTop: Spacing.xxs },
+  removeText: { ...Typography.caption, marginTop: Spacing.xxs },
 });

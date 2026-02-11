@@ -3,25 +3,27 @@
  * Manages referral code, stats, history loading, and navigation.
  */
 
-import { useState, useCallback } from 'react';
-import { useFocusEffect, router } from 'expo-router';
+import { useCallback } from 'react';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { referralService } from '@/services/referral-service';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { ReferralCode, Referral, ReferralStats } from '@/constants/types';
 
 const logger = createLogger('ReferralsDashboardScreen');
 
+interface ReferralsData {
+  referralCode: ReferralCode | null;
+  stats: ReferralStats | null;
+  referrals: Referral[];
+}
+
 export function useReferrals() {
   const { currentUser } = useAuth();
-
-  const [referralCode, setReferralCode] = useState<ReferralCode | null>(null);
-  const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const userId = currentUser?.id ?? 'parent1';
   const userName = currentUser?.fullName ?? currentUser?.name ?? 'User';
@@ -33,25 +35,31 @@ export function useReferrals() {
         referralService.getReferralStats(userId),
         referralService.getReferralHistory(userId),
       ]);
-      if (codeResult.success) setReferralCode(codeResult.data);
-      else logger.error('Failed to load referral code:', codeResult.error);
-      if (statsResult.success) setStats(statsResult.data);
-      else logger.error('Failed to load referral stats:', statsResult.error);
-      setReferrals(history);
+
+      return ok<ReferralsData>({
+        referralCode: codeResult.success ? codeResult.data : null,
+        stats: statsResult.success ? statsResult.data : null,
+        referrals: history,
+      });
     } catch (error) {
       logger.error('Failed to load referral data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load referral data.', error));
     }
   }, [userId, userName]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
-
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<ReferralsData>({
+    load: loadData,
+    deps: [userId, userName],
+    isEmpty: (value) => !value.referralCode && value.referrals.length === 0,
+    refetchOnFocus: true,
+  });
 
   const handleInvitePress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -67,7 +75,18 @@ export function useReferrals() {
   }, []);
 
   return {
-    referralCode, stats, referrals, loading, refreshing, userName,
-    handleRefresh, handleInvitePress, handleReferralPress, handleViewAll,
+    referralCode: data?.referralCode ?? null,
+    stats: data?.stats ?? null,
+    referrals: data?.referrals ?? [],
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    userName,
+    handleRefresh: onRefresh,
+    retry,
+    handleInvitePress,
+    handleReferralPress,
+    handleViewAll,
   };
 }

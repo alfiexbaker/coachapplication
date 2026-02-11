@@ -7,14 +7,15 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet, ActivityIndicator, Switch } from 'react-native';
+import { View, ActivityIndicator, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { styles } from './waitlist-button-section-styles';
 
 // ─── OnWaitlistCard ───────────────────────────────────────────────────────────
 
@@ -240,96 +241,4 @@ export const JoinWaitlistButton = memo(function JoinWaitlistButton({
   );
 });
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  joinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  joinButtonCompact: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-  },
-  joinButtonText: { ...Typography.bodySmallSemiBold },
-  countBadge: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.md,
-    marginLeft: Spacing.xxs,
-  },
-  countText: { ...Typography.caption },
-  onWaitlistCard: {
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    padding: Spacing.sm,
-  },
-  onWaitlistCardCompact: {
-    padding: Spacing.xs,
-  },
-  waitlistInfo: {
-    gap: Spacing.micro,
-  },
-  positionBadge: { /* layout moved to Row */ },
-  positionText: { ...Typography.smallSemiBold },
-  waitlistLabel: { ...Typography.caption },
-  waitlistActions: { /* layout moved to Row */ },
-  autoBookToggle: { /* layout moved to Row */ },
-  autoBookLabel: { ...Typography.caption },
-  switch: {
-    transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }],
-    marginLeft: -4,
-  },
-  leaveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingVertical: Spacing.xxs,
-    paddingHorizontal: 10,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
-  leaveButtonText: { ...Typography.caption },
-  optionsCard: {
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  optionsTitle: { ...Typography.subheading },
-  autoBookOption: {
-    padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  autoBookOptionContent: { /* layout moved to Row */ },
-  autoBookOptionText: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  autoBookDescription: { ...Typography.caption, lineHeight: 16 },
-  optionsButtons: { /* layout moved to Row */ },
-  cancelButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  confirmButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  confirmButtonText: {
-    fontWeight: '600',
-  },
-});
+export { styles };

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
 import { useMessages } from '@/hooks/use-messages';
 import { ConversationRow } from '@/components/messaging/conversation-row';
@@ -22,8 +22,11 @@ export default function MessagesScreen() {
     setViewMode,
     groupFilter,
     setGroupFilter,
+    status,
+    error,
+    retry,
     refreshing,
-    handleRefresh,
+    onRefresh,
     directThreads,
     groupThreads,
     isCoach,
@@ -34,6 +37,39 @@ export default function MessagesScreen() {
     router.push(Routes.MORE);
   }, []);
 
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Messages" subtitle="Your conversations" />
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Messages" subtitle="Your conversations" />
+        <ErrorState message={error?.message ?? 'Unable to load conversations'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Messages" subtitle="Your conversations" />
+        <EmptyState
+          icon="chatbubbles"
+          title="No messages yet"
+          message="Start a conversation with a coach or respond to pending requests."
+          actionLabel="Find coaches"
+          onPressAction={handleFindCoaches}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScreenHeader title="Messages" subtitle="Your conversations" />
@@ -43,7 +79,7 @@ export default function MessagesScreen() {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={palette.tint} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
         }
       >
         {viewMode === 'groups' ? (

@@ -5,7 +5,7 @@
  * Shows hero image, schedule, capacity, coach info, and registration.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { WaitlistBanner } from '@/components/group/waitlist-banner';
 import { GroupSessionHero } from '@/components/group/group-session-hero';
 import { GroupSessionDetails } from '@/components/group/group-session-details';
@@ -28,25 +28,28 @@ import { getGroupSessionClubLabel } from '@/utils/group-display';
 export default function GroupSessionDetailScreen() {
   const { colors } = useTheme();
   const {
-    id, session, roster, loading, registering,
+    id, session, roster, status, error, refreshing, onRefresh, retry, registering,
     isCoach, userHasChildren, spotsLeft, isFull, isFree,
     handleRegister, handleCancel,
   } = useGroupSession();
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
-        </Row>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!session) {
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load group session details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !session) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <EmptyState icon="calendar-outline" title="Session not found" message="This session may have been removed." actionLabel="Go Back" onPressAction={() => router.back()} />
@@ -59,7 +62,10 @@ export default function GroupSessionDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <GroupSessionHero session={session} isCoach={isCoach} />
 
         <View style={styles.content}>

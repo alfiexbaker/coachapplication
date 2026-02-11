@@ -45,6 +45,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const calendar_service_1 = require("../../services/calendar-service");
+let calendarUserIdSeq = 0;
+function nextCalendarUserId(prefix) {
+    calendarUserIdSeq += 1;
+    return `${prefix}_${calendarUserIdSeq}`;
+}
 // Mock booking data
 const mockBooking = {
     id: 'booking_123',
@@ -182,7 +187,7 @@ const mockBookingNoOptionals = {
     });
     (0, node_test_1.describe)('updateSyncSettings', () => {
         (0, node_test_1.default)('should create new settings for user', async () => {
-            const userId = `test_user_${Date.now()}`;
+            const userId = nextCalendarUserId('test_user');
             const result = await calendar_service_1.calendarService.updateSyncSettings(userId, {
                 enabled: true,
                 provider: 'GOOGLE',
@@ -198,7 +203,7 @@ const mockBookingNoOptionals = {
             node_assert_1.default.strictEqual(result.settings.userId, userId);
         });
         (0, node_test_1.default)('should update existing settings', async () => {
-            const userId = `test_user_${Date.now()}`;
+            const userId = nextCalendarUserId('test_user');
             // Create initial settings
             await calendar_service_1.calendarService.updateSyncSettings(userId, {
                 enabled: true,
@@ -216,7 +221,7 @@ const mockBookingNoOptionals = {
             node_assert_1.default.strictEqual(result.settings.enabled, true); // Preserved from first update
         });
         (0, node_test_1.default)('should persist settings between calls', async () => {
-            const userId = `persist_test_${Date.now()}`;
+            const userId = nextCalendarUserId('persist_test');
             await calendar_service_1.calendarService.updateSyncSettings(userId, {
                 enabled: true,
                 provider: 'GOOGLE',

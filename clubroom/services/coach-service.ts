@@ -9,6 +9,7 @@ import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, notFound, storageError } from '@/types/result';
+import { accountIdsMatch } from '@/utils/account-id';
 
 const logger = createLogger('CoachService');
 
@@ -217,7 +218,7 @@ export const coachService = {
     logger.info('Getting coach', { coachId });
     try {
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
-      const coach = coaches.find((c) => c.id === coachId);
+      const coach = coaches.find((c) => accountIdsMatch(c.id, coachId));
       if (!coach) return err(notFound('Coach', coachId));
       return ok(coach);
     } catch (error) {
@@ -265,7 +266,7 @@ export const coachService = {
     logger.info('Getting coach reviews', { coachId });
     try {
       const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
-      const coachReviews = reviews.filter((r) => r.coachId === coachId);
+      const coachReviews = reviews.filter((r) => accountIdsMatch(r.coachId, coachId));
       return ok(coachReviews);
     } catch (error) {
       logger.error('Failed to get coach reviews', error);
@@ -287,11 +288,13 @@ export const coachService = {
   ): Promise<Result<PublicReview, ServiceError>> {
     logger.info('Submitting review', { coachId, rating: review.rating });
     try {
+      const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
+      const canonicalCoachId = coaches.find((coach) => accountIdsMatch(coach.id, coachId))?.id ?? coachId;
 
       const newReview: PublicReview = {
         id: `review-${Date.now()}`,
-        coachId,
+        coachId: canonicalCoachId,
         reviewerName: 'You',
         reviewerId: 'current-user',
         rating: review.rating,

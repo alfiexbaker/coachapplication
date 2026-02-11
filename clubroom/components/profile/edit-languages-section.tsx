@@ -3,10 +3,11 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, StyleSheet, TextInput, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -40,12 +41,12 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
       <SurfaceCard style={styles.section}>
         <Row justify="between" align="center">
           <ThemedText type="subtitle">Languages</ThemedText>
-          <Pressable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add language" accessibilityRole="button">
+          <Clickable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add language" accessibilityRole="button">
             <Row align="center" gap="xs">
               <Ionicons name="add-circle" size={22} color={colors.tint} />
               <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
             </Row>
-          </Pressable>
+          </Clickable>
         </Row>
         <ThemedText style={styles.subtitle}>
           Set expectations for onboarding calls and session briefings with your language strengths.
@@ -61,12 +62,12 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                   <ThemedText style={styles.proficiency}>{lang.proficiency}</ThemedText>
                 </View>
                 <Row gap="xs">
-                  <Pressable onPress={() => onOpenModal(lang)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Edit ${lang.name}`} accessibilityRole="button">
+                  <Clickable onPress={() => onOpenModal(lang)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Edit ${lang.name}`} accessibilityRole="button">
                     <Ionicons name="pencil" size={16} color={colors.muted} />
-                  </Pressable>
-                  <Pressable onPress={() => onRemove(lang.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Remove ${lang.name}`} accessibilityRole="button">
+                  </Clickable>
+                  <Clickable onPress={() => onRemove(lang.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Remove ${lang.name}`} accessibilityRole="button">
                     <Ionicons name="close" size={16} color={colors.warning} />
-                  </Pressable>
+                  </Clickable>
                 </Row>
               </Row>
             ))}
@@ -86,7 +87,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
             {languageOptions.map((option) => {
               const isAdded = languages.some((l) => l.name.toLowerCase() === option.toLowerCase());
               return (
-                <Pressable
+                <Clickable
                   key={option}
                   disabled={isAdded}
                   onPress={() => onQuickAdd(option)}
@@ -97,7 +98,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                   <ThemedText style={styles.chipText} lightColor={isAdded ? undefined : colors.tint} darkColor={isAdded ? undefined : colors.tint}>
                     {option}
                   </ThemedText>
-                </Pressable>
+                </Clickable>
               );
             })}
           </Row>
@@ -105,13 +106,13 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
       </SurfaceCard>
 
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={onCloseModal}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.text, 0.35) }]}>
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Language</ThemedText>
-              <Pressable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
+              <Clickable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
                 <Ionicons name="close" size={22} color={colors.foreground} />
-              </Pressable>
+              </Clickable>
             </Row>
             <View style={styles.modalContent}>
               <View style={styles.fieldGroup}>
@@ -124,16 +125,16 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                   {proficiencyOptions.map((level) => {
                     const isActive = draft.proficiency === level;
                     return (
-                      <Pressable key={level} onPress={() => onDraftChange((p) => ({ ...p, proficiency: level }))} style={[styles.chip, { borderColor: isActive ? colors.tint : colors.border, backgroundColor: isActive ? withAlpha(colors.tint, 0.09) : colors.card }]} accessibilityLabel={level} accessibilityRole="radio">
+                      <Clickable key={level} onPress={() => onDraftChange((p) => ({ ...p, proficiency: level }))} style={[styles.chip, { borderColor: isActive ? colors.tint : colors.border, backgroundColor: isActive ? withAlpha(colors.tint, 0.09) : colors.card }]} accessibilityLabel={level} accessibilityRole="radio">
                         <ThemedText style={styles.chipText} lightColor={isActive ? colors.tint : undefined} darkColor={isActive ? colors.tint : undefined}>{level}</ThemedText>
-                      </Pressable>
+                      </Clickable>
                     );
                   })}
                 </Row>
               </View>
-              <Pressable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save language" accessibilityRole="button">
+              <Clickable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save language" accessibilityRole="button">
                 <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save language</ThemedText>
-              </Pressable>
+              </Clickable>
             </View>
           </SurfaceCard>
         </View>
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
   chipText: { fontWeight: '600' },
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: Spacing.lg },
+  modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
   modalCard: { padding: Spacing.lg, gap: Spacing.md },
   modalContent: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },

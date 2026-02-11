@@ -6,7 +6,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -14,12 +14,12 @@ import { ThemedText } from '@/components/themed-text';
 import { CompactProgressRing, ProgressRing } from './ProgressRing';
 import { CategoryBadge } from './CategoryBadge';
 import { MilestoneList } from './MilestoneList';
-import { Spacing, Radii, Components, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { Goal } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
-import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
+import { styles } from './goal-card-styles';
 
 // ─── GoalCompactCard ─────────────────────────────────────────────────────────
 
@@ -168,113 +168,4 @@ export const GoalFeaturedCard = memo(function GoalFeaturedCard({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  card: {
-    padding: Components.card.padding,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  header: {
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  headerContent: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  title: {
-    fontSize: scaleFont(16),
-    lineHeight: scaleFont(22),
-  },
-  description: {
-    fontSize: scaleFont(14),
-    lineHeight: scaleFont(20),
-  },
-  footer: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    marginTop: Spacing.xs,
-  },
-  footerLeft: {
-    gap: Spacing.md,
-  },
-  metaItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  footerText: {
-    fontSize: scaleFont(12),
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  statusText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  compactCard: {
-    alignItems: 'center',
-    padding: Spacing.sm,
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  compactContent: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  compactHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-  },
-  compactTitle: {
-    flex: 1,
-    fontSize: scaleFont(15),
-  },
-  compactMeta: {
-    gap: Spacing.md,
-  },
-  metaText: {
-    fontSize: scaleFont(11),
-  },
-  featuredCard: {
-    padding: Components.card.padding,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  featuredHeader: {
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerLeft: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  featuredTitle: {
-    fontSize: scaleFont(20),
-    marginTop: Spacing.xs,
-  },
-  metaRow: {
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginTop: Spacing.xs,
-  },
-  metaLabel: {
-    fontSize: scaleFont(13),
-  },
-  milestonesPreview: {
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    marginTop: Spacing.sm,
-  },
-});
+export { styles };

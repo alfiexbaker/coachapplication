@@ -45,9 +45,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const promo_service_1 = require("../../services/promo-service");
+let usageUserIdSeq = 0;
+function nextUsageUserId() {
+    usageUserIdSeq += 1;
+    return `usage_test_user_${usageUserIdSeq}`;
+}
 // Reset to mock data before each test
 (0, node_test_1.beforeEach)(async () => {
     await promo_service_1.promoService.resetToMockData();
+    usageUserIdSeq = 0;
 });
 (0, node_test_1.describe)('Promo Service', () => {
     (0, node_test_1.describe)('createPromoCode', () => {
@@ -258,7 +264,7 @@ const promo_service_1 = require("../../services/promo-service");
             node_assert_1.default.ok(result.error?.includes('already used'));
         });
         (0, node_test_1.default)('should create usage record after redemption', async () => {
-            const userId = 'usage_test_user_' + Date.now();
+            const userId = nextUsageUserId();
             await promo_service_1.promoService.redeemCode(userId, 'COACH15', 'Usage Test');
             const usage = await promo_service_1.promoService.getUserUsage(userId);
             node_assert_1.default.ok(usage.length > 0);

@@ -3,12 +3,17 @@
  * Manages coach data loading, reviews, tab state, and navigation handlers.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
 import { Components } from '@/constants/theme';
 import type { Ionicons } from '@expo/vector-icons';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { combineResults, err, ok, serviceError, type ServiceError } from '@/types/result';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('PublicProfileScreen');
 
 export type ProfileTabId = 'about' | 'specialties' | 'qualifications' | 'reviews';
 
@@ -61,37 +66,66 @@ export function renderStars(rating: number, starColor: string) {
 export const COVER_HEIGHT = 200;
 export const AVATAR_SIZE = Components.avatar.xl + 16; // 96
 
+interface PublicProfileData {
+  coach: Coach | null;
+  reviews: PublicReview[];
+}
+
 export function usePublicProfile(coachId: string) {
-  const [coach, setCoach] = useState<Coach | null>(null);
-  const [reviews, setReviews] = useState<PublicReview[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTabId>('about');
   const [showShareSheet, setShowShareSheet] = useState(false);
 
-  const loadCoach = useCallback(async () => {
-    if (!coachId) return;
+  const loadProfile = useCallback(async () => {
+    if (!coachId) {
+      return ok<PublicProfileData>({
+        coach: null,
+        reviews: [],
+      });
+    }
+
     try {
-      const data = await coachService.getCoach(coachId);
-      if (data.success) setCoach(data.data);
-      const reviewData = await coachService.getCoachReviews(coachId);
-      if (reviewData.success) setReviews(reviewData.data);
-    } catch {
-      // Fail silently
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const [coachResult, reviewsResult] = await Promise.all([
+        coachService.getCoach(coachId),
+        coachService.getCoachReviews(coachId),
+      ]);
+
+      if (!coachResult.success && coachResult.error.code === 'NOT_FOUND') {
+        return ok<PublicProfileData>({
+          coach: null,
+          reviews: [],
+        });
+      }
+
+      const combined = combineResults([coachResult, reviewsResult] as const);
+      if (!combined.success) {
+        logger.error('Failed to load public profile', combined.error);
+        return err(combined.error);
+      }
+
+      const [coach, reviews] = combined.data;
+      return ok<PublicProfileData>({ coach, reviews });
+    } catch (loadError) {
+      logger.error('Failed to load public profile', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load public profile.', loadError));
     }
   }, [coachId]);
 
-  useEffect(() => {
-    loadCoach();
-  }, [loadCoach]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<PublicProfileData>({
+    load: loadProfile,
+    deps: [coachId],
+    isEmpty: (value) => value.coach === null,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadCoach();
-  }, [loadCoach]);
+  const coach = data?.coach ?? null;
+  const reviews = data?.reviews ?? [];
 
   const handleBook = useCallback(() => {
     router.push(Routes.bookCoach(coachId));
@@ -109,16 +143,38 @@ export function usePublicProfile(coachId: string) {
   return {
     coach,
     reviews,
-    loading,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
     refreshing,
+    onRefresh,
+    retry,
     activeTab,
     setActiveTab,
     showShareSheet,
     openShareSheet,
     closeShareSheet,
-    handleRefresh,
+    handleRefresh: onRefresh,
     handleBook,
     handleMessage,
     profileUrl,
+  } satisfies {
+    coach: Coach | null;
+    reviews: PublicReview[];
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    activeTab: ProfileTabId;
+    setActiveTab: (tab: ProfileTabId) => void;
+    showShareSheet: boolean;
+    openShareSheet: () => void;
+    closeShareSheet: () => void;
+    handleRefresh: () => void;
+    handleBook: () => void;
+    handleMessage: () => void;
+    profileUrl: string;
   };
 }

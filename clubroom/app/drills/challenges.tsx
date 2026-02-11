@@ -1,16 +1,8 @@
-/**
- * Challenges Screen
- *
- * Lists active and completed video challenges for the athlete's squad.
- * Coach role sees a "Create Challenge" CTA. Athletes can view and
- * submit attempts via the ChallengeCard component.
- */
-
 import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -22,59 +14,62 @@ import { ChallengeStatsBar } from '@/components/drills/challenge-stats-bar';
 import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { challengeService } from '@/services/challenge-service';
 import type { Challenge, ChallengeSubmission } from '@/services/challenge-service';
 import { Routes } from '@/navigation/routes';
-import { CHALLENGE_SEEDS, CHALLENGE_SUBMISSION_SEEDS } from '@/constants/challenge-seeds';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError } from '@/types/result';
 
 type TabFilter = 'active' | 'completed';
 
 const logger = createLogger('ChallengesScreen');
 
+interface ChallengesScreenData {
+  challenges: Challenge[];
+  submissions: ChallengeSubmission[];
+}
+
 export default function ChallengesScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
 
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [submissions, setSubmissions] = useState<ChallengeSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState<TabFilter>('active');
 
   const loadData = useCallback(async () => {
     try {
-      setError(false);
-      const [challengeData, submissionData] = await Promise.all([
-        challengeService.getChallengesForSquad('squad_1'),
-        Promise.resolve(CHALLENGE_SUBMISSION_SEEDS),
-      ]);
-      // Keep deterministic demo defaults when storage is empty.
-      setChallenges(challengeData.length > 0 ? challengeData : CHALLENGE_SEEDS);
-      setSubmissions(submissionData);
-    } catch (err) {
-      logger.error('Failed to load challenges', err);
-      setError(true);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const challenges = await challengeService.getChallengesForSquad('squad_1');
+      const submissionGroups = await Promise.all(
+        challenges.map((challenge) => challengeService.getSubmissionsForChallenge(challenge.id))
+      );
+
+      return ok<ChallengesScreenData>({
+        challenges,
+        submissions: submissionGroups.flat(),
+      });
+    } catch (loadError) {
+      logger.error('Failed to load challenges', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load challenges.', loadError));
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<ChallengesScreenData>({
+    load: loadData,
+    deps: [],
+    isEmpty: (value) => value.challenges.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const challenges = data?.challenges ?? [];
+  const submissions = data?.submissions ?? [];
 
   const handleTabChange = useCallback((tab: TabFilter) => {
     Platform.OS !== 'web' && void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -101,7 +96,7 @@ export default function ChallengesScreen() {
     [submissions]
   );
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <LoadingState variant="list" />
@@ -109,17 +104,16 @@ export default function ChallengesScreen() {
     );
   }
 
-  if (error) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message="Failed to load challenges" onRetry={loadData} />
+        <ErrorState message={error?.message ?? 'Failed to load challenges.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -146,14 +140,12 @@ export default function ChallengesScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Stats */}
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <ChallengeStatsBar activeCount={activeCount} completedCount={completedCount} badgesCount={badgesCount} />
         </Animated.View>
 
-        {/* Tabs */}
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <Row gap="xs" style={styles.tabRow}>
             {(['active', 'completed'] as TabFilter[]).map((tab) => {
@@ -200,8 +192,19 @@ export default function ChallengesScreen() {
           </Row>
         </Animated.View>
 
-        {/* Challenge List */}
-        {filtered.length === 0 ? (
+        {status === 'empty' ? (
+          <EmptyState
+            icon="trophy-outline"
+            title="No challenges yet"
+            message={
+              isCoach
+                ? 'Create your first challenge for the squad.'
+                : 'Challenges from your coach will appear here.'
+            }
+            actionLabel={isCoach ? 'Create challenge' : undefined}
+            onPressAction={isCoach ? () => router.push(Routes.DRILLS_CREATE_CHALLENGE) : undefined}
+          />
+        ) : filtered.length === 0 ? (
           <EmptyState
             icon="trophy-outline"
             title={activeTab === 'active' ? 'No active challenges' : 'No completed challenges yet'}

@@ -5,7 +5,7 @@
  * month comparison, date filters, recent transactions, and tips.
  */
 
-import { View, StyleSheet, ScrollView, ActivityIndicator, ViewStyle } from 'react-native';
+import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import { Row } from '@/components/primitives/row';
 import { SpendingChart } from '@/components/family/SpendingChart';
 import { SpendingComparisonCard } from '@/components/family/spending-comparison-card';
 import { SpendingTransactions } from '@/components/family/spending-transactions';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilySpending, DATE_FILTERS, DATE_FILTER_LABELS } from '@/hooks/use-family-spending';
@@ -27,23 +28,47 @@ import { useFamilySpending, DATE_FILTERS, DATE_FILTER_LABELS } from '@/hooks/use
 export default function FamilySpendingScreen() {
   const { colors } = useTheme();
   const {
-    loading, spending, dateFilter, spendingSummary,
+    status, error, refreshing, onRefresh, retry, spending, dateFilter, spendingSummary,
     handleDateFilterChange, getMonthsToShow, recentTransactions,
   } = useFamilySpending();
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <PageContainer header={<PageHeader title="Family Spending" subtitle="Track costs across all children" showBack />}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.tint} />
-          <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>Loading spending data...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer header={<PageHeader title="Family Spending" subtitle="Track costs across all children" showBack />}>
+        <ErrorState message={error?.message || 'Failed to load family spending.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <PageContainer header={<PageHeader title="Family Spending" subtitle="Track costs across all children" showBack />}>
+        <EmptyState
+          icon="wallet-outline"
+          title="No spending data yet"
+          message="Spending insights will appear once sessions are booked and paid."
+          actionLabel="View Calendar"
+          onPressAction={() => router.push(Routes.FAMILY_CALENDAR)}
+        />
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer header={<PageHeader title="Family Spending" subtitle="Track costs across all children" showBack />} gap={Spacing.md}>
+    <PageContainer
+      header={<PageHeader title="Family Spending" subtitle="Track costs across all children" showBack />}
+      gap={Spacing.md}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    >
       {/* Month Comparison */}
       {spendingSummary && (
         <Animated.View entering={FadeInDown.delay(50).springify()}>
@@ -116,7 +141,6 @@ export default function FamilySpendingScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   filterRow: { gap: Spacing.xs, paddingVertical: Spacing.xs },
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
   tipsCard: { padding: Spacing.md, gap: Spacing.sm },

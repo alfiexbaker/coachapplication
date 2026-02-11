@@ -26,7 +26,7 @@ export default function EmergencyQuickAccessScreen() {
   const { colors: palette } = useTheme();
   const e = useEmergencyAccess();
 
-  if (e.loading) {
+  if (e.status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Row align="center" justify="space-between" style={styles.header}>
@@ -39,7 +39,7 @@ export default function EmergencyQuickAccessScreen() {
     );
   }
 
-  if (e.error || !e.emergencyData) {
+  if (e.status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Row align="center" justify="space-between" style={styles.header}>
@@ -47,7 +47,26 @@ export default function EmergencyQuickAccessScreen() {
           <ThemedText type="title">Emergency Info</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
-        <ErrorState message={e.error || 'Could not load emergency information for this athlete.'} onRetry={e.loadData} />
+        <ErrorState message={e.error?.message || 'Could not load emergency information for this athlete.'} onRetry={e.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (e.status === 'empty' || !e.emergencyData) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <ThemedText type="title">Emergency Info</ThemedText>
+          <View style={{ width: 24 }} />
+        </Row>
+        <EmptyState
+          icon="shield-outline"
+          title="No emergency profile"
+          message="Emergency details have not been set for this athlete yet."
+          actionLabel="Refresh"
+          onPressAction={e.handleRefresh}
+        />
       </SafeAreaView>
     );
   }

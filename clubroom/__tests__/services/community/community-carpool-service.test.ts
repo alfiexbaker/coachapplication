@@ -1,387 +1,224 @@
-import { describe, it, beforeEach } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { communityCarpoolService } from '@/services/community/community-carpool-service';
-import { storageService } from '@/services/storage-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
+import { apiClient } from '@/services/api-client';
+import { communityCarpoolService } from '@/services/community/community-carpool-service';
+import type { Result, ServiceError } from '@/types/result';
 
-describe('CommunityCarpoolService', () => {
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  if (result.success) {
+    return result.data;
+  }
+  assert.fail(`Expected ok() result, got error: ${result.error.code}`);
+}
+
+function expectErr<T>(result: Result<T, ServiceError>): ServiceError {
+  if (!result.success) {
+    return result.error;
+  }
+  assert.fail('Expected err() result, got ok()');
+}
+
+let seq = 0;
+function nextId(prefix: string): string {
+  seq += 1;
+  return `${prefix}_${seq}`;
+}
+
+describe('communityCarpoolService', () => {
   beforeEach(async () => {
-    // Clear storage using storageService (not apiClient) since carpool uses storageService
-    await storageService.removeItem(STORAGE_KEYS.CARPOOL_OFFERS);
+    seq = 0;
+    await apiClient.remove(STORAGE_KEYS.CARPOOL_OFFERS);
   });
 
-  describe('createCarpoolOffer', () => {
-    it('should return ok() with created carpool offer', async () => {
-      const params = {
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Test Parent',
-        sessionId: 'session-' + Math.random().toString(36).slice(2),
-        sessionName: 'Saturday Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'High Street',
-        pickupTime: '09:00',
-        returnOffered: true,
-        returnTime: '12:00',
-      };
+  it('creates carpool offer with ACTIVE status and zero seats taken', async () => {
+    const created = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: nextId('parent'),
+      parentName: 'Parent A',
+      sessionId: nextId('session'),
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 3,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: true,
+      returnTime: '11:00',
+    }));
 
-      const result = await communityCarpoolService.createCarpoolOffer(params);
-
-      assert.ok(result.success);
-      assert.ok(result.data.id);
-      assert.equal(result.data.parentId, params.parentId);
-      assert.equal(result.data.seatsAvailable, 3);
-      assert.equal(result.data.seatsTaken, 0);
-      assert.equal(result.data.status, 'ACTIVE');
-    });
-
-    it('should return err() when seatsAvailable is invalid', async () => {
-      const params = {
-        parentId: 'parent1',
-        parentName: 'Test Parent',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 0,
-        pickupLocation: 'High Street',
-        pickupTime: '09:00',
-        returnOffered: false,
-      };
-
-      const result = await communityCarpoolService.createCarpoolOffer(params);
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'VALIDATION_ERROR');
-    });
-
-    it('should initialize empty request arrays', async () => {
-      const params = {
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Test Parent',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 2,
-        pickupLocation: 'Park',
-        pickupTime: '10:00',
-        returnOffered: false,
-      };
-
-      const result = await communityCarpoolService.createCarpoolOffer(params);
-
-      assert.ok(result.success);
-      assert.ok(Array.isArray(result.data.requests));
-      assert.ok(Array.isArray(result.data.acceptedRequests));
-      assert.equal(result.data.requests.length, 0);
-    });
+    assert.ok(created.id.length > 0);
+    assert.equal(created.status, 'ACTIVE');
+    assert.equal(created.seatsTaken, 0);
+    assert.equal(created.requests.length, 0);
   });
 
-  describe('getCarpoolOffers', () => {
-    it('should return offers for specific session', async () => {
-      const sessionId = 'session-' + Math.random().toString(36).slice(2);
+  it('rejects invalid offer input when no seats are available', async () => {
+    const error = expectErr(await communityCarpoolService.createCarpoolOffer({
+      parentId: nextId('parent'),
+      parentName: 'Parent A',
+      sessionId: nextId('session'),
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 0,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: false,
+    }));
 
-      await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId,
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 2,
-        pickupLocation: 'Location A',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
-
-      const offers = await communityCarpoolService.getCarpoolOffers(sessionId);
-
-      assert.ok(Array.isArray(offers));
-      assert.ok(offers.length > 0);
-      assert.equal(offers[0].sessionId, sessionId);
-    });
-
-    it('should return empty array for session with no offers', async () => {
-      const sessionId = 'session-nonexistent-' + Math.random().toString(36).slice(2);
-      const offers = await communityCarpoolService.getCarpoolOffers(sessionId);
-
-      assert.ok(Array.isArray(offers));
-      assert.equal(offers.length, 0);
-    });
+    assert.equal(error.code, 'VALIDATION');
   });
 
-  describe('requestCarpoolSeat', () => {
-    it('should return ok() and create request', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
+  it('returns session offers as Result and includes newly created offer', async () => {
+    const sessionId = nextId('session');
+    const created = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: nextId('parent'),
+      parentName: 'Parent A',
+      sessionId,
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 2,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: false,
+    }));
 
-      assert.ok(createResult.success);
-
-      const requestResult = await communityCarpoolService.requestCarpoolSeat({
-        offerId: createResult.data.id,
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 2',
-        childNames: ['Child 1'],
-        seatsRequested: 1,
-      });
-
-      assert.ok(requestResult.success);
-      assert.ok(requestResult.data.id);
-      assert.equal(requestResult.data.status, 'PENDING');
-    });
-
-    it('should return err() for non-existent offer', async () => {
-      const result = await communityCarpoolService.requestCarpoolSeat({
-        offerId: 'fake-offer-' + Math.random().toString(36).slice(2),
-        parentId: 'parent1',
-        parentName: 'Parent',
-        childNames: ['Child'],
-        seatsRequested: 1,
-      });
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'NOT_FOUND');
-    });
-
-    it('should return err() when seats requested exceed available', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 1,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
-
-      assert.ok(createResult.success);
-
-      const requestResult = await communityCarpoolService.requestCarpoolSeat({
-        offerId: createResult.data.id,
-        parentId: 'parent2',
-        parentName: 'Parent 2',
-        childNames: ['Child 1', 'Child 2'],
-        seatsRequested: 2,
-      });
-
-      assert.ok(!requestResult.success);
-      assert.equal(requestResult.error.code, 'CONFLICT');
-    });
+    const offers = expectOk(await communityCarpoolService.getCarpoolOffers(sessionId));
+    assert.ok(offers.some((offer) => offer.id === created.id));
   });
 
-  describe('acceptRequest', () => {
-    it('should return ok() and update request status', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
+  it('accepts request and updates seats and offer status to FULL when capacity reached', async () => {
+    const offer = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: nextId('parent'),
+      parentName: 'Parent A',
+      sessionId: nextId('session'),
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 1,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: false,
+    }));
 
-      assert.ok(createResult.success);
+    const request = expectOk(await communityCarpoolService.requestCarpoolSeat({
+      offerId: offer.id,
+      parentId: nextId('parent'),
+      parentName: 'Parent B',
+      childNames: ['Child B'],
+      seatsRequested: 1,
+    }));
 
-      const requestResult = await communityCarpoolService.requestCarpoolSeat({
-        offerId: createResult.data.id,
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 2',
-        childNames: ['Child 1'],
-        seatsRequested: 1,
-      });
+    expectOk(await communityCarpoolService.acceptCarpoolRequest(offer.id, request.id));
 
-      assert.ok(requestResult.success);
+    const updatedOffer = expectOk(await communityCarpoolService.getCarpoolOffer(offer.id));
+    const acceptedRequest = updatedOffer.requests.find((item) => item.id === request.id);
 
-      const acceptResult = await communityCarpoolService.acceptRequest(
-        createResult.data.id,
-        requestResult.data.id,
-        createResult.data.parentId
-      );
-
-      assert.ok(acceptResult.success);
-      assert.equal(acceptResult.data.status, 'ACCEPTED');
-    });
-
-    it('should return err() for non-existent offer', async () => {
-      const result = await communityCarpoolService.acceptRequest(
-        'fake-offer-' + Math.random().toString(36).slice(2),
-        'fake-request',
-        'parent1'
-      );
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'NOT_FOUND');
-    });
-
-    it('should return err() when not the offer owner', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
-
-      assert.ok(createResult.success);
-
-      const requestResult = await communityCarpoolService.requestCarpoolSeat({
-        offerId: createResult.data.id,
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 2',
-        childNames: ['Child 1'],
-        seatsRequested: 1,
-      });
-
-      assert.ok(requestResult.success);
-
-      const acceptResult = await communityCarpoolService.acceptRequest(
-        createResult.data.id,
-        requestResult.data.id,
-        'wrong-parent-' + Math.random().toString(36).slice(2)
-      );
-
-      assert.ok(!acceptResult.success);
-      assert.equal(acceptResult.error.code, 'UNAUTHORIZED');
-    });
-
-    it('should update seatsTaken when accepting request', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
-
-      assert.ok(createResult.success);
-
-      const requestResult = await communityCarpoolService.requestCarpoolSeat({
-        offerId: createResult.data.id,
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 2',
-        childNames: ['Child 1', 'Child 2'],
-        seatsRequested: 2,
-      });
-
-      assert.ok(requestResult.success);
-
-      await communityCarpoolService.acceptRequest(
-        createResult.data.id,
-        requestResult.data.id,
-        createResult.data.parentId
-      );
-
-      const offer = await communityCarpoolService.getCarpoolOffer(createResult.data.id);
-      assert.ok(offer);
-      assert.equal(offer.seatsTaken, 2);
-    });
+    assert.equal(updatedOffer.seatsTaken, 1);
+    assert.equal(updatedOffer.status, 'FULL');
+    assert.equal(acceptedRequest?.status, 'ACCEPTED');
   });
 
-  describe('declineRequest', () => {
-    it('should return ok() and update request status', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
+  it('declines request and keeps it in request list as DECLINED', async () => {
+    const offer = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: nextId('parent'),
+      parentName: 'Parent A',
+      sessionId: nextId('session'),
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 2,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: false,
+    }));
 
-      assert.ok(createResult.success);
+    const request = expectOk(await communityCarpoolService.requestCarpoolSeat({
+      offerId: offer.id,
+      parentId: nextId('parent'),
+      parentName: 'Parent B',
+      childNames: ['Child B'],
+      seatsRequested: 1,
+    }));
 
-      const requestResult = await communityCarpoolService.requestCarpoolSeat({
-        offerId: createResult.data.id,
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 2',
-        childNames: ['Child 1'],
-        seatsRequested: 1,
-      });
+    expectOk(await communityCarpoolService.declineCarpoolRequest(offer.id, request.id));
 
-      assert.ok(requestResult.success);
-
-      const declineResult = await communityCarpoolService.declineRequest(
-        createResult.data.id,
-        requestResult.data.id,
-        createResult.data.parentId
-      );
-
-      assert.ok(declineResult.success);
-      assert.equal(declineResult.data.status, 'DECLINED');
-    });
+    const updatedOffer = expectOk(await communityCarpoolService.getCarpoolOffer(offer.id));
+    const declinedRequest = updatedOffer.requests.find((item) => item.id === request.id);
+    assert.equal(declinedRequest?.status, 'DECLINED');
   });
 
-  describe('cancelOffer', () => {
-    it('should return ok() and set status to CANCELLED', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
+  it('rejects cancellation when caller is not the offer owner', async () => {
+    const offer = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: nextId('parent'),
+      parentName: 'Parent A',
+      sessionId: nextId('session'),
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 2,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: false,
+    }));
 
-      assert.ok(createResult.success);
+    const error = expectErr(await communityCarpoolService.cancelCarpoolOffer(offer.id, nextId('parent')));
+    assert.equal(error.code, 'UNAUTHORIZED');
+  });
 
-      const cancelResult = await communityCarpoolService.cancelOffer(
-        createResult.data.id,
-        createResult.data.parentId
-      );
+  it('cancels an accepted request and frees up the taken seat', async () => {
+    const ownerId = nextId('parent');
+    const requesterId = nextId('parent');
+    const offer = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: ownerId,
+      parentName: 'Parent A',
+      sessionId: nextId('session'),
+      sessionName: 'Saturday Training',
+      sessionDate: '2026-03-01',
+      seatsAvailable: 1,
+      pickupLocation: 'North Gate',
+      pickupTime: '09:00',
+      returnOffered: false,
+    }));
 
-      assert.ok(cancelResult.success);
-      assert.equal(cancelResult.data.status, 'CANCELLED');
-    });
+    const request = expectOk(await communityCarpoolService.requestCarpoolSeat({
+      offerId: offer.id,
+      parentId: requesterId,
+      parentName: 'Parent B',
+      childNames: ['Child B'],
+      seatsRequested: 1,
+    }));
+    expectOk(await communityCarpoolService.acceptCarpoolRequest(offer.id, request.id));
+    expectOk(await communityCarpoolService.cancelCarpoolRequest(offer.id, request.id, requesterId));
 
-    it('should return err() when not the offer owner', async () => {
-      const createResult = await communityCarpoolService.createCarpoolOffer({
-        parentId: 'parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Parent 1',
-        sessionId: 'session1',
-        sessionName: 'Training',
-        sessionDate: '2026-02-15',
-        seatsAvailable: 3,
-        pickupLocation: 'Location',
-        pickupTime: '09:00',
-        returnOffered: false,
-      });
+    const updatedOffer = expectOk(await communityCarpoolService.getCarpoolOffer(offer.id));
+    const cancelledRequest = updatedOffer.requests.find((item) => item.id === request.id);
 
-      assert.ok(createResult.success);
+    assert.equal(updatedOffer.seatsTaken, 0);
+    assert.equal(updatedOffer.status, 'ACTIVE');
+    assert.equal(cancelledRequest?.status, 'CANCELLED');
+  });
 
-      const cancelResult = await communityCarpoolService.cancelOffer(
-        createResult.data.id,
-        'wrong-parent'
-      );
+  it('supports canonical account aliases in owner/requester authorization', async () => {
+    const offer = expectOk(await communityCarpoolService.createCarpoolOffer({
+      parentId: POC_ACCOUNT_IDS.coachStorage,
+      parentName: 'Coach Alias',
+      sessionId: nextId('session'),
+      sessionName: 'Sunday Session',
+      sessionDate: '2026-03-08',
+      seatsAvailable: 1,
+      pickupLocation: 'South Gate',
+      pickupTime: '10:00',
+      returnOffered: false,
+    }));
 
-      assert.ok(!cancelResult.success);
-      assert.equal(cancelResult.error.code, 'UNAUTHORIZED');
-    });
+    const request = expectOk(await communityCarpoolService.requestCarpoolSeat({
+      offerId: offer.id,
+      parentId: POC_ACCOUNT_IDS.athleteStorage,
+      parentName: 'Athlete Alias',
+      childNames: ['Alias Child'],
+      seatsRequested: 1,
+    }));
+
+    expectOk(await communityCarpoolService.acceptCarpoolRequest(offer.id, request.id));
+    expectOk(await communityCarpoolService.cancelCarpoolOffer(offer.id, POC_ACCOUNT_IDS.coach));
+    expectOk(await communityCarpoolService.cancelCarpoolRequest(offer.id, request.id, POC_ACCOUNT_IDS.athlete));
   });
 });

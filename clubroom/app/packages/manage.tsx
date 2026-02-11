@@ -15,17 +15,49 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
-import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { CreatePackageForm } from '@/components/packages/CreatePackageForm';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { usePackageManage } from '@/hooks/use-package-manage';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
+import { ok } from '@/types/result';
 
 export default function ManagePackagesScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = usePackageManage();
+
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" gap="md" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <View style={styles.headerTitle}>
+            <ThemedText type="title">Manage Packages</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Create and manage session bundles</ThemedText>
+          </View>
+        </Row>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" gap="md" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <View style={styles.headerTitle}>
+            <ThemedText type="title">Manage Packages</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Create and manage session bundles</ThemedText>
+          </View>
+        </Row>
+        <ErrorState message={c.error?.message ?? 'Failed to load packages.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -42,7 +74,7 @@ export default function ManagePackagesScreen() {
       </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} tintColor={palette.tint} />}>
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}>
 
         {/* Stats */}
         <Animated.View entering={FadeInDown.delay(50).springify()}>

@@ -1,25 +1,23 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { PackageList } from '@/components/packages/PackageList';
 import { MyPackages } from '@/components/packages/MyPackages';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
-
-const logger = createLogger('PackagesScreen');
 
 type TabType = 'browse' | 'my-packages';
 
@@ -27,44 +25,32 @@ type TabType = 'browse' | 'my-packages';
  * Main packages screen - browse available packages or view purchased packages
  */
 export default function PackagesScreen() {
-  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabType>('browse');
-  const [packages, setPackages] = useState<SessionPackage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const isCoach = currentUser?.role === 'COACH';
 
   const loadPackages = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await packageService.discoverPackages();
-      if (!result.success) {
-        logger.error('Failed to load packages', result.error);
-        setPackages([]);
-        return;
-      }
-      setPackages(result.data);
-    } catch (error) {
-      logger.error('Failed to load packages:', error);
-    } finally {
-      setLoading(false);
-    }
+    return packageService.discoverPackages();
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadPackages();
-    }, [loadPackages])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<SessionPackage[]>({
+    load: loadPackages,
+    deps: [],
+    isEmpty: (value) => value.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadPackages();
-    setRefreshing(false);
-  };
+  const packages = data ?? [];
 
   const handlePackagePress = (pkg: SessionPackage) => {
     router.push(Routes.package(pkg.id));
@@ -151,7 +137,7 @@ export default function PackagesScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={palette.tint} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
         }
       >
         {activeTab === 'browse' || isCoach ? (
@@ -176,15 +162,27 @@ export default function PackagesScreen() {
             </Animated.View>
 
             {/* Package List */}
-            <PackageList
-              packages={packages}
-              loading={loading}
-              onPackagePress={handlePackagePress}
-              showCoach={true}
-              title="Available Packages"
-              subtitle="From all coaches"
-              emptyMessage="No packages available at the moment. Check back later!"
-            />
+            {status === 'loading' ? (
+              <LoadingState variant="list" />
+            ) : status === 'error' ? (
+              <ErrorState message={error?.message ?? 'Failed to load packages.'} onRetry={retry} />
+            ) : status === 'empty' ? (
+              <EmptyState
+                icon="pricetags-outline"
+                title="No packages available"
+                message="Coaches have not published any packages yet. Pull down to refresh."
+              />
+            ) : (
+              <PackageList
+                packages={packages}
+                loading={false}
+                onPackagePress={handlePackagePress}
+                showCoach={true}
+                title="Available Packages"
+                subtitle="From all coaches"
+                emptyMessage="No packages available at the moment. Check back later!"
+              />
+            )}
           </>
         ) : (
           /* My Packages Tab */

@@ -31,7 +31,7 @@ export const CoachDetailHero = memo(function CoachDetailHero({ coach, isOwnProfi
         ) : (
           <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint }]} />
         )}
-        <Clickable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+        <Clickable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: withAlpha(palette.text, 0.4) }]}>
           <Ionicons name="arrow-back" size={24} color={palette.onPrimary} />
         </Clickable>
         <View style={styles.avatarContainer}>

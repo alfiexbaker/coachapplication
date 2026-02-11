@@ -11,7 +11,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,16 +20,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { MIN_RADIUS, MAX_RADIUS, MILES_TO_KM, DEBOUNCE_MS, QUICK_VALUES } from './travel-radius-picker-constants';
+import { styles } from './travel-radius-picker-styles';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-export const MIN_RADIUS = 1;
-export const MAX_RADIUS = 50;
-export const MILES_TO_KM = 1.60934;
-export const DEBOUNCE_MS = 500;
-export const QUICK_VALUES = [5, 10, 15, 25, 50];
-
-// ─── UnitToggle ───────────────────────────────────────────────────────────────
 
 interface UnitToggleProps {
   unit: 'miles' | 'km';
@@ -245,94 +239,11 @@ export const SavedToast = memo(function SavedToast({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-export const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.sm,
-  },
-  title: {
-    ...Typography.heading,
-  },
-  unitToggle: {
-    borderRadius: Radii.pill,
-    padding: Spacing.micro,
-  },
-  unitButton: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
-  unitButtonText: {
-    ...Typography.caption,
-  },
-  displayArea: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-  },
-  radiusCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  radiusValue: {
-    ...Typography.display,
-    fontSize: 36,
-  },
-  radiusUnit: {
-    ...Typography.caption,
-    marginTop: -4,
-  },
-  postcodeRow: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  locationLabel: {
-    ...Typography.body,
-  },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderLabels: {
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xxs,
-  },
-  sliderLabel: {
-    ...Typography.caption,
-  },
-  quickSetRow: {
-    justifyContent: 'center',
-    gap: Spacing.xs,
-  },
-  quickSetBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  quickSetText: {
-    ...Typography.smallSemiBold,
-  },
-  helperArea: {
-    gap: 8,
-  },
-  helperText: {
-    flex: 1,
-    ...Typography.small,
-  },
-  toast: {
-    position: 'absolute',
-    bottom: 12,
-    alignSelf: 'center',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
-  toastText: {
-    ...Typography.bodySemiBold,
-  },
-});
+export {
+  styles,
+  MIN_RADIUS,
+  MAX_RADIUS,
+  MILES_TO_KM,
+  DEBOUNCE_MS,
+  QUICK_VALUES,
+};

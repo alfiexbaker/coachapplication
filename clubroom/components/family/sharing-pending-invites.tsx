@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -34,9 +35,14 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({ invit
               {invite.relationship} • Expires {new Date(invite.expiresAt).toLocaleDateString()}
             </ThemedText>
           </View>
-          <Pressable style={[styles.cancelBtn, { borderColor: colors.error }]} onPress={() => onCancel(invite.id, invite.inviteeEmail)}>
+          <Clickable
+            style={[styles.cancelBtn, { borderColor: colors.error }]}
+            onPress={() => onCancel(invite.id, invite.inviteeEmail)}
+            accessibilityLabel={`Cancel invite for ${invite.inviteeEmail}`}
+            accessibilityRole="button"
+          >
             <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>Cancel</ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
       ))}
     </SurfaceCard>

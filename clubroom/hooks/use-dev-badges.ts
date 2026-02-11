@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 import type { Session } from '@/constants/app-types';
 import { BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { getSessionAthleteName } from '@/utils/session-display';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useDevBadges');
 
@@ -49,53 +51,52 @@ export const BADGE_TABS: { key: BadgeCategory; label: string; icon: string }[] =
 
 const getSessionLabel = (session: Session) => session.nextFocusAreas?.[0] ?? 'Coaching session';
 
+interface DevBadgesData {
+  sessions: Session[];
+}
+
 export function useDevBadges() {
   const { currentUser } = useAuth();
   const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
 
   const [activeTab, setActiveTab] = useState<BadgeCategory>('toAward');
   const [sessionQuery, setSessionQuery] = useState('');
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [showAwardModal, setShowAwardModal] = useState(false);
   const [awardContext, setAwardContext] = useState<{
     athleteId: string; athleteName: string; sessionId?: string; sessionLabel?: string; reason?: string;
   } | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadSessions = useCallback(async () => {
+    if (!currentUser?.id) {
+      return ok<DevBadgesData>({ sessions: [] });
+    }
 
-    const loadSessions = async () => {
-      if (!currentUser?.id) {
-        if (isMounted) {
-          setSessions([]);
-        }
-        return;
-      }
-
-      try {
-        const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
-        const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setSessions(coachSessions);
-      } catch (error) {
-        logger.error('Failed to load coach sessions for badges', { coachId: currentUser.id, error });
-        if (isMounted) {
-          setSessions([]);
-        }
-      }
-    };
-
-    loadSessions();
-
-    return () => {
-      isMounted = false;
-    };
+    try {
+      const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
+      const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
+      return ok<DevBadgesData>({ sessions: coachSessions });
+    } catch (error) {
+      logger.error('Failed to load coach sessions for badges', { coachId: currentUser.id, error });
+      return err(serviceError('UNKNOWN', 'Failed to load badge sessions.', error));
+    }
   }, [currentUser?.id]);
+
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<DevBadgesData>({
+    load: loadSessions,
+    deps: [currentUser?.id],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const sessions = data?.sessions ?? [];
 
   const filteredSessions = useMemo(() => {
     const q = sessionQuery.toLowerCase();
@@ -155,6 +156,12 @@ export function useDevBadges() {
   }, [sessionIdParam, sessions]);
 
   return {
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
     activeTab, setActiveTab,
     sessionQuery, setSessionQuery,
     selectedSessionId, setSelectedSessionId,
@@ -163,5 +170,27 @@ export function useDevBadges() {
     showAwardModal, awardContext,
     currentUser,
     openAwardModal, closeAwardModal,
+  } satisfies {
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    activeTab: BadgeCategory;
+    setActiveTab: (key: BadgeCategory) => void;
+    sessionQuery: string;
+    setSessionQuery: (value: string) => void;
+    selectedSessionId: string | null;
+    setSelectedSessionId: (value: string | null) => void;
+    selectedSession: Session | null;
+    linkedAthlete: string;
+    filteredSessions: Session[];
+    visibleBadges: BadgeItem[];
+    showAwardModal: boolean;
+    awardContext: { athleteId: string; athleteName: string; sessionId?: string; sessionLabel?: string; reason?: string } | null;
+    currentUser: typeof currentUser;
+    openAwardModal: (badge: BadgeItem) => void;
+    closeAwardModal: () => void;
   };
 }

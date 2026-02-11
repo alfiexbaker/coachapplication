@@ -2,10 +2,11 @@
  * SkillProgressBar — Individual skill progress bar with expandable history.
  */
 import { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillProgress } from '@/constants/types';
@@ -32,7 +33,12 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
 
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()}>
-      <Pressable onPress={() => setExpanded(!expanded)}>
+      <Clickable
+        onPress={() => setExpanded(!expanded)}
+        accessibilityLabel={`Toggle ${skill.skillName} progress details`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
         <View style={[styles.container, compact && styles.containerCompact]}>
           {/* Main Row */}
           <Row style={styles.mainRow}>
@@ -119,7 +125,7 @@ export function SkillProgressBar({ skill, showHistory = false, compact = false, 
             </View>
           )}
         </View>
-      </Pressable>
+      </Clickable>
     </Animated.View>
   );
 }

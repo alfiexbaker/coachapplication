@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { Row } from '@/components/primitives/row';
+import { Clickable } from '@/components/primitives/clickable';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -140,15 +141,17 @@ function Toast({
       >
         <Text style={[styles.message, { color: toneColor }]}>{message}</Text>
         {action && (
-          <Pressable
+          <Clickable
             onPress={onActionPress}
             style={({ pressed }) => [
               styles.actionButton,
               { backgroundColor: withAlpha(palette.tint, pressed ? 0.19 : 0.08) },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
           >
             <Text style={[styles.actionText, { color: palette.tint }]}>{action.label}</Text>
-          </Pressable>
+          </Clickable>
         )}
       </Row>
     </Animated.View>
@@ -178,4 +181,3 @@ const styles = StyleSheet.create({
   },
   actionText: { ...Typography.bodySmallSemiBold },
 });
-

@@ -57,7 +57,7 @@ describe('matchService', () => {
         matchId: 'nonexistent_match',
         players: [{ athleteId: 'a1', athleteName: 'A', parentId: 'p1' }],
       });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
 
     test('invites players to an existing match', async () => {
@@ -99,21 +99,21 @@ describe('matchService', () => {
         parentId: 'p1',
         status: 'AVAILABLE',
       });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
   describe('recordResult (Result pattern)', () => {
     test('returns err for non-existent match', async () => {
       const result = await matchService.recordResult('nonexistent', { home: 2, away: 1 });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
   describe('cancelMatch (Result pattern)', () => {
     test('returns err for non-existent match', async () => {
       const result = await matchService.cancelMatch('nonexistent_cancel');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

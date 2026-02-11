@@ -11,7 +11,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { concernService } from '../../services/concern-service';
 import { apiClient } from '../../services/api-client';
-import { onTyped, ServiceEvents } from '../../services/event-bus';
+import { eventBus, onTyped, ServiceEvents } from '../../services/event-bus';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 
@@ -58,12 +58,12 @@ describe('concernService', () => {
 
     test('returns err for empty title', async () => {
       const result = await concernService.raiseConcern(makeConcernInput({ title: '  ' }));
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
 
     test('returns err for empty description', async () => {
       const result = await concernService.raiseConcern(makeConcernInput({ description: '' }));
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

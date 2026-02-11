@@ -6,30 +6,20 @@
  */
 
 import React, { memo } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ClubEvent } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
-import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
+import { formatEventDate } from './event-card-helpers';
+import { styles } from './event-card-styles';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function formatEventDate(date: string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
-// ─── CompactEventCard ────────────────────────────────────────────────────────
 
 interface CompactEventCardProps {
   event: ClubEvent;
@@ -196,150 +186,4 @@ export const FullEventCardContent = memo(function FullEventCardContent({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  card: {
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: 160,
-  },
-  content: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  header: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  typeBadge: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radii.sm,
-  },
-  typeBadgeText: {
-    fontSize: scaleFont(12),
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  virtualBadge: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  virtualBadgeText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: scaleFont(18),
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    lineHeight: scaleFont(24),
-  },
-  description: {
-    fontSize: scaleFont(14),
-    lineHeight: scaleFont(20),
-  },
-  detailsContainer: {
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  detailRow: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  detailText: {
-    fontSize: scaleFont(14),
-    flex: 1,
-  },
-  footer: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-  },
-  attendanceInfo: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  attendanceText: {
-    fontSize: scaleFont(13),
-  },
-  footerRight: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  price: {
-    fontSize: scaleFont(18),
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  statusText: {
-    fontSize: scaleFont(11),
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  freeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radii.sm,
-  },
-  freeText: {
-    fontSize: scaleFont(12),
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  compactCard: {
-    alignItems: 'center',
-    padding: Spacing.sm,
-    marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  compactTypeIndicator: {
-    width: 4,
-    height: '100%',
-    minHeight: 48,
-    borderRadius: Radii.xs,
-  },
-  compactContent: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  compactHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-  },
-  compactTitle: {
-    flex: 1,
-    fontSize: scaleFont(15),
-  },
-  compactPrice: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
-  },
-  compactDetails: {
-    gap: Spacing.md,
-  },
-  compactDetailItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  compactDetailText: {
-    fontSize: scaleFont(12),
-  },
-});
+export { styles };

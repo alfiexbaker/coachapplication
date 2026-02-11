@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, ViewStyle } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import { CoachDetailHero } from '@/components/coach/coach-detail-hero';
 import { CoachDetailAbout } from '@/components/coach/coach-detail-about';
 import { CoachDetailReviews } from '@/components/coach/coach-detail-reviews';
 import { CoachDetailSessions } from '@/components/coach/coach-detail-sessions';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -29,21 +30,33 @@ export default function CoachProfileScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const p = useCoachDetail(id);
 
-  if (p.loading) {
+  if (p.status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.centered}><ActivityIndicator size="large" color={palette.tint} /></View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!p.coach) {
+  if (p.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ErrorState message={p.error?.message ?? 'Failed to load coach profile.'} onRetry={p.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (p.status === 'empty' || !p.coach) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>Coach not found</ThemedText>
-          <Button onPress={() => router.back()}>Go Back</Button>
+          <EmptyState
+            icon="person-circle-outline"
+            title="Coach not found"
+            message="This coach profile is unavailable."
+            actionLabel="Go back"
+            onPressAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -51,7 +64,7 @@ export default function CoachProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.handleRefresh} tintColor={palette.tint} />}>
+      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={palette.tint} />}>
         <CoachDetailHero coach={p.coach} isOwnProfile={p.isOwnProfile} isFollowing={p.isFollowing} onFollow={p.handleFollow} onMessage={p.handleMessage} />
 
         {/* Tabs */}
@@ -91,7 +104,6 @@ export default function CoachProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
-  errorText: { ...Typography.subheading },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.md },
   tabContentContainer: { paddingBottom: 100 },

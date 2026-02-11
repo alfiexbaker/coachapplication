@@ -11,17 +11,18 @@ import { MembersPanel } from '@/components/club/MembersPanel';
 import { ClubDetailStats } from '@/components/club/club-detail-stats';
 import { EventCard } from '@/components/event/event-card';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useClubDetail, CLUB_FEED_FILTERS } from '@/hooks/use-club-detail';
 import type { MemberRemovalReason } from '@/services/club-service';
 
 export default function ClubDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
+    loading,
     club, membership, feed, feedFilter, setFeedFilter,
     sessions, squads, invites, upcomingEvents, refreshing,
     members, showMembersSection, selectedMemberForRemoval,
@@ -32,18 +33,29 @@ export default function ClubDetailScreen() {
     handleCloseMemberRemovalModal, handleToggleMembersSection, handleUpdatePhotos,
   } = useClubDetail(id);
 
+  if (loading) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Club' }} />
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <LoadingState variant="list" />
+        </View>
+      </>
+    );
+  }
+
   if (!club) {
     return (
       <>
         <Stack.Screen options={{ title: 'Club' }} />
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <View style={styles.notFound}>
-            <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-            <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>Club not found</ThemedText>
-            <Clickable style={[styles.backBtn, { backgroundColor: colors.tint }]} onPress={() => router.back()}>
-              <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
-            </Clickable>
-          </View>
+          <EmptyState
+            icon="business-outline"
+            title="Club not found"
+            message="This club could not be loaded."
+            actionLabel="Go Back"
+            onPressAction={() => router.back()}
+          />
         </View>
       </>
     );
@@ -166,8 +178,6 @@ export default function ClubDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
-  backBtn: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, marginTop: Spacing.sm },
   eventsSection: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, gap: Spacing.sm },
   actionBtn: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
   filterTab: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },

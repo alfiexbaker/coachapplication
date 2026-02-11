@@ -14,10 +14,10 @@ describe('eventRsvpService', () => {
   describe('getAttendeeCounts', () => {
     test('counts by status correctly', () => {
       const attendees: EventAttendee[] = [
-        { userId: '1', userName: 'A', userRole: 'PARENT', status: 'GOING', guestCount: 2, respondedAt: '' },
-        { userId: '2', userName: 'B', userRole: 'PARENT', status: 'GOING', guestCount: 1, respondedAt: '' },
-        { userId: '3', userName: 'C', userRole: 'PARENT', status: 'MAYBE', guestCount: 0, respondedAt: '' },
-        { userId: '4', userName: 'D', userRole: 'PARENT', status: 'NOT_GOING', guestCount: 0, respondedAt: '' },
+        { userId: '1', userRole: 'PARENT', status: 'GOING', guestCount: 2, respondedAt: '' },
+        { userId: '2', userRole: 'PARENT', status: 'GOING', guestCount: 1, respondedAt: '' },
+        { userId: '3', userRole: 'PARENT', status: 'MAYBE', guestCount: 0, respondedAt: '' },
+        { userId: '4', userRole: 'PARENT', status: 'NOT_GOING', guestCount: 0, respondedAt: '' },
       ];
 
       const counts = eventRsvpService.getAttendeeCounts(attendees);
@@ -39,8 +39,8 @@ describe('eventRsvpService', () => {
   describe('getUserRSVP', () => {
     test('finds user RSVP in attendees list', () => {
       const attendees: EventAttendee[] = [
-        { userId: 'u1', userName: 'A', userRole: 'PARENT', status: 'GOING', guestCount: 0, respondedAt: '' },
-        { userId: 'u2', userName: 'B', userRole: 'PARENT', status: 'MAYBE', guestCount: 0, respondedAt: '' },
+        { userId: 'u1', userRole: 'PARENT', status: 'GOING', guestCount: 0, respondedAt: '' },
+        { userId: 'u2', userRole: 'PARENT', status: 'MAYBE', guestCount: 0, respondedAt: '' },
       ];
 
       const rsvp = eventRsvpService.getUserRSVP(attendees, 'u2');
@@ -57,7 +57,7 @@ describe('eventRsvpService', () => {
   describe('isRSVPClosed', () => {
     test('returns false when no deadline', () => {
       const event = {} as ClubEvent;
-      assert.equal(eventRsvpService.isRSVPClosed(event), false);
+      assert.strictEqual(eventRsvpService.isRSVPClosed(event), false);
     });
 
     test('returns true when deadline has passed', () => {
@@ -68,22 +68,22 @@ describe('eventRsvpService', () => {
     test('returns false when deadline is in future', () => {
       const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const event = { rsvpDeadline: future } as ClubEvent;
-      assert.equal(eventRsvpService.isRSVPClosed(event), false);
+      assert.strictEqual(eventRsvpService.isRSVPClosed(event), false);
     });
   });
 
   describe('isEventFull', () => {
     test('returns false when no maxAttendees', () => {
       const event = { attendees: [] } as unknown as ClubEvent;
-      assert.equal(eventRsvpService.isEventFull(event), false);
+      assert.strictEqual(eventRsvpService.isEventFull(event), false);
     });
 
     test('returns true when at capacity', () => {
       const event = {
         maxAttendees: 2,
         attendees: [
-          { userId: '1', userName: 'A', userRole: 'PARENT', status: 'GOING', guestCount: 0, respondedAt: '' },
-          { userId: '2', userName: 'B', userRole: 'PARENT', status: 'GOING', guestCount: 0, respondedAt: '' },
+          { userId: '1', userRole: 'PARENT', status: 'GOING', guestCount: 0, respondedAt: '' },
+          { userId: '2', userRole: 'PARENT', status: 'GOING', guestCount: 0, respondedAt: '' },
         ],
       } as unknown as ClubEvent;
       assert.equal(eventRsvpService.isEventFull(event), true);
@@ -124,14 +124,14 @@ describe('eventRsvpService', () => {
       const result = await eventRsvpService.rsvp(
         'nonexistent_event', 'u1', 'Name', 'PARENT', 'GOING'
       );
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
   describe('updateRSVP', () => {
     test('returns err for non-existent RSVP', async () => {
       const result = await eventRsvpService.updateRSVP('nonexistent_rsvp', 'MAYBE');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

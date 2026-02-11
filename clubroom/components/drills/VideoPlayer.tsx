@@ -147,7 +147,7 @@ export function VideoPlayer({
         )}
 
         {title && !hasStarted && (
-          <VideoTitleOverlay title={title} duration={duration} />
+          <VideoTitleOverlay title={title} duration={duration} palette={palette} />
         )}
       </Clickable>
     </View>

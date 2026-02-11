@@ -7,7 +7,7 @@
  */
 
 import { useCallback } from 'react';
-import { StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -16,6 +16,7 @@ import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Center } from '@/components/primitives/center';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { WalletBalanceCard } from '@/components/wallet/wallet-balance-card';
 import { WalletQuickActions } from '@/components/wallet/wallet-quick-actions';
 import { WalletPendingSection } from '@/components/wallet/wallet-pending-section';
@@ -32,13 +33,15 @@ export default function WalletScreen() {
     wallet,
     transactions,
     pendingTransactions,
-    loading,
+    status,
+    error,
     refreshing,
     showTopUpModal,
     selectedAmount,
     customAmount,
     processing,
     handleRefresh,
+    retry,
     openTopUpModal,
     closeTopUpModal,
     selectPresetAmount,
@@ -88,17 +91,39 @@ export default function WalletScreen() {
     [wallet, openTopUpModal, pendingTransactions]
   );
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <PageContainer header={<ScreenHeader title="Wallet" subtitle="Manage your earnings" />}>
-        <Center flex>
-          <Column align="center" gap="md">
-            <ActivityIndicator size="large" color={colors.tint} />
-            <ThemedText style={[styles.loadingText, { color: colors.muted }]}>
-              Loading wallet...
-            </ThemedText>
-          </Column>
-        </Center>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer header={<ScreenHeader title="Wallet" subtitle="Manage your earnings" />}>
+        <ErrorState
+          message={error?.message ?? 'Failed to load wallet. Pull to refresh or retry.'}
+          onRetry={retry}
+        />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="Wallet" subtitle="Manage your earnings" />}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+      >
+        <EmptyState
+          icon="wallet-outline"
+          title="Wallet not ready"
+          message="We could not find wallet data yet. Pull down to refresh."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
       </PageContainer>
     );
   }
@@ -148,9 +173,6 @@ const styles = StyleSheet.create({
   transactionsTitle: {
     ...Typography.heading,
     marginTop: Spacing.sm,
-  },
-  loadingText: {
-    ...Typography.bodySmall,
   },
   emptyTitle: {
     ...Typography.subheading,

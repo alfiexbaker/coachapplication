@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Modal, Share, Pressable } from 'react-native';
+import { View, StyleSheet, Modal, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
@@ -74,10 +74,16 @@ export function ShareProfile({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
+      <Clickable
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close share profile modal"
+      >
+        <Clickable
           style={[styles.sheet, { backgroundColor: palette.surface }]}
-          onPress={(e) => e.stopPropagation()}
+          onPress={() => {}}
+          accessibilityRole="none"
         >
           <Row style={styles.sheetHeader}>
             <ThemedText style={[Typography.title, { color: palette.text }]}>
@@ -122,8 +128,8 @@ export function ShareProfile({
             onCancel={handleSlugCancel}
             palette={palette}
           />
-        </Pressable>
-      </Pressable>
+        </Clickable>
+      </Clickable>
     </Modal>
   );
 }
@@ -131,7 +137,6 @@ export function ShareProfile({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {

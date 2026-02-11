@@ -6,14 +6,14 @@
  */
 
 import React, { useCallback } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { CommentCard } from '@/components/social/comment-card';
 import { CommentInput } from '@/components/social/comment-input';
 import { PostDetailCard } from '@/components/social/post-detail-card';
@@ -62,14 +62,11 @@ export default function PostDetailScreen() {
     />
   );
 
-  const ListEmpty = p.loading ? (
-    <View style={styles.loadingContainer}><ActivityIndicator size="small" color={palette.muted} /></View>
-  ) : p.error ? (
+  const ListEmpty = p.status === 'loading' ? (
+    <View style={styles.loadingContainer}><LoadingState variant="list" /></View>
+  ) : p.status === 'error' ? (
     <View style={styles.errorContainer}>
-      <StatusBanner variant="error" message={p.error} />
-      <Clickable onPress={p.loadComments} style={styles.retryButton}>
-        <ThemedText style={[styles.retryText, { color: palette.tint }]}>Retry</ThemedText>
-      </Clickable>
+      <ErrorState message={p.error ?? 'Failed to load comments.'} onRetry={p.retry} />
     </View>
   ) : (
     <View style={styles.emptyContainer}>
@@ -94,7 +91,7 @@ export default function PostDetailScreen() {
           data={p.flatItems} renderItem={renderComment} keyExtractor={keyExtractor}
           ListHeaderComponent={ListHeader} ListEmptyComponent={ListEmpty}
           contentContainerStyle={styles.listContent} refreshing={p.refreshing}
-          onRefresh={p.handleRefresh} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
+          onRefresh={p.onRefresh} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
         />
         <SafeAreaView edges={['bottom']} style={{ backgroundColor: palette.surface }}>
           <CommentInput value={p.newComment} onChangeText={p.setNewComment} onSubmit={p.handleSubmitComment}
@@ -114,10 +111,8 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.heading },
   headerSpacer: { width: 44 },
   listContent: { paddingBottom: Spacing.sm },
-  loadingContainer: { paddingVertical: Spacing.lg, alignItems: 'center' },
-  errorContainer: { padding: Spacing.sm, gap: Spacing.xs, alignItems: 'center' },
-  retryButton: { minHeight: 44, justifyContent: 'center' },
-  retryText: { ...Typography.bodySemiBold },
+  loadingContainer: { paddingVertical: Spacing.lg },
+  errorContainer: { padding: Spacing.sm },
   emptyContainer: { paddingVertical: Spacing.lg, alignItems: 'center', gap: Spacing.xs },
   emptyTitle: { ...Typography.heading },
   emptySubtitle: { ...Typography.bodySmall, textAlign: 'center' },

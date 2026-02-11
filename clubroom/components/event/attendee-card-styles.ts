@@ -1,0 +1,96 @@
+import { StyleSheet } from 'react-native';
+
+import { Radii, Spacing } from '@/constants/theme';
+import { scaleFont } from '@/utils/scale';
+
+export const styles = StyleSheet.create({
+  content: {
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  avatarImage: { width: 48, height: 48, borderRadius: Radii.xl },
+  avatarInitial: { fontSize: scaleFont(18), fontWeight: '600' },
+  checkInBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  info: { flex: 1, gap: Spacing.xxs },
+  nameRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
+  },
+  name: { fontSize: scaleFont(15), flex: 1 },
+  statusBadge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
+  statusBadgeText: { fontSize: scaleFont(11), fontWeight: '600' },
+  detailsRow: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  roleTag: { alignItems: 'center', gap: Spacing.xxs },
+  roleText: { fontSize: scaleFont(12) },
+  guestTag: { alignItems: 'center', gap: Spacing.xxs },
+  guestText: { fontSize: scaleFont(12) },
+  checkInInfo: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
+  },
+  checkInTime: { fontSize: scaleFont(12), fontWeight: '500' },
+  locationVerified: { marginLeft: Spacing.micro },
+  rsvpTime: { fontSize: scaleFont(12), marginTop: Spacing.micro },
+  noteContainer: {
+    alignItems: 'flex-start',
+    gap: Spacing.xxs,
+    padding: Spacing.xs,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xxs,
+  },
+  noteText: { flex: 1, fontSize: scaleFont(12), fontStyle: 'italic' },
+  compactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  compactAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactAvatarImage: { width: 32, height: 32, borderRadius: Radii.lg },
+  compactAvatarInitial: { fontSize: scaleFont(14), fontWeight: '600' },
+  compactInfo: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  compactName: { fontSize: scaleFont(14), flex: 1 },
+  compactGuests: { fontSize: scaleFont(12) },
+  compactStatusDot: { width: 8, height: 8, borderRadius: Radii.xs },
+});

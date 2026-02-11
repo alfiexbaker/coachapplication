@@ -7,16 +7,17 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { BadgeCard } from './badge-card';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, withAlpha } from '@/constants/theme';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { styles } from './badge-grid-styles';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -187,99 +188,4 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
       </View>
     </SurfaceCard>
   );
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  grid: {
-    flexWrap: 'wrap',
-  },
-  sectionContainer: {
-    padding: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionHeaderLeft: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  sectionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitleGroup: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  sectionTitle: { ...Typography.body },
-  sectionSubtitle: { ...Typography.caption },
-  sectionProgress: {
-    alignItems: 'flex-end',
-  },
-  progressPercent: { ...Typography.bodySmallSemiBold },
-  sectionProgressBar: {
-    height: 4,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  sectionProgressFill: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
-  statsContainer: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  statsRow: {
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    flex: 1,
-  },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statValue: { ...Typography.display },
-  statLabel: {
-    ...Typography.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statDivider: {
-    width: 1,
-    height: 50,
-  },
-  overallProgress: {
-    gap: Spacing.xs,
-  },
-  progressHeader: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressTitle: { ...Typography.bodySmallSemiBold },
-  progressValue: { ...Typography.bodySmallSemiBold },
-  progressBarLarge: {
-    height: 8,
-    borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
-  progressFillLarge: {
-    height: '100%',
-    borderRadius: Radii.xs,
-  },
 });

@@ -5,11 +5,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { earningsService, type TransactionFilter } from '@/services/earnings';
 import type { CoachEarnings, EarningTransaction, Withdrawal, PayoutMethod } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('EarningsScreen');
 
@@ -22,15 +23,17 @@ export const FILTER_OPTIONS: FilterOption[] = [
   { label: 'Withdrawals', value: 'withdrawals' },
 ];
 
+interface EarningsLoadData {
+  earnings: CoachEarnings | null;
+  transactions: EarningTransaction[];
+  pendingWithdrawals: Withdrawal[];
+  payoutMethods: PayoutMethod[];
+}
+
 export function useEarnings() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id || 'coach1';
 
-  const [loading, setLoading] = useState(true);
-  const [earnings, setEarnings] = useState<CoachEarnings | null>(null);
-  const [transactions, setTransactions] = useState<EarningTransaction[]>([]);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState<Withdrawal[]>([]);
-  const [payoutMethods, setPayoutMethods] = useState<PayoutMethod[]>([]);
   const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>('all');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -39,7 +42,6 @@ export function useEarnings() {
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const [earningsData, transactionsData, withdrawalsData, methodsData] = await Promise.all([
         earningsService.getEarnings(coachId),
@@ -47,26 +49,65 @@ export function useEarnings() {
         earningsService.getPendingWithdrawals(coachId),
         earningsService.getPayoutMethods(coachId),
       ]);
-      setEarnings(earningsData);
-      setTransactions(transactionsData);
-      setPendingWithdrawals(withdrawalsData);
-      setPayoutMethods(methodsData);
-      if (methodsData.length > 0 && !selectedPayoutMethod) {
-        const defaultMethod = methodsData.find((m) => m.isDefault) || methodsData[0];
-        setSelectedPayoutMethod(defaultMethod.id);
-      }
+
+      return ok<EarningsLoadData>({
+        earnings: earningsData,
+        transactions: transactionsData,
+        pendingWithdrawals: withdrawalsData,
+        payoutMethods: methodsData,
+      });
     } catch (error) {
       logger.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load earnings data.', error));
     }
-  }, [coachId, selectedPayoutMethod]);
+  }, [coachId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<EarningsLoadData>({
+    load: loadData,
+    deps: [coachId],
+    isEmpty: (value) =>
+      value.transactions.length === 0 &&
+      value.pendingWithdrawals.length === 0 &&
+      value.payoutMethods.length === 0 &&
+      value.earnings === null,
+    refetchOnFocus: true,
+  });
+
+  const earnings = data?.earnings ?? null;
+  const pendingWithdrawals = data?.pendingWithdrawals ?? [];
+  const payoutMethods = data?.payoutMethods ?? [];
+  const allTransactions = data?.transactions ?? [];
+
   useEffect(() => {
-    earningsService.getTransactionHistory(coachId).then(setTransactions);
-  }, [coachId, transactionFilter]);
+    if (selectedPayoutMethod || payoutMethods.length === 0) {
+      return;
+    }
+    const defaultMethod = payoutMethods.find((method) => method.isDefault) || payoutMethods[0];
+    setSelectedPayoutMethod(defaultMethod.id);
+  }, [selectedPayoutMethod, payoutMethods]);
+
+  const transactions = useMemo(() => {
+    if (transactionFilter === 'all') {
+      return allTransactions;
+    }
+
+    if (transactionFilter === 'payments') {
+      return allTransactions.filter((txn) => txn.type === 'SESSION_PAYMENT');
+    }
+
+    if (transactionFilter === 'refunds') {
+      return allTransactions.filter((txn) => txn.type === 'REFUND');
+    }
+
+    return allTransactions.filter((txn) => txn.type === 'WITHDRAWAL');
+  }, [allTransactions, transactionFilter]);
 
   const handleWithdraw = useCallback(async () => {
     const amount = parseFloat(withdrawAmount);
@@ -81,7 +122,7 @@ export function useEarnings() {
       if (result.success) {
         setShowWithdrawModal(false);
         setWithdrawAmount('');
-        await loadData();
+        onRefresh();
       } else {
         setWithdrawError(result.error || 'Failed to request withdrawal');
       }
@@ -90,7 +131,7 @@ export function useEarnings() {
     } finally {
       setWithdrawing(false);
     }
-  }, [coachId, withdrawAmount, selectedPayoutMethod, earnings, loadData]);
+  }, [coachId, withdrawAmount, selectedPayoutMethod, earnings, onRefresh]);
 
   const formatCurrency = useCallback((amount: number) => {
     return earningsService.formatCurrency(amount, earnings?.currency || 'GBP');
@@ -124,7 +165,12 @@ export function useEarnings() {
   const closeWithdrawModal = useCallback(() => setShowWithdrawModal(false), []);
 
   return {
-    loading,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
     earnings,
     transactions,
     pendingWithdrawals,

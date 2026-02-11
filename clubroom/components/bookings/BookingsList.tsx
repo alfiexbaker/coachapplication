@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { FlatList, View, StyleSheet } from 'react-native';
+import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -24,6 +24,8 @@ export interface BookingsListProps {
   onOfferingPress: (offering: SessionOffering) => void;
   onFindCoachPress: () => void;
   onCreateSessionPress: () => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 /** Union type for display items: either a regular item or a series group */
@@ -40,6 +42,8 @@ export function BookingsList({
   onOfferingPress,
   onFindCoachPress,
   onCreateSessionPress,
+  refreshing = false,
+  onRefresh,
 }: BookingsListProps) {
   const { colors: palette } = useTheme();
 
@@ -176,6 +180,9 @@ export function BookingsList({
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={ListSeparator}
+          refreshControl={
+            onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} /> : undefined
+          }
         />
       ) : (
         <View style={styles.emptyState}>

@@ -16,7 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { ConsentCard } from '@/components/consent/ConsentCard';
 import { ConsentFilter } from '@/components/consent/ConsentFilter';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -58,6 +58,36 @@ export default function ConsentsScreen() {
       <ConsentCard athleteConsent={item} onPress={() => router.push(Routes.rosterAthlete(item.athleteId))} />
     </Animated.View>
   );
+
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" gap="md" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <View style={styles.headerTitle}>
+            <ThemedText type="title">Consent Dashboard</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Quick view before posting content</ThemedText>
+          </View>
+        </Row>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" gap="md" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <View style={styles.headerTitle}>
+            <ThemedText type="title">Consent Dashboard</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Quick view before posting content</ThemedText>
+          </View>
+        </Row>
+        <ErrorState message={c.error?.message || 'Failed to load consent data.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -108,21 +138,17 @@ export default function ConsentsScreen() {
         </Animated.View>
       )}
 
-      {c.loading ? (
-        <LoadingState variant="list" />
-      ) : (
-        <FlatList data={c.consents} keyExtractor={(item) => item.athleteId} renderItem={renderItem}
-          contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
-          ListEmptyComponent={
-            <EmptyState icon="shield-checkmark-outline" title="No athletes found"
-              message={c.searchQuery || c.activeFiltersCount > 0 ? 'Try adjusting your search or filters' : 'No athletes in your roster have consent data yet.'}
-              actionLabel={c.activeFiltersCount > 0 ? 'Clear Filters' : undefined}
-              onPressAction={c.activeFiltersCount > 0 ? c.clearFilters : undefined} />
-          }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
-      )}
+      <FlatList data={c.consents} keyExtractor={(item) => item.athleteId} renderItem={renderItem}
+        contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+        ListEmptyComponent={
+          <EmptyState icon="shield-checkmark-outline" title="No athletes found"
+            message={c.searchQuery || c.activeFiltersCount > 0 ? 'Try adjusting your search or filters' : 'No athletes in your roster have consent data yet.'}
+            actionLabel={c.activeFiltersCount > 0 ? 'Clear Filters' : undefined}
+            onPressAction={c.activeFiltersCount > 0 ? c.clearFilters : undefined} />
+        }
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+      />
     </SafeAreaView>
   );
 }

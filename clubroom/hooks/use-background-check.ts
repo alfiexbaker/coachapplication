@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { router } from 'expo-router';
 
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
+import type { ServiceError } from '@/types/result';
 
 const logger = createLogger('useBackgroundCheck');
 const COACH_ID = 'coach1';
@@ -15,29 +17,53 @@ export const BG_CHECK_STEPS = [
   { id: 4, title: 'Receive Results', description: 'Certificate issued upon successful completion' },
 ];
 
+export interface UseBackgroundCheckResult {
+  status: VerificationStatus | null;
+  loading: boolean;
+  screenStatus: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  submitting: boolean;
+  isVerified: boolean;
+  isPending: boolean;
+  handleStartCheck: () => Promise<void>;
+  handleMockApprove: () => Promise<void>;
+}
+
 export function useBackgroundCheck() {
-  const [status, setStatus] = useState<VerificationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const loadStatus = useCallback(async () => {
     const result = await verificationService.getStatus(COACH_ID);
-    if (result.success) {
-      setStatus(result.data);
-    } else {
+    if (!result.success) {
       logger.error('Failed to load verification status:', result.error);
     }
-    setLoading(false);
+    return result;
   }, []);
 
-  useEffect(() => { loadStatus(); }, [loadStatus]);
+  const {
+    data: status,
+    status: screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<VerificationStatus>({
+    load: loadStatus,
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const loading = screenStatus === 'loading';
 
   const handleStartCheck = useCallback(async () => {
     setSubmitting(true);
     try {
       const result = await verificationService.startBackgroundCheck(COACH_ID);
       if (result.success) {
-        await loadStatus();
+        onRefresh();
       } else {
         logger.error('Failed to start background check:', result.error);
       }
@@ -46,13 +72,14 @@ export function useBackgroundCheck() {
     } finally {
       setSubmitting(false);
     }
-  }, [loadStatus]);
+  }, [onRefresh]);
 
   const handleMockApprove = useCallback(async () => {
     setSubmitting(true);
     try {
       const result = await verificationService.mockApproveVerification(COACH_ID, 'backgroundCheck');
       if (result.success) {
+        onRefresh();
         router.back();
       } else {
         logger.error('Failed to approve:', result.error);
@@ -62,10 +89,23 @@ export function useBackgroundCheck() {
     } finally {
       setSubmitting(false);
     }
-  }, []);
+  }, [onRefresh]);
 
   const isVerified = status?.backgroundCheck.status === 'VERIFIED';
   const isPending = status?.backgroundCheck.status === 'PENDING';
 
-  return { status, loading, submitting, isVerified, isPending, handleStartCheck, handleMockApprove };
+  return {
+    status: status ?? null,
+    loading,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    submitting,
+    isVerified,
+    isPending,
+    handleStartCheck,
+    handleMockApprove,
+  } satisfies UseBackgroundCheckResult;
 }

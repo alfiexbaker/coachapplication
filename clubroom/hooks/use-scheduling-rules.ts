@@ -11,9 +11,11 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useSchedulingRules');
 
@@ -57,8 +59,6 @@ export const RESCHEDULE_OPTIONS = [
 export function useSchedulingRules() {
   const { currentUser } = useAuth();
 
-  const [, setRules] = useState<CoachSchedulingRules | null>(null);
-  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -73,31 +73,43 @@ export function useSchedulingRules() {
   const coachId = currentUser?.id || 'coach_1';
 
   const loadRules = useCallback(async () => {
-    setLoading(true);
     try {
       const dataResult = await schedulingRulesService.getCoachRules(coachId);
       if (dataResult.success) {
-        const data = dataResult.data;
-        setRules(data);
-        setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
-        setMaxAdvanceDays(data.maxAdvanceBookingDays);
-        setBufferMinutes(data.bufferMinutesDefault);
-        setAllowSameDayBookings(data.allowSameDayBookings);
-        setAllowRescheduling(data.allowRescheduling);
-        setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
+        return ok<CoachSchedulingRules>(dataResult.data);
       } else {
         logger.error('Failed to load scheduling rules', dataResult.error);
+        return err(serviceError('UNKNOWN', 'Failed to load scheduling rules.', dataResult.error));
       }
     } catch (error) {
       logger.error('Failed to load scheduling rules', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load scheduling rules.', error));
     }
   }, [coachId]);
 
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<CoachSchedulingRules>({
+    load: loadRules,
+    deps: [coachId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
   useEffect(() => {
-    loadRules();
-  }, [loadRules]);
+    if (!data) return;
+    setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
+    setMaxAdvanceDays(data.maxAdvanceBookingDays);
+    setBufferMinutes(data.bufferMinutesDefault);
+    setAllowSameDayBookings(data.allowSameDayBookings);
+    setAllowRescheduling(data.allowRescheduling);
+    setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
+  }, [data]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -151,6 +163,12 @@ export function useSchedulingRules() {
   }, [hasChanges]);
 
   return {
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
     saving,
     hasChanges,
     minimumAdvanceHours,

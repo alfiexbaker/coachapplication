@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import {
   familyService,
@@ -10,15 +11,18 @@ import {
   type FamilyDateRange,
 } from '@/services/family';
 import { eventService } from '@/services/event-service';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('FamilyCalendarScreen');
+
+interface FamilyCalendarData {
+  members: FamilyMember[];
+  events: FamilyCalendarEvent[];
+}
 
 export function useFamilyCalendar() {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [events, setEvents] = useState<FamilyCalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,7 +37,9 @@ export function useFamilyCalendar() {
   });
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<FamilyCalendarData>({ members: [], events: [] });
+    }
 
     try {
       const [membersData, bookingsData, clubEventsData] = await Promise.all([
@@ -59,23 +65,36 @@ export function useFamilyCalendar() {
         eventType: event.eventType,
       }));
 
-      setMembers(membersData);
       const allEvents = [...bookingsData, ...clubEventsAsCalendar].sort(
         (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
       );
-      setEvents(allEvents);
+
+      return ok<FamilyCalendarData>({
+        members: membersData,
+        events: allEvents,
+      });
     } catch (error) {
       logger.error('Failed to load calendar data:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load family calendar.', error));
     }
   }, [currentUser?.id, dateRange]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<FamilyCalendarData>({
+    load: loadData,
+    deps: [currentUser?.id, dateRange.startDate, dateRange.endDate],
+    isEmpty: (value) => value.events.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const members = data?.members ?? [];
+  const events = data?.events ?? [];
 
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -105,7 +124,19 @@ export function useFamilyCalendar() {
   }), [events, selectedChildId]);
 
   return {
-    loading, members, events, selectedDate, selectedChildId, monthStats,
-    handleDateSelect, handleEventPress, handleChildFilterChange,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    members,
+    events,
+    selectedDate,
+    selectedChildId,
+    monthStats,
+    handleDateSelect,
+    handleEventPress,
+    handleChildFilterChange,
   };
 }

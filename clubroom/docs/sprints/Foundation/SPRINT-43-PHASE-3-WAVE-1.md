@@ -3,7 +3,8 @@
 > **Date Opened:** 2026-02-11
 > **Owner:** Codex + Team
 > **Goal:** Start Phase 3 by hardening `useScreen()` and migrating the highest-traffic screens first.
-> **Status:** ACTIVE
+> **Status:** COMPLETE
+> **Live Tracker:** `docs/sprints/Foundation/PHASE-3-LIVE-TRACKER.md`
 
 ---
 
@@ -22,36 +23,36 @@
 
 ### Track A: `useScreen()` Infrastructure
 
-- [ ] `hooks/use-screen.ts` - Add `refetchOnFocus?: boolean` option (`NOT_STARTED`)
-- [ ] `hooks/use-screen.ts` - Implement focus-based silent refetch when enabled (`NOT_STARTED`)
-- [ ] `types/result.ts` - Add `combineResults()` helper for multi-source screen loads (`NOT_STARTED`)
-- [ ] `__tests__/` - Add/update focused tests for `useScreen` + `combineResults` behavior (`NOT_STARTED`)
+- [x] `hooks/use-screen.ts` - Add `refetchOnFocus?: boolean` option (`DONE`)
+- [x] `hooks/use-screen.ts` - Implement focus-based silent refetch when enabled (`DONE`)
+- [x] `types/result.ts` - Add `combineResults()` helper for multi-source screen loads (`DONE`)
+- [x] `__tests__/` - Add/update focused tests for `useScreen` + `combineResults` behavior (`DONE`)
 
 ### Track B: Wave 1 Screen Migration (High Traffic)
 
-- [ ] `app/(tabs)/index.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/schedule.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/messages.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/notifications.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/profile.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/athletes.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/roster.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/availability.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/earnings.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/children.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/club-hub.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/wallet.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/settings.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/feed.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/coach-profile.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/more.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/badges.tsx` (`NOT_STARTED`)
-- [ ] `app/(tabs)/edit-profile.tsx` (`NOT_STARTED`)
-- [ ] `app/bookings/[id]/counter.tsx` (`NOT_STARTED`)
-- [ ] `app/bookings/[id]/negotiate.tsx` (`NOT_STARTED`)
-- [ ] `app/bookings/recurring.tsx` (`NOT_STARTED`)
-- [ ] `app/bookings/subscribe.tsx` (`NOT_STARTED`)
-- [ ] `app/chat/[threadId].tsx` (`NOT_STARTED`)
+- [x] `app/(tabs)/index.tsx` (`DONE`)
+- [x] `app/(tabs)/schedule.tsx` (`DONE`)
+- [x] `app/(tabs)/messages.tsx` (`DONE`)
+- [x] `app/(tabs)/notifications.tsx` (`DONE`)
+- [x] `app/(tabs)/profile.tsx` (`DONE`)
+- [x] `app/(tabs)/athletes.tsx` (`DONE`)
+- [x] `app/(tabs)/roster.tsx` (`DONE`)
+- [x] `app/(tabs)/availability.tsx` (`DONE`)
+- [x] `app/(tabs)/earnings.tsx` (`DONE`)
+- [x] `app/(tabs)/children.tsx` (`DONE`)
+- [x] `app/(tabs)/club-hub.tsx` (`DONE`)
+- [x] `app/(tabs)/wallet.tsx` (`DONE`)
+- [x] `app/(tabs)/settings.tsx` (`DONE`)
+- [x] `app/(tabs)/feed.tsx` (`DONE`)
+- [x] `app/(tabs)/coach-profile.tsx` (`DONE`)
+- [x] `app/(tabs)/more.tsx` (`DONE`)
+- [x] `app/(tabs)/badges.tsx` (`DONE`)
+- [x] `app/(tabs)/edit-profile.tsx` (`DONE`)
+- [x] `app/bookings/[id]/counter.tsx` (`DONE`)
+- [x] `app/bookings/[id]/negotiate.tsx` (`DONE`)
+- [x] `app/bookings/recurring.tsx` (`DONE`)
+- [x] `app/bookings/subscribe.tsx` (`DONE`)
+- [x] `app/chat/[threadId].tsx` (`DONE`)
 
 ---
 

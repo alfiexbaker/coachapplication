@@ -44,7 +44,7 @@ describe('followService', () => {
 
     test('returns false when not following', async () => {
       const result = await followService.isFollowing('nobody_1', 'nobody_2');
-      assert.equal(result, false);
+      assert.strictEqual(result, false);
     });
   });
 
@@ -89,7 +89,7 @@ describe('followService', () => {
 
       await followService.unfollow('parent_unf_1', 'coach_unf_1');
       const isFollowing = await followService.isFollowing('parent_unf_1', 'coach_unf_1');
-      assert.equal(isFollowing, false);
+      assert.strictEqual(isFollowing, false);
     });
   });
 

@@ -9,6 +9,7 @@ import { Row } from '@/components/primitives/row';
 import { DrillList } from '@/components/drills';
 import { DrillStatsCard } from '@/components/drills/drill-stats-card';
 import { DrillTabFilter } from '@/components/drills/drill-tab-filter';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -18,9 +19,66 @@ import { scaleFont } from '@/utils/scale';
 export default function DrillsDashboardScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    stats, loading, refreshing, activeTab, filteredAssignments,
-    handleRefresh, handleAssignmentPress, handleComplete, handleTabChange,
+    stats, loading, status, error, refreshing, onRefresh, retry, activeTab, filteredAssignments,
+    handleAssignmentPress, handleComplete, handleTabChange,
   } = useDrillsScreen();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+          </Row>
+        </Row>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+          </Row>
+        </Row>
+        <ErrorState message={error?.message ?? 'Failed to load drills.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+          </Row>
+        </Row>
+        <ScrollView
+          contentContainerStyle={styles.emptyContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          <EmptyState
+            icon="fitness-outline"
+            title="No drills assigned"
+            message="Ask your coach to assign drills, then pull down to refresh."
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -37,7 +95,7 @@ export default function DrillsDashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {stats && <DrillStatsCard stats={stats} colors={colors} />}
 
@@ -63,5 +121,6 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+  emptyContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
   listSection: { flex: 1 },
 });

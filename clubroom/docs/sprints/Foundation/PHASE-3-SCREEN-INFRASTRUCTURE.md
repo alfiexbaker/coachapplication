@@ -3,6 +3,7 @@
 > **Duration:** ~1.5 weeks
 > **Goal:** Every screen uses useScreen(), has 4 visual states, handles errors with retry, and supports pull-to-refresh.
 > **Depends on:** Phase 2 (data must flow through services before screens can consume Result<T>)
+> **Tracker:** `PHASE-3-LIVE-TRACKER.md`
 
 ---
 
@@ -158,8 +159,8 @@ Every `<ActivityIndicator>` should become `<LoadingState variant="list|detail|fo
 ## Quality Gate
 
 Phase 3 is DONE when:
-- [ ] `useScreen()` supports `refetchOnFocus` option
-- [ ] `combineResults()` helper exists in `types/result.ts`
+- [x] `useScreen()` supports `refetchOnFocus` option
+- [x] `combineResults()` helper exists in `types/result.ts`
 - [ ] All 180 screens use `useScreen()` for data loading
 - [ ] All 180 screens have 4 visual state branches: loading, error (with retry), empty (with CTA), success
 - [ ] All scrollable screens have `RefreshControl` wired to `onRefresh`

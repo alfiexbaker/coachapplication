@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ok } from '@/types/result';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -13,13 +14,47 @@ import { Spacing, Radii } from '@/constants/theme';
 import { useCreateAcademy } from '@/hooks/use-create-academy';
 
 export default function CreateAcademyScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { status, error, retry, colors: palette } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const {
     step, steps, currentStepIndex, loading,
     name, description, city, postcode, email, phone, website, specialties,
     setName, setDescription, setCity, setPostcode, setEmail, setPhone, setWebsite,
     canProceed, goNext, goBack, toggleSpecialty, handleCreate,
   } = useCreateAcademy();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to open academy creation.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="business-outline"
+          title="Creation unavailable"
+          message="The academy setup flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

@@ -5,6 +5,7 @@ import { bookingSearchService } from '@/services/booking/booking-search-service'
 import { bookingCrudService } from '@/services/booking/booking-crud-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 
 describe('BookingSearchService', () => {
   beforeEach(async () => {
@@ -36,6 +37,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       // Create booking for other coach
@@ -51,6 +53,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getBookingsForUser(coachId, 'coach');
@@ -74,6 +77,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getBookingsForUser(parentId, 'parent');
@@ -97,12 +101,38 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getBookingsForUser(athleteId, 'athlete');
 
       assert.equal(bookings.length, 1);
       assert.equal(bookings[0].athleteId, athleteId);
+    });
+
+    it('matches canonical id aliases for coach/parent/athlete', async () => {
+      await bookingCrudService.createBooking({
+        coachId: POC_ACCOUNT_IDS.coachStorage,
+        coachName: 'Coach Alias',
+        athleteIds: [POC_ACCOUNT_IDS.athleteStorage],
+        athleteNames: ['Athlete Alias'],
+        bookedById: POC_ACCOUNT_IDS.parent,
+        bookedByName: 'Parent Alias',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      const coachBookings = await bookingSearchService.getBookingsForUser(POC_ACCOUNT_IDS.coach, 'coach');
+      const parentBookings = await bookingSearchService.getBookingsForUser(POC_ACCOUNT_IDS.parent, 'parent');
+      const athleteBookings = await bookingSearchService.getBookingsForUser(POC_ACCOUNT_IDS.athlete, 'athlete');
+
+      assert.equal(coachBookings.length, 1);
+      assert.equal(parentBookings.length, 1);
+      assert.equal(athleteBookings.length, 1);
     });
 
     it('should handle errors and return empty array', async () => {
@@ -127,6 +157,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       // Update to AWAITING_COMPLETION
@@ -157,6 +188,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getAwaitingCompletion(coachId);
@@ -180,6 +212,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getAwaitingCompletion(coachId);
@@ -204,6 +237,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       if (createResult.success) {
@@ -215,6 +249,30 @@ describe('BookingSearchService', () => {
       const bookings = await bookingSearchService.getAwaitingCompletion(coachId);
 
       assert.equal(bookings.length, 0);
+    });
+
+    it('matches coach alias in awaiting completion lookup', async () => {
+      const createResult = await bookingCrudService.createBooking({
+        coachId: POC_ACCOUNT_IDS.coachStorage,
+        coachName: 'Alias Coach',
+        athleteIds: [POC_ACCOUNT_IDS.athleteStorage],
+        athleteNames: ['Alias Athlete'],
+        bookedById: POC_ACCOUNT_IDS.parent,
+        bookedByName: 'Parent',
+        scheduledAt: new Date(Date.now() - 3600000).toISOString(),
+        duration: 60,
+        location: 'Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      if (createResult.success) {
+        await bookingCrudService.updateBooking(createResult.data.id, { status: 'AWAITING_COMPLETION' });
+      }
+
+      const bookings = await bookingSearchService.getAwaitingCompletion(POC_ACCOUNT_IDS.coach);
+      assert.equal(bookings.length, 1);
     });
   });
 
@@ -234,6 +292,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       if (createResult.success) {
@@ -261,6 +320,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getUpcomingBookings(coachId);
@@ -284,6 +344,7 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       if (createResult.success) {
@@ -310,10 +371,11 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       if (createResult.success) {
-        await bookingCrudService.cancel(createResult.data.id, 'COACH', coachId, 'Test');
+        await bookingCrudService.cancel(createResult.data.id, 'Test', 'coach');
       }
 
       const bookings = await bookingSearchService.getUpcomingBookings(coachId);
@@ -337,11 +399,36 @@ describe('BookingSearchService', () => {
         location: 'Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       const bookings = await bookingSearchService.getUpcomingBookings(coachId);
 
       assert.equal(bookings.length, 0);
+    });
+
+    it('matches coach alias in upcoming booking lookup', async () => {
+      const createResult = await bookingCrudService.createBooking({
+        coachId: POC_ACCOUNT_IDS.coachStorage,
+        coachName: 'Alias Coach',
+        athleteIds: [POC_ACCOUNT_IDS.athleteStorage],
+        athleteNames: ['Alias Athlete'],
+        bookedById: POC_ACCOUNT_IDS.parent,
+        bookedByName: 'Parent',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+
+      if (createResult.success) {
+        await bookingCrudService.updateBooking(createResult.data.id, { status: 'CONFIRMED' });
+      }
+
+      const bookings = await bookingSearchService.getUpcomingBookings(POC_ACCOUNT_IDS.coach);
+      assert.equal(bookings.length, 1);
     });
   });
 });

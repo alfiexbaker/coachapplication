@@ -5,7 +5,7 @@
  * All state/logic in useCounterOffer hook.
  */
 
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,13 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { TimeProposalForm } from '@/components/negotiate/TimeProposalForm';
-import { Spacing, Radii } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useCounterOffer } from '@/hooks/use-counter-offer';
 
 export default function CounterOfferScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const c = useCounterOffer();
 
   if (c.isLoading) {
@@ -27,27 +27,37 @@ export default function CounterOfferScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <Stack.Screen options={{ headerShown: true, headerTitle: 'Propose New Time',
           headerLeft: () => <Clickable accessibilityLabel="Close" onPress={c.goBack}><Ionicons name="close" size={24} color={palette.text} /></Clickable> }} />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>Loading booking...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (c.error || !c.booking) {
+  if (c.error) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <Stack.Screen options={{ headerShown: true, headerTitle: 'Error',
           headerLeft: () => <Clickable accessibilityLabel="Close" onPress={c.goBack}><Ionicons name="close" size={24} color={palette.text} /></Clickable> }} />
-        <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
-          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>Unable to Load Booking</ThemedText>
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>{c.error || 'Booking not found'}</ThemedText>
-          <Clickable onPress={c.loadBooking} style={[styles.retryButton, { backgroundColor: palette.tint }]}>
-            <ThemedText style={[styles.retryText, { color: palette.onPrimary }]}>Try Again</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState
+          title="Unable to load booking"
+          message={c.error || 'Booking not found'}
+          onRetry={c.loadBooking}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (!c.booking) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <Stack.Screen options={{ headerShown: true, headerTitle: 'Booking Unavailable',
+          headerLeft: () => <Clickable accessibilityLabel="Close" onPress={c.goBack}><Ionicons name="close" size={24} color={palette.text} /></Clickable> }} />
+        <EmptyState
+          icon="calendar-outline"
+          title="Booking not found"
+          message="This booking no longer exists or is unavailable."
+          actionLabel="Go back"
+          onPressAction={c.goBack}
+        />
       </SafeAreaView>
     );
   }
@@ -70,12 +80,6 @@ export default function CounterOfferScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, padding: Spacing.lg },
-  loadingText: { marginTop: Spacing.sm },
-  errorTitle: { marginTop: Spacing.sm },
-  errorText: { textAlign: 'center' },
-  retryButton: { marginTop: Spacing.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.sm },
-  retryText: { fontWeight: '600' },
   headerButton: { padding: Spacing.xs },
   bookingContext: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: 'transparent' },
   bookingInfo: { gap: Spacing.micro },

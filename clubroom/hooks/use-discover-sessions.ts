@@ -3,12 +3,14 @@
  * Manages offerings data, search, filters, and modal state.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('DiscoverSessions');
 
@@ -28,11 +30,35 @@ export const TYPE_FILTERS = [
   { value: 'group', label: 'Group' },
 ];
 
+interface DiscoverSessionsData {
+  offerings: SessionOffering[];
+}
+
+export interface UseDiscoverSessionsResult {
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  searchQuery: string;
+  skillFilter: FootballObjective | '';
+  typeFilter: '1on1' | 'group' | '';
+  filteredOfferings: SessionOffering[];
+  selectedOffering: SessionOffering | null;
+  showDetailModal: boolean;
+  setSearchQuery: (value: string) => void;
+  setSkillFilter: (value: FootballObjective | '') => void;
+  setTypeFilter: (value: '1on1' | 'group' | '') => void;
+  clearSearch: () => void;
+  handleOfferingPress: (offering: SessionOffering) => void;
+  handleModalClose: () => void;
+  handleModalUpdate: () => void;
+}
+
 export function useDiscoverSessions() {
   const { currentUser } = useAuth();
 
-  const [offerings, setOfferings] = useState<SessionOffering[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [skillFilter, setSkillFilter] = useState<FootballObjective | ''>('');
   const [typeFilter, setTypeFilter] = useState<'1on1' | 'group' | ''>('');
@@ -40,24 +66,35 @@ export function useDiscoverSessions() {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   const loadOfferings = useCallback(async () => {
-    setLoading(true);
     try {
       const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-      if (allOfferings.length > 0) {
-        const available = allOfferings.filter(o =>
-          o.status === 'active' && o.coachId !== currentUser?.id
-        );
-        setOfferings(available);
-        logger.debug('Loaded offerings', { count: available.length });
-      }
-    } catch (error) {
-      logger.error('Failed to load offerings', error);
-    } finally {
-      setLoading(false);
+      const available = allOfferings.filter(
+        (offering) => offering.status === 'active' && offering.coachId !== currentUser?.id
+      );
+      logger.debug('Loaded offerings', { count: available.length });
+      return ok<DiscoverSessionsData>({ offerings: available });
+    } catch (loadError) {
+      logger.error('Failed to load offerings', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load discover sessions. Pull down to refresh.', loadError));
     }
   }, [currentUser?.id]);
 
-  useEffect(() => { loadOfferings(); }, [loadOfferings]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<DiscoverSessionsData>({
+    load: loadOfferings,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.offerings.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const offerings = data?.offerings ?? [];
+  const loading = status === 'loading';
 
   const filteredOfferings = useMemo(() => {
     let filtered = offerings;
@@ -85,15 +122,32 @@ export function useDiscoverSessions() {
     setSelectedOffering(null);
   }, []);
 
-  const handleModalUpdate = useCallback(() => { loadOfferings(); }, [loadOfferings]);
+  const handleModalUpdate = useCallback(() => {
+    onRefresh();
+  }, [onRefresh]);
   const clearSearch = useCallback(() => { setSearchQuery(''); }, []);
 
   return {
-    loading, searchQuery, skillFilter, typeFilter,
-    filteredOfferings, selectedOffering, showDetailModal,
-    setSearchQuery, setSkillFilter, setTypeFilter, clearSearch,
-    handleOfferingPress, handleModalClose, handleModalUpdate,
-  };
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    searchQuery,
+    skillFilter,
+    typeFilter,
+    filteredOfferings,
+    selectedOffering,
+    showDetailModal,
+    setSearchQuery,
+    setSkillFilter,
+    setTypeFilter,
+    clearSearch,
+    handleOfferingPress,
+    handleModalClose,
+    handleModalUpdate,
+  } satisfies UseDiscoverSessionsResult;
 }
 
 export function formatNextSession(offering: SessionOffering): string {

@@ -2,12 +2,13 @@
  * DiscoverClubHub — Club hub card with club list and invite code input.
  */
 import { memo, useState, useCallback } from 'react';
-import { View, StyleSheet, TextInput, Pressable } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -43,7 +44,7 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
                 : 'Join your team'}
             </ThemedText>
           </View>
-          <Pressable
+          <Clickable
             onPress={() => router.push(Routes.CLUB_HUB)}
             accessibilityLabel={userClubs.length > 0 ? 'View all clubs' : 'Browse clubs'}
             accessibilityRole="button"
@@ -51,18 +52,18 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
               styles.viewButton,
               { backgroundColor: palette.tint, opacity: pressed ? 0.8 : 1 },
             ]}
-          >
-            <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
-              {userClubs.length > 0 ? 'View All' : 'Browse'}
-            </ThemedText>
-          </Pressable>
+            >
+              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
+                {userClubs.length > 0 ? 'View All' : 'Browse'}
+              </ThemedText>
+          </Clickable>
         </Row>
 
         {/* Club list */}
         {userClubs.length > 0 && (
           <View style={styles.clubList}>
             {userClubs.slice(0, 2).map((club) => (
-              <Pressable
+              <Clickable
                 key={club.id}
                 onPress={() => router.push(Routes.club(club.id))}
                 accessibilityLabel={`View ${club.name}`}
@@ -92,7 +93,7 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
                 </View>
                   <Ionicons name="chevron-forward" size={16} color={palette.muted} />
                 </Row>
-              </Pressable>
+              </Clickable>
             ))}
           </View>
         )}
@@ -112,11 +113,12 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
                 style={[styles.inviteText, { color: palette.text }]}
               />
             </Row>
-            <Pressable
+            <Clickable
               onPress={handleJoinClub}
               disabled={!clubInviteCode.trim()}
               accessibilityLabel="Join club"
               accessibilityRole="button"
+              accessibilityState={{ disabled: !clubInviteCode.trim() }}
               style={({ pressed }) => [
                 styles.joinButton,
                 {
@@ -126,7 +128,7 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
               ]}
             >
               <Ionicons name="arrow-forward" size={18} color={clubInviteCode.trim() ? palette.surface : palette.muted} />
-            </Pressable>
+            </Clickable>
           </Row>
         </View>
       </SurfaceCard>

@@ -16,7 +16,7 @@ import { CreateCodeModal } from '@/components/admin/create-code-modal';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { InviteCode } from '@/constants/types';
 import { useInviteCodes } from '@/hooks/use-invite-codes';
@@ -26,10 +26,15 @@ export default function InviteCodesScreen() {
   const { colors: palette } = useTheme();
   const {
     codes,
+    status,
+    error,
+    refreshing,
     showCreateModal,
     selectedSchool,
     newCodeText,
     maxUses,
+    onRefresh,
+    retry,
     setShowCreateModal,
     setSelectedSchool,
     setNewCodeText,
@@ -50,6 +55,25 @@ export default function InviteCodesScreen() {
   );
 
   const keyExtractor = useCallback((item: InviteCode) => item.id, []);
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState
+          message={error?.message ?? 'Failed to load invite codes.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -84,6 +108,8 @@ export default function InviteCodesScreen() {
           data={codes}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />

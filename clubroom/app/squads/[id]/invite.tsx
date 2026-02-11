@@ -5,7 +5,7 @@
  * All state/logic in useSquadInvite hook. Form sections extracted to components.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ import { BulkInviteButton } from '@/components/squad/BulkInviteButton';
 import { InviteResultCard } from '@/components/squad/InviteResultCard';
 import { SquadInviteSessionForm } from '@/components/squad/squad-invite-session-form';
 import { SquadInviteHistory } from '@/components/squad/squad-invite-history';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSquadInvite } from '@/hooks/use-squad-invite';
@@ -28,7 +28,7 @@ export default function SquadInviteScreen() {
   const { colors: palette } = useTheme();
   const s = useSquadInvite();
 
-  if (s.loading) {
+  if (s.status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <LoadingState variant="detail" />
@@ -36,10 +36,24 @@ export default function SquadInviteScreen() {
     );
   }
 
-  if (!s.squad) {
+  if (s.status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message="Squad not found" onRetry={() => router.back()} />
+        <ErrorState message={s.error?.message || 'Failed to load squad invite data.'} onRetry={s.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (s.status === 'empty' || !s.squad) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="people-outline"
+          title="Squad not found"
+          message="This squad could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -88,7 +102,11 @@ export default function SquadInviteScreen() {
         </View>
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={s.refreshing} onRefresh={s.onRefresh} />}
+      >
         <SquadInviteHistory history={s.inviteHistory} />
 
         <SquadInviteSessionForm

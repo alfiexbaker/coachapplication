@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,13 +38,23 @@ export const MapClusterOverlay = memo(function MapClusterOverlay({
 
   return (
     <View style={[styles.clusterOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <Clickable
+        style={StyleSheet.absoluteFill}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close cluster overlay"
+      />
       <SurfaceCard style={styles.clusterCard}>
         <Row style={styles.clusterHeader}>
           <ThemedText type="defaultSemiBold">
             {cluster.coaches.length} Coaches
           </ThemedText>
-          <Clickable accessibilityLabel="Close" onPress={onClose}>
+          <Clickable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={onClose}
+            style={styles.closeButton}
+          >
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
         </Row>
@@ -86,5 +96,11 @@ const styles = StyleSheet.create({
   },
   clusterList: {
     flex: 1,
+  },
+  closeButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

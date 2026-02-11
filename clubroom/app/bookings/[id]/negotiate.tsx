@@ -5,7 +5,7 @@
  * All state/logic in useNegotiate hook. Reject modal extracted to component.
  */
 
-import { View, ScrollView, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { Row } from '@/components/primitives/row';
 import { CounterOfferCard } from '@/components/negotiate/CounterOfferCard';
 import { NegotiationTimeline } from '@/components/negotiate/NegotiationTimeline';
 import { RejectModal } from '@/components/negotiate/reject-modal';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useNegotiate } from '@/hooks/use-negotiate';
@@ -38,10 +39,7 @@ export default function NegotiateScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.subText, { color: palette.muted }]}>Loading negotiation...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
@@ -50,14 +48,7 @@ export default function NegotiateScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <Stack.Screen options={{ headerShown: true, headerTitle: 'Error', headerLeft: () => <HeaderBack /> }} />
-        <View style={styles.centerContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
-          <ThemedText type="defaultSemiBold" style={styles.subText}>Unable to Load</ThemedText>
-          <ThemedText style={[styles.centerText, { color: palette.muted }]}>{n.error}</ThemedText>
-          <Clickable onPress={n.loadData} style={[styles.retryButton, { backgroundColor: palette.tint }]}>
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Try Again</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState title="Unable to load negotiation" message={n.error} onRetry={n.loadData} />
       </SafeAreaView>
     );
   }
@@ -66,19 +57,13 @@ export default function NegotiateScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
-        <View style={styles.centerContainer}>
-          <Ionicons name="swap-horizontal-outline" size={64} color={palette.muted} />
-          <ThemedText type="defaultSemiBold" style={styles.subText}>No Negotiation Yet</ThemedText>
-          <ThemedText style={[styles.centerText, { color: palette.muted }]}>
-            Need to change the booking time? Start a negotiation by proposing a new time.
-          </ThemedText>
-          <Button onPress={n.handleNewProposal} style={styles.proposalButton}>
-            <Row style={styles.proposalRow}>
-              <Ionicons name="time-outline" size={18} color={palette.onPrimary} />
-              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Propose New Time</ThemedText>
-            </Row>
-          </Button>
-        </View>
+        <EmptyState
+          icon="swap-horizontal-outline"
+          title="No negotiation yet"
+          message="Need to change the booking time? Start by proposing a new time."
+          actionLabel="Propose new time"
+          onPressAction={n.handleNewProposal}
+        />
       </SafeAreaView>
     );
   }
@@ -136,10 +121,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
   scrollContent: { padding: Spacing.lg, gap: Spacing.md },
-  centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, gap: Spacing.sm },
-  subText: { marginTop: Spacing.sm },
-  centerText: { textAlign: 'center', maxWidth: 280 },
-  retryButton: { marginTop: Spacing.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.sm },
   headerButton: { padding: Spacing.xs },
   summary: { padding: Spacing.md, borderRadius: Radii.md },
   summaryRow: { alignItems: 'center', gap: Spacing.sm },

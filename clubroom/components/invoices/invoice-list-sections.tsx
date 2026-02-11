@@ -9,17 +9,16 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, Modal, FlatList } from 'react-native';
+import { View, Modal, FlatList } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { InvoiceStatus, InvoiceFilter } from '@/constants/types';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
+import { styles } from './invoice-list-styles';
 
 export interface FilterOption {
   value: InvoiceStatus | 'ALL';
@@ -27,18 +26,15 @@ export interface FilterOption {
   color: string;
 }
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-// Decorative: invoice status indicator colors for visual filtering
-export const FILTER_OPTIONS: FilterOption[] = [
-  { value: 'ALL', label: 'All', color: '#6B7280' },
-  { value: 'DRAFT', label: 'Draft', color: '#6B7280' },
-  { value: 'SENT', label: 'Sent', color: '#2563EB' },
-  { value: 'PAID', label: 'Paid', color: '#059669' },
-  { value: 'VOID', label: 'Voided', color: '#DC2626' },
-];
-
-// ─── InvoiceSeparator ───────────────────────────────────────────────────────
+function getFilterOptions(palette: ThemeColors): FilterOption[] {
+  return [
+    { value: 'ALL', label: 'All', color: palette.muted },
+    { value: 'DRAFT', label: 'Draft', color: palette.muted },
+    { value: 'SENT', label: 'Sent', color: palette.info },
+    { value: 'PAID', label: 'Paid', color: palette.success },
+    { value: 'VOID', label: 'Voided', color: palette.error },
+  ];
+}
 
 export function InvoiceSeparator() {
   return <View style={{ height: Spacing.sm }} />;
@@ -63,6 +59,8 @@ export const StatusFilterBar = memo(function StatusFilterBar({
   onDateClear,
   palette,
 }: StatusFilterBarProps) {
+  const filterOptions = getFilterOptions(palette);
+
   const renderFilterPill = useCallback(
     ({ item }: { item: FilterOption }) => (
       <Clickable
@@ -102,7 +100,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
     <Row align="center" gap="xs" style={styles.filterContainer}>
       <FlatList
         horizontal
-        data={FILTER_OPTIONS}
+        data={filterOptions}
         keyExtractor={filterKeyExtractor}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterList}
@@ -245,75 +243,4 @@ export const InvoiceEmptyState = memo(function InvoiceEmptyState({
   );
 });
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  filterContainer: {
-    marginBottom: Spacing.md,
-  },
-  filterList: { gap: Spacing.xs, flex: 1 },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.xxs,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    gap: Spacing.xxs,
-  },
-  filterDot: { width: 8, height: 8, borderRadius: Radii.xs },
-  filterPillText: { ...Typography.smallSemiBold },
-  dateFilterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.xs,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.xxs,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['2xl'],
-    gap: Spacing.sm,
-  },
-  emptyText: { ...Typography.subheading },
-  clearFilterButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    marginTop: Spacing.sm,
-  },
-  clearFilterText: { ...Typography.bodySmallSemiBold },
-  modalContainer: { flex: 1 },
-  modalHeader: {
-    padding: Spacing.md,
-    paddingTop: Spacing.lg,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalContent: { padding: Spacing.md, gap: Spacing.sm },
-  dateHint: { ...Typography.bodySmall, marginBottom: Spacing.sm },
-  dateOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  clearButton: {
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    marginTop: Spacing.md,
-  },
-});
+export { styles };

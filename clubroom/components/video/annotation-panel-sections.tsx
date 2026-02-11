@@ -10,16 +10,17 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View, ScrollView, TextInput } from 'react-native';
+import { View, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { styles } from './annotation-panel-styles';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -237,86 +238,4 @@ export const AnnotationEmptyState = memo(function AnnotationEmptyState({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    borderRadius: Radii.lg,
-  },
-  header: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
-  },
-  title: { ...Typography.subheading },
-  searchContainer: {
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
-  searchInput: {
-    ...Typography.bodySmall,
-    flex: 1,
-    paddingVertical: Spacing.xxs,
-  },
-  filtersContainer: {
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
-    gap: Spacing.xxs,
-  },
-  filterLabel: { ...Typography.caption },
-  listContainer: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  annotationItem: {
-    flexDirection: 'row',
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  typeIndicator: {
-    width: 4,
-  },
-  annotationContent: {
-    flex: 1,
-    padding: Spacing.sm,
-    gap: Spacing.xxs,
-  },
-  typeBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timestamp: { ...Typography.caption },
-  actionButton: {
-    padding: Spacing.xxs,
-  },
-  annotationLabel: { ...Typography.bodySmallSemiBold },
-  annotationNote: { ...Typography.small },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  emptyText: { ...Typography.bodySmall, textAlign: 'center' },
-});
+export { styles };

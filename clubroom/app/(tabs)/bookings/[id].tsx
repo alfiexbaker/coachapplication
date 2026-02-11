@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { LoadingState } from '@/components/ui/screen-states';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { BookingCoachView } from '@/components/bookings/booking-coach-view';
 import { BookingParentView } from '@/components/bookings/booking-parent-view';
 import {
@@ -28,7 +27,7 @@ import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useTheme();
-  const { booking, status, isCoach, sessionNote, handlers, formatted } = useBookingDetail(id);
+  const { booking, status, error, refreshing, onRefresh, retry, isCoach, sessionNote, handlers, formatted } = useBookingDetail(id);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
 
@@ -42,7 +41,18 @@ export default function SessionDetailScreen() {
     );
   }
 
-  if (status === 'not-found' || !booking || !formatted) {
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState
+          message={error?.message ?? 'Failed to load booking details.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !booking || !formatted) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <EmptyState
@@ -58,7 +68,13 @@ export default function SessionDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
+      >
         {/* Header */}
         <ThemedView style={styles.headerSection}>
           <Row gap="md" align="center">

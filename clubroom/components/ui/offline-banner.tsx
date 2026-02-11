@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
-import { StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, ActivityIndicator } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +17,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -108,7 +109,7 @@ export function OfflineBanner() {
         )}
         <ThemedText style={[styles.text, { color: textColor }]}>{message}</ThemedText>
         {hasFailedActions && isConnected && (
-          <Pressable
+          <Clickable
             onPress={handleRetry}
             style={styles.retryButton}
             accessibilityLabel="Retry syncing failed changes"
@@ -116,7 +117,7 @@ export function OfflineBanner() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <ThemedText style={[styles.retryText, { color: textColor }]}>Retry</ThemedText>
-          </Pressable>
+          </Clickable>
         )}
       </Row>
     </Animated.View>

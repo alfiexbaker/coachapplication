@@ -9,11 +9,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { useBookingPersona } from '@/hooks/use-booking-persona';
 import { hasChildren, isAthlete } from '@/utils/user-helpers';
 import { availabilityService } from '@/services/availability-service';
 import { FOOTBALL_OBJECTIVES, SERVICES, formatServicePrice, resolveCoachAndProfile } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError } from '@/types/result';
 import type { DayAvailability, SlotInstance } from '@/constants/booking-types';
 import type { FootballObjective } from '@/constants/types';
 
@@ -31,8 +33,6 @@ export function useBookCoach() {
   const userHasChildren = hasChildren(currentUser);
   const userIsAthlete = isAthlete(currentUser);
 
-  const [availability, setAvailability] = useState<DayAvailability[]>([]);
-  const [loadingAvailability, setLoadingAvailability] = useState(true);
   const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
   const [step, setStep] = useState(userHasChildren ? 0 : 1);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
@@ -40,9 +40,10 @@ export function useBookCoach() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
   const [selectedObjectives, setSelectedObjectives] = useState<FootballObjective[]>([]);
 
-  const fetchAvailability = useCallback(async () => {
-    if (!coachId) return;
-    setLoadingAvailability(true);
+  const loadAvailability = useCallback(async () => {
+    if (!coachId) {
+      return ok<DayAvailability[]>([]);
+    }
     try {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const endDateObj = new Date(today); endDateObj.setDate(endDateObj.getDate() + 14);
@@ -72,15 +73,38 @@ export function useBookCoach() {
         .map(([dateStr, daySlots]) => ({ id: dateStr, date: new Date(dateStr), slots: daySlots }))
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      setAvailability(days);
-      if (days.length > 0 && !selectedDayId) setSelectedDayId(days[0].id);
-    } catch (error) {
-      logger.error('Failed to fetch availability:', error);
-      setAvailability([]);
-    } finally { setLoadingAvailability(false); }
-  }, [coachId, selectedServiceId, selectedDayId]);
+      return ok(days);
+    } catch (loadError) {
+      logger.error('Failed to fetch availability:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load coach availability.', loadError));
+    }
+  }, [coachId, selectedServiceId]);
 
-  useEffect(() => { fetchAvailability(); }, [fetchAvailability]);
+  const {
+    data: availabilityData,
+    status,
+    error: availabilityErrorResult,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+  } = useScreen<DayAvailability[]>({
+    load: loadAvailability,
+    deps: [loadAvailability],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+  const availability = availabilityData ?? [];
+  const loadingAvailability = status === 'loading';
+  const availabilityError = status === 'error'
+    ? (availabilityErrorResult?.message ?? 'Failed to load available times.')
+    : null;
+
+  useEffect(() => {
+    if (availability.length > 0 && !selectedDayId) {
+      setSelectedDayId(availability[0].id);
+    }
+  }, [availability, selectedDayId]);
 
   const filteredAvailability = useMemo(() => {
     if (!selectedServiceId) return availability;
@@ -143,6 +167,7 @@ export function useBookCoach() {
   return {
     coach, coachProfile, userHasChildren, userIsAthlete, currentUser,
     loadingAvailability, filteredAvailability, step, selectedAthleteIds,
+    availabilityError, refreshing, onRefresh, retry, colors,
     selectedServiceId, selectedDayId, selectedSlotId, selectedObjectives, selectedService,
     serviceList, continueDisabled, stepTitle,
     setSelectedAthleteIds, setSelectedServiceId, setSelectedDayId, setSelectedSlotId,

@@ -7,25 +7,33 @@ import { SessionNotesForm } from '@/components/session/session-notes-form';
 import { SessionNotesView } from '@/components/session/session-notes-view';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { Clickable } from '@/components/primitives/clickable';
 import { useSessionNote } from '@/hooks/use-session-note';
 import { SessionNoteFields } from '@/services/progress-service';
+import { ok } from '@/types/result';
 
 export default function SessionNotesScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const { note, loading, saving, error, persist, refresh } = useSessionNote(bookingId);
   const [mode, setMode] = useState<'view' | 'edit'>(note ? 'view' : 'edit');
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+
+  if (!bookingId) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <EmptyState icon="document-text-outline" title="Booking not found" message="Missing booking id for session notes." />
+      </SafeAreaView>
+    );
+  }
 
   useEffect(() => {
     setMode(note ? 'view' : 'edit');
   }, [note]);
 
   const handleSubmit = async (data: SessionNoteFields) => {
-    if (!bookingId) return;
     try {
       await persist(data);
       setMode('view');

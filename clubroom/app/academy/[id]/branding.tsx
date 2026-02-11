@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -46,6 +46,18 @@ export default function AcademyBrandingScreen() {
   const [website, setWebsite] = useState(academy?.website ?? '');
   const [address, setAddress] = useState(academy?.address ?? '');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!academy) return;
+    setLogoUrl(academy.logoUrl ?? '');
+    setBannerUrl(academy.bannerUrl ?? '');
+    setPrimaryColor(academy.primaryColor ?? '');
+    setSecondaryColor(academy.secondaryColor ?? '');
+    setEmail(academy.email ?? '');
+    setPhone(academy.phone ?? '');
+    setWebsite(academy.website ?? '');
+    setAddress(academy.address ?? '');
+  }, [academy?.id]);
 
   const canEdit = true; // TODO: check permissions
 

@@ -16,13 +16,13 @@ import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useCoachInvites, formatExpiry, ROLE_LABELS, type PendingClubInvite } from '@/hooks/use-coach-invites';
 
 export default function CoachInvitesScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const c = useCoachInvites();
 
   const renderInvite = ({ item: invite }: { item: PendingClubInvite }) => {
@@ -66,6 +66,39 @@ export default function CoachInvitesScreen() {
     );
   };
 
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Club Invites" subtitle="Checking your invites" showBack onBackPress={() => router.back()} />
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Club Invites" subtitle="Unable to load invites" showBack onBackPress={() => router.back()} />
+        <ErrorState message={c.error?.message || 'Failed to load club invites.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Club Invites" subtitle="No pending invites" showBack onBackPress={() => router.back()} />
+        <EmptyState
+          icon="shield-outline"
+          title="No pending invites"
+          message="When you enter a club invite code, the invitation will appear here for you to review and accept."
+          actionLabel="Go to Club Hub"
+          onPressAction={() => router.push(Routes.CLUB_HUB)}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <PageHeader title="Club Invites" subtitle={c.pendingCount > 0 ? `${c.pendingCount} pending` : 'No pending invites'}
@@ -73,25 +106,6 @@ export default function CoachInvitesScreen() {
       <FlatList data={c.invites} keyExtractor={(item) => item.id} renderItem={renderInvite}
         contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
-              <Ionicons name="shield-outline" size={40} color={palette.muted} />
-            </View>
-            <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              {c.loading ? 'Loading...' : 'No pending invites'}
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              When you enter a club invite code, the invitation will appear here for you to review and accept.
-            </ThemedText>
-            <Clickable style={[styles.goToClubHubButton, { backgroundColor: palette.tint }]} onPress={() => router.push(Routes.CLUB_HUB)}>
-              <Row align="center" gap="sm">
-                <Ionicons name="people" size={18} color={palette.onPrimary} />
-                <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
-              </Row>
-            </Clickable>
-          </View>
-        }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </SafeAreaView>
@@ -116,9 +130,4 @@ const styles = StyleSheet.create({
   acceptButton: { flex: 2, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   acceptText: { ...Typography.bodySemiBold },
   separator: { height: Spacing.sm },
-  empty: { alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm, marginTop: Spacing.xl },
-  emptyIcon: { width: 72, height: 72, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
-  emptyTitle: { ...Typography.heading },
-  emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
-  goToClubHubButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
 });

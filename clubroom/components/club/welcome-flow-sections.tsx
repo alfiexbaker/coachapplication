@@ -1,33 +1,13 @@
-/**
- * Extracted sub-components for WelcomeFlow.
- *
- * WelcomeStepSlide — single carousel page with icon + title + subtitle + list.
- * WelcomeBottomControls — dot indicators + next/get started button.
- */
-
 import React, { memo } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface WelcomeStep {
-  key: string;
-  title: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}
-
-// ─── StepListContent ─────────────────────────────────────────────────────────
-
+export interface WelcomeStep { key: string; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap }
 interface StepListContentProps {
   stepKey: string;
   squadNames: string[];
@@ -36,7 +16,6 @@ interface StepListContentProps {
   brandColor: string;
   palette: ThemeColors;
 }
-
 const StepListContent = memo(function StepListContent({
   stepKey,
   squadNames,
@@ -57,7 +36,6 @@ const StepListContent = memo(function StepListContent({
       </View>
     );
   }
-
   if (stepKey === 'upcoming' && upcomingEvents.length > 1) {
     return (
       <View style={styles.listContainer}>
@@ -73,7 +51,6 @@ const StepListContent = memo(function StepListContent({
       </View>
     );
   }
-
   if (stepKey === 'coaches' && coaches.length > 0) {
     return (
       <View style={styles.listContainer}>
@@ -89,12 +66,8 @@ const StepListContent = memo(function StepListContent({
       </View>
     );
   }
-
   return null;
 });
-
-// ─── WelcomeStepSlide ────────────────────────────────────────────────────────
-
 interface WelcomeStepSlideProps {
   step: WelcomeStep;
   squadNames: string[];
@@ -103,7 +76,6 @@ interface WelcomeStepSlideProps {
   brandColor: string;
   palette: ThemeColors;
 }
-
 export const WelcomeStepSlide = memo(function WelcomeStepSlide({
   step,
   squadNames,
@@ -119,7 +91,6 @@ export const WelcomeStepSlide = memo(function WelcomeStepSlide({
       </View>
       <ThemedText style={[styles.stepTitle, { color: palette.text }]}>{step.title}</ThemedText>
       <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>{step.subtitle}</ThemedText>
-
       <StepListContent
         stepKey={step.key}
         squadNames={squadNames}
@@ -131,9 +102,6 @@ export const WelcomeStepSlide = memo(function WelcomeStepSlide({
     </View>
   );
 });
-
-// ─── WelcomeBottomControls ───────────────────────────────────────────────────
-
 interface WelcomeBottomControlsProps {
   steps: WelcomeStep[];
   currentStep: number;
@@ -142,7 +110,6 @@ interface WelcomeBottomControlsProps {
   onNext: () => void;
   palette: ThemeColors;
 }
-
 export const WelcomeBottomControls = memo(function WelcomeBottomControls({
   steps,
   currentStep,
@@ -153,7 +120,6 @@ export const WelcomeBottomControls = memo(function WelcomeBottomControls({
 }: WelcomeBottomControlsProps) {
   return (
     <View style={styles.bottomControls}>
-      {/* Dot indicators */}
       <Row style={styles.dotRow}>
         {steps.map((_, idx) => (
           <View
@@ -168,8 +134,6 @@ export const WelcomeBottomControls = memo(function WelcomeBottomControls({
           />
         ))}
       </Row>
-
-      {/* Next / Get Started button */}
       <Clickable
         onPress={onNext}
         accessibilityLabel={isLastStep ? 'Get Started' : 'Next'}
@@ -186,9 +150,6 @@ export const WelcomeBottomControls = memo(function WelcomeBottomControls({
     </View>
   );
 });
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -271,8 +232,6 @@ export const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
   },
 }) as any;
-
-// Dynamic style — can't be in StyleSheet.create
 (styles as any).nextButton = (brandColor: string) => ({
   backgroundColor: brandColor,
   height: Components.button.height,

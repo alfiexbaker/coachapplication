@@ -19,9 +19,16 @@ import { formatCoachDate, type CoachToRate } from '@/hooks/use-rate-coach';
 interface CoachSelectListProps {
   coaches: CoachToRate[];
   onSelect: (coach: CoachToRate) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-export const CoachSelectList = memo(function CoachSelectList({ coaches, onSelect }: CoachSelectListProps) {
+export const CoachSelectList = memo(function CoachSelectList({
+  coaches,
+  onSelect,
+  refreshing = false,
+  onRefresh,
+}: CoachSelectListProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -29,6 +36,8 @@ export const CoachSelectList = memo(function CoachSelectList({ coaches, onSelect
       data={coaches}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
       renderItem={({ item }) => (
         <Clickable onPress={() => onSelect(item)}>
           <SurfaceCard>

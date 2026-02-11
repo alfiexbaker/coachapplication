@@ -5,7 +5,7 @@
  * focus areas, how-it-works steps. All state/logic in usePackageDetail hook.
  */
 
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -17,10 +17,13 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { PurchaseButton } from '@/components/packages/PurchaseButton';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { usePackageDetail } from '@/hooks/use-package-detail';
 import { packageService } from '@/services/package-service';
+import { ok } from '@/types/result';
 
 const HOW_IT_WORKS = [
   'Purchase this package using your wallet balance',
@@ -29,28 +32,39 @@ const HOW_IT_WORKS = [
 ];
 
 export default function PackageDetailScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = usePackageDetail();
 
-  if (c.loading) {
+  if (c.status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <Header />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>Loading package...</ThemedText>
-        </View>
+        <Header palette={palette} />
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!c.pkg) {
+  if (c.status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <Header />
+        <Header palette={palette} />
+        <ErrorState message={c.error?.message ?? 'Failed to load package.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty' || !c.pkg) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Header palette={palette} />
         <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
-          <ThemedText style={[styles.loadingText, { color: palette.error }]}>Package not found</ThemedText>
+          <EmptyState
+            icon="pricetag-outline"
+            title="Package not found"
+            message="This package is unavailable or may have been removed."
+            actionLabel="Go back"
+            onPressAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -60,9 +74,13 @@ export default function PackageDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <Header editVisible={c.isOwnPackage} />
+      <Header editVisible={c.isOwnPackage} palette={palette} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+      >
         {/* Main Card */}
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <SurfaceCard style={styles.mainCard}>
@@ -176,8 +194,7 @@ export default function PackageDetailScreen() {
   );
 }
 
-function Header({ editVisible }: { editVisible?: boolean }) {
-  const { colors: palette } = useTheme();
+function Header({ editVisible, palette }: { editVisible?: boolean; palette: ThemeColors }) {
   return (
     <Row align="center" justify="between" style={styles.header}>
       <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>

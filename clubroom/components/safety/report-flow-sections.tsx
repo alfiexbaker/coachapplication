@@ -1,28 +1,17 @@
-/**
- * Extracted sub-components for ReportFlow.
- *
- * REPORT_TYPES — constant array of report type options.
- * ReportTypeOption — single radio-style option row.
- * ReportFormContent — scrollable form with type selection + description.
- * ReportSuccessView — confirmation after successful submission.
- */
-
 import React, { memo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleSheet,
   TextInput,
   View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-
-// ─── Types & Constants ───────────────────────────────────────────────────────
+import { styles } from './report-flow-styles';
 
 export type ReportType =
   | 'inappropriate'
@@ -252,58 +241,4 @@ export const ReportSuccessView = memo(function ReportSuccessView({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  subtitle: {
-    ...Typography.bodySmall,
-    marginBottom: Spacing.md },
-  optionsList: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.md },
-  optionRow: {
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1.5 },
-  optionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  optionLabel: { ...Typography.bodySemiBold, flex: 1 },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center' },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: Radii.sm },
-  descriptionSection: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.md },
-  charCount: { ...Typography.caption, textAlign: 'right' },
-  submitButton: {
-    marginTop: Spacing.xs },
-  successContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    gap: Spacing.sm },
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs },
-  successTitle: {
-    textAlign: 'center' },
-  successMessage: {
-    ...Typography.bodySmall,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: Spacing.md } });
+export { styles };

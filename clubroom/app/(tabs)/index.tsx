@@ -3,15 +3,42 @@ import { CoachDevelopmentScreen } from '@/components/coach/development-screen';
 import { UserHomeScreen } from '@/components/user/home-screen';
 import { ParentDiscoverScreen } from '@/components/parent/discover-screen';
 import { AdminUsersScreen } from '@/components/admin/users-screen';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Spacing} from '@/constants/theme';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function IndexScreen() {
-  const { currentUser } = useAuth();
+  const { currentUser, isLoading, error } = useAuth();
   const { colors: palette } = useTheme();
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ErrorState message={error} onRetry={() => {}} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <EmptyState
+          icon="person-circle-outline"
+          title="No active account"
+          message="Please sign in to continue."
+        />
+      </SafeAreaView>
+    );
+  }
 
   // Route to appropriate screen based on role
   switch (currentUser?.role) {
@@ -24,26 +51,12 @@ export default function IndexScreen() {
     case 'ADMIN':
       return <AdminUsersScreen />;
     default:
-      return (
-        <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-          <View style={styles.content}>
-            <ThemedText type="title">Welcome</ThemedText>
-            <ThemedText style={{ color: palette.muted }}>Please log in to continue</ThemedText>
-          </View>
-        </SafeAreaView>
-      );
+      return null;
   }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.xs + Spacing.xxs,
-    padding: 20,
   },
 });

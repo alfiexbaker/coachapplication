@@ -3,12 +3,14 @@
  * Manages badge loading, filtering by status, grouping by section, and stats.
  */
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { badgeService, AllBadgeWithProgress } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('BadgesScreen');
 
@@ -32,26 +34,53 @@ export const SECTION_ORDER = [
   'technique', 'mindset', 'teamwork', 'resilience',
 ];
 
+interface BadgesScreenData {
+  allBadges: AllBadgeWithProgress[];
+  badgesByCategory: Map<string, AllBadgeWithProgress[]>;
+}
+
 export function useBadgesScreen() {
   const { currentUser } = useAuth();
 
-  const [allBadges, setAllBadges] = useState<AllBadgeWithProgress[]>([]);
-  const [badgesByCategory, setBadgesByCategory] = useState<Map<string, AllBadgeWithProgress[]>>(new Map());
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!currentUser) return;
-    setIsLoading(true);
-    Promise.all([
-      badgeService.getAllBadgesWithProgress(currentUser.id),
-      badgeService.getBadgesByCategory(currentUser.id),
-    ]).then(([badges, grouped]) => {
-      setAllBadges(badges);
-      setBadgesByCategory(grouped);
-      logger.info('badges_loaded', { totalBadges: badges.length, unlockedCount: badges.filter((b) => b.isUnlocked).length });
-    }).finally(() => setIsLoading(false));
-  }, [currentUser]);
+  const loadBadges = useCallback(async () => {
+    if (!currentUser?.id) {
+      return ok<BadgesScreenData>({ allBadges: [], badgesByCategory: new Map() });
+    }
+
+    try {
+      const [allBadges, badgesByCategory] = await Promise.all([
+        badgeService.getAllBadgesWithProgress(currentUser.id),
+        badgeService.getBadgesByCategory(currentUser.id),
+      ]);
+      logger.info('badges_loaded', {
+        totalBadges: allBadges.length,
+        unlockedCount: allBadges.filter((badge) => badge.isUnlocked).length,
+      });
+      return ok<BadgesScreenData>({ allBadges, badgesByCategory });
+    } catch (error) {
+      logger.error('badges_load_failed', error);
+      return err(serviceError('UNKNOWN', 'Failed to load badge progress.', error));
+    }
+  }, [currentUser?.id]);
+
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<BadgesScreenData>({
+    load: loadBadges,
+    deps: [currentUser?.id],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const allBadges = data?.allBadges ?? [];
+  const badgesByCategory = data?.badgesByCategory ?? new Map<string, AllBadgeWithProgress[]>();
 
   const filteredBadges = useMemo(() => {
     switch (activeFilter) {
@@ -111,8 +140,32 @@ export function useBadgesScreen() {
   }, []);
 
   return {
-    currentUser, allBadges, activeFilter, isLoading,
+    currentUser,
+    allBadges,
+    activeFilter,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
     filteredBadges, filteredBySection, stats,
     getFilterCount, handleFilterChange, handleBadgePress,
+  } satisfies {
+    currentUser: typeof currentUser;
+    allBadges: AllBadgeWithProgress[];
+    activeFilter: FilterTab;
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    filteredBadges: AllBadgeWithProgress[];
+    filteredBySection: Map<string, AllBadgeWithProgress[]>;
+    stats: { total: number; unlocked: number; points: number };
+    getFilterCount: (key: FilterTab) => number;
+    handleFilterChange: (key: FilterTab) => void;
+    handleBadgePress: (badge: AllBadgeWithProgress) => void;
   };
 }

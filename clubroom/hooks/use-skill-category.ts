@@ -10,9 +10,11 @@ import {
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { skillTreeService } from '@/services/skills';
 import { createLogger } from '@/utils/logger';
 import type { SkillTree, SkillNode, SkillTreeCategory } from '@/constants/types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('SkillTreeDetailScreen');
 
@@ -21,7 +23,6 @@ export function useSkillCategory() {
   const { category } = useLocalSearchParams<{ category: string }>();
 
   const [tree, setTree] = useState<SkillTree | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null);
   const [canUnlockNodes, setCanUnlockNodes] = useState<Set<string>>(new Set());
   const [animateUnlocks, setAnimateUnlocks] = useState(false);
@@ -32,14 +33,18 @@ export function useSkillCategory() {
   const categoryUpper = (category?.toUpperCase() ?? 'DRIBBLING') as SkillTreeCategory;
 
   const loadTree = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser?.id) {
+      setTree(null);
+      setCanUnlockNodes(new Set());
+      return ok<{ hasTree: boolean }>({ hasTree: false });
+    }
 
     try {
       const loadedTreeResult = await skillTreeService.getSkillTreeWithProgress(currentUser.id, categoryUpper);
       if (!loadedTreeResult.success) {
         logger.error('skill_tree_load_failed', loadedTreeResult.error);
         setTree(null);
-        return;
+        return err(loadedTreeResult.error);
       }
       const loadedTree = loadedTreeResult.data;
       setTree(loadedTree);
@@ -58,15 +63,27 @@ export function useSkillCategory() {
       }
 
       logger.info('skill_tree_loaded', { category: categoryUpper, nodes: loadedTree?.nodes.length ?? 0 });
+      return ok<{ hasTree: boolean }>({ hasTree: Boolean(loadedTree) });
     } catch (error) {
       logger.error('skill_tree_load_failed', { error });
+      setTree(null);
+      setCanUnlockNodes(new Set());
+      return err(serviceError('UNKNOWN', 'Failed to load skill tree.', error));
     }
   }, [currentUser, categoryUpper]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    loadTree().finally(() => setIsLoading(false));
-  }, [loadTree]);
+  const {
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<{ hasTree: boolean }>({
+    load: loadTree,
+    deps: [currentUser?.id, categoryUpper],
+    isEmpty: (value) => !value.hasTree,
+    refetchOnFocus: true,
+  });
 
   // Modal animation
   useEffect(() => {
@@ -105,7 +122,7 @@ export function useSkillCategory() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert('Skill Unlocked!', `You have unlocked "${result.data.node.name}"!${result.data.badgeAwarded ? '\n\nYou also earned a badge!' : ''}`, [{ text: 'Awesome!', style: 'default' }]);
         }
-        await loadTree();
+        onRefresh();
         setSelectedNode(result.data.node);
         setTimeout(() => setAnimateUnlocks(false), 1000);
       } else {
@@ -115,7 +132,7 @@ export function useSkillCategory() {
       logger.error('add_xp_failed', { error });
       Alert.alert('Error', 'Failed to add XP');
     }
-  }, [currentUser, selectedNode, loadTree]);
+  }, [currentUser, selectedNode, onRefresh]);
 
   const handleUnlockNode = useCallback(async () => {
     if (!currentUser || !selectedNode) return;
@@ -134,7 +151,7 @@ export function useSkillCategory() {
               setAnimateUnlocks(true);
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert('Skill Unlocked!', `You have unlocked "${result.data.node.name}"!${result.data.badgeAwarded ? '\n\nYou also earned a badge!' : ''}`);
-              await loadTree();
+              onRefresh();
               handleCloseModal();
               setTimeout(() => setAnimateUnlocks(false), 1000);
             } catch (error) {
@@ -144,7 +161,7 @@ export function useSkillCategory() {
         },
       },
     ]);
-  }, [currentUser, selectedNode, loadTree, handleCloseModal]);
+  }, [currentUser, selectedNode, onRefresh, handleCloseModal]);
 
   const canUnlockSelected = useMemo(() => {
     if (!selectedNode) return false;
@@ -160,9 +177,37 @@ export function useSkillCategory() {
   }, [selectedNode, tree]);
 
   return {
-    tree, isLoading, selectedNode, canUnlockNodes, animateUnlocks,
+    tree,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    selectedNode, canUnlockNodes, animateUnlocks,
     category, categoryUpper, currentUser, animatedModalStyle,
     canUnlockSelected, prereqNames,
     handleNodePress, handleCloseModal, handleAddXp, handleUnlockNode,
+  } satisfies {
+    tree: SkillTree | null;
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    selectedNode: SkillNode | null;
+    canUnlockNodes: Set<string>;
+    animateUnlocks: boolean;
+    category: string | undefined;
+    categoryUpper: SkillTreeCategory;
+    currentUser: typeof currentUser;
+    animatedModalStyle: ReturnType<typeof useAnimatedStyle>;
+    canUnlockSelected: boolean;
+    prereqNames: { id: string; name: string; isUnlocked: boolean }[];
+    handleNodePress: (node: SkillNode) => void;
+    handleCloseModal: () => void;
+    handleAddXp: (amount: number) => Promise<void>;
+    handleUnlockNode: () => Promise<void>;
   };
 }

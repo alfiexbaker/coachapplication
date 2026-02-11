@@ -6,10 +6,11 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -81,7 +82,7 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
         {availableBadges.slice(0, 8).map(badge => {
           const isAwarded = athlete.badges.includes(badge.id);
           return (
-            <Pressable
+            <Clickable
               key={badge.id}
               style={[
                 styles.badgeOption,
@@ -92,11 +93,12 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
               onPress={() => handleToggle(badge.id)}
               accessibilityLabel={`${isAwarded ? 'Remove' : 'Award'} ${badge.label} badge to ${athlete.userName}`}
               accessibilityRole="button"
+              accessibilityState={{ selected: isAwarded }}
             >
               <ThemedText style={[styles.badgeOptionText, { color: isAwarded ? colors.warning : colors.text }]}>
                 {badge.label}
               </ThemedText>
-            </Pressable>
+            </Clickable>
           );
         })}
       </Row>

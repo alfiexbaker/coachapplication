@@ -11,17 +11,19 @@ import { Row } from '@/components/primitives/row';
 import { RecoveryTimeline } from '@/components/health';
 import { InjurySummaryCard } from '@/components/health/injury-summary-card';
 import { AddRecoveryNote } from '@/components/health/add-recovery-note';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useHealthDetail } from '@/hooks/use-health-detail';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
 export default function InjuryDetailScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    injury, loading, refreshing, showAddNote, noteText, noteProgress, saving,
+    injury, loading, status, error, refreshing, retry, showAddNote, noteText, noteProgress, saving,
     setNoteText, setNoteProgress,
     handleRefresh, handleAddNote, handleMarkHealed,
     cancelAddNote, openAddNote,
@@ -30,25 +32,23 @@ export default function InjuryDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.centerState}>
-          <ThemedText style={{ color: colors.muted }}>Loading...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!injury) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-        </View>
-        <View style={styles.centerState}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-          <ThemedText style={{ color: colors.muted }}>Injury not found</ThemedText>
-        </View>
+        <ErrorState message={error?.message ?? 'Failed to load injury.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !injury) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState icon="alert-circle-outline" title="Injury not found" message="This injury record could not be located." />
       </SafeAreaView>
     );
   }
@@ -115,7 +115,6 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   statusText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
-  centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   actionsSection: { marginTop: Spacing.lg },
   healedButton: { marginTop: Spacing.sm },
 });

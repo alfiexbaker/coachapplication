@@ -5,7 +5,7 @@
  * All state/logic in useSubscribe hook.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,14 +17,46 @@ import { Row } from '@/components/primitives/row';
 import { ThemedView } from '@/components/themed-view';
 import { SubscribeForm } from '@/components/recurring';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
 import { useSubscribe, type CoachOption } from '@/hooks/use-subscribe';
 
 export default function SubscribeScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useSubscribe();
+  const palette = c.colors;
+
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
+        <ErrorState message={c.error?.message ?? 'Failed to load coaches'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
+        <EmptyState
+          icon="people-outline"
+          title="No coaches available"
+          message="No coaches are available for recurring bookings right now. Pull to refresh and try again."
+          actionLabel="Retry"
+          onPressAction={c.onRefresh}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (!c.selectedCoach) {
     return (
@@ -36,7 +68,12 @@ export default function SubscribeScreen() {
             Select a coach to set up recurring sessions with
           </ThemedText>
         </ThemedView>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.coachList} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.coachList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+        >
           {c.coaches.map((coach: CoachOption) => (
             <SurfaceCard key={coach.id} style={styles.coachCard} onPress={() => c.setSelectedCoach(coach)}>
               <Row style={styles.coachRow}>

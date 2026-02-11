@@ -9,12 +9,13 @@
  */
 
 import { useEffect, useCallback } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { NotificationCard } from '@/components/notification/notification-card';
+import { ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -42,8 +43,12 @@ export function NotificationsPanel({
   const {
     notifications,
     unreadCount,
+    status,
     isLoading,
+    refreshing,
+    error,
     refresh,
+    retry,
     markAsRead,
     currentFilter,
     setFilter,
@@ -100,8 +105,10 @@ export function NotificationsPanel({
   if (limit > 0) {
     return (
       <View style={styles.content}>
-        {isLoading ? (
-          <ActivityIndicator size="small" color={palette.tint} />
+        {status === 'loading' && notifications.length === 0 ? (
+          <LoadingState variant="list" />
+        ) : status === 'error' ? (
+          <ErrorState message={error?.message ?? 'Failed to load notifications'} onRetry={retry} />
         ) : visibleItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={32} color={palette.muted} />
@@ -129,38 +136,40 @@ export function NotificationsPanel({
     <View style={styles.flex}>
       <NotificationFilterBar currentFilter={currentFilter} onFilterChange={setFilter} />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refresh} />
-        }
-      >
-        {isLoading && notifications.length === 0 ? (
-          <View style={styles.loadingState}>
-            <ActivityIndicator size="large" color={palette.tint} />
-          </View>
-        ) : visibleItems.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="notifications-off-outline" size={48} color={palette.muted} />
-            <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
-              No notifications
-            </ThemedText>
-            <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
-              {currentFilter === 'all'
-                ? "You're all caught up! New notifications will appear here."
-                : `No ${currentFilter} notifications to show.`}
-            </ThemedText>
-          </View>
-        ) : (
-          <NotificationDayGroups
-            items={visibleItems}
-            unreadCount={unreadCount}
-            onPress={handleNotificationPress}
-            onShare={handleShare}
-            onAddToFeed={handleAddToFeed}
-          />
-        )}
-      </ScrollView>
+      {status === 'loading' && notifications.length === 0 ? (
+        <LoadingState variant="list" />
+      ) : status === 'error' ? (
+        <ErrorState message={error?.message ?? 'Failed to load notifications'} onRetry={retry} />
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing || isLoading} onRefresh={refresh} />
+          }
+        >
+          {visibleItems.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="notifications-off-outline" size={48} color={palette.muted} />
+              <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
+                No notifications
+              </ThemedText>
+              <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
+                {currentFilter === 'all'
+                  ? "You're all caught up! New notifications will appear here."
+                  : `No ${currentFilter} notifications to show.`}
+              </ThemedText>
+            </View>
+          ) : (
+            <NotificationDayGroups
+              items={visibleItems}
+              unreadCount={unreadCount}
+              onPress={handleNotificationPress}
+              onShare={handleShare}
+              onAddToFeed={handleAddToFeed}
+            />
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -172,10 +181,6 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.lg,
     gap: Spacing.md,
-  },
-  loadingState: {
-    paddingTop: 100,
-    alignItems: 'center',
   },
   emptyState: {
     paddingTop: 60,

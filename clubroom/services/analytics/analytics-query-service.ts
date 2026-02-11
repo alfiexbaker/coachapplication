@@ -234,15 +234,20 @@ export const analyticsQueryService = {
 
         const analytics = analyticsCache.find((a) => a.athleteId === athleteId);
         if (analytics) {
-          // Attach goals
-          analytics.activeGoals = goalsCache.filter(
+          // Return a fresh value to avoid mutating shared cache objects between calls.
+          const activeGoals = goalsCache.filter(
             (g) => g.athleteId === athleteId && g.status === 'ACTIVE',
           );
-          analytics.completedGoals = goalsCache.filter(
+          const completedGoals = goalsCache.filter(
             (g) => g.athleteId === athleteId && g.status === 'COMPLETED',
           );
-          analytics.period = period;
-          return ok(analytics);
+
+          return ok({
+            ...analytics,
+            period,
+            activeGoals,
+            completedGoals,
+          });
         }
 
         // Return mock analytics for any athlete

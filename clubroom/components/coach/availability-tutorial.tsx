@@ -5,6 +5,7 @@ import { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
+import { withAlpha } from '@/constants/theme';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
@@ -92,7 +93,7 @@ export function AvailabilityTutorial({ visible, onComplete }: AvailabilityTutori
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={handleComplete}>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
         <View style={[styles.card, { backgroundColor: palette.surface }]}>
           <View style={styles.skipRow}>
             <Clickable onPress={handleComplete}>

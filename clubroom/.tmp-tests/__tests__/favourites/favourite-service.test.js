@@ -97,6 +97,11 @@ const MOCK_FAVOURITES = [
 ];
 // In-memory mock service for testing
 let favouritesCache = [];
+let favouriteIdSeq = 0;
+function nextFavouriteId() {
+    favouriteIdSeq += 1;
+    return `fav_${favouriteIdSeq}`;
+}
 const mockFavouriteService = {
     async resetToMockData() {
         favouritesCache = MOCK_FAVOURITES.map((f) => ({ ...f }));
@@ -125,7 +130,7 @@ const mockFavouriteService = {
             return softDeleted;
         }
         const newFavourite = {
-            id: `fav_${Date.now()}`,
+            id: nextFavouriteId(),
             userId: input.userId,
             coachId: input.coachId,
             coachName: input.coachName,
@@ -197,6 +202,7 @@ const favouriteService = mockFavouriteService;
 // Reset to mock data before each test
 (0, node_test_1.beforeEach)(async () => {
     await favouriteService.resetToMockData();
+    favouriteIdSeq = 0;
 });
 (0, node_test_1.describe)('Favourite Service', () => {
     (0, node_test_1.describe)('addFavourite', () => {

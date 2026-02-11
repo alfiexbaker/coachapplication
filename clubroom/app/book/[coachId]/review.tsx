@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, ActivityIndicator, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,9 +9,15 @@ import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader, SummaryRow } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import {
+  BookingTotalsCard,
+  PaymentMethodCard,
+  PromoCodeCard,
+} from '@/components/ui/booking/review-payment-sections';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
@@ -24,34 +30,51 @@ const PLATFORM_FEE_PERCENT = 0.15; // 15% platform fee
 export default function ReviewScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-
-  const [coach, setCoach] = useState<Coach | null>(null);
-  const [loading, setLoading] = useState(true);
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState<string | null>(null);
 
-  // Load coach data to get actual rates
-  useEffect(() => {
-    const loadCoach = async () => {
-      if (!coachId) return;
-      try {
-        const coachResult = await coachService.getCoach(coachId);
-        if (coachResult.success) {
-          setCoach(coachResult.data);
-          // Store coach name in draft for confirmation
-          updateDraft({ coachName: coachResult.data.name });
+  const loadCoach = useCallback(async () => {
+    if (!coachId) {
+      return err(serviceError('UNKNOWN', 'Coach not provided for booking review.'));
+    }
+    try {
+      const coachResult = await coachService.getCoach(coachId);
+      if (!coachResult.success) {
+        if (coachResult.error.code === 'NOT_FOUND') {
+          return ok<Coach | null>(null);
         }
-      } catch (error) {
-        logger.error('Failed to load coach:', error);
-      } finally {
-        setLoading(false);
+        return err(coachResult.error);
       }
-    };
-    loadCoach();
-  }, [coachId, updateDraft]);
+      return ok<Coach | null>(coachResult.data);
+    } catch (loadError) {
+      logger.error('Failed to load coach:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load coach details for review.', loadError));
+    }
+  }, [coachId]);
+
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<Coach | null>({
+    load: loadCoach,
+    deps: [loadCoach],
+    isEmpty: (coachData) => coachData === null,
+    refetchOnFocus: true,
+  });
+  const coach = data ?? null;
+
+  useEffect(() => {
+    if (coach?.name) {
+      updateDraft({ coachName: coach.name });
+    }
+  }, [coach?.name, updateDraft]);
 
   // Calculate price based on coach's actual rate
   const getSessionPrice = () => {
@@ -107,19 +130,42 @@ export default function ReviewScreen() {
     setPromoError(null);
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load booking review details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="person-outline"
+          title="Coach unavailable"
+          message="We could not load this coach's profile for review. Go back and choose another coach."
+          actionLabel="Go back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+      >
         <BookingWizardHeader
           title="Review & pay"
           subtitle="Confirm booking details"
@@ -137,72 +183,29 @@ export default function ReviewScreen() {
           )}
         </View>
 
-        <View style={[styles.card, { borderColor: palette.border }]}>
-          <ThemedText type="defaultSemiBold">Payment method</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>
-            {(draft as unknown as Record<string, string>).paymentMethod || 'Wallet balance'}
-          </ThemedText>
-          <Clickable onPress={() => router.push(Routes.PAYMENT_METHODS)}>
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Change</ThemedText>
-          </Clickable>
-        </View>
+        <PaymentMethodCard
+          colors={palette}
+          paymentMethod={(draft as unknown as Record<string, string>).paymentMethod || 'Wallet balance'}
+          onChange={() => router.push(Routes.PAYMENT_METHODS)}
+        />
 
-        {/* Promo Code Section */}
-        <View style={[styles.card, { borderColor: palette.border }]}>
-          <ThemedText type="defaultSemiBold">Promo code</ThemedText>
-          {promoApplied ? (
-            <Row style={styles.promoApplied}>
-              <Row style={[styles.promoTag, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-                <ThemedText style={[styles.promoTagText, { color: palette.success }]}>
-                  {promoCode.toUpperCase()} applied
-                </ThemedText>
-              </Row>
-              <Clickable onPress={handleRemovePromo}>
-                <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Remove</ThemedText>
-              </Clickable>
-            </Row>
-          ) : (
-            <>
-              <Row style={styles.promoInputRow}>
-                <TextInput
-                  value={promoCode}
-                  onChangeText={setPromoCode}
-                  placeholder="Enter code"
-                  placeholderTextColor={palette.muted}
-                  autoCapitalize="characters"
-                  style={[styles.promoInput, { borderColor: palette.border, backgroundColor: palette.card }]}
-                />
-                <Clickable
-                  onPress={handleApplyPromo}
-                  disabled={!promoCode.trim()}
-                  style={[
-                    styles.promoApplyButton,
-                    { backgroundColor: promoCode.trim() ? palette.tint : palette.border }
-                  ]}
-                >
-                  <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
-                </Clickable>
-              </Row>
-              {promoError && (
-                <ThemedText style={{ color: palette.error, ...Typography.small }}>{promoError}</ThemedText>
-              )}
-              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                Try: FIRST10, WELCOME20, VIP50
-              </ThemedText>
-            </>
-          )}
-        </View>
+        <PromoCodeCard
+          colors={palette}
+          promoCode={promoCode}
+          promoApplied={promoApplied}
+          promoError={promoError}
+          onPromoCodeChange={setPromoCode}
+          onApplyPromo={handleApplyPromo}
+          onRemovePromo={handleRemovePromo}
+        />
 
-        <View style={[styles.card, { borderColor: palette.border }]}>
-          <SummaryRow label="Session" value={`£${sessionPrice.toFixed(2)}`} />
-          <SummaryRow label="Platform fee (15%)" value={`£${platformFee.toFixed(2)}`} />
-          {promoDiscount > 0 && (
-            <SummaryRow label="Promo discount" value={`-£${promoDiscount.toFixed(2)}`} />
-          )}
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <SummaryRow label="Total" value={`£${total.toFixed(2)}`} />
-        </View>
+        <BookingTotalsCard
+          colors={palette}
+          sessionPrice={sessionPrice}
+          platformFee={platformFee}
+          promoDiscount={promoDiscount}
+          total={total}
+        />
 
         {coach?.minPriceUsd && (
           <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
@@ -220,8 +223,10 @@ export default function ReviewScreen() {
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
           <Row justify="center" align="center" gap="sm">
-            <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
+            <Ionicons name={promoApplied ? 'checkmark-circle' : 'card-outline'} size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+              {promoApplied ? `Pay £${total.toFixed(2)}` : `Continue to pay £${total.toFixed(2)}`}
+            </ThemedText>
           </Row>
         </Clickable>
       </View>
@@ -232,17 +237,8 @@ export default function ReviewScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { padding: Spacing.lg, borderRadius: Radii.lg, borderWidth: 1.5, gap: Spacing.xs },
-  divider: { height: 1, marginVertical: Spacing.xs },
   rateNote: { ...Typography.caption, textAlign: 'center' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: { padding: Spacing.md, borderRadius: Radii.button },
-  // Promo code styles
-  promoInputRow: { gap: Spacing.sm },
-  promoInput: { flex: 1, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.bodySmall },
-  promoApplyButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, justifyContent: 'center' },
-  promoApplied: { justifyContent: 'space-between', alignItems: 'center' },
-  promoTag: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
-  promoTagText: { ...Typography.smallSemiBold },
 });

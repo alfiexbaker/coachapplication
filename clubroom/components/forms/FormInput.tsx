@@ -1,8 +1,3 @@
-/**
- * Unified FormInput component.
- * Single source of truth for all text inputs across the app.
- */
-
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -18,9 +13,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
 type BlurEvent = NativeSyntheticEvent<TargetedEvent>;
-
 export type FormInputType =
   | 'text'
   | 'email'
@@ -29,38 +22,22 @@ export type FormInputType =
   | 'number'
   | 'multiline'
   | 'search';
-
 export interface FormInputProps extends Omit<TextInputProps, 'onChangeText' | 'value' | 'onBlur' | 'onChange'> {
-  /** Field name for form state management */
   name: string;
-  /** Label displayed above the input */
   label?: string;
-  /** Current value */
   value: string;
-  /** Change handler */
   onChange: (value: string) => void;
-  /** Error message to display */
   error?: string;
-  /** Helper text shown below input */
   helperText?: string;
-  /** Input type - affects keyboard and validation */
   type?: FormInputType;
-  /** Is this field required? */
   required?: boolean;
-  /** Disabled state */
   disabled?: boolean;
-  /** Left icon */
   leftIcon?: string;
-  /** Right icon */
   rightIcon?: string;
-  /** Right icon press handler */
   onRightIconPress?: () => void;
-  /** Blur handler for touched state */
   onBlur?: (e: BlurEvent) => void;
-  /** Character count display */
   showCharCount?: boolean;
 }
-
 export function FormInput({
   name,
   label,
@@ -84,8 +61,6 @@ export function FormInput({
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
-
-  // Determine keyboard type based on input type
   const keyboardType = (() => {
     switch (type) {
       case 'email':
@@ -98,30 +73,21 @@ export function FormInput({
         return 'default';
     }
   })();
-
-  // Determine if text should be secure
   const isSecure = type === 'password' && !isPasswordVisible;
-
-  // Multiline props
   const multilineProps = type === 'multiline' ? { multiline: true, numberOfLines: 4 } : {};
-
   const handleFocus = () => setIsFocused(true);
-
   const handleBlur = (e: BlurEvent) => {
     setIsFocused(false);
     onBlur?.(e);
   };
-
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
-
   const borderColor = error
     ? palette.error
     : isFocused
       ? palette.tint
       : palette.border;
-
   return (
     <View style={styles.container}>
       {label && (
@@ -132,7 +98,6 @@ export function FormInput({
           </ThemedText>
         </Row>
       )}
-
       <View
         style={[
           styles.inputContainer,
@@ -152,7 +117,6 @@ export function FormInput({
             style={styles.leftIcon}
           />
         )}
-
         <TextInput
           ref={inputRef}
           style={[
@@ -179,7 +143,6 @@ export function FormInput({
           {...multilineProps}
           {...rest}
         />
-
         {type === 'password' && (
           <Pressable
             onPress={togglePasswordVisibility}
@@ -193,7 +156,6 @@ export function FormInput({
             />
           </Pressable>
         )}
-
         {rightIcon && type !== 'password' && (
           <Pressable
             onPress={onRightIconPress}
@@ -205,7 +167,6 @@ export function FormInput({
           </Pressable>
         )}
       </View>
-
       <Row style={styles.bottomRow}>
         {error ? (
           <ThemedText style={[styles.errorText, { color: palette.error }]}>
@@ -218,7 +179,6 @@ export function FormInput({
         ) : (
           <View />
         )}
-
         {showCharCount && maxLength && (
           <ThemedText style={[styles.charCount, { color: palette.muted }]}>
             {value.length}/{maxLength}
@@ -228,7 +188,6 @@ export function FormInput({
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.sm,
@@ -287,5 +246,4 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
 });
-
 export default FormInput;

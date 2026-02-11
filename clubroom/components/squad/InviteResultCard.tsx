@@ -1,4 +1,3 @@
-import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -47,7 +46,7 @@ export function InviteResultCard({
 
   return (
     <Animated.View entering={FadeInDown.springify()}>
-      <SurfaceCard style={styles.card}>
+      <SurfaceCard style={{ gap: Spacing.md }}>
         <InviteStatusHeader config={statusConfig} palette={palette} />
 
         <InviteContextRow
@@ -83,12 +82,7 @@ export function InviteResultCard({
   );
 }
 
-// Backward compat — re-export CompactInviteResult with useTheme wrapper
 export function CompactInviteResult({ result, onDismiss }: { result: BulkInviteResult; onDismiss?: () => void }) {
   const { colors: palette } = useTheme();
   return <CompactInviteResultInner result={result} onDismiss={onDismiss} palette={palette} />;
 }
-
-const styles = StyleSheet.create({
-  card: { gap: Spacing.md },
-});

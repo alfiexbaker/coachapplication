@@ -6,13 +6,15 @@
  * Used by app/availability/calendar.tsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useAvailabilityCalendar');
 
@@ -33,19 +35,26 @@ export interface CalendarDay {
   slots: AvailabilitySlot[];
 }
 
+interface AvailabilityCalendarData {
+  templates: AvailabilityTemplate[];
+  overrides: AvailabilityOverride[];
+  slots: AvailabilitySlot[];
+}
+
 export function useAvailabilityCalendar() {
   const { currentUser } = useAuth();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
-  const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
-  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<AvailabilityCalendarData>({
+        templates: [],
+        overrides: [],
+        slots: [],
+      });
+    }
 
     try {
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -66,31 +75,43 @@ export function useAvailabilityCalendar() {
         availabilityService.getAvailableSlots(currentUser.id, startStr, endStr),
       ]);
 
-      setTemplates(templatesData);
-      setOverrides(overridesData);
-      setSlots(slotsData);
-
       logger.debug('Calendar data loaded', {
         templates: templatesData.length,
         overrides: overridesData.length,
         slots: slotsData.length,
       });
+
+      return ok<AvailabilityCalendarData>({
+        templates: templatesData,
+        overrides: overridesData,
+        slots: slotsData,
+      });
     } catch (error) {
       logger.error('Failed to load calendar data', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load availability calendar.', error));
     }
   }, [currentUser?.id, currentMonth]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<AvailabilityCalendarData>({
+    load: loadData,
+    deps: [currentUser?.id, currentMonth.getFullYear(), currentMonth.getMonth()],
+    isEmpty: (value) =>
+      value.templates.length === 0 &&
+      value.overrides.length === 0 &&
+      value.slots.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const templates = data?.templates ?? [];
+  const overrides = data?.overrides ?? [];
+  const slots = data?.slots ?? [];
 
   const generateCalendarDays = useCallback((): CalendarDay[] => {
     const days: CalendarDay[] = [];
@@ -135,7 +156,6 @@ export function useAvailabilityCalendar() {
   const calendarDays = generateCalendarDays();
 
   const navigateMonth = useCallback((direction: number) => {
-    setLoading(true);
     setSelectedDate(null);
     setCurrentMonth(prev => {
       const newDate = new Date(prev);
@@ -158,7 +178,9 @@ export function useAvailabilityCalendar() {
   return {
     currentMonth,
     selectedDate,
-    loading,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
     refreshing,
     calendarDays,
     selectedSlots,
@@ -166,5 +188,6 @@ export function useAvailabilityCalendar() {
     navigateMonth,
     formatTime,
     onRefresh,
+    retry,
   };
 }

@@ -10,7 +10,7 @@ import { Routes } from '@/navigation/routes';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Academy } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -37,10 +37,10 @@ export const AcademyBanner = memo(function AcademyBanner({
         ) : (
           <View style={[styles.bannerPlaceholder, { backgroundColor: primaryColor }]} />
         )}
-        <View style={styles.bannerOverlay} />
+        <View style={[styles.bannerOverlay, { backgroundColor: withAlpha(colors.text, 0.2) }]} />
         <Clickable
           onPress={() => router.back()}
-          style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+          style={[styles.backButton, { backgroundColor: withAlpha(colors.text, 0.4) }]}
         >
           <Ionicons name="arrow-back" size={22} color={colors.onPrimary} />
         </Clickable>
@@ -48,7 +48,7 @@ export const AcademyBanner = memo(function AcademyBanner({
           <Clickable
             accessibilityLabel="Academy settings"
             onPress={() => router.push(Routes.academySettings(academy.id))}
-            style={[styles.settingsButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+            style={[styles.settingsButton, { backgroundColor: withAlpha(colors.text, 0.4) }]}
           >
             <Ionicons name="settings-outline" size={20} color={colors.onPrimary} />
           </Clickable>
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   bannerContainer: { position: 'relative', height: 180 },
   banner: { width: '100%', height: '100%' },
   bannerPlaceholder: { width: '100%', height: '100%' },
-  bannerOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
+  bannerOverlay: { ...StyleSheet.absoluteFillObject },
   backButton: {
     position: 'absolute', top: Spacing.md, left: Spacing.md,
     width: 40, height: 40, borderRadius: Radii.xl,

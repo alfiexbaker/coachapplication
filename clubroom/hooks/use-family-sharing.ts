@@ -3,10 +3,11 @@
  */
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { familyService } from '@/services/family';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { FamilyAccount, FamilyGuardian, GuardianRole, GuardianPermission } from '@/constants/types';
 
 const logger = createLogger('FamilySharing');
@@ -29,8 +30,6 @@ export function getPermissionIcons(permissions: GuardianPermission[]): string[] 
 export function useFamilySharing() {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [family, setFamily] = useState<FamilyAccount | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Invite form
@@ -42,19 +41,34 @@ export function useFamilySharing() {
   const [inviting, setInviting] = useState(false);
 
   const loadFamilyData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<FamilyAccount | null>(null);
+    }
+
     try {
       const account = await familyService.getFamilyAccount(currentUser.id, currentUser.fullName || 'Parent');
-      setFamily(account);
+      return ok<FamilyAccount | null>(account);
     } catch (error) {
       logger.error('Failed to load family data', error);
-      Alert.alert('Error', 'Failed to load family sharing settings');
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load family sharing settings.', error));
     }
   }, [currentUser?.id, currentUser?.fullName]);
 
-  useFocusEffect(useCallback(() => { loadFamilyData(); }, [loadFamilyData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<FamilyAccount | null>({
+    load: loadFamilyData,
+    deps: [currentUser?.id],
+    isEmpty: (value) => !value,
+    refetchOnFocus: true,
+  });
+
+  const family = data ?? null;
 
   const resetInviteForm = useCallback(() => {
     setInviteEmail(''); setInviteName(''); setInviteRole('GUARDIAN');
@@ -75,7 +89,7 @@ export function useFamilySharing() {
       Alert.alert('Invitation Sent', `An invitation has been sent to ${inviteEmail}. They'll receive instructions to join your family account.`);
       setShowInviteModal(false);
       resetInviteForm();
-      loadFamilyData();
+      onRefresh();
       logger.success('InviteSent', { email: inviteEmail, role: inviteRole });
     } catch (error: unknown) {
       logger.error('Failed to send invite', error);
@@ -96,26 +110,34 @@ export function useFamilySharing() {
           try {
             await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
             Alert.alert('Removed', `${guardianLabel} has been removed from your family account.`);
-            loadFamilyData();
+            onRefresh();
           } catch (error: unknown) { Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove guardian'); }
         }},
       ]
     );
-  }, [family, currentUser, loadFamilyData]);
+  }, [family, currentUser, onRefresh]);
 
   const handleCancelInvite = useCallback((inviteId: string, email: string) => {
     if (!family || !currentUser) return;
     Alert.alert('Cancel Invitation', `Cancel the invitation to ${email}?`, [
       { text: 'Keep', style: 'cancel' },
       { text: 'Cancel Invite', style: 'destructive', onPress: async () => {
-        try { await familyService.cancelInvite(family.id, currentUser.id, inviteId); loadFamilyData(); }
+        try { await familyService.cancelInvite(family.id, currentUser.id, inviteId); onRefresh(); }
         catch (error: unknown) { Alert.alert('Error', error instanceof Error ? error.message : 'Failed to cancel invitation'); }
       }},
     ]);
-  }, [family, currentUser, loadFamilyData]);
+  }, [family, currentUser, onRefresh]);
 
   return {
-    loading, family, showInviteModal, setShowInviteModal,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    family,
+    showInviteModal,
+    setShowInviteModal,
     inviteEmail, setInviteEmail, inviteName, setInviteName,
     inviteRole, setInviteRole, inviteRelationship, setInviteRelationship,
     inviteMessage, setInviteMessage, inviting,

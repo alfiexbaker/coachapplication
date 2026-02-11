@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
+import { useCallback } from 'react';
+import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,145 +9,109 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { RecurringList } from '@/components/recurring';
 import { Clickable } from '@/components/primitives/clickable';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { RecurringBooking } from '@/constants/types';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { ServiceEvents } from '@/services/event-bus';
+import { err, ok, serviceError } from '@/types/result';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('RecurringBookingsScreen');
-
-/**
- * RecurringBookingsScreen displays the user's recurring booking subscriptions
- * with the ability to pause, resume, or cancel them.
- */
 export default function RecurringBookingsScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
-
-  const [bookings, setBookings] = useState<RecurringBooking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  /**
-   * Load recurring bookings for the current user
-   */
   const loadBookings = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok([]);
+    }
 
     try {
-      let userBookings: RecurringBooking[] = [];
-      let bookingsResult;
-
-      if (currentUser.role === 'COACH') {
-        bookingsResult = await recurringBookingService.getCoachRecurringBookings(currentUser.id);
-      } else {
-        bookingsResult = await recurringBookingService.getUserRecurringBookings(currentUser.id);
-      }
+      const bookingsResult = currentUser.role === 'COACH'
+        ? await recurringBookingService.getCoachRecurringBookings(currentUser.id)
+        : await recurringBookingService.getUserRecurringBookings(currentUser.id);
 
       if (!bookingsResult.success) {
-        throw new Error(bookingsResult.error.message);
+        return err(bookingsResult.error);
       }
-      userBookings = bookingsResult.data;
+      let userBookings = bookingsResult.data;
 
-      setBookings(userBookings);
+      if (userBookings.length === 0) {
+        const allBookingsResult = await recurringBookingService.list();
+        if (allBookingsResult.success && allBookingsResult.data.length === 0) {
+          const seedResult = await recurringBookingService.seedDemoData();
+          if (seedResult.success) {
+            const seededBookingsResult = currentUser.role === 'COACH'
+              ? await recurringBookingService.getCoachRecurringBookings(currentUser.id)
+              : await recurringBookingService.getUserRecurringBookings(currentUser.id);
+            if (seededBookingsResult.success) {
+              userBookings = seededBookingsResult.data;
+            }
+          } else {
+            logger.warn('Failed to seed recurring demo data', seedResult.error);
+          }
+        }
+      }
+
       logger.debug('Loaded recurring bookings', { count: userBookings.length });
+      return ok(userBookings);
     } catch (error) {
       logger.error('Failed to load recurring bookings', error);
-      Alert.alert('Error', 'Failed to load recurring bookings. Please try again.');
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load recurring bookings. Please try again.', error));
     }
   }, [currentUser?.id, currentUser?.role]);
 
-  // Load bookings when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadBookings();
-    }, [loadBookings])
-  );
+  const {
+    data: recurringData,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<RecurringBooking[]>({
+    load: loadBookings,
+    deps: [currentUser?.id, currentUser?.role],
+    events: [ServiceEvents.RECURRING_CREATED, ServiceEvents.RECURRING_CANCELLED, ServiceEvents.BOOKING_CREATED],
+    isEmpty: (data) => data.length === 0,
+    refetchOnFocus: true,
+  });
+  const bookings = recurringData ?? [];
 
-  // Seed demo data on first load if no bookings exist
-  useEffect(() => {
-    const seedIfEmpty = async () => {
-      const allBookingsResult = await recurringBookingService.list();
-      if (!allBookingsResult.success) {
-        return;
-      }
-      if (allBookingsResult.data.length === 0) {
-        const seedResult = await recurringBookingService.seedDemoData();
-        if (!seedResult.success) {
-          logger.warn('Failed to seed recurring demo data', seedResult.error);
-          return;
-        }
-        loadBookings();
-      }
-    };
-    seedIfEmpty();
-  }, [loadBookings]);
-
-  /**
-   * Handle pull-to-refresh
-   */
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadBookings();
-    setRefreshing(false);
-  }, [loadBookings]);
-
-  /**
-   * Handle pausing a subscription
-   */
   const handlePause = useCallback(async (id: string, reason?: string) => {
     const result = await recurringBookingService.pauseRecurring(id, reason);
 
     if (result.success) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? (result.data as RecurringBooking) : b))
-      );
       Alert.alert('Subscription Paused', 'Your recurring booking has been paused. You can resume it anytime.');
+      onRefresh();
     } else {
       Alert.alert('Error', result.error?.message || 'Failed to pause subscription.');
     }
-  }, []);
+  }, [onRefresh]);
 
-  /**
-   * Handle resuming a subscription
-   */
   const handleResume = useCallback(async (id: string) => {
     const result = await recurringBookingService.resumeRecurring(id);
 
     if (result.success) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? (result.data as RecurringBooking) : b))
-      );
       Alert.alert('Subscription Resumed', 'Your recurring booking has been resumed.');
+      onRefresh();
     } else {
       Alert.alert('Error', result.error?.message || 'Failed to resume subscription.');
     }
-  }, []);
+  }, [onRefresh]);
 
-  /**
-   * Handle cancelling a subscription
-   */
   const handleCancel = useCallback(async (id: string, reason?: string) => {
     const result = await recurringBookingService.cancelRecurring(id, reason);
 
     if (result.success) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? (result.data as RecurringBooking) : b))
-      );
       Alert.alert('Subscription Cancelled', 'Your recurring booking has been cancelled.');
+      onRefresh();
     } else {
       Alert.alert('Error', result.error?.message || 'Failed to cancel subscription.');
     }
-  }, []);
+  }, [onRefresh]);
 
-  /**
-   * Handle card press - navigate to detail or generate bookings
-   */
   const handleCardPress = useCallback((recurring: RecurringBooking) => {
     if (recurring.status !== 'ACTIVE') {
       return;
@@ -167,6 +131,7 @@ export default function RecurringBookingsScreen() {
                 'Bookings Generated',
                 `${result.data.length} upcoming sessions have been added to your bookings.`
               );
+              onRefresh();
             } else {
               Alert.alert('Error', result.error?.message || 'Failed to generate bookings.');
             }
@@ -174,30 +139,61 @@ export default function RecurringBookingsScreen() {
         },
       ]
     );
-  }, []);
+  }, [onRefresh]);
 
-  /**
-   * Navigate to create subscription screen
-   */
   const handleCreatePress = useCallback(() => {
     router.push(Routes.BOOKINGS_SUBSCRIBE);
   }, []);
 
-  if (loading) {
+  const baseScreenOptions = { title: 'Recurring Bookings', headerShown: true } as const;
+  const createScreenOptions = {
+    ...baseScreenOptions,
+    headerRight: () => (
+      <Clickable accessibilityLabel="Create recurring booking" onPress={handleCreatePress} style={styles.headerButton}>
+        <Ionicons name="add-circle" size={28} color={palette.tint} />
+      </Clickable>
+    ),
+  } as const;
+
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Stack.Screen
-          options={{
-            title: 'Recurring Bookings',
-            headerShown: true,
-          }}
+          options={baseScreenOptions}
         />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading subscriptions...
-          </ThemedText>
-        </View>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Stack.Screen
+          options={baseScreenOptions}
+        />
+        <ErrorState message={error?.message ?? 'Failed to load recurring bookings.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Stack.Screen
+          options={createScreenOptions}
+        />
+        <EmptyState
+          icon="repeat-outline"
+          title={currentUser?.role === 'COACH' ? 'No recurring subscriptions' : 'No recurring bookings'}
+          message={
+            currentUser?.role === 'COACH'
+              ? 'No athletes have subscribed to recurring sessions with you yet.'
+              : 'Subscribe to a weekly or monthly session slot with your favorite coach.'
+          }
+          actionLabel={currentUser?.role === 'COACH' ? undefined : 'Create subscription'}
+          onPressAction={currentUser?.role === 'COACH' ? undefined : handleCreatePress}
+        />
       </SafeAreaView>
     );
   }
@@ -205,18 +201,8 @@ export default function RecurringBookingsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <Stack.Screen
-        options={{
-          title: 'Recurring Bookings',
-          headerShown: true,
-          headerRight: () => (
-            <Clickable accessibilityLabel="Create recurring booking" onPress={handleCreatePress} style={styles.headerButton}>
-              <Ionicons name="add-circle" size={28} color={palette.tint} />
-            </Clickable>
-          ),
-        }}
+        options={createScreenOptions}
       />
-
-      {/* Header Info */}
       <ThemedView style={styles.header}>
         <ThemedText type="subtitle">
           {currentUser?.role === 'COACH' ? 'Subscriptions from Athletes' : 'My Subscriptions'}
@@ -228,27 +214,18 @@ export default function RecurringBookingsScreen() {
         </ThemedText>
       </ThemedView>
 
-      {/* Recurring Bookings List */}
       <RecurringList
         bookings={bookings}
         loading={false}
         refreshing={refreshing}
-        onRefresh={handleRefresh}
+        onRefresh={onRefresh}
         onPause={currentUser?.role !== 'COACH' ? handlePause : undefined}
         onResume={currentUser?.role !== 'COACH' ? handleResume : undefined}
         onCancel={currentUser?.role !== 'COACH' ? handleCancel : undefined}
         onCardPress={handleCardPress}
         onCreatePress={currentUser?.role !== 'COACH' ? handleCreatePress : undefined}
-        emptyTitle={
-          currentUser?.role === 'COACH'
-            ? 'No Recurring Subscriptions'
-            : 'No Recurring Bookings'
-        }
-        emptyMessage={
-          currentUser?.role === 'COACH'
-            ? 'No athletes have subscribed to recurring sessions with you yet.'
-            : 'Subscribe to a weekly or monthly session slot with your favorite coach.'
-        }
+        emptyTitle={currentUser?.role === 'COACH' ? 'No Recurring Subscriptions' : 'No Recurring Bookings'}
+        emptyMessage={currentUser?.role === 'COACH' ? 'No athletes have subscribed to recurring sessions with you yet.' : 'Subscribe to a weekly or monthly session slot with your favorite coach.'}
       />
     </SafeAreaView>
   );
@@ -268,14 +245,5 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: Spacing.xs,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  loadingText: {
-    ...Typography.body,
   },
 });

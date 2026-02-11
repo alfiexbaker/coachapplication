@@ -19,44 +19,88 @@ import { AthleteStatCard } from '@/components/analytics/athlete-stat-card';
 import { AthleteSkillBar } from '@/components/analytics/athlete-skill-bar';
 import { AthleteGoalCard } from '@/components/analytics/athlete-goal-card';
 import { AnalyticsPerformanceCard } from '@/components/analytics/analytics-performance-card';
-import { useScreen } from '@/hooks/use-screen';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { ok } from '@/types/result';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAthleteAnalytics, ANALYTICS_ACCENT_COLOR, PERIOD_OPTIONS } from '@/hooks/use-athlete-analytics';
 
 export default function AthleteAnalyticsScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { athleteId, analytics, loading, period, setPeriod, handleCompleteMilestone, handleShare } = useAthleteAnalytics();
+  const { colors } = useTheme();
+  const athlete = useAthleteAnalytics();
+  const fallbackName = athlete.athleteId || 'Athlete';
+  const headerTitle = athlete.analytics?.athleteId || fallbackName;
+  const header = (
+    <Row gap="md" align="center" style={styles.header}>
+      <Clickable onPress={() => router.back()} hitSlop={8}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </Clickable>
+      <View style={{ flex: 1 }}>
+        <ThemedText type="title">{headerTitle}</ThemedText>
+        <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>Progress Analytics</ThemedText>
+      </View>
+      <Clickable accessibilityLabel="Share analytics" onPress={athlete.handleShare} hitSlop={8}>
+        <Ionicons name="share-outline" size={22} color={colors.text} />
+      </Clickable>
+    </Row>
+  );
 
-  if (loading || !analytics) return <LoadingState variant="detail" />;
-  if (!analytics) return <EmptyState icon="analytics-outline" title="No analytics" message="Analytics will appear after sessions" />;
+  if (athlete.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        {header}
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (athlete.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        {header}
+        <ErrorState
+          message={athlete.error?.message || 'Failed to load athlete analytics.'}
+          onRetry={athlete.retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (athlete.status === 'empty' || !athlete.analytics) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        {header}
+        <EmptyState
+          icon="analytics-outline"
+          title="No analytics yet"
+          message="Analytics will appear after completed sessions."
+          actionLabel="Refresh"
+          onPressAction={athlete.onRefresh}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  const analytics = athlete.analytics;
+  const athleteRouteId = athlete.athleteId ?? analytics.athleteId;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <Row gap="md" align="center" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <View style={{ flex: 1 }}>
-          <ThemedText type="title">{analytics.athleteId}</ThemedText>
-          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>Progress Analytics</ThemedText>
-        </View>
-        <Clickable accessibilityLabel="Share analytics" onPress={handleShare} hitSlop={8}>
-          <Ionicons name="share-outline" size={22} color={colors.text} />
-        </Clickable>
-      </Row>
+      {header}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.periodsContainer}>
         {PERIOD_OPTIONS.map((p) => (
-          <Clickable key={p.key} onPress={() => setPeriod(p.key)}
-            style={[styles.periodChip, { backgroundColor: period === p.key ? colors.tint : colors.surface }]}>
-            <ThemedText style={[Typography.smallSemiBold, { color: period === p.key ? colors.onPrimary : colors.text }]}>{p.label}</ThemedText>
+          <Clickable key={p.key} onPress={() => athlete.setPeriod(p.key)}
+            style={[styles.periodChip, { backgroundColor: athlete.period === p.key ? colors.tint : colors.surface }]}>
+            <ThemedText style={[Typography.smallSemiBold, { color: athlete.period === p.key ? colors.onPrimary : colors.text }]}>{p.label}</ThemedText>
           </Clickable>
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={false} onRefresh={() => {}} />}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={athlete.refreshing} onRefresh={athlete.onRefresh} />}
+      >
         <Row style={styles.statsGrid}>
           <AthleteStatCard icon="fitness-outline" label="Sessions" value={analytics.sessionsThisPeriod} color={colors.tint} index={0} />
           <AthleteStatCard icon="star-outline" label="Avg Rating" value={analytics.averageSessionRating.toFixed(1)} suffix="/5" color={colors.rating} index={1} />
@@ -82,13 +126,13 @@ export default function AthleteAnalyticsScreen() {
           <View style={styles.section}>
             <Row align="center" justify="space-between" style={{ marginBottom: Spacing.md }}>
               <ThemedText type="subtitle">Active Goals</ThemedText>
-              <Clickable onPress={() => router.push(Routes.analyticsAthleteGoals(athleteId))} style={{ paddingVertical: Spacing.xxs, paddingHorizontal: 8 }}>
+              <Clickable onPress={() => router.push(Routes.analyticsAthleteGoals(athleteRouteId))} style={{ paddingVertical: Spacing.xxs, paddingHorizontal: 8 }}>
                 <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>See all</ThemedText>
               </Clickable>
             </Row>
             <View style={{ gap: Spacing.md }}>
               {analytics.activeGoals.slice(0, 2).map((goal, index) => (
-                <AthleteGoalCard key={goal.id} goal={goal} index={index} onComplete={(milestoneId) => handleCompleteMilestone(goal.id, milestoneId)} />
+                <AthleteGoalCard key={goal.id} goal={goal} index={index} onComplete={(milestoneId) => athlete.handleCompleteMilestone(goal.id, milestoneId)} />
               ))}
             </View>
           </View>

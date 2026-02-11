@@ -5,7 +5,7 @@
  * primary contact designation and pickup authorization.
  */
 
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { EmergencyContactCard } from '@/components/child/emergency-contact-card';
 import { EmergencyContactForm } from '@/components/child/emergency-contact-form';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -24,7 +25,8 @@ import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 export default function EmergencyContactsScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    loading, contacts, showForm, editingContact,
+    loading, status, error, contacts, showForm, editingContact,
+    refreshing, onRefresh, retry,
     handleAddContact, handleUpdateContact, handleDeleteContact, handleSetPrimary,
     openForm, closeForm, startEdit,
   } = useEmergencyContacts();
@@ -32,14 +34,25 @@ export default function EmergencyContactsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <ThemedText style={{ textAlign: 'center', marginTop: Spacing.xl }}>Loading...</ThemedText>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load emergency contacts.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+      >
         <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />

@@ -222,6 +222,10 @@ describe('InviteRsvpService', () => {
         'Test User',
         'going'
       );
+      assert.ok(createResult.success);
+      if (!createResult.success) {
+        return;
+      }
 
       const updateResult = await inviteRsvpService.updateResponse(
         createResult.data.id,
@@ -243,6 +247,10 @@ describe('InviteRsvpService', () => {
         'Test User',
         'going'
       );
+      assert.ok(createResult.success);
+      if (!createResult.success) {
+        return;
+      }
 
       const unsub = onTyped(ServiceEvents.INVITE_RSVP_RESPONDED, (payload) => {
         events.push(payload);

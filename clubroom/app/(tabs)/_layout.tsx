@@ -12,12 +12,6 @@ import { useNotificationCount } from '@/hooks/use-notifications';
 import { messagingService } from '@/services/messaging-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 
-// ============================================================================
-// HELPER FUNCTIONS FOR SIMPLIFIED USER TYPE SYSTEM
-// ============================================================================
-// These helpers allow checking capabilities based on user.children, user.skillLevel,
-// user.isOrganization, etc. instead of relying solely on role
-
 type UserWithSimplifiedFields = {
   role?: UserRole | 'ADMIN';
   type?: 'USER' | 'COACH';
@@ -28,32 +22,26 @@ type UserWithSimplifiedFields = {
   isSystemAdmin?: boolean;
 };
 
-// Check if user has children (is a parent)
 export const hasChildren = (user: UserWithSimplifiedFields | null): boolean => {
   return Boolean(user?.children && user.children.length > 0);
 };
 
-// Check if user is an athlete (has skillLevel)
 export const isAthlete = (user: UserWithSimplifiedFields | null): boolean => {
   return Boolean(user?.skillLevel);
 };
 
-// Check if user is a coach
 export const isCoach = (user: UserWithSimplifiedFields | null): boolean => {
   return user?.type === 'COACH' || user?.role === 'COACH';
 };
 
-// Check if user is an organization coach
 export const isOrganization = (user: UserWithSimplifiedFields | null): boolean => {
   return isCoach(user) && Boolean(user?.isOrganization);
 };
 
-// Check if user is a system admin
 export const isAdmin = (user: UserWithSimplifiedFields | null): boolean => {
   return Boolean(user?.isSystemAdmin) || user?.role === 'ADMIN';
 };
 
-// Check if coach is currently accepting bookings
 export const isAcceptingBookings = (user: UserWithSimplifiedFields | null): boolean => {
   return isCoach(user) && user?.isLive !== false;
 };
@@ -72,7 +60,6 @@ type RoleTabConfig = {
   hidden?: string[];
 };
 
-// Routes that should be hidden from tab bar but still accessible via navigation
 const BASE_HIDDEN_ROUTES = [
   'notifications',
   'availability',
@@ -86,12 +73,7 @@ const BASE_HIDDEN_ROUTES = [
   'wallet',
 ];
 
-// Uber-style grouped navigation - max 5 tabs with cascading hub screens
-// Feed shows aggregated posts from all clubs, club-hub is for managing clubs (accessible from Feed/Profile)
-// NOTE: Uses helper functions (hasChildren, isAthlete, isCoach, etc.) to determine UI based on user capabilities
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
-  // COACH: Home, Schedule hub, Athletes hub, Feed, Profile
-  // Club management accessible from Feed screen or Profile -> My Clubs
   COACH: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
@@ -102,10 +84,6 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
   },
-  // Legacy 'Coach' alias removed — use normalizeUserRole() at login boundaries
-  // USER: Home, Feed, Bookings, Messages, Profile
-  // Users with children can access child management via Profile > Children
-  // Booking flow supports "Book for Child" when user has children
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
@@ -116,7 +94,6 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
   },
-  // PARENT: Same as USER (parents are users with children)
   PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
@@ -127,7 +104,6 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
   },
-  // ADMIN: Users, Bookings, Feed, Messages, Settings
   ADMIN: {
     primary: [
       { name: 'index', title: 'Users', icon: 'person.2.fill', badge: 'notifications' },
@@ -138,7 +114,6 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
   },
-  // DEFAULT: Home, Bookings, Feed, Messages, Settings
   DEFAULT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
@@ -195,7 +170,6 @@ export default function TabLayout() {
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
   const hiddenRoutes = roleConfig.hidden ?? [];
 
-  // Helper to get badge count based on badge type
   const getBadgeCount = (badgeType?: BadgeType): number | undefined => {
     if (!badgeType) return undefined;
     if (badgeType === 'messages') return messageCount > 0 ? messageCount : undefined;
@@ -203,7 +177,6 @@ export default function TabLayout() {
     return undefined;
   };
 
-  // Consolidate bottom navigation to 4-5 role-aware hubs (home, schedule, comms, profile)
   const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,

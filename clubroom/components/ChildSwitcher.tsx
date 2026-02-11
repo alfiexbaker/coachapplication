@@ -1,5 +1,6 @@
-import { ScrollView, StyleSheet, Pressable, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii , Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,9 +24,12 @@ export function ChildSwitcher({ childrenList, selectedId, onSelect, showAll = tr
     const isActive = selectedId === id;
 
     return (
-      <Pressable
+      <Clickable
         key={id ?? 'all'}
         onPress={() => onSelect(id)}
+        accessibilityRole="button"
+        accessibilityLabel={`Filter by ${label}`}
+        accessibilityState={{ selected: isActive }}
         style={({ pressed }) => [
           styles.pill,
           {
@@ -46,7 +50,7 @@ export function ChildSwitcher({ childrenList, selectedId, onSelect, showAll = tr
         >
           {label}
         </ThemedText>
-      </Pressable>
+      </Clickable>
     );
   };
 
@@ -75,8 +79,10 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
+    minHeight: 44,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   pillText: { ...Typography.bodySmall, letterSpacing: -0.1 },
 });

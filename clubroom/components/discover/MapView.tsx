@@ -184,12 +184,12 @@ export function MapView({
           })}
 
         {/* Search This Area */}
-        <Clickable style={[styles.searchAreaButton, { backgroundColor: palette.tint }]}>
+        <Clickable style={[styles.searchAreaButton, { backgroundColor: palette.tint, shadowColor: palette.text }]}>
           <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>Search this area</ThemedText>
         </Clickable>
 
         {/* Zoom Controls */}
-        <View style={styles.zoomControls}>
+        <View style={[styles.zoomControls, { shadowColor: palette.text }]}>
           <Clickable accessibilityLabel="Zoom in" style={[styles.zoomButton, { backgroundColor: palette.surface }]}>
             <Ionicons name="add" size={20} color={palette.text} />
           </Clickable>
@@ -230,9 +230,9 @@ const styles = StyleSheet.create({
   markerContainer: { position: 'absolute' },
   userMarker: { position: 'absolute', width: 16, height: 16, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
   userMarkerInner: { width: 8, height: 8, borderRadius: Radii.xs },
-  searchAreaButton: { position: 'absolute', top: Spacing.md, alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.pill, shadowColor: '#000000', shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  searchAreaButton: { position: 'absolute', top: Spacing.md, alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.pill, shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
   searchAreaText: { ...Typography.small, fontWeight: '600' },
-  zoomControls: { position: 'absolute', right: Spacing.md, bottom: Spacing.md, borderRadius: Radii.md, overflow: 'hidden', shadowColor: '#000000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  zoomControls: { position: 'absolute', right: Spacing.md, bottom: Spacing.md, borderRadius: Radii.md, overflow: 'hidden', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   zoomButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   zoomDivider: { height: 1 },
   selectedCardContainer: { position: 'absolute', bottom: Spacing.md, left: Spacing.md, right: Spacing.md },

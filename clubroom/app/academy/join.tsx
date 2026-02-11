@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { useScreen } from '@/hooks/use-screen';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ok } from '@/types/result';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -21,7 +22,11 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('JoinTeam');
 
 export default function JoinTeamScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { status, error, retry, colors: palette } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const { currentUser } = useAuth();
 
   const [inviteCode, setInviteCode] = useState('');
@@ -62,6 +67,36 @@ export default function JoinTeamScreen() {
       setLoading(false);
     }
   };
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to open join-team flow.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="people-outline"
+          title="Join flow unavailable"
+          message="The invite code join flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

@@ -17,23 +17,23 @@
  *   // status === 'success' — data is T
  */
 
+import { useFocusEffect } from 'expo-router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Colors, type ThemeName } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  deriveScreenStatus,
+  normalizeUnknownError,
+  runFocusRefetch,
+  type ScreenLoadMode,
+} from '@/hooks/use-screen-core';
 import { onTyped } from '@/services/event-bus';
 import type { EventPayloads } from '@/services/event-bus';
 import type { Result, ServiceError } from '@/types/result';
 
 export type ScreenStatus = 'loading' | 'error' | 'empty' | 'success';
-
-/** Determines if data is "empty" — null, undefined, or empty array. */
-function isDataEmpty<T>(data: T | null): boolean {
-  if (data === null || data === undefined) return true;
-  if (Array.isArray(data) && data.length === 0) return true;
-  return false;
-}
 
 export interface UseScreenOptions<T> {
   /** Async function that returns a Result<T>. Called on mount and on refresh. */
@@ -44,6 +44,8 @@ export interface UseScreenOptions<T> {
   events?: ReadonlyArray<keyof EventPayloads>;
   /** Custom empty check. Default: null/undefined/empty-array = empty. */
   isEmpty?: (data: T) => boolean;
+  /** Re-fetch silently when the screen gains focus after initial load. */
+  refetchOnFocus?: boolean;
 }
 
 export interface UseScreenResult<T> {
@@ -58,7 +60,7 @@ export interface UseScreenResult<T> {
 }
 
 export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
-  const { load, deps = [], events = [], isEmpty } = options;
+  const { load, deps = [], events = [], isEmpty, refetchOnFocus = false } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [status, setStatus] = useState<ScreenStatus>('loading');
@@ -71,36 +73,44 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
 
   // Track mounted state to avoid state updates after unmount
   const mountedRef = useRef(true);
+  const hasLoadedOnceRef = useRef(false);
   useEffect(() => {
     return () => { mountedRef.current = false; };
   }, []);
 
-  const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
+  const fetchData = useCallback(async (mode: ScreenLoadMode = 'initial') => {
+    if (mode === 'refresh') {
       setRefreshing(true);
-    } else {
+    } else if (mode === 'initial') {
       setStatus('loading');
       setError(null);
     }
 
-    const result = await load();
+    try {
+      const result = await load();
 
-    if (!mountedRef.current) return;
+      if (!mountedRef.current) return;
 
-    if (isRefresh) setRefreshing(false);
+      if (!result.success) {
+        setError(result.error);
+        setStatus('error');
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error);
+      const resultData = result.data;
+      setData(resultData);
+      setStatus(deriveScreenStatus(resultData, isEmpty));
+      setError(null);
+    } catch (loadError) {
+      if (!mountedRef.current) return;
+      setError(normalizeUnknownError(loadError));
       setStatus('error');
-      return;
+    } finally {
+      if (mode === 'refresh' && mountedRef.current) {
+        setRefreshing(false);
+      }
+      hasLoadedOnceRef.current = true;
     }
-
-    const resultData = result.data;
-    setData(resultData);
-
-    const empty = isEmpty ? isEmpty(resultData) : isDataEmpty(resultData);
-    setStatus(empty ? 'empty' : 'success');
-    setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
@@ -108,6 +118,17 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  // Optional focus-triggered silent refetch (no loading spinner/status reset).
+  useFocusEffect(
+    useCallback(() => {
+      runFocusRefetch({
+        refetchOnFocus,
+        hasLoadedOnce: hasLoadedOnceRef.current,
+        fetchData,
+      });
+    }, [fetchData, refetchOnFocus])
+  );
 
   // Event bus subscriptions — re-fetch on relevant events
   useEffect(() => {
@@ -121,7 +142,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   }, [events, fetchData]);
 
   const onRefresh = useCallback(() => {
-    void fetchData(true);
+    void fetchData('refresh');
   }, [fetchData]);
 
   const retry = useCallback(() => {

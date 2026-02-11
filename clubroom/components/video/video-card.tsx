@@ -26,12 +26,12 @@ export const VideoCard = memo(function VideoCard({ video, index, onPress, colors
       <SurfaceCard style={styles.card} onPress={onPress}>
         <View style={styles.thumbnailContainer}>
           <Image source={{ uri: video.thumbnailUrl }} style={styles.thumbnail} resizeMode="cover" />
-          <View style={styles.durationBadge}>
+          <View style={[styles.durationBadge, { backgroundColor: withAlpha(colors.text, 0.75) }]}>
             <ThemedText style={[styles.durationText, { color: colors.onPrimary }]}>
               {videoService.formatDuration(video.duration)}
             </ThemedText>
           </View>
-          <View style={styles.playButton}>
+          <View style={[styles.playButton, { backgroundColor: withAlpha(colors.text, 0.6) }]}>
             <Ionicons name="play" size={24} color={colors.onPrimary} />
           </View>
         </View>
@@ -73,9 +73,9 @@ const styles = StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },
   thumbnailContainer: { position: 'relative', height: 180 },
   thumbnail: { width: '100%', height: '100%' },
-  durationBadge: { position: 'absolute', bottom: Spacing.xs, right: Spacing.xs, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.xs },
+  durationBadge: { position: 'absolute', bottom: Spacing.xs, right: Spacing.xs, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.xs },
   durationText: { ...Typography.caption },
-  playButton: { position: 'absolute', top: '50%', left: '50%', marginLeft: -24, marginTop: -24, width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
+  playButton: { position: 'absolute', top: '50%', left: '50%', marginLeft: -24, marginTop: -24, width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   info: { padding: Spacing.md, gap: Spacing.xxs },
   title: { flex: 1, ...Typography.body },
   athletes: { ...Typography.small },

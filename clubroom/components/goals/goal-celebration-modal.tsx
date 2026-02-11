@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -25,7 +25,7 @@ export const GoalCelebrationModal = memo(function GoalCelebrationModal({
 
   return (
     <Modal transparent visible={visible} animationType="none">
-      <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.overlay}>
+      <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}>
         <Animated.View style={[styles.content, { backgroundColor: colors.surface }, celebrationStyle]}>
           <Animated.View style={[styles.icon, { backgroundColor: colors.success }]}>
             <Ionicons name="trophy" size={48} color={colors.onPrimary} />
@@ -50,7 +50,7 @@ export const GoalCelebrationModal = memo(function GoalCelebrationModal({
 });
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { alignItems: 'center', gap: Spacing.md, padding: Spacing.xl, borderRadius: Radii.xl, marginHorizontal: Spacing.xl },
   icon: { width: 80, height: 80, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
   title: { textAlign: 'center' },

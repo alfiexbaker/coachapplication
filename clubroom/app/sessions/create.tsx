@@ -25,8 +25,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useCreateSession } from '@/hooks/use-create-session';
+import { ok } from '@/types/result';
 
 import { CreateStepIndicator } from '@/components/session/create-step-indicator';
 import { CreateDetailsStep } from '@/components/session/create-details-step';
@@ -40,7 +41,7 @@ import { CreateFooterBar } from '@/components/session/create-footer-bar';
 // ============================================================================
 
 export default function CreateSessionScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const state = useCreateSession();
 
   const handleCancel = useCallback(() => router.back(), []);

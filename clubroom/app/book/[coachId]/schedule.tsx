@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,9 +13,10 @@ import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Radii, Spacing } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilitySlot } from '@/constants/types';
@@ -25,11 +26,6 @@ const logger = createLogger('ScheduleScreen');
 export default function ScheduleScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-
-  const [allSlots, setAllSlots] = useState<AvailabilitySlot[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
@@ -44,12 +40,10 @@ export default function ScheduleScreen() {
   }, []);
 
   // Fetch availability for the date range
-  const fetchAvailability = useCallback(async () => {
-    if (!coachId) return;
-
-    setIsLoading(true);
-    setError(null);
-
+  const loadAvailability = useCallback(async () => {
+    if (!coachId) {
+      return ok([]);
+    }
     try {
       // Get session duration from draft or default to 60 minutes
       const duration = draft.duration || 60;
@@ -59,26 +53,39 @@ export default function ScheduleScreen() {
         dateRange.endDate,
         duration
       );
-      setAllSlots(slots);
-
-      // Auto-select first available date if none selected
-      if (!draft.date && slots.length > 0) {
-        const firstAvailableSlot = slots.find((s) => s.isAvailable);
-        if (firstAvailableSlot) {
-          updateDraft({ date: firstAvailableSlot.date });
-        }
-      }
-    } catch (err) {
-      logger.error('Failed to fetch availability:', err);
-      setError('Unable to load available times. Please try again.');
-    } finally {
-      setIsLoading(false);
+      return ok(slots);
+    } catch (loadError) {
+      logger.error('Failed to fetch availability:', loadError);
+      return err(serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError));
     }
-  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration, draft.date, updateDraft]);
+  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration]);
 
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<AvailabilitySlot[]>({
+    load: loadAvailability,
+    deps: [loadAvailability],
+    isEmpty: (slots) => !slots.some((slot) => slot.isAvailable),
+    refetchOnFocus: true,
+  });
+  const allSlots = data ?? [];
+
+  // Auto-select first available date if none selected
   useEffect(() => {
-    fetchAvailability();
-  }, [fetchAvailability]);
+    if (draft.date || allSlots.length === 0) {
+      return;
+    }
+    const firstAvailableSlot = allSlots.find((slot) => slot.isAvailable);
+    if (firstAvailableSlot) {
+      updateDraft({ date: firstAvailableSlot.date });
+    }
+  }, [allSlots, draft.date, updateDraft]);
 
   // Group slots by date for the calendar picker
   const availabilityByDate = useMemo(() => {
@@ -114,80 +121,69 @@ export default function ScheduleScreen() {
     });
   };
 
-  if (isLoading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.md }}>
-            Loading coach availability...
-          </ThemedText>
-        </View>
+        <LoadingState variant="calendar" />
       </SafeAreaView>
     );
   }
 
-  if (error) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.md, textAlign: 'center' }}>
-            {error}
-          </ThemedText>
-          <Clickable
-            onPress={fetchAvailability}
-            style={[styles.retryButton, { borderColor: palette.tint }]}
-          >
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Try Again</ThemedText>
-          </Clickable>
-        </View>
+        <ErrorState message={error?.message ?? 'Unable to load available times. Please try again.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
-  const hasAnyAvailability = allSlots.some((s) => s.isAvailable);
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <BookingWizardHeader
+          title="Choose date & time"
+          subtitle="No availability in the next 2 weeks"
+          step={2}
+        />
+        <EmptyState
+          icon="calendar-outline"
+          title="No availability found"
+          message="This coach has no available slots in the next two weeks. Pull to refresh or message the coach to request a custom time."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+      >
         <BookingWizardHeader
           title="Choose date & time"
-          subtitle={hasAnyAvailability ? 'Only available slots are shown' : 'No availability in the next 2 weeks'}
+          subtitle="Only available slots are shown"
           step={2}
         />
+        <CalendarPicker
+          selectedDate={draft.date}
+          onSelect={handleDateSelect}
+          availabilityByDate={availabilityByDate}
+        />
 
-        {!hasAnyAvailability ? (
-          <View style={styles.noAvailability}>
-            <Ionicons name="calendar-outline" size={48} color={palette.muted} />
-            <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.md }}>
-              This coach has no available slots{'\n'}in the next 2 weeks.
-            </ThemedText>
-            <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.sm, ...Typography.small }}>
-              Try contacting the coach directly{'\n'}to arrange a custom time.
-            </ThemedText>
-          </View>
-        ) : (
-          <>
-            <CalendarPicker
-              selectedDate={draft.date}
-              onSelect={handleDateSelect}
-              availabilityByDate={availabilityByDate}
-            />
-
-            <View style={{ gap: Spacing.sm }}>
-              <ThemedText type="defaultSemiBold">
-                Available slots{draft.date ? ` - ${formatDate(draft.date)}` : ''}
-              </ThemedText>
-              <TimeSlotPicker
-                selectedSlot={draft.slot}
-                onSelect={handleSlotSelect}
-                slots={slotsForSelectedDate}
-                isLoading={false}
-              />
-            </View>
-          </>
-        )}
+        <View style={{ gap: Spacing.sm }}>
+          <ThemedText type="defaultSemiBold">
+            Available slots{draft.date ? ` - ${formatDate(draft.date)}` : ''}
+          </ThemedText>
+          <TimeSlotPicker
+            selectedSlot={draft.slot}
+            onSelect={handleSlotSelect}
+            slots={slotsForSelectedDate}
+            isLoading={false}
+          />
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
@@ -227,23 +223,5 @@ const styles = StyleSheet.create({
   cta: {
     padding: Spacing.md,
     borderRadius: Radii.button,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  retryButton: {
-    marginTop: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  noAvailability: {
-    paddingVertical: Spacing['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

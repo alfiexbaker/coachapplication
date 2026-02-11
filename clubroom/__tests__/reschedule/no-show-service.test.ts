@@ -25,6 +25,12 @@ const NO_SHOW_RECORDS_KEY = 'clubroom.no_show_records';
 const NO_SHOW_COUNTS_KEY = 'clubroom.no_show_counts';
 
 let emittedEvents: { event: string; data: unknown }[] = [];
+let noShowIdSeq = 0;
+
+function nextNoShowId(): string {
+  noShowIdSeq += 1;
+  return `noshow_${noShowIdSeq}`;
+}
 
 // Mock apiClient
 const mockApiClient = {
@@ -92,7 +98,7 @@ const cancellationService = {
     sessionDate: string;
   }) {
     const record: NoShowRecord = {
-      id: `noshow_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: nextNoShowId(),
       bookingId: params.bookingId,
       coachId: params.coachId,
       familyId: params.familyId,
@@ -174,6 +180,7 @@ describe('CancellationService - No-Show Records', () => {
   beforeEach(() => {
     mockStore = {};
     emittedEvents = [];
+    noShowIdSeq = 0;
   });
 
   // --------------------------------------------------------------------------

@@ -28,7 +28,7 @@ export const AthleteStatusModal = memo(function AthleteStatusModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           <Row gap="sm" align="center" justify="space-between" style={styles.header}>
             <ThemedText type="title">Update Status</ThemedText>
@@ -62,7 +62,6 @@ export const AthleteStatusModal = memo(function AthleteStatusModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   content: {

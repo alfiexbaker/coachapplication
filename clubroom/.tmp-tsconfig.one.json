@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.test.json",
+  "include": ["__tests__/completion/.tmp-serviceevents-type.ts"]
+}

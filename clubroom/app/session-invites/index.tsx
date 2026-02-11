@@ -1,18 +1,9 @@
-/**
- * Session Invites List Screen
- *
- * Shows sent/received invites with filter chips and pending count badge.
- * Uses useScreen() for data loading with 4 visual states.
- */
-
 import { useState, useCallback, useMemo } from 'react';
 import { ScrollView, Alert, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
-
-import { createLogger } from '@/utils/logger';
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { ok } from '@/types/result';
@@ -29,20 +20,16 @@ import { hasChildren, isCoach } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
 import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
 
-const logger = createLogger('SessionInvitesScreen');
-
 type ViewMode = 'sent' | 'received';
 type FilterMode = 'all' | 'pending' | 'responded';
 
 export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
-
   const userIsCoach = isCoach(currentUser);
   const userHasChildren = hasChildren(currentUser);
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
-
-  const { data: invites, status, error, refreshing, onRefresh, retry, colors, scheme } = useScreen({
+  const { data: invites, status, error, refreshing, onRefresh, retry, colors } = useScreen({
     load: async () => {
       if (!currentUser?.id) return ok([] as SessionInvite[]);
       const data = mode === 'sent'
@@ -73,8 +60,6 @@ export default function SessionInvitesScreen() {
 
   const showModeToggle = userIsCoach && userHasChildren;
   const showFilterChips = (mode === 'received' || (!userIsCoach && userHasChildren)) && (invites?.length ?? 0) > 0;
-
-  // === Handlers ===
   const handleQuickDecline = useCallback(async (invite: SessionInvite) => {
     const coachName = getSessionInviteCoachName(invite);
     Alert.alert(
@@ -130,7 +115,6 @@ export default function SessionInvitesScreen() {
   const handleChangeMode = useCallback((newMode: ViewMode) => setMode(newMode), []);
   const handleChangeFilter = useCallback((newFilter: FilterMode) => setFilter(newFilter), []);
 
-  // === Visual states ===
   if (status === 'loading') return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <LoadingState variant="list" />
@@ -143,9 +127,36 @@ export default function SessionInvitesScreen() {
     </SafeAreaView>
   );
 
+  if (status === 'empty') return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <Row gap="md" align="center" paddingH="lg" paddingV="md">
+        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </Clickable>
+        <Row gap="sm" align="center" style={styles.headerTitle}>
+          <ThemedText type="title">Session Invites</ThemedText>
+        </Row>
+        {userIsCoach && (
+          <Clickable
+            onPress={() => router.push(Routes.SESSION_INVITES_CREATE)}
+            accessibilityLabel="Create new invite"
+            style={[styles.createButton, { backgroundColor: colors.tint }]}
+          >
+            <Ionicons name="add" size={20} color={colors.onPrimary} />
+          </Clickable>
+        )}
+      </Row>
+      {showModeToggle && <InviteModeToggle mode={mode} onChangeMode={handleChangeMode} />}
+      <EmptyState
+        icon={mode === 'sent' ? 'paper-plane-outline' : 'mail-outline'}
+        title={mode === 'sent' ? 'No invites sent' : 'No invites received'}
+        message={mode === 'sent' ? 'Invite athletes to sessions from their profile or your roster' : 'Session invites from coaches will appear here'}
+      />
+    </SafeAreaView>
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
       <Row gap="md" align="center" paddingH="lg" paddingV="md">
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -177,7 +188,6 @@ export default function SessionInvitesScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
       >
-        {/* Pending banner */}
         {userHasChildren && pendingCount > 0 && filter === 'all' && (
           <Row gap="sm" align="center" style={[styles.pendingBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
             <Ionicons name="alert-circle" size={20} color={colors.warning} />

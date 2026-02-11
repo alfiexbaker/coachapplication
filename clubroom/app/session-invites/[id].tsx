@@ -1,7 +1,7 @@
 /** Session Invite Detail — shows invite details with status, slots, and response actions. */
 
 import { useState, useCallback, useMemo } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -40,7 +40,7 @@ const logger = createLogger('SessionInviteDetailScreen');
 export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
-  const { data: invite, status, error, refreshing, onRefresh, retry, colors, scheme } = useScreen({
+  const { data: invite, status, error, refreshing, onRefresh, retry, colors } = useScreen({
     load: async () => {
       if (!id) return err(serviceError('VALIDATION', 'Missing invite ID'));
       const data = await sessionInviteService.getInvite(id);
@@ -165,7 +165,12 @@ export default function SessionInviteDetailScreen() {
         </Row>
       </Row>
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+        >
           {invite.coverImageUrl && <CoverImageHero imageUrl={invite.coverImageUrl} sessionType={invite.sessionType} height={240} />}
           <InviteStatusBanner status={derivedStatus as 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED' | 'MAYBE'} colors={colors} />
           {!isCoach && <Animated.View entering={FadeInDown.delay(50).springify()}><Row gap="sm" align="center" style={[s.msg, { backgroundColor: withAlpha(colors.tint, 0.06) }]}><Ionicons name="mail-outline" size={20} color={colors.tint} /><ThemedText style={[s.msgTxt, { color: colors.text }]}>{invitationMessage}</ThemedText></Row></Animated.View>}

@@ -5,10 +5,12 @@
 
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { invoiceService } from '@/services/invoice-service';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Invoice } from '@/constants/types';
 
 const logger = createLogger('InvoiceDetailScreen');
@@ -17,25 +19,37 @@ export function useInvoiceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
 
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendEmail, setSendEmail] = useState('');
 
   const loadInvoice = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      return ok<Invoice | null>(null);
+    }
+
     try {
       const data = await invoiceService.getInvoiceById(id);
-      setInvoice(data);
+      return ok<Invoice | null>(data);
     } catch (error) {
       logger.error('Failed to load invoice', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load invoice.', error));
     }
   }, [id]);
 
-  useFocusEffect(useCallback(() => { loadInvoice(); }, [loadInvoice]));
+  const {
+    data: invoice,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<Invoice | null>({
+    load: loadInvoice,
+    deps: [id],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
 
   const handleSendInvoice = useCallback(async () => {
     if (!invoice || !sendEmail.trim()) return;
@@ -46,7 +60,7 @@ export function useInvoiceDetail() {
         Alert.alert('Invoice Sent', `Invoice sent to ${sendEmail}`);
         setShowSendModal(false);
         setSendEmail('');
-        loadInvoice();
+        onRefresh();
       } else {
         Alert.alert('Failed', result.error || 'Could not send invoice');
       }
@@ -55,7 +69,7 @@ export function useInvoiceDetail() {
     } finally {
       setActionLoading(false);
     }
-  }, [invoice, sendEmail, loadInvoice]);
+  }, [invoice, sendEmail, onRefresh]);
 
   const handleMarkPaid = useCallback(async () => {
     if (!invoice) return;
@@ -64,13 +78,13 @@ export function useInvoiceDetail() {
       {
         text: 'Mark Paid', onPress: async () => {
           setActionLoading(true);
-          try { await invoiceService.markAsPaid(invoice.id); loadInvoice(); }
+          try { await invoiceService.markAsPaid(invoice.id); onRefresh(); }
           catch { Alert.alert('Error', 'Failed to update invoice'); }
           finally { setActionLoading(false); }
         },
       },
     ]);
-  }, [invoice, loadInvoice]);
+  }, [invoice, onRefresh]);
 
   const handleVoidInvoice = useCallback(async () => {
     if (!invoice) return;
@@ -79,13 +93,13 @@ export function useInvoiceDetail() {
       {
         text: 'Void Invoice', style: 'destructive', onPress: async () => {
           setActionLoading(true);
-          try { await invoiceService.voidInvoice(invoice.id, 'Voided by user'); loadInvoice(); }
+          try { await invoiceService.voidInvoice(invoice.id, 'Voided by user'); onRefresh(); }
           catch { Alert.alert('Error', 'Failed to void invoice'); }
           finally { setActionLoading(false); }
         },
       },
     ]);
-  }, [invoice, loadInvoice]);
+  }, [invoice, onRefresh]);
 
   const goBack = useCallback(() => router.back(), []);
   const openSendModal = useCallback(() => setShowSendModal(true), []);
@@ -97,7 +111,16 @@ export function useInvoiceDetail() {
   const canVoid = invoice?.status !== 'VOID' && invoice?.status !== 'PAID';
 
   return {
-    invoice, loading, actionLoading, showSendModal, sendEmail,
+    invoice: invoice ?? null,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    actionLoading,
+    showSendModal,
+    sendEmail,
     isCoach, canSend, canMarkPaid, canVoid,
     setSendEmail, handleSendInvoice, handleMarkPaid, handleVoidInvoice,
     goBack, openSendModal, closeSendModal,

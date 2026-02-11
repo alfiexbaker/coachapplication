@@ -2,12 +2,14 @@
  * useGroupRoster — All state, data loading, and handlers for the Session Roster screen.
  * Manages roster list, filtering, roll call, and injury reporting.
  */
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/utils/logger';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { groupSessionService } from '@/services/group-session-service';
 import { injuryService } from '@/services/injury-service';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { GroupSession, GroupRegistration, BodyPart, InjurySeverity } from '@/constants/types';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
@@ -52,10 +54,59 @@ export const SEVERITY_OPTIONS: { value: InjurySeverity; label: string; color: st
   { value: 'SEVERE', label: 'Severe', color: '#EF4444' },
 ];
 
+interface GroupRosterData {
+  session: GroupSession | null;
+  roster: GroupRegistration[];
+}
+
+export interface UseGroupRosterResult {
+  session: GroupSession | null;
+  roster: GroupRegistration[];
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  filter: RosterFilter;
+  setFilter: (value: RosterFilter) => void;
+  showRollCall: boolean;
+  setShowRollCall: (value: boolean) => void;
+  rollCallAttendance: Record<string, AttendanceStatus>;
+  rollCallStats: {
+    total: number;
+    present: number;
+    late: number;
+    absent: number;
+    unmarked: number;
+  };
+  rollCallParticipants: GroupRegistration[];
+  showInjuryReport: boolean;
+  setShowInjuryReport: (value: boolean) => void;
+  selectedParticipant: GroupRegistration | null;
+  injuryBodyPart: BodyPart | null;
+  setInjuryBodyPart: (value: BodyPart | null) => void;
+  injurySeverity: InjurySeverity;
+  setInjurySeverity: (value: InjurySeverity) => void;
+  injuryDescription: string;
+  setInjuryDescription: (value: string) => void;
+  savingInjury: boolean;
+  filteredRoster: GroupRegistration[];
+  filters: { key: RosterFilter; label: string; count?: number }[];
+  registeredCount: number;
+  waitlistedCount: number;
+  handleMarkAttendance: (registration: GroupRegistration, attended: boolean) => Promise<void>;
+  handleCancelRegistration: (registration: GroupRegistration) => void;
+  startRollCall: () => void;
+  markRollCallStatus: (id: string, status: AttendanceStatus) => void;
+  markAllPresent: () => void;
+  resetRollCall: () => void;
+  saveRollCall: () => Promise<void>;
+  openInjuryReport: (registration: GroupRegistration) => void;
+  submitInjuryReport: () => Promise<void>;
+}
+
 export function useGroupRoster(sessionId: string | undefined) {
-  const [session, setSession] = useState<GroupSession | null>(null);
-  const [roster, setRoster] = useState<GroupRegistration[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<RosterFilter>('all');
   const [showRollCall, setShowRollCall] = useState(false);
   const [rollCallAttendance, setRollCallAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -69,46 +120,81 @@ export function useGroupRoster(sessionId: string | undefined) {
   const [savingInjury, setSavingInjury] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!sessionId) return;
-    setLoading(true);
+    if (!sessionId) {
+      return ok<GroupRosterData>({
+        session: null,
+        roster: [],
+      });
+    }
+
     try {
       const [sessionData, rosterData] = await Promise.all([
         groupSessionService.getSession(sessionId),
         groupSessionService.getSessionRoster(sessionId),
       ]);
-      setSession(sessionData);
-      setRoster(rosterData);
-    } catch (error) {
-      logger.error('Failed to load roster:', error);
-    } finally {
-      setLoading(false);
+      return ok<GroupRosterData>({
+        session: sessionData,
+        roster: rosterData,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load roster:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load session roster. Pull down to refresh.', loadError));
     }
   }, [sessionId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<GroupRosterData>({
+    load: loadData,
+    deps: [sessionId],
+    isEmpty: (value) => value.session === null,
+    refetchOnFocus: true,
+  });
+
+  const session = data?.session ?? null;
+  const roster = data?.roster ?? [];
+  const loading = status === 'loading';
 
   const handleMarkAttendance = useCallback(async (registration: GroupRegistration, attended: boolean) => {
     if (!session) return;
     const date = session.schedule[0]?.date;
     if (!date) return;
     try {
-      await groupSessionService.markAttendance(registration.id, date, attended);
-      await loadData();
+      const result = await groupSessionService.markAttendance(registration.id, date, attended);
+      if (!result.success) {
+        Alert.alert('Error', result.error.message || 'Failed to update attendance.');
+        return;
+      }
+      onRefresh();
     } catch (error) {
       logger.error('Failed to mark attendance:', error);
       Alert.alert('Error', 'Failed to update attendance.');
     }
-  }, [session, loadData]);
+  }, [session, onRefresh]);
 
   const handleCancelRegistration = useCallback(async (registration: GroupRegistration) => {
     Alert.alert('Cancel Registration', `Remove ${getGroupRegistrationAthleteName(registration)} from this session?`, [
       { text: 'No', style: 'cancel' },
       { text: 'Yes, Remove', style: 'destructive', onPress: async () => {
-        try { await groupSessionService.cancelRegistration(registration.id); await loadData(); }
-        catch (error) { logger.error('Failed to cancel registration:', error); }
+        try {
+          const result = await groupSessionService.cancelRegistration(registration.id);
+          if (!result.success) {
+            Alert.alert('Error', result.error.message || 'Failed to cancel registration.');
+            return;
+          }
+          onRefresh();
+        } catch (error) {
+          logger.error('Failed to cancel registration:', error);
+          Alert.alert('Error', 'Failed to cancel registration.');
+        }
       }},
     ]);
-  }, [loadData]);
+  }, [onRefresh]);
 
   const startRollCall = useCallback(() => {
     const initial: Record<string, AttendanceStatus> = {};
@@ -141,17 +227,26 @@ export function useGroupRoster(sessionId: string | undefined) {
     if (!date) return;
     try {
       for (const [registrationId, status] of Object.entries(rollCallAttendance)) {
-        if (status === 'present' || status === 'late') await groupSessionService.markAttendance(registrationId, date, true);
-        else if (status === 'absent') await groupSessionService.markAttendance(registrationId, date, false);
+        let result: Awaited<ReturnType<typeof groupSessionService.markAttendance>> | null = null;
+        if (status === 'present' || status === 'late') {
+          result = await groupSessionService.markAttendance(registrationId, date, true);
+        } else if (status === 'absent') {
+          result = await groupSessionService.markAttendance(registrationId, date, false);
+        }
+
+        if (result && !result.success) {
+          Alert.alert('Error', result.error.message || 'Failed to save roll call. Please try again.');
+          return;
+        }
       }
-      await loadData();
+      onRefresh();
       setShowRollCall(false);
       Alert.alert('Success', 'Roll call saved successfully!');
     } catch (error) {
       logger.error('Failed to save roll call:', error);
       Alert.alert('Error', 'Failed to save roll call. Please try again.');
     }
-  }, [session, rollCallAttendance, loadData]);
+  }, [session, rollCallAttendance, onRefresh]);
 
   const openInjuryReport = useCallback((registration: GroupRegistration) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -215,7 +310,7 @@ export function useGroupRoster(sessionId: string | undefined) {
   ];
 
   return {
-    session, roster, loading, filter, setFilter,
+    session, roster, loading, status, error, refreshing, onRefresh, retry, filter, setFilter,
     showRollCall, setShowRollCall, rollCallAttendance, rollCallStats, rollCallParticipants,
     showInjuryReport, setShowInjuryReport, selectedParticipant,
     injuryBodyPart, setInjuryBodyPart, injurySeverity, setInjurySeverity,
@@ -224,5 +319,5 @@ export function useGroupRoster(sessionId: string | undefined) {
     handleMarkAttendance, handleCancelRegistration,
     startRollCall, markRollCallStatus, markAllPresent, resetRollCall, saveRollCall,
     openInjuryReport, submitInjuryReport,
-  };
+  } satisfies UseGroupRosterResult;
 }

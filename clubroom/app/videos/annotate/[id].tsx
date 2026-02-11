@@ -15,18 +15,19 @@ import { AnnotationForm } from '@/components/video/AnnotationForm';
 import { AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useVideoAnnotate } from '@/hooks/use-video-annotate';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotationType } from '@/constants/types';
+import { ok } from '@/types/result';
 
 export default function CoachAnnotateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    video, loading, currentTime, showAnnotationForm, editingAnnotation,
+    video, loading, status, error, retry, currentTime, showAnnotationForm, editingAnnotation,
     viewMode, annotationStats, isOwner,
     setViewMode,
     handleTimeUpdate, handleSeek, handleAnnotationSelect, handleQuickAnnotation,
@@ -34,7 +35,7 @@ export default function CoachAnnotateScreen() {
     handleSaveAnnotation, handleExport, handleClearAll, dismissAnnotationForm,
   } = useVideoAnnotate(id);
 
-  if (loading || !video) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Row align="center" gap="md" style={styles.header}>
@@ -45,6 +46,22 @@ export default function CoachAnnotateScreen() {
           <View style={{ width: 24 }} />
         </Row>
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load video annotation workspace.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !video) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState icon="videocam-outline" title="Video not found" message="This video is unavailable for annotation." />
       </SafeAreaView>
     );
   }

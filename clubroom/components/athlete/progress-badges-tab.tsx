@@ -39,9 +39,9 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
 
         <Row style={styles.categoryRow}>
           {[
-            { label: 'Leadership', count: awards.filter(a => a.badgeCategory === 'leadership').length, color: '#8B5CF6' }, // Decorative
-            { label: 'Technique', count: awards.filter(a => a.badgeCategory === 'technique').length, color: '#10B981' }, // Decorative
-            { label: 'Mindset', count: awards.filter(a => a.badgeCategory === 'mindset').length, color: '#F59E0B' }, // Decorative
+            { label: 'Leadership', count: awards.filter(a => a.badgeCategory === 'leadership').length, color: palette.premium },
+            { label: 'Technique', count: awards.filter(a => a.badgeCategory === 'technique').length, color: palette.success },
+            { label: 'Mindset', count: awards.filter(a => a.badgeCategory === 'mindset').length, color: palette.warning },
           ].map((cat) => (
             <Row key={cat.label} style={styles.categoryItem}>
               <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />

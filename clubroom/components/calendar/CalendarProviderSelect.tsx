@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { CalendarProvider } from '@/constants/types';
@@ -54,10 +55,13 @@ export function CalendarProviderSelect({
         const isSelected = selectedProvider === provider.id;
 
         return (
-          <Pressable
+          <Clickable
             key={provider.id}
             onPress={() => !disabled && onProviderChange(provider.id)}
             disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel={`Select ${provider.label}`}
+            accessibilityState={{ selected: isSelected, disabled }}
             style={({ pressed }) => [
               styles.providerOption,
               {
@@ -95,7 +99,7 @@ export function CalendarProviderSelect({
                 <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
               </View>
             )}
-          </Pressable>
+          </Clickable>
         );
       })}
     </View>
@@ -110,6 +114,7 @@ const styles = StyleSheet.create({
   providerOption: {
     alignItems: 'center',
     padding: Spacing.md,
+    minHeight: 44,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     gap: Spacing.md,

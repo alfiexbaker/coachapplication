@@ -6,9 +6,11 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { promoService } from '@/services/promo-service';
 import { walletService } from '@/services/wallet-service';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { PromoCodeUsage } from '@/constants/types';
 
 const logger = createLogger('PromoCodeScreen');
@@ -19,53 +21,77 @@ export interface RedeemResult {
   newBalance: number;
 }
 
+interface WalletPromoData {
+  userUsage: PromoCodeUsage[];
+  balance: number;
+}
+
 export function useWalletPromo() {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [userUsage, setUserUsage] = useState<PromoCodeUsage[]>([]);
-  const [balance, setBalance] = useState<number>(0);
   const [redeemSuccess, setRedeemSuccess] = useState<RedeemResult | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<WalletPromoData>({ userUsage: [], balance: 0 });
+    }
+
     try {
       const [usageData, walletBalance] = await Promise.all([
         promoService.getUserUsage(currentUser.id),
         walletService.getBalance(currentUser.id),
       ]);
-      setUserUsage(usageData);
-      setBalance(walletBalance);
+      return ok<WalletPromoData>({
+        userUsage: usageData,
+        balance: walletBalance,
+      });
     } catch (error) {
       logger.error('Failed to load promo data:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load promo code data.', error));
     }
   }, [currentUser?.id]);
 
-  useFocusEffect(useCallback(() => {
-    loadData();
-    setRedeemSuccess(null);
-  }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<WalletPromoData>({
+    load: loadData,
+    deps: [currentUser?.id],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, [loadData]);
+  const userUsage = data?.userUsage ?? [];
+  const balance = data?.balance ?? 0;
+
+  useFocusEffect(useCallback(() => {
+    setRedeemSuccess(null);
+  }, []));
 
   const handleRedeem = useCallback((result: RedeemResult) => {
     setRedeemSuccess(result);
-    setBalance(result.newBalance);
-    loadData();
-  }, [loadData]);
+    onRefresh();
+  }, [onRefresh]);
 
   const userId = currentUser?.id;
 
   return {
-    loading, refreshing, userUsage, balance, redeemSuccess, userId,
-    handleRefresh, handleRedeem,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    userUsage,
+    balance,
+    redeemSuccess,
+    userId,
+    onRefresh,
+    retry,
+    handleRefresh: onRefresh,
+    handleRedeem,
   };
 }
 

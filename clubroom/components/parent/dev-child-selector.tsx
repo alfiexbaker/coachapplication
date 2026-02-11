@@ -2,9 +2,10 @@
  * DevChildSelector — Horizontal child tab picker for development screen.
  */
 import { memo } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Row } from '@/components/primitives/row';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -35,13 +36,16 @@ function DevChildSelectorInner({ children, selectedChildId, onSelectChild }: Dev
         {children.map((child) => {
           const isSelected = child.id === selectedChildId;
           return (
-            <Pressable
+            <Clickable
               key={child.id}
               onPress={() => onSelectChild(child.id)}
               style={[
                 styles.tab,
                 isSelected ? [styles.tabActive, { backgroundColor: palette.tint }] : undefined,
               ]}
+              accessibilityRole="tab"
+              accessibilityLabel={`Select ${child.name}`}
+              accessibilityState={{ selected: isSelected }}
             >
               <Row align="center" gap="sm">
                 <Row align="center" justify="center" style={[
@@ -63,7 +67,7 @@ function DevChildSelectorInner({ children, selectedChildId, onSelectChild }: Dev
                   {child.name}
                 </ThemedText>
               </Row>
-            </Pressable>
+            </Clickable>
           );
         })}
       </ScrollView>

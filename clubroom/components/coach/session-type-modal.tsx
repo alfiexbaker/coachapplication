@@ -1,28 +1,14 @@
-/**
- * Session Type Modal
- *
- * Bottom sheet for creating/editing/deleting session type presets.
- */
-
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
-import {
-  DURATION_OPTIONS,
-  TYPE_OPTIONS,
-  SegmentSelector,
-  CapacityStepper,
-  PriceInput,
-} from './session-type-modal-sections';
+import { DURATION_OPTIONS, TYPE_OPTIONS, SegmentSelector, CapacityStepper, PriceInput } from './session-type-modal-sections';
 import { Row } from '@/components/primitives';
-
 interface SessionTypeModalProps {
   visible: boolean;
   onClose: () => void;
@@ -37,7 +23,6 @@ interface SessionTypeModalProps {
   onDelete?: () => void;
   existing?: SessionTemplate | null;
 }
-
 export function SessionTypeModal({
   visible,
   onClose,
@@ -46,14 +31,12 @@ export function SessionTypeModal({
   existing,
 }: SessionTypeModalProps) {
   const { colors: palette } = useTheme();
-
   const [name, setName] = useState('');
   const [type, setType] = useState<SessionType>('1-to-1');
   const [duration, setDuration] = useState(60);
   const [capacity, setCapacity] = useState(1);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
-
   useEffect(() => {
     if (visible) {
       if (existing) {
@@ -73,9 +56,7 @@ export function SessionTypeModal({
       }
     }
   }, [visible, existing]);
-
   const isValid = name.trim().length > 0;
-
   const handleSave = () => {
     if (!isValid) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -88,7 +69,6 @@ export function SessionTypeModal({
       description: description.trim(),
     });
   };
-
   const handleDelete = () => {
     Alert.alert(
       `Delete "${name}"?`,
@@ -106,24 +86,19 @@ export function SessionTypeModal({
       ]
     );
   };
-
   const handleTypeSelect = (key: SessionType) => {
     setType(key);
     if (key === '1-to-1' || key === 'assessment') setCapacity(1);
   };
-
   const durationOptions = DURATION_OPTIONS.map((d) => ({ key: d, label: `${d}m` }));
-
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.overlay}
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
-
-          {/* Header */}
           <Row style={styles.header}>
             <ThemedText type="subtitle">
               {existing ? 'Edit Session Type' : 'New Session Type'}
@@ -132,8 +107,6 @@ export function SessionTypeModal({
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </Row>
-
-          {/* Name */}
           <View style={styles.field}>
             <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Name</ThemedText>
             <TextInput
@@ -145,8 +118,6 @@ export function SessionTypeModal({
               autoFocus={!existing}
             />
           </View>
-
-          {/* Type */}
           <SegmentSelector
             label="Type"
             options={TYPE_OPTIONS}
@@ -154,8 +125,6 @@ export function SessionTypeModal({
             onSelect={handleTypeSelect}
             palette={palette}
           />
-
-          {/* Duration */}
           <SegmentSelector
             label="Duration"
             options={durationOptions}
@@ -163,8 +132,6 @@ export function SessionTypeModal({
             onSelect={setDuration}
             palette={palette}
           />
-
-          {/* Capacity + Price row */}
           <Row style={styles.row}>
             <CapacityStepper
               value={capacity}
@@ -177,8 +144,6 @@ export function SessionTypeModal({
               palette={palette}
             />
           </Row>
-
-          {/* Description */}
           <View style={styles.field}>
             <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Description (optional)</ThemedText>
             <TextInput
@@ -191,8 +156,6 @@ export function SessionTypeModal({
               maxLength={200}
             />
           </View>
-
-          {/* Save Button */}
           <Clickable
             onPress={handleSave}
             style={[
@@ -203,8 +166,6 @@ export function SessionTypeModal({
             <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
             <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>Save</ThemedText>
           </Clickable>
-
-          {/* Delete Button (edit mode only) */}
           {existing && onDelete && (
             <Clickable onPress={handleDelete} style={styles.deleteBtn}>
               <Ionicons name="trash-outline" size={18} color={palette.error} />
@@ -218,11 +179,9 @@ export function SessionTypeModal({
     </Modal>
   );
 }
-
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {

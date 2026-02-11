@@ -56,6 +56,11 @@ let bookingCreateResult = {
 };
 let availableSlots = [];
 let releasedInviteIds = [];
+let notificationIdSeq = 0;
+function nextNotificationId(prefix = 'notif') {
+    notificationIdSeq += 1;
+    return `${prefix}_${notificationIdSeq}`;
+}
 // Mock bookingService
 const bookingService = {
     async createBooking(_params) {
@@ -160,7 +165,7 @@ async function respondToInvite(input) {
     // Create notification
     const athleteNames = invite.athleteNames.join(', ');
     const notification = {
-        id: `notif_${Date.now()}`,
+        id: nextNotificationId(),
         type: 'booking',
         title: 'Invite Accepted!',
         body: `${invite.parentName} accepted your invite for ${athleteNames}.`,
@@ -206,6 +211,7 @@ const SELECTED_SLOT = {
     invitesCache = [JSON.parse(JSON.stringify(MOCK_INVITE))];
     mockNotifications = [];
     releasedInviteIds = [];
+    notificationIdSeq = 0;
     // Default: booking succeeds, slots are available
     bookingCreateResult = { success: true, data: { id: 'booking_new_123' } };
     availableSlots = [

@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, User } from '@/constants/types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('ChildProgressScreen');
 
@@ -20,39 +22,37 @@ export const PROGRESS_TABS: { id: ProgressTab; label: string; icon: string }[] =
   { id: 'badges', label: 'Badges', icon: 'ribbon-outline' },
 ];
 
+interface ChildProgressData {
+  child: User | undefined;
+  progress: AthleteProgress | null;
+  feedback: SessionFeedback[];
+  badges: BadgeAward[];
+}
+
 export function useChildProgress() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
   useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [child, setChild] = useState<User | undefined>(undefined);
-  const [progress, setProgress] = useState<AthleteProgress | null>(null);
-  const [feedback, setFeedback] = useState<SessionFeedback[]>([]);
-  const [badges, setBadges] = useState<BadgeAward[]>([]);
   const [activeTab, setActiveTab] = useState<ProgressTab>('overview');
 
   const loadData = useCallback(async () => {
-    if (!childId) return;
+    if (!childId) {
+      return err(serviceError('VALIDATION', 'Missing child id for progress screen.'));
+    }
 
     try {
       const childResult = await userService.getUserById(childId);
       const childData = childResult.success ? childResult.data : undefined;
-      setChild(childData);
       if (!childResult.success) {
         logger.error('Failed to load child profile', { childId, error: childResult.error });
       }
 
       const progressData = await progressService.getAthleteProgress(childId, 'parent');
       progressData.athleteName = childData?.name || 'Athlete';
-      setProgress(progressData);
 
       const feedbackData = await progressService.getFeedbackForAthlete(childId, 'parent');
-      setFeedback(feedbackData);
-
       const badgesData = await badgeService.listAwardsForAthlete(childId);
-      const visibleBadges = badgesData.filter(b => b.visibility !== 'coach_only');
-      setBadges(visibleBadges);
+      const visibleBadges = badgesData.filter((badge) => badge.visibility !== 'coach_only');
 
       logger.info('Child progress loaded', {
         childId,
@@ -60,24 +60,37 @@ export function useChildProgress() {
         feedbackCount: feedbackData.length,
         badgeCount: visibleBadges.length,
       });
+
+      return ok<ChildProgressData>({
+        child: childData,
+        progress: progressData,
+        feedback: feedbackData,
+        badges: visibleBadges,
+      });
     } catch (error) {
       logger.error('Failed to load child progress', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load child progress data.', error));
     }
   }, [childId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<ChildProgressData>({
+    load: loadData,
+    deps: [childId],
+    isEmpty: (value) => !value.child,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const child = data?.child;
+  const progress = data?.progress ?? null;
+  const feedback = data?.feedback ?? [];
+  const badges = data?.badges ?? [];
 
   const getTrendInfo = useCallback((palette: { success: string; error: string; muted: string }) => {
     if (!progress) return { icon: 'remove', color: palette.muted, label: 'No Data' };
@@ -92,8 +105,34 @@ export function useChildProgress() {
   }, [progress]);
 
   return {
-    loading, refreshing, child, progress, feedback, badges,
-    activeTab, setActiveTab,
-    handleRefresh, getTrendInfo,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    child,
+    progress,
+    feedback,
+    badges,
+    activeTab,
+    setActiveTab,
+    handleRefresh: onRefresh,
+    getTrendInfo,
+  } satisfies {
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    child: User | undefined;
+    progress: AthleteProgress | null;
+    feedback: SessionFeedback[];
+    badges: BadgeAward[];
+    activeTab: ProgressTab;
+    setActiveTab: (value: ProgressTab) => void;
+    handleRefresh: () => void;
+    getTrendInfo: (palette: { success: string; error: string; muted: string }) => { icon: string; color: string; label: string };
   };
 }

@@ -15,15 +15,16 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SkillTreeView } from '@/components/skills/SkillTreeView';
 import { SkillNodeDetailModal } from '@/components/skills/skill-node-detail-modal';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useSkillCategory } from '@/hooks/use-skill-category';
+import { ok } from '@/types/result';
 
 export default function SkillTreeDetailScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    tree, isLoading, selectedNode, canUnlockNodes, animateUnlocks,
+    tree, loading, status, error, retry, selectedNode, canUnlockNodes, animateUnlocks,
     category, currentUser, animatedModalStyle,
     canUnlockSelected, prereqNames,
     handleNodePress, handleCloseModal, handleAddXp, handleUnlockNode,
@@ -38,8 +39,12 @@ export default function SkillTreeDetailScreen() {
         gap={Spacing.md}
         scrollable={false}
       >
-        {isLoading ? (
+        {loading ? (
           <LoadingState variant="detail" />
+        ) : status === 'error' ? (
+          <ErrorState message={error?.message ?? 'Failed to load this skill tree.'} onRetry={retry} />
+        ) : status === 'empty' ? (
+          <EmptyState icon="analytics-outline" title="Tree Not Found" message={`Could not load the skill tree for "${category}".`} />
         ) : tree ? (
           <View style={styles.treeWrapper}>
             <SkillTreeView tree={tree} onNodePress={handleNodePress} canUnlockNodes={canUnlockNodes} animateUnlocks={animateUnlocks} />

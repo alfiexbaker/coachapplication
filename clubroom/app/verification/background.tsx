@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,16 +8,28 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBackgroundCheck, BG_CHECK_STEPS } from '@/hooks/use-background-check';
 
 export default function BackgroundCheckScreen() {
   const { colors } = useTheme();
-  const { status, loading, submitting, isVerified, isPending, handleStartCheck, handleMockApprove } = useBackgroundCheck();
+  const {
+    status,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    submitting,
+    isVerified,
+    isPending,
+    handleStartCheck,
+    handleMockApprove,
+  } = useBackgroundCheck();
 
-  if (loading) {
+  if (screenStatus === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
         <LoadingState variant="detail" />
@@ -25,9 +37,34 @@ export default function BackgroundCheckScreen() {
     );
   }
 
+  if (screenStatus === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load background check status.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (screenStatus === 'empty' || !status) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState
+          icon="shield-outline"
+          title="Verification unavailable"
+          message="Background check data is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <Row align="center" gap="sm">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />

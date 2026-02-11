@@ -1,9 +1,10 @@
 import React from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { createLogger } from '@/utils/logger';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
@@ -108,7 +109,7 @@ export function SocialLinks({
         {activePlatforms.map(([platform, value]) => {
           const config = SOCIAL_PLATFORMS[platform];
           return (
-            <Pressable
+            <Clickable
               key={platform}
               style={({ pressed }) => [
                 styles.listItem,
@@ -117,7 +118,10 @@ export function SocialLinks({
                   borderColor: palette.border,
                 },
               ]}
-              onPress={() => handlePress(platform, value!)}>
+              onPress={() => handlePress(platform, value!)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${config.label} profile`}
+            >
               <Row align="center" gap="sm">
                 <View style={[styles.listIconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
                   <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
@@ -132,7 +136,7 @@ export function SocialLinks({
                 </View>
                 <Ionicons name="open-outline" size={16} color={palette.muted} />
               </Row>
-            </Pressable>
+            </Clickable>
           );
         })}
       </View>
@@ -144,7 +148,7 @@ export function SocialLinks({
       {activePlatforms.map(([platform, value]) => {
         const config = SOCIAL_PLATFORMS[platform];
         return (
-          <Pressable
+          <Clickable
             key={platform}
             style={({ pressed }) => [
               styles.iconButton,
@@ -154,14 +158,17 @@ export function SocialLinks({
                 backgroundColor: pressed ? withAlpha(config.color, 0.15) : withAlpha(config.color, 0.09),
               },
             ]}
-            onPress={() => handlePress(platform, value!)}>
+            onPress={() => handlePress(platform, value!)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${config.label} profile`}
+          >
             <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={iconSize} color={config.color} />
             {showLabels && (
               <ThemedText style={[styles.iconLabel, { color: config.color }]}>
                 {config.label}
               </ThemedText>
             )}
-          </Pressable>
+          </Clickable>
         );
       })}
     </Row>

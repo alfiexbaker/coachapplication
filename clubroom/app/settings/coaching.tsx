@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { Stack, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -8,20 +8,39 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stepper, ToggleRow, NavigationRow, SectionHeader, Separator } from '@/components/settings/coaching-rows';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Shadows, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCoachingSettings } from '@/hooks/use-coaching-settings';
 
 export default function CoachingSettingsScreen() {
   const { colors, scheme } = useTheme();
-  const { loading, rules, showSaved, toastOpacity, update, currentUser } = useCoachingSettings();
+  const {
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    rules,
+    showSaved,
+    toastOpacity,
+    update,
+    currentUser,
+  } = useCoachingSettings();
 
   if (loading || !rules) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Coaching Settings' }} />
-        <LoadingState variant="form" />
+        {status === 'error' ? (
+          <ErrorState
+            message={error ?? 'Failed to load coaching settings.'}
+            onRetry={retry}
+          />
+        ) : (
+          <LoadingState variant="form" />
+        )}
       </View>
     );
   }
@@ -30,7 +49,18 @@ export default function CoachingSettingsScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: 'Coaching Settings', headerShadowVisible: false, headerStyle: { backgroundColor: colors.background } }} />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accent}
+          />
+        }
+      >
         {/* Scheduling */}
         <SectionHeader title="SCHEDULING" />
         <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].card]}>

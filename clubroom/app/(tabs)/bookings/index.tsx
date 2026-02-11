@@ -19,6 +19,7 @@ export default function BookingsScreen() {
     userRole,
     loading,
     error,
+    refreshing,
     timeFilter,
     showDetailModal,
     selectedOffering,
@@ -34,6 +35,8 @@ export default function BookingsScreen() {
     handleOfferingPress,
     handleModalClose,
     handleModalUpdate,
+    onRefresh,
+    retry,
     handleAcceptInvite,
     handleDeclineInvite,
   } = useBookings();
@@ -59,7 +62,7 @@ export default function BookingsScreen() {
           title="Bookings"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
         />
-        <ErrorState message={error} onRetry={handleModalUpdate} />
+        <ErrorState message={error} onRetry={retry} />
       </SafeAreaView>
     );
   }
@@ -136,6 +139,8 @@ export default function BookingsScreen() {
         onOfferingPress={handleOfferingPress}
         onFindCoachPress={handleFindCoachPress}
         onCreateSessionPress={handleCreateSessionPress}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
 
       <SessionDetailModal

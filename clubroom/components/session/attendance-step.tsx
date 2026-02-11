@@ -6,10 +6,11 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -95,7 +96,7 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
           const btnIcon = getAttendanceIcon(s, colors);
           const isSelected = athlete.status === s;
           return (
-            <Pressable
+            <Clickable
               key={s}
               style={[
                 styles.attendanceBtn,
@@ -104,13 +105,14 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
               onPress={() => handlePress(s)}
               accessibilityLabel={`Mark ${athlete.userName} as ${s}`}
               accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
             >
               <Ionicons
                 name={btnIcon.name}
                 size={24}
                 color={isSelected ? btnIcon.color : colors.muted}
               />
-            </Pressable>
+            </Clickable>
           );
         })}
       </Row>

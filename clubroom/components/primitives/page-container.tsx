@@ -1,5 +1,5 @@
 import { PropsWithChildren, ReactNode } from 'react';
-import { View, StyleSheet, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
@@ -55,6 +55,16 @@ export interface PageContainerProps extends PropsWithChildren {
    * Show scrollbar indicator (default: false)
    */
   showsScrollIndicator?: boolean;
+
+  /**
+   * Pull-to-refresh state for scrollable pages.
+   */
+  refreshing?: boolean;
+
+  /**
+   * Pull-to-refresh handler for scrollable pages.
+   */
+  onRefresh?: () => void;
 }
 
 /**
@@ -91,6 +101,8 @@ export function PageContainer({
   bottomSpacing = Spacing.xl,
   gap = Spacing.md,
   showsScrollIndicator = false,
+  refreshing = false,
+  onRefresh,
 }: PageContainerProps) {
   const { colors: palette } = useTheme();
 
@@ -119,6 +131,9 @@ export function PageContainer({
           style={styles.scrollView}
           contentContainerStyle={innerContentStyle}
           showsVerticalScrollIndicator={showsScrollIndicator}
+          refreshControl={
+            onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
+          }
         >
           {children}
         </ScrollView>

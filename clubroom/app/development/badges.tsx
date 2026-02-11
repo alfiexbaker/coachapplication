@@ -21,10 +21,15 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useDevBadges, BADGE_TABS } from '@/hooks/use-dev-badges';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 
 export default function BadgesScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
+    loading,
+    status,
+    error,
+    retry,
     activeTab, setActiveTab,
     sessionQuery, setSessionQuery,
     selectedSessionId, setSelectedSessionId,
@@ -34,6 +39,22 @@ export default function BadgesScreen() {
     currentUser,
     openAwardModal, closeAwardModal,
   } = useDevBadges();
+
+  if (loading) {
+    return (
+      <PageContainer gap={Spacing.md} header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}>
+        <LoadingState variant="list" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer gap={Spacing.md} header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}>
+        <ErrorState message={error?.message ?? 'Failed to load badges workspace.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
 
   return (
     <>

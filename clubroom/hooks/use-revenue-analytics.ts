@@ -5,12 +5,14 @@
  * Used by app/analytics/revenue.tsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { CoachAnalytics, CoachAnalyticsPeriod, RevenueDataPoint } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { combineResults, err, ok, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useRevenueAnalytics');
 
@@ -21,53 +23,71 @@ export const PERIOD_OPTIONS: { label: string; value: CoachAnalyticsPeriod }[] = 
   { label: 'Year', value: 'YEAR' },
 ];
 
+interface RevenueAnalyticsData {
+  analytics: CoachAnalytics | null;
+  revenueData: RevenueDataPoint[];
+}
+
+export interface UseRevenueAnalyticsResult {
+  analytics: CoachAnalytics | null;
+  revenueData: RevenueDataPoint[];
+  period: CoachAnalyticsPeriod;
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  handleRefresh: () => void;
+  handlePeriodChange: (period: CoachAnalyticsPeriod) => void;
+  formatCurrency: (amount: number) => string;
+  getPeriodLabel: () => string;
+}
+
 export function useRevenueAnalytics() {
   const { currentUser } = useAuth();
 
-  const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
-  const [revenueData, setRevenueData] = useState<RevenueDataPoint[]>([]);
   const [period, setPeriod] = useState<CoachAnalyticsPeriod>('MONTH');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<RevenueAnalyticsData>({ analytics: null, revenueData: [] });
+    }
 
     const [analyticsResult, chartResult] = await Promise.all([
-        coachAnalyticsService.getCoachAnalytics(currentUser.id, period),
-        coachAnalyticsService.getRevenueChart(currentUser.id, period),
-      ]);
+      coachAnalyticsService.getCoachAnalytics(currentUser.id, period),
+      coachAnalyticsService.getRevenueChart(currentUser.id, period),
+    ]);
 
-    if (analyticsResult.success) {
-      setAnalytics(analyticsResult.data);
-    } else {
-      logger.error('Failed to fetch analytics data', analyticsResult.error);
-      setAnalytics(null);
+    const combined = combineResults([analyticsResult, chartResult] as const);
+    if (!combined.success) {
+      logger.error('Failed to fetch revenue analytics data', combined.error);
+      return err(combined.error);
     }
 
-    if (chartResult.success) {
-      setRevenueData(chartResult.data);
-    } else {
-      logger.error('Failed to fetch revenue chart', chartResult.error);
-      setRevenueData([]);
-    }
-
-    setLoading(false);
+    const [analytics, revenueData] = combined.data;
+    return ok<RevenueAnalyticsData>({ analytics, revenueData });
   }, [currentUser?.id, period]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<RevenueAnalyticsData>({
+    load: fetchData,
+    deps: [currentUser?.id, period],
+    isEmpty: (value) => value.analytics === null,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
-  }, [fetchData]);
+  const analytics = data?.analytics ?? null;
+  const revenueData = data?.revenueData ?? [];
 
   const handlePeriodChange = useCallback((newPeriod: CoachAnalyticsPeriod) => {
     if (newPeriod !== period) {
-      setLoading(true);
       setPeriod(newPeriod);
     }
   }, [period]);
@@ -90,11 +110,15 @@ export function useRevenueAnalytics() {
     analytics,
     revenueData,
     period,
-    loading,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
     refreshing,
-    handleRefresh,
+    onRefresh,
+    retry,
+    handleRefresh: onRefresh,
     handlePeriodChange,
     formatCurrency,
     getPeriodLabel,
-  };
+  } satisfies UseRevenueAnalyticsResult;
 }

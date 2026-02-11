@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
@@ -126,15 +127,17 @@ export function PurchaseButton({
         </Row>
 
         {/* Top Up Button */}
-        <Pressable
+        <Clickable
           style={[styles.button, { backgroundColor: palette.tint }]}
           onPress={handleTopUp}
+          accessibilityRole="button"
+          accessibilityLabel="Top up wallet"
         >
           <Ionicons name="add-circle-outline" size={20} color={palette.onPrimary} />
           <ThemedText style={[styles.buttonTextWhite, { color: palette.onPrimary }]}>
             Top Up Wallet
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
     );
   }
@@ -150,7 +153,7 @@ export function PurchaseButton({
       </Row>
 
       {/* Purchase Button */}
-      <Pressable
+      <Clickable
         style={[
           styles.button,
           { backgroundColor: palette.tint },
@@ -158,6 +161,9 @@ export function PurchaseButton({
         ]}
         onPress={handlePurchase}
         disabled={disabled || purchasing}
+        accessibilityRole="button"
+        accessibilityLabel="Purchase package"
+        accessibilityState={{ disabled: disabled || purchasing }}
       >
         {purchasing ? (
           <>
@@ -172,7 +178,7 @@ export function PurchaseButton({
             </ThemedText>
           </>
         )}
-      </Pressable>
+      </Clickable>
     </View>
   );
 }

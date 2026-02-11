@@ -52,14 +52,14 @@ export function StaffRolePicker({
 }: StaffRolePickerProps) {
   const { colors: palette } = useTheme();
 
-  // Decorative: role-specific colors for visual role differentiation
+  // Role-specific colors from theme tokens for consistent semantics.
   const roleColors: Record<AcademyMembership['role'], string> = {
-    OWNER: '#7C3AED',      // Decorative: owner role
-    ADMIN: '#0284C7',      // Decorative: admin role
-    HEAD_COACH: '#059669', // Decorative: head coach role
+    OWNER: palette.premium,
+    ADMIN: palette.info,
+    HEAD_COACH: palette.success,
     COACH: palette.tint,
-    ASSISTANT: '#6B7280',  // Decorative: assistant role
-    MEMBER: '#9CA3AF',     // Decorative: member role
+    ASSISTANT: palette.muted,
+    MEMBER: palette.tabIconDefault,
   };
 
   const availableRoles = excludeOwner

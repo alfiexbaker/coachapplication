@@ -48,7 +48,7 @@ interface ProgressRingProps {
  * @example
  * ```tsx
  * <ProgressRing progress={75} />
- * <ProgressRing progress={50} size={60} progressColor="#10B981" />
+ * <ProgressRing progress={50} size={60} progressColor="theme-success" />
  * <ProgressRing progress={100} label="Done" showPercentage={false} />
  * ```
  */

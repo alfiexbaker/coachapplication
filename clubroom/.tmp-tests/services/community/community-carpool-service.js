@@ -14,6 +14,7 @@ const api_client_1 = require("../api-client");
 const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
+const account_id_1 = require("@/utils/account-id");
 const logger = (0, logger_1.createLogger)('CommunityCarpoolService');
 // Mock data for initial state
 const mockCarpoolOffers = [
@@ -100,7 +101,7 @@ class CommunityCarpoolService {
         try {
             const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
             const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
-            const filtered = allOffers.filter((offer) => offer.parentId === parentId);
+            const filtered = allOffers.filter((offer) => (0, account_id_1.accountIdsMatch)(offer.parentId, parentId));
             logger.info('parent_carpool_offers_retrieved', { parentId, count: filtered.length });
             return (0, result_1.ok)(filtered);
         }
@@ -116,7 +117,7 @@ class CommunityCarpoolService {
         try {
             const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CARPOOL_OFFERS, []);
             const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
-            const filtered = allOffers.filter((offer) => offer.parentId !== excludeParentId &&
+            const filtered = allOffers.filter((offer) => !(0, account_id_1.accountIdsMatch)(offer.parentId, excludeParentId) &&
                 offer.status === 'ACTIVE' &&
                 offer.seatsAvailable > offer.seatsTaken);
             logger.info('available_carpool_offers_retrieved', { excludeParentId, count: filtered.length });
@@ -206,7 +207,7 @@ class CommunityCarpoolService {
             return (0, result_1.err)((0, result_1.validationError)('Not enough seats available'));
         }
         // Check if already requested
-        if (offer.requests.some((r) => r.parentId === params.parentId && r.status === 'PENDING')) {
+        if (offer.requests.some((r) => (0, account_id_1.accountIdsMatch)(r.parentId, params.parentId) && r.status === 'PENDING')) {
             return (0, result_1.err)((0, result_1.conflictError)('You already have a pending request for this carpool'));
         }
         const newRequest = {
@@ -292,7 +293,7 @@ class CommunityCarpoolService {
         if (!offer) {
             return (0, result_1.err)((0, result_1.notFound)('Carpool offer', offerId));
         }
-        if (offer.parentId !== parentId) {
+        if (!(0, account_id_1.accountIdsMatch)(offer.parentId, parentId)) {
             return (0, result_1.err)((0, result_1.unauthorized)('Only the offer creator can cancel it'));
         }
         offer.status = 'CANCELLED';
@@ -322,7 +323,7 @@ class CommunityCarpoolService {
         if (!request) {
             return (0, result_1.err)((0, result_1.notFound)('Request', requestId));
         }
-        if (request.parentId !== parentId) {
+        if (!(0, account_id_1.accountIdsMatch)(request.parentId, parentId)) {
             return (0, result_1.err)((0, result_1.unauthorized)('Only the requester can cancel their request'));
         }
         // If request was accepted, free up seats

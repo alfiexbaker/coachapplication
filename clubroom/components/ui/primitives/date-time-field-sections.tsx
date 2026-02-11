@@ -6,13 +6,14 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
+import { Clickable } from '@/components/primitives/clickable';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 
-import { Components, Fonts, Spacing, Typography } from '@/constants/theme';
+import { Components, Fonts, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
 // ─── Value Helpers ────────────────────────────────────────────────────────────
@@ -92,22 +93,24 @@ export const IOSPickerModal = memo(function IOSPickerModal({
 
   return (
     <Modal transparent animationType="slide">
-      <Pressable
-        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+      <Clickable
+        style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.text, 0.4) }]}
         onPress={onCancel}
+        accessibilityRole="button"
+        accessibilityLabel="Close date time picker"
       />
       <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
         <Row justify="between" style={styles.modalHeader}>
-          <Pressable onPress={onCancel} hitSlop={12}>
+          <Clickable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Cancel picker">
             <Text style={[styles.modalButtonText, { color: colors.muted }]}>
               Cancel
             </Text>
-          </Pressable>
-          <Pressable onPress={onDone} hitSlop={12}>
+          </Clickable>
+          <Clickable onPress={onDone} hitSlop={12} accessibilityRole="button" accessibilityLabel="Confirm picker">
             <Text style={[styles.modalButtonText, { color: colors.tint }]}>
               Done
             </Text>
-          </Pressable>
+          </Clickable>
         </Row>
         <DateTimePicker
           value={tempDate ?? currentDate}

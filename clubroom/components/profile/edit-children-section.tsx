@@ -3,10 +3,11 @@
  */
 
 import React, { memo } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
@@ -29,7 +30,7 @@ export const EditChildrenSection = memo(function EditChildrenSection({
     <SurfaceCard style={styles.section}>
       <Row justify="between" align="center">
         <ThemedText type="subtitle">Children</ThemedText>
-        <Pressable
+        <Clickable
           onPress={onAddChild}
           style={styles.inlineAction}
           accessibilityLabel="Add child"
@@ -39,7 +40,7 @@ export const EditChildrenSection = memo(function EditChildrenSection({
             <Ionicons name="add-circle" size={22} color={colors.tint} />
             <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
           </Row>
-        </Pressable>
+        </Clickable>
       </Row>
 
       {children.map((child, index) => (
@@ -63,14 +64,14 @@ export const EditChildrenSection = memo(function EditChildrenSection({
               accessibilityLabel={`Child ${index + 1} age`}
             />
           </Row>
-          <Pressable
+          <Clickable
             onPress={() => onRemoveChild(index)}
             accessibilityLabel={`Remove child ${index + 1}`}
             accessibilityRole="button"
             hitSlop={8}
           >
             <Ionicons name="trash-outline" size={24} color={colors.destructive} />
-          </Pressable>
+          </Clickable>
         </Row>
       ))}
     </SurfaceCard>

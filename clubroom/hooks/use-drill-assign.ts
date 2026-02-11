@@ -1,16 +1,18 @@
 /**
  * useDrillAssign — All state, data loading, and handlers for the Assign Drill screen.
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { drillService } from '@/services/drill-service';
 import { rosterService } from '@/services/roster-service';
 import { createLogger } from '@/utils/logger';
 import type { Drill, RosterEntry } from '@/constants/types';
 import { getRosterAthleteName } from '@/utils/roster-display';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('AssignDrillScreen');
 
@@ -20,13 +22,15 @@ export interface DrillAthlete {
   age?: number;
 }
 
+interface DrillAssignData {
+  drill: Drill | null;
+  athletes: DrillAthlete[];
+}
+
 export function useDrillAssign() {
   const { drillId } = useLocalSearchParams<{ drillId?: string }>();
   const { currentUser } = useAuth();
 
-  const [drill, setDrill] = useState<Drill | null>(null);
-  const [athletes, setAthletes] = useState<DrillAthlete[]>([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedAthlete, setSelectedAthlete] = useState<DrillAthlete | null>(null);
   const [dueDate, setDueDate] = useState<Date>(() => {
@@ -39,22 +43,49 @@ export function useDrillAssign() {
   const coachId = currentUser?.id ?? 'coach1';
   const coachName = currentUser?.name ?? 'Coach';
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        if (drillId) setDrill(await drillService.getDrillById(drillId));
-        if (coachId) {
-          const roster = await rosterService.getRoster(coachId, { status: 'ACTIVE' });
-          setAthletes(roster.map((e: RosterEntry) => ({ id: e.athleteId, name: getRosterAthleteName(e) })));
-        }
-      } catch (error) {
-        logger.error('Failed to load data', error);
-      } finally {
-        setLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    if (!drillId) {
+      return ok<DrillAssignData>({
+        drill: null,
+        athletes: [],
+      });
     }
-    loadData();
-  }, [drillId, coachId]);
+
+    try {
+      const [drill, roster] = await Promise.all([
+        drillService.getDrillById(drillId),
+        coachId ? rosterService.getRoster(coachId, { status: 'ACTIVE' }) : Promise.resolve([]),
+      ]);
+
+      return ok<DrillAssignData>({
+        drill,
+        athletes: roster.map((entry: RosterEntry) => ({
+          id: entry.athleteId,
+          name: getRosterAthleteName(entry),
+        })),
+      });
+    } catch (loadError) {
+      logger.error('Failed to load assign-drill data', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load drill assignment data.', loadError));
+    }
+  }, [coachId, drillId]);
+
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<DrillAssignData>({
+    load: loadData,
+    deps: [drillId, coachId],
+    isEmpty: (value) => value.drill === null,
+    refetchOnFocus: true,
+  });
+
+  const drill = data?.drill ?? null;
+  const athletes = data?.athletes ?? [];
 
   const handleDateSelect = useCallback((daysFromNow: number) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -78,10 +109,14 @@ export function useDrillAssign() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setSubmitting(true);
     try {
-      await drillService.assignDrill(drill.id, selectedAthlete.id, selectedAthlete.name, coachId, coachName, {
+      const assignmentResult = await drillService.assignDrill(drill.id, selectedAthlete.id, selectedAthlete.name, coachId, coachName, {
         dueDate: dueDate.toISOString(), notes: notes.trim() || undefined,
         repetitions: parseInt(repetitions, 10) || 1, priority,
       });
+      if (!assignmentResult.success) {
+        Alert.alert('Error', assignmentResult.error.message);
+        return;
+      }
       Alert.alert('Drill Assigned!', `"${drill.title}" has been assigned to ${selectedAthlete.name}.`, [
         { text: 'Assign Another', onPress: () => { setSelectedAthlete(null); setNotes(''); setRepetitions('1'); setPriority(2); } },
         { text: 'Done', onPress: () => router.back() },
@@ -104,10 +139,43 @@ export function useDrillAssign() {
   };
 
   return {
-    drill, athletes, loading, submitting,
+    drill,
+    athletes,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    submitting,
     selectedAthlete, dueDate, notes, setNotes,
     repetitions, setRepetitions, priority,
     daysFromNow: getDaysFromNow(dueDate), formattedDate: formatDate(dueDate),
+    handleRefresh: onRefresh,
     handleDateSelect, handlePrioritySelect, handleAthleteSelect, handleSubmit,
+  } satisfies {
+    drill: Drill | null;
+    athletes: DrillAthlete[];
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    submitting: boolean;
+    selectedAthlete: DrillAthlete | null;
+    dueDate: Date;
+    notes: string;
+    setNotes: (value: string) => void;
+    repetitions: string;
+    setRepetitions: (value: string) => void;
+    priority: 1 | 2 | 3;
+    daysFromNow: number;
+    formattedDate: string;
+    handleRefresh: () => void;
+    handleDateSelect: (daysFromNow: number) => void;
+    handlePrioritySelect: (priority: 1 | 2 | 3) => void;
+    handleAthleteSelect: (athlete: DrillAthlete) => void;
+    handleSubmit: () => Promise<void>;
   };
 }

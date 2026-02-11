@@ -3,10 +3,11 @@
  */
 
 import { memo, useCallback } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -49,7 +50,7 @@ export const WalletBalanceCard = memo(function WalletBalanceCard({
               </ThemedText>
             </Row>
           )}
-          <Pressable
+          <Clickable
             style={[styles.topUpButton, { backgroundColor: colors.tint }]}
             onPress={handleTopUp}
             accessibilityLabel="Top up wallet"
@@ -59,7 +60,7 @@ export const WalletBalanceCard = memo(function WalletBalanceCard({
             <ThemedText style={[styles.topUpText, { color: colors.onPrimary }]}>
               Top Up
             </ThemedText>
-          </Pressable>
+          </Clickable>
         </Column>
       </SurfaceCard>
     </Animated.View>

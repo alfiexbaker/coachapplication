@@ -1,4 +1,4 @@
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AttendeeList } from '@/components/event/AttendeeList';
 import { CheckInButton } from '@/components/event/CheckInButton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEventAttendees } from '@/hooks/use-event-attendees';
@@ -17,26 +18,37 @@ export default function EventAttendeesScreen() {
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    event, rsvps, attendance, stats, currentAttendance, loading, refreshing,
+    event, rsvps, attendance, stats, currentAttendance, status, error, refreshing, retry,
     isCoach, isEventToday, checkInAvailable, currentUser,
     handleCheckIn, handleUndoCheckIn, handleAttendeePress, handleExport, handleSendReminder,
   } = useEventAttendees(id);
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.centered}><ActivityIndicator size="large" color={colors.tint} /></View>
+        <LoadingState variant="list" />
       </SafeAreaView>
     );
   }
 
-  if (!event) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
-          <ThemedText style={[styles.errorText, { color: colors.muted }]}>Event not found</ThemedText>
-        </View>
+        <ErrorState message={error?.message || 'Failed to load attendee data.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !event) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState
+          icon="people-outline"
+          title="Event not found"
+          message="This event could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }

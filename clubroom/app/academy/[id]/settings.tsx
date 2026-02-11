@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert, Switch, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -43,6 +43,14 @@ export default function AcademySettingsScreen() {
   const [isPublic, setIsPublic] = useState(academy?.isPublic ?? true);
   const [requiresApproval, setRequiresApproval] = useState(academy?.requiresApproval ?? false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!academy) return;
+    setName(academy.name ?? '');
+    setDescription(academy.description ?? '');
+    setIsPublic(academy.isPublic ?? true);
+    setRequiresApproval(academy.requiresApproval ?? false);
+  }, [academy?.id]);
 
   const isOwner = academy?.ownerId === currentUser?.id;
 

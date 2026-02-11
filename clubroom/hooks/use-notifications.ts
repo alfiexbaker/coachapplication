@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ScreenStatus, useScreen } from '@/hooks/use-screen';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
+import { ServiceEvents } from '@/services/event-bus';
+import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 export type NotificationFilter = 'all' | 'booking' | 'message' | 'review' | 'badge' | 'reminder' | 'community';
@@ -13,9 +16,12 @@ interface UseNotificationsOptions {
 interface UseNotificationsResult {
   notifications: ExtendedNotificationItem[];
   unreadCount: number;
+  status: ScreenStatus;
   isLoading: boolean;
+  refreshing: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
+  retry: () => void;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   clearAll: () => Promise<void>;
@@ -25,6 +31,11 @@ interface UseNotificationsResult {
 
 const logger = createLogger('useNotifications');
 
+interface NotificationScreenData {
+  notifications: ExtendedNotificationItem[];
+  unreadCount: number;
+}
+
 /**
  * Hook for accessing and managing notifications
  * Provides unread count for badge display on tab bar
@@ -32,20 +43,14 @@ const logger = createLogger('useNotifications');
 export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsResult {
   const { filter: initialFilter = 'all', autoRefresh = true, refreshInterval = 30000 } = options;
 
-  const [notifications, setNotifications] = useState<ExtendedNotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [currentFilter, setFilter] = useState<NotificationFilter>(initialFilter);
+  const [actionError, setActionError] = useState<Error | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-
       const allNotificationsResult = await notificationService.list();
       if (!allNotificationsResult.success) {
-        throw new Error(allNotificationsResult.error.message);
+        return err(allNotificationsResult.error);
       }
 
       const allNotifications = allNotificationsResult.data;
@@ -56,81 +61,97 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         filtered = allNotifications.filter((n: ExtendedNotificationItem) => n.type === currentFilter);
       }
 
-      setNotifications(filtered);
-
       // Calculate unread count from all notifications (not filtered)
       const unread = allNotifications.filter((n: ExtendedNotificationItem) => !n.read).length;
-      setUnreadCount(unread);
-    } catch (err) {
-      const normalizedError = err instanceof Error ? err : new Error('Failed to fetch notifications');
-      logger.error('Failed to fetch notifications', { error: normalizedError, currentFilter });
-      setError(normalizedError);
-    } finally {
-      setIsLoading(false);
+
+      return ok({ notifications: filtered, unreadCount: unread });
+    } catch (loadError) {
+      logger.error('Failed to fetch notifications', { error: loadError, currentFilter });
+      return err(serviceError('UNKNOWN', 'Failed to fetch notifications', loadError));
     }
   }, [currentFilter]);
 
+  const { data, status, error: loadError, refreshing, onRefresh, retry } = useScreen<NotificationScreenData>({
+    load: fetchNotifications,
+    deps: [currentFilter],
+    events: [ServiceEvents.NOTIFICATION_CREATED, ServiceEvents.NOTIFICATION_READ, ServiceEvents.NOTIFICATION_DISMISSED],
+    isEmpty: (value) => value.notifications.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const notifications = data?.notifications ?? [];
+  const unreadCount = data?.unreadCount ?? 0;
+  const error = actionError ?? (loadError ? new Error(loadError.message) : null);
+
   // Initial fetch and auto-refresh
   useEffect(() => {
-    fetchNotifications();
-
     if (autoRefresh && refreshInterval > 0) {
-      const interval = setInterval(fetchNotifications, refreshInterval);
+      const interval = setInterval(onRefresh, refreshInterval);
       return () => clearInterval(interval);
     }
-  }, [fetchNotifications, autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, onRefresh]);
 
   // Subscribe to new notifications for real-time updates
   useEffect(() => {
     const unsubscribe = notificationService.subscribe(() => {
-      fetchNotifications();
+      onRefresh();
     });
 
     return unsubscribe;
-  }, [fetchNotifications]);
+  }, [onRefresh]);
+
+  const refresh = useCallback(async () => {
+    onRefresh();
+  }, [onRefresh]);
 
   const markAsRead = useCallback(async (id: string) => {
     const result = await notificationService.markAsRead(id);
     if (!result.success) {
       const markError = new Error(result.error.message);
-      setError(markError);
+      setActionError(markError);
       logger.error('Failed to mark notification as read', { id, error: result.error });
       return;
     }
 
-    await fetchNotifications();
-  }, [fetchNotifications]);
+    setActionError(null);
+    await refresh();
+  }, [refresh]);
 
   const markAllAsRead = useCallback(async () => {
     const result = await notificationService.markAllAsRead();
     if (!result.success) {
       const markError = new Error(result.error.message);
-      setError(markError);
+      setActionError(markError);
       logger.error('Failed to mark all notifications as read', { error: result.error });
       return;
     }
 
-    await fetchNotifications();
-  }, [fetchNotifications]);
+    setActionError(null);
+    await refresh();
+  }, [refresh]);
 
   const clearAll = useCallback(async () => {
     const result = await notificationService.clearAll();
     if (!result.success) {
       const clearError = new Error(result.error.message);
-      setError(clearError);
+      setActionError(clearError);
       logger.error('Failed to clear notifications', { error: result.error });
       return;
     }
 
-    await fetchNotifications();
-  }, [fetchNotifications]);
+    setActionError(null);
+    await refresh();
+  }, [refresh]);
 
   return {
     notifications,
     unreadCount,
-    isLoading,
+    status,
+    isLoading: status === 'loading',
+    refreshing,
     error,
-    refresh: fetchNotifications,
+    refresh,
+    retry,
     markAsRead,
     markAllAsRead,
     clearAll,

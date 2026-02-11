@@ -3,11 +3,12 @@
  * Manages flow state, booking data loading, refund calculation, and cancellation handlers.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
+import { useScreen } from '@/hooks/use-screen';
 import { bookingService } from '@/services/booking-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier, Booking } from '@/constants/types';
@@ -15,6 +16,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import type { Ionicons } from '@expo/vector-icons';
 import { getBookingAthleteName } from '@/utils/booking-display';
+import { err, ok, serviceError } from '@/types/result';
 
 const logger = createLogger('CancelBookingScreen');
 
@@ -72,16 +74,7 @@ export function useBookingCancel(id: string, mode?: string) {
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [notifyWaitlist, setNotifyWaitlist] = useState(true);
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-
-  const [bookingAmount, setBookingAmount] = useState(0);
-  const [sessionTime, setSessionTime] = useState<Date | null>(null);
-  const [coachName, setCoachName] = useState('');
-  const [athleteName, setAthleteName] = useState('');
-  const [sessionTitle, setSessionTitle] = useState('');
-  const [policy, setPolicy] = useState<CancellationPolicy | null>(null);
-  const [refundCalc, setRefundCalc] = useState<RefundCalculation | null>(null);
 
   const filteredReasons = useMemo(
     () =>
@@ -98,53 +91,70 @@ export function useBookingCancel(id: string, mode?: string) {
     return true;
   }, [isCoach, reason]);
 
+  interface CancelLoadData {
+    bookingAmount: number;
+    sessionTime: Date;
+    coachName: string;
+    athleteName: string;
+    sessionTitle: string;
+    policy: CancellationPolicy | null;
+    refundCalc: RefundCalculation;
+  }
+
   const loadBookingDetails = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      return err(serviceError('UNKNOWN', 'Missing booking id for cancellation.'));
+    }
     try {
       const booking = await bookingService.getBooking(id);
-      if (booking) {
-        const bookingExt = booking as Booking & Record<string, unknown>;
-        const bookingPrice = (bookingExt.price as number) ?? 35;
-        setBookingAmount(bookingPrice);
-        setSessionTime(new Date(booking.scheduledAt));
-        setCoachName(booking.coachName || 'Coach');
-        setAthleteName(getBookingAthleteName(booking));
-        setSessionTitle((bookingExt.sessionTitle as string) || booking.service || 'Session');
-
-        const coachPolicyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);
-        const coachPolicy = coachPolicyResult.success ? coachPolicyResult.data : null;
-        if (!coachPolicyResult.success) {
-          logger.error('Failed to load coach cancellation policy', coachPolicyResult.error);
-        }
-        setPolicy(coachPolicy);
-
-        const calculation = schedulingRulesService.calculateRefund(
-          bookingPrice,
-          new Date(booking.scheduledAt),
-          coachPolicy,
-        );
-        setRefundCalc(calculation);
+      if (!booking) {
+        return ok<CancelLoadData | null>(null);
       }
-    } catch (error) {
-      logger.error('Failed to load booking', error);
-      const fallbackTime = new Date();
-      fallbackTime.setHours(fallbackTime.getHours() + 48);
-      setBookingAmount(35);
-      setSessionTime(fallbackTime);
-      setCoachName('Your Coach');
-      setAthleteName('Athlete');
-      setSessionTitle('Training Session');
 
-      const calculation = schedulingRulesService.calculateRefund(35, fallbackTime, null);
-      setRefundCalc(calculation);
-    } finally {
-      setLoading(false);
+      const bookingExt = booking as Booking & Record<string, unknown>;
+      const bookingPrice = (bookingExt.price as number) ?? 35;
+      const scheduledAt = new Date(booking.scheduledAt);
+      const coachPolicyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);
+      const coachPolicy = coachPolicyResult.success ? coachPolicyResult.data : null;
+      if (!coachPolicyResult.success) {
+        logger.error('Failed to load coach cancellation policy', coachPolicyResult.error);
+      }
+
+      const calculation = schedulingRulesService.calculateRefund(
+        bookingPrice,
+        scheduledAt,
+        coachPolicy,
+      );
+
+      return ok<CancelLoadData | null>({
+        bookingAmount: bookingPrice,
+        sessionTime: scheduledAt,
+        coachName: booking.coachName || 'Coach',
+        athleteName: getBookingAthleteName(booking),
+        sessionTitle: (bookingExt.sessionTitle as string) || booking.service || 'Session',
+        policy: coachPolicy,
+        refundCalc: calculation,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load booking', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load booking cancellation details.', loadError));
     }
   }, [id]);
 
-  useEffect(() => {
-    loadBookingDetails();
-  }, [loadBookingDetails]);
+  const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<CancelLoadData | null>({
+    load: loadBookingDetails,
+    deps: [loadBookingDetails],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
+
+  const bookingAmount = data?.bookingAmount ?? 0;
+  const sessionTime = data?.sessionTime ?? null;
+  const coachName = data?.coachName ?? '';
+  const athleteName = data?.athleteName ?? '';
+  const sessionTitle = data?.sessionTitle ?? '';
+  const policy = data?.policy ?? null;
+  const refundCalc = data?.refundCalc ?? null;
 
   const handleCancel = useCallback(async () => {
     if (!refundCalc) return;
@@ -223,6 +233,12 @@ export function useBookingCancel(id: string, mode?: string) {
 
   return {
     isCoach,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
     step,
     setStep,
     reason,
@@ -231,7 +247,7 @@ export function useBookingCancel(id: string, mode?: string) {
     setNote,
     notifyWaitlist,
     setNotifyWaitlist,
-    loading,
+    loading: status === 'loading',
     processing,
     bookingAmount,
     sessionTime,

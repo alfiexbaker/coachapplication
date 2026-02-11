@@ -302,7 +302,7 @@ export const payoutService = {
     logger.debug('Adding payout method', { coachId, type: method.type });
 
     const newMethod: PayoutMethod = {
-      id: `pm_${Date.now()}`,
+      id: apiClient.generateId('pm'),
       coachId,
       ...method,
       isVerified: false, // Needs verification
@@ -561,7 +561,7 @@ export const payoutService = {
         }
 
         const withdrawal: Withdrawal = {
-          id: `wd_${Date.now()}`,
+          id: apiClient.generateId('wd'),
           coachId,
           amount,
           currency: earnings.currency,
@@ -582,7 +582,7 @@ export const payoutService = {
 
         // Create withdrawal transaction
         const transaction: EarningTransaction = {
-          id: `txn_wd_${Date.now()}`,
+          id: apiClient.generateId('txn_wd'),
           coachId,
           type: 'WITHDRAWAL',
           amount: -amount,

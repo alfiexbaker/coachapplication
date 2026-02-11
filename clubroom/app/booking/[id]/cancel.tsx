@@ -12,8 +12,8 @@ import {
   StyleSheet,
   TextInput,
   View,
-  ActivityIndicator,
   Switch,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -29,24 +29,45 @@ import { CancelRefundPreview } from '@/components/booking/cancel-refund-preview'
 import { CancelPolicyTiers } from '@/components/booking/cancel-policy-tiers';
 import { CancelReasonPicker } from '@/components/booking/cancel-reason-picker';
 import { CancelRescheduleStep } from '@/components/booking/cancel-reschedule-step';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
 import { useBookingCancel } from '@/hooks/use-booking-cancel';
 
 export default function CancelBookingScreen() {
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: 'coach' | 'parent' }>();
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const cancel = useBookingCancel(id, mode);
+  const palette = cancel.colors;
 
   // Loading
-  if (cancel.loading) {
+  if (cancel.status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (cancel.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
+        <ErrorState message={cancel.error?.message ?? 'Failed to load booking cancellation details.'} onRetry={cancel.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (cancel.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Cancel Booking" showBack onBackPress={() => router.back()} />
+        <EmptyState
+          icon="calendar-outline"
+          title="Booking not found"
+          message="This booking could not be loaded. It may have been removed or already cancelled."
+          actionLabel="Go back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -76,7 +97,11 @@ export default function CancelBookingScreen() {
         onBackPress={cancel.handleGoBack}
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={cancel.refreshing} onRefresh={cancel.onRefresh} tintColor={palette.tint} />}
+      >
         {cancel.isCoach && (
           <Row style={[styles.coachBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: withAlpha(palette.warning, 0.19) }]}>
             <Ionicons name="shield-outline" size={20} color={palette.warning} />
@@ -163,16 +188,14 @@ export default function CancelBookingScreen() {
             disabled={cancel.processing || (cancel.isCoach && !cancel.canProceed)}
             style={[styles.cancelBtn, { backgroundColor: palette.error, opacity: cancel.processing || (cancel.isCoach && !cancel.canProceed) ? 0.5 : 1 }]}
           >
-            {cancel.processing ? (
-              <ActivityIndicator size="small" color={palette.onPrimary} />
-            ) : (
-              <Row align="center" justify="center" gap="sm">
-                <Ionicons name="close-circle" size={20} color={palette.onPrimary} />
-                <ThemedText style={[styles.cancelBtnText, { color: palette.onPrimary }]}>
-                  {cancel.isCoach ? 'Cancel Session' : 'Confirm Cancellation'}
-                </ThemedText>
-              </Row>
-            )}
+            <Row align="center" justify="center" gap="sm">
+              <Ionicons name={cancel.processing ? 'time-outline' : 'close-circle'} size={20} color={palette.onPrimary} />
+              <ThemedText style={[styles.cancelBtnText, { color: palette.onPrimary }]}>
+                {cancel.processing
+                  ? 'Cancelling...'
+                  : (cancel.isCoach ? 'Cancel Session' : 'Confirm Cancellation')}
+              </ThemedText>
+            </Row>
           </Clickable>
         </View>
       </View>
@@ -182,7 +205,6 @@ export default function CancelBookingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.md, paddingBottom: 140, gap: Spacing.md },
   coachBanner: { alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
   bannerText: { flex: 1 },

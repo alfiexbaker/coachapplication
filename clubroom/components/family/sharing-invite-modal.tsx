@@ -1,8 +1,9 @@
 import { memo } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,9 +35,9 @@ export const SharingInviteModal = memo(function SharingInviteModal({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]} edges={['top']}>
         <Row style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={onClose} style={{ padding: Spacing.xxs }}>
+          <Clickable onPress={onClose} style={{ padding: Spacing.xxs }} accessibilityLabel="Close invite guardian modal" accessibilityRole="button">
             <Ionicons name="close" size={28} color={colors.text} />
-          </Pressable>
+          </Clickable>
           <ThemedText type="subtitle">Invite Guardian</ThemedText>
           <View style={{ width: 28 }} />
         </Row>
@@ -60,11 +61,22 @@ export const SharingInviteModal = memo(function SharingInviteModal({
             <ThemedText type="defaultSemiBold">Relationship</ThemedText>
             <Row style={styles.chips}>
               {RELATIONSHIP_OPTIONS.map((rel) => (
-                <Pressable key={rel} onPress={() => onRelationshipChange(rel)}
-                  style={[styles.chip, { borderColor: inviteRelationship === rel ? colors.tint : colors.border,
-                    backgroundColor: inviteRelationship === rel ? withAlpha(colors.tint, 0.06) : 'transparent' }]}>
+                <Clickable
+                  key={rel}
+                  onPress={() => onRelationshipChange(rel)}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: inviteRelationship === rel ? colors.tint : colors.border,
+                      backgroundColor: inviteRelationship === rel ? withAlpha(colors.tint, 0.06) : 'transparent',
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set relationship to ${rel}`}
+                  accessibilityState={{ selected: inviteRelationship === rel }}
+                >
                   <ThemedText style={{ color: inviteRelationship === rel ? colors.tint : colors.text }}>{rel}</ThemedText>
-                </Pressable>
+                </Clickable>
               ))}
             </Row>
           </View>
@@ -72,9 +84,20 @@ export const SharingInviteModal = memo(function SharingInviteModal({
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Access Level</ThemedText>
             {(['GUARDIAN', 'VIEWER'] as GuardianRole[]).map((role) => (
-              <Pressable key={role} onPress={() => onRoleChange(role)}
-                style={[styles.roleOption, { borderColor: inviteRole === role ? colors.tint : colors.border,
-                  backgroundColor: inviteRole === role ? withAlpha(colors.tint, 0.06) : 'transparent' }]}>
+              <Clickable
+                key={role}
+                onPress={() => onRoleChange(role)}
+                style={[
+                  styles.roleOption,
+                  {
+                    borderColor: inviteRole === role ? colors.tint : colors.border,
+                    backgroundColor: inviteRole === role ? withAlpha(colors.tint, 0.06) : 'transparent',
+                  },
+                ]}
+                accessibilityRole="radio"
+                accessibilityLabel={`Set access level to ${ROLE_INFO[role].label}`}
+                accessibilityState={{ checked: inviteRole === role }}
+              >
                 <View style={[styles.radio, { borderColor: inviteRole === role ? colors.tint : colors.border }]}>
                   {inviteRole === role && <View style={[styles.radioDot, { backgroundColor: colors.tint }]} />}
                 </View>
@@ -82,7 +105,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
                   <ThemedText type="defaultSemiBold">{ROLE_INFO[role].label}</ThemedText>
                   <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>{ROLE_INFO[role].description}</ThemedText>
                 </View>
-              </Pressable>
+              </Clickable>
             ))}
           </View>
 
@@ -95,15 +118,21 @@ export const SharingInviteModal = memo(function SharingInviteModal({
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
-          <Pressable style={[styles.sendBtn, { backgroundColor: inviting ? colors.muted : colors.tint }]}
-            onPress={onSend} disabled={inviting}>
+          <Clickable
+            style={[styles.sendBtn, { backgroundColor: inviting ? colors.muted : colors.tint }]}
+            onPress={onSend}
+            disabled={inviting}
+            accessibilityLabel="Send guardian invitation"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: inviting }}
+          >
             {inviting ? <ActivityIndicator size="small" color={colors.onPrimary} /> : (
               <>
                 <Ionicons name="send" size={20} color={colors.onPrimary} />
                 <ThemedText style={[Typography.heading, { color: colors.onPrimary }]}>Send Invitation</ThemedText>
               </>
             )}
-          </Pressable>
+          </Clickable>
         </View>
       </SafeAreaView>
     </Modal>

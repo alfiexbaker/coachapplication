@@ -4,6 +4,7 @@ exports.userService = void 0;
 const storage_keys_1 = require("@/constants/storage-keys");
 const result_1 = require("@/types/result");
 const logger_1 = require("@/utils/logger");
+const account_id_1 = require("@/utils/account-id");
 const api_client_1 = require("./api-client");
 const event_bus_1 = require("./event-bus");
 const logger = (0, logger_1.createLogger)('UserService');
@@ -57,7 +58,7 @@ class UserService {
     async getUserById(id) {
         try {
             const users = await this.loadUsers();
-            const user = users.find((candidate) => candidate.id === id);
+            const user = users.find((candidate) => (0, account_id_1.accountIdsMatch)(candidate.id, id));
             if (!user) {
                 return (0, result_1.err)((0, result_1.notFound)('User', id));
             }
@@ -75,9 +76,9 @@ class UserService {
                 return (0, result_1.ok)([]);
             }
             const users = await this.loadUsers();
-            const usersById = new Map(users.map((user) => [user.id, user]));
+            const usersByNormalizedId = new Map(users.map((user) => [(0, account_id_1.normalizeAccountId)(user.id), user]));
             const result = uniqueIds
-                .map((id) => usersById.get(id))
+                .map((id) => usersByNormalizedId.get((0, account_id_1.normalizeAccountId)(id)))
                 .filter((user) => Boolean(user));
             return (0, result_1.ok)(result);
         }
@@ -136,7 +137,7 @@ class UserService {
     async updateUserProfile(userId, changes) {
         try {
             const users = await this.loadUsers();
-            const userIndex = users.findIndex((user) => user.id === userId);
+            const userIndex = users.findIndex((user) => (0, account_id_1.accountIdsMatch)(user.id, userId));
             if (userIndex === -1) {
                 return (0, result_1.err)((0, result_1.notFound)('User', userId));
             }

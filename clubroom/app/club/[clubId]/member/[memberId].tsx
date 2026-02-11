@@ -18,30 +18,36 @@ import { MemberProfileCard } from '@/components/club/member-profile-card';
 import { MemberSquadAssignments } from '@/components/club/member-squad-assignments';
 import { MemberRoleManagement } from '@/components/club/member-role-management';
 import { MemberDangerZone } from '@/components/club/member-danger-zone';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useMemberManagement } from '@/hooks/use-member-management';
 
 export default function MemberManagementScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
-    member, club, squads, loading, canManage,
+    member, club, squads, status, error, retry, canManage,
     showRolePicker, setShowRolePicker, assignableRoles,
     handleChangeRole, handleRemoveMember, handleBanMember, handleToggleSquad,
   } = useMemberManagement();
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.center}>
-          <ThemedText style={{ color: colors.muted }}>Loading...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!member || !club) {
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load member details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !member || !club) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Row align="center" justify="space-between" style={styles.header}>
@@ -51,10 +57,13 @@ export default function MemberManagementScreen() {
           <ThemedText type="title" style={Typography.heading}>Member</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
-        <View style={styles.center}>
-          <Ionicons name="person-outline" size={48} color={colors.muted} />
-          <ThemedText style={{ color: colors.muted, marginTop: Spacing.md }}>Member not found</ThemedText>
-        </View>
+        <EmptyState
+          icon="person-outline"
+          title="Member not found"
+          message="This member could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }

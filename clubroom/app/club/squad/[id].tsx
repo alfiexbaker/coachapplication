@@ -13,20 +13,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { SquadInfoCard } from '@/components/squad/squad-info-card';
 import { SquadMembersCard } from '@/components/squad/squad-members-card';
 import { SquadAddMembers } from '@/components/squad/squad-add-members';
 import { SquadQuickActions } from '@/components/squad/squad-quick-actions';
 import { SquadDangerZone, RemoveMemberOverlay } from '@/components/squad/squad-danger-zone';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useSquadDetail } from '@/hooks/use-squad-detail';
 
 export default function SquadDetailScreen() {
   const { id: squadId } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
     squad, members, loading, resolvedClubId,
     isEditing, setIsEditing, editName, setEditName, cancelEdit,
@@ -57,13 +56,13 @@ export default function SquadDetailScreen() {
           <ThemedText type="title" style={Typography.heading}>Squad</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
-        <View style={styles.errorContainer}>
-          <Ionicons name="people-outline" size={48} color={colors.muted} />
-          <ThemedText style={{ color: colors.muted, marginTop: Spacing.md }}>Squad not found</ThemedText>
-          <Clickable onPress={() => router.back()} style={[styles.goBackBtn, { borderColor: colors.border }]}>
-            <ThemedText>Go Back</ThemedText>
-          </Clickable>
-        </View>
+        <EmptyState
+          icon="people-outline"
+          title="Squad not found"
+          message="This squad could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -112,7 +111,5 @@ export default function SquadDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
-  goBackBtn: { marginTop: Spacing.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: Spacing.xl * 2 },
 });

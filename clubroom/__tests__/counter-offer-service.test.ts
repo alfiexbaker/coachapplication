@@ -9,6 +9,12 @@ import type {
 
 // Mock storage for testing
 const mockStorage: Record<string, string> = {};
+let counterOfferIdSeq = 0;
+
+function nextCounterOfferId(): string {
+  counterOfferIdSeq += 1;
+  return `co_${counterOfferIdSeq}`;
+}
 
 // Mock the service inline since we can't import it directly
 // This tests the business logic patterns used in the service
@@ -17,6 +23,7 @@ describe('Counter-Offer Service Logic', () => {
   beforeEach(() => {
     // Clear mock storage before each test
     Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
+    counterOfferIdSeq = 0;
   });
 
   describe('Counter-Offer Creation', () => {
@@ -36,7 +43,7 @@ describe('Counter-Offer Service Logic', () => {
       };
 
       const counterOffer: CounterOffer = {
-        id: `co_${Date.now()}`,
+        id: nextCounterOfferId(),
         bookingId: 'booking_1',
         proposedBy: 'PARENT',
         proposerId: 'parent_1',

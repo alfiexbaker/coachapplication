@@ -5,7 +5,7 @@
  * quick access to calendar and spending.
  */
 
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ import { UpcomingSessionsList } from '@/components/family/UpcomingSessionsList';
 import { FamilyQuickActions } from '@/components/family/family-quick-actions';
 import { NextSessionCard } from '@/components/family/next-session-card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilyDashboard } from '@/hooks/use-family-dashboard';
@@ -29,18 +30,37 @@ import { useFamilyDashboard } from '@/hooks/use-family-dashboard';
 export default function FamilyDashboardScreen() {
   const { colors: palette } = useTheme();
   const {
-    loading, members, upcomingSessions, overview,
+    status, error, refreshing, onRefresh, retry, members, upcomingSessions, overview,
     handleMemberPress, handleSessionPress,
     navigateToCalendar, navigateToSpending,
   } = useFamilyDashboard();
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <PageContainer header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>Loading family data...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}>
+        <ErrorState message={error?.message || 'Failed to load family dashboard.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <PageContainer header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}>
+        <EmptyState
+          icon="people-outline"
+          title="No family data yet"
+          message="Add children to your account to track sessions, spending, and development."
+          actionLabel="Go to More"
+          onPressAction={() => router.push(Routes.MORE)}
+        />
       </PageContainer>
     );
   }
@@ -49,6 +69,8 @@ export default function FamilyDashboardScreen() {
     <PageContainer
       header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
       gap={Spacing.md}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     >
       {/* Overview Stats */}
       {overview && (
@@ -124,7 +146,6 @@ export default function FamilyDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   statCard: { flex: 1, alignItems: 'center', padding: Spacing.md, gap: Spacing.xxs },
   section: { gap: Spacing.sm },
   membersList: { gap: Spacing.sm },

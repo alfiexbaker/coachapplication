@@ -22,27 +22,36 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
 import { formatShortDateWithYear } from '@/utils/format';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 
 export default function ChildProgressScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    loading, refreshing, child, progress, feedback, badges,
+    loading, status, error, refreshing, child, progress, feedback, badges,
     activeTab, setActiveTab,
-    handleRefresh, getTrendInfo,
+    handleRefresh, getTrendInfo, retry,
   } = useChildProgress();
 
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.center}><ThemedText>Loading progress...</ThemedText></View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!child || !progress) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.center}><ThemedText>Child not found</ThemedText></View>
+        <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !child || !progress) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <EmptyState icon="person-outline" title="Child not found" message="We couldn’t find this child profile." />
       </SafeAreaView>
     );
   }
@@ -179,7 +188,6 @@ export default function ChildProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   backButton: { padding: Spacing.xs },
   headerCenter: { alignItems: 'center', gap: Spacing.xxs },

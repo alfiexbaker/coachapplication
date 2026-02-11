@@ -66,7 +66,7 @@ export function RemovalConfirmationModal({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={handleClose}>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <SurfaceCard style={styles.modalCard}>
           {/* Header */}
           <Row align="start" gap="md">
@@ -154,7 +154,6 @@ export function RemovalConfirmationModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,

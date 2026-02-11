@@ -5,7 +5,7 @@
  * All state/logic in useMultiWeek hook.
  */
 
-import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,14 +16,43 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { MultiWeekPicker } from '@/components/bookings/multi-week-picker';
 import { MultiWeekConfirmation } from '@/components/bookings/multi-week-confirmation';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
 import { useMultiWeek } from '@/hooks/use-multi-week';
 
 export default function MultiWeekScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const c = useMultiWeek();
+  const palette = c.colors;
+
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={c.error?.message ?? 'Failed to load multi-week availability.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="calendar-outline"
+          title="No multi-week slots found"
+          message="This coach has no suitable weekly slots right now. Pull to refresh or choose a single session booking."
+          actionLabel="Retry"
+          onPressAction={c.retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -37,20 +66,25 @@ export default function MultiWeekScreen() {
         </View>
       </Row>
 
-      {c.loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color={palette.tint} size="large" />
-          <ThemedText style={[Typography.small, { color: palette.muted }]}>Loading availability...</ThemedText>
-        </View>
-      ) : c.showConfirmation ? (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {c.showConfirmation ? (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+        >
           <MultiWeekConfirmation selectedWeeks={c.selectedWeekRows} coachName={c.coachName}
             sessionType={c.sessionType} location={c.primaryLocation}
             loading={c.submitting} onConfirm={c.handleConfirm} onCancel={c.handleCancelConfirmation} />
         </ScrollView>
       ) : (
         <>
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+          >
             <Row style={[styles.infoBanner, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
               <Ionicons name="information-circle-outline" size={18} color={palette.info} />
               <ThemedText style={[Typography.small, { color: palette.info, flex: 1 }]}>
@@ -75,7 +109,6 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.xs },
   backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1, gap: Spacing.micro },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   scrollView: { flex: 1 },
   scrollContent: { padding: Spacing.md, gap: Spacing.md },
   infoBanner: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },

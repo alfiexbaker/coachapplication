@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Components, Radii, Typography } from '@/constants/theme';
@@ -109,13 +110,15 @@ export function PageHeader({
     if (left) return left;
     if (showBack) {
       return (
-        <Pressable
+        <Clickable
           onPress={handleBackPress}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           style={[styles.backButton, { backgroundColor: palette.surface }]}
           hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
         >
           <Ionicons name="chevron-back" size={20} color={palette.foreground} />
-        </Pressable>
+        </Clickable>
       );
     }
     return null;
@@ -141,7 +144,7 @@ export function PageHeader({
         {rightContent || (action || actionIcon) ? (
           <Row align="center">
             {rightContent || (
-              <Pressable
+              <Clickable
                 style={[
                   styles.actionButton,
                   {
@@ -150,6 +153,8 @@ export function PageHeader({
                   },
                 ]}
                 onPress={onActionPress}
+                accessibilityRole="button"
+                accessibilityLabel={action ?? 'Header action'}
               >
                 <Row align="center" gap={Spacing.xs / 2}>
                   {actionIcon ? (
@@ -167,7 +172,7 @@ export function PageHeader({
                     </ThemedText>
                   ) : null}
                 </Row>
-              </Pressable>
+              </Clickable>
             )}
           </Row>
         ) : null}
@@ -192,16 +197,17 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
-    height: Components.buttonCompact.height,
+    minHeight: 44,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   actionText: { ...Typography.smallSemiBold, letterSpacing: -0.05 },
   actionTextOnly: {
     paddingHorizontal: Spacing.xs / 2,
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',

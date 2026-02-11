@@ -16,22 +16,43 @@ import { Row } from '@/components/primitives/row';
 import { CalendarGrid } from '@/components/club/calendar-grid';
 import { CalendarEventList } from '@/components/club/calendar-event-list';
 import { CalendarSquadFilter } from '@/components/club/calendar-squad-filter';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useClubCalendar, MONTH_LABELS } from '@/hooks/use-club-calendar';
 
 export default function CalendarScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
     year, month, selectedDay, setSelectedDay,
-    loading, squads, squadFilter, setSquadFilter,
+    status, error, refreshing, onRefresh, retry,
+    squads, squadFilter, setSquadFilter,
     eventsByDate, selectedEvents, weeks,
     isToday, handlePrevMonth, handleNextMonth,
   } = useClubCalendar();
 
+  if (status === 'loading') {
+    return (
+      <PageContainer header={<PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />}>
+        <LoadingState variant="calendar" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer header={<PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />}>
+        <ErrorState message={error?.message || 'Failed to load club calendar.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
   return (
-    <PageContainer header={<PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />}>
+    <PageContainer
+      header={<PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    >
       {squads.length > 0 && (
         <CalendarSquadFilter squads={squads} selected={squadFilter} onSelect={setSquadFilter} />
       )}
@@ -51,15 +72,15 @@ export default function CalendarScreen() {
 
       {/* Legend */}
       <Row gap="md" justify="center">
-        <LegendItem color={colors.tint} label="Session" />
-        <LegendItem color={colors.error} label="Match" />
-        <LegendItem color={colors.success} label="Event" />
+        <LegendItem color={colors.tint} muted={colors.muted} label="Session" />
+        <LegendItem color={colors.error} muted={colors.muted} label="Match" />
+        <LegendItem color={colors.success} muted={colors.muted} label="Event" />
       </Row>
 
       {/* Calendar Grid */}
       <CalendarGrid
         year={year} month={month} selectedDay={selectedDay}
-        weeks={weeks} eventsByDate={eventsByDate} loading={loading}
+        weeks={weeks} eventsByDate={eventsByDate} loading={false}
         isToday={isToday} onSelectDay={setSelectedDay}
       />
 
@@ -67,16 +88,23 @@ export default function CalendarScreen() {
       {selectedDay !== null && (
         <CalendarEventList year={year} month={month} selectedDay={selectedDay} events={selectedEvents} />
       )}
+
+      {Object.keys(eventsByDate).length === 0 && (
+        <EmptyState
+          icon="calendar-outline"
+          title="No calendar activity"
+          message="There are no sessions, matches, or events this month."
+        />
+      )}
     </PageContainer>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+function LegendItem({ color, muted, label }: { color: string; muted: string; label: string }) {
   return (
     <Row gap="xxs" align="center">
       <View style={[styles.dot, { backgroundColor: color }]} />
-      <ThemedText style={[Typography.small, { color: colors.muted }]}>{label}</ThemedText>
+      <ThemedText style={[Typography.small, { color: muted }]}>{label}</ThemedText>
     </Row>
   );
 }

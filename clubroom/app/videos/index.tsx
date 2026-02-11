@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,15 +7,17 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 
 import { VideoCard } from '@/components/video/video-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useVideosList } from '@/hooks/use-videos-list';
+import { ok } from '@/types/result';
 
 export default function VideosScreen() {
-  const { colors } = useTheme();
-  const { videos, stats, isCoach, navigateToVideo, navigateToUpload } = useVideosList();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { videos, loading, status, error, refreshing, onRefresh, retry, stats, isCoach, navigateToVideo, navigateToUpload } = useVideosList();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -41,8 +43,16 @@ export default function VideosScreen() {
         </Row>
       )}
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {videos.length === 0 ? (
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+      >
+        {loading ? (
+          <LoadingState variant="list" />
+        ) : status === 'error' ? (
+          <ErrorState message={error?.message ?? 'Failed to load videos.'} onRetry={retry} />
+        ) : videos.length === 0 ? (
           <EmptyState icon="videocam-outline" title="No videos yet" message={isCoach ? 'Upload session videos to share progress with parents' : 'Videos shared by your coach will appear here'} />
         ) : (
           <View style={styles.list}>

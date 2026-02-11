@@ -17,7 +17,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { BadgeSectionGrid, BadgeStats } from '@/components/badges/badge-grid';
 import { useScreen } from '@/hooks/use-screen';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { ok } from '@/types/result';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useBadgesScreen, BADGE_TIER_COLORS, FILTER_TABS, SECTION_ORDER } from '@/hooks/use-badges-screen';
@@ -55,8 +55,10 @@ export default function AllBadgesScreen() {
         </ScrollView>
       </SurfaceCard>
 
-      {c.isLoading ? (
-        <SurfaceCard style={styles.centeredCard}><ThemedText style={{ color: palette.muted }}>Loading badges...</ThemedText></SurfaceCard>
+      {c.loading ? (
+        <LoadingState variant="list" />
+      ) : c.status === 'error' ? (
+        <ErrorState message={c.error?.message ?? 'Failed to load badges.'} onRetry={c.retry} />
       ) : c.filteredBadges.length === 0 ? (
         <SurfaceCard style={styles.centeredCard}>
           <Ionicons name="ribbon-outline" size={40} color={palette.muted} />

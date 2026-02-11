@@ -79,6 +79,7 @@ export function useClubDetail(clubId: string | undefined) {
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [invites, setInvites] = useState<ClubInvite[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<ClubEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -92,40 +93,48 @@ export function useClubDetail(clubId: string | undefined) {
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
 
   const loadClubData = useCallback(async () => {
+    setLoading(true);
     if (!clubId) {
       setClub(undefined);
       setMembership(undefined);
       setSessions([]);
       setSquads([]);
       setInvites([]);
+      setLoading(false);
       return;
     }
 
-    const clubData = knownClubs.find((candidate) => candidate.id === clubId);
-    setClub(clubData);
+    try {
+      const clubData = knownClubs.find((candidate) => candidate.id === clubId);
+      setClub(clubData);
 
-    if (currentUser?.id && userClubs.some((candidate) => candidate.id === clubId)) {
-      const role = mapUserRoleToClubRole(currentUser.role);
-      setMembership({
-        clubId,
-        userId: currentUser.id,
-        role,
-        status: 'active',
-        joinSource: 'invite',
-        canPostAsClub: canPostAsClub(role),
-      });
-    } else {
-      setMembership(undefined);
+      if (currentUser?.id && userClubs.some((candidate) => candidate.id === clubId)) {
+        const role = mapUserRoleToClubRole(currentUser.role);
+        setMembership({
+          clubId,
+          userId: currentUser.id,
+          role,
+          status: 'active',
+          joinSource: 'invite',
+          canPostAsClub: canPostAsClub(role),
+        });
+      } else {
+        setMembership(undefined);
+      }
+
+      const [offerings, clubSquads] = await Promise.all([
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+        squadService.getSquads(clubId),
+      ]);
+
+      setSessions(offerings.filter((offering) => offering.clubId === clubId));
+      setSquads(clubSquads);
+      setInvites(buildClubInvites(clubData));
+    } catch (error) {
+      logger.error('Failed to load club detail', error);
+    } finally {
+      setLoading(false);
     }
-
-    const [offerings, clubSquads] = await Promise.all([
-      apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-      squadService.getSquads(clubId),
-    ]);
-
-    setSessions(offerings.filter((offering) => offering.clubId === clubId));
-    setSquads(clubSquads);
-    setInvites(buildClubInvites(clubData));
   }, [clubId, knownClubs, currentUser?.id, currentUser?.role, userClubs]);
 
   const loadFeed = useCallback(() => {
@@ -284,6 +293,7 @@ export function useClubDetail(clubId: string | undefined) {
     squads,
     invites,
     upcomingEvents,
+    loading,
     refreshing,
     members,
     showMembersSection,

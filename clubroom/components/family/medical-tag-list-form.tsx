@@ -80,7 +80,11 @@ function TagInputSection({
               ]}
             >
               <ThemedText style={{ color: tagColor }}>{item}</ThemedText>
-              <Clickable onPress={() => onRemove(index)}>
+              <Clickable
+                onPress={() => onRemove(index)}
+                accessibilityLabel={`Remove ${item} tag`}
+                style={styles.removeTagButton}
+              >
                 <Ionicons name="close" size={16} color={tagColor} />
               </Clickable>
             </View>
@@ -207,5 +211,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
+  },
+  removeTagButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -4,24 +4,49 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { promoService } from '@/services/promo-service';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { PromoCode, PromoCodeUsage, PromoCodeStats } from '@/constants/types';
 
 const logger = createLogger('AdminPromoCodesScreen');
 
 export type FilterType = 'all' | 'active' | 'expired' | 'exhausted' | 'inactive';
 
+interface PromoCodesData {
+  codes: PromoCode[];
+  stats: PromoCodeStats;
+}
+
+export interface UsePromoCodesResult {
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  stats: PromoCodeStats | null;
+  filter: FilterType;
+  filteredCodes: PromoCode[];
+  codes: PromoCode[];
+  usageModalVisible: boolean;
+  usageData: PromoCodeUsage[];
+  usageLoading: boolean;
+  selectedCode: PromoCode | null;
+  setFilter: (filter: FilterType) => void;
+  onRefresh: () => void;
+  retry: () => void;
+  handleRefresh: () => void;
+  handleToggleActive: (codeId: string, currentlyActive: boolean) => Promise<void>;
+  handleViewUsage: (codeId: string) => Promise<void>;
+  handleCreateCode: () => void;
+  closeUsageModal: () => void;
+}
+
 export function usePromoCodes() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [codes, setCodes] = useState<PromoCode[]>([]);
-  const [stats, setStats] = useState<PromoCodeStats | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
 
   // Usage modal state
@@ -32,38 +57,42 @@ export function usePromoCodes() {
 
   const loadData = useCallback(async () => {
     try {
-      setError(null);
       const [codesData, statsData] = await Promise.all([
         promoService.getAllPromoCodes(),
         promoService.getCodeStats(),
       ]);
-      setCodes(codesData);
-      setStats(statsData);
+      return ok<PromoCodesData>({ codes: codesData, stats: statsData });
     } catch (e) {
       logger.error('Failed to load promo codes:', e);
-      setError(e instanceof Error ? e.message : 'Failed to load promo codes');
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load promo codes.', e));
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<PromoCodesData>({
+    load: loadData,
+    isEmpty: (value) => value.codes.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, [loadData]);
+  const codes = data?.codes ?? [];
+  const stats = data?.stats ?? null;
 
   const handleToggleActive = useCallback(async (codeId: string, currentlyActive: boolean) => {
     try {
       if (currentlyActive) { await promoService.deactivateCode(codeId); }
       else { await promoService.reactivateCode(codeId); }
-      await loadData();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to toggle code status:', error);
     }
-  }, [loadData]);
+  }, [onRefresh]);
 
   const handleViewUsage = useCallback(async (codeId: string) => {
     setSelectedCodeId(codeId);
@@ -93,9 +122,25 @@ export function usePromoCodes() {
   const selectedCode = codes.find((c) => c.id === selectedCodeId) ?? null;
 
   return {
-    loading, refreshing, error, stats, filter, filteredCodes, codes,
-    usageModalVisible, usageData, usageLoading, selectedCode,
-    setFilter, handleRefresh, handleToggleActive, handleViewUsage,
-    handleCreateCode, closeUsageModal,
-  };
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    stats,
+    filter,
+    filteredCodes,
+    codes,
+    usageModalVisible,
+    usageData,
+    usageLoading,
+    selectedCode,
+    setFilter,
+    onRefresh,
+    retry,
+    handleRefresh: onRefresh,
+    handleToggleActive,
+    handleViewUsage,
+    handleCreateCode,
+    closeUsageModal,
+  } satisfies UsePromoCodesResult;
 }

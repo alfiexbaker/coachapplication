@@ -5,7 +5,7 @@
  * Shows price in a rounded pill, with selected and saved states.
  */
 
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
@@ -13,6 +13,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -63,7 +64,7 @@ export function CoachMarkerPill({
 
   return (
     <Animated.View style={animatedStyle}>
-      <Pressable
+      <Clickable
         accessibilityRole="button"
         accessibilityLabel={`Coach ${price}`}
         accessibilityState={{ selected }}
@@ -101,7 +102,7 @@ export function CoachMarkerPill({
             />
           </View>
         )}
-      </Pressable>
+      </Clickable>
 
       {/* Pointer triangle */}
       <View style={styles.pointerContainer}>

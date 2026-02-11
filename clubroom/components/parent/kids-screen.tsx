@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
@@ -16,15 +17,11 @@ import { bookingService } from '@/services/booking-service';
 import { childService } from '@/services/child-service';
 import { formatShortDateWithYear } from '@/utils/format';
 import type { Booking } from '@/constants/app-types';
+import { styles } from './kids-screen-styles';
 
 const logger = createLogger('ParentKidsScreen');
 
-type KidSummary = {
-  id: string;
-  name: string;
-  avatar?: string;
-  metadata?: string;
-};
+type KidSummary = { id: string; name: string; avatar?: string; metadata?: string };
 
 const formatSkillLevel = (skillLevel?: string) => skillLevel?.toLowerCase();
 
@@ -145,10 +142,7 @@ export function ParentKidsScreen() {
     return null;
   }
 
-  logger.debug('Parent kids screen rendered', {
-    childrenCount: children.length,
-    parentId: currentUser.id,
-  });
+  logger.debug('Parent kids screen rendered', { childrenCount: children.length, parentId: currentUser.id });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -180,7 +174,7 @@ export function ParentKidsScreen() {
               const nextSession = nextSessionsByChild[child.id];
 
               return (
-                <Pressable
+                <Clickable
                   key={child.id}
                   onPress={() => {
                     logger.press('KidCard', {
@@ -194,6 +188,8 @@ export function ParentKidsScreen() {
                     styles.kidCard,
                     { opacity: pressed ? 0.7 : 1 },
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View progress for ${child.name}`}
                 >
                   <SurfaceCard style={styles.cardContent}>
                     <Row align="center" gap="md" flex>
@@ -239,7 +235,7 @@ export function ParentKidsScreen() {
                       <Ionicons name="chevron-forward" size={20} color={palette.icon} />
                     </Row>
                   </SurfaceCard>
-                </Pressable>
+                </Clickable>
               );
             })}
           </View>
@@ -248,72 +244,3 @@ export function ParentKidsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
-  },
-  header: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: { ...Typography.body, lineHeight: 22,
-    fontWeight: '500' },
-  kidsList: {
-    gap: Spacing.md,
-  },
-  kidCard: {
-    borderRadius: Radii.lg,
-  },
-  cardContent: {
-    padding: Spacing.lg,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { ...Typography.display },
-  kidDetails: {
-    flex: 1,
-    gap: Spacing.xs / 2,
-  },
-  kidName: { ...Typography.subheading },
-  kidMetadata: { ...Typography.small, textTransform: 'capitalize' },
-  nextSession: {
-    alignItems: 'flex-end',
-    gap: Spacing.xs / 2,
-  },
-  sessionBadgeText: { ...Typography.caption },
-  sessionInfo: { ...Typography.small },
-  sessionCoach: { ...Typography.caption },
-  noSessions: { ...Typography.small },
-  emptyState: {
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing['2xl'] + Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-  },
-  emptyIconCircle: {
-    width: Components.listItem.large,
-    height: Components.listItem.large,
-    borderRadius: Components.listItem.large / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  emptyTitle: { ...Typography.heading, letterSpacing: -0.3 },
-  emptyText: { ...Typography.bodySmall, lineHeight: 20,
-    textAlign: 'center',
-    maxWidth: 260 },
-});

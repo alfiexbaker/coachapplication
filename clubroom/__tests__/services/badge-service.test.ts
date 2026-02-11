@@ -10,15 +10,14 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { badgeService } from '../../services/badge-service';
 import { apiClient } from '../../services/api-client';
-import { storageService } from '../../services/storage-service';
-import { onTyped, ServiceEvents } from '../../services/event-bus';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { eventBus, onTyped, ServiceEvents } from '../../services/event-bus';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 
 describe('badgeService', () => {
   beforeEach(async () => {
-    // Must use storageService.removeItem to clear BOTH apiClient AND in-memory cache
-    await storageService.removeItem('clubroom.badge_awards');
+    await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, []);
     eventBus.clearAll();
   });
 
@@ -106,7 +105,7 @@ describe('badgeService', () => {
         coachId: `c_${rid()}`,
         reason: 'Second',
       });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
 
     test('cooldown override requires note', async () => {
@@ -133,7 +132,7 @@ describe('badgeService', () => {
         overrideCooldown: true,
         overrideNote: '',
       });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

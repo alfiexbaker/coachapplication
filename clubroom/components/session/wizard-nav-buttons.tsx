@@ -6,9 +6,10 @@
  */
 
 import React, { memo } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives';
 import { Spacing, Typography, Components } from '@/constants/theme';
@@ -44,7 +45,7 @@ export const WizardNavButtons = memo(function WizardNavButtons({
   return (
     <Row gap="sm" style={styles.container}>
       {currentStepIndex > 0 && (
-        <Pressable
+        <Clickable
           style={[styles.secondaryButton, { borderColor: colors.border }]}
           onPress={onPrev}
           accessibilityLabel="Go to previous step"
@@ -54,11 +55,11 @@ export const WizardNavButtons = memo(function WizardNavButtons({
             <Ionicons name="chevron-back" size={18} color={colors.text} />
             <ThemedText style={[styles.secondaryText, { color: colors.text }]}>Back</ThemedText>
           </Row>
-        </Pressable>
+        </Clickable>
       )}
 
       {currentStep !== 'summary' ? (
-        <Pressable
+        <Clickable
           style={[
             styles.primaryButton,
             { backgroundColor: colors.tint, flex: currentStepIndex === 0 ? 1 : undefined },
@@ -73,9 +74,9 @@ export const WizardNavButtons = memo(function WizardNavButtons({
             </ThemedText>
             <Ionicons name="chevron-forward" size={18} color={colors.onPrimary} />
           </Row>
-        </Pressable>
+        </Clickable>
       ) : (
-        <Pressable
+        <Clickable
           style={[styles.submitButton, { backgroundColor: submitting ? colors.muted : colors.tint }]}
           onPress={onComplete}
           disabled={submitting}
@@ -92,7 +93,7 @@ export const WizardNavButtons = memo(function WizardNavButtons({
               </>
             )}
           </Row>
-        </Pressable>
+        </Clickable>
       )}
     </Row>
   );

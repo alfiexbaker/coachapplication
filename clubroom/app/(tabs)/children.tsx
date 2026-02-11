@@ -12,7 +12,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Column } from '@/components/primitives/column';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { ThemedText } from '@/components/themed-text';
 import { Routes } from '@/navigation/routes';
 import { Spacing, Typography } from '@/constants/theme';
@@ -30,6 +30,11 @@ export default function ChildrenHubScreen() {
     children,
     childStats,
     recentBadges,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     totalSessions,
     totalBadges,
     totalUnseenBadges,
@@ -53,7 +58,78 @@ export default function ChildrenHubScreen() {
     ? `/development/child-progress/${children[0].id}`
     : '/(tabs)/children';
 
-  if (!currentUser) return null;
+  if (status === 'loading') {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="My Children" subtitle="Manage your family" />}
+        gap={Spacing.md}
+      >
+        <LoadingState variant="list" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="My Children" subtitle="Manage your family" />}
+        gap={Spacing.md}
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load children hub data.'}
+          onRetry={retry}
+        />
+      </PageContainer>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <PageContainer
+        header={<ScreenHeader title="My Children" subtitle="Manage your family" />}
+        gap={Spacing.md}
+      >
+        <EmptyState
+          icon="person-outline"
+          title="Sign in required"
+          message="Please sign in to manage your children and track development."
+        />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <PageContainer
+        header={
+          <ScreenHeader
+            title="My Children"
+            subtitle="Manage your family"
+            action={{ icon: 'add', onPress: handleAddChild }}
+          />
+        }
+        gap={Spacing.md}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      >
+        <ChildrenStatsRow
+          childCount={0}
+          totalSessions={0}
+          totalUnseenBadges={0}
+        />
+
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <EmptyState
+            icon="people-outline"
+            title="No Children Added"
+            message="Add children to your account to track their development and progress"
+            actionLabel="Add Child"
+            onPressAction={handleAddChild}
+          />
+        </Animated.View>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
@@ -65,6 +141,8 @@ export default function ChildrenHubScreen() {
         />
       }
       gap={Spacing.md}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     >
       <ChildrenStatsRow
         childCount={children.length}
@@ -77,33 +155,21 @@ export default function ChildrenHubScreen() {
         onViewBadge={handleBadgeView}
       />
 
-      {children.length > 0 ? (
-        <Column gap="xs">
-          <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall, marginBottom: Spacing.xs }}>
-            My Children
-          </ThemedText>
-          <Column gap="sm">
-            {children.map((child, index) => (
-              <ChildrenChildCard
-                key={child.id}
-                child={child}
-                stats={childStats[child.id] || { sessions: 0, badges: 0, avgRating: 0, unseenBadges: 0 }}
-                index={index}
-              />
-            ))}
-          </Column>
+      <Column gap="xs">
+        <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall, marginBottom: Spacing.xs }}>
+          My Children
+        </ThemedText>
+        <Column gap="sm">
+          {children.map((child, index) => (
+            <ChildrenChildCard
+              key={child.id}
+              child={child}
+              stats={childStats[child.id] || { sessions: 0, badges: 0, avgRating: 0, unseenBadges: 0 }}
+              index={index}
+            />
+          ))}
         </Column>
-      ) : (
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <EmptyState
-            icon="people-outline"
-            title="No Children Added"
-            message="Add children to your account to track their development and progress"
-            actionLabel="Add Child"
-            onPressAction={handleAddChild}
-          />
-        </Animated.View>
-      )}
+      </Column>
 
       <ChildrenHubSections
         totalSessions={totalSessions}

@@ -3,14 +3,17 @@
  * Manages booking loading and counter-offer proposal submission.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { counterOfferService } from '@/services/counter-offer-service';
 import { bookingService } from '@/services/booking-service';
+import { ServiceEvents } from '@/services/event-bus';
 import { toDateStr } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, validationError } from '@/types/result';
 import type { TimeSlot, CounterOfferProposerRole } from '@/constants/types';
 
 const logger = createLogger('CounterOffer');
@@ -30,38 +33,37 @@ export function useCounterOffer() {
 
   const userRole: CounterOfferProposerRole = currentUser?.role === 'COACH' ? 'COACH' : 'PARENT';
 
-  const [booking, setBooking] = useState<BookingData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const loadBooking = useCallback(async () => {
-    if (!id) { setError('Booking ID not provided'); setIsLoading(false); return; }
+    if (!id) {
+      return err(validationError('Booking ID not provided'));
+    }
     try {
-      setIsLoading(true);
-      setError(null);
       const bookingData = await bookingService.getById(id);
-      if (bookingData) {
-        setBooking({
-          id: bookingData.id, coachName: bookingData.coachName || 'Coach',
-          athleteName: bookingData.athleteId || bookingData.athleteIds?.[0] || 'Athlete',
-          scheduledAt: bookingData.scheduledAt || new Date().toISOString(),
-          location: bookingData.location || bookingData.locationLabel || 'Location TBD',
-          service: bookingData.service || 'Session',
-        });
-      } else {
-        setBooking({ id, coachName: 'Marcus Thompson', athleteName: 'Tom Baker',
-          scheduledAt: '2026-01-15T16:00:00Z', location: 'Hackney Marshes', service: '1:1 Coaching' });
-      }
-    } catch (err) {
-      logger.error('Failed to load booking', err);
-      setError('Failed to load booking details');
-    } finally {
-      setIsLoading(false);
+      if (!bookingData) return ok(null);
+
+      return ok({
+        id: bookingData.id,
+        coachName: bookingData.coachName || 'Coach',
+        athleteName: bookingData.athleteId || bookingData.athleteIds?.[0] || 'Athlete',
+        scheduledAt: bookingData.scheduledAt || new Date().toISOString(),
+        location: bookingData.location || bookingData.locationLabel || 'Location TBD',
+        service: bookingData.service || 'Session',
+      });
+    } catch (loadError) {
+      logger.error('Failed to load booking', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load booking details', loadError));
     }
   }, [id]);
 
-  useEffect(() => { loadBooking(); }, [loadBooking]);
+  const { data: booking, status, error: loadError, retry } = useScreen<BookingData | null>({
+    load: loadBooking,
+    deps: [id],
+    events: [ServiceEvents.BOOKING_UPDATED, ServiceEvents.BOOKING_CANCELLED, ServiceEvents.BOOKING_CONFIRMED],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
 
   const getOriginalTime = useCallback((): TimeSlot => {
     if (!booking) return { date: toDateStr(new Date()), startTime: '10:00', endTime: '11:00', location: 'TBD' };
@@ -109,7 +111,7 @@ export function useCounterOffer() {
   const goBack = useCallback(() => router.back(), []);
 
   return {
-    booking, isLoading, isSubmitting, error,
-    getOriginalTime, handleSubmit, handleCancel, goBack, loadBooking,
+    booking, isLoading: status === 'loading', isSubmitting, error: loadError?.message ?? null,
+    getOriginalTime, handleSubmit, handleCancel, goBack, loadBooking: retry,
   };
 }

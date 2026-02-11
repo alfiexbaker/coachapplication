@@ -5,7 +5,7 @@
  * their children's sports schedule.
  */
 
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SharingGuardiansSection } from '@/components/family/sharing-guardians-section';
 import { SharingPendingInvites } from '@/components/family/sharing-pending-invites';
 import { SharingInviteModal } from '@/components/family/sharing-invite-modal';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilySharing } from '@/hooks/use-family-sharing';
@@ -25,20 +26,42 @@ import { useFamilySharing } from '@/hooks/use-family-sharing';
 export default function FamilySharingScreen() {
   const { colors } = useTheme();
   const {
-    loading, family, showInviteModal, setShowInviteModal,
+    status, error, refreshing, onRefresh, retry, family, showInviteModal, setShowInviteModal,
     inviteEmail, setInviteEmail, inviteName, setInviteName,
     inviteRole, setInviteRole, inviteRelationship, setInviteRelationship,
     inviteMessage, setInviteMessage, inviting,
     handleInvite, handleRemoveGuardian, handleCancelInvite,
   } = useFamilySharing();
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.tint} />
-        </View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
+        <ErrorState message={error?.message || 'Failed to load family sharing settings.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !family) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
+        <EmptyState
+          icon="people-outline"
+          title="Family account unavailable"
+          message="Set up your family account to invite guardians and share schedule access."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -47,7 +70,12 @@ export default function FamilySharingScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <SurfaceCard style={[styles.introCard, { backgroundColor: withAlpha(colors.tint, 0.03) }]}>
           <View style={{ marginBottom: Spacing.xs }}>
             <Ionicons name="people-circle" size={40} color={colors.tint} />
@@ -85,7 +113,6 @@ export default function FamilySharingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.md, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
   introCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
   inviteButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },

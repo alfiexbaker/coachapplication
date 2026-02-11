@@ -5,63 +5,92 @@
  * Used by app/settings/calendar-sync.tsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { calendarService } from '@/services/calendar-service';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 import type { CalendarSyncSettings, CalendarProvider } from '@/constants/types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useCalendarSync');
 
 export function useCalendarSync() {
   const { currentUser } = useAuth();
+  const userId = currentUser?.id ?? 'current_user';
 
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [settings, setSettings] = useState<CalendarSyncSettings | null>(null);
+  const [settingsOverride, setSettingsOverride] = useState<CalendarSyncSettings | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const defaultSettings = useMemo<CalendarSyncSettings>(() => ({
+    ...calendarService.getDefaultSettings(),
+    userId,
+  }), [userId]);
 
   const loadSettings = useCallback(async () => {
-    setIsLoading(true);
     try {
-      const userId = currentUser?.id ?? 'current_user';
       const existingSettings = await calendarService.getSyncSettings(userId);
-      if (existingSettings) {
-        setSettings(existingSettings);
-      } else {
-        const defaults = calendarService.getDefaultSettings();
-        setSettings({ ...defaults, userId });
-      }
-    } catch (error) {
-      logger.error('Failed to load calendar settings', error);
-    } finally {
-      setIsLoading(false);
+      return ok<CalendarSyncSettings>(existingSettings ?? defaultSettings);
+    } catch (loadError) {
+      logger.error('Failed to load calendar settings', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load calendar settings.', loadError));
     }
-  }, [currentUser?.id]);
+  }, [defaultSettings, userId]);
 
-  useEffect(() => { loadSettings(); }, [loadSettings]);
+  const {
+    data,
+    status,
+    error: loadError,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<CalendarSyncSettings>({
+    load: loadSettings,
+    deps: [userId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setSettingsOverride(data);
+    }
+  }, [data]);
+
+  const settings = settingsOverride ?? data ?? defaultSettings;
 
   const saveSettings = useCallback(async (updates: Partial<CalendarSyncSettings>) => {
-    if (!settings) return;
+    const previousSettings = settings;
+    const nextSettings: CalendarSyncSettings = { ...previousSettings, ...updates, userId };
+
     setIsSaving(true);
+    setSettingsOverride(nextSettings);
+    setActionError(null);
+
     try {
-      const userId = currentUser?.id ?? 'current_user';
-      const result = await calendarService.updateSyncSettings(userId, { ...settings, ...updates });
+      const result = await calendarService.updateSyncSettings(userId, nextSettings);
       if (result.success && result.settings) {
-        setSettings(result.settings);
+        setSettingsOverride(result.settings);
       } else {
-        Alert.alert('Error', result.error || 'Failed to save settings');
+        setSettingsOverride(previousSettings);
+        const message = result.error || 'Failed to save settings';
+        setActionError(message);
+        Alert.alert('Error', message);
       }
-    } catch (error) {
-      logger.error('Failed to save settings', error);
+    } catch (saveError) {
+      logger.error('Failed to save settings', saveError);
+      setSettingsOverride(previousSettings);
+      setActionError('Failed to save settings. Please try again.');
       Alert.alert('Error', 'Failed to save settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
-  }, [settings, currentUser]);
+  }, [settings, userId]);
 
   const handleToggleEnabled = useCallback((enabled: boolean) => saveSettings({ enabled }), [saveSettings]);
   const handleToggleAutoSync = useCallback((autoSync: boolean) => saveSettings({ autoSync }), [saveSettings]);
@@ -72,6 +101,7 @@ export function useCalendarSync() {
 
   const handleExportAllSessions = useCallback(async () => {
     setIsExporting(true);
+    setActionError(null);
     try {
       const bookings = await bookingService.list();
       const upcomingBookings = bookings.filter((booking) => {
@@ -84,21 +114,53 @@ export function useCalendarSync() {
       }
       const result = await calendarService.exportMultipleToCalendar(upcomingBookings);
       if (!result.success) {
-        Alert.alert('Export Failed', result.error || 'Failed to export sessions.');
+        const message = result.error || 'Failed to export sessions.';
+        setActionError(message);
+        Alert.alert('Export Failed', message);
       }
-    } catch (error) {
-      logger.error('Failed to export sessions', error);
+    } catch (exportError) {
+      logger.error('Failed to export sessions', exportError);
+      setActionError('Failed to export sessions. Please try again.');
       Alert.alert('Error', 'Failed to export sessions. Please try again.');
     } finally {
       setIsExporting(false);
     }
   }, []);
 
+  const error = actionError ?? (status === 'error'
+    ? ((loadError as ServiceError | null)?.message ?? 'Failed to load calendar settings.')
+    : null);
+
   return {
-    isLoading, isSaving, isExporting, settings,
+    isLoading: status === 'loading',
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    isSaving,
+    isExporting,
+    settings,
     handleToggleEnabled, handleToggleAutoSync,
     handleToggleLocation, handleToggleNotes,
     handleProviderChange, handleReminderChange,
     handleExportAllSessions,
+  } satisfies {
+    isLoading: boolean;
+    status: ScreenStatus;
+    error: string | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    isSaving: boolean;
+    isExporting: boolean;
+    settings: CalendarSyncSettings;
+    handleToggleEnabled: (enabled: boolean) => void;
+    handleToggleAutoSync: (autoSync: boolean) => void;
+    handleToggleLocation: (includeLocation: boolean) => void;
+    handleToggleNotes: (includeNotes: boolean) => void;
+    handleProviderChange: (provider: CalendarProvider) => void;
+    handleReminderChange: (reminderMinutes: number) => void;
+    handleExportAllSessions: () => Promise<void>;
   };
 }

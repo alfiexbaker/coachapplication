@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,35 +11,48 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { useTheme } from '@/hooks/useTheme';
-import { useScreen } from '@/hooks/use-screen';
-import { LoadingState } from '@/components/ui/screen-states';
-import { ok } from '@/types/result';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useEditTemplate, TIME_OPTIONS, BUFFER_OPTIONS, MAX_SLOTS_OPTIONS } from '@/hooks/use-edit-template';
 
 export default function EditTemplateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
-    loading, saving, template,
+    status, error, saving, template, refreshing, onRefresh, retry,
     dayOfWeek, startTime, endTime, maxSlots, bufferMinutes,
     setDayOfWeek, setStartTime, setEndTime, setMaxSlots, setBufferMinutes,
     handleSave, handleDelete,
   } = useEditTemplate(id);
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
-        <View style={styles.center}><ActivityIndicator size="large" color={colors.tint} /></View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!template) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
-        <View style={styles.center}><ThemedText>Template not found</ThemedText></View>
+        <ErrorState message={error?.message || 'Failed to load template.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !template) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
+        <EmptyState
+          icon="calendar-outline"
+          title="Template not found"
+          message="This availability template may have been deleted."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -48,7 +61,11 @@ export default function EditTemplateScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <PageHeader title="Edit Availability" showBack onBackPress={() => router.back()} />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+      >
         {/* Day Selection */}
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Day of Week</ThemedText>

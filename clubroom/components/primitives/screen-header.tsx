@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -77,9 +78,11 @@ export function ScreenHeader({
           <Row align="center">
             {rightElement || (
               action && (
-                <Pressable
+                <Clickable
                   onPress={action.onPress}
                   style={[styles.actionButton, { backgroundColor: palette.tint }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={action.label ?? 'Header action'}
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
                   <Row align="center" gap="xxs">
@@ -90,7 +93,7 @@ export function ScreenHeader({
                       <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>{action.label}</ThemedText>
                     )}
                   </Row>
-                </Pressable>
+                </Clickable>
               )
             )}
           </Row>
@@ -117,8 +120,10 @@ const styles = StyleSheet.create({
   subtitle: { ...Typography.caption, lineHeight: 18 },
   actionButton: {
     paddingHorizontal: Spacing.sm,
+    minHeight: 44,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
+    justifyContent: 'center',
   },
   actionLabel: { ...Typography.smallSemiBold },
 });

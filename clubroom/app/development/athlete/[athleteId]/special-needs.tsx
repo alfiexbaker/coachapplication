@@ -22,17 +22,37 @@ import { Spacing, Components, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useSpecialNeeds } from '@/hooks/use-special-needs';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 
 export default function SpecialNeedsScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { athlete, childProfile, loading, disabilityCount, specialNeedsCount, allergyCount, totalCount } = useSpecialNeeds();
+  const {
+    athlete,
+    childProfile,
+    loading,
+    status,
+    error,
+    retry,
+    disabilityCount,
+    specialNeedsCount,
+    allergyCount,
+    totalCount,
+  } = useSpecialNeeds();
 
   if (!athlete) return null;
 
   if (loading) {
     return (
       <PageContainer>
-        <ThemedText>Loading...</ThemedText>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer>
+        <ErrorState message={error?.message ?? 'Failed to load special needs profile.'} onRetry={retry} />
       </PageContainer>
     );
   }

@@ -3,10 +3,11 @@
  */
 
 import { memo, useCallback } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography, Radii, Components } from '@/constants/theme';
@@ -30,7 +31,7 @@ export const WalletQuickActions = memo(function WalletQuickActions({
   return (
     <Animated.View entering={FadeInDown.delay(100).springify()}>
       <Row gap="sm">
-        <Pressable
+        <Clickable
           style={[
             styles.button,
             { backgroundColor: colors.surface, borderColor: colors.border },
@@ -43,13 +44,15 @@ export const WalletQuickActions = memo(function WalletQuickActions({
           <ThemedText style={[styles.label, { color: colors.text }]}>
             Top Up
           </ThemedText>
-        </Pressable>
-        <Pressable
+        </Clickable>
+        <Clickable
           style={[
             styles.button,
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
           onPress={onHistory ?? (() => {})}
+          disabled={!onHistory}
+          accessibilityState={{ disabled: !onHistory }}
           accessibilityLabel="View transaction history"
           accessibilityRole="button"
         >
@@ -57,7 +60,7 @@ export const WalletQuickActions = memo(function WalletQuickActions({
           <ThemedText style={[styles.label, { color: colors.text }]}>
             History
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </Row>
     </Animated.View>
   );

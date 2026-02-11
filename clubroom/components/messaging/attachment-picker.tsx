@@ -135,7 +135,7 @@ export function AttachmentPicker({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <Clickable onPress={onClose} style={styles.backdrop} />
+        <Clickable onPress={onClose} style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.4) }]} />
         <View style={[styles.sheet, { backgroundColor: palette.background }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
           <ThemedText type="subtitle" style={styles.title}>Add Attachment</ThemedText>
@@ -166,7 +166,7 @@ export function AttachmentPicker({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  backdrop: { ...StyleSheet.absoluteFillObject },
   sheet: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
   handle: { width: 40, height: 4, borderRadius: Radii.xs, alignSelf: 'center', marginBottom: Spacing.md },
   title: { textAlign: 'center', marginBottom: Spacing.lg },

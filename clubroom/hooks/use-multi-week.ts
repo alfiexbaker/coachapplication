@@ -8,10 +8,12 @@ import { Alert, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { availabilityService } from '@/services/availability-service';
 import { multiWeekBookingService } from '@/services/multi-week-booking-service';
 import { toDateStr } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError } from '@/types/result';
 import type { WeekRow } from '@/components/bookings/multi-week-picker';
 
 const logger = createLogger('MultiWeekScreen');
@@ -23,9 +25,7 @@ export function useMultiWeek() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [weeks, setWeeks] = useState<WeekRow[]>([]);
   const [selectedWeeks, setSelectedWeeks] = useState<Set<string>>(new Set());
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -35,8 +35,9 @@ export function useMultiWeek() {
   const defaultDuration = 60;
 
   const loadWeeks = useCallback(async () => {
-    if (!coachId) return;
-    setLoading(true);
+    if (!coachId) {
+      return ok([]);
+    }
     try {
       const today = new Date();
       const endDate = new Date(today);
@@ -65,18 +66,32 @@ export function useMultiWeek() {
         }
       }
 
-      const sortedWeeks = Array.from(weekMap.values()).sort((a, b) => a.weekDate.localeCompare(b.weekDate)).slice(0, WEEKS_TO_SHOW);
-      setWeeks(sortedWeeks);
-      setSelectedWeeks(new Set(sortedWeeks.filter((w) => w.available).map((w) => w.weekDate)));
-    } catch (error) {
-      logger.error('Failed to load weeks', error);
-      setWeeks([]);
-    } finally {
-      setLoading(false);
+      const sortedWeeks = Array.from(weekMap.values())
+        .sort((a, b) => a.weekDate.localeCompare(b.weekDate))
+        .slice(0, WEEKS_TO_SHOW);
+
+      return ok(sortedWeeks);
+    } catch (loadError) {
+      logger.error('Failed to load weeks', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load multi-week availability.', loadError));
     }
   }, [coachId, defaultDuration, defaultPrice]);
 
-  useEffect(() => { loadWeeks(); }, [loadWeeks]);
+  const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<WeekRow[]>({
+    load: loadWeeks,
+    deps: [loadWeeks],
+    isEmpty: (rows) => rows.length === 0,
+    refetchOnFocus: true,
+  });
+  const weeks = data ?? [];
+
+  useEffect(() => {
+    if (weeks.length === 0) {
+      setSelectedWeeks(new Set());
+      return;
+    }
+    setSelectedWeeks(new Set(weeks.filter((week) => week.available).map((week) => week.weekDate)));
+  }, [weeks]);
 
   const handleToggleWeek = useCallback((weekDate: string) => {
     setSelectedWeeks((prev) => {
@@ -126,8 +141,25 @@ export function useMultiWeek() {
   }, [coachId, currentUser, coachName, sessionType, defaultPrice, selectedWeekRows, defaultDuration, primaryLocation]);
 
   return {
-    coachId, loading, submitting, weeks, selectedWeeks, showConfirmation,
-    coachName, sessionType, selectedWeekRows, primaryLocation,
-    handleToggleWeek, handleShowConfirmation, handleCancelConfirmation, handleConfirm,
+    coachId,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+    loading: status === 'loading',
+    submitting,
+    weeks,
+    selectedWeeks,
+    showConfirmation,
+    coachName,
+    sessionType,
+    selectedWeekRows,
+    primaryLocation,
+    handleToggleWeek,
+    handleShowConfirmation,
+    handleCancelConfirmation,
+    handleConfirm,
   };
 }

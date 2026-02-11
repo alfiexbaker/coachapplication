@@ -18,11 +18,23 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useAthleteSessionDetail } from '@/hooks/use-athlete-session-detail';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 
 export default function AthleteSessionDetailScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { session, loading, hasNotes, hasVideos, hasSkills, hasNextFocus, ratingLabel, formatDate } = useAthleteSessionDetail();
+  const {
+    session,
+    loading,
+    status,
+    error,
+    retry,
+    hasNotes,
+    hasVideos,
+    hasSkills,
+    hasNextFocus,
+    ratingLabel,
+    formatDate,
+  } = useAthleteSessionDetail();
 
   if (loading) {
     return (
@@ -32,13 +44,18 @@ export default function AthleteSessionDetailScreen() {
     );
   }
 
-  if (!session) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.notFoundState}>
-          <Ionicons name="alert-circle-outline" size={28} color={palette.muted} />
-          <ThemedText style={[Typography.body, { color: palette.muted }]}>Session not found</ThemedText>
-        </View>
+        <ErrorState message={error?.message ?? 'Failed to load session details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !session) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState icon="document-text-outline" title="Session not found" message="This session record no longer exists or is unavailable." />
       </SafeAreaView>
     );
   }
@@ -164,7 +181,6 @@ const styles = StyleSheet.create({
   ratingCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.md },
   cardPadded: { padding: Spacing.lg },
   skillsGrid: {},
-  notFoundState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   skillChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   emptyNotes: { padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm },
   videoCard: { padding: Spacing.md },

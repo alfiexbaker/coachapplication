@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,6 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEventRSVP } from '@/hooks/use-event-rsvp';
@@ -19,27 +20,37 @@ export default function EventRSVPScreen() {
   const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    event, currentRSVP, loading, submitting, selectedStatus,
+    event, currentRSVP, status, error, refreshing, onRefresh, retry, submitting, selectedStatus,
     guestCount, note, isFull, rsvpClosed, attendeeCounts,
     setGuestCount, setNote, handleStatusSelect, handleSubmit,
   } = useEventRSVP(id);
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}><ActivityIndicator size="large" color={palette.tint} /></View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!event) {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>Event not found</ThemedText>
-          <Button onPress={() => router.back()}>Go Back</Button>
-        </View>
+        <ErrorState message={error?.message || 'Failed to load RSVP details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !event) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="calendar-outline"
+          title="Event not found"
+          message="This event could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -53,7 +64,12 @@ export default function EventRSVPScreen() {
       </Row>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
           {/* Event summary */}
           <SurfaceCard style={styles.eventCard}>
             <ThemedText type="defaultSemiBold" style={styles.eventTitle} numberOfLines={2}>{event.title}</ThemedText>
@@ -160,9 +176,6 @@ export default function EventRSVPScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, gap: Spacing.md },
-  errorText: { ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize), textAlign: 'center' },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },

@@ -5,15 +5,17 @@
  * Used by app/health/index.tsx
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo } from 'react';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { injuryService } from '@/services/injury-service';
 import type { Injury, InjuryStats } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useHealthHub');
 
@@ -21,33 +23,39 @@ export function useHealthHub() {
   const { currentUser } = useAuth();
   const userId = currentUser?.id ?? 'user1';
 
-  const [injuries, setInjuries] = useState<Injury[]>([]);
-  const [stats, setStats] = useState<InjuryStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
   const loadData = useCallback(async () => {
     try {
       const [userInjuries, injuryStats] = await Promise.all([
         injuryService.getUserInjuries(userId, false),
         injuryService.getInjuryStats(userId),
       ]);
-      setInjuries(userInjuries);
-      setStats(injuryStats);
+      return ok<{ injuries: Injury[]; stats: InjuryStats | null }>({
+        injuries: userInjuries,
+        stats: injuryStats,
+      });
     } catch (error) {
       logger.error('Failed to load health data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load health dashboard data.', error));
     }
   }, [userId]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<{ injuries: Injury[]; stats: InjuryStats | null }>({
+    load: loadData,
+    deps: [userId],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const injuries = data?.injuries ?? [];
+  const stats = data?.stats ?? null;
+  const handleRefresh = onRefresh;
 
   const handleLogInjury = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -76,7 +84,32 @@ export function useHealthHub() {
   }, [injuries]);
 
   return {
-    injuries, stats, loading, refreshing, activeCount, avgRecovery,
-    handleRefresh, handleLogInjury, handleViewHistory, handleInjuryPress,
+    injuries,
+    stats,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    activeCount,
+    avgRecovery,
+    handleRefresh,
+    retry,
+    handleLogInjury,
+    handleViewHistory,
+    handleInjuryPress,
+  } satisfies {
+    injuries: Injury[];
+    stats: InjuryStats | null;
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    activeCount: number;
+    avgRecovery: number;
+    handleRefresh: () => void;
+    retry: () => void;
+    handleLogInjury: () => void;
+    handleViewHistory: () => void;
+    handleInjuryPress: (injury: Injury) => void;
   };
 }

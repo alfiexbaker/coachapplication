@@ -8,6 +8,7 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
+import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 import { coachService } from '../../services/coach-service';
 
 describe('coachService', () => {
@@ -27,7 +28,15 @@ describe('coachService', () => {
 
     test('returns err for unknown ID', async () => {
       const result = await coachService.getCoach('nonexistent-coach-xyz');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
+    });
+
+    test('accepts canonical POC coach id alias', async () => {
+      const result = await coachService.getCoach(POC_ACCOUNT_IDS.coach);
+      assert.equal(result.success, true);
+      if (result.success) {
+        assert.equal(result.data.id, POC_ACCOUNT_IDS.coachStorage);
+      }
     });
   });
 
@@ -97,6 +106,14 @@ describe('coachService', () => {
         assert.equal(result.data.length, 0);
       }
     });
+
+    test('accepts canonical POC coach id alias', async () => {
+      const result = await coachService.getCoachReviews(POC_ACCOUNT_IDS.coach);
+      assert.equal(result.success, true);
+      if (result.success) {
+        assert.ok(result.data.length > 0);
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -104,7 +121,7 @@ describe('coachService', () => {
   // ---------------------------------------------------------------------------
   describe('submitReview', () => {
     test('creates a new review and returns ok', async () => {
-      const result = await coachService.submitReview('coach-1', {
+      const result = await coachService.submitReview(POC_ACCOUNT_IDS.coach, {
         rating: 5,
         comment: 'Great session!',
         sessionType: '1-on-1',
@@ -113,7 +130,7 @@ describe('coachService', () => {
       assert.equal(result.success, true);
       if (result.success) {
         assert.ok(result.data.id);
-        assert.equal(result.data.coachId, 'coach-1');
+        assert.equal(result.data.coachId, POC_ACCOUNT_IDS.coachStorage);
         assert.equal(result.data.rating, 5);
         assert.equal(result.data.comment, 'Great session!');
       }

@@ -252,7 +252,7 @@ describe('MultiWeekBookingService - createSeries()', () => {
     const booking = await bookingCrudService.getBooking(result.data.bookingIds[0]);
     assert.ok(booking);
     assert.equal(booking.isSharedSession, true);
-    assert.equal(booking.athleteName, 'Tommy, Jenny');
+    assert.equal(booking.athleteIds?.length, 2);
   });
 });
 

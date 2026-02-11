@@ -5,9 +5,10 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput } from 'react-native';
+import { Modal, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
@@ -64,21 +65,21 @@ export const CreateCodeModal = memo(function CreateCodeModal({
           style={[styles.modalHeader, { borderBottomColor: withAlpha(palette.border, 0.3) }]}
         >
           <ThemedText type="title">Generate Invite Code</ThemedText>
-          <Pressable
+          <Clickable
             onPress={onClose}
             accessibilityLabel="Close modal"
             accessibilityRole="button"
             style={styles.closeTarget}
           >
             <ThemedText style={[styles.closeButton, { color: palette.muted }]}>Close</ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
 
         <Column gap="lg" padding="lg">
           <Column gap="sm">
             <ThemedText style={styles.label}>Select School</ThemedText>
             {SCHOOL_SEEDS.map((school) => (
-              <Pressable
+              <Clickable
                 key={school.id}
                 onPress={() => onSelectSchool(school)}
                 style={[
@@ -91,6 +92,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
                 ]}
                 accessibilityLabel={`Select ${school.name}`}
                 accessibilityRole="button"
+                accessibilityState={{ selected: selectedSchool?.id === school.id }}
               >
                 <ThemedText
                   style={[
@@ -115,7 +117,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
                 >
                   {school.city}, {school.state} {'\u2022'} {school.activeCoachesCount} coaches
                 </ThemedText>
-              </Pressable>
+              </Clickable>
             ))}
           </Column>
 
@@ -153,7 +155,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
             />
           </Column>
 
-          <Pressable
+          <Clickable
             onPress={onGenerate}
             disabled={!selectedSchool}
             style={[
@@ -165,11 +167,12 @@ export const CreateCodeModal = memo(function CreateCodeModal({
             ]}
             accessibilityLabel="Generate invite code"
             accessibilityRole="button"
+            accessibilityState={{ disabled: !selectedSchool }}
           >
             <ThemedText style={[styles.generateButtonText, { color: palette.onPrimary }]}>
               Generate Code
             </ThemedText>
-          </Pressable>
+          </Clickable>
         </Column>
       </SafeAreaView>
     </Modal>

@@ -31,6 +31,12 @@ interface TestNotification {
 
 // Capture notifications created by triggerNotification()
 let capturedNotifications: TestNotification[] = [];
+let notificationIdSeq = 0;
+
+function nextNotificationId(prefix: string = 'notif'): string {
+  notificationIdSeq += 1;
+  return `${prefix}_${notificationIdSeq}`;
+}
 
 // Mock notificationService.create to capture what triggerNotification sends
 const mockNotificationService = {
@@ -66,7 +72,7 @@ async function triggerNotification(action: NotifiableAction): Promise<void> {
   const notificationType = mapToNotificationType(action.type);
 
   await mockNotificationService.create({
-    id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: nextNotificationId(),
     type: notificationType,
     title: action.title,
     body: action.body,
@@ -120,6 +126,7 @@ const notificationTriggers = {
 
 beforeEach(() => {
   capturedNotifications = [];
+  notificationIdSeq = 0;
 });
 
 // ============================================================================

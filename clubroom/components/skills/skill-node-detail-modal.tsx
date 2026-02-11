@@ -33,7 +33,7 @@ export const SkillNodeDetailModal = memo(function SkillNodeDetailModal({
   return (
     <Modal visible={selectedNode !== null} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <Clickable style={styles.backdrop} onPress={onClose} />
+        <Clickable style={[styles.backdrop, { backgroundColor: withAlpha(colors.text, 0.5) }]} onPress={onClose} />
         <Animated.View style={[styles.content, animatedModalStyle]}>
           <SurfaceCard style={styles.card}>
             {selectedNode && tree && (
@@ -128,7 +128,7 @@ export const SkillNodeDetailModal = memo(function SkillNodeDetailModal({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+  backdrop: { ...StyleSheet.absoluteFillObject },
   content: { width: '90%', maxWidth: 400 },
   card: { padding: Spacing.md, gap: Spacing.md },
   titleContainer: { flex: 1, gap: Spacing.xxs },

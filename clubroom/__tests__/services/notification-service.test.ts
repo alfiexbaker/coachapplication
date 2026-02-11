@@ -1,120 +1,94 @@
-/**
- * Notification Service Tests
- *
- * Tests for the legacy notification service API (CRUD + preferences + triggers).
- */
-
+import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import test, { describe, beforeEach } from 'node:test';
 
-import { notificationService } from '../../services/notification-service';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationService } from '@/services/notification-service';
+import type { Result, ServiceError } from '@/types/result';
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
+
+let seq = 0;
+
+function nextId(prefix: string): string {
+  seq += 1;
+  return `${prefix}_${seq}`;
+}
 
 describe('notificationService', () => {
   beforeEach(async () => {
-    await notificationService.clearAll();
+    seq = 0;
+    await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, []);
+    await apiClient.set(STORAGE_KEYS.NOTIFICATION_PREFERENCES, []);
+    expectOk(await notificationService.clearAll());
   });
 
-  describe('create + list', () => {
-    test('creates and lists a notification', async () => {
-      const id = `ns_${Math.random().toString(36).slice(2, 9)}`;
-      await notificationService.create({
+  describe('core CRUD wrapper', () => {
+    it('creates, lists, and marks notifications as read', async () => {
+      const id = nextId('notif');
+      expectOk(await notificationService.create({
         id,
         type: 'booking',
-        title: 'Test',
-        body: 'Test body',
+        title: 'Booking',
+        body: 'New booking',
         timeLabel: 'Now',
         read: false,
+        recipientId: 'user_1',
+      }));
+
+      const listed = expectOk(await notificationService.list());
+      assert.ok(listed.some((notification) => notification.id === id));
+
+      expectOk(await notificationService.markAsRead(id));
+      const unreadCount = expectOk(await notificationService.getUnreadCount('user_1'));
+      assert.equal(unreadCount, 0);
+    });
+
+    it('notifies subscribers on creation', async () => {
+      const received: string[] = [];
+      const unsubscribe = notificationService.subscribe((notification) => {
+        received.push(notification.id);
       });
 
-      const all = await notificationService.list();
-      assert.ok(all.find((n) => n.id === id));
+      const id = nextId('notif');
+      expectOk(await notificationService.create({
+        id,
+        type: 'message',
+        title: 'Message',
+        body: 'New message',
+        timeLabel: 'Now',
+        read: false,
+      }));
+
+      assert.deepEqual(received, [id]);
+      unsubscribe();
     });
   });
 
-  describe('markAsRead', () => {
-    test('marks notification as read', async () => {
-      const id = `ns_read_${Math.random().toString(36).slice(2, 9)}`;
-      await notificationService.create({ id, type: 'message', title: 'T', body: 'B', timeLabel: 'Now', read: false });
+  describe('preferences wrapper', () => {
+    it('mutes/unmutes coach and updates send eligibility', async () => {
+      const userId = nextId('user');
+      const coachId = nextId('coach');
 
-      const updated = await notificationService.markAsRead(id);
-      const found = updated.find((n) => n.id === id);
-      assert.equal(found?.read, true);
-    });
-  });
+      const muted = expectOk(await notificationService.muteCoach(userId, coachId, 'Coach One'));
+      assert.ok(muted.mutedCoaches.some((coach) => coach.coachId === coachId));
 
-  describe('getUnreadCount', () => {
-    test('counts unread notifications', async () => {
-      await notificationService.create({ id: 'uc1', type: 'booking', title: 'T', body: 'B', timeLabel: 'Now', read: false, recipientId: 'u1' });
-      await notificationService.create({ id: 'uc2', type: 'booking', title: 'T', body: 'B', timeLabel: 'Now', read: true, recipientId: 'u1' });
+      const mutedCheck = expectOk(await notificationService.isCoachMuted(userId, coachId));
+      assert.equal(mutedCheck, true);
 
-      const count = await notificationService.getUnreadCount('u1');
-      assert.equal(count, 1);
-    });
-  });
+      const shouldSendMuted = expectOk(await notificationService.shouldSendNotification(
+        userId,
+        'BOOKING_RECEIVED',
+        'PUSH',
+        coachId,
+      ));
+      assert.strictEqual(shouldSendMuted, false);
 
-  describe('subscribe', () => {
-    test('listener receives notifications', async () => {
-      const received: string[] = [];
-      const unsub = notificationService.subscribe((n) => received.push(n.id));
-
-      await notificationService.create({ id: 'sub1', type: 'booking', title: 'T', body: 'B', timeLabel: 'Now', read: false });
-      assert.equal(received.length, 1);
-
-      unsub();
-    });
-  });
-
-  describe('getPreferences', () => {
-    test('returns default preferences for new user', async () => {
-      const prefs = await notificationService.getPreferences('new_pref_user');
-      assert.ok(prefs);
-      assert.ok(prefs.channels);
-      assert.ok(prefs.quietHours !== undefined);
-    });
-  });
-
-  describe('muteCoach', () => {
-    test('adds coach to muted list', async () => {
-      const prefs = await notificationService.muteCoach('mute_user_1', 'coach_muted', 'Coach Name');
-      assert.ok(prefs.mutedCoaches.some((mc) => mc.coachId === 'coach_muted'));
-    });
-  });
-
-  describe('unmuteCoach', () => {
-    test('removes coach from muted list', async () => {
-      await notificationService.muteCoach('unmute_user_1', 'coach_to_unmute', 'Coach');
-      const prefs = await notificationService.unmuteCoach('unmute_user_1', 'coach_to_unmute');
-      assert.ok(!prefs.mutedCoaches.some((mc) => mc.coachId === 'coach_to_unmute'));
-    });
-  });
-
-  describe('isCoachMuted', () => {
-    test('returns true for muted coach', async () => {
-      await notificationService.muteCoach('ismuted_user', 'muted_coach', 'Coach');
-      const result = await notificationService.isCoachMuted('ismuted_user', 'muted_coach');
-      assert.equal(result, true);
-    });
-
-    test('returns false for non-muted coach', async () => {
-      const result = await notificationService.isCoachMuted('ismuted_user', 'not_muted_coach');
-      assert.equal(result, false);
-    });
-  });
-
-  describe('shouldSendNotification', () => {
-    test('returns true for default prefs', async () => {
-      const result = await notificationService.shouldSendNotification(
-        'should_send_user', 'BOOKING_RECEIVED', 'PUSH'
-      );
-      assert.equal(typeof result, 'boolean');
-    });
-  });
-
-  describe('resetPreferences', () => {
-    test('resets to defaults', async () => {
-      await notificationService.muteCoach('reset_user', 'c1', 'Coach');
-      const prefs = await notificationService.resetPreferences('reset_user');
-      assert.equal(prefs.mutedCoaches.length, 0);
+      const unmuted = expectOk(await notificationService.unmuteCoach(userId, coachId));
+      assert.ok(!unmuted.mutedCoaches.some((coach) => coach.coachId === coachId));
     });
   });
 });

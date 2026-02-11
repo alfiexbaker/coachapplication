@@ -5,24 +5,50 @@
  * Used by app/events/[id]/rsvp.tsx
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { eventService } from '@/services/event-service';
 import type { ClubEvent, EventRSVP, RSVPStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useEventRSVP');
 
-export function useEventRSVP(id: string | undefined) {
+interface EventRSVPData {
+  event: ClubEvent | null;
+  currentRSVP: EventRSVP | null;
+}
+
+export interface UseEventRSVPResult {
+  event: ClubEvent | null;
+  currentRSVP: EventRSVP | null;
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  submitting: boolean;
+  selectedStatus: RSVPStatus | null;
+  guestCount: number;
+  note: string;
+  isFull: boolean;
+  rsvpClosed: boolean;
+  attendeeCounts: { going: number; maybe: number; notGoing: number; totalGuests: number };
+  setGuestCount: (value: number) => void;
+  setNote: (value: string) => void;
+  handleStatusSelect: (status: RSVPStatus) => void;
+  handleSubmit: () => Promise<void>;
+}
+
+export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
 
-  const [event, setEvent] = useState<ClubEvent | null>(null);
-  const [currentRSVP, setCurrentRSVP] = useState<EventRSVP | null>(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   // Form state
@@ -31,32 +57,56 @@ export function useEventRSVP(id: string | undefined) {
   const [note, setNote] = useState('');
 
   const loadData = useCallback(async () => {
-    if (!id || !currentUser) return;
+    if (!id || !currentUser) {
+      return ok<EventRSVPData>({ event: null, currentRSVP: null });
+    }
+
     try {
       const [eventData, rsvpData] = await Promise.all([
         eventService.getEvent(id),
         eventService.getUserEventRSVP(id, currentUser.id),
       ]);
-      setEvent(eventData);
-      setCurrentRSVP(rsvpData);
 
-      if (rsvpData) {
-        setSelectedStatus(rsvpData.status);
-        setGuestCount(rsvpData.guestCount);
-        setNote(rsvpData.note || '');
-      }
-    } catch (error) {
-      logger.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
+      return ok<EventRSVPData>({
+        event: eventData,
+        currentRSVP: rsvpData,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load RSVP data:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load RSVP data. Pull down to refresh.', loadError));
     }
   }, [id, currentUser]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<EventRSVPData>({
+    load: loadData,
+    deps: [id, currentUser?.id],
+    isEmpty: (value) => value.event === null,
+    refetchOnFocus: true,
+  });
+
+  const event = data?.event ?? null;
+  const currentRSVP = data?.currentRSVP ?? null;
+  const loading = status === 'loading';
+
+  useEffect(() => {
+    if (currentRSVP) {
+      setSelectedStatus(currentRSVP.status);
+      setGuestCount(currentRSVP.guestCount);
+      setNote(currentRSVP.note || '');
+      return;
+    }
+
+    setSelectedStatus(null);
+    setGuestCount(0);
+    setNote('');
+  }, [currentRSVP]);
 
   const handleStatusSelect = useCallback((status: RSVPStatus) => {
     setSelectedStatus(status);
@@ -94,12 +144,19 @@ export function useEventRSVP(id: string | undefined) {
 
   const isFull = event ? eventService.isEventFull(event) : false;
   const rsvpClosed = event ? eventService.isRSVPClosed(event) : false;
-  const attendeeCounts = event ? eventService.getAttendeeCounts(event.attendees) : { going: 0, totalGuests: 0 };
+  const attendeeCounts = event
+    ? eventService.getAttendeeCounts(event.attendees)
+    : { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
 
   return {
     event,
     currentRSVP,
     loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     submitting,
     selectedStatus,
     guestCount,

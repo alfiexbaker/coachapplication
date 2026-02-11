@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { StatCard } from '@/components/primitives/stat-card';
@@ -82,19 +83,23 @@ export const DevAthleteHero = memo(function DevAthleteHero({
           </View>
         </Row>
         <Row gap="xs">
-          <Pressable
+          <Clickable
             style={[styles.ctaButton, { backgroundColor: colors.tint }]}
             onPress={onLogSession}
+            accessibilityRole="button"
+            accessibilityLabel="Log session"
           >
             <ThemedText style={[Typography.small, { color: colors.onPrimary }]}>Log Session</ThemedText>
-          </Pressable>
-          <Pressable
+          </Clickable>
+          <Clickable
             style={[styles.awardButton, { borderColor: colors.warning, backgroundColor: withAlpha(colors.warning, 0.09) }]}
             onPress={onAwardBadge}
+            accessibilityRole="button"
+            accessibilityLabel="Award badge"
           >
             <Ionicons name="ribbon" size={14} color={colors.warning} />
             <ThemedText style={[Typography.caption, { color: colors.warning }]}>Award Badge</ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
       </Row>
 

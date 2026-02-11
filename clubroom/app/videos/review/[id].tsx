@@ -13,23 +13,24 @@ import { TimelineBar } from '@/components/video/TimelineBar';
 import { AnnotationPanel } from '@/components/video/AnnotationPanel';
 import { AnnotationBadge, AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useVideoReview } from '@/hooks/use-video-review';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
+import { ok } from '@/types/result';
 
 export default function AthleteReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    video, loading, currentTime, activeAnnotation, selectedTypes,
+    video, loading, status, error, retry, currentTime, activeAnnotation, selectedTypes,
     showAnnotationDetails, annotationStats, hasAccess, filteredAnnotations,
     handleTimeUpdate, handleSeek, handleAnnotationSelect,
     handleNextAnnotation, handlePreviousAnnotation, handleToggleType,
   } = useVideoReview(id);
 
-  if (loading || !video) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Row align="center" gap="md" style={styles.header}>
@@ -38,6 +39,22 @@ export default function AthleteReviewScreen() {
           <View style={{ width: 24 }} />
         </Row>
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load review video.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !video) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState icon="videocam-outline" title="Video not found" message="This review video is unavailable." />
       </SafeAreaView>
     );
   }

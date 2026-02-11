@@ -16,15 +16,16 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { ProgressBadge } from '@/components/skills/ProgressBadge';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useSkillsScreen, BADGE_TIER_COLORS } from '@/hooks/use-skills-screen';
+import { ok } from '@/types/result';
 
 export default function SkillsScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    currentUser, trees, isLoading,
+    currentUser, trees, loading, status, error, retry,
     overallStats,
     handleTreePress, handleInitializeMock,
   } = useSkillsScreen();
@@ -57,8 +58,12 @@ export default function SkillsScreen() {
       </SurfaceCard>
 
       {/* Tree Grid */}
-      {isLoading ? (
+      {loading ? (
         <LoadingState variant="card" />
+      ) : status === 'error' ? (
+        <ErrorState message={error?.message ?? 'Failed to load skill trees.'} onRetry={retry} />
+      ) : status === 'empty' ? (
+        <EmptyState icon="analytics-outline" title="No skill trees yet" message="Skill trees will appear here once progression data is available." />
       ) : (
         <Row gap="sm" wrap style={styles.treesGrid}>
           {trees.map((tree) => (

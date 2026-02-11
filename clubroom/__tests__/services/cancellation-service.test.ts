@@ -10,8 +10,14 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { cancellationService } from '../../services/cancellation-service';
 import { apiClient } from '../../services/api-client';
+import type { Result, ServiceError } from '@/types/result';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
 
 describe('cancellationService', () => {
   beforeEach(async () => {
@@ -25,11 +31,11 @@ describe('cancellationService', () => {
   describe('cancelBooking', () => {
     test('creates a cancellation record', async () => {
       const bookingId = `bk_${rid()}`;
-      const record = await cancellationService.cancelBooking(bookingId, 'parent', {
+      const record = expectOk(await cancellationService.cancelBooking(bookingId, 'parent', {
         reason: 'Schedule conflict',
         note: 'Child has a school event',
         coachId: `coach_${rid()}`,
-      });
+      }));
 
       assert.ok(record.id);
       assert.equal(record.bookingId, bookingId);
@@ -38,7 +44,7 @@ describe('cancellationService', () => {
     });
 
     test('records refund amount from refundCalculation', async () => {
-      const record = await cancellationService.cancelBooking(`bk_${rid()}`, 'coach', {
+      const record = expectOk(await cancellationService.cancelBooking(`bk_${rid()}`, 'coach', {
         reason: 'Weather',
         coachId: `c_${rid()}`,
         refundCalculation: {
@@ -52,7 +58,7 @@ describe('cancellationService', () => {
           explanation: 'Full refund',
           isEligible: true,
         },
-      });
+      }));
 
       assert.equal(record.refundAmount, 25);
       assert.equal(record.refundPercentage, 100);
@@ -71,7 +77,7 @@ describe('cancellationService', () => {
         reason: 'R2', coachId: 'coach_B',
       });
 
-      const records = await cancellationService.getCancellationRecords();
+      const records = expectOk(await cancellationService.getCancellationRecords());
       assert.ok(records.length >= 2);
     });
 
@@ -84,7 +90,7 @@ describe('cancellationService', () => {
         reason: 'R', coachId: `other_${rid()}`,
       });
 
-      const records = await cancellationService.getCancellationRecords(coachId);
+      const records = expectOk(await cancellationService.getCancellationRecords(coachId));
       assert.equal(records.length, 1);
     });
   });
@@ -99,13 +105,13 @@ describe('cancellationService', () => {
         reason: 'Sick', coachId: `c_${rid()}`,
       });
 
-      const record = await cancellationService.getCancellationByBooking(bookingId);
+      const record = expectOk(await cancellationService.getCancellationByBooking(bookingId));
       assert.ok(record);
       assert.equal(record!.bookingId, bookingId);
     });
 
     test('returns null for unknown booking', async () => {
-      const record = await cancellationService.getCancellationByBooking(`unknown_${rid()}`);
+      const record = expectOk(await cancellationService.getCancellationByBooking(`unknown_${rid()}`));
       assert.equal(record, null);
     });
   });
@@ -115,26 +121,26 @@ describe('cancellationService', () => {
   // ---------------------------------------------------------------------------
   describe('no-show tracking', () => {
     test('getNoShowCount returns 0 for new family', async () => {
-      const count = await cancellationService.getNoShowCount(`fam_${rid()}`);
+      const count = expectOk(await cancellationService.getNoShowCount(`fam_${rid()}`));
       assert.equal(count, 0);
     });
 
     test('incrementNoShow increases count', async () => {
       const familyId = `fam_${rid()}`;
-      await cancellationService.incrementNoShow(familyId);
-      await cancellationService.incrementNoShow(familyId);
+      expectOk(await cancellationService.incrementNoShow(familyId));
+      expectOk(await cancellationService.incrementNoShow(familyId));
 
-      const count = await cancellationService.getNoShowCount(familyId);
+      const count = expectOk(await cancellationService.getNoShowCount(familyId));
       assert.equal(count, 2);
     });
 
     test('resetNoShowCount resets to 0', async () => {
       const familyId = `fam_${rid()}`;
-      await cancellationService.incrementNoShow(familyId);
-      await cancellationService.incrementNoShow(familyId);
-      await cancellationService.resetNoShowCount(familyId);
+      expectOk(await cancellationService.incrementNoShow(familyId));
+      expectOk(await cancellationService.incrementNoShow(familyId));
+      expectOk(await cancellationService.resetNoShowCount(familyId));
 
-      const count = await cancellationService.getNoShowCount(familyId);
+      const count = expectOk(await cancellationService.getNoShowCount(familyId));
       assert.equal(count, 0);
     });
   });
@@ -201,7 +207,7 @@ describe('cancellationService', () => {
         reason: 'Weather', coachId,
       });
 
-      const stats = await cancellationService.getCancellationStats(coachId);
+      const stats = expectOk(await cancellationService.getCancellationStats(coachId));
       assert.equal(stats.totalCancellations, 2);
       assert.equal(stats.byParent, 1);
       assert.equal(stats.byCoach, 1);
@@ -209,7 +215,7 @@ describe('cancellationService', () => {
     });
 
     test('returns zero stats for coach with no records', async () => {
-      const stats = await cancellationService.getCancellationStats(`none_${rid()}`);
+      const stats = expectOk(await cancellationService.getCancellationStats(`none_${rid()}`));
       assert.equal(stats.totalCancellations, 0);
     });
   });

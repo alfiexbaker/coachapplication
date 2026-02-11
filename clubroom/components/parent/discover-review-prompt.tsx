@@ -2,12 +2,13 @@
  * DiscoverReviewPrompt — Review prompt cards for completed sessions.
  */
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -51,7 +52,7 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                   </ThemedText>
                 </View>
                 <Row gap="sm">
-                  <Pressable
+                  <Clickable
                     accessibilityLabel="Rate session now"
                     accessibilityRole="button"
                     style={({ pressed }) => [
@@ -62,13 +63,13 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                       logger.press('RateNow', { bookingId: session.id });
                       router.push(Routes.reviewCreate(session.id, session.coachId));
                     }}
-                  >
-                    <Row align="center" gap="xs">
-                      <Ionicons name="star" size={14} color={palette.surface} />
-                      <ThemedText style={[styles.rateText, { color: palette.surface }]}>Rate Now</ThemedText>
-                    </Row>
-                  </Pressable>
-                  <Pressable
+                    >
+                      <Row align="center" gap="xs">
+                        <Ionicons name="star" size={14} color={palette.surface} />
+                        <ThemedText style={[styles.rateText, { color: palette.surface }]}>Rate Now</ThemedText>
+                      </Row>
+                  </Clickable>
+                  <Clickable
                     accessibilityLabel="Rate later"
                     accessibilityRole="button"
                     style={({ pressed }) => [
@@ -78,7 +79,7 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                     onPress={() => onDismiss(session.id)}
                   >
                     <ThemedText style={[styles.laterText, { color: palette.muted }]}>Later</ThemedText>
-                  </Pressable>
+                  </Clickable>
                 </Row>
               </View>
             </SurfaceCard>

@@ -10,9 +10,10 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Components, Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -73,7 +74,7 @@ function ChipInner({
   const iconColor = selected ? colors.tint : colors.muted;
 
   return (
-    <Pressable
+    <Clickable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       disabled={disabled}
@@ -105,7 +106,7 @@ function ChipInner({
         </Text>
 
         {removable ? (
-          <Pressable
+          <Clickable
             accessibilityRole="button"
             accessibilityLabel={`Remove ${label}`}
             onPress={handleRemove}
@@ -117,10 +118,10 @@ function ChipInner({
               size={Components.icon.sm}
               color={iconColor}
             />
-          </Pressable>
+          </Clickable>
         ) : null}
       </Row>
-    </Pressable>
+    </Clickable>
   );
 }
 

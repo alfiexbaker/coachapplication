@@ -15,6 +15,7 @@ import { SettingsPaymentsSection } from '@/components/settings/settings-payments
 import { SettingsPreferencesSection } from '@/components/settings/settings-preferences-section';
 import { SettingsSupportSection } from '@/components/settings/settings-support-section';
 import { SettingsSignOutSection } from '@/components/settings/settings-sign-out-section';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -24,12 +25,43 @@ const logger = createLogger('SettingsScreen');
 
 export default function SettingsScreen() {
   const { colors: palette } = useTheme();
-  const { currentUser } = useAuth();
+  const { currentUser, isLoading, error } = useAuth();
   const role = currentUser?.role;
 
   useEffect(() => {
     logger.debug('Settings screen mounted', { role });
   }, [role]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Profile" subtitle="Your account" />
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Profile" subtitle="Your account" />
+        <ErrorState message={error} onRetry={() => {}} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Profile" subtitle="Your account" />
+        <EmptyState
+          icon="person-outline"
+          title="Sign in required"
+          message="Please sign in to manage your settings."
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

@@ -9,9 +9,9 @@
     "baseUrl": "./",
     "types": ["node"],
     "lib": ["ES2020"],
-    "strict": false,
+    "strict": true,
     "strictNullChecks": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./*"]
@@ -60,6 +60,9 @@
     "__tests__/recurring/**/*.tsx",
     "__tests__/squad/**/*.ts",
     "__tests__/waitlist/**/*.ts",
+    "__tests__/wallet/**/*.ts",
+    "__tests__/roster/**/*.ts",
+    "__tests__/user/**/*.ts",
     "__tests__/events/**/*.ts",
     "__tests__/multi-week-booking/**/*.ts",
     "__tests__/counter-offer-service.test.ts",

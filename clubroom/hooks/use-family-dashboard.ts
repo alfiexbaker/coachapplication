@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
 import {
   familyService,
@@ -9,19 +10,27 @@ import {
   type FamilyCalendarEvent,
   type FamilyOverview,
 } from '@/services/family';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('FamilyDashboardScreen');
+
+interface FamilyDashboardData {
+  members: FamilyMember[];
+  upcomingSessions: FamilyCalendarEvent[];
+  overview: FamilyOverview | null;
+}
 
 export function useFamilyDashboard() {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [upcomingSessions, setUpcomingSessions] = useState<FamilyCalendarEvent[]>([]);
-  const [overview, setOverview] = useState<FamilyOverview | null>(null);
-
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<FamilyDashboardData>({
+        members: [],
+        upcomingSessions: [],
+        overview: null,
+      });
+    }
 
     try {
       const [membersData, sessionsData, overviewData] = await Promise.all([
@@ -30,21 +39,34 @@ export function useFamilyDashboard() {
         familyService.getFamilyOverview(currentUser.id),
       ]);
 
-      setMembers(membersData);
-      setUpcomingSessions(sessionsData);
-      setOverview(overviewData);
+      return ok<FamilyDashboardData>({
+        members: membersData,
+        upcomingSessions: sessionsData,
+        overview: overviewData,
+      });
     } catch (error) {
       logger.error('Failed to load family data:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load family dashboard.', error));
     }
   }, [currentUser?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<FamilyDashboardData>({
+    load: loadData,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.members.length === 0 && value.upcomingSessions.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const members = data?.members ?? [];
+  const upcomingSessions = data?.upcomingSessions ?? [];
+  const overview = data?.overview ?? null;
 
   const handleMemberPress = useCallback((member: FamilyMember) => {
     router.push(Routes.developmentChildProgress(member.id));
@@ -63,7 +85,15 @@ export function useFamilyDashboard() {
   }, []);
 
   return {
-    loading, members, upcomingSessions, overview,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    members,
+    upcomingSessions,
+    overview,
     handleMemberPress, handleSessionPress,
     navigateToCalendar, navigateToSpending,
   };

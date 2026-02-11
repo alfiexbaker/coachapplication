@@ -16,7 +16,7 @@ import { ProfileTabBar, ProfileTabContent, type TabType } from '@/components/coa
 import { ProfileQuickActions } from '@/components/coach/profile-quick-actions';
 import { ProfilePostCard } from '@/components/coach/profile-post-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useCoachProfile, type NormalizedPost } from '@/hooks/use-coach-profile';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -85,6 +85,19 @@ export default function CoachProfileScreen() {
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <ErrorState message={profileError} onRetry={loadProfileData} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
+        <EmptyState
+          icon="person-outline"
+          title="Sign in required"
+          message="Please sign in to view and manage your coach profile."
+        />
       </SafeAreaView>
     );
   }

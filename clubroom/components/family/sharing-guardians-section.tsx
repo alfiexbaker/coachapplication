@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -43,9 +44,14 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({ g
                 <ThemedText style={[Typography.caption, { color: colors.success }]}>Primary</ThemedText>
               </View>
             ) : (
-              <Pressable style={{ padding: Spacing.xxs }} onPress={() => onRemove(guardian)}>
+              <Clickable
+                style={{ padding: Spacing.xxs }}
+                onPress={() => onRemove(guardian)}
+                accessibilityLabel={`Remove ${guardian.userId}`}
+                accessibilityRole="button"
+              >
                 <Ionicons name="close-circle" size={22} color={colors.error} />
-              </Pressable>
+              </Clickable>
             )}
           </Row>
           <Row gap="sm" align="center" style={{ marginLeft: 56 }}>

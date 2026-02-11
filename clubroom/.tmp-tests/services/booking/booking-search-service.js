@@ -12,6 +12,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bookingSearchService = void 0;
 const logger_1 = require("@/utils/logger");
+const account_id_1 = require("@/utils/account-id");
 const booking_crud_service_1 = require("./booking-crud-service");
 const logger = (0, logger_1.createLogger)('BookingSearchService');
 exports.bookingSearchService = {
@@ -24,11 +25,11 @@ exports.bookingSearchService = {
             const bookings = await booking_crud_service_1.bookingCrudService.list();
             switch (role) {
                 case 'coach':
-                    return bookings.filter((b) => b.coachId === userId);
+                    return bookings.filter((b) => (0, account_id_1.accountIdsMatch)(b.coachId, userId));
                 case 'parent':
-                    return bookings.filter((b) => b.bookedById === userId);
+                    return bookings.filter((b) => (0, account_id_1.accountIdsMatch)(b.bookedById ?? '', userId));
                 case 'athlete':
-                    return bookings.filter((b) => b.athleteId === userId);
+                    return bookings.filter((b) => (0, account_id_1.accountIdsMatch)(b.athleteId ?? '', userId));
                 default:
                     return [];
             }
@@ -46,7 +47,7 @@ exports.bookingSearchService = {
         const bookings = await booking_crud_service_1.bookingCrudService.list();
         const now = new Date();
         return bookings.filter((b) => {
-            if (b.coachId !== coachId)
+            if (!(0, account_id_1.accountIdsMatch)(b.coachId, coachId))
                 return false;
             if (b.status === 'AWAITING_COMPLETION')
                 return true;
@@ -66,7 +67,7 @@ exports.bookingSearchService = {
         const bookings = await booking_crud_service_1.bookingCrudService.list();
         const now = new Date();
         return bookings.filter((b) => {
-            if (b.coachId !== coachId)
+            if (!(0, account_id_1.accountIdsMatch)(b.coachId, coachId))
                 return false;
             if (b.status !== 'CONFIRMED' && b.status !== 'PENDING')
                 return false;

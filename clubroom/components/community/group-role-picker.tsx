@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Modal, Pressable } from 'react-native';
+import { View, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -71,7 +71,12 @@ function GroupRolePickerInner({
       transparent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.rolePickerOverlay} onPress={onClose}>
+      <Clickable
+        style={[styles.rolePickerOverlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close role picker"
+      >
         <View style={[styles.rolePickerCard, { backgroundColor: palette.surface }]}>
           <ThemedText type="subtitle" style={styles.rolePickerTitle}>
             Change Role
@@ -87,7 +92,7 @@ function GroupRolePickerInner({
               const colors = getRoleBadgeColor(role, palette);
 
               return (
-                <Pressable
+                <Clickable
                   key={role}
                   style={({ pressed }) => [
                     styles.roleOption,
@@ -102,6 +107,9 @@ function GroupRolePickerInner({
                   ]}
                   onPress={() => onRoleChange(role)}
                   disabled={isCurrentRole}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set role to ${ROLE_LABELS[role]}`}
+                  accessibilityState={{ selected: isCurrentRole, disabled: isCurrentRole }}
                 >
                   <View style={[styles.roleOptionDot, { backgroundColor: colors.text }]} />
                   <View style={styles.roleOptionInfo}>
@@ -115,7 +123,7 @@ function GroupRolePickerInner({
                   {isCurrentRole && (
                     <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
                   )}
-                </Pressable>
+                </Clickable>
               );
             })}
           </View>
@@ -128,7 +136,7 @@ function GroupRolePickerInner({
             </ThemedText>
           </Clickable>
         </View>
-      </Pressable>
+      </Clickable>
     </Modal>
   );
 }
@@ -144,7 +152,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
     paddingHorizontal: Spacing.lg,
   },
   rolePickerCard: {

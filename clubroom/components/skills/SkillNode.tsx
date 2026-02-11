@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import type { SkillNode as SkillNodeType } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -36,7 +37,7 @@ import {
   styles,
 } from './SkillNode-sections';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedClickable = Animated.createAnimatedComponent(Clickable);
 
 export interface SkillNodeProps {
   node: SkillNodeType;
@@ -130,10 +131,13 @@ export function SkillNode({
 
   return (
     <View style={styles.wrapper}>
-      <AnimatedPressable
+      <AnimatedClickable
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        accessibilityRole="button"
+        accessibilityLabel={`${node.name} ${node.isUnlocked ? 'unlocked' : canUnlock ? 'unlockable' : 'locked'}`}
+        accessibilityState={{ disabled: !onPress }}
         style={[
           styles.nodeContainer,
           {
@@ -174,7 +178,7 @@ export function SkillNode({
           themeColor={themeColor}
           palette={palette}
         />
-      </AnimatedPressable>
+      </AnimatedClickable>
 
       {showLabel && (
         <NodeLabel

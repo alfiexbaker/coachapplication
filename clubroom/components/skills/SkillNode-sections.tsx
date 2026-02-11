@@ -11,14 +11,15 @@
  */
 
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SkillNode as SkillNodeType } from '@/constants/types';
+import { styles } from './skill-node-styles';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -238,47 +239,4 @@ export const NodeLabel = memo(function NodeLabel({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  nodeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    position: 'relative',
-  },
-  glow: {
-    position: 'absolute',
-    opacity: 0.3,
-  },
-  progressRing: {
-    position: 'absolute',
-    borderWidth: 3,
-  },
-  levelBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  levelText: { ...Typography.micro },
-  labelContainer: {
-    alignItems: 'center',
-    maxWidth: 80,
-  },
-  label: {
-    ...Typography.caption,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  progressText: { ...Typography.micro },
-});
+export { styles };

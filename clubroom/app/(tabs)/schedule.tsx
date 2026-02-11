@@ -7,14 +7,14 @@
  */
 
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { EmptyState, LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useSchedule } from '@/hooks/use-schedule';
@@ -55,6 +55,38 @@ export default function ScheduleScreen() {
     );
   }
 
+  const isSessionEmpty = schedule.segment === 'sessions' && schedule.weekData.every((day) => day.sessions.length === 0);
+
+  if (isSessionEmpty) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row justify="between" align="center" style={styles.headerRow}>
+          <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
+          <Clickable
+            onPress={schedule.handleOpenSettings}
+            accessibilityLabel="Scheduling settings"
+            style={[styles.settingsBtn, { backgroundColor: colors.surface }]}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.muted} />
+          </Clickable>
+        </Row>
+
+        <ScheduleSegmentControl
+          segment={schedule.segment}
+          onSegmentChange={schedule.handleSegmentChange}
+        />
+
+        <EmptyState
+          icon="calendar-outline"
+          title="No sessions scheduled"
+          message="Your upcoming sessions will appear here. Set availability or create sessions to get started."
+          actionLabel="Open settings"
+          onPressAction={schedule.handleOpenSettings}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
@@ -80,7 +112,13 @@ export default function ScheduleScreen() {
 
       {/* Sessions Segment */}
       {schedule.segment === 'sessions' && (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={schedule.refreshing} onRefresh={schedule.onRefresh} tintColor={colors.tint} />
+          }
+        >
           {schedule.todayData && (
             <ScheduleTodayCard
               todayData={schedule.todayData}

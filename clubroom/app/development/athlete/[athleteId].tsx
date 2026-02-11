@@ -6,7 +6,7 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { DevAthleteHero } from '@/components/development/dev-athlete-hero';
 import { DevSpecialNeedsCard } from '@/components/development/dev-special-needs-card';
 import { DevProgressionCard } from '@/components/development/dev-progression-card';
@@ -44,12 +44,18 @@ export default function AthleteDetailScreen() {
     handleOnAwarded,
   } = useAthleteDevelopment(athleteId!);
 
-  if (!athlete || !currentUser) return null;
-
   if (loading) {
     return (
       <PageContainer>
         <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (!athlete || !currentUser) {
+    return (
+      <PageContainer>
+        <EmptyState icon="person-outline" title="Athlete not found" message="This athlete profile is unavailable." />
       </PageContainer>
     );
   }

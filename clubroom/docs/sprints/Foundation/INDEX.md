@@ -23,11 +23,11 @@ Building features on this foundation means every feature inherits the debt. Fix 
 |-------|-----------|------|
 | **1** | `../CompletedSprints/PHASE-1-SERVICE-HARDENING.md` | ✅ Complete. Every service returns Result<T>, uses apiClient, has logger, emits events |
 | **2** | `PHASE-2-DATA-ACCESS.md` | ✅ Complete. 70/70 migration checklist done, mock-data imports removed, denormalized fields retired. |
-| **3** | `PHASE-3-SCREEN-INFRASTRUCTURE.md` | ACTIVE. Enhance useScreen(). Migrate 175 screens. 4 visual states everywhere. |
-| **4** | `PHASE-4-UI-CONSISTENCY.md` | Decompose oversized components. Pressable→Clickable. flexDirection→Row. Tokens. |
-| **5** | `PHASE-5-TEST-COVERAGE.md` | 70%+ service coverage. strict:true. Critical path tests. |
+| **3** | `PHASE-3-SCREEN-INFRASTRUCTURE.md` | ✅ Complete. 189/189 screens migrated and validated in Phase 3 live tracker. |
+| **4** | `PHASE-4-UI-CONSISTENCY.md` | ✅ Complete. UI consistency hardening closed with Wave 6 a11y/touch-target gates green. |
+| **5** | `PHASE-5-TEST-COVERAGE.md` | ✅ Complete. 70%+ service coverage gate closed (`70/100`), strict test typing green, full runtime green. |
 
-**Status update (2026-02-11):** Phase 2 verification passed (typecheck + strict test-typecheck + targeted core smoke). Phase 3 kickoff is Sprint 43.
+**Status update (2026-02-11):** Foundation Phases 1-5 are complete. Optional Sprint 46 (POC mock-service stabilization) is now complete with contract guards and green runtime gates (`2535/2535`). POC mock-mode remains active through services with a single switchover flag (`EXPO_PUBLIC_USE_MOCK`), tracked in `POC-MOCK-SERVICE-CONTRACT.md`.
 
 ## Execution Order
 
@@ -56,5 +56,5 @@ After each phase completes:
 3. Update `memory/LastStep.md`
 
 Current active execution:
-- `PHASE-3-SCREEN-INFRASTRUCTURE.md`
-- `SPRINT-43-PHASE-3-WAVE-1.md`
+- Foundation block closed. Next work can move to functionality sprints.
+- Optional closeout record: `SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`

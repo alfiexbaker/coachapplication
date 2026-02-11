@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { View, StyleSheet, Switch, Pressable } from 'react-native';
+import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -30,17 +31,21 @@ export const Stepper = memo(function Stepper({ label, value, onValueChange, min,
         {helperText ? <ThemedText style={[styles.rowHelper, { color: colors.muted }]}>{helperText}</ThemedText> : null}
       </View>
       <Row align="center" gap="xs">
-        <Pressable onPress={() => canDecrement && onValueChange(value - step)}
+        <Clickable onPress={() => canDecrement && onValueChange(value - step)}
           style={[styles.stepperButton, { backgroundColor: colors.background }, !canDecrement && styles.stepperButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canDecrement }}
           accessibilityLabel={`Decrease ${label}`}>
           <Ionicons name="remove" size={18} color={canDecrement ? colors.text : colors.border} />
-        </Pressable>
+        </Clickable>
         <ThemedText style={[styles.stepperValue, { color: colors.text }]}>{value}{suffix}</ThemedText>
-        <Pressable onPress={() => canIncrement && onValueChange(value + step)}
+        <Clickable onPress={() => canIncrement && onValueChange(value + step)}
           style={[styles.stepperButton, { backgroundColor: colors.background }, !canIncrement && styles.stepperButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canIncrement }}
           accessibilityLabel={`Increase ${label}`}>
           <Ionicons name="add" size={18} color={canIncrement ? colors.text : colors.border} />
-        </Pressable>
+        </Clickable>
       </Row>
     </Row>
   );
@@ -76,7 +81,12 @@ interface NavigationRowProps {
 export const NavigationRow = memo(function NavigationRow({ label, value, onPress, icon }: NavigationRowProps) {
   const { colors } = useTheme();
   return (
-    <Pressable style={({ pressed }) => [styles.rowContainer, pressed && { backgroundColor: colors.background }]} onPress={onPress} accessibilityRole="button">
+    <Clickable
+      style={({ pressed }) => [styles.rowContainer, pressed && { backgroundColor: colors.background }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
       <View style={styles.rowLabelArea}>
         {icon && <View style={styles.navIconContainer}><Ionicons name={icon} size={18} color={colors.muted} /></View>}
         <ThemedText style={[styles.rowLabel, { color: colors.text }]} numberOfLines={1}>{label}</ThemedText>
@@ -85,7 +95,7 @@ export const NavigationRow = memo(function NavigationRow({ label, value, onPress
         {value ? <ThemedText style={[styles.navValue, { color: colors.muted }]} numberOfLines={1}>{value}</ThemedText> : null}
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </Row>
-    </Pressable>
+    </Clickable>
   );
 });
 

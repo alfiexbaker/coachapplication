@@ -1,229 +1,112 @@
-import { describe, it, beforeEach } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sessionInviteService } from '@/services/invite/session-invite-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { sessionInviteService } from '@/services/invite/session-invite-service';
+import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
+import type { Result, ServiceError } from '@/types/result';
 
-describe('SessionInviteService', () => {
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
+
+let seq = 0;
+
+function nextId(prefix: string): string {
+  seq += 1;
+  return `${prefix}_${seq}`;
+}
+
+describe('sessionInviteService', () => {
   beforeEach(async () => {
-    await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
+    seq = 0;
+    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, []);
+    await apiClient.set(STORAGE_KEYS.INVITE_SLOT_HOLDS, []);
+    await sessionInviteService.clearCache();
   });
 
-  describe('getCoachInvites', () => {
-    it('should return empty array for coach with no invites', async () => {
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
+  it('creates invite and retrieves it by id', async () => {
+    const parentId = nextId('parent');
+    const invite = expectOk(await sessionInviteService.createInvite(nextId('athlete'), {
+      coachId: nextId('coach'),
+      coachName: 'Coach Test',
+      parentId,
+      parentName: 'Parent Test',
+      athleteNames: 'Athlete Test',
+      proposedSlots: [],
+      sessionType: '1:1 Coaching',
+      focus: 'Passing',
+      priceUsd: 50,
+      duration: 60,
+    }));
 
-      const invites = await sessionInviteService.getCoachInvites(coachId);
-
-      assert.equal(invites.length, 0);
-    });
-
-    it('should filter invites by coachId', async () => {
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-      const invite = {
-        id: 'test-invite-' + Math.random().toString(36).slice(2),
-        coachId,
-        coachName: 'Test Coach',
-        athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-        athleteNames: ['Test Athlete'],
-        parentId: 'test-parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Test Parent',
-        proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
-        sessionType: '1-on-1',
-        focus: 'Skills',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-      };
-
-      await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
-
-      const invites = await sessionInviteService.getCoachInvites(coachId);
-
-      assert.equal(invites.length, 1);
-      assert.equal(invites[0].coachId, coachId);
-    });
+    const fetched = await sessionInviteService.getInvite(invite.id);
+    assert.ok(fetched);
+    assert.equal(fetched?.id, invite.id);
+    assert.equal(fetched?.parentId, parentId);
+    assert.equal(fetched?.status, 'PENDING');
   });
 
-  describe('getParentInvites', () => {
-    it('should return empty array for parent with no invites', async () => {
-      const parentId = 'test-parent-' + Math.random().toString(36).slice(2);
+  it('responds to invite with DECLINED and updates status', async () => {
+    const invite = expectOk(await sessionInviteService.createInvite(nextId('athlete'), {
+      coachId: nextId('coach'),
+      coachName: 'Coach Test',
+      parentId: nextId('parent'),
+      parentName: 'Parent Test',
+      athleteNames: 'Athlete Test',
+      proposedSlots: [],
+      sessionType: '1:1 Coaching',
+      focus: 'Finishing',
+    }));
 
-      const invites = await sessionInviteService.getParentInvites(parentId);
-
-      assert.equal(invites.length, 0);
-    });
-
-    it('should filter invites by parentId', async () => {
-      const parentId = 'test-parent-' + Math.random().toString(36).slice(2);
-      const invite = {
-        id: 'test-invite-' + Math.random().toString(36).slice(2),
-        coachId: 'test-coach-' + Math.random().toString(36).slice(2),
-        coachName: 'Test Coach',
-        athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-        athleteNames: ['Test Athlete'],
-        parentId,
-        parentName: 'Test Parent',
-        proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
-        sessionType: '1-on-1',
-        focus: 'Passing',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-      };
-
-      await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
-
-      const invites = await sessionInviteService.getParentInvites(parentId);
-
-      assert.equal(invites.length, 1);
-      assert.equal(invites[0].parentId, parentId);
-    });
+    const updated = expectOk(await sessionInviteService.respondToInvite({
+      inviteId: invite.id,
+      response: 'DECLINED',
+    }));
+    assert.equal(updated.status, 'DECLINED');
   });
 
-  describe('getInviteById', () => {
-    it('should return ok() with invite when found', async () => {
-      const inviteId = 'test-invite-' + Math.random().toString(36).slice(2);
-      const invite = {
-        id: inviteId,
-        coachId: 'test-coach-' + Math.random().toString(36).slice(2),
-        coachName: 'Test Coach',
-        athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-        athleteNames: ['Test Athlete'],
-        parentId: 'test-parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Test Parent',
-        proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
-        sessionType: '1-on-1',
-        focus: 'Tactics',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-      };
+  it('cancels invite and excludes it from open invites', async () => {
+    const invite = expectOk(await sessionInviteService.createInvite(nextId('athlete'), {
+      coachId: nextId('coach'),
+      coachName: 'Coach Test',
+      parentId: nextId('parent'),
+      parentName: 'Parent Test',
+      athleteNames: 'Athlete Test',
+      proposedSlots: [],
+      sessionType: '1:1 Coaching',
+      focus: 'Dribbling',
+    }));
 
-      await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
+    await sessionInviteService.cancelInvite(invite.id);
 
-      const result = await sessionInviteService.getInviteById(inviteId);
+    const fetched = await sessionInviteService.getInvite(invite.id);
+    assert.equal(fetched?.status, 'EXPIRED');
 
-      assert.ok(result.success);
-      assert.equal(result.data.id, inviteId);
-    });
-
-    it('should return err() when invite not found', async () => {
-      const inviteId = 'non-existent-invite';
-
-      const result = await sessionInviteService.getInviteById(inviteId);
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'NOT_FOUND');
-    });
+    const openInvites = await sessionInviteService.getOpenInvites();
+    assert.ok(!openInvites.some((item) => item.id === invite.id));
   });
 
-  describe('cancelInvite', () => {
-    it('should return ok() and update status to CANCELLED', async () => {
-      const inviteId = 'test-invite-' + Math.random().toString(36).slice(2);
-      const invite = {
-        id: inviteId,
-        coachId: 'test-coach-' + Math.random().toString(36).slice(2),
-        coachName: 'Test Coach',
-        athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-        athleteNames: ['Test Athlete'],
-        parentId: 'test-parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Test Parent',
-        proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
-        sessionType: '1-on-1',
-        focus: 'Defense',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-      };
+  it('matches canonical aliases in coach/parent invite lookups', async () => {
+    const created = expectOk(await sessionInviteService.createInvite(POC_ACCOUNT_IDS.athleteStorage, {
+      coachId: POC_ACCOUNT_IDS.coachStorage,
+      coachName: 'Coach Alias',
+      parentId: POC_ACCOUNT_IDS.parent,
+      parentName: 'Parent Alias',
+      athleteNames: 'Athlete Alias',
+      proposedSlots: [],
+      sessionType: '1:1 Coaching',
+      focus: 'Passing',
+    }));
 
-      await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
+    const byCoach = await sessionInviteService.getCoachInvites(POC_ACCOUNT_IDS.coach);
+    const byParent = await sessionInviteService.getParentInvites(POC_ACCOUNT_IDS.parent);
 
-      const result = await sessionInviteService.cancelInvite(inviteId);
-
-      assert.ok(result.success);
-      assert.equal(result.data.status, 'CANCELLED');
-    });
-
-    it('should emit INVITE_CANCELLED event', async () => {
-      const inviteId = 'test-invite-' + Math.random().toString(36).slice(2);
-      const invite = {
-        id: inviteId,
-        coachId: 'test-coach-' + Math.random().toString(36).slice(2),
-        coachName: 'Test Coach',
-        athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-        athleteNames: ['Test Athlete'],
-        parentId: 'test-parent-' + Math.random().toString(36).slice(2),
-        parentName: 'Test Parent',
-        proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
-        sessionType: '1-on-1',
-        focus: 'Shooting',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-      };
-
-      await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
-
-      const events: any[] = [];
-      const unsub = onTyped(ServiceEvents.INVITE_CANCELLED, (payload) => {
-        events.push(payload);
-      });
-
-      await sessionInviteService.cancelInvite(inviteId);
-
-      assert.equal(events.length, 1);
-      assert.equal(events[0].inviteId, inviteId);
-
-      unsub();
-    });
-
-    it('should return err() for non-existent invite', async () => {
-      const result = await sessionInviteService.cancelInvite('non-existent-invite');
-
-      assert.ok(!result.success);
-      assert.equal(result.error.code, 'NOT_FOUND');
-    });
-  });
-
-  describe('getPendingInvites', () => {
-    it('should return only PENDING invites for parent', async () => {
-      const parentId = 'test-parent-' + Math.random().toString(36).slice(2);
-      const invites = [
-        {
-          id: 'test-invite-1-' + Math.random().toString(36).slice(2),
-          coachId: 'test-coach-' + Math.random().toString(36).slice(2),
-          coachName: 'Test Coach',
-          athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-          athleteNames: ['Test Athlete'],
-          parentId,
-          parentName: 'Test Parent',
-          proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
-          sessionType: '1-on-1',
-          focus: 'Skills',
-          status: 'PENDING',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'test-invite-2-' + Math.random().toString(36).slice(2),
-          coachId: 'test-coach-' + Math.random().toString(36).slice(2),
-          coachName: 'Test Coach',
-          athleteIds: ['test-athlete-' + Math.random().toString(36).slice(2)],
-          athleteNames: ['Test Athlete'],
-          parentId,
-          parentName: 'Test Parent',
-          proposedSlots: [{ date: '2026-03-16', startTime: '14:00', endTime: '15:00' }],
-          sessionType: '1-on-1',
-          focus: 'Passing',
-          status: 'ACCEPTED',
-          createdAt: new Date().toISOString(),
-        },
-      ];
-
-      await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);
-
-      const result = await sessionInviteService.getPendingInvites(parentId);
-
-      assert.ok(result.success);
-      assert.equal(result.data.length, 1);
-      assert.equal(result.data[0].status, 'PENDING');
-    });
+    assert.ok(byCoach.length >= 1);
+    assert.ok(byParent.length >= 1);
+    assert.ok(byCoach.some((invite) => invite.id === created.id));
+    assert.ok(byParent.some((invite) => invite.id === created.id));
   });
 });

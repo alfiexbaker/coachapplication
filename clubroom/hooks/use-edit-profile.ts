@@ -253,6 +253,9 @@ export interface EditProfileModals {
 export function useEditProfile() {
   const { currentUser, availableUsers } = useAuth();
   const userIsCoach = currentUser?.role === 'COACH';
+  const [initializing, setInitializing] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [coach, setCoach] = useState<CoachProfile | null>(null);
   const [user, setUser] = useState<EditableUserProfile | null>(null);
@@ -284,18 +287,72 @@ export function useEditProfile() {
   const [certificationDraft, setCertificationDraft] = useState<CoachCertification>(createBlankCertification());
   const [isCertificationModalVisible, setCertificationModalVisible] = useState(false);
 
+  const retryLoad = useCallback(() => {
+    setReloadKey((value) => value + 1);
+  }, []);
+
   useEffect(() => {
     let active = true;
 
     const initializeProfile = async () => {
-      if (!currentUser) {
+      setLoadError(null);
+      setInitializing(true);
+
+      try {
+        if (!currentUser) {
+          setCoach(null);
+          setUser(null);
+          setFullName('');
+          setBio('');
+          setEmail('');
+          setPhone('');
+          setChildren([]);
+          setWebsite('');
+          setPriceMin('50');
+          setPriceMax('80');
+          setSelectedFocuses([]);
+          setExperiences([]);
+          setLanguages([]);
+          setCertifications([]);
+          setSocialLinks({});
+          return;
+        }
+
+        const typedCurrentUser = currentUser as AuthLikeUser;
+        const typedDirectory = availableUsers as DirectoryUser[];
+
+        if (typedCurrentUser.role === 'COACH') {
+          const resolvedCoach = await resolveCoachProfile(typedCurrentUser);
+          if (!active) return;
+
+          setCoach(resolvedCoach);
+          setUser(null);
+          setFullName(resolvedCoach.fullName);
+          setBio(resolvedCoach.bio || resolvedCoach.shortBio || '');
+          setEmail(resolvedCoach.email || typedCurrentUser.email || '');
+          setPhone(resolvedCoach.phone || typedCurrentUser.phone || '');
+          setChildren([]);
+          setWebsite(resolvedCoach.website || '');
+          setPriceMin(resolvedCoach.priceRange.minUsd.toString());
+          setPriceMax(resolvedCoach.priceRange.maxUsd.toString());
+          setSelectedFocuses(resolvedCoach.footballFocuses || []);
+          setExperiences(resolvedCoach.experiences || []);
+          setLanguages(resolvedCoach.languages || []);
+          setCertifications(resolvedCoach.certifications || []);
+          setSocialLinks(resolvedCoach.socialLinks || {});
+          return;
+        }
+
+        const resolvedUser = createEditableUserProfile(typedCurrentUser, typedDirectory);
+        if (!active) return;
+
+        setUser(resolvedUser);
         setCoach(null);
-        setUser(null);
-        setFullName('');
-        setBio('');
-        setEmail('');
-        setPhone('');
-        setChildren([]);
+        setFullName(resolvedUser.fullName);
+        setBio(resolvedUser.bio || '');
+        setEmail(resolvedUser.email);
+        setPhone(resolvedUser.phone || '');
+        setChildren(resolvedUser.children);
         setWebsite('');
         setPriceMin('50');
         setPriceMax('80');
@@ -304,52 +361,15 @@ export function useEditProfile() {
         setLanguages([]);
         setCertifications([]);
         setSocialLinks({});
-        return;
-      }
-
-      const typedCurrentUser = currentUser as AuthLikeUser;
-      const typedDirectory = availableUsers as DirectoryUser[];
-
-      if (typedCurrentUser.role === 'COACH') {
-        const resolvedCoach = await resolveCoachProfile(typedCurrentUser);
+      } catch (error) {
         if (!active) return;
-
-        setCoach(resolvedCoach);
-        setUser(null);
-        setFullName(resolvedCoach.fullName);
-        setBio(resolvedCoach.bio || resolvedCoach.shortBio || '');
-        setEmail(resolvedCoach.email || typedCurrentUser.email || '');
-        setPhone(resolvedCoach.phone || typedCurrentUser.phone || '');
-        setChildren([]);
-        setWebsite(resolvedCoach.website || '');
-        setPriceMin(resolvedCoach.priceRange.minUsd.toString());
-        setPriceMax(resolvedCoach.priceRange.maxUsd.toString());
-        setSelectedFocuses(resolvedCoach.footballFocuses || []);
-        setExperiences(resolvedCoach.experiences || []);
-        setLanguages(resolvedCoach.languages || []);
-        setCertifications(resolvedCoach.certifications || []);
-        setSocialLinks(resolvedCoach.socialLinks || {});
-        return;
+        logger.error('Failed to initialize edit profile state', error);
+        setLoadError('Failed to load profile data. Pull down to retry.');
+      } finally {
+        if (active) {
+          setInitializing(false);
+        }
       }
-
-      const resolvedUser = createEditableUserProfile(typedCurrentUser, typedDirectory);
-      if (!active) return;
-
-      setUser(resolvedUser);
-      setCoach(null);
-      setFullName(resolvedUser.fullName);
-      setBio(resolvedUser.bio || '');
-      setEmail(resolvedUser.email);
-      setPhone(resolvedUser.phone || '');
-      setChildren(resolvedUser.children);
-      setWebsite('');
-      setPriceMin('50');
-      setPriceMax('80');
-      setSelectedFocuses([]);
-      setExperiences([]);
-      setLanguages([]);
-      setCertifications([]);
-      setSocialLinks({});
     };
 
     void initializeProfile();
@@ -357,7 +377,7 @@ export function useEditProfile() {
     return () => {
       active = false;
     };
-  }, [currentUser, availableUsers]);
+  }, [currentUser, availableUsers, reloadKey]);
 
   // ── Focus toggles ──────────────────────────────────────────────
   const toggleFocus = useCallback((focus: FootballObjective) => {
@@ -537,6 +557,7 @@ export function useEditProfile() {
   return {
     // Identity
     userIsCoach, coach, user,
+    initializing, loadError, retryLoad,
     // Common
     fullName, setFullName, bio, setBio, email, setEmail, phone, setPhone,
     // Parent

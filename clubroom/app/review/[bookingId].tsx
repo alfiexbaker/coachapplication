@@ -1,18 +1,21 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
-import { Ionicons } from '@expo/vector-icons';
 
-import { Row } from '@/components/primitives/row';
 import { ReviewForm } from '@/components/review/review-form';
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import {
+  ReviewHeader,
+  ReviewSessionCard,
+  ReviewSuccessState,
+} from '@/components/review/review-screen-sections';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useScreen } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError } from '@/types/result';
 import type { Booking } from '@/constants/app-types';
 const logger = createLogger('ReviewScreen');
 
@@ -42,37 +45,50 @@ interface BookingInfo {
 export default function ReviewScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const [submitted, setSubmitted] = useState(false);
-  const [booking, setBooking] = useState<BookingInfo | null>(null);
   const [submittedReview, setSubmittedReview] = useState<{
     rating: number;
     text: string;
   } | null>(null);
   const { colors: palette } = useTheme();
 
-  // Load booking info
   const loadBooking = useCallback(async () => {
+    if (!bookingId) {
+      return ok<BookingInfo | null>(null);
+    }
+
     try {
       const bookings = await apiClient.get<Booking[]>('session_bookings', []);
-      if (bookings.length > 0) {
-        const found = bookings.find((b) => b.id === bookingId);
-        if (found) {
-          setBooking({
-            id: found.id,
-            coachId: found.coachId,
-            coachName: found.coachName,
-            service: found.service ?? 'Session',
-            scheduledAt: found.scheduledAt,
-          });
-        }
+      const found = bookings.find((b) => b.id === bookingId);
+      if (!found) {
+        return ok<BookingInfo | null>(null);
       }
-    } catch (error) {
-      logger.error('Failed to load booking', error);
+
+      return ok<BookingInfo | null>({
+        id: found.id,
+        coachId: found.coachId,
+        coachName: found.coachName,
+        service: found.service ?? 'Session',
+        scheduledAt: found.scheduledAt,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load booking', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load booking for review. Pull down to refresh.', loadError));
     }
   }, [bookingId]);
 
-  useEffect(() => {
-    loadBooking();
-  }, [loadBooking]);
+  const {
+    data: booking,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<BookingInfo | null>({
+    load: loadBooking,
+    deps: [bookingId],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
 
   const handleSubmitReview = async (payload: {
     rating: number;
@@ -119,58 +135,63 @@ export default function ReviewScreen() {
     });
   };
 
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load booking review details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !booking) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <EmptyState
+          icon="star-outline"
+          title="Booking not found"
+          message="This booking could not be loaded for review."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-      {/* Header */}
-      <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-        </Clickable>
-        <ThemedText type="title">
-          {submitted ? 'Review Submitted' : 'Leave a Review'}
-        </ThemedText>
-        <View style={{ width: 24 }} />
-      </Row>
+      <ReviewHeader colors={palette} submitted={submitted} onBack={() => router.back()} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* Session Info */}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {booking && (
-          <SurfaceCard style={styles.sessionCard}>
-            <Row align="center" gap="md" style={styles.sessionHeader}>
-              <View style={[styles.coachAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                <Ionicons name="person" size={24} color={palette.tint} />
-              </View>
-              <View style={styles.sessionInfo}>
-                <ThemedText type="defaultSemiBold">{booking.coachName}</ThemedText>
-                <ThemedText style={[styles.sessionMeta, { color: palette.muted }]}>
-                  {booking.service} - {formatDate(booking.scheduledAt)}
-                </ThemedText>
-              </View>
-            </Row>
-          </SurfaceCard>
+          <ReviewSessionCard
+            colors={palette}
+            coachName={booking.coachName}
+            service={booking.service}
+            scheduledAt={booking.scheduledAt}
+            formatDate={formatDate}
+          />
         )}
 
         {submitted && submittedReview ? (
-          <View style={styles.successContainer}>
-            <View style={[styles.successIcon, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
-              <Ionicons name="checkmark-circle" size={48} color={palette.success} />
-            </View>
-            <ThemedText type="subtitle" style={styles.successTitle}>
-              Thank you for your feedback!
-            </ThemedText>
-            <ThemedText style={[styles.successText, { color: palette.muted }]}>
-              Your {submittedReview.rating}-star review has been submitted.
-              {booking?.coachName && ` ${booking.coachName} will appreciate your feedback.`}
-            </ThemedText>
-
-            <Clickable
-              onPress={() => router.back()}
-              style={[styles.doneButton, { backgroundColor: palette.tint }]}
-            >
-              <ThemedText style={[styles.doneButtonText, { color: palette.onPrimary }]}>Done</ThemedText>
-            </Clickable>
-          </View>
+          <ReviewSuccessState
+            colors={palette}
+            coachName={booking?.coachName}
+            submittedRating={submittedReview.rating}
+            onDone={() => router.back()}
+          />
         ) : (
           <ReviewForm onSubmit={handleSubmitReview} />
         )}
@@ -181,65 +202,8 @@ export default function ReviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  backButton: {
-    padding: Spacing.xs,
-    minHeight: 44,
-    minWidth: 44,
-  },
   content: {
     padding: Spacing.lg,
     gap: Spacing.lg,
-  },
-  sessionCard: {
-    padding: Spacing.md,
-  },
-  sessionHeader: {},
-  coachAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sessionInfo: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  sessionMeta: {
-    ...Typography.small,
-  },
-  successContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    gap: Spacing.md,
-  },
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  successTitle: {
-    textAlign: 'center',
-  },
-  successText: {
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: Spacing.lg,
-  },
-  doneButton: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    marginTop: Spacing.md,
-  },
-  doneButtonText: {
-    ...Typography.subheading,
   },
 });

@@ -14,19 +14,54 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useCreateSquad, AGE_GROUPS, SQUAD_LEVELS, SKILL_TAGS } from '@/hooks/use-create-squad';
 
 export default function CreateSquadScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { status, error, retry, colors } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const {
     squadName, selectedAgeGroup, selectedLevel, meetLocation,
     selectedTags, isSubmitting, isValid,
     setSquadName, setSelectedAgeGroup, setSelectedLevel, setMeetLocation,
     toggleTag, handleCreate,
   } = useCreateSquad();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to open squad creation flow.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState
+          icon="people-outline"
+          title="Creation unavailable"
+          message="The squad creation flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

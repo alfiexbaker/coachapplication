@@ -18,8 +18,11 @@ import type { EventPayloads } from '../../services/event-bus';
 // ---------------------------------------------------------------------------
 
 /** Generate a unique test ID to prevent cross-test collisions. */
+let testIdSeq = 0;
+
 function testId(prefix: string): string {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  testIdSeq += 1;
+  return `${prefix}_${testIdSeq}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -482,7 +485,7 @@ describe('ClubFeedService.getPersonalFeed', () => {
   test('should return posts sorted by createdAt descending', () => {
     const coachId = testId('coach_sorted');
 
-    // Create two posts with a tiny delay difference (Date.now() ensures order)
+    // Create two posts and verify createdAt-based descending order.
     clubFeedService.createCoachPost({
       coachId,
       coachName: 'Sort Coach',

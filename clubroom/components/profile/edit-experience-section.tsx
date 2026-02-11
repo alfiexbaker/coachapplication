@@ -3,10 +3,11 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -37,12 +38,12 @@ export const EditExperienceSection = memo(function EditExperienceSection({
       <SurfaceCard style={styles.section}>
         <Row justify="between" align="center">
           <ThemedText type="subtitle">Experience</ThemedText>
-          <Pressable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add experience" accessibilityRole="button">
+          <Clickable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add experience" accessibilityRole="button">
             <Row align="center" gap="xs">
               <Ionicons name="add-circle" size={22} color={colors.tint} />
               <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
             </Row>
-          </Pressable>
+          </Clickable>
         </Row>
         <ThemedText style={styles.subtitle}>
           Curate the highlights parents see first: current teams, academies, and playing history.
@@ -70,12 +71,12 @@ export const EditExperienceSection = memo(function EditExperienceSection({
                       </ThemedText>
                     </Row>
                     <Row gap="sm">
-                      <Pressable onPress={() => onOpenModal(exp)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Edit experience" accessibilityRole="button">
+                      <Clickable onPress={() => onOpenModal(exp)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Edit experience" accessibilityRole="button">
                         <Ionicons name="pencil" size={16} color={colors.muted} />
-                      </Pressable>
-                      <Pressable onPress={() => onRemove(exp.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Remove experience" accessibilityRole="button">
+                      </Clickable>
+                      <Clickable onPress={() => onRemove(exp.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Remove experience" accessibilityRole="button">
                         <Ionicons name="trash" size={16} color={colors.warning} />
-                      </Pressable>
+                      </Clickable>
                     </Row>
                   </Row>
                   <View style={styles.cardBody}>
@@ -99,13 +100,13 @@ export const EditExperienceSection = memo(function EditExperienceSection({
       </SurfaceCard>
 
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={onCloseModal}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.text, 0.35) }]}>
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Experience</ThemedText>
-              <Pressable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
+              <Clickable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
                 <Ionicons name="close" size={22} color={colors.foreground} />
-              </Pressable>
+              </Clickable>
             </Row>
             <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
               <View style={styles.fieldGroup}>
@@ -124,12 +125,18 @@ export const EditExperienceSection = memo(function EditExperienceSection({
                 <View style={[styles.fieldGroup, styles.inlineField]}>
                   <Row justify="between" align="center">
                     <ThemedText style={styles.label}>End Date</ThemedText>
-                    <Pressable onPress={() => onDraftChange((p) => ({ ...p, current: !p.current, endDate: p.current ? p.endDate : '' }))} style={styles.inlineAction} accessibilityLabel="Toggle current" accessibilityRole="checkbox">
+                    <Clickable
+                      onPress={() => onDraftChange((p) => ({ ...p, current: !p.current, endDate: p.current ? p.endDate : '' }))}
+                      style={styles.inlineAction}
+                      accessibilityLabel="Toggle current"
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: draft.current }}
+                    >
                       <Row align="center" gap="xs">
                         <Ionicons name={draft.current ? 'checkbox' : 'square-outline'} size={18} color={draft.current ? colors.success : colors.muted} />
                         <ThemedText style={styles.helper}>I currently do this</ThemedText>
                       </Row>
-                    </Pressable>
+                    </Clickable>
                   </Row>
                   <TextInput value={draft.endDate || ''} onChangeText={(t) => onDraftChange((p) => ({ ...p, endDate: t }))} placeholder={draft.current ? 'Present' : 'YYYY-MM-DD'} editable={!draft.current} placeholderTextColor={colors.muted} style={[...inputStyle, { backgroundColor: draft.current ? colors.border : colors.card }]} accessibilityLabel="End date" />
                 </View>
@@ -138,9 +145,9 @@ export const EditExperienceSection = memo(function EditExperienceSection({
                 <ThemedText style={styles.label}>Description</ThemedText>
                 <TextInput value={draft.description} onChangeText={(t) => onDraftChange((p) => ({ ...p, description: t }))} placeholder="Highlight wins, age groups, or your philosophy." multiline numberOfLines={3} textAlignVertical="top" placeholderTextColor={colors.muted} style={[...inputStyle, styles.textArea]} accessibilityLabel="Description" />
               </View>
-              <Pressable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save experience" accessibilityRole="button">
+              <Clickable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save experience" accessibilityRole="button">
                 <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save experience</ThemedText>
-              </Pressable>
+              </Clickable>
             </ScrollView>
           </SurfaceCard>
         </View>
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
   emptyCard: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, borderStyle: 'dashed', alignItems: 'center', gap: Spacing.xs },
   emptyText: { textAlign: 'center', opacity: 0.7 },
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: Spacing.lg },
+  modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
   modalCard: { padding: Spacing.lg, gap: Spacing.md },
   modalContent: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },

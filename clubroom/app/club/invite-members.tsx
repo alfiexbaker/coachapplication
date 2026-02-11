@@ -16,9 +16,9 @@ import { Row } from '@/components/primitives/row';
 import { InviteRoleSelector } from '@/components/club/invite-role-selector';
 import { InvitePastSessionsTab } from '@/components/club/invite-past-sessions-tab';
 import { InviteManualTab } from '@/components/club/invite-manual-tab';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useClubInvite, type InviteTab } from '@/hooks/use-club-invite';
 
 const TABS: { key: InviteTab; label: string; icon: 'people-outline' | 'mail-outline' }[] = [
@@ -27,14 +27,23 @@ const TABS: { key: InviteTab; label: string; icon: 'people-outline' | 'mail-outl
 ];
 
 export default function InviteMembersScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
+    loading,
     activeTab, setActiveTab, searchQuery, setSearchQuery,
     selectedUsers, selectedRole, setSelectedRole,
     manualEmail, setManualEmail, isInviting,
     filteredUsers, toggleUserSelection, handleSelectAll,
     handleSendInvites, handleManualInvite,
   } = useClubInvite();
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -68,11 +77,19 @@ export default function InviteMembersScreen() {
         <InviteRoleSelector selectedRole={selectedRole} onSelectRole={setSelectedRole} />
 
         {activeTab === 'past-sessions' ? (
-          <InvitePastSessionsTab
-            searchQuery={searchQuery} onSearchChange={setSearchQuery}
-            filteredUsers={filteredUsers} selectedUsers={selectedUsers}
-            onToggleUser={toggleUserSelection} onSelectAll={handleSelectAll}
-          />
+          filteredUsers.length === 0 ? (
+            <EmptyState
+              icon="people-outline"
+              title="No past-session users"
+              message="No completed-session participants are available to invite yet."
+            />
+          ) : (
+            <InvitePastSessionsTab
+              searchQuery={searchQuery} onSearchChange={setSearchQuery}
+              filteredUsers={filteredUsers} selectedUsers={selectedUsers}
+              onToggleUser={toggleUserSelection} onSelectAll={handleSelectAll}
+            />
+          )
         ) : (
           <InviteManualTab email={manualEmail} onEmailChange={setManualEmail} onSend={handleManualInvite} />
         )}

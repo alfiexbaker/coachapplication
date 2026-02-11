@@ -28,6 +28,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -49,6 +50,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -84,6 +86,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -107,6 +110,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -131,6 +135,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -159,6 +164,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -183,6 +189,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -207,9 +214,11 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
+      await bookingCrudService.updateBooking(createResult.data.id, { status: 'PENDING' });
       const result = await bookingStatusService.checkAndTransitionStatus(createResult.data.id);
 
       assert.ok(result.success);
@@ -237,6 +246,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -262,6 +272,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);
@@ -284,6 +295,7 @@ describe('BookingStatusService', () => {
         location: 'Test Field',
         service: '1-on-1',
         serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
       });
 
       assert.ok(createResult.success);

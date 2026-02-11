@@ -93,6 +93,12 @@ const MOCK_FAVOURITES: FavouriteCoach[] = [
 
 // In-memory mock service for testing
 let favouritesCache: FavouriteCoach[] = [];
+let favouriteIdSeq = 0;
+
+function nextFavouriteId(): string {
+  favouriteIdSeq += 1;
+  return `fav_${favouriteIdSeq}`;
+}
 
 const mockFavouriteService = {
   async resetToMockData(): Promise<void> {
@@ -131,7 +137,7 @@ const mockFavouriteService = {
     }
 
     const newFavourite: FavouriteCoach = {
-      id: `fav_${Date.now()}`,
+      id: nextFavouriteId(),
       userId: input.userId,
       coachId: input.coachId,
       coachName: input.coachName,
@@ -224,6 +230,7 @@ const favouriteService = mockFavouriteService;
 // Reset to mock data before each test
 beforeEach(async () => {
   await favouriteService.resetToMockData();
+  favouriteIdSeq = 0;
 });
 
 describe('Favourite Service', () => {

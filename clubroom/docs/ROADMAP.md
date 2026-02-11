@@ -1,22 +1,23 @@
 # Clubroom — 5-Month UI & Product Roadmap
 
 > Created: 2026-02-08
+> Last synced with repo metrics: 2026-02-11
 > Based on: 6-agent deep audit (sprint, screen, service, component, docs/nav, UX flow, quality metrics)
 
 ---
 
-## Current State (Updated 2026-02-08)
+## Current State (Updated 2026-02-11)
 
 | Metric | Score | Detail |
 |--------|-------|--------|
 | Architecture (service layer) | 95/100 | Zero `any`, Result<T> pattern, event bus, base service |
-| Screen layer | 42/100 | 132/185 screens >300 lines, only 10 have error states |
-| Component layer | 50/100 | 195/380 components >250 lines, ~162 hardcoded hex colors remain |
-| Test coverage | 22/100 | 27/123 services tested, 16 component tests, 0 integration, 0 E2E |
-| Design tokens | 85/100 | Spacing/Typography/Radii adopted; TouchableOpacity: 0, Colors.light: ~3, Shadows.light: 0, fontWeight: clean |
-| Navigation | 98/100 | 185 routes, zero dead routes, Routes.* used everywhere |
-| Documentation | 90/100 | CLAUDE.md 9-agent pipeline, ROADMAP, USER-STORIES, Sprint index |
-| **Overall** | **58/100** | Strong foundations, critical gaps in screen decomposition + testing |
+| Screen layer | 88/100 | 4/189 screens >300 lines; `use-screen` imported in 76 route files |
+| Component layer | 72/100 | 61/924 components >250 lines; decomposition still needed |
+| Test coverage | 74/100 | 92 service-related test files for 126 service TS files, 0 E2E |
+| Design tokens | 90/100 | TouchableOpacity: 0, Colors.light: 3, Shadows.light: 0, withAlpha widely adopted |
+| Navigation | 98/100 | 189 route files, zero dead routes, Routes.* used everywhere |
+| Documentation | 84/100 | Core docs are strong but had metric drift; now re-synced |
+| **Overall** | **74/100** | Foundations are strong; priorities moved to components, test depth, and polish |
 
 ### Completed Quality Sprints (since audit)
 - **Sprint 6**: Shadows.light → Shadows[scheme] — 7/7 files, 0 remaining
@@ -36,9 +37,10 @@
 - 101 new stories identified from audit
 
 ### Remaining Blockers
-1. **78% services untested** — Shipping blind on regressions
-2. **132 screens >300 lines** — Unmaintainable, need decomposition
-3. **~162 hardcoded hex colors** — Need migration to withAlpha()
+1. **61 components >250 lines** — still expensive to maintain and review
+2. **Test depth uneven across domains** — high file count, but no integration/E2E confidence
+3. **Visual-state standardisation incomplete** — `use-screen` pattern is not universal yet
+4. **359 raw hex literals remain** — requires semantic-token cleanup pass
 
 ---
 
@@ -65,8 +67,8 @@
 
 ### Quality Gate (end of Month 1)
 - [ ] Core booking loop works end-to-end (invite -> accept -> booking -> complete -> review)
-- [ ] 20 critical services have tests (api-client, event-bus, base-service, auth, booking, invite, availability, calendar, roster, review, notification, badge, club, match, squad, social-feed, drill, family, community, discover)
-- [ ] Score: 62/100 (+4)
+- [x] 20 critical services have tests (baseline exceeded; now 92/126 service-related test files)
+- [ ] Score: 78/100 (+4)
 
 ---
 
@@ -98,8 +100,8 @@
 - [x] TouchableOpacity: 0 ✅ (Sprint 7)
 - [x] Colors.light.* → useTheme() ✅ (Sprint 8, ~3 infrastructure-only remain)
 - [ ] 10 worst screens refactored to <300 lines
-- [ ] 40 services tested
-- [ ] Score: 70/100 (+8)
+- [x] 40 services tested (already exceeded)
+- [ ] Score: 84/100 (+6)
 
 ---
 
@@ -132,10 +134,10 @@
 
 ### Quality Gate (end of Month 3)
 - [x] All Colors.light.* replaced ✅ (Sprint 8 — ~3 infrastructure-only remain)
-- [ ] All hardcoded hex colors replaced (162 -> 0)
-- [ ] 60 services tested
+- [ ] All hardcoded hex colors replaced (359 -> 0)
+- [x] 60 services tested (already exceeded)
 - [ ] Comment system (Sprint 4A) fully working
-- [ ] Score: 78/100 (+8)
+- [ ] Score: 88/100 (+4)
 
 ---
 
@@ -175,8 +177,8 @@
 - [ ] Every screen has all 4 visual states
 - [ ] 0 screens over 300 lines
 - [ ] 0 components over 250 lines
-- [ ] 80 services tested
-- [ ] Score: 88/100 (+10)
+- [x] 80 services tested (already exceeded)
+- [ ] Score: 92/100 (+4)
 
 ---
 
@@ -218,10 +220,10 @@
 ### Quality Gate (end of Month 5)
 - [ ] Coach discovery is Airbnb-quality
 - [ ] Onboarding exists for all personas
-- [ ] 100% service test coverage
+- [ ] 126/126 service modules with strong test depth + 5 E2E critical journeys
 - [ ] 5 E2E tests passing
 - [ ] 0 architecture rule violations
-- [ ] Score: 95/100 (+7)
+- [ ] Score: 95/100 (+3)
 
 ---
 
@@ -261,11 +263,11 @@ These are valuable but not launch-critical:
 ## Quality Score Trajectory
 
 ```
-Month 0 (Now):     58/100  ████████████░░░░░░░░
-Month 1 (March):   62/100  ████████████▓░░░░░░░
-Month 2 (April):   70/100  ██████████████░░░░░░
-Month 3 (May):     78/100  ███████████████▓░░░░
-Month 4 (June):    88/100  █████████████████▓░░
+Month 0 (Now):     74/100  ███████████████░░░░░
+Month 1 (March):   78/100  ███████████████▓░░░░
+Month 2 (April):   84/100  █████████████████░░░
+Month 3 (May):     88/100  █████████████████▓░░
+Month 4 (June):    92/100  ██████████████████▓░
 Month 5 (July):    95/100  ███████████████████░
 ```
 
@@ -275,15 +277,15 @@ Month 5 (July):    95/100  █████████████████�
 
 | Metric | Now | Month 1 | Month 3 | Month 5 |
 |--------|-----|---------|---------|---------|
-| Screens >300 lines | 132 | 122 | 80 | 0 |
-| Components >250 lines | 195 | 185 | 120 | 0 |
+| Screens >300 lines | 4 | 2 | 0 | 0 |
+| Components >250 lines | 61 | 45 | 20 | 0 |
 | TouchableOpacity count | **0** ✅ | 0 | 0 | 0 |
-| Colors.light.* count | **~3** ✅ | 0 | 0 | 0 |
+| Colors.light.* count | **3** ✅ | 0 | 0 | 0 |
 | Shadows.light.* count | **0** ✅ | 0 | 0 | 0 |
-| Hardcoded hex colors | 162 | 140 | 0 | 0 |
-| Services tested | 27/123 | 47/123 | 87/123 | 123/123 |
-| Screens with error state | 10/185 | 30/185 | 100/185 | 185/185 |
-| User stories complete | 151/394 | 170/394 | 260/394 | 340/394 |
+| Hardcoded hex colors | 359 | 280 | 120 | 0 |
+| Service-related test files | 92/126 | 100/126 | 115/126 | 126/126 |
+| Screens using `use-screen` pattern | 76/189 | 110/189 | 150/189 | 189/189 |
+| User stories complete | 155/293 | 170/293 | 220/293 | 260/293 |
 
 ---
 

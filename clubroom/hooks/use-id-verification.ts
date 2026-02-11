@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { router } from 'expo-router';
 
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
+import type { ServiceError } from '@/types/result';
 
 const logger = createLogger('useIdVerification');
 const COACH_ID = 'coach1';
@@ -14,24 +16,53 @@ export const ID_TYPES = [
   { id: 'national-id', label: 'National ID Card', icon: 'id-card' },
 ];
 
+export interface UseIdVerificationResult {
+  status: VerificationStatus | null;
+  loading: boolean;
+  screenStatus: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  submitting: boolean;
+  selectedType: string | null;
+  uploaded: boolean;
+  isVerified: boolean;
+  isPending: boolean;
+  setSelectedType: (value: string | null) => void;
+  setUploaded: (value: boolean) => void;
+  handleUpload: () => Promise<void>;
+  handleSubmit: () => Promise<void>;
+  handleMockApprove: () => Promise<void>;
+}
+
 export function useIdVerification() {
-  const [status, setStatus] = useState<VerificationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
 
   const loadStatus = useCallback(async () => {
     const result = await verificationService.getStatus(COACH_ID);
-    if (result.success) {
-      setStatus(result.data);
-    } else {
+    if (!result.success) {
       logger.error('Failed to load verification status:', result.error);
     }
-    setLoading(false);
+    return result;
   }, []);
 
-  useEffect(() => { loadStatus(); }, [loadStatus]);
+  const {
+    data: status,
+    status: screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<VerificationStatus>({
+    load: loadStatus,
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const loading = screenStatus === 'loading';
 
   const handleUpload = useCallback(async () => {
     if (!selectedType) return;
@@ -44,6 +75,7 @@ export function useIdVerification() {
     try {
       const result = await verificationService.submitIdVerification(COACH_ID, `mock://id-document-${selectedType}.jpg`);
       if (result.success) {
+        onRefresh();
         router.back();
       } else {
         logger.error('Failed to submit ID:', result.error);
@@ -53,13 +85,14 @@ export function useIdVerification() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedType, uploaded]);
+  }, [selectedType, uploaded, onRefresh]);
 
   const handleMockApprove = useCallback(async () => {
     setSubmitting(true);
     try {
       const result = await verificationService.mockApproveVerification(COACH_ID, 'identity');
       if (result.success) {
+        onRefresh();
         router.back();
       } else {
         logger.error('Failed to approve:', result.error);
@@ -69,13 +102,28 @@ export function useIdVerification() {
     } finally {
       setSubmitting(false);
     }
-  }, []);
+  }, [onRefresh]);
 
   const isVerified = status?.identity.status === 'VERIFIED';
   const isPending = status?.identity.status === 'PENDING';
 
   return {
-    status, loading, submitting, selectedType, uploaded, isVerified, isPending,
-    setSelectedType, setUploaded, handleUpload, handleSubmit, handleMockApprove,
-  };
+    status: status ?? null,
+    loading,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    submitting,
+    selectedType,
+    uploaded,
+    isVerified,
+    isPending,
+    setSelectedType,
+    setUploaded,
+    handleUpload,
+    handleSubmit,
+    handleMockApprove,
+  } satisfies UseIdVerificationResult;
 }

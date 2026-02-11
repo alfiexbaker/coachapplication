@@ -56,21 +56,21 @@ describe('familyRelationshipService', () => {
         'Other Parent',
         [],
       );
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
   describe('removeGuardian (Result pattern)', () => {
     test('returns err for non-existent guardian', async () => {
       const result = await familyRelationshipService.removeGuardian('fam_1', 'req_1', 'nonexistent_g');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
   describe('declineInvite (Result pattern)', () => {
     test('returns err for non-existent invite', async () => {
       const result = await familyRelationshipService.declineInvite('nonexistent_invite');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

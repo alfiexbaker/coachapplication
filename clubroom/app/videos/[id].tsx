@@ -13,22 +13,23 @@ import { AddAnnotationModal, QuickAnnotationBar } from '@/components/video/video
 import { VideoInfoSection } from '@/components/video/video-info-section';
 import { VideoDetailActions } from '@/components/video/video-detail-actions';
 import { VideoDetailsCard } from '@/components/video/video-details-card';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useVideoDetail } from '@/hooks/use-video-detail';
+import { ok } from '@/types/result';
 
 export default function VideoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    video, loading, currentTime, showAnnotationModal, isOwner,
+    video, loading, status, error, retry, currentTime, showAnnotationModal, isOwner,
     handleTimeUpdate, handleSeekToAnnotation, handleQuickAnnotation,
     handleSaveAnnotation, handleShare, handleToggleVisibility,
     handleDelete, dismissAnnotationModal, setCurrentTime,
   } = useVideoDetail(id);
 
-  if (loading || !video) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Row align="center" gap="md" style={styles.header}>
@@ -39,6 +40,22 @@ export default function VideoDetailScreen() {
           <View style={{ width: 24 }} />
         </Row>
         <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load video.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !video) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState icon="videocam-outline" title="Video not found" message="This video is unavailable." />
       </SafeAreaView>
     );
   }

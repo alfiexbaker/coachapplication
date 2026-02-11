@@ -6,14 +6,21 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+
 import { Routes } from '@/navigation/routes';
-import { createLogger } from '@/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { inviteService as squadBulkInviteService } from '@/services/invite';
 import { squadService } from '@/services/squad-service';
+import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type {
-  ClubSquad, SquadMember, TimeSlot, BulkInviteResult,
-  SquadSessionInvite, SquadInviteHistoryEntry,
+  ClubSquad,
+  SquadMember,
+  TimeSlot,
+  BulkInviteResult,
+  SquadSessionInvite,
+  SquadInviteHistoryEntry,
 } from '@/constants/types';
 
 const logger = createLogger('SquadInviteScreen');
@@ -23,15 +30,58 @@ export const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalk
 
 export type ViewMode = 'form' | 'sending' | 'result';
 
+interface SquadInviteData {
+  squad: ClubSquad | null;
+  members: SquadMember[];
+  inviteHistory: SquadInviteHistoryEntry[];
+}
+
+export interface UseSquadInviteResult {
+  squadId: string | undefined;
+  squad: ClubSquad | null;
+  members: SquadMember[];
+  inviteHistory: SquadInviteHistoryEntry[];
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  selectedMemberIds: string[];
+  setSelectedMemberIds: (value: string[]) => void;
+  sessionType: string;
+  setSessionType: (value: string) => void;
+  focus: string;
+  setFocus: (value: string) => void;
+  sessionTitle: string;
+  setSessionTitle: (value: string) => void;
+  proposedSlots: TimeSlot[];
+  slotDate: string;
+  setSlotDate: (value: string) => void;
+  slotStartTime: string;
+  setSlotStartTime: (value: string) => void;
+  slotEndTime: string;
+  setSlotEndTime: (value: string) => void;
+  slotLocation: string;
+  setSlotLocation: (value: string) => void;
+  viewMode: ViewMode;
+  sendingInvites: boolean;
+  inviteResult: {
+    squadInvite: SquadSessionInvite;
+    result: BulkInviteResult;
+  } | null;
+  addTimeSlot: () => void;
+  removeTimeSlot: (index: number) => void;
+  uniqueParentCount: number;
+  canSend: boolean;
+  sendBulkInvites: () => Promise<void>;
+  handleDone: () => void;
+  handleViewInvites: () => void;
+}
+
 export function useSquadInvite() {
   const { currentUser } = useAuth();
   const { id: squadId } = useLocalSearchParams<{ id: string }>();
-
-  // Data state
-  const [squad, setSquad] = useState<ClubSquad | null>(null);
-  const [members, setMembers] = useState<SquadMember[]>([]);
-  const [inviteHistory, setInviteHistory] = useState<SquadInviteHistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Form state
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -41,6 +91,7 @@ export function useSquadInvite() {
   const [notes] = useState('');
   const [price] = useState('');
   const [proposedSlots, setProposedSlots] = useState<TimeSlot[]>([]);
+  const [initializedSquadId, setInitializedSquadId] = useState<string | null>(null);
 
   // Time slot form
   const [slotDate, setSlotDate] = useState('');
@@ -57,37 +108,74 @@ export function useSquadInvite() {
   } | null>(null);
 
   const loadSquadData = useCallback(async () => {
-    if (!squadId) return;
-    setLoading(true);
+    if (!squadId) {
+      return ok<SquadInviteData>({
+        squad: null,
+        members: [],
+        inviteHistory: [],
+      });
+    }
+
     try {
       const [squadData, membersData, historyData] = await Promise.all([
         squadService.getSquad(squadId),
         squadService.getSquadMembers(squadId),
         squadBulkInviteService.getSquadInviteHistory(squadId),
       ]);
-      setSquad(squadData);
-      setMembers(membersData);
-      setInviteHistory(historyData);
-      if (squadData) setSessionTitle(`${squadData.name} Training`);
-      setSelectedMemberIds(membersData.map((m) => m.id));
-    } catch (error) {
-      logger.error('Failed to load squad data:', error);
-      Alert.alert('Error', 'Failed to load squad data');
-    } finally {
-      setLoading(false);
+
+      return ok<SquadInviteData>({
+        squad: squadData,
+        members: membersData,
+        inviteHistory: historyData,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load squad invite data:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load squad invite data. Pull down to refresh.', loadError));
     }
   }, [squadId]);
 
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<SquadInviteData>({
+    load: loadSquadData,
+    deps: [squadId],
+    isEmpty: (value) => value.squad === null,
+    refetchOnFocus: true,
+  });
+
+  const squad = data?.squad ?? null;
+  const members = data?.members ?? [];
+  const inviteHistory = data?.inviteHistory ?? [];
+  const loading = status === 'loading';
+
   useEffect(() => {
-    if (squadId) loadSquadData();
-  }, [squadId, loadSquadData]);
+    if (!squad || initializedSquadId === squad.id) return;
+    setSessionTitle(`${squad.name} Training`);
+    setSelectedMemberIds(members.map((member) => member.id));
+    setInitializedSquadId(squad.id);
+  }, [squad, members, initializedSquadId]);
 
   const addTimeSlot = useCallback(() => {
     if (!slotDate || !slotStartTime || !slotEndTime) {
       Alert.alert('Missing fields', 'Please fill in date, start time, and end time');
       return;
     }
-    setProposedSlots((prev) => [...prev, { date: slotDate, startTime: slotStartTime, endTime: slotEndTime, location: slotLocation || undefined }]);
+
+    setProposedSlots((prev) => [
+      ...prev,
+      {
+        date: slotDate,
+        startTime: slotStartTime,
+        endTime: slotEndTime,
+        location: slotLocation || undefined,
+      },
+    ]);
+
     setSlotDate('');
     setSlotStartTime('');
     setSlotEndTime('');
@@ -99,35 +187,53 @@ export function useSquadInvite() {
   }, []);
 
   const uniqueParentCount = useMemo(() => {
-    const selectedMembers = members.filter((m) => selectedMemberIds.includes(m.id));
-    return new Set(selectedMembers.map((m) => m.parentId)).size;
+    const selectedMembers = members.filter((member) => selectedMemberIds.includes(member.id));
+    return new Set(selectedMembers.map((member) => member.parentId)).size;
   }, [members, selectedMemberIds]);
 
-  const canSend = useMemo(() => (
-    selectedMemberIds.length > 0 && sessionTitle.trim() !== '' && sessionType !== '' && focus !== '' && proposedSlots.length > 0
-  ), [selectedMemberIds, sessionTitle, sessionType, focus, proposedSlots]);
+  const canSend = useMemo(
+    () =>
+      selectedMemberIds.length > 0 &&
+      sessionTitle.trim() !== '' &&
+      sessionType !== '' &&
+      focus !== '' &&
+      proposedSlots.length > 0,
+    [selectedMemberIds, sessionTitle, sessionType, focus, proposedSlots]
+  );
 
   const sendBulkInvites = useCallback(async () => {
     if (!currentUser || !squadId || !canSend) return;
+
     setSendingInvites(true);
     setViewMode('sending');
+
     try {
       const result = await squadBulkInviteService.createBulkInvite({
-        squadId, sessionId: `session_${Date.now()}`, sessionTitle,
-        coachId: currentUser.id, coachName: currentUser.name || 'Coach',
-        clubName: squad?.name, proposedSlots, sessionType, focus,
-        notes: notes || undefined, priceUsd: price ? parseFloat(price) : undefined, expiresInDays: 7,
+        squadId,
+        sessionId: `session_${Date.now()}`,
+        sessionTitle,
+        coachId: currentUser.id,
+        coachName: currentUser.name || 'Coach',
+        clubName: squad?.name,
+        proposedSlots,
+        sessionType,
+        focus,
+        notes: notes || undefined,
+        priceUsd: price ? parseFloat(price) : undefined,
+        expiresInDays: 7,
       });
+
       if (!result.success) {
         logger.error('Failed to send bulk invites:', result.error);
         Alert.alert('Error', result.error.message || 'Failed to send invites. Please try again.');
         setViewMode('form');
         return;
       }
+
       setInviteResult(result.data);
       setViewMode('result');
-    } catch (error) {
-      logger.error('Failed to send bulk invites:', error);
+    } catch (sendError) {
+      logger.error('Failed to send bulk invites:', sendError);
       Alert.alert('Error', 'Failed to send invites. Please try again.');
       setViewMode('form');
     } finally {
@@ -135,17 +241,51 @@ export function useSquadInvite() {
     }
   }, [currentUser, squadId, canSend, sessionTitle, squad, proposedSlots, sessionType, focus, notes, price]);
 
-  const handleDone = useCallback(() => router.back(), []);
-  const handleViewInvites = useCallback(() => router.push(Routes.SESSION_INVITES), []);
+  const handleDone = useCallback(() => {
+    router.back();
+  }, []);
+
+  const handleViewInvites = useCallback(() => {
+    router.push(Routes.SESSION_INVITES);
+  }, []);
 
   return {
-    squadId, squad, members, inviteHistory, loading,
-    selectedMemberIds, setSelectedMemberIds, sessionType, setSessionType,
-    focus, setFocus, sessionTitle, setSessionTitle,
-    proposedSlots, slotDate, setSlotDate, slotStartTime, setSlotStartTime,
-    slotEndTime, setSlotEndTime, slotLocation, setSlotLocation,
-    viewMode, sendingInvites, inviteResult,
-    addTimeSlot, removeTimeSlot, uniqueParentCount, canSend,
-    sendBulkInvites, handleDone, handleViewInvites,
-  };
+    squadId,
+    squad,
+    members,
+    inviteHistory,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    selectedMemberIds,
+    setSelectedMemberIds,
+    sessionType,
+    setSessionType,
+    focus,
+    setFocus,
+    sessionTitle,
+    setSessionTitle,
+    proposedSlots,
+    slotDate,
+    setSlotDate,
+    slotStartTime,
+    setSlotStartTime,
+    slotEndTime,
+    setSlotEndTime,
+    slotLocation,
+    setSlotLocation,
+    viewMode,
+    sendingInvites,
+    inviteResult,
+    addTimeSlot,
+    removeTimeSlot,
+    uniqueParentCount,
+    canSend,
+    sendBulkInvites,
+    handleDone,
+    handleViewInvites,
+  } satisfies UseSquadInviteResult;
 }

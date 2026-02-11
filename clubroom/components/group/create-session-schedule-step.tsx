@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Switch } from 'react-native';
+import { View, StyleSheet, Switch } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -74,7 +75,7 @@ function CreateSessionScheduleStepInner({
               {DAY_BUTTONS.map((day) => {
                 const selected = recurringDayOfWeek === day.value;
                 return (
-                  <Pressable
+                  <Clickable
                     key={day.value}
                     style={[
                       styles.dayButton,
@@ -85,6 +86,7 @@ function CreateSessionScheduleStepInner({
                     ]}
                     onPress={() => onFieldChange('recurringDayOfWeek', day.value)}
                     accessibilityLabel={day.label}
+                    accessibilityRole="button"
                     accessibilityState={{ selected }}
                   >
                     <ThemedText
@@ -95,7 +97,7 @@ function CreateSessionScheduleStepInner({
                     >
                       {day.short}
                     </ThemedText>
-                  </Pressable>
+                  </Clickable>
                 );
               })}
             </Row>

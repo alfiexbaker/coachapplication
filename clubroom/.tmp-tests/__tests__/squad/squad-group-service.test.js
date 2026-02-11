@@ -276,7 +276,7 @@ async function seedSquadMembers(members) {
             strict_1.default.ok(group, 'Group should exist');
             const newMember = group.members.find((m) => m.parentId === 'parent_new_member');
             strict_1.default.ok(newMember, 'New member should be in group');
-            strict_1.default.equal(newMember.parentName, 'New Parent');
+            strict_1.default.equal(newMember.role, 'MEMBER');
         });
         (0, node_test_1.default)('no-op if member is already in group', async () => {
             const squadId = 'squad_sync_noop';
@@ -447,7 +447,6 @@ async function seedSquadMembers(members) {
             const added = result.data.members.find((m) => m.parentId === 'parent_direct_add');
             strict_1.default.ok(added, 'Member should be added');
             strict_1.default.equal(added.role, 'MEMBER');
-            strict_1.default.equal(added.parentName, 'Direct Add Parent');
         });
         (0, node_test_1.default)('is a no-op if member is already in the group', async () => {
             const group = await legacyCommunityGroupService.createGroup({

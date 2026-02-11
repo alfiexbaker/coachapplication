@@ -31,7 +31,6 @@ import type { MemberRemovalReason } from '@/services/club-service';
 const HEADER_PROPS = { title: 'Club Hub', subtitle: 'Your clubs and communities' } as const;
 
 export default function ClubHubScreen() {
-  const { colors } = useTheme();
   const hub = useClubHub();
 
   const feedKeyExtractor = useCallback((item: ClubFeedPost) => item.id, []);
@@ -107,6 +106,8 @@ export default function ClubHubScreen() {
         data={hub.feed}
         keyExtractor={feedKeyExtractor}
         renderItem={renderFeedPost}
+        refreshing={hub.refreshing}
+        onRefresh={hub.onRefresh}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

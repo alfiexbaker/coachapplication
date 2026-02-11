@@ -8,15 +8,16 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import { View, Dimensions } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { styles } from './availability-tutorial-styles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -168,7 +169,7 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
 
       <Clickable
         onPress={onNext}
-        style={[styles.nextButton, { backgroundColor: palette.tint }]}
+        style={[styles.nextButton, { backgroundColor: palette.tint, maxWidth: SCREEN_WIDTH * 0.45 }]}
       >
         <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
           {isLastStep ? 'Get Started' : 'Next'}
@@ -184,90 +185,4 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)', // Decorative: modal overlay
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 380,
-    borderRadius: Radii.xl,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  skipRow: {
-    alignItems: 'flex-end',
-  },
-  skipText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  stepContent: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  stepTitle: {
-    textAlign: 'center',
-  },
-  stepDescription: {
-    ...Typography.bodySmall,
-    textAlign: 'center',
-    maxWidth: 300,
-  },
-  progressDots: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-  },
-  dot: {
-    height: 8,
-    borderRadius: Radii.xs,
-  },
-  buttonRow: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  backButton: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  backButtonText: {
-    ...Typography.bodySmallSemiBold,
-  },
-  buttonPlaceholder: {
-    width: 90,
-  },
-  nextButton: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    flex: 1,
-    justifyContent: 'center',
-    maxWidth: SCREEN_WIDTH * 0.45,
-  },
-  nextButtonText: {
-    ...Typography.bodySmallSemiBold,
-  },
-});
+export { styles };

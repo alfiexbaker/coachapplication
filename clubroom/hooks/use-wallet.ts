@@ -6,11 +6,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
 import type { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { walletService, type WalletTransaction, type Wallet } from '@/services/wallet-service';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useWallet');
@@ -70,6 +71,8 @@ export interface UseWalletResult {
   wallet: Wallet | null;
   transactions: WalletTransaction[];
   pendingTransactions: WalletTransaction[];
+  status: ScreenStatus;
+  error: ServiceError | null;
   loading: boolean;
   refreshing: boolean;
 
@@ -80,7 +83,8 @@ export interface UseWalletResult {
   processing: boolean;
 
   // Actions
-  handleRefresh: () => Promise<void>;
+  handleRefresh: () => void;
+  retry: () => void;
   openTopUpModal: () => void;
   closeTopUpModal: () => void;
   selectPresetAmount: (amount: number) => void;
@@ -88,20 +92,26 @@ export interface UseWalletResult {
   handleTopUp: () => Promise<void>;
 }
 
+interface WalletLoadData {
+  wallet: Wallet | null;
+  transactions: WalletTransaction[];
+}
+
 export function useWallet(): UseWalletResult {
   const { currentUser } = useAuth();
 
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmountState] = useState('');
   const [processing, setProcessing] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<WalletLoadData>({
+        wallet: null,
+        transactions: [],
+      });
+    }
 
     try {
       const [walletData, transactionsData] = await Promise.all([
@@ -109,26 +119,29 @@ export function useWallet(): UseWalletResult {
         walletService.getTransactions(currentUser.id),
       ]);
 
-      setWallet(walletData);
-      setTransactions(transactionsData);
+      return ok<WalletLoadData>({
+        wallet: walletData,
+        transactions: transactionsData,
+      });
     } catch (error) {
       logger.error('Failed to load wallet data:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load wallet. Pull down to retry.', error));
     }
   }, [currentUser?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<WalletLoadData>({
+    load: loadData,
+    deps: [currentUser?.id],
+    isEmpty: (value) => !value.wallet && value.transactions.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, [loadData]);
+  const wallet = data?.wallet ?? null;
+  const transactions = data?.transactions ?? [];
+
+  const handleRefresh = useCallback(() => {
+    onRefresh();
+  }, [onRefresh]);
 
   const openTopUpModal = useCallback(() => {
     setSelectedAmount(null);
@@ -157,24 +170,26 @@ export function useWallet(): UseWalletResult {
 
     setProcessing(true);
 
-    // Simulate payment processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Simulate payment processing delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const result = await walletService.topUp({
-      userId: currentUser.id,
-      amount,
-      paymentMethod: 'card',
-    });
+      const result = await walletService.topUp({
+        userId: currentUser.id,
+        amount,
+        paymentMethod: 'card',
+      });
 
-    if (result.success) {
-      await loadData();
-      setShowTopUpModal(false);
-      setSelectedAmount(null);
-      setCustomAmountState('');
+      if (result.success) {
+        onRefresh();
+        setShowTopUpModal(false);
+        setSelectedAmount(null);
+        setCustomAmountState('');
+      }
+    } finally {
+      setProcessing(false);
     }
-
-    setProcessing(false);
-  }, [selectedAmount, customAmount, currentUser?.id, loadData]);
+  }, [selectedAmount, customAmount, currentUser?.id, onRefresh]);
 
   const pendingTransactions = transactions.filter((t) => t.status === 'PENDING');
 
@@ -182,13 +197,16 @@ export function useWallet(): UseWalletResult {
     wallet,
     transactions,
     pendingTransactions,
-    loading,
+    status,
+    error,
+    loading: status === 'loading',
     refreshing,
     showTopUpModal,
     selectedAmount,
     customAmount,
     processing,
     handleRefresh,
+    retry,
     openTopUpModal,
     closeTopUpModal,
     selectPresetAmount,

@@ -5,13 +5,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { socialFeedService } from '@/services/social-feed-service';
+import { useScreen } from '@/hooks/use-screen';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { ClubRole } from '@/constants/types';
 
 const logger = createLogger('CoachInvitesScreen');
@@ -33,59 +35,72 @@ export const ROLE_LABELS: Record<ClubRole, string> = {
   OWNER: 'Owner', ADMIN: 'Administrator', HEAD_COACH: 'Head Coach', COACH: 'Coach', MEMBER: 'Member',
 };
 
+interface CoachInvitesData {
+  invites: PendingClubInvite[];
+}
+
 export function useCoachInvites() {
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ code?: string; clubId?: string; clubName?: string; role?: string }>();
 
-  const [invites, setInvites] = useState<PendingClubInvite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
   const loadInvites = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      return ok<CoachInvitesData>({ invites: [] });
+    }
+
     try {
       const stored = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
-      if (stored.length > 0) {
-        const validInvites = stored.filter((inv) => inv.status === 'pending' && new Date(inv.expiresAt) > new Date());
-        setInvites(validInvites);
-      }
+      const validInvites = stored.filter((inv) => inv.status === 'pending' && new Date(inv.expiresAt) > new Date());
+      return ok<CoachInvitesData>({ invites: validInvites });
     } catch (error) {
       logger.error('Failed to load invites', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load club invites.', error));
     }
   }, [currentUser]);
+
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<CoachInvitesData>({
+    load: loadInvites,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.invites.length === 0,
+    refetchOnFocus: true,
+  });
 
   // Handle incoming invite code from params
   useEffect(() => {
     const processIncomingInvite = async () => {
       if (params.code && params.clubId && params.clubName && currentUser) {
-        const existing = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
-        if (!existing.find((inv) => inv.inviteCode === params.code)) {
-          const knownClub = socialFeedService.getUserClubs(currentUser.id).find((club) => club.id === params.clubId);
-          const newInvite: PendingClubInvite = {
-            id: `invite_${Date.now()}`, inviteCode: params.code, clubId: params.clubId,
-            clubName: params.clubName,
-            clubBadge: knownClub?.badge || params.clubName.slice(0, 2).toUpperCase(),
-            role: (params.role as ClubRole) || 'COACH',
-            invitedBy: 'Club Admin', invitedAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'pending',
-          };
-          existing.push(newInvite);
-          await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, existing);
-          setInvites(existing.filter((inv) => inv.status === 'pending'));
+        try {
+          const existing = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
+          if (!existing.find((inv) => inv.inviteCode === params.code)) {
+            const knownClub = socialFeedService.getUserClubs(currentUser.id).find((club) => club.id === params.clubId);
+            const newInvite: PendingClubInvite = {
+              id: `invite_${Date.now()}`, inviteCode: params.code, clubId: params.clubId,
+              clubName: params.clubName,
+              clubBadge: knownClub?.badge || params.clubName.slice(0, 2).toUpperCase(),
+              role: (params.role as ClubRole) || 'COACH',
+              invitedBy: 'Club Admin', invitedAt: new Date().toISOString(),
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), status: 'pending',
+            };
+            existing.push(newInvite);
+            await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, existing);
+            onRefresh();
+          }
+        } catch (incomingError) {
+          logger.error('Failed to process incoming coach invite', incomingError);
         }
       }
     };
-    processIncomingInvite();
-  }, [params.code, params.clubId, params.clubName, params.role, currentUser]);
-
-  useEffect(() => { loadInvites(); }, [loadInvites]);
-  useFocusEffect(useCallback(() => { loadInvites(); }, [loadInvites]));
-
-  const handleRefresh = useCallback(() => { setRefreshing(true); loadInvites(); }, [loadInvites]);
+    void processIncomingInvite();
+  }, [params.code, params.clubId, params.clubName, params.role, currentUser, onRefresh]);
 
   const handleAccept = useCallback(async (invite: PendingClubInvite) => {
     if (!currentUser) return;
@@ -97,12 +112,12 @@ export function useCoachInvites() {
       logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
       Alert.alert('Welcome!', `You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`,
         [{ text: 'Go to Club', onPress: () => router.push(Routes.club(invite.clubId)) }]);
-      loadInvites();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to accept invite', error);
       Alert.alert('Error', 'Failed to accept invite. Please try again.');
     } finally { setRespondingTo(null); }
-  }, [currentUser, loadInvites]);
+  }, [currentUser, onRefresh]);
 
   const handleDecline = useCallback((invite: PendingClubInvite) => {
     Alert.alert('Decline Invite', `Are you sure you want to decline the invitation to join ${invite.clubName}?`, [
@@ -113,20 +128,31 @@ export function useCoachInvites() {
           const allInvites = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`, []);
           const updated = allInvites.map((inv) => inv.id === invite.id ? { ...inv, status: 'declined' as const } : inv);
           await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`, updated);
-          loadInvites();
+          onRefresh();
         } catch (error) {
           logger.error('Failed to decline invite', error);
           Alert.alert('Error', 'Failed to decline invite.');
         } finally { setRespondingTo(null); }
       }},
     ]);
-  }, [currentUser, loadInvites]);
+  }, [currentUser, onRefresh]);
+
+  const invites = data?.invites ?? [];
 
   const pendingCount = invites.length;
 
   return {
-    invites, loading, refreshing, respondingTo, pendingCount,
-    handleRefresh, handleAccept, handleDecline,
+    invites,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    respondingTo,
+    pendingCount,
+    handleRefresh: onRefresh,
+    retry,
+    handleAccept,
+    handleDecline,
   };
 }
 

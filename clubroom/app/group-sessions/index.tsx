@@ -5,7 +5,7 @@
  * open sessions, and trials. Coach can create new sessions.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { EmptyState } from '@/components/ui/empty-state';
 import { GroupSessionCard } from '@/components/group/group-session-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -22,7 +23,23 @@ import { useGroupSessions, SESSION_FILTERS } from '@/hooks/use-group-sessions';
 
 export default function GroupSessionsScreen() {
   const { colors } = useTheme();
-  const { sessions, filter, setFilter, isCoach } = useGroupSessions();
+  const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach } = useGroupSessions();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load group sessions.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -49,7 +66,11 @@ export default function GroupSessionsScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {sessions.length === 0 ? (
           <EmptyState
             icon="calendar-outline"

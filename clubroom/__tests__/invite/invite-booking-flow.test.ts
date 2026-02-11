@@ -84,6 +84,12 @@ let bookingCreateResult: Result<{ id: string }> = {
 let bookingCreateCallArgs: Record<string, unknown>[] = [];
 let releasedInviteIds: string[] = [];
 let emittedEvents: { event: string; data: unknown }[] = [];
+let notificationIdSeq = 0;
+
+function nextNotificationId(prefix: string = 'notif'): string {
+  notificationIdSeq += 1;
+  return `${prefix}_${notificationIdSeq}`;
+}
 
 // Mock bookingService
 const bookingService = {
@@ -221,7 +227,7 @@ async function respondToInvite(input: RespondToInviteInput): Promise<Result<Sess
     });
 
     await notificationService.create({
-      id: `notif_${Date.now()}`,
+      id: nextNotificationId(),
       type: 'booking',
       title: 'Invite Accepted!',
       body: `${invite.parentName} accepted your invite for ${invite.athleteNames.join(', ')}.`,
@@ -246,7 +252,7 @@ async function respondToInvite(input: RespondToInviteInput): Promise<Result<Sess
 
   if (input.response === 'DECLINED') {
     await notificationService.create({
-      id: `notif_declined_${Date.now()}`,
+      id: nextNotificationId('notif_declined'),
       type: 'booking',
       title: 'Invite Declined',
       body: `${invite.parentName} declined your session invite for ${invite.athleteNames.join(', ')}.`,
@@ -254,7 +260,7 @@ async function respondToInvite(input: RespondToInviteInput): Promise<Result<Sess
     await inviteHoldService.releaseHoldsForInvite(invite.id);
   } else if (input.response === 'COUNTERED') {
     await notificationService.create({
-      id: `notif_counter_${Date.now()}`,
+      id: nextNotificationId('notif_counter'),
       type: 'booking',
       title: 'Counter Proposal Received',
       body: `${invite.parentName} proposed alternative times for ${invite.athleteNames.join(', ')}.`,
@@ -346,7 +352,7 @@ async function acceptCounterProposal(
   });
 
   await notificationService.create({
-    id: `notif_counter_accept_${Date.now()}`,
+    id: nextNotificationId('notif_counter_accept'),
     type: 'booking',
     title: 'Counter Proposal Accepted!',
     body: `Coach ${invite.coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
@@ -434,6 +440,7 @@ beforeEach(() => {
   bookingCreateCallArgs = [];
   releasedInviteIds = [];
   emittedEvents = [];
+  notificationIdSeq = 0;
   bookingCreateResult = { success: true, data: { id: 'booking_abc_001' } };
 });
 

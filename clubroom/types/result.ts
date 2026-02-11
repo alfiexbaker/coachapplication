@@ -7,6 +7,9 @@ export type Result<T, E = ServiceError> =
   | { success: true; data: T; error?: undefined }
   | { success: false; data?: undefined; error: E };
 
+type ResultData<R> = R extends { success: true; data: infer T } ? T : never;
+type ResultErr<R> = R extends { success: false; error: infer E } ? E : never;
+
 export type ServiceErrorCode =
   | 'NOT_FOUND'
   | 'VALIDATION'
@@ -106,4 +109,23 @@ export const all = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
     data.push(result.data);
   }
   return ok(data);
+};
+
+/**
+ * Combine heterogenous Result values into a single Result tuple.
+ * Returns the first error encountered, preserving order.
+ */
+export const combineResults = <TResults extends readonly Result<any, any>[]>(
+  results: TResults
+): Result<{ [K in keyof TResults]: ResultData<TResults[K]> }, ResultErr<TResults[number]>> => {
+  const data: unknown[] = [];
+
+  for (const result of results) {
+    if (!result.success) {
+      return err(result.error as ResultErr<TResults[number]>);
+    }
+    data.push(result.data);
+  }
+
+  return ok(data as { [K in keyof TResults]: ResultData<TResults[K]> });
 };

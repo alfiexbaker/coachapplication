@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
@@ -32,8 +33,14 @@ export const CalendarGrid = memo(function CalendarGrid({ calendarDays, selectedD
         {calendarDays.map((day, index) => {
           const isSelected = selectedDate?.toDateString() === day.date.toDateString();
           return (
-            <Pressable key={index} onPress={() => onSelectDate(day.date)}
-              style={[styles.dayCell, !day.isCurrentMonth && styles.otherMonthDay, isSelected && { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+            <Clickable
+              key={index}
+              onPress={() => onSelectDate(day.date)}
+              style={[styles.dayCell, !day.isCurrentMonth && styles.otherMonthDay, isSelected && { backgroundColor: withAlpha(palette.tint, 0.12) }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Select ${day.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+              accessibilityState={{ selected: Boolean(isSelected) }}
+            >
               <ThemedText style={[styles.dayNumber, !day.isCurrentMonth && { color: palette.muted }, day.isToday && { color: palette.tint, fontWeight: '700' }, isSelected && { color: palette.tint }]}>
                 {day.dayOfMonth}
               </ThemedText>
@@ -42,7 +49,7 @@ export const CalendarGrid = memo(function CalendarGrid({ calendarDays, selectedD
                 {day.hasAvailability && !day.isBlocked && <View style={[styles.indicator, { backgroundColor: palette.success }]} />}
                 {day.bookingCount > 0 && <View style={[styles.indicator, { backgroundColor: palette.tint }]} />}
               </Row>
-            </Pressable>
+            </Clickable>
           );
         })}
       </Row>
@@ -66,12 +73,12 @@ export const CalendarDayDetail = memo(function CalendarDayDetail({ selectedDate,
       <Row style={styles.detailsHeader}>
         <ThemedText type="subtitle">{selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</ThemedText>
         <Row style={styles.detailsActions}>
-          <Pressable style={[styles.actionButton, { backgroundColor: withAlpha(palette.error, 0.09) }]} onPress={onBlockDate}>
+          <Clickable style={[styles.actionButton, { backgroundColor: withAlpha(palette.error, 0.09) }]} onPress={onBlockDate} accessibilityLabel="Block selected date" accessibilityRole="button">
             <Ionicons name="close-circle-outline" size={18} color={palette.error} />
-          </Pressable>
-          <Pressable style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]} onPress={onAddTemplate}>
+          </Clickable>
+          <Clickable style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]} onPress={onAddTemplate} accessibilityLabel="Add template to selected date" accessibilityRole="button">
             <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
-          </Pressable>
+          </Clickable>
         </Row>
       </Row>
 

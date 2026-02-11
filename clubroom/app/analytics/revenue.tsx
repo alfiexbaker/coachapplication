@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,71 +7,100 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { AnalyticsStatCard, RevenueChart } from '@/components/analytics';
 import { RevenueMainCard, RevenueBreakdownCard, RevenueInsightsCard } from '@/components/analytics/revenue-detail-cards';
-import { useScreen } from '@/hooks/use-screen';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { ok } from '@/types/result';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useRevenueAnalytics, PERIOD_OPTIONS } from '@/hooks/use-revenue-analytics';
 
 export default function RevenueScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const router = useRouter();
-  const {
-    analytics, revenueData, period, loading, refreshing,
-    handleRefresh, handlePeriodChange, formatCurrency, getPeriodLabel,
-  } = useRevenueAnalytics();
+  const revenue = useRevenueAnalytics();
+  const header = (
+    <View style={styles.header}>
+      <Row style={styles.titleRow}>
+        <Clickable onPress={() => router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+        <ThemedText type="title" style={styles.title}>Revenue</ThemedText>
+      </Row>
+      <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{revenue.getPeriodLabel()} earnings breakdown</ThemedText>
+    </View>
+  );
 
-  if (loading && !analytics) return <LoadingState variant="card" />;
-  if (!analytics) return <EmptyState icon="cash-outline" title="No revenue data" message="Revenue will appear after completing sessions" />;
+  if (revenue.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        {header}
+        <LoadingState variant="card" />
+      </SafeAreaView>
+    );
+  }
+
+  if (revenue.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        {header}
+        <ErrorState
+          message={revenue.error?.message || 'Failed to load revenue analytics.'}
+          onRetry={revenue.retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (revenue.status === 'empty' || !revenue.analytics) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        {header}
+        <EmptyState
+          icon="cash-outline"
+          title="No revenue data"
+          message="Revenue will appear after completed sessions."
+          actionLabel="Refresh"
+          onPressAction={revenue.onRefresh}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  const analytics = revenue.analytics;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={revenue.refreshing} onRefresh={revenue.onRefresh} />}
         showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Row style={styles.titleRow}>
-            <Clickable onPress={() => router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
-            <ThemedText type="title" style={styles.title}>Revenue</ThemedText>
-          </Row>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{getPeriodLabel()} earnings breakdown</ThemedText>
-        </View>
+        {header}
 
         {/* Period selector */}
         <Row style={styles.periodSelector}>
           {PERIOD_OPTIONS.map((option) => (
-            <Clickable key={option.value} onPress={() => handlePeriodChange(option.value)}
-              style={[styles.periodButton, { backgroundColor: period === option.value ? palette.tint : 'transparent', borderColor: period === option.value ? palette.tint : palette.border }]}>
-              <ThemedText style={[styles.periodButtonText, { color: period === option.value ? palette.onPrimary : palette.text }]}>{option.label}</ThemedText>
+            <Clickable key={option.value} onPress={() => revenue.handlePeriodChange(option.value)}
+              style={[styles.periodButton, { backgroundColor: revenue.period === option.value ? palette.tint : 'transparent', borderColor: revenue.period === option.value ? palette.tint : palette.border }]}>
+              <ThemedText style={[styles.periodButtonText, { color: revenue.period === option.value ? palette.onPrimary : palette.text }]}>{option.label}</ThemedText>
             </Clickable>
           ))}
         </Row>
 
-        {analytics && (
-          <>
-            <RevenueMainCard analytics={analytics} formatCurrency={formatCurrency} />
+        <RevenueMainCard analytics={analytics} formatCurrency={revenue.formatCurrency} />
 
-            {/* Key metrics */}
-            <Row style={styles.statsGrid}>
-              <AnalyticsStatCard label="Avg/Session" value={analytics.avgRevenuePerSession} icon="cash-outline" iconColor={palette.tint} isCurrency />
-              <AnalyticsStatCard label="Sessions" value={analytics.sessions.totalSessions} icon="calendar" iconColor={palette.tint} />
-            </Row>
+        {/* Key metrics */}
+        <Row style={styles.statsGrid}>
+          <AnalyticsStatCard label="Avg/Session" value={analytics.avgRevenuePerSession} icon="cash-outline" iconColor={palette.tint} isCurrency />
+          <AnalyticsStatCard label="Sessions" value={analytics.sessions.totalSessions} icon="calendar" iconColor={palette.tint} />
+        </Row>
 
-            {analytics.projectedRevenue !== undefined && (
-              <Row style={styles.statsGrid}>
-                <AnalyticsStatCard label="Projected" value={analytics.projectedRevenue} icon="analytics" iconColor={palette.success} isCurrency />
-                <AnalyticsStatCard label="Lost to Cancel" value={analytics.cancellations.revenueLost} icon="close-circle" iconColor={palette.error} isCurrency />
-              </Row>
-            )}
-
-            <RevenueChart data={revenueData} title="Revenue Over Time" loading={loading} />
-            <RevenueBreakdownCard analytics={analytics} formatCurrency={formatCurrency} />
-            <RevenueInsightsCard analytics={analytics} formatCurrency={formatCurrency} />
-          </>
+        {analytics.projectedRevenue !== undefined && (
+          <Row style={styles.statsGrid}>
+            <AnalyticsStatCard label="Projected" value={analytics.projectedRevenue} icon="analytics" iconColor={palette.success} isCurrency />
+            <AnalyticsStatCard label="Lost to Cancel" value={analytics.cancellations.revenueLost} icon="close-circle" iconColor={palette.error} isCurrency />
+          </Row>
         )}
+
+        <RevenueChart data={revenue.revenueData} title="Revenue Over Time" loading={revenue.loading} />
+        <RevenueBreakdownCard analytics={analytics} formatCurrency={revenue.formatCurrency} />
+        <RevenueInsightsCard analytics={analytics} formatCurrency={revenue.formatCurrency} />
       </ScrollView>
     </SafeAreaView>
   );

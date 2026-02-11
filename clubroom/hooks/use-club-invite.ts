@@ -41,6 +41,7 @@ export function useClubInvite() {
   const [manualEmail, setManualEmail] = useState('');
   const [isInviting, setIsInviting] = useState(false);
   const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const club = useMemo(() => {
     if (!clubId || !currentUser?.id) return null;
@@ -51,21 +52,34 @@ export function useClubInvite() {
     let active = true;
 
     const loadCompletedBookings = async () => {
+      setLoading(true);
       if (!currentUser?.id) {
         if (active) {
           setCompletedBookings([]);
+          setLoading(false);
         }
         return;
       }
 
-      const allBookings = await bookingService.list();
-      if (!active) {
-        return;
-      }
+      try {
+        const allBookings = await bookingService.list();
+        if (!active) {
+          return;
+        }
 
-      setCompletedBookings(
-        allBookings.filter((booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED'),
-      );
+        setCompletedBookings(
+          allBookings.filter((booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED'),
+        );
+      } catch (loadError) {
+        logger.error('Failed to load completed bookings for invites', loadError);
+        if (active) {
+          setCompletedBookings([]);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
     };
 
     void loadCompletedBookings();
@@ -170,6 +184,7 @@ export function useClubInvite() {
   }, [manualEmail, selectedRole, showToast]);
 
   return {
+    loading,
     activeTab, setActiveTab,
     searchQuery, setSearchQuery,
     selectedUsers, selectedRole, setSelectedRole,

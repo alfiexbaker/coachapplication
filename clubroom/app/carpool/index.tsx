@@ -19,13 +19,13 @@ import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useCarpool } from '@/hooks/use-carpool';
 import { scaleFont } from '@/utils/scale';
 
 export default function CarpoolScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const c = useCarpool();
 
   const renderEmptyState = (
@@ -45,9 +45,6 @@ export default function CarpoolScreen() {
   );
 
   const renderTabContent = () => {
-    if (c.loading) {
-      return <View style={styles.loadingContainer}><ThemedText style={{ color: palette.muted }}>Loading...</ThemedText></View>;
-    }
     switch (c.activeTab) {
       case 'available':
         if (c.availableOffers.length === 0) return renderEmptyState('car-outline', 'No Rides Available', 'There are no carpool offers at the moment. Check back later or offer a ride!', { label: 'Offer a Ride', onPress: c.openCreateModal });
@@ -73,6 +70,25 @@ export default function CarpoolScreen() {
         ))}</View>;
     }
   };
+
+  let content: React.ReactNode;
+  if (c.status === 'loading') {
+    content = <LoadingState variant="list" />;
+  } else if (c.status === 'error') {
+    content = <ErrorState message={c.error?.message || 'Failed to load carpool data.'} onRetry={c.retry} />;
+  } else if (c.status === 'empty') {
+    content = (
+      <EmptyState
+        icon="car-outline"
+        title="No carpool activity yet"
+        message="No available rides or offers were found. Create the first carpool offer to get started."
+        actionLabel="Create Offer"
+        onPressAction={c.openCreateModal}
+      />
+    );
+  } else {
+    content = renderTabContent();
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -105,7 +121,7 @@ export default function CarpoolScreen() {
 
       {/* Content */}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}>
-        {renderTabContent()}
+        {content}
       </ScrollView>
 
       <CarpoolCreateModal visible={c.showCreateModal} form={c.createForm} creating={c.creating} onChangeForm={c.setCreateForm} onSubmit={c.handleCreateOffer} onClose={c.closeCreateModal} />
@@ -128,7 +144,6 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   listContainer: { padding: Spacing.lg },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'] },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
   emptyIcon: { width: 96, height: 96, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
   emptyTitle: { textAlign: 'center' },

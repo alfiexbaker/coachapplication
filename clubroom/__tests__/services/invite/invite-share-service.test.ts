@@ -37,7 +37,10 @@ describe('InviteShareService', () => {
 
       await inviteShareService.generateShareLink(inviteId);
 
-      const links = await apiClient.get(STORAGE_KEYS.INVITE_SHARE_LINKS, []);
+      const links = await apiClient.get<{ inviteId: string; link: string; createdAt: string }[]>(
+        STORAGE_KEYS.INVITE_SHARE_LINKS,
+        []
+      );
       assert.ok(links.length > 0);
       assert.equal(links[0].inviteId, inviteId);
     });

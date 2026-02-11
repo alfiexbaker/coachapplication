@@ -6,11 +6,12 @@
  */
 
 import { useCallback } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachComparison, ComparisonCriteria } from '@/constants/types';
 
@@ -49,14 +50,14 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
   return (
     <View style={[styles.column, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={styles.header}>
-        <Pressable
+        <Clickable
           accessibilityRole="button"
           accessibilityLabel="Remove from comparison"
           onPress={handleRemove}
           style={[styles.removeButton, { backgroundColor: palette.surfaceSecondary }]}
         >
           <Ionicons name="close" size={16} color={palette.muted} />
-        </Pressable>
+        </Clickable>
       </View>
 
       <CoachProfileSection

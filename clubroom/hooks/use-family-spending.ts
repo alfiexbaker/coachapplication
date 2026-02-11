@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
-import { familyService, type FamilySpending, type FamilyMember } from '@/services/family';
+import { useScreen } from '@/hooks/use-screen';
+import { familyService, type FamilySpending } from '@/services/family';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('FamilySpendingScreen');
 
@@ -28,16 +29,23 @@ type SpendingSummary = {
   trendPercent: number;
 };
 
+interface FamilySpendingData {
+  spending: FamilySpending[];
+  spendingSummary: SpendingSummary | null;
+}
+
 export function useFamilySpending() {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
-  const [spending, setSpending] = useState<FamilySpending[]>([]);
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('3m');
-  const [spendingSummary, setSpendingSummary] = useState<SpendingSummary | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<FamilySpendingData>({
+        spending: [],
+        spendingSummary: null,
+      });
+    }
 
     try {
       const [spendingData, , summaryData] = await Promise.all([
@@ -46,20 +54,32 @@ export function useFamilySpending() {
         familyService.getFamilySpendingSummary(currentUser.id),
       ]);
 
-      setSpending(spendingData);
-      setSpendingSummary(summaryData);
+      return ok<FamilySpendingData>({
+        spending: spendingData,
+        spendingSummary: summaryData,
+      });
     } catch (error) {
       logger.error('Failed to load spending data:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load family spending data.', error));
     }
   }, [currentUser?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<FamilySpendingData>({
+    load: loadData,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.spending.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const spending = data?.spending ?? [];
+  const spendingSummary = data?.spendingSummary ?? null;
 
   const handleDateFilterChange = useCallback((filter: DateRangeFilter) => {
     setDateFilter(filter);
@@ -75,20 +95,32 @@ export function useFamilySpending() {
     }
   }, [dateFilter]);
 
-  const recentTransactions = spending
-    .flatMap((s) =>
-      (s.monthlyBreakdown || []).slice(0, 1).map((mb) => ({
-        childName: s.childId,
-        colorCode: s.colorCode,
-        month: mb.month,
-        amount: mb.amount,
-        sessionCount: mb.sessionCount,
-      }))
-    )
-    .slice(0, 5);
+  const recentTransactions = useMemo(
+    () =>
+      spending
+        .flatMap((s) =>
+          (s.monthlyBreakdown || []).slice(0, 1).map((mb) => ({
+            childName: s.childId,
+            colorCode: s.colorCode,
+            month: mb.month,
+            amount: mb.amount,
+            sessionCount: mb.sessionCount,
+          }))
+        )
+        .slice(0, 5),
+    [spending]
+  );
 
   return {
-    loading, spending, dateFilter, spendingSummary,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    spending,
+    dateFilter,
+    spendingSummary,
     handleDateFilterChange, getMonthsToShow, recentTransactions,
   };
 }

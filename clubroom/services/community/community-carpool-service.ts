@@ -16,6 +16,7 @@ import { apiClient } from '../api-client';
 import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, unauthorized, storageError } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+import { accountIdsMatch } from '@/utils/account-id';
 
 const logger = createLogger('CommunityCarpoolService');
 
@@ -134,7 +135,7 @@ class CommunityCarpoolService {
       const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
-      const filtered = allOffers.filter((offer) => offer.parentId === parentId);
+      const filtered = allOffers.filter((offer) => accountIdsMatch(offer.parentId, parentId));
 
       logger.info('parent_carpool_offers_retrieved', { parentId, count: filtered.length });
       return ok(filtered);
@@ -154,7 +155,7 @@ class CommunityCarpoolService {
 
       const filtered = allOffers.filter(
         (offer) =>
-          offer.parentId !== excludeParentId &&
+          !accountIdsMatch(offer.parentId, excludeParentId) &&
           offer.status === 'ACTIVE' &&
           offer.seatsAvailable > offer.seatsTaken
       );
@@ -257,7 +258,7 @@ class CommunityCarpoolService {
     }
 
     // Check if already requested
-    if (offer.requests.some((r) => r.parentId === params.parentId && r.status === 'PENDING')) {
+    if (offer.requests.some((r) => accountIdsMatch(r.parentId, params.parentId) && r.status === 'PENDING')) {
       return err(conflictError('You already have a pending request for this carpool'));
     }
 
@@ -365,7 +366,7 @@ class CommunityCarpoolService {
       return err(notFound('Carpool offer', offerId));
     }
 
-    if (offer.parentId !== parentId) {
+    if (!accountIdsMatch(offer.parentId, parentId)) {
       return err(unauthorized('Only the offer creator can cancel it'));
     }
 
@@ -402,7 +403,7 @@ class CommunityCarpoolService {
       return err(notFound('Request', requestId));
     }
 
-    if (request.parentId !== parentId) {
+    if (!accountIdsMatch(request.parentId, parentId)) {
       return err(unauthorized('Only the requester can cancel their request'));
     }
 

@@ -1,8 +1,10 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { matchService } from '@/services/match-service';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { Match } from '@/constants/types';
 
@@ -16,13 +18,30 @@ export const MATCH_FILTERS: { key: MatchFilter; label: string; icon: string }[] 
   { key: 'all', label: 'All', icon: 'list-outline' },
 ];
 
+interface MatchesData {
+  matches: Match[];
+}
+
+export interface UseMatchesScreenResult {
+  matches: Match[];
+  filter: MatchFilter;
+  setFilter: (value: MatchFilter) => void;
+  loading: boolean;
+  status: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  isCoach: boolean;
+  stats: { total: number; wins: number; draws: number; losses: number };
+  groupedMatches: [string, Match[]][];
+  handleCreateMatch: () => void;
+}
+
 export function useMatchesScreen() {
   const { currentUser } = useAuth();
 
-  const [matches, setMatches] = useState<Match[]>([]);
   const [filter, setFilter] = useState<MatchFilter>('upcoming');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
@@ -39,22 +58,29 @@ export function useMatchesScreen() {
         data = await matchService.getClubMatches(clubId);
       }
 
-      setMatches(data);
-    } catch (error) {
-      logger.error('Failed to load matches:', error);
+      return ok<MatchesData>({ matches: data });
+    } catch (loadError) {
+      logger.error('Failed to load matches:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load matches. Pull down to refresh.', loadError));
     }
   }, [filter]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    loadMatches().finally(() => setIsLoading(false));
-  }, [loadMatches]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<MatchesData>({
+    load: loadMatches,
+    deps: [filter],
+    isEmpty: (value) => value.matches.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await loadMatches();
-    setIsRefreshing(false);
-  }, [loadMatches]);
+  const matches = data?.matches ?? [];
+  const loading = status === 'loading';
 
   const handleCreateMatch = useCallback(() => {
     router.push(Routes.MATCHES_CREATE);
@@ -97,8 +123,8 @@ export function useMatchesScreen() {
   }, [matches]);
 
   return {
-    matches, filter, setFilter, isLoading, isRefreshing, isCoach,
+    matches, filter, setFilter, loading, status, error, refreshing, onRefresh, retry, isCoach,
     stats, groupedMatches,
-    handleRefresh, handleCreateMatch,
-  };
+    handleCreateMatch,
+  } satisfies UseMatchesScreenResult;
 }

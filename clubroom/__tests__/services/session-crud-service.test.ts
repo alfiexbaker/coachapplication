@@ -55,7 +55,7 @@ describe('sessionCrudService', () => {
   describe('publishSession (Result pattern)', () => {
     test('returns err for non-existent session', async () => {
       const result = await sessionCrudService.publishSession('nonexistent_pub');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
 
     test('publishes an existing session', async () => {
@@ -83,7 +83,7 @@ describe('sessionCrudService', () => {
   describe('cancelSession (Result pattern)', () => {
     test('returns err for non-existent session', async () => {
       const result = await sessionCrudService.cancelSession('nonexistent_cancel');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 });

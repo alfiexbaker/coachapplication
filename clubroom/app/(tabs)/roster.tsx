@@ -33,7 +33,7 @@ export default function RosterScreen() {
   const { showUndoToast, showToast } = useToast();
   const coachId = currentUser?.id || 'coach_1';
 
-  const { data: roster, status, error, colors, retry } = useScreen<RosterEntry[]>({
+  const { data: roster, status, error, colors, refreshing, onRefresh, retry } = useScreen<RosterEntry[]>({
     load: async () => {
       if (!currentUser?.id) return ok([]);
       try {
@@ -199,6 +199,8 @@ export default function RosterScreen() {
         />
       }
       gap={Spacing.md}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
     >
       {isSelecting && (
         <RosterSelectionBar selectedCount={selectedAthletes.size} onSelectAll={selectAllVisible} onClear={clearSelection} />

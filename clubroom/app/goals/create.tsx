@@ -18,9 +18,12 @@ import { createLogger } from '@/utils/logger';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { GoalForm } from '@/components/goals';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import type { Goal, CreateGoalInput, UpdateGoalInput, GoalCreator } from '@/constants/types';
-import { useTheme, type ThemeColors } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
@@ -32,7 +35,7 @@ const logger = createLogger('CreateGoalScreen');
  * Screen for creating or editing a goal.
  */
 export default function CreateGoalScreen() {
-  const { colors: palette } = useTheme();
+  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ editId?: string }>();
   const editId = params.editId;
@@ -125,9 +128,7 @@ export default function CreateGoalScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <Header title="Edit Goal" onBack={handleCancel} palette={palette} />
-        <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-          Loading goal...
-        </ThemedText>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
@@ -184,9 +185,5 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
-  loadingText: {
-    textAlign: 'center',
-    padding: Spacing.xl,
   },
 });

@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, RefreshControl } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,6 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEventDetail } from '@/hooks/use-event-detail';
@@ -20,31 +21,59 @@ export default function EventDetailScreen() {
   const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    event, loading, showAttendees, isCoach, typeColor, typeIcon,
+    event, status, error, refreshing, onRefresh, retry, showAttendees, isCoach, typeColor, typeIcon,
     attendeeCounts, currentRSVP, isCreator,
     handleRSVP, handlePublish, handleCancel, toggleAttendees,
   } = useEventDetail(id);
 
-  if (loading || !event) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}><ThemedText>Loading...</ThemedText></View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load event details.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !event) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="calendar-outline"
+          title="Event not found"
+          message="This event no longer exists or you no longer have access to it."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {event.imageUrl && (
           <View style={styles.imageContainer}>
             <Image source={{ uri: event.imageUrl }} style={styles.headerImage} />
-            <View style={styles.imageOverlay} />
+            <View style={[styles.imageOverlay, { backgroundColor: withAlpha(palette.text, 0.2) }]} />
           </View>
         )}
 
         <View style={[styles.topBar, !event.imageUrl && { position: 'relative' }]}>
-          <Clickable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: event.imageUrl ? 'rgba(0,0,0,0.4)' : palette.surface }]}>
+          <Clickable
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: event.imageUrl ? withAlpha(palette.text, 0.4) : palette.surface }]}
+          >
             <Ionicons name="arrow-back" size={24} color={event.imageUrl ? palette.onPrimary : palette.text} />
           </Clickable>
         </View>
@@ -162,10 +191,9 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   imageContainer: { height: 220, position: 'relative' },
   headerImage: { width: '100%', height: '100%' },
-  imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
+  imageOverlay: { ...StyleSheet.absoluteFillObject },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, zIndex: 10 },
   backButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing.lg, gap: Spacing.lg },

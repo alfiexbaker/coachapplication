@@ -20,13 +20,21 @@ import { CreateSessionScheduleStep } from '@/components/group/create-session-sch
 import { CreateSessionPricingStep } from '@/components/group/create-session-pricing-step';
 import { CreateSessionReviewStep } from '@/components/group/create-session-review-step';
 import { CreateSessionInviteStep } from '@/components/group/create-session-invite-step';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCreateGroupSession, DEFAULT_CLUB_ID } from '@/hooks/use-create-group-session';
 import { groupSessionService } from '@/services/group-session-service';
 
 export default function CreateGroupSessionScreen() {
   const { colors: palette } = useTheme();
+  const { status, error, retry } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const {
     form, step, steps, currentStepIndex, loading,
     createdSessionId, showSquadInviteModal, squadInviteSent,
@@ -35,6 +43,36 @@ export default function CreateGroupSessionScreen() {
     handleCreate, handleSquadInviteSuccess, handleFinish,
     openSquadInviteModal, closeSquadInviteModal,
   } = useCreateGroupSession();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to open group session creation flow.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="calendar-outline"
+          title="Creation unavailable"
+          message="The group session creation flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   const renderStep = () => {
     switch (step) {

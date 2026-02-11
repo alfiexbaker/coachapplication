@@ -5,7 +5,7 @@
  * Used in the MapView component for coach discovery.
  */
 
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -14,6 +14,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -64,9 +65,10 @@ export function CoachMarker({
 
   return (
     <Animated.View style={animatedStyle}>
-      <Pressable
+      <Clickable
         accessibilityRole="button"
         accessibilityLabel={`Coach ${coach.fullName}`}
+        accessibilityState={{ selected: isSelected }}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -138,7 +140,7 @@ export function CoachMarker({
             </ThemedText>
           </View>
         )}
-      </Pressable>
+      </Clickable>
     </Animated.View>
   );
 }

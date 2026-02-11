@@ -15,12 +15,12 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/screen-states';
 import { TrainingCard } from '@/components/club/training-card';
 import { WeeklyCalendarView } from '@/components/club/weekly-calendar-view';
 import { TrainingAttendanceCard } from '@/components/club/training-attendance-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useTrainingSchedule, type ViewMode } from '@/hooks/use-training-schedule';
 
 const VIEW_MODES: { key: ViewMode; label: string; icon: 'list' | 'calendar' }[] = [
@@ -29,7 +29,7 @@ const VIEW_MODES: { key: ViewMode; label: string; icon: 'list' | 'calendar' }[] 
 ];
 
 export default function TrainingScheduleScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors } = useTheme();
   const {
     loading, viewMode, setViewMode,
     selectedSquadId, setSelectedSquadId,
@@ -97,9 +97,7 @@ export default function TrainingScheduleScreen() {
       {/* Content */}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ThemedText style={{ color: colors.muted }}>Loading...</ThemedText>
-          </View>
+          <LoadingState variant="list" />
         ) : filteredSessions.length === 0 ? (
           <EmptyState
             icon="football-outline"
@@ -132,6 +130,5 @@ const styles = StyleSheet.create({
   filterContainer: { paddingHorizontal: Spacing.lg, gap: Spacing.xs },
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.full, borderWidth: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2 },
-  loadingContainer: { alignItems: 'center', padding: Spacing.xl },
   list: { gap: Spacing.md },
 });

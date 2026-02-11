@@ -108,14 +108,13 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
     }));
 
     const icon = options.icon ?? 'ribbon';
-    // Decorative: celebration gold accent
-    const iconColor = options.iconColor ?? '#FFD700';
+    const iconColor = options.iconColor ?? palette.warning;
     const title = options.title ?? 'Amazing!';
     const subtitle = options.subtitle;
 
     return (
       <Modal visible={showModal} transparent animationType="none">
-        <Animated.View style={[styles.overlay, containerStyle]}>
+        <Animated.View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.85) }, containerStyle]}>
           <View style={styles.content}>
             <Animated.View style={[styles.iconContainer, iconStyle]}>
               <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.12) }]}>
@@ -155,7 +154,6 @@ CelebrationOverlay.displayName = 'CelebrationOverlay';
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,23,42,0.85)', // Decorative: celebration overlay backdrop (always dark)
     justifyContent: 'center',
     alignItems: 'center',
   },

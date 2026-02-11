@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { progressService } from '@/services/progress-service';
 import { createLogger } from '@/utils/logger';
 import type { Goal, GoalCategory } from '@/constants/types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('GoalsDashboardScreen');
 
@@ -16,9 +17,6 @@ export const GOAL_CATEGORIES: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS',
 export function useGoalsDashboard() {
   const { currentUser } = useAuth();
 
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabFilter>('active');
   const [categoryFilter, setCategoryFilter] = useState<GoalCategory | null>(null);
 
@@ -27,25 +25,30 @@ export function useGoalsDashboard() {
   const loadGoals = useCallback(async () => {
     try {
       const userGoals = await progressService.getUserGoals(userId);
-      setGoals(userGoals);
+      return ok<{ goals: Goal[] }>({ goals: userGoals });
     } catch (error) {
       logger.error('Failed to load goals', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return err(serviceError('UNKNOWN', 'Failed to load goals.', error));
     }
   }, [userId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadGoals();
-    }, [loadGoals])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<{ goals: Goal[] }>({
+    load: loadGoals,
+    deps: [userId],
+    isEmpty: (value) => value.goals.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadGoals();
-  }, [loadGoals]);
+  const goals = data?.goals ?? [];
+
+  const handleRefresh = onRefresh;
 
   const filteredGoals = useMemo(() => {
     let filtered = goals;
@@ -76,7 +79,30 @@ export function useGoalsDashboard() {
   }, []);
 
   return {
-    goals: filteredGoals, loading, refreshing, activeTab, categoryFilter, stats,
-    handleRefresh, handleTabChange, handleCategoryToggle,
+    goals: filteredGoals,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    activeTab,
+    categoryFilter,
+    stats,
+    handleRefresh,
+    retry,
+    handleTabChange,
+    handleCategoryToggle,
+  } satisfies {
+    goals: Goal[];
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    activeTab: TabFilter;
+    categoryFilter: GoalCategory | null;
+    stats: { active: number; completed: number; total: number; avgProgress: number };
+    handleRefresh: () => void;
+    retry: () => void;
+    handleTabChange: (tab: TabFilter) => void;
+    handleCategoryToggle: (cat: GoalCategory) => void;
   };
 }

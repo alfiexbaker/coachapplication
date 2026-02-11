@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -100,16 +101,30 @@ export const InviteCard = memo(function InviteCard({ invite, respondingTo, onAcc
           <RsvpButtonGroup currentStatus={invite.status === 'MAYBE' ? 'maybe' : undefined} onRespond={(s) => onRsvp(invite.id, s)} disabled={isResponding} compact />
           {isPending && (
             <Row style={styles.actions}>
-              <Pressable style={[styles.declineButton, { borderColor: palette.border }]} onPress={() => onDecline(invite)} disabled={isResponding}>
+              <Clickable
+                style={[styles.declineButton, { borderColor: palette.border }]}
+                onPress={() => onDecline(invite)}
+                disabled={isResponding}
+                accessibilityLabel="Decline invite"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isResponding }}
+              >
                 <ThemedText style={[styles.declineText, { color: palette.muted }]}>Decline</ThemedText>
-              </Pressable>
-              <Pressable style={[styles.acceptButton, { backgroundColor: palette.tint }]} onPress={() => onAccept(invite)} disabled={isResponding}>
+              </Clickable>
+              <Clickable
+                style={[styles.acceptButton, { backgroundColor: palette.tint }]}
+                onPress={() => onAccept(invite)}
+                disabled={isResponding}
+                accessibilityLabel="Accept invite"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isResponding }}
+              >
                 {isResponding ? (
                   <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Booking...</ThemedText>
                 ) : (
                   <><Ionicons name="checkmark" size={18} color={palette.onPrimary} /><ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept</ThemedText></>
                 )}
-              </Pressable>
+              </Clickable>
             </Row>
           )}
         </View>

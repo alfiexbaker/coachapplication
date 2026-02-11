@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,11 +10,14 @@ import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceList } from '@/components/invoices';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { invoiceService } from '@/services/invoice-service';
 import { Invoice, InvoiceSummary, InvoiceFilter } from '@/constants/types';
+import { err, ok, serviceError } from '@/types/result';
 
 const logger = createLogger('InvoicesScreen');
 
@@ -27,14 +29,15 @@ export default function InvoicesScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [summary, setSummary] = useState<InvoiceSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<InvoiceFilter>({});
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      return ok<{ invoices: Invoice[]; summary: InvoiceSummary | null }>({
+        invoices: [],
+        summary: null,
+      });
+    }
 
     try {
       const [invoicesData, summaryData] = await Promise.all([
@@ -44,51 +47,69 @@ export default function InvoicesScreen() {
         invoiceService.getInvoiceSummary(currentUser.id),
       ]);
 
-      setInvoices(invoicesData);
-      setSummary(summaryData);
+      return ok<{ invoices: Invoice[]; summary: InvoiceSummary | null }>({
+        invoices: invoicesData,
+        summary: summaryData,
+      });
     } catch (error) {
       logger.error('Failed to load invoices', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load invoices.', error));
     }
   }, [currentUser?.id, filter]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<{ invoices: Invoice[]; summary: InvoiceSummary | null }>({
+    load: loadData,
+    deps: [currentUser?.id, filter.status, filter.dateFrom, filter.dateTo, filter.bookingId, filter.coachId],
+    isEmpty: (value) => value.invoices.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
+  const invoices = data?.invoices ?? [];
+  const summary = data?.summary ?? null;
 
   const handleFilterChange = (newFilter: InvoiceFilter) => {
     setFilter(newFilter);
   };
 
-  // Reload when filter changes
-  useFocusEffect(
-    useCallback(() => {
-      if (!loading) {
-        loadData();
-      }
-    }, [loading, loadData])
-  );
-
-  if (loading) {
+  if (status === 'loading') {
     return (
       <PageContainer
         header={<PageHeader title="Invoices" subtitle="Your receipts and invoices" showBack />}
       >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading invoices...
-          </ThemedText>
-        </View>
+        <LoadingState variant="list" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer
+        header={<PageHeader title="Invoices" subtitle="Your receipts and invoices" showBack />}
+      >
+        <ErrorState message={error?.message || 'Failed to load invoices.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <PageContainer
+        header={<PageHeader title="Invoices" subtitle="Your receipts and invoices" showBack />}
+      >
+        <EmptyState
+          icon="receipt-outline"
+          title="No invoices yet"
+          message="Invoices for completed sessions will show up here."
+          actionLabel="Refresh"
+          onPressAction={onRefresh}
+        />
       </PageContainer>
     );
   }
@@ -161,9 +182,9 @@ export default function InvoicesScreen() {
     >
       <InvoiceList
         invoices={invoices}
-        loading={loading}
+        loading={false}
         refreshing={refreshing}
-        onRefresh={handleRefresh}
+        onRefresh={onRefresh}
         onFilterChange={handleFilterChange}
         showFilters={true}
         emptyMessage="No invoices yet"
@@ -178,15 +199,6 @@ export default function InvoicesScreen() {
 // ============================================================================
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  loadingText: {
-    ...Typography.bodySmall,
-  },
   summaryCard: {
     marginBottom: Spacing.md,
     gap: Spacing.md,

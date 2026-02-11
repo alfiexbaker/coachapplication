@@ -3,32 +3,57 @@
  * Manages groups, carpools, tab state, and create group flow.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { Alert } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
-import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import type { ParentGroup, CarpoolOffer } from '@/constants/types';
 import type { CreateGroupFormData } from '@/components/community/CreateGroupForm';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('CommunityHubScreen');
 
 export type TabType = 'groups' | 'carpools' | 'discover';
 
-export function useCommunityHub() {
+interface CommunityHubData {
+  myGroups: ParentGroup[];
+  publicGroups: ParentGroup[];
+  carpoolOffers: CarpoolOffer[];
+}
+
+export interface UseCommunityHubResult {
+  activeTab: TabType;
+  setActiveTab: Dispatch<SetStateAction<TabType>>;
+  myGroups: ParentGroup[];
+  publicGroups: ParentGroup[];
+  carpoolOffers: CarpoolOffer[];
+  status: ScreenStatus;
+  loading: boolean;
+  error: ServiceError | null;
+  refreshing: boolean;
+  showCreateModal: boolean;
+  setShowCreateModal: Dispatch<SetStateAction<boolean>>;
+  creatingGroup: boolean;
+  parentId: string;
+  onRefresh: () => void;
+  retry: () => void;
+  handleCreateGroup: (data: CreateGroupFormData) => Promise<void>;
+  handleJoinGroup: (group: ParentGroup) => Promise<void>;
+  handleGroupPress: (group: ParentGroup) => void;
+  handleCarpoolPress: () => void;
+}
+
+export function useCommunityHub(): UseCommunityHubResult {
   const { currentUser } = useAuth();
   const parentId = currentUser?.id ?? 'parent1';
   const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
 
   const [activeTab, setActiveTab] = useState<TabType>('groups');
-  const [myGroups, setMyGroups] = useState<ParentGroup[]>([]);
-  const [publicGroups, setPublicGroups] = useState<ParentGroup[]>([]);
-  const [carpoolOffers, setCarpoolOffers] = useState<CarpoolOffer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
 
@@ -39,45 +64,48 @@ export function useCommunityHub() {
         communityService.getPublicGroups(),
         communityService.getAvailableCarpoolOffers(parentId),
       ]);
-      if (!groupsResult.success) {
-        Alert.alert('Error', groupsResult.error.message);
-        setMyGroups([]);
-      } else {
-        setMyGroups(groupsResult.data);
-      }
 
-      if (!publicResult.success) {
-        Alert.alert('Error', publicResult.error.message);
-        setPublicGroups([]);
-      } else if (!groupsResult.success) {
-        setPublicGroups(publicResult.data);
-      } else {
-        setPublicGroups(publicResult.data.filter((pg) => !groupsResult.data.some((g) => g.id === pg.id)));
-      }
+      if (!groupsResult.success) return err(groupsResult.error);
+      if (!publicResult.success) return err(publicResult.error);
+      if (!carpoolsResult.success) return err(carpoolsResult.error);
 
-      if (!carpoolsResult.success) {
-        Alert.alert('Error', carpoolsResult.error.message);
-        setCarpoolOffers([]);
-      } else {
-        setCarpoolOffers(carpoolsResult.data);
-      }
-    } catch (error) {
-      logger.error('Failed to load community data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const availablePublicGroups = publicResult.data.filter(
+        (group) => !groupsResult.data.some((memberGroup) => memberGroup.id === group.id),
+      );
+
+      return ok<CommunityHubData>({
+        myGroups: groupsResult.data,
+        publicGroups: availablePublicGroups,
+        carpoolOffers: carpoolsResult.data,
+      });
+    } catch (loadError) {
+      logger.error('Failed to load community data:', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load community data. Pull down to refresh.', loadError));
     }
   }, [parentId]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<CommunityHubData>({
+    load: loadData,
+    deps: [parentId],
+    events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
+    isEmpty: (value) =>
+      value.myGroups.length === 0 &&
+      value.publicGroups.length === 0 &&
+      value.carpoolOffers.length === 0,
+    refetchOnFocus: true,
+  });
 
-  useEffect(() => {
-    const unsub1 = onTyped(ServiceEvents.GROUP_MEMBER_JOINED, () => loadData());
-    const unsub2 = onTyped(ServiceEvents.GROUP_MEMBER_ROLE_CHANGED, () => loadData());
-    return () => { unsub1(); unsub2(); };
-  }, [loadData]);
-
-  const onRefresh = useCallback(() => { setRefreshing(true); loadData(); }, [loadData]);
+  const myGroups = data?.myGroups ?? [];
+  const publicGroups = data?.publicGroups ?? [];
+  const carpoolOffers = data?.carpoolOffers ?? [];
+  const loading = status === 'loading';
 
   const handleCreateGroup = useCallback(async (data: CreateGroupFormData) => {
     setCreatingGroup(true);
@@ -91,13 +119,13 @@ export function useCommunityHub() {
         return;
       }
       setShowCreateModal(false);
-      loadData();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to create group:', error);
     } finally {
       setCreatingGroup(false);
     }
-  }, [parentId, parentName, loadData]);
+  }, [parentId, parentName, onRefresh]);
 
   const isCoachUser = currentUser?.role === 'COACH';
 
@@ -105,19 +133,19 @@ export function useCommunityHub() {
     try {
       const result = await communityService.joinGroup(group.id, parentId, parentName, { isCoach: isCoachUser });
       if (!result.success) { Alert.alert('Could not join', result.error.message); return; }
-      await loadData();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to join group:', error);
       Alert.alert('Error', 'Failed to join group. Please try again.');
     }
-  }, [parentId, parentName, isCoachUser, loadData]);
+  }, [parentId, parentName, isCoachUser, onRefresh]);
 
   const handleGroupPress = useCallback((group: ParentGroup) => { router.push(Routes.communityGroup(group.id)); }, []);
   const handleCarpoolPress = useCallback(() => { router.push(Routes.CARPOOL); }, []);
 
   return {
     activeTab, setActiveTab, myGroups, publicGroups, carpoolOffers,
-    loading, refreshing, showCreateModal, setShowCreateModal, creatingGroup,
-    parentId, onRefresh, handleCreateGroup, handleJoinGroup, handleGroupPress, handleCarpoolPress,
+    status, loading, error, refreshing, showCreateModal, setShowCreateModal, creatingGroup,
+    parentId, onRefresh, retry, handleCreateGroup, handleJoinGroup, handleGroupPress, handleCarpoolPress,
   };
 }

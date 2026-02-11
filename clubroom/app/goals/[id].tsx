@@ -22,21 +22,23 @@ import { GoalHeroSection } from '@/components/goals/goal-hero-section';
 import { GoalMetaCard } from '@/components/goals/goal-meta-card';
 import { GoalActionsSection } from '@/components/goals/goal-actions-section';
 import { GoalCelebrationModal } from '@/components/goals/goal-celebration-modal';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useGoalDetail } from '@/hooks/use-goal-detail';
 
 export default function GoalDetailScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    goal, loading, refreshing, showCelebration,
+    goal, loading, status, error, refreshing, retry, showCelebration,
     confettiRef, celebrationStyle, isOwner,
     handleRefresh, handleToggleMilestone, handleAddMilestone,
     handleDeleteMilestone, handleStatusChange, handleDelete,
   } = useGoalDetail();
 
-  if (loading || !goal) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Row gap="md" align="center" style={styles.header}>
@@ -44,9 +46,33 @@ export default function GoalDetailScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
         </Row>
-        <View style={styles.loadingContainer}>
-          <ThemedText style={{ color: colors.muted }}>{loading ? 'Loading goal...' : 'Goal not found'}</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row gap="md" align="center" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Clickable>
+        </Row>
+        <ErrorState message={error?.message ?? 'Failed to load this goal.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !goal) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Row gap="md" align="center" style={styles.header}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Clickable>
+        </Row>
+        <EmptyState icon="flag-outline" title="Goal not found" message="This goal may have been deleted or is unavailable." />
       </SafeAreaView>
     );
   }

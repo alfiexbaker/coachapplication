@@ -13,12 +13,14 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { badgeService } from '@/services/badge-service';
 import { apiClient } from '@/services/api-client';
 import { hasChildren } from '@/utils/user-helpers';
 import { Routes } from '@/navigation/routes';
 import type { Session, User } from '@/constants/types';
+import { err, ok, serviceError } from '@/types/result';
 
 export interface StatItem {
   id: string;
@@ -50,10 +52,14 @@ const mapSessionToDisplay = (session: Session): SessionDisplayItem => ({
   completedAt: session.completedAt,
 });
 
+interface StatisticsLoadData {
+  storedSessions: Session[];
+  badgeCount: number;
+}
+
 export function useStatistics() {
   const { currentUser, availableUsers } = useAuth();
   const { colors: palette } = useTheme();
-  const [storedSessions, setStoredSessions] = useState<Session[]>([]);
 
   const children = useMemo<User[]>(() => {
     if (currentUser && hasChildren(currentUser)) {
@@ -76,25 +82,9 @@ export function useStatistics() {
   const [selectedChildId, setSelectedChildId] = useState<string>(
     children.length > 0 ? children[0].id : ''
   );
-  const [badgeCount, setBadgeCount] = useState(0);
 
   const isParent = hasChildren(currentUser);
   const targetId = isParent ? selectedChildId : currentUser?.id;
-
-  // Load stored sessions once per user context
-  useEffect(() => {
-    let active = true;
-    const loadSessions = async () => {
-      const sessions = await apiClient.get<Session[]>('coach_sessions', []);
-      if (active) {
-        setStoredSessions(sessions);
-      }
-    };
-    void loadSessions();
-    return () => {
-      active = false;
-    };
-  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!selectedChildId && children.length > 0) {
@@ -102,16 +92,38 @@ export function useStatistics() {
     }
   }, [children, selectedChildId]);
 
-  // Load badge count
-  useEffect(() => {
-    const fetchBadges = async () => {
-      if (targetId) {
-        const badges = await badgeService.listAwardsForAthlete(targetId);
-        setBadgeCount(badges.filter((b) => b.visibility !== 'coach_only').length);
-      }
-    };
-    fetchBadges();
-  }, [currentUser, selectedChildId, targetId]);
+  const loadData = useCallback(async () => {
+    if (!targetId) {
+      return ok<StatisticsLoadData>({
+        storedSessions: [],
+        badgeCount: 0,
+      });
+    }
+
+    try {
+      const [sessions, badges] = await Promise.all([
+        apiClient.get<Session[]>('coach_sessions', []),
+        badgeService.listAwardsForAthlete(targetId),
+      ]);
+
+      return ok<StatisticsLoadData>({
+        storedSessions: sessions,
+        badgeCount: badges.filter((badge) => badge.visibility !== 'coach_only').length,
+      });
+    } catch (loadError) {
+      return err(serviceError('UNKNOWN', 'Failed to load statistics.', loadError));
+    }
+  }, [targetId]);
+
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<StatisticsLoadData>({
+    load: loadData,
+    deps: [targetId],
+    isEmpty: (value) => value.storedSessions.filter((session) => session.athleteId === targetId).length === 0,
+    refetchOnFocus: true,
+  });
+
+  const storedSessions = data?.storedSessions ?? [];
+  const badgeCount = data?.badgeCount ?? 0;
 
   // Get sessions filtered by selected child for parents
   const sessions = useMemo<SessionDisplayItem[]>(() => {
@@ -213,6 +225,11 @@ export function useStatistics() {
 
   return {
     // Data
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     children,
     selectedChildId,
     setSelectedChildId,

@@ -15,10 +15,17 @@
 import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
-import { eventBus, ServiceEvents, emitTyped, onTyped, EventPayloads } from '../../services/event-bus';
+import { eventBus, ServiceEvents, emitTyped, onTyped } from '../../services/event-bus';
 
 // Type alias for SESSION_COMPLETED event payload
-type SessionCompletedPayload = EventPayloads[typeof ServiceEvents.SESSION_COMPLETED];
+type SessionCompletedPayload = {
+  sessionId: string;
+  bookingId?: string;
+  coachId: string;
+  athleteIds: string[];
+  price?: number;
+  athleteName?: string;
+};
 
 // ============================================================================
 // SETUP
@@ -52,10 +59,10 @@ describe('ServiceEvents.SESSION_COMPLETED', () => {
 
 describe('EventBus SESSION_COMPLETED emission', () => {
   test('emits SESSION_COMPLETED event and handler receives payload', () => {
-    let received: SessionCompletedPayload | null = null;
+    const receivedEvents: SessionCompletedPayload[] = [];
 
-    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data: SessionCompletedPayload) => {
-      received = data;
+    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data) => {
+      receivedEvents.push(data as SessionCompletedPayload);
     });
 
     eventBus.emit(ServiceEvents.SESSION_COMPLETED, {
@@ -66,7 +73,8 @@ describe('EventBus SESSION_COMPLETED emission', () => {
       athleteName: 'Tom Wilson',
     });
 
-    assert.ok(received, 'Handler should have been called');
+    assert.strictEqual(receivedEvents.length, 1, 'Handler should have been called exactly once');
+    const received = receivedEvents[0]!;
     assert.strictEqual(received.sessionId, 'session_123');
     assert.strictEqual(received.coachId, 'coach_1');
     assert.deepStrictEqual(received.athleteIds, ['athlete_1', 'athlete_2']);
@@ -75,10 +83,10 @@ describe('EventBus SESSION_COMPLETED emission', () => {
   });
 
   test('emits SESSION_COMPLETED with optional bookingId undefined (session offering)', () => {
-    let received: SessionCompletedPayload | null = null;
+    const receivedEvents: SessionCompletedPayload[] = [];
 
-    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data: SessionCompletedPayload) => {
-      received = data;
+    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data) => {
+      receivedEvents.push(data as SessionCompletedPayload);
     });
 
     eventBus.emit(ServiceEvents.SESSION_COMPLETED, {
@@ -88,7 +96,8 @@ describe('EventBus SESSION_COMPLETED emission', () => {
       bookingId: undefined,
     });
 
-    assert.ok(received);
+    assert.strictEqual(receivedEvents.length, 1);
+    const received = receivedEvents[0]!;
     assert.strictEqual(received.sessionId, 'session_789');
     assert.strictEqual(received.bookingId, undefined);
   });
@@ -187,10 +196,10 @@ describe('EventBus SESSION_COMPLETED emission', () => {
 
 describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
   test('emitTyped emits SESSION_COMPLETED with typed payload', () => {
-    let received: SessionCompletedPayload | null = null;
+    const receivedEvents: SessionCompletedPayload[] = [];
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
-      received = data;
+      receivedEvents.push(data as SessionCompletedPayload);
     });
 
     emitTyped(ServiceEvents.SESSION_COMPLETED, {
@@ -202,7 +211,8 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
       athleteName: 'Typed Athlete',
     });
 
-    assert.ok(received);
+    assert.strictEqual(receivedEvents.length, 1);
+    const received = receivedEvents[0]!;
     assert.strictEqual(received.sessionId, 'session_typed_1');
     assert.strictEqual(received.coachId, 'coach_typed');
     assert.deepStrictEqual(received.athleteIds, ['athlete_typed_1', 'athlete_typed_2']);
@@ -236,10 +246,10 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
   });
 
   test('SESSION_COMPLETED payload includes optional fields', () => {
-    let received: SessionCompletedPayload | null = null;
+    const receivedEvents: SessionCompletedPayload[] = [];
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
-      received = data;
+      receivedEvents.push(data as SessionCompletedPayload);
     });
 
     // Emit with all optional fields
@@ -252,17 +262,18 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
       athleteName: 'Emma',
     });
 
-    assert.ok(received);
+    assert.strictEqual(receivedEvents.length, 1);
+    const received = receivedEvents[0]!;
     assert.strictEqual(received.bookingId, 'booking_1');
     assert.strictEqual(received.price, 75);
     assert.strictEqual(received.athleteName, 'Emma');
   });
 
   test('SESSION_COMPLETED payload works with minimal required fields', () => {
-    let received: SessionCompletedPayload | null = null;
+    const receivedEvents: SessionCompletedPayload[] = [];
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
-      received = data;
+      receivedEvents.push(data as SessionCompletedPayload);
     });
 
     // Emit with only required fields
@@ -272,7 +283,8 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
       athleteIds: ['a1'],
     });
 
-    assert.ok(received);
+    assert.strictEqual(receivedEvents.length, 1);
+    const received = receivedEvents[0]!;
     assert.strictEqual(received.sessionId, 'session_min');
     assert.strictEqual(received.bookingId, undefined);
     assert.strictEqual(received.price, undefined);
@@ -297,11 +309,9 @@ describe('Session Completion Flow — event emission pattern', () => {
     const sessionId = 'offering_123';
     const coachId = 'coach_sarah';
     const attendingAthleteIds = ['athlete_tom', 'athlete_emma'];
-    const sourceType = 'booking';
-
     emitTyped(ServiceEvents.SESSION_COMPLETED, {
       sessionId,
-      bookingId: sourceType === 'booking' ? sessionId : undefined,
+      bookingId: sessionId,
       coachId,
       athleteIds: attendingAthleteIds,
       athleteName: 'Tom Wilson', // first attending athlete
@@ -326,11 +336,9 @@ describe('Session Completion Flow — event emission pattern', () => {
     // Simulate: coach completes a session offering (not a booking)
     const sessionId = 'session_xyz';
     const coachId = 'coach_marcus';
-    const sourceType = 'offering';
-
     emitTyped(ServiceEvents.SESSION_COMPLETED, {
       sessionId,
-      bookingId: sourceType === 'booking' ? sessionId : undefined,
+      bookingId: undefined,
       coachId,
       athleteIds: ['athlete_1'],
       athleteName: 'Emma Davis',

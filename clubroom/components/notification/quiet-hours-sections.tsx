@@ -1,54 +1,35 @@
-/**
- * Extracted sub-components for QuietHoursSelector.
- *
- * Helpers: parseTimeToDate, formatDateToTime, formatTimeForDisplay.
- * QuietHoursHeader — toggle row with icon + label.
- * TimeRangeSection — from/to time pickers + info banner.
- * TimePickerModal — iOS modal time picker.
- */
-
 import React, { memo } from 'react';
 import { View, StyleSheet, Modal, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 export function parseTimeToDate(time: string): Date {
   const [hours, minutes] = time.split(':').map(Number);
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
   return date;
 }
-
 export function formatDateToTime(date: Date): string {
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
-
 export function formatTimeForDisplay(time: string): string {
   const [hours, minutes] = time.split(':').map(Number);
   const period = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours % 12 || 12;
   return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
-
-// ─── QuietHoursHeader ────────────────────────────────────────────────────────
-
 interface QuietHoursHeaderProps {
   enabled: boolean;
   disabled: boolean;
   onToggle: () => void;
   palette: ThemeColors;
 }
-
 export const QuietHoursHeader = memo(function QuietHoursHeader({
   enabled,
   disabled,
@@ -56,11 +37,7 @@ export const QuietHoursHeader = memo(function QuietHoursHeader({
   palette,
 }: QuietHoursHeaderProps) {
   return (
-    <Clickable
-      onPress={onToggle}
-      disabled={disabled}
-      style={styles.header}
-    >
+    <Clickable onPress={onToggle} disabled={disabled} style={styles.header}>
       <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
         <Ionicons name="moon" size={22} color={palette.accent} />
       </View>
@@ -91,9 +68,6 @@ export const QuietHoursHeader = memo(function QuietHoursHeader({
     </Clickable>
   );
 });
-
-// ─── TimeRangeSection ────────────────────────────────────────────────────────
-
 interface TimeRangeSectionProps {
   startTime: string;
   endTime: string;
@@ -102,7 +76,6 @@ interface TimeRangeSectionProps {
   onEndPress: () => void;
   palette: ThemeColors;
 }
-
 export const TimeRangeSection = memo(function TimeRangeSection({
   startTime,
   endTime,
@@ -112,7 +85,6 @@ export const TimeRangeSection = memo(function TimeRangeSection({
   palette,
 }: TimeRangeSectionProps) {
   const isOvernight = startTime > endTime;
-
   return (
     <View style={styles.timeSection}>
       <Row align="center" justify="between">
@@ -131,7 +103,6 @@ export const TimeRangeSection = memo(function TimeRangeSection({
           <Ionicons name="chevron-down" size={16} color={palette.muted} />
         </Clickable>
       </Row>
-
       <Row align="center" justify="between">
         <Row align="center" gap="xs">
           <Ionicons name="sunny-outline" size={18} color={palette.muted} />
@@ -148,7 +119,6 @@ export const TimeRangeSection = memo(function TimeRangeSection({
           <Ionicons name="chevron-down" size={16} color={palette.muted} />
         </Clickable>
       </Row>
-
       <Row align="start" gap="xs" style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}>
         <Ionicons name="information-circle" size={16} color={palette.accent} />
         <ThemedText style={[styles.infoText, { color: palette.accent }]}>
@@ -160,9 +130,6 @@ export const TimeRangeSection = memo(function TimeRangeSection({
     </View>
   );
 });
-
-// ─── TimePickerModal (iOS) ───────────────────────────────────────────────────
-
 interface TimePickerModalProps {
   visible: boolean;
   title: string;
@@ -172,7 +139,6 @@ interface TimePickerModalProps {
   onCancel: () => void;
   palette: ThemeColors;
 }
-
 export const TimePickerModal = memo(function TimePickerModal({
   visible,
   title,
@@ -183,10 +149,9 @@ export const TimePickerModal = memo(function TimePickerModal({
   palette,
 }: TimePickerModalProps) {
   if (!visible || Platform.OS !== 'ios') return null;
-
   return (
     <Modal transparent animationType="slide" visible>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <View style={[styles.pickerContainer, { backgroundColor: palette.card }]}>
           <Row justify="between" align="center" style={[styles.pickerHeader, { borderBottomColor: palette.border }]}>
             <Clickable onPress={onCancel}>
@@ -213,9 +178,6 @@ export const TimePickerModal = memo(function TimePickerModal({
     </Modal>
   );
 });
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -271,7 +233,6 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   pickerContainer: {
     borderTopLeftRadius: Radii.xl,

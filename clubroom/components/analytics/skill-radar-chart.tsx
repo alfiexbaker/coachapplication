@@ -2,10 +2,11 @@
  * SkillRadarChart — The radar/spider chart visualization.
  */
 import { memo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -52,13 +53,20 @@ function SkillRadarChartInner({ skills, selectedSkill, onSelectSkill, showCompar
           return (
             <View key={skill.skillName}>
               <View style={[styles.axisLine, { backgroundColor: palette.border, width: RADIUS, left: CENTER, top: CENTER, transform: [{ translateX: -0.5 }, { rotate: `${(index * 360) / numSkills - 90}deg` }, { translateX: RADIUS / 2 }] }]} />
-              <Pressable onPress={() => onSelectSkill(isSelected ? null : skill)} style={[styles.skillLabel, { left: labelPos.x - 32, top: labelPos.y - 14 }]}>
+              <Clickable
+                onPress={() => onSelectSkill(isSelected ? null : skill)}
+                style={[styles.skillLabel, { left: labelPos.x - 32, top: labelPos.y - 14 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${skill.skillName} skill`}
+                accessibilityState={{ selected: isSelected }}
+                hitSlop={12}
+              >
                 <View style={[styles.skillLabelBg, isSelected ? { backgroundColor: withAlpha(skillColor, 0.12), borderColor: skillColor, borderWidth: 1 } : undefined]}>
                   <ThemedText style={[styles.skillLabelText, { color: isSelected ? skillColor : palette.text }]}>
                     {skill.skillName.length > 8 ? skill.skillName.slice(0, 7) + '...' : skill.skillName}
                   </ThemedText>
                 </View>
-              </Pressable>
+              </Clickable>
             </View>
           );
         })}
@@ -79,8 +87,12 @@ function SkillRadarChartInner({ skills, selectedSkill, onSelectSkill, showCompar
             const pos = getPosition(index, skill.currentLevel, numSkills);
             const isSelected = selectedSkill?.skillName === skill.skillName;
             return (
-              <Pressable key={skill.skillName} onPress={() => onSelectSkill(isSelected ? null : skill)}
+              <Clickable key={skill.skillName} onPress={() => onSelectSkill(isSelected ? null : skill)}
                 style={[styles.dataPoint, { left: pos.x - (isSelected ? 8 : 6), top: pos.y - (isSelected ? 8 : 6), width: isSelected ? 16 : 12, height: isSelected ? 16 : 12, backgroundColor: getSkillColor(skill.currentLevel), borderColor: palette.surface, borderWidth: 2, shadowColor: palette.text, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${skill.skillName} skill`}
+                accessibilityState={{ selected: isSelected }}
+                hitSlop={16}
               />
             );
           })}

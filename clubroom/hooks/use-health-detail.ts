@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import type { Injury } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import type { ScreenStatus } from '@/hooks/use-screen';
+import { serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useHealthDetail');
 
@@ -25,6 +27,7 @@ export function useHealthDetail(id: string | undefined) {
   const [injury, setInjury] = useState<Injury | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<ServiceError | null>(null);
   const [showAddNote, setShowAddNote] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [noteProgress, setNoteProgress] = useState(0);
@@ -32,12 +35,16 @@ export function useHealthDetail(id: string | undefined) {
 
   const loadInjury = useCallback(async () => {
     if (!id) return;
+    setError(null);
+    setLoading(true);
     try {
       const data = await injuryService.getInjuryById(id);
       setInjury(data);
       if (data) setNoteProgress(data.recoveryPercent);
-    } catch (error) {
-      logger.error('Failed to load injury:', error);
+    } catch (loadError) {
+      logger.error('Failed to load injury:', loadError);
+      setInjury(null);
+      setError(serviceError('UNKNOWN', 'Failed to load injury details.', loadError));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -105,8 +112,25 @@ export function useHealthDetail(id: string | undefined) {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
+  const status: ScreenStatus = loading && !injury
+    ? 'loading'
+    : error && !injury
+      ? 'error'
+      : !injury
+        ? 'empty'
+        : 'success';
+
   return {
-    injury, loading, refreshing, showAddNote, noteText, noteProgress, saving,
+    injury,
+    loading,
+    status,
+    error,
+    refreshing,
+    retry: loadInjury,
+    showAddNote,
+    noteText,
+    noteProgress,
+    saving,
     setNoteText, setNoteProgress,
     handleRefresh, handleAddNote, handleMarkHealed,
     cancelAddNote, openAddNote,

@@ -130,7 +130,7 @@ describe('EarningsCalculatorService', () => {
   describe('getEarningsSummary', () => {
     it('should return ok() with period summary', async () => {
       const coachId = 'coach-' + Math.random().toString(36).slice(2);
-      const result = await earningsCalculatorService.getEarningsSummary(coachId, 'month');
+      const result = await earningsCalculatorService.getEarningsSummary(coachId, 'month', []);
 
       assert.ok(result.success);
       assert.ok(result.data.period);
@@ -141,9 +141,9 @@ describe('EarningsCalculatorService', () => {
     it('should handle different periods', async () => {
       const coachId = 'coach-' + Math.random().toString(36).slice(2);
 
-      const weekResult = await earningsCalculatorService.getEarningsSummary(coachId, 'week');
-      const monthResult = await earningsCalculatorService.getEarningsSummary(coachId, 'month');
-      const yearResult = await earningsCalculatorService.getEarningsSummary(coachId, 'year');
+      const weekResult = await earningsCalculatorService.getEarningsSummary(coachId, 'week', []);
+      const monthResult = await earningsCalculatorService.getEarningsSummary(coachId, 'month', []);
+      const yearResult = await earningsCalculatorService.getEarningsSummary(coachId, 'year', []);
 
       assert.ok(weekResult.success);
       assert.ok(monthResult.success);
@@ -152,7 +152,7 @@ describe('EarningsCalculatorService', () => {
 
     it('should include comparison to last period', async () => {
       const coachId = 'coach-' + Math.random().toString(36).slice(2);
-      const result = await earningsCalculatorService.getEarningsSummary(coachId, 'month');
+      const result = await earningsCalculatorService.getEarningsSummary(coachId, 'month', []);
 
       assert.ok(result.success);
       assert.ok('comparedToLastPeriod' in result.data);
@@ -161,7 +161,7 @@ describe('EarningsCalculatorService', () => {
 
     it('should include average per session', async () => {
       const coachId = 'coach-' + Math.random().toString(36).slice(2);
-      const result = await earningsCalculatorService.getEarningsSummary(coachId, 'month');
+      const result = await earningsCalculatorService.getEarningsSummary(coachId, 'month', []);
 
       assert.ok(result.success);
       assert.ok('averagePerSession' in result.data);

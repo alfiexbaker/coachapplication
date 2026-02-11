@@ -1,0 +1,35 @@
+import { StyleSheet } from 'react-native';
+
+import { Spacing, Radii, Typography } from '@/constants/theme';
+
+export const styles = StyleSheet.create({
+  section: { gap: Spacing.sm },
+  sectionHeader: { alignItems: 'center', gap: Spacing.sm },
+  sectionIcon: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  sectionTitleWrap: { flex: 1 },
+  sectionHint: { ...Typography.caption },
+  chipRow: { flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.xs },
+  compactChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, minWidth: 50, alignItems: 'center' },
+  optionChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  chipText: { fontWeight: '600' },
+  toggleCard: { padding: Spacing.md },
+  toggleRow: { alignItems: 'center', justifyContent: 'space-between' },
+  toggleInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1 },
+  toggleIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  toggleHint: { ...Typography.caption },
+  rescheduleSection: { gap: Spacing.sm },
+  rescheduleLabel: { ...Typography.caption },
+  rescheduleChips: { flexWrap: 'wrap', gap: Spacing.xs },
+  policyChip: { flex: 1, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center', gap: Spacing.xxs, minWidth: 90 },
+  policyChipName: { ...Typography.smallSemiBold },
+  policyChipDesc: { ...Typography.micro, textAlign: 'center' },
+  tierSummary: { padding: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
+  tierRow: { alignItems: 'center', gap: Spacing.xs },
+  tierDot: { width: 8, height: 8, borderRadius: 4 },
+  tierText: { ...Typography.smallSemiBold, minWidth: 80 },
+  tierHint: { ...Typography.micro },
+  summaryCard: { padding: Spacing.md },
+  summaryList: { gap: Spacing.xs },
+  summaryItem: { alignItems: 'center', gap: Spacing.xs },
+  summaryText: { ...Typography.small },
+});

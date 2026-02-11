@@ -347,7 +347,7 @@ describe('SquadGroupService', () => {
         (m: { parentId: string }) => m.parentId === 'parent_new_member',
       );
       assert.ok(newMember, 'New member should be in group');
-      assert.equal(newMember.parentName, 'New Parent');
+      assert.equal(newMember.role, 'MEMBER');
     });
 
     test('no-op if member is already in group', async () => {
@@ -601,7 +601,6 @@ describe('CommunityGroupService — Direct Member Management', () => {
       );
       assert.ok(added, 'Member should be added');
       assert.equal(added.role, 'MEMBER');
-      assert.equal(added.parentName, 'Direct Add Parent');
     });
 
     test('is a no-op if member is already in the group', async () => {

@@ -36,6 +36,7 @@ import { multiWeekBookingService } from '../multi-week-booking-service';
 import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { accountIdsMatch } from '@/utils/account-id';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, serviceError, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
@@ -641,7 +642,7 @@ export const sessionInviteService = {
   async getCoachInvites(coachId: string): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
-      return invitesCache.filter((inv) => inv.coachId === coachId);
+      return invitesCache.filter((inv) => accountIdsMatch(inv.coachId, coachId));
     }
 
     const response = await fetch(`/api/session-invites?coachId=${coachId}`);
@@ -655,7 +656,7 @@ export const sessionInviteService = {
   async getParentInvites(parentId: string): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
-      return invitesCache.filter((inv) => inv.parentId === parentId && !inv.dismissed);
+      return invitesCache.filter((inv) => accountIdsMatch(inv.parentId, parentId) && !inv.dismissed);
     }
 
     const response = await fetch(`/api/session-invites?parentId=${parentId}`);
@@ -849,7 +850,11 @@ export const sessionInviteService = {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
-        (inv) => (!inv.inviteType || inv.inviteType === 'OPEN') && !inv.dismissed
+        (inv) =>
+          (!inv.inviteType || inv.inviteType === 'OPEN') &&
+          inv.status === 'PENDING' &&
+          (!inv.expiresAt || new Date(inv.expiresAt) > new Date()) &&
+          !inv.dismissed
       );
     }
     const response = await fetch('/api/session-invites?inviteType=OPEN');
@@ -863,7 +868,7 @@ export const sessionInviteService = {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
-        (inv) => inv.inviteType === 'CLOSED' && inv.parentId === parentId && !inv.dismissed
+        (inv) => inv.inviteType === 'CLOSED' && accountIdsMatch(inv.parentId, parentId) && !inv.dismissed
       );
     }
     const response = await fetch(`/api/session-invites?inviteType=CLOSED&parentId=${parentId}`);
@@ -883,7 +888,7 @@ export const sessionInviteService = {
         if (inv.inviteType !== 'SQUAD_ONLY') return false;
         if (inv.dismissed) return false;
         // The parent must be the target OR their squad must match
-        if (inv.parentId === parentId) return true;
+        if (accountIdsMatch(inv.parentId, parentId)) return true;
         if (inv.squadIds && inv.squadIds.some((sid) => memberSquadIds.includes(sid))) return true;
         return false;
       });
@@ -910,9 +915,9 @@ export const sessionInviteService = {
         if (inv.dismissed) return false;
         const type = inv.inviteType || 'OPEN';
         if (type === 'OPEN') return true;
-        if (type === 'CLOSED') return inv.parentId === parentId;
+        if (type === 'CLOSED') return accountIdsMatch(inv.parentId, parentId);
         if (type === 'SQUAD_ONLY') {
-          if (inv.parentId === parentId) return true;
+          if (accountIdsMatch(inv.parentId, parentId)) return true;
           if (inv.squadIds && inv.squadIds.some((sid) => memberSquadIds.includes(sid))) return true;
           return false;
         }

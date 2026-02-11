@@ -1,17 +1,6 @@
-/**
- * Extracted sub-components for RSVPButton.
- *
- * getButtonStyle, getTextColor, getIcon — RSVP state helpers.
- * RSVPStatusBanner — cancelled/closed/full status banner.
- * CompactRSVPButton — single compact RSVP button.
- * FullRSVPButtonRow — 3-button Going/Maybe/Can't Go row.
- * CurrentRSVPStatus — current response display.
- */
-
 import { memo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, withAlpha } from '@/constants/theme';
@@ -20,24 +9,18 @@ import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 export function getButtonStyle(status: RSVPStatus, currentRSVP: EventRSVP | null | undefined, palette: ThemeColors) {
   const isSelected = currentRSVP?.status === status;
   const color = eventService.getRSVPStatusColor(status);
-
   if (isSelected) {
     return { backgroundColor: color, borderColor: color };
   }
   return { backgroundColor: 'transparent', borderColor: palette.border };
 }
-
 export function getTextColor(status: RSVPStatus, currentRSVP: EventRSVP | null | undefined, palette: ThemeColors): string {
   const isSelected = currentRSVP?.status === status;
   return isSelected ? palette.onPrimary : palette.text;
 }
-
 export function getIcon(status: RSVPStatus): keyof typeof Ionicons.glyphMap {
   switch (status) {
     case 'GOING': return 'checkmark';
@@ -45,14 +28,7 @@ export function getIcon(status: RSVPStatus): keyof typeof Ionicons.glyphMap {
     case 'NOT_GOING': return 'close';
   }
 }
-
-// ─── RSVPStatusBanner ────────────────────────────────────────────────────────
-
-interface RSVPStatusBannerProps {
-  variant: 'cancelled' | 'closed' | 'full';
-  palette: ThemeColors;
-}
-
+interface RSVPStatusBannerProps { variant: 'cancelled' | 'closed' | 'full'; palette: ThemeColors }
 export const RSVPStatusBanner = memo(function RSVPStatusBanner({
   variant,
   palette,
@@ -62,7 +38,6 @@ export const RSVPStatusBanner = memo(function RSVPStatusBanner({
     closed: { icon: 'time' as const, color: palette.warning, label: 'RSVP closed' },
     full: { icon: 'alert-circle' as const, color: palette.error, label: 'Event is full' },
   }[variant];
-
   return (
     <Row style={[styles.statusBanner, { backgroundColor: withAlpha(config.color, 0.09) }]}>
       <Ionicons name={config.icon} size={18} color={config.color} />
@@ -72,9 +47,6 @@ export const RSVPStatusBanner = memo(function RSVPStatusBanner({
     </Row>
   );
 });
-
-// ─── CompactRSVPButton ───────────────────────────────────────────────────────
-
 interface CompactRSVPButtonProps {
   currentRSVP: EventRSVP | null | undefined;
   loading: RSVPStatus | null;
@@ -82,7 +54,6 @@ interface CompactRSVPButtonProps {
   onPress: (status: RSVPStatus) => void;
   palette: ThemeColors;
 }
-
 export const CompactRSVPButton = memo(function CompactRSVPButton({
   currentRSVP,
   loading,
@@ -92,7 +63,6 @@ export const CompactRSVPButton = memo(function CompactRSVPButton({
 }: CompactRSVPButtonProps) {
   const status = currentRSVP?.status || 'GOING';
   const color = currentRSVP ? eventService.getRSVPStatusColor(currentRSVP.status) : palette.tint;
-
   return (
     <Clickable
       onPress={() => onPress(status)}
@@ -127,9 +97,6 @@ export const CompactRSVPButton = memo(function CompactRSVPButton({
     </Clickable>
   );
 });
-
-// ─── FullRSVPButtonRow ───────────────────────────────────────────────────────
-
 interface FullRSVPButtonRowProps {
   currentRSVP: EventRSVP | null | undefined;
   loading: RSVPStatus | null;
@@ -138,7 +105,6 @@ interface FullRSVPButtonRowProps {
   onPress: (status: RSVPStatus) => void;
   palette: ThemeColors;
 }
-
 export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
   currentRSVP,
   loading,
@@ -152,13 +118,11 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
     { status: 'MAYBE', label: 'Maybe' },
     { status: 'NOT_GOING', label: "Can't Go", useRawDisabled: true },
   ];
-
   return (
     <Row style={styles.buttonRow}>
       {statuses.map((s) => {
         const btnDisabled = s.useRawDisabled ? disabled : isDisabled;
         const textColor = getTextColor(s.status, currentRSVP, palette);
-
         return (
           <Clickable
             key={s.status}
@@ -186,14 +150,10 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
     </Row>
   );
 });
-
-// ─── CurrentRSVPStatus ───────────────────────────────────────────────────────
-
 interface CurrentRSVPStatusProps {
   currentRSVP: EventRSVP;
   palette: ThemeColors;
 }
-
 export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
   currentRSVP,
   palette,
@@ -222,9 +182,6 @@ export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
     </Row>
   );
 });
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 export const styles = StyleSheet.create({
   container: {
     gap: Spacing.sm,

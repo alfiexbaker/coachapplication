@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -101,7 +101,7 @@ export function VideoPlayer({
 
   return (
     <View style={[styles.container, { backgroundColor: palette.text }]}>
-      <Pressable onPress={toggleControls} style={styles.videoContainer}>
+      <Clickable onPress={toggleControls} style={styles.videoContainer} accessibilityRole="button" accessibilityLabel="Toggle video controls">
         <Video
           ref={videoRef}
           source={{ uri: videoUrl }}
@@ -115,21 +115,25 @@ export function VideoPlayer({
         />
 
         {isBuffering && (
-          <View style={styles.bufferingOverlay}>
+          <View style={[styles.bufferingOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
             <Ionicons name="hourglass" size={40} color={palette.onPrimary} />
           </View>
         )}
 
         {showControls && (
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={styles.controlsOverlay}>
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(200)}
+            style={[styles.controlsOverlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
+          >
             <Row flex align="center" justify="center" gap="xl">
-              <Clickable onPress={skipBackward} style={styles.skipButton}>
+              <Clickable onPress={skipBackward} style={[styles.skipButton, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
                 <Ionicons name="play-back" size={28} color={palette.onPrimary} />
               </Clickable>
-              <Clickable onPress={togglePlayPause} style={styles.playPauseButton}>
+              <Clickable onPress={togglePlayPause} style={[styles.playPauseButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
                 <Ionicons name={isPlaying ? 'pause' : 'play'} size={40} color={palette.onPrimary} />
               </Clickable>
-              <Clickable onPress={skipForward} style={styles.skipButton}>
+              <Clickable onPress={skipForward} style={[styles.skipButton, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
                 <Ionicons name="play-forward" size={28} color={palette.onPrimary} />
               </Clickable>
             </Row>
@@ -178,7 +182,7 @@ export function VideoPlayer({
             </View>
           </Animated.View>
         )}
-      </Pressable>
+      </Clickable>
     </View>
   );
 }
@@ -187,10 +191,10 @@ const styles = StyleSheet.create({
   container: { width: '100%', aspectRatio: 16 / 9, borderRadius: Radii.lg, overflow: 'hidden' },
   videoContainer: { flex: 1 },
   video: { flex: 1 },
-  bufferingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,23,42,0.5)', alignItems: 'center', justifyContent: 'center' },
-  controlsOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,23,42,0.4)', justifyContent: 'space-between' },
-  playPauseButton: { width: 72, height: 72, borderRadius: Radii['3xl'], backgroundColor: 'rgba(15,23,42,0.5)', alignItems: 'center', justifyContent: 'center' },
-  skipButton: { width: 48, height: 48, borderRadius: Radii.xl, backgroundColor: 'rgba(15,23,42,0.3)', alignItems: 'center', justifyContent: 'center' },
+  bufferingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  controlsOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between' },
+  playPauseButton: { width: 72, height: 72, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center' },
+  skipButton: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
   bottomControls: { padding: Spacing.md, gap: Spacing.xs },
   progressContainer: { position: 'relative', height: 30, justifyContent: 'center' },
   slider: { width: '100%', height: 30 },

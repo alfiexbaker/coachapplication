@@ -1,11 +1,8 @@
-/**
- * WalletTopUpModal — Modal with preset amounts and custom input for topping up.
- */
-
 import { memo, useCallback } from 'react';
-import { StyleSheet, Modal, TextInput, Pressable, ActivityIndicator, View } from 'react-native';
+import { StyleSheet, Modal, TextInput, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
@@ -60,14 +57,14 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
           <ThemedText type="title" style={styles.title}>
             Top Up Wallet
           </ThemedText>
-          <Pressable
+          <Clickable
             style={[styles.closeButton, { backgroundColor: colors.surfaceSecondary }]}
             onPress={handleClose}
             accessibilityLabel="Close top up modal"
             accessibilityRole="button"
           >
             <Ionicons name="close" size={24} color={colors.text} />
-          </Pressable>
+          </Clickable>
         </Row>
 
         {/* Content */}
@@ -80,7 +77,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
             {PRESET_AMOUNTS.map((amount) => {
               const isSelected = selectedAmount === amount;
               return (
-                <Pressable
+                <Clickable
                   key={amount}
                   style={[
                     styles.presetButton,
@@ -94,6 +91,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
                   onPress={() => onSelectPreset(amount)}
                   accessibilityLabel={`Select ${amount} pounds`}
                   accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <ThemedText
                     type="defaultSemiBold"
@@ -104,7 +102,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
                   >
                     {'\u00A3'}{amount}
                   </ThemedText>
-                </Pressable>
+                </Clickable>
               );
             })}
           </Row>
@@ -136,7 +134,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
           </Row>
 
           {/* Confirm Button */}
-          <Pressable
+          <Clickable
             style={[
               styles.confirmButton,
               {
@@ -148,6 +146,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
             disabled={isDisabled}
             accessibilityLabel={`Add ${displayAmount} pounds to wallet`}
             accessibilityRole="button"
+            accessibilityState={{ disabled: isDisabled }}
           >
             {processing ? (
               <ActivityIndicator size="small" color={colors.onPrimary} />
@@ -159,7 +158,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
                 </ThemedText>
               </>
             )}
-          </Pressable>
+          </Clickable>
 
           {processing && (
             <ThemedText style={[styles.processingText, { color: colors.muted }]}>

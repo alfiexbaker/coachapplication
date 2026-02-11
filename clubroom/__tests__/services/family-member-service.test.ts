@@ -27,7 +27,7 @@ describe('familyMemberService', () => {
   describe('getById (Result pattern)', () => {
     test('returns err for non-existent child', async () => {
       const result = await familyMemberService.getById('nonexistent_xyz');
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 
@@ -50,7 +50,7 @@ describe('familyMemberService', () => {
   describe('update (Result pattern)', () => {
     test('returns err for non-existent child', async () => {
       const result = await familyMemberService.update('nonexistent_child', { name: 'Updated' });
-      assert.equal(result.success, false);
+      assert.strictEqual(result.success, false);
     });
   });
 

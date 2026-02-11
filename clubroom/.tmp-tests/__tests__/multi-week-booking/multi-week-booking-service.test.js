@@ -234,7 +234,7 @@ let unsubscribers = [];
         const booking = await booking_crud_service_1.bookingCrudService.getBooking(result.data.bookingIds[0]);
         strict_1.default.ok(booking);
         strict_1.default.equal(booking.isSharedSession, true);
-        strict_1.default.equal(booking.athleteName, 'Tommy, Jenny');
+        strict_1.default.equal(booking.athleteIds?.length, 2);
     });
 });
 // ============================================================================

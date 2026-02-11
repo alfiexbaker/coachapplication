@@ -6,7 +6,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeInLeft,
@@ -26,8 +26,6 @@ import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function formatCompletedDate(date?: string): string {
   if (!date) return '';
@@ -77,13 +75,17 @@ export const MilestoneItem = memo(function MilestoneItem({
       entering={FadeInLeft.delay(index * 50).springify()}
       exiting={FadeOutRight.springify()}
       layout={Layout.springify()}
+      style={animatedStyle}
     >
-      <AnimatedPressable
-        style={[styles.milestoneItem, animatedStyle]}
+      <Clickable
+        style={styles.milestoneItem}
         onPress={onToggle}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={!editable || loading}
+        accessibilityRole="button"
+        accessibilityLabel={`Toggle milestone ${milestone.title}`}
+        accessibilityState={{ selected: milestone.isCompleted, disabled: !editable || loading }}
       >
         <View
           style={[
@@ -121,7 +123,7 @@ export const MilestoneItem = memo(function MilestoneItem({
             <Ionicons name="trash-outline" size={18} color={palette.error} />
           </Clickable>
         )}
-      </AnimatedPressable>
+      </Clickable>
     </Animated.View>
   );
 });

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { CredentialCard } from '@/components/verification/credential-card';
 import { CredentialForm } from '@/components/verification/credential-form';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCredentials } from '@/hooks/use-credentials';
@@ -17,13 +17,14 @@ import { useCredentials } from '@/hooks/use-credentials';
 export default function CredentialsScreen() {
   const { colors } = useTheme();
   const {
-    credentials, verifiedCount, loading, submitting, showForm, selectedType,
+    status, screenStatus, error, refreshing, onRefresh, retry,
+    credentials, verifiedCount, submitting, showForm, selectedType,
     customName, uploaded,
     setShowForm, setSelectedType, setCustomName, setUploaded,
     handleUpload, handleSubmit, resetForm,
   } = useCredentials();
 
-  if (loading) {
+  if (screenStatus === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
         <LoadingState variant="detail" />
@@ -31,9 +32,34 @@ export default function CredentialsScreen() {
     );
   }
 
+  if (screenStatus === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load credentials.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (screenStatus === 'empty' || !status) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState
+          icon="ribbon-outline"
+          title="Credentials unavailable"
+          message="Credential data is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />

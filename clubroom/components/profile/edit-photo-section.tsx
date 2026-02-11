@@ -3,12 +3,13 @@
  */
 
 import React, { memo } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Components } from '@/constants/theme';
+import { Radii, Spacing, Components, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
 interface EditPhotoSectionProps {
@@ -27,7 +28,7 @@ export const EditPhotoSection = memo(function EditPhotoSection({
       {userIsCoach && (
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Cover Photo</ThemedText>
-          <Pressable
+          <Clickable
             onPress={() => onPickImage('cover')}
             style={styles.coverPhotoContainer}
             accessibilityLabel="Change cover photo"
@@ -38,19 +39,19 @@ export const EditPhotoSection = memo(function EditPhotoSection({
             ) : (
               <View style={[styles.coverPhoto, { backgroundColor: colors.border }]} />
             )}
-            <View style={styles.photoOverlay}>
+            <View style={[styles.photoOverlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}>
               <Ionicons name="camera" size={32} color={colors.onPrimary} />
               <ThemedText style={[styles.overlayText, { color: colors.onPrimary }]}>
                 Change Cover
               </ThemedText>
             </View>
-          </Pressable>
+          </Clickable>
         </SurfaceCard>
       )}
 
       <SurfaceCard style={styles.section}>
         <ThemedText type="subtitle">Profile Photo</ThemedText>
-        <Pressable
+        <Clickable
           onPress={() => onPickImage('profile')}
           style={styles.avatarContainer}
           accessibilityLabel="Change profile photo"
@@ -66,7 +67,7 @@ export const EditPhotoSection = memo(function EditPhotoSection({
           <View style={[styles.avatarOverlay, { backgroundColor: colors.tint, borderColor: colors.onPrimary }]}>
             <Ionicons name="camera" size={20} color={colors.onPrimary} />
           </View>
-        </Pressable>
+        </Clickable>
       </SurfaceCard>
     </>
   );
@@ -81,7 +82,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   overlayText: { fontWeight: '600' },
   avatarContainer: { position: 'relative', alignSelf: 'center' },

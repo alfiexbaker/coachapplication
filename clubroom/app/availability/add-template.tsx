@@ -15,6 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { useScreen } from '@/hooks/use-screen';
@@ -22,8 +23,45 @@ import { ok } from '@/types/result';
 import { useAddTemplate, TIME_OPTIONS, BUFFER_OPTIONS, MAX_SLOTS_OPTIONS } from '@/hooks/use-add-template';
 
 export default function AddTemplateScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { status, error, retry, colors: palette } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const c = useAddTemplate();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
+        <ErrorState message={error?.message || 'Failed to open add-template flow.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
+        <EmptyState
+          icon="calendar-outline"
+          title="Availability setup unavailable"
+          message="The add-template flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

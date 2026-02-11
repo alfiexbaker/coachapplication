@@ -1,34 +1,17 @@
-/**
- * RSVP Screen Route
- *
- * Loads the session data and user's RSVP, then renders the RSVPFlow component.
- * Accessible via: /session/:id/rsvp
- *
- * Query params:
- *   - rsvpId: The specific RSVP record to respond to
- */
-
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Alert,
-} from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { RSVPFlow } from '@/components/session/rsvp-flow';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
+import { err, ok, serviceError } from '@/types/result';
 import { getSessionRsvpChildName } from '@/utils/session-rsvp-display';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 interface SessionInfo {
   id: string;
@@ -37,78 +20,87 @@ interface SessionInfo {
   location: string;
 }
 
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
+interface RsvpLoadData {
+  rsvp: SessionRsvp | null;
+  sessionInfo: SessionInfo | null;
+  responded: boolean;
+  responseStatus: 'going' | 'not_going' | 'maybe' | null;
+}
 
 export default function RSVPScreen() {
   const { id: sessionId, rsvpId } = useLocalSearchParams<{ id: string; rsvpId?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
 
-  const [rsvp, setRsvp] = useState<SessionRsvp | null>(null);
-  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [responded, setResponded] = useState(false);
-  const [responseStatus, setResponseStatus] = useState<'going' | 'not_going' | 'maybe' | null>(null);
+  const [responseOverride, setResponseOverride] = useState<{
+    responded: boolean;
+    responseStatus: 'going' | 'not_going' | 'maybe';
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      // If a specific rsvpId is provided, load that RSVP directly
-      if (rsvpId) {
-        const loadedRsvp = await rsvpService.getById(rsvpId);
-        if (loadedRsvp) {
-          setRsvp(loadedRsvp);
+      let loadedRsvp: SessionRsvp | null = null;
+      let responded = false;
+      let responseStatus: 'going' | 'not_going' | 'maybe' | null = null;
 
-          // If already responded, show that status
-          if (loadedRsvp.status !== 'pending') {
-            setResponded(true);
-            setResponseStatus(loadedRsvp.status as 'going' | 'not_going' | 'maybe');
-          }
+      if (rsvpId) {
+        loadedRsvp = await rsvpService.getById(rsvpId);
+        if (loadedRsvp && loadedRsvp.status !== 'pending') {
+          responded = true;
+          responseStatus = loadedRsvp.status as 'going' | 'not_going' | 'maybe';
         }
       } else if (sessionId) {
-        // Load all RSVPs for this session and find the current user's
-        // For MVP, use the first pending RSVP found
         const sessionRsvps = await rsvpService.getForSession(sessionId);
         const pending = sessionRsvps.find((r) => r.status === 'pending');
         if (pending) {
-          setRsvp(pending);
+          loadedRsvp = pending;
         } else if (sessionRsvps.length > 0) {
-          // Already responded - show the latest
           const latest = sessionRsvps[0];
-          setRsvp(latest);
-          setResponded(true);
-          setResponseStatus(latest.status as 'going' | 'not_going' | 'maybe');
+          loadedRsvp = latest;
+          responded = true;
+          responseStatus = latest.status as 'going' | 'not_going' | 'maybe';
         }
       }
 
-      // Build session info (in real app, fetch from session service)
+      let sessionInfo: SessionInfo | null = null;
       if (sessionId) {
-        setSessionInfo({
+        sessionInfo = {
           id: sessionId,
           title: 'Training Session',
           scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
           location: 'Hackney Marshes, Pitch 3',
-        });
+        };
       }
+
+      return ok<RsvpLoadData>({
+        rsvp: loadedRsvp,
+        sessionInfo,
+        responded,
+        responseStatus,
+      });
     } catch {
-      Alert.alert('Error', 'Failed to load RSVP data.');
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load RSVP data.'));
     }
   }, [sessionId, rsvpId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const { data, status, error, retry } = useScreen<RsvpLoadData>({
+    load: loadData,
+    deps: [sessionId, rsvpId],
+    isEmpty: (value) => !value.rsvp || !value.sessionInfo,
+    refetchOnFocus: true,
+  });
+
+  const rsvp = data?.rsvp ?? null;
+  const sessionInfo = data?.sessionInfo ?? null;
+  const responded = responseOverride?.responded ?? data?.responded ?? false;
+  const responseStatus = responseOverride?.responseStatus ?? data?.responseStatus ?? null;
 
   const handleRespond = async (status: 'going' | 'not_going' | 'maybe') => {
     if (!rsvp) return;
 
     try {
       await rsvpService.respond(rsvp.id, status);
-      setResponded(true);
-      setResponseStatus(status);
+      setResponseOverride({ responded: true, responseStatus: status });
 
       const statusLabels: Record<string, string> = {
         going: 'attending',
@@ -116,27 +108,18 @@ export default function RSVPScreen() {
         maybe: 'maybe attending',
       };
 
-      Alert.alert(
-        'Response Recorded',
-        `You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`,
-        [
-          {
-            text: 'Done',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              }
-            },
-          },
-        ],
-      );
+      Alert.alert('Response Recorded', `You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`, [{
+        text: 'Done',
+        onPress: () => {
+          if (router.canGoBack()) router.back();
+        },
+      }]);
     } catch {
       Alert.alert('Error', 'Failed to submit your response. Please try again.');
     }
   };
 
-  // Loading state
-  if (loading) {
+  if (status === 'loading') {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
@@ -147,39 +130,37 @@ export default function RSVPScreen() {
     );
   }
 
-  // No RSVP found
-  if (!rsvp || !sessionInfo) {
+  if (status === 'error') {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
         <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-          <ErrorState message="This RSVP may have expired or already been handled." title="RSVP Not Found" onRetry={loadData} />
+          <ErrorState
+            message={error?.message ?? 'Failed to load RSVP data.'}
+            title="Unable to Load RSVP"
+            onRetry={retry}
+          />
         </View>
       </>
     );
   }
 
-  // Already responded
+  if (status === 'empty' || !rsvp || !sessionInfo) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'RSVP' }} />
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <ErrorState message="This RSVP may have expired or already been handled." title="RSVP Not Found" onRetry={retry} />
+        </View>
+      </>
+    );
+  }
+
   if (responded && responseStatus) {
     const statusConfig = {
-      going: {
-        icon: 'checkmark-circle' as const,
-        color: colors.success,
-        label: 'Going',
-        message: `${getSessionRsvpChildName(rsvp)} is confirmed for this session.`,
-      },
-      not_going: {
-        icon: 'close-circle' as const,
-        color: colors.error,
-        label: 'Not Going',
-        message: `${getSessionRsvpChildName(rsvp)} will not attend this session.`,
-      },
-      maybe: {
-        icon: 'help-circle' as const,
-        color: colors.warning,
-        label: 'Maybe',
-        message: `You've marked ${getSessionRsvpChildName(rsvp)} as maybe for this session.`,
-      },
+      going: { icon: 'checkmark-circle' as const, color: colors.success, label: 'Going', message: `${getSessionRsvpChildName(rsvp)} is confirmed for this session.` },
+      not_going: { icon: 'close-circle' as const, color: colors.error, label: 'Not Going', message: `${getSessionRsvpChildName(rsvp)} will not attend this session.` },
+      maybe: { icon: 'help-circle' as const, color: colors.warning, label: 'Maybe', message: `You've marked ${getSessionRsvpChildName(rsvp)} as maybe for this session.` },
     };
 
     const config = statusConfig[responseStatus];
@@ -199,7 +180,6 @@ export default function RSVPScreen() {
     );
   }
 
-  // RSVP Flow
   return (
     <>
       <Stack.Screen options={{ title: 'RSVP' }} />
@@ -222,10 +202,6 @@ export default function RSVPScreen() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
@@ -240,14 +216,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.lg,
     gap: Spacing.sm,
-  },
-  errorTitle: {
-    ...Typography.heading,
-    textAlign: 'center',
-  },
-  errorMessage: {
-    ...Typography.body,
-    textAlign: 'center',
   },
   confirmedTitle: {
     ...Typography.title,

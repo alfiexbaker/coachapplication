@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface RecurringConfirmModalProps {
@@ -34,7 +34,7 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <ThemedView style={styles.content}>
           <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
           <ThemedText style={[styles.description, { color: palette.muted }]}>{description}</ThemedText>
@@ -56,7 +56,7 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
 });
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   content: { width: '100%', maxWidth: Components.modal.maxWidth, borderRadius: Components.modal.borderRadius, padding: Components.modal.padding, gap: Spacing.md },
   title: { textAlign: 'center' },
   description: { textAlign: 'center', ...Typography.body },

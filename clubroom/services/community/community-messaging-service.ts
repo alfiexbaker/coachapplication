@@ -19,6 +19,7 @@ import { type Result, type ServiceError, ok, err, storageError } from '@/types/r
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { communityGroupService } from './community-group-service';
+import { accountIdsMatch } from '@/utils/account-id';
 
 const logger = createLogger('CommunityMessagingService');
 
@@ -149,7 +150,7 @@ class CommunityMessagingService {
       const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
       const updated = messages.map((msg) => {
-        if (!msg.readBy.includes(parentId)) {
+        if (!msg.readBy.some((readerId) => accountIdsMatch(readerId, parentId))) {
           return { ...msg, readBy: [...msg.readBy, parentId] };
         }
         return msg;

@@ -5,9 +5,10 @@
  * Can be used standalone or composed into groups.
  */
 
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, Components, Borders, withAlpha } from '@/constants/theme';
@@ -51,7 +52,7 @@ export function FilterChip({
   const height = size === 'sm' ? 32 : Components.button.height;
 
   return (
-    <Pressable
+    <Clickable
       accessibilityRole="button"
       accessibilityState={{ selected: active, disabled }}
       onPress={onPress}
@@ -96,7 +97,7 @@ export function FilterChip({
           <Ionicons name="chevron-down" size={12} color={palette.tint} />
         )}
       </Row>
-    </Pressable>
+    </Clickable>
   );
 }
 

@@ -12,17 +12,35 @@ import { Row } from '@/components/primitives/row';
 import { InjuryCard } from '@/components/health';
 import { HealthStatusCard } from '@/components/health/health-status-card';
 import { HealthStatsCard } from '@/components/health/health-stats-card';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useHealthHub } from '@/hooks/use-health-hub';
 import { scaleFont } from '@/utils/scale';
 
 export default function HealthDashboardScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    injuries, stats, loading, refreshing, activeCount, avgRecovery,
-    handleRefresh, handleLogInjury, handleViewHistory, handleInjuryPress,
+    injuries, stats, loading, status, error, refreshing, activeCount, avgRecovery,
+    handleRefresh, retry, handleLogInjury, handleViewHistory, handleInjuryPress,
   } = useHealthHub();
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message ?? 'Failed to load health dashboard.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>

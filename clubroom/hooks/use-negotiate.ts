@@ -3,28 +3,31 @@
  * Manages negotiation data loading, accept/reject actions, and modal state.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { counterOfferService } from '@/services/counter-offer-service';
+import { ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, validationError } from '@/types/result';
 import type { NegotiationHistory, CounterOffer } from '@/constants/types';
 
 const logger = createLogger('NegotiateScreen');
+
+interface NegotiateScreenData {
+  negotiation: NegotiationHistory | null;
+  pendingOffer: CounterOffer | null;
+}
 
 export function useNegotiate() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id || '';
 
-  const [negotiation, setNegotiation] = useState<NegotiationHistory | null>(null);
-  const [pendingOffer, setPendingOffer] = useState<CounterOffer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Reject modal state
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -32,35 +35,50 @@ export function useNegotiate() {
   const [offerToReject, setOfferToReject] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!id) { setError('Booking ID not provided'); setIsLoading(false); return; }
+    if (!id) {
+      return err(validationError('Booking ID not provided'));
+    }
+
     try {
-      setError(null);
       const historyResult = await counterOfferService.getNegotiationHistory(id);
       if (!historyResult.success) {
         logger.error('Failed to load negotiation history', historyResult.error);
-        setError('Failed to load negotiation details');
-        setNegotiation(null);
-        setPendingOffer(null);
-        return;
+        return err(historyResult.error);
       }
+
       const history = historyResult.data;
-      setNegotiation(history);
-      if (history) {
-        const pending = history.offers.find((offer) => offer.status === 'PENDING' && offer.proposerId !== currentUserId);
-        setPendingOffer(pending || null);
+      if (!history) {
+        return ok({ negotiation: null, pendingOffer: null });
       }
-    } catch (err) {
-      logger.error('Failed to load data', err);
-      setError('Failed to load negotiation details');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+
+      const pending = history.offers.find(
+        (offer) => offer.status === 'PENDING' && offer.proposerId !== currentUserId,
+      );
+
+      return ok({ negotiation: history, pendingOffer: pending || null });
+    } catch (loadError) {
+      logger.error('Failed to load data', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load negotiation details', loadError));
     }
   }, [id, currentUserId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<NegotiateScreenData>({
+    load: loadData,
+    deps: [id, currentUserId],
+    events: [ServiceEvents.COUNTER_OFFER_CREATED, ServiceEvents.COUNTER_OFFER_ACCEPTED, ServiceEvents.COUNTER_OFFER_REJECTED],
+    isEmpty: (payload) => payload.negotiation === null,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => { setIsRefreshing(true); await loadData(); }, [loadData]);
+  const negotiation = data?.negotiation ?? null;
+  const pendingOffer = data?.pendingOffer ?? null;
 
   const handleAccept = useCallback(async (offerId: string) => {
     try {
@@ -70,14 +88,14 @@ export function useNegotiate() {
         Alert.alert('Error', acceptResult.error.message || 'Failed to accept the proposal. Please try again.');
         return;
       }
-      Alert.alert('Time Change Accepted', 'The booking has been updated with the new time. Both parties will be notified.', [{ text: 'OK', onPress: () => loadData() }]);
+      Alert.alert('Time Change Accepted', 'The booking has been updated with the new time. Both parties will be notified.', [{ text: 'OK', onPress: () => retry() }]);
     } catch (err) {
       logger.error('Failed to accept offer', err);
       Alert.alert('Error', 'Failed to accept the proposal. Please try again.');
     } finally {
       setIsProcessing(false);
     }
-  }, [loadData]);
+  }, [retry]);
 
   const handleRejectPress = useCallback((offerId: string) => {
     setOfferToReject(offerId);
@@ -98,7 +116,7 @@ export function useNegotiate() {
         Alert.alert('Error', rejectResult.error.message || 'Failed to decline the proposal. Please try again.');
         return;
       }
-      Alert.alert('Proposal Declined', 'The other party has been notified. They may propose an alternative time.', [{ text: 'OK', onPress: () => loadData() }]);
+      Alert.alert('Proposal Declined', 'The other party has been notified. They may propose an alternative time.', [{ text: 'OK', onPress: () => retry() }]);
     } catch (err) {
       logger.error('Failed to reject offer', err);
       Alert.alert('Error', 'Failed to decline the proposal. Please try again.');
@@ -106,7 +124,7 @@ export function useNegotiate() {
       setIsProcessing(false);
       setOfferToReject(null);
     }
-  }, [offerToReject, rejectReason, loadData]);
+  }, [offerToReject, rejectReason, retry]);
 
   const handleRejectCancel = useCallback(() => setShowRejectModal(false), []);
 
@@ -117,9 +135,14 @@ export function useNegotiate() {
 
   return {
     id, currentUserId, negotiation, pendingOffer,
-    isLoading, isRefreshing, isProcessing, error,
+    isLoading: status === 'loading',
+    isRefreshing: refreshing,
+    isProcessing,
+    error: error?.message ?? null,
     showRejectModal, rejectReason, setRejectReason,
-    loadData, handleRefresh, handleAccept, handleRejectPress,
+    loadData: retry,
+    handleRefresh: onRefresh,
+    handleAccept, handleRejectPress,
     handleRejectConfirm, handleRejectCancel, handleNewProposal,
     isResolved, canPropose,
   };

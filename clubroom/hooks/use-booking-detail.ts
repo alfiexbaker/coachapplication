@@ -5,7 +5,7 @@
  * Provides all action handlers (message, cancel, refund, reschedule, report).
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -13,18 +13,25 @@ import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { useSessionNote } from '@/hooks/use-session-note';
 import type { BookingSummary, Booking } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import type { ServiceError } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 import { getBookingAthleteName } from '@/utils/booking-display';
 
 const logger = createLogger('useBookingDetail');
 
-export type BookingDetailStatus = 'loading' | 'not-found' | 'success';
+export type BookingDetailStatus = ScreenStatus;
 
 export interface BookingDetailResult {
   booking: BookingSummary | undefined;
   status: BookingDetailStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
   isCoach: boolean;
   sessionNote: ReturnType<typeof useSessionNote>;
   handlers: {
@@ -42,65 +49,66 @@ export interface BookingDetailResult {
   } | null;
 }
 
+const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] => {
+  if (status === 'CONFIRMED') return 'Confirmed';
+  if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
+  return 'Completed';
+};
+
+const toBookingSummary = (booking: Booking): BookingSummary => ({
+  id: booking.id,
+  service: booking.service ?? 'Session',
+  start: booking.scheduledAt,
+  status: mapBookingStatus(booking.status),
+  locationLabel: booking.location,
+  coach: {
+    name: booking.coachName,
+    photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
+  },
+  client: {
+    name: getBookingAthleteName(booking),
+    photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
+  },
+  coachId: booking.coachId,
+  clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
+});
+
 export function useBookingDetail(id: string): BookingDetailResult {
   const { currentUser } = useAuth();
-  const [booking, setBooking] = useState<BookingSummary | undefined>();
-  const [status, setStatus] = useState<BookingDetailStatus>('loading');
   const isCoach = currentUser?.role === 'COACH';
 
   const sessionNote = useSessionNote(id);
 
-  useEffect(() => {
-    const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] => {
-      if (status === 'CONFIRMED') return 'Confirmed';
-      if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
-      return 'Completed';
-    };
+  const loadBooking = useCallback(async () => {
+    logger.debug('Loading booking', { id });
 
-    const toBookingSummary = (booking: Booking): BookingSummary => ({
-      id: booking.id,
-      service: booking.service ?? 'Session',
-      start: booking.scheduledAt,
-      status: mapBookingStatus(booking.status),
-      locationLabel: booking.location,
-      coach: {
-        name: booking.coachName,
-        photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
-      },
-      client: {
-        name: getBookingAthleteName(booking),
-        photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
-      },
-      coachId: booking.coachId,
-      clientId: booking.athleteId ?? booking.athleteIds?.[0] ?? '',
-    });
-
-    const loadBooking = async () => {
-      logger.debug('Loading booking', { id });
-      let foundBooking: BookingSummary | undefined;
-
+    try {
       const booking = await bookingService.getBooking(id);
       if (booking) {
-        foundBooking = toBookingSummary(booking);
+        return ok<BookingSummary | null>(toBookingSummary(booking));
       }
 
-      if (!foundBooking) {
-        try {
-          const sessionBookings = await apiClient.get<Booking[]>('session_bookings', []);
-          const sessionBooking = sessionBookings.find((b) => b.id === id);
-          if (sessionBooking) {
-            foundBooking = toBookingSummary(sessionBooking);
-          }
-        } catch (error) {
-          logger.error('Failed to load session bookings', error);
-        }
+      const sessionBookings = await apiClient.get<Booking[]>('session_bookings', []);
+      const sessionBooking = sessionBookings.find((entry) => entry.id === id);
+      if (sessionBooking) {
+        return ok<BookingSummary | null>(toBookingSummary(sessionBooking));
       }
 
-      setBooking(foundBooking);
-      setStatus(foundBooking ? 'success' : 'not-found');
-    };
-    loadBooking();
+      return ok<BookingSummary | null>(null);
+    } catch (loadError) {
+      logger.error('Failed to load booking', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load booking details.', loadError));
+    }
   }, [id]);
+
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<BookingSummary | null>({
+    load: loadBooking,
+    deps: [id],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
+
+  const booking = data ?? undefined;
 
   const handleMessageCoach = useCallback(() => {
     if (!booking) return;
@@ -143,6 +151,10 @@ export function useBookingDetail(id: string): BookingDetailResult {
   return {
     booking,
     status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     isCoach,
     sessionNote,
     handlers: {

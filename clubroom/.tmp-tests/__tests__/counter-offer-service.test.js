@@ -7,12 +7,18 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = require("node:test");
 // Mock storage for testing
 const mockStorage = {};
+let counterOfferIdSeq = 0;
+function nextCounterOfferId() {
+    counterOfferIdSeq += 1;
+    return `co_${counterOfferIdSeq}`;
+}
 // Mock the service inline since we can't import it directly
 // This tests the business logic patterns used in the service
 (0, node_test_1.describe)('Counter-Offer Service Logic', () => {
     (0, node_test_1.beforeEach)(() => {
         // Clear mock storage before each test
         Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
+        counterOfferIdSeq = 0;
     });
     (0, node_test_1.describe)('Counter-Offer Creation', () => {
         (0, node_test_1.it)('should create a counter-offer with correct structure', () => {
@@ -29,7 +35,7 @@ const mockStorage = {};
                 location: 'Hackney Marshes',
             };
             const counterOffer = {
-                id: `co_${Date.now()}`,
+                id: nextCounterOfferId(),
                 bookingId: 'booking_1',
                 proposedBy: 'PARENT',
                 proposerId: 'parent_1',

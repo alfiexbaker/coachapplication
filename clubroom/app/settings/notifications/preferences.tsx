@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { QuietHoursSelector, ChannelToggle, NotificationTypeList, MutedCoachesList } from '@/components/notification';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -15,12 +15,19 @@ import { useNotificationPrefs } from '@/hooks/use-notification-prefs';
 export default function NotificationPreferencesScreen() {
   const { colors } = useTheme();
   const {
-    preferences, loading, refreshing, updating,
+    preferences,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    updating,
     handleRefresh, handleQuietHoursChange, handleChannelToggle,
     handleTypeToggle, handleUnmuteCoach,
   } = useNotificationPrefs();
 
-  if (loading) {
+  if (loading && !preferences) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <Header colors={colors} updating={false} />
@@ -29,11 +36,27 @@ export default function NotificationPreferencesScreen() {
     );
   }
 
+  if (status === 'error' && !preferences) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Header colors={colors} updating={false} />
+        <ErrorState
+          message={error ?? 'Failed to load notification preferences.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <Header colors={colors} updating={updating} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
+      >
         {preferences && (
           <>
             <View style={styles.section}>
@@ -61,6 +84,12 @@ export default function NotificationPreferencesScreen() {
               <ThemedText style={[styles.infoText, { color: colors.muted }]}>Some critical notifications like account security and payment issues cannot be disabled.</ThemedText>
             </View>
           </>
+        )}
+        {!preferences && (
+          <ErrorState
+            message={error ?? 'Notification preferences are unavailable right now.'}
+            onRetry={handleRefresh}
+          />
         )}
       </ScrollView>
     </SafeAreaView>

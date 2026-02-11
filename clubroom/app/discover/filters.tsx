@@ -6,76 +6,83 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FilterModal } from '@/components/discover/FilterModal';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { createLogger } from '@/utils/logger';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { combineResults, ok } from '@/types/result';
 import { discoverService } from '@/services/discover-service';
+import { useTheme } from '@/hooks/useTheme';
 import type { CoachSearchFilters, FilterOptions } from '@/constants/types';
 
 const logger = createLogger('FiltersScreen');
 
+interface FiltersScreenData {
+  filterOptions: FilterOptions;
+  resultCount: number;
+}
+
 export default function FiltersScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
     filters?: string;
     returnTo?: string;
   }>();
 
-  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<CoachSearchFilters>({});
-  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
-  const [resultCount, setResultCount] = useState(0);
 
   // Parse initial filters from params
   useEffect(() => {
-    const parseFilters = async () => {
-      try {
-        if (params.filters) {
-          const parsed = JSON.parse(params.filters) as CoachSearchFilters;
-          setFilters(parsed);
-        }
+    if (!params.filters) {
+      setFilters({});
+      return;
+    }
 
-        // Load filter options
-        const optionsResult = await discoverService.getFilterOptions(filters);
-        if (!optionsResult.success) {
-          logger.error('Failed to load filter options', optionsResult.error);
-          return;
-        }
-        setFilterOptions(optionsResult.data);
-        setResultCount(optionsResult.data.totalCount);
-      } catch (error) {
-        logger.error('Failed to parse filters', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    parseFilters();
-  // Note: filters is intentionally excluded from deps as we only want to parse on params.filters change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    try {
+      const parsed = JSON.parse(params.filters) as CoachSearchFilters;
+      setFilters(parsed);
+    } catch (error) {
+      logger.error('Failed to parse filters', error);
+      setFilters({});
+    }
   }, [params.filters]);
 
-  // Update result count when filters change
-  useEffect(() => {
-    const updateCount = async () => {
-      const countResult = await discoverService.countCoaches(filters);
-      if (!countResult.success) {
-        logger.error('Failed to count coaches', countResult.error);
-        return;
-      }
-      setResultCount(countResult.data);
-    };
+  const loadFilterData = useCallback(async () => {
+    const [optionsResult, countResult] = await Promise.all([
+      discoverService.getFilterOptions(filters),
+      discoverService.countCoaches(filters),
+    ]);
 
-    if (!loading) {
-      updateCount();
+    const combined = combineResults([optionsResult, countResult] as const);
+    if (!combined.success) {
+      logger.error('Failed to load filter data', combined.error);
+      return combined;
     }
-  }, [filters, loading]);
+
+    const [filterOptions, resultCount] = combined.data;
+    return ok<FiltersScreenData>({ filterOptions, resultCount });
+  }, [filters]);
+
+  const {
+    data,
+    status,
+    error,
+    retry,
+    onRefresh,
+  } = useScreen<FiltersScreenData>({
+    load: loadFilterData,
+    deps: [filters],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const filterOptions = data?.filterOptions ?? null;
+  const resultCount = data?.resultCount ?? 0;
 
   const handleApply = useCallback(
     (newFilters: CoachSearchFilters) => {
@@ -95,15 +102,44 @@ export default function FiltersScreen() {
     router.back();
   }, [router]);
 
-  if (loading || !filterOptions) {
+  if (status === 'loading') {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top']}
       >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message || 'Failed to load filter options.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !filterOptions) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <EmptyState
+          icon="options-outline"
+          title="No filters available"
+          message="Filter options could not be loaded right now."
+          actionLabel="Refresh"
+          onPressAction={onRefresh}
+        />
       </SafeAreaView>
     );
   }
@@ -123,10 +159,5 @@ export default function FiltersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

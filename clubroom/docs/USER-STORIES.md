@@ -1,6 +1,6 @@
 # User Stories — Clubroom Feature Map
 
-> Updated: 2026-02-08
+> Updated: 2026-02-11
 > Legend: ✅ Built | 🔨 Needs Enhancement | ❌ Missing | 💤 Deferred (Cash MVP)
 > See `ROADMAP.md` for the 5-month execution plan.
 
@@ -18,7 +18,7 @@
 
 ---
 
-## Completed Foundational Features (151 stories)
+## Completed Foundational Features (155 stories)
 
 <details>
 <summary>Click to expand — all foundational features that are built and working</summary>
@@ -94,7 +94,7 @@
 |---|------|--------|--------|--------|
 | 1 | ~~Invite -> Booking bug~~ | 1 | ✅ | Fixed (Sprint 1B) |
 | 2 | ~~Offline banner + action queue~~ | 1 | ✅ | Built (Sprint 1C) |
-| 3 | **Session completion checklist** (attendance -> notes -> badges -> done) | 2 | 🔨 | Coach workflow broken |
+| 3 | **Session completion checklist** (attendance -> notes -> badges -> done) | 2 | ✅ | Completion wizard shipped; continue polish |
 | 4 | **RSVP for group sessions** (going/can't/maybe) | 2 | ❌ | Spond-beater feature |
 | 5 | **Cancellation policy display** (before booking + on cancel) | 3 | ❌ | Trust |
 | 6 | **Push notification infrastructure** | 6 | ❌ | Engagement |
@@ -117,20 +117,20 @@
 
 | Story | Status | Notes |
 |-------|--------|-------|
-| Session completion checklist (attendance -> notes -> badges -> done) | 🔨 | 1073 lines exist, flow incomplete — needs decomposition, event emission, notifications |
-| Emit SESSION_COMPLETED event on completion submit | ❌ | Sprint 2 — handleComplete() never emits event, blocking earnings/analytics/badges |
-| Trigger parent notification on session completion | ❌ | Sprint 2 — notificationTriggers.sessionCompleted() exists but never called |
-| Trigger review prompt after session completion | ❌ | Sprint 2 — notificationTriggers.reviewPrompt() exists but never wired |
-| Create structured AttendanceRecord per athlete on completion | ❌ | Sprint 2 — types exist in session-types.ts, never persisted |
-| Decompose complete.tsx into sub-components (<300 lines) | ❌ | Sprint 2 — 1073 lines, needs 4 step components extracted |
-| Error state with retry on completion screen | ❌ | Sprint 2 — load failure shows "not found" with no retry |
+| Session completion checklist (attendance -> notes -> badges -> done) | ✅ | 4-step completion wizard shipped in `app/session/[id]/complete.tsx` with extracted step components |
+| Emit SESSION_COMPLETED event on completion submit | ✅ | `use-session-completion` emits `ServiceEvents.SESSION_COMPLETED` |
+| Trigger parent notification on session completion | ✅ | `notificationTriggers.sessionCompleted()` called on completion |
+| Trigger review prompt after session completion | ✅ | `notificationTriggers.reviewPrompt()` called after completion |
+| Create structured AttendanceRecord per athlete on completion | ✅ | Attendance records are created and persisted in completion flow |
+| Decompose complete.tsx into sub-components (<300 lines) | ✅ | `app/session/[id]/complete.tsx` is now 196 lines with step components extracted |
+| Error state with retry on completion screen | ✅ | `ErrorState` with retry is wired for both load failure and missing session |
 | Group session completion updates individual bookings | ❌ | Sprint 2 — only session offering status updated, not per-athlete bookings |
 | RSVP for group sessions (going/can't/maybe) | ❌ | |
 | RSVP count on group sessions | ❌ | |
 | RSVP reminder to non-responders | ❌ | |
 | Mark attendance enhancement | 🔨 | Per-athlete effort rating, no-show category |
 | Rate athlete effort/progress enhancement | 🔨 | Individual effort per athlete (not just group-level) |
-| Rate session with coach (trigger after completion) | ✅ | Needs trigger wiring from completion flow |
+| Rate session with coach (trigger after completion) | ✅ | Trigger wiring is active in completion flow |
 | Decline invite with reason | ✅ | Needs enhancement |
 | Add booking to phone calendar | ❌ | |
 
@@ -236,7 +236,7 @@
 | Story | Status | Notes |
 |-------|--------|-------|
 | Loading skeletons on every screen | 🔨 | 59-line skeleton — expand |
-| Error states with retry on every screen | ❌ | Only 10/185 screens have error state |
+| Error states with retry on every screen | 🔨 | `use-screen` is imported in 76/189 route files; rollout still incomplete |
 | Contextual empty states with CTA on every screen | ❌ | |
 | Accessibility (WCAG AA, screen readers, 44pt) | ❌ | |
 | Notification preferences per-type toggles | 🔨 | 334 lines exist |
@@ -371,12 +371,12 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Built (foundational) | 151 |
+| ✅ Built (foundational) | 155 |
 | 🔨 Needs Enhancement | 24 |
-| ❌ Missing (to build) | 100 |
+| ❌ Missing (to build) | 96 |
 | 💤 Deferred (Cash MVP) | 18 |
 | **Total** | **293** |
 
 ---
 
-*Last updated: 2026-02-08 — Post deep audit + sprint consolidation*
+*Last updated: 2026-02-11 — Synced to current repo metrics and sprint status*

@@ -5,7 +5,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface AthleteTagModalProps {
@@ -27,7 +27,7 @@ export const AthleteTagModal = memo(function AthleteTagModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           <Row gap="sm" align="center" justify="space-between" style={styles.header}>
             <ThemedText type="title">Add Tag</ThemedText>
@@ -56,7 +56,6 @@ export const AthleteTagModal = memo(function AthleteTagModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   content: {

@@ -13,6 +13,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import type { ScreenStatus } from '@/hooks/use-screen';
+import { serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useVideoDetail');
 
@@ -21,6 +23,7 @@ export function useVideoDetail(id: string | undefined) {
 
   const [video, setVideo] = useState<SessionVideo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<ServiceError | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [showAnnotationModal, setShowAnnotationModal] = useState(false);
 
@@ -29,11 +32,14 @@ export function useVideoDetail(id: string | undefined) {
   const loadVideo = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await videoService.getVideo(id);
       setVideo(data);
-    } catch (error) {
-      logger.error('Failed to load video:', error);
+    } catch (loadError) {
+      logger.error('Failed to load video:', loadError);
+      setVideo(null);
+      setError(serviceError('UNKNOWN', 'Failed to load video details.', loadError));
     } finally {
       setLoading(false);
     }
@@ -108,8 +114,23 @@ export function useVideoDetail(id: string | undefined) {
     setShowAnnotationModal(false);
   }, []);
 
+  const status: ScreenStatus = loading && !video
+    ? 'loading'
+    : error && !video
+      ? 'error'
+      : !video
+        ? 'empty'
+        : 'success';
+
   return {
-    video, loading, currentTime, showAnnotationModal, isOwner,
+    video,
+    loading,
+    status,
+    error,
+    currentTime,
+    showAnnotationModal,
+    isOwner,
+    retry: loadVideo,
     handleTimeUpdate, handleSeekToAnnotation, handleQuickAnnotation,
     handleSaveAnnotation, handleShare, handleToggleVisibility,
     handleDelete, dismissAnnotationModal, setCurrentTime,

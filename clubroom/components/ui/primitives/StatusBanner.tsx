@@ -11,8 +11,9 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
+import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Components, Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
@@ -105,7 +106,7 @@ function StatusBannerInner({
       </Text>
 
       {onDismiss ? (
-        <Pressable
+        <Clickable
           accessibilityRole="button"
           accessibilityLabel="Dismiss"
           onPress={onDismiss}
@@ -117,7 +118,7 @@ function StatusBannerInner({
             size={Components.icon.md}
             color={config.text}
           />
-        </Pressable>
+        </Clickable>
       ) : null}
     </Row>
   );

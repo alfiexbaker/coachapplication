@@ -1,6 +1,7 @@
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -24,7 +25,7 @@ function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
   const { colors: palette } = useTheme();
 
   return (
-    <Pressable
+    <Clickable
       onPress={onPress}
       style={[
         styles.chip,
@@ -33,6 +34,9 @@ function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
           borderColor: isActive ? palette.tint : palette.border,
         },
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isActive }}
     >
       {icon && (
         <Ionicons
@@ -52,7 +56,7 @@ function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
       {isActive && (
         <Ionicons name="close" size={14} color={palette.onPrimary} />
       )}
-    </Pressable>
+    </Clickable>
   );
 }
 
@@ -136,12 +140,12 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
 
       {/* Clear Filters */}
       {hasActiveFilters && (
-        <Pressable onPress={clearFilters} style={styles.clearButton}>
+        <Clickable onPress={clearFilters} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Clear filters">
           <Ionicons name="refresh" size={14} color={palette.tint} />
           <ThemedText style={[styles.clearText, { color: palette.tint }]}>
             Clear Filters
           </ThemedText>
-        </Pressable>
+        </Clickable>
       )}
     </View>
   );

@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, TextInput, Modal, Pressable } from 'react-native';
+import { View, StyleSheet, TextInput, Modal } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface RejectModalProps {
@@ -19,8 +19,13 @@ export const RejectModal = memo(function RejectModal({ visible, reason, onReason
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.overlay} onPress={onCancel}>
-        <Pressable style={[styles.content, { backgroundColor: palette.surface }]} onPress={(e) => e.stopPropagation()}>
+      <Clickable
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+        onPress={onCancel}
+        accessibilityRole="button"
+        accessibilityLabel="Close reject modal"
+      >
+        <Clickable style={[styles.content, { backgroundColor: palette.surface }]} onPress={() => {}} accessibilityRole="none">
           <ThemedText type="defaultSemiBold" style={styles.title}>Decline Proposal</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Let them know why this time doesn&apos;t work (optional)
@@ -40,14 +45,14 @@ export const RejectModal = memo(function RejectModal({ visible, reason, onReason
               <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Decline</ThemedText>
             </Clickable>
           </Row>
-        </Pressable>
-      </Pressable>
+        </Clickable>
+      </Clickable>
     </Modal>
   );
 });
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   content: { width: '100%', maxWidth: 400, padding: Spacing.lg, borderRadius: Radii.lg, gap: Spacing.sm },
   title: { ...Typography.heading },
   subtitle: { ...Typography.small },

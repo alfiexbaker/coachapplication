@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Appearance } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Appearance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Clickable } from '@/components/primitives/clickable';
 import { logger } from '@/utils/logger';
 import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 
@@ -111,15 +112,17 @@ export class ErrorBoundary extends Component<Props, State> {
               </View>
             )}
 
-            <Pressable
+            <Clickable
               style={({ pressed }) => [
                 styles.button,
                 { backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
               onPress={this.resetError}
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
             >
               <Text style={[styles.buttonText, { color: palette.onPrimary }]}>Try Again</Text>
-            </Pressable>
+            </Clickable>
           </ScrollView>
         </SafeAreaView>
       );

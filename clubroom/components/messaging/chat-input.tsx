@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Radii, Spacing, Typography } from '@/constants/theme';
@@ -20,9 +21,9 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
   return (
     <Row align="flex-end" gap="sm" style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
       accessibilityRole="none">
-      <Pressable accessibilityRole="button" style={styles.iconButton} onPress={onAttach}>
+      <Clickable accessibilityRole="button" accessibilityLabel="Attach media or file" style={styles.iconButton} onPress={onAttach}>
         <IconSymbol name="paperclip" size={22} color={palette.icon} />
-      </Pressable>
+      </Clickable>
       <TextInput
         style={[styles.input, { color: palette.text }]}
         placeholder="Drop a note, media, or PDF"
@@ -32,8 +33,9 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
         multiline
         editable={!disabled}
       />
-      <Pressable
+      <Clickable
         accessibilityRole="button"
+        accessibilityLabel={value ? 'Send message' : 'Record voice message'}
         style={({ pressed }) => [
           styles.sendButton,
           {
@@ -42,6 +44,7 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
           },
         ]}
         disabled={!value || disabled}
+        accessibilityState={{ disabled: !value || Boolean(disabled) }}
         onPress={() => {
           const trimmed = value.trim();
           if (!trimmed || disabled) return;
@@ -53,7 +56,7 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
         ) : (
           <IconSymbol name="mic.fill" size={20} color={palette.icon} />
         )}
-      </Pressable>
+      </Clickable>
     </Row>
   );
 }

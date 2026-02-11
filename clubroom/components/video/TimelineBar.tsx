@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Dimensions, Pressable, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { AnnotationMarker } from './AnnotationMarker';
 import { Spacing, Radii, withAlpha, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -99,10 +100,13 @@ export function TimelineBar({
         <TimelineLabels currentTime={currentTime} duration={duration} palette={palette} />
       )}
 
-      <Pressable
+      <Clickable
         onPress={handleTimelinePress}
         disabled={!interactive}
         style={styles.timelineWrapper}
+        accessibilityRole="button"
+        accessibilityLabel="Seek video timeline"
+        accessibilityState={{ disabled: !interactive }}
       >
         <View
           style={[styles.track, { backgroundColor: withAlpha(palette.muted, 0.19) }]}
@@ -150,7 +154,7 @@ export function TimelineBar({
             ]}
           />
         </View>
-      </Pressable>
+      </Clickable>
 
       {activeAnnotation && (
         <TimelineActiveIndicator

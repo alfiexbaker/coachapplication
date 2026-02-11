@@ -12,10 +12,13 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { apiClient } from '@/services/api-client';
 import { hasChildren } from '@/utils/user-helpers';
 import { toDateStr } from '@/utils/format';
 import type { AthleteObjective, FootballObjective } from '@/constants/types';
 import type { User } from '@/constants/app-types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 export const FOOTBALL_OBJECTIVES: FootballObjective[] = [
   'Dribbling',
@@ -53,15 +56,42 @@ const DEFAULT_OBJECTIVES: AthleteObjective[] = [
   },
 ];
 
+const OBJECTIVES_STORAGE_KEY = 'clubroom.objectives';
+
+interface ObjectivesLoadData {
+  objectives: AthleteObjective[];
+}
+
 export function useObjectives() {
   const { currentUser, availableUsers } = useAuth();
 
-  const [objectives, setObjectives] = useState<AthleteObjective[]>(DEFAULT_OBJECTIVES);
+  const [objectives, setObjectives] = useState<AthleteObjective[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingObjective, setEditingObjective] = useState<AthleteObjective | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<FootballObjective>('Dribbling');
   const [note, setNote] = useState('');
   const [targetSessions, setTargetSessions] = useState('10');
+
+  const loadObjectives = useCallback(async () => {
+    try {
+      const storedObjectives = await apiClient.get<AthleteObjective[]>(OBJECTIVES_STORAGE_KEY, DEFAULT_OBJECTIVES);
+      return ok<ObjectivesLoadData>({ objectives: storedObjectives });
+    } catch (loadError) {
+      return err(serviceError('UNKNOWN', 'Failed to load objectives.', loadError));
+    }
+  }, []);
+
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ObjectivesLoadData>({
+    load: loadObjectives,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.objectives.length === 0,
+    refetchOnFocus: true,
+  });
+
+  useEffect(() => {
+    if (!data) return;
+    setObjectives(data.objectives);
+  }, [data]);
 
   // Parent-specific: child selection
   const children = useMemo<User[]>(() => {
@@ -124,13 +154,13 @@ export function useObjectives() {
 
   const saveObjective = useCallback(() => {
     if (editingObjective) {
-      setObjectives((prev) =>
-        prev.map((obj) =>
-          obj.id === editingObjective.id
-            ? { ...obj, label: selectedSkill, note, targetSessions: parseInt(targetSessions) }
-            : obj
-        )
+      const next = objectives.map((obj) =>
+        obj.id === editingObjective.id
+          ? { ...obj, label: selectedSkill, note, targetSessions: parseInt(targetSessions) }
+          : obj
       );
+      setObjectives(next);
+      void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
     } else {
       const athleteId = isParent && selectedChildId
         ? selectedChildId
@@ -147,10 +177,12 @@ export function useObjectives() {
         startDate: toDateStr(new Date()),
         targetSessions: parseInt(targetSessions) || 10,
       };
-      setObjectives((prev) => [...prev, newObjective]);
+      const next = [...objectives, newObjective];
+      setObjectives(next);
+      void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
     }
     setShowModal(false);
-  }, [editingObjective, selectedSkill, note, targetSessions, isParent, selectedChildId, currentUser]);
+  }, [editingObjective, selectedSkill, note, targetSessions, isParent, selectedChildId, currentUser, objectives]);
 
   const deleteObjective = useCallback((id: string) => {
     Alert.alert('Delete Goal', 'Remove this goal from your list?', [
@@ -158,14 +190,23 @@ export function useObjectives() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => setObjectives((prev) => prev.filter((obj) => obj.id !== id)),
+        onPress: () => {
+          const next = objectives.filter((obj) => obj.id !== id);
+          setObjectives(next);
+          void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
+        },
       },
     ]);
-  }, []);
+  }, [objectives]);
 
   return {
     // Data
     currentUser,
+    status: status as ScreenStatus,
+    error: error as ServiceError | null,
+    refreshing,
+    onRefresh,
+    retry,
     filteredObjectives,
     children,
     selectedChildId,

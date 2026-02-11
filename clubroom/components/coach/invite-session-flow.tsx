@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useInviteSessionFlow } from '@/hooks/use-invite-session-flow';
 import { InviteAthleteModal } from './invite-athlete-modal';
@@ -41,7 +41,7 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={flow.handleClose}>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <View style={[styles.modal, { backgroundColor: palette.surface }]}>
           {/* Header */}
           <Row style={styles.header}>
@@ -78,7 +78,7 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   modal: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, maxHeight: '90%', minHeight: '50%' },
   header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backButton: { marginRight: Spacing.sm },

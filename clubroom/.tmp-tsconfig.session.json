@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.test.json",
+  "include": ["__tests__/completion/session-completed-event.test.ts"]
+}

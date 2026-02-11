@@ -1,26 +1,30 @@
-import { Pressable, type AccessibilityRole, type AccessibilityState, type ViewStyle, type StyleProp } from 'react-native';
+import { Pressable, type AccessibilityRole, type AccessibilityState, type GestureResponderEvent, type Insets, type ViewStyle, type StyleProp } from 'react-native';
 import React from 'react';
 
 /**
  * Platform-compatible clickable component that avoids web-only handlers during scoped type checks.
  */
 export interface ClickableProps {
-  onPress?: () => void;
-  onLongPress?: () => void;
+  onPress?: (event: GestureResponderEvent) => void;
+  onLongPress?: (event: GestureResponderEvent) => void;
+  onPressIn?: (event: GestureResponderEvent) => void;
+  onPressOut?: (event: GestureResponderEvent) => void;
   delayLongPress?: number;
   style?: StyleProp<ViewStyle> | ((state: { pressed: boolean }) => StyleProp<ViewStyle>);
   children?: React.ReactNode;
   disabled?: boolean;
-  hitSlop?: number;
+  hitSlop?: number | Insets;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: AccessibilityRole;
   accessibilityState?: AccessibilityState;
 }
 
-export function Clickable({
+export const Clickable = React.forwardRef<React.ComponentRef<typeof Pressable>, ClickableProps>(function Clickable({
   onPress,
   onLongPress,
+  onPressIn,
+  onPressOut,
   delayLongPress,
   style,
   children,
@@ -30,21 +34,28 @@ export function Clickable({
   accessibilityHint,
   accessibilityRole,
   accessibilityState,
-}: ClickableProps) {
+}: ClickableProps, ref) {
   const handlePress = disabled ? undefined : onPress;
   const handleLongPress = disabled ? undefined : onLongPress;
+  const handlePressIn = disabled ? undefined : onPressIn;
+  const handlePressOut = disabled ? undefined : onPressOut;
   const resolveStyle = typeof style === 'function' ? style : () => style;
+  const resolvedRole = accessibilityRole ?? (handlePress || handleLongPress ? 'button' : undefined);
+  const resolvedHitSlop = hitSlop ?? 8;
 
   return (
     <Pressable
+      ref={ref}
       onPress={handlePress}
       onLongPress={handleLongPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       delayLongPress={delayLongPress}
       disabled={disabled || (!onPress && !onLongPress)}
-      hitSlop={hitSlop}
+      hitSlop={resolvedHitSlop}
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
-      accessibilityRole={accessibilityRole}
+      accessibilityRole={resolvedRole}
       accessibilityState={accessibilityState}
       style={(state) => [
         resolveStyle({ pressed: state.pressed }) as ViewStyle | ViewStyle[],
@@ -54,4 +65,6 @@ export function Clickable({
       {children}
     </Pressable>
   );
-}
+});
+
+Clickable.displayName = 'Clickable';

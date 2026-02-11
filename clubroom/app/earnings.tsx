@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,6 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { EarningsBalanceCard } from '@/components/earnings/earnings-balance-card';
 import { EarningsWithdrawModal } from '@/components/earnings/earnings-withdraw-modal';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEarnings, FILTER_OPTIONS } from '@/hooks/use-earnings';
@@ -27,20 +28,40 @@ export default function EarningsScreen() {
   const { colors: palette } = useTheme();
   const e = useEarnings();
 
-  if (e.loading && !e.earnings) {
+  if (e.status === 'loading') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>Loading earnings...</ThemedText>
-        </View>
+        <LoadingState variant="detail" />
+      </SafeAreaView>
+    );
+  }
+
+  if (e.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={e.error?.message || 'Failed to load earnings.'} onRetry={e.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (e.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="cash-outline"
+          title="No earnings yet"
+          message="Complete your first paid session to start tracking earnings."
+        />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={e.refreshing} onRefresh={e.onRefresh} tintColor={palette.tint} />}
+      >
         <ScreenHeader title="Earnings" subtitle="Track your income" />
 
         <EarningsBalanceCard earnings={e.earnings} formatCurrency={e.formatCurrency} onWithdraw={e.openWithdrawModal} />

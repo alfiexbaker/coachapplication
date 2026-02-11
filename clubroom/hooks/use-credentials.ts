@@ -5,11 +5,13 @@
  * Used by app/verification/credentials.tsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
 import type { VerificationStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import type { ServiceError } from '@/types/result';
 
 const logger = createLogger('useCredentials');
 
@@ -24,9 +26,31 @@ export const CREDENTIAL_TYPES = [
 
 const COACH_ID = 'coach1';
 
+export interface UseCredentialsResult {
+  status: VerificationStatus | null;
+  loading: boolean;
+  screenStatus: ScreenStatus;
+  error: ServiceError | null;
+  refreshing: boolean;
+  onRefresh: () => void;
+  retry: () => void;
+  credentials: VerificationStatus['credentials'];
+  verifiedCount: number;
+  submitting: boolean;
+  showForm: boolean;
+  selectedType: string | null;
+  customName: string;
+  uploaded: boolean;
+  setShowForm: (value: boolean) => void;
+  setSelectedType: (value: string | null) => void;
+  setCustomName: (value: string) => void;
+  handleUpload: () => Promise<void>;
+  handleSubmit: () => Promise<void>;
+  resetForm: () => void;
+  setUploaded: (value: boolean) => void;
+}
+
 export function useCredentials() {
-  const [status, setStatus] = useState<VerificationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -35,17 +59,26 @@ export function useCredentials() {
 
   const loadStatus = useCallback(async () => {
     const result = await verificationService.getStatus(COACH_ID);
-    if (result.success) {
-      setStatus(result.data);
-    } else {
+    if (!result.success) {
       logger.error('Failed to load verification status:', result.error);
     }
-    setLoading(false);
+    return result;
   }, []);
 
-  useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
+  const {
+    data: status,
+    status: screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<VerificationStatus>({
+    load: loadStatus,
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const loading = screenStatus === 'loading';
 
   const handleUpload = useCallback(async () => {
     setUploaded(true);
@@ -66,7 +99,7 @@ export function useCredentials() {
         credentialLabel,
       );
       if (result.success) {
-        await loadStatus();
+        onRefresh();
         setShowForm(false);
         setSelectedType(null);
         setCustomName('');
@@ -79,7 +112,7 @@ export function useCredentials() {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedType, uploaded, customName, loadStatus]);
+  }, [selectedType, uploaded, customName, onRefresh]);
 
   const resetForm = useCallback(() => {
     setShowForm(false);
@@ -92,9 +125,26 @@ export function useCredentials() {
   const verifiedCount = credentials.filter((c) => c.status === 'VERIFIED').length;
 
   return {
-    credentials, verifiedCount, loading, submitting, showForm, selectedType,
-    customName, uploaded,
-    setShowForm, setSelectedType, setCustomName,
-    handleUpload, handleSubmit, resetForm, setUploaded,
-  };
+    status: status ?? null,
+    loading,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    credentials,
+    verifiedCount,
+    submitting,
+    showForm,
+    selectedType,
+    customName,
+    uploaded,
+    setShowForm,
+    setSelectedType,
+    setCustomName,
+    handleUpload,
+    handleSubmit,
+    resetForm,
+    setUploaded,
+  } satisfies UseCredentialsResult;
 }

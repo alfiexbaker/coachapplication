@@ -5,7 +5,7 @@
  * and quick actions for calendar, posts, matches, and events.
  */
 
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,22 +13,42 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { StatCard, ResultRow, QuickAction } from '@/components/club/club-dashboard-widgets';
 import { Spacing, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useClubDashboard } from '@/hooks/use-club-dashboard';
 
 export default function DashboardScreen() {
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { clubId, stats, results, loading, navigateTo } = useClubDashboard();
+  const { colors: palette } = useTheme();
+  const { clubId, stats, results, status, error, retry, navigateTo } = useClubDashboard();
 
-  if (loading || !stats) {
+  if (status === 'loading') {
     return (
-      <PageContainer>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+      <PageContainer header={<PageHeader title="Dashboard" showBack />}>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer header={<PageHeader title="Dashboard" showBack />}>
+        <ErrorState message={error?.message || 'Failed to load club dashboard.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty' || !stats) {
+    return (
+      <PageContainer header={<PageHeader title="Dashboard" showBack />}>
+        <EmptyState
+          icon="speedometer-outline"
+          title="No dashboard data"
+          message="Club activity has not been populated yet."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
       </PageContainer>
     );
   }
@@ -71,7 +91,6 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xl },
   statsRow: { gap: Spacing.xs },
   resultsCard: { gap: Spacing.sm },
   quickActionsSection: { gap: Spacing.sm },

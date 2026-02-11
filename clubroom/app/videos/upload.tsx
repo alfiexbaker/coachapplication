@@ -9,11 +9,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { VideoUpload } from '@/components/video/video-upload';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
 import { useVideoUpload, VISIBILITY_OPTIONS } from '@/hooks/use-video-upload';
+import { ok } from '@/types/result';
 
 export default function VideoUploadScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
     videoData, title, description, visibility, uploading, uploadProgress, canSubmit,
     setTitle, setDescription, setVisibility,

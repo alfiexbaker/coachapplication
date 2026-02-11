@@ -1,39 +1,57 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
 import type { EmergencyInfo, EmergencyContact } from '@/constants/types';
+import { useScreen } from '@/hooks/use-screen';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('EmergencyContactsScreen');
+
+interface EmergencyContactsData {
+  info: EmergencyInfo;
+}
 
 export function useEmergencyContacts() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const [info, setInfo] = useState<EmergencyInfo | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
 
   const loadInfo = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      return err(serviceError('VALIDATION', 'Missing child id for emergency contacts.'));
+    }
+
     try {
       const result = await safetyService.getEmergencyInfo(id);
       if (!result.success) {
         logger.error('Failed to load emergency info', result.error);
-        return;
+        return err(result.error);
       }
-      setInfo(result.data);
+      return ok<EmergencyContactsData>({ info: result.data });
     } catch (error) {
       logger.error('Failed to load emergency info:', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load emergency contacts.', error));
     }
   }, [id]);
 
-  useEffect(() => {
-    loadInfo();
-  }, [loadInfo]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<EmergencyContactsData>({
+    load: loadInfo,
+    deps: [id],
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
+
+  const info = data?.info ?? null;
 
   const handleAddContact = useCallback(async (contact: Omit<EmergencyContact, 'id'>) => {
     if (!id) return;
@@ -43,12 +61,12 @@ export function useEmergencyContacts() {
         logger.error('Failed to add contact', result.error);
         return;
       }
-      await loadInfo();
+      onRefresh();
       setShowForm(false);
     } catch (error) {
       logger.error('Failed to add contact:', error);
     }
-  }, [id, loadInfo]);
+  }, [id, onRefresh]);
 
   const handleUpdateContact = useCallback(async (contact: Omit<EmergencyContact, 'id'>) => {
     if (!id || !editingContact) return;
@@ -58,12 +76,12 @@ export function useEmergencyContacts() {
         logger.error('Failed to update contact', result.error);
         return;
       }
-      await loadInfo();
+      onRefresh();
       setEditingContact(null);
     } catch (error) {
       logger.error('Failed to update contact:', error);
     }
-  }, [id, editingContact, loadInfo]);
+  }, [id, editingContact, onRefresh]);
 
   const handleDeleteContact = useCallback(async (contactId: string) => {
     if (!id) return;
@@ -73,11 +91,11 @@ export function useEmergencyContacts() {
         logger.error('Failed to delete contact', result.error);
         return;
       }
-      await loadInfo();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to delete contact:', error);
     }
-  }, [id, loadInfo]);
+  }, [id, onRefresh]);
 
   const handleSetPrimary = useCallback(async (contactId: string) => {
     if (!id) return;
@@ -87,11 +105,11 @@ export function useEmergencyContacts() {
         logger.error('Failed to set primary contact', result.error);
         return;
       }
-      await loadInfo();
+      onRefresh();
     } catch (error) {
       logger.error('Failed to set primary contact:', error);
     }
-  }, [id, loadInfo]);
+  }, [id, onRefresh]);
 
   const contacts = info?.contacts ?? [];
 
@@ -103,7 +121,13 @@ export function useEmergencyContacts() {
   const startEdit = useCallback((contact: EmergencyContact) => setEditingContact(contact), []);
 
   return {
-    loading, contacts, showForm, editingContact,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    contacts, showForm, editingContact,
     handleAddContact, handleUpdateContact, handleDeleteContact, handleSetPrimary,
     openForm, closeForm, startEdit,
   };

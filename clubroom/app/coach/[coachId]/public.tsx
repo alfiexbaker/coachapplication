@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, ViewStyle, TextStyle } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle, TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ import { PublicProfileAbout } from '@/components/coach/public-profile-about';
 import { PublicProfileSpecialties } from '@/components/coach/public-profile-specialties';
 import { PublicProfileCredentials } from '@/components/coach/public-profile-credentials';
 import { PublicProfileReviews } from '@/components/coach/public-profile-reviews';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Components, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
@@ -30,25 +31,33 @@ export default function PublicCoachProfileScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const profile = usePublicProfile(coachId);
 
-  if (profile.loading) {
+  if (profile.status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+        <LoadingState variant="detail" />
       </SafeAreaView>
     );
   }
 
-  if (!profile.coach) {
+  if (profile.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ErrorState message={profile.error?.message ?? 'Failed to load coach profile.'} onRetry={profile.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (profile.status === 'empty' || !profile.coach) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
         <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>Coach not found</ThemedText>
-          <Clickable onPress={() => router.back()} style={[styles.goBackBtn, { backgroundColor: palette.tint }]}>
-            <ThemedText style={[Typography.bodySemiBold, { color: palette.surface }]}>Go Back</ThemedText>
-          </Clickable>
+          <EmptyState
+            icon="person-circle-outline"
+            title="Coach not found"
+            message="This profile is unavailable or may have been removed."
+            actionLabel="Go back"
+            onPressAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -58,7 +67,7 @@ export default function PublicCoachProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={profile.refreshing} onRefresh={profile.handleRefresh} tintColor={palette.tint} />}
+        refreshControl={<RefreshControl refreshing={profile.refreshing} onRefresh={profile.onRefresh} tintColor={palette.tint} />}
       >
         <PublicProfileHero
           coach={profile.coach}
@@ -117,8 +126,6 @@ export default function PublicCoachProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
-  errorText: { ...Typography.body },
-  goBackBtn: { height: Components.button.height, paddingHorizontal: Spacing.lg, borderRadius: Components.button.borderRadius, alignItems: 'center', justifyContent: 'center' },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tabBarContent: { paddingHorizontal: Spacing.sm },
   tab: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },

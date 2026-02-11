@@ -6,47 +6,57 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { drillService } from '@/services/drill-service';
 import type { Drill, DrillCategory } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useDrillLibrary');
 
 export const CATEGORIES: (DrillCategory | null)[] = [null, 'WARMUP', 'TECHNIQUE', 'FITNESS', 'COOLDOWN', 'TACTICAL'];
 
+interface DrillLibraryData {
+  drills: Drill[];
+}
+
 export function useDrillLibrary() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? 'coach1';
 
-  const [drills, setDrills] = useState<Drill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<DrillCategory | null>(null);
   const [searchQuery] = useState('');
 
   const loadData = useCallback(async () => {
     try {
       const data = await drillService.getDrillLibrary(coachId);
-      setDrills(data);
-    } catch (error) {
-      logger.error('Failed to load drill library:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return ok<DrillLibraryData>({ drills: data });
+    } catch (loadError) {
+      logger.error('Failed to load drill library', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load drill library.', loadError));
     }
   }, [coachId]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<DrillLibraryData>({
+    load: loadData,
+    deps: [coachId],
+    isEmpty: (value) => value.drills.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const drills = data?.drills ?? [];
 
   const filteredDrills = useMemo(() => {
     let filtered = drills;
@@ -82,7 +92,36 @@ export function useDrillLibrary() {
   }, []);
 
   return {
-    drills, filteredDrills, loading, refreshing, categoryFilter, searchQuery, categoryCounts,
-    handleRefresh, handleDrillPress, handleCreateDrill, handleCategoryChange,
+    drills,
+    filteredDrills,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    categoryFilter,
+    searchQuery,
+    categoryCounts,
+    handleRefresh: onRefresh,
+    handleDrillPress,
+    handleCreateDrill,
+    handleCategoryChange,
+  } satisfies {
+    drills: Drill[];
+    filteredDrills: Drill[];
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    categoryFilter: DrillCategory | null;
+    searchQuery: string;
+    categoryCounts: Record<string, number>;
+    handleRefresh: () => void;
+    handleDrillPress: (drill: Drill) => void;
+    handleCreateDrill: () => void;
+    handleCategoryChange: (category: DrillCategory | null) => void;
   };
 }

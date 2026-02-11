@@ -6,7 +6,7 @@
  * StatsQuickLinks, ChildSelector.
  */
 
-import { ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Column } from '@/components/primitives/column';
@@ -15,7 +15,7 @@ import { StatsGrid } from '@/components/bookings/stats-grid';
 import { RecentSessionsCard } from '@/components/bookings/recent-sessions-card';
 import { SkillsProgressCard } from '@/components/bookings/skills-progress-card';
 import { StatsQuickLinks } from '@/components/bookings/stats-quick-links';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useStatistics } from '@/hooks/use-statistics';
@@ -23,6 +23,11 @@ import { useStatistics } from '@/hooks/use-statistics';
 export default function StatisticsScreen() {
   const { colors: palette } = useTheme();
   const {
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     children,
     selectedChildId,
     setSelectedChildId,
@@ -36,8 +41,27 @@ export default function StatisticsScreen() {
     navigateToMessages,
   } = useStatistics();
 
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+        <ErrorState
+          message={error?.message ?? 'Failed to load progress statistics.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   // Empty state — no sessions completed yet
-  if (recentSessions.length === 0 && topSkills.length === 0) {
+  if (status === 'empty' || (recentSessions.length === 0 && topSkills.length === 0)) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
         {isParent && children.length > 0 && (
@@ -60,7 +84,11 @@ export default function StatisticsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+      >
         <Column gap="lg">
           {isParent && children.length > 0 && (
             <ChildSelector

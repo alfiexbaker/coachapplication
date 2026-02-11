@@ -4,6 +4,12 @@ import assert from 'node:assert/strict';
 import { analyticsQueryService } from '@/services/analytics/analytics-query-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { Result, ServiceError } from '@/types/result';
+
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
 
 describe('AnalyticsQueryService', () => {
   beforeEach(async () => {
@@ -14,7 +20,7 @@ describe('AnalyticsQueryService', () => {
 
   describe('getAthleteAnalytics', () => {
     it('should return analytics for known athlete', async () => {
-      const analytics = await analyticsQueryService.getAthleteAnalytics('athlete_1', 'MONTH');
+      const analytics = expectOk(await analyticsQueryService.getAthleteAnalytics('athlete_1', 'MONTH'));
 
       assert.ok(analytics);
       assert.equal(analytics.athleteId, 'athlete_1');
@@ -25,7 +31,7 @@ describe('AnalyticsQueryService', () => {
 
     it('should return default analytics for unknown athlete', async () => {
       const athleteId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const analytics = await analyticsQueryService.getAthleteAnalytics(athleteId, 'WEEK');
+      const analytics = expectOk(await analyticsQueryService.getAthleteAnalytics(athleteId, 'WEEK'));
 
       assert.ok(analytics);
       assert.equal(analytics.athleteId, athleteId);
@@ -34,7 +40,7 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should attach active goals to analytics', async () => {
-      const analytics = await analyticsQueryService.getAthleteAnalytics('athlete_1', 'MONTH');
+      const analytics = expectOk(await analyticsQueryService.getAthleteAnalytics('athlete_1', 'MONTH'));
 
       assert.ok(analytics);
       assert.ok(Array.isArray(analytics.activeGoals));
@@ -42,17 +48,18 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should update period dynamically', async () => {
-      const week = await analyticsQueryService.getAthleteAnalytics('athlete_1', 'WEEK');
-      const year = await analyticsQueryService.getAthleteAnalytics('athlete_1', 'YEAR');
+      const week = expectOk(await analyticsQueryService.getAthleteAnalytics('athlete_1', 'WEEK'));
+      const weekPeriod = week?.period;
+      const year = expectOk(await analyticsQueryService.getAthleteAnalytics('athlete_1', 'YEAR'));
 
       assert.ok(week);
       assert.ok(year);
-      assert.equal(week.period, 'WEEK');
+      assert.equal(weekPeriod, 'WEEK');
       assert.equal(year.period, 'YEAR');
     });
 
     it('should filter goals by athlete', async () => {
-      const analytics = await analyticsQueryService.getAthleteAnalytics('athlete_1', 'MONTH');
+      const analytics = expectOk(await analyticsQueryService.getAthleteAnalytics('athlete_1', 'MONTH'));
 
       assert.ok(analytics);
       analytics.activeGoals.forEach((goal) => {
@@ -63,7 +70,7 @@ describe('AnalyticsQueryService', () => {
 
   describe('getSkillHistory', () => {
     it('should return all skills for athlete', async () => {
-      const skills = await analyticsQueryService.getSkillHistory('athlete_1');
+      const skills = expectOk(await analyticsQueryService.getSkillHistory('athlete_1'));
 
       assert.ok(Array.isArray(skills));
       assert.ok(skills.length > 0);
@@ -74,14 +81,14 @@ describe('AnalyticsQueryService', () => {
 
     it('should return empty array for unknown athlete', async () => {
       const athleteId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const skills = await analyticsQueryService.getSkillHistory(athleteId);
+      const skills = expectOk(await analyticsQueryService.getSkillHistory(athleteId));
 
       assert.ok(Array.isArray(skills));
       assert.equal(skills.length, 0);
     });
 
     it('should filter by skill name when provided', async () => {
-      const skills = await analyticsQueryService.getSkillHistory('athlete_1', 'Dribbling');
+      const skills = expectOk(await analyticsQueryService.getSkillHistory('athlete_1', 'Dribbling'));
 
       assert.ok(Array.isArray(skills));
       if (skills.length > 0) {
@@ -90,7 +97,7 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should include skill history data points', async () => {
-      const skills = await analyticsQueryService.getSkillHistory('athlete_1');
+      const skills = expectOk(await analyticsQueryService.getSkillHistory('athlete_1'));
 
       assert.ok(skills.length > 0);
       const skill = skills[0];
@@ -104,7 +111,7 @@ describe('AnalyticsQueryService', () => {
 
   describe('getAthleteGoals', () => {
     it('should return all goals for athlete', async () => {
-      const goals = await analyticsQueryService.getAthleteGoals('athlete_1');
+      const goals = expectOk(await analyticsQueryService.getAthleteGoals('athlete_1'));
 
       assert.ok(Array.isArray(goals));
       assert.ok(goals.length > 0);
@@ -115,14 +122,14 @@ describe('AnalyticsQueryService', () => {
 
     it('should return empty array for unknown athlete', async () => {
       const athleteId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const goals = await analyticsQueryService.getAthleteGoals(athleteId);
+      const goals = expectOk(await analyticsQueryService.getAthleteGoals(athleteId));
 
       assert.ok(Array.isArray(goals));
       assert.equal(goals.length, 0);
     });
 
     it('should filter by status when provided', async () => {
-      const activeGoals = await analyticsQueryService.getAthleteGoals('athlete_1', 'ACTIVE');
+      const activeGoals = expectOk(await analyticsQueryService.getAthleteGoals('athlete_1', 'ACTIVE'));
 
       assert.ok(Array.isArray(activeGoals));
       activeGoals.forEach((goal) => {
@@ -131,7 +138,7 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should sort goals by updatedAt descending', async () => {
-      const goals = await analyticsQueryService.getAthleteGoals('athlete_1');
+      const goals = expectOk(await analyticsQueryService.getAthleteGoals('athlete_1'));
 
       if (goals.length > 1) {
         const time1 = new Date(goals[0].updatedAt).getTime();
@@ -141,7 +148,7 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should include goal milestones', async () => {
-      const goals = await analyticsQueryService.getAthleteGoals('athlete_1');
+      const goals = expectOk(await analyticsQueryService.getAthleteGoals('athlete_1'));
 
       if (goals.length > 0) {
         const goal = goals[0];
@@ -152,7 +159,7 @@ describe('AnalyticsQueryService', () => {
 
   describe('getSkillComparison', () => {
     it('should return skill comparison data', async () => {
-      const comparison = await analyticsQueryService.getSkillComparison('athlete_1');
+      const comparison = expectOk(await analyticsQueryService.getSkillComparison('athlete_1'));
 
       assert.ok(comparison);
       assert.ok(Array.isArray(comparison.skills));
@@ -160,7 +167,7 @@ describe('AnalyticsQueryService', () => {
 
     it('should return empty skills for unknown athlete', async () => {
       const athleteId = 'test-unknown-' + Math.random().toString(36).slice(2);
-      const comparison = await analyticsQueryService.getSkillComparison(athleteId);
+      const comparison = expectOk(await analyticsQueryService.getSkillComparison(athleteId));
 
       assert.ok(comparison);
       assert.ok(Array.isArray(comparison.skills));
@@ -168,7 +175,7 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should include athlete and average levels', async () => {
-      const comparison = await analyticsQueryService.getSkillComparison('athlete_1');
+      const comparison = expectOk(await analyticsQueryService.getSkillComparison('athlete_1'));
 
       if (comparison.skills.length > 0) {
         const skill = comparison.skills[0];
@@ -179,10 +186,13 @@ describe('AnalyticsQueryService', () => {
     });
 
     it('should match skills from athlete analytics', async () => {
-      const analytics = await analyticsQueryService.getAthleteAnalytics('athlete_1');
-      const comparison = await analyticsQueryService.getSkillComparison('athlete_1');
+      const analytics = expectOk(await analyticsQueryService.getAthleteAnalytics('athlete_1'));
+      const comparison = expectOk(await analyticsQueryService.getSkillComparison('athlete_1'));
+      if (!analytics) {
+        assert.fail('Expected athlete analytics for known athlete');
+      }
 
-      if (analytics && comparison.skills.length > 0) {
+      if (comparison.skills.length > 0) {
         assert.equal(comparison.skills.length, analytics.skills.length);
       }
     });

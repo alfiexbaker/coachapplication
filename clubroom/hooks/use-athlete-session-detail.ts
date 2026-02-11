@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import type { Session } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('AthleteSessionDetailScreen');
 
 const RATING_LABELS = ['Keep Practicing', 'Needs Work', 'Average', 'Good', 'Excellent'] as const;
+
+interface AthleteSessionDetailData {
+  session: Session | null;
+}
 
 export function formatDate(date: Date | string): string {
   const parsed = typeof date === 'string' ? new Date(date) : date;
@@ -18,50 +24,43 @@ export function formatDate(date: Date | string): string {
 
 export function useAthleteSessionDetail() {
   const { sessionId } = useLocalSearchParams<{ sessionId?: string | string[] }>();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const resolvedSessionId = Array.isArray(sessionId) ? sessionId[0] : sessionId;
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const resolvedSessionId = Array.isArray(sessionId) ? sessionId[0] : sessionId;
+  const loadSession = useCallback(async () => {
     if (!resolvedSessionId) {
-      setSession(null);
-      setLoading(false);
-      return;
+      return err(serviceError('VALIDATION', 'Missing session id.'));
     }
 
-    const loadSession = async () => {
-      try {
-        setLoading(true);
-        const sessions = await apiClient.get<Session[]>('coach_sessions', []);
-        const foundSession = sessions.find((candidate) => candidate.id === resolvedSessionId) ?? null;
+    try {
+      const sessions = await apiClient.get<Session[]>('coach_sessions', []);
+      const foundSession = sessions.find((candidate) => candidate.id === resolvedSessionId) ?? null;
 
-        if (isMounted) {
-          setSession(foundSession);
-        }
-
-        if (!foundSession) {
-          logger.warn('Athlete session detail not found', { sessionId: resolvedSessionId });
-        }
-      } catch (error) {
-        logger.error('Failed to load athlete session detail', { sessionId: resolvedSessionId, error });
-        if (isMounted) {
-          setSession(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (!foundSession) {
+        logger.warn('Athlete session detail not found', { sessionId: resolvedSessionId });
       }
-    };
 
-    loadSession();
+      return ok<AthleteSessionDetailData>({ session: foundSession });
+    } catch (error) {
+      logger.error('Failed to load athlete session detail', { sessionId: resolvedSessionId, error });
+      return err(serviceError('UNKNOWN', 'Failed to load session details.', error));
+    }
+  }, [resolvedSessionId]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [sessionId]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<AthleteSessionDetailData>({
+    load: loadSession,
+    deps: [resolvedSessionId],
+    isEmpty: (value) => value.session === null,
+    refetchOnFocus: true,
+  });
+
+  const session = data?.session ?? null;
 
   const hasNotes = !!(session?.notes && session.notes.trim() !== '');
   const hasVideos = !!(session?.videoUrls && session.videoUrls.length > 0);
@@ -76,9 +75,33 @@ export function useAthleteSessionDetail() {
     return RATING_LABELS[ratingIndex] ?? RATING_LABELS[0];
   }, [session]);
 
-  if (session) {
-    logger.debug('Athlete session detail rendered', { sessionId, hasNotes, hasVideos, hasSkills });
-  }
-
-  return { session, loading, hasNotes, hasVideos, hasSkills, hasNextFocus, ratingLabel, formatDate };
+  return {
+    session,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
+    hasNotes,
+    hasVideos,
+    hasSkills,
+    hasNextFocus,
+    ratingLabel,
+    formatDate,
+  } satisfies {
+    session: Session | null;
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    hasNotes: boolean;
+    hasVideos: boolean;
+    hasSkills: boolean;
+    hasNextFocus: boolean;
+    ratingLabel: string;
+    formatDate: typeof formatDate;
+  };
 }

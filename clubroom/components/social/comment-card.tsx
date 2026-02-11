@@ -1,7 +1,8 @@
 import { memo, useCallback } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -56,11 +57,12 @@ function CommentCardInner({
   }, [isOwnComment, isDeleted, onDelete, comment.id]);
 
   return (
-    <Pressable
+    <Clickable
       onLongPress={handleLongPress}
       delayLongPress={500}
       style={[styles.container, isReply && styles.replyContainer]}
       accessibilityLabel={`Comment by ${comment.authorName}`}
+      accessibilityRole="button"
     >
       <View
         style={[
@@ -103,7 +105,7 @@ function CommentCardInner({
           />
         )}
       </View>
-    </Pressable>
+    </Clickable>
   );
 }
 

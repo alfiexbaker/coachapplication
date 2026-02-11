@@ -6,7 +6,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { StaffRolePicker } from '@/components/academy/staff-role-picker';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { AcademyMembership } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -26,7 +26,7 @@ export const StaffEditModal = memo(function StaffEditModal({
 }: StaffEditModalProps) {
   return (
     <Modal visible={!!member} animationType="slide" transparent>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           <Row style={styles.header}>
             <ThemedText type="title">Edit Member</ThemedText>
@@ -55,7 +55,7 @@ export const StaffEditModal = memo(function StaffEditModal({
 });
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   content: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
   header: { alignItems: 'center', justifyContent: 'space-between' },
   memberName: { ...Typography.bodySmall, marginTop: -Spacing.xs },

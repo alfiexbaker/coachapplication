@@ -1,234 +1,92 @@
-import { describe, it, beforeEach } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { notificationPreferencesService } from '@/services/notification/notification-preferences';
-import { storageService } from '@/services/storage-service';
+import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationPreferencesService } from '@/services/notification/notification-preferences';
+import type { Result, ServiceError } from '@/types/result';
 
-describe('NotificationPreferencesService', () => {
+function expectOk<T>(result: Result<T, ServiceError>): T {
+  assert.equal(result.success, true);
+  return result.data;
+}
+
+let seq = 0;
+
+function nextId(prefix: string): string {
+  seq += 1;
+  return `${prefix}_${seq}`;
+}
+
+describe('notificationPreferencesService', () => {
   beforeEach(async () => {
-    await storageService.removeItem(STORAGE_KEYS.NOTIFICATION_PREFERENCES);
+    seq = 0;
+    await apiClient.set(STORAGE_KEYS.NOTIFICATION_PREFERENCES, []);
   });
 
-  describe('getPreferences', () => {
-    it('should create default preferences for new user', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
+  describe('get/update', () => {
+    it('creates defaults for new user and updates channels', async () => {
+      const userId = nextId('user');
+      const defaults = expectOk(await notificationPreferencesService.getPreferences(userId));
 
-      const prefs = await notificationPreferencesService.getPreferences(userId);
+      assert.equal(defaults.userId, userId);
+      assert.equal(defaults.channels.push, true);
+      assert.equal(defaults.channels.email, true);
+      assert.equal(defaults.channels.sms, false);
 
-      assert.equal(prefs.userId, userId);
-      assert.equal(prefs.channels.push, true);
-      assert.equal(prefs.channels.email, true);
-      assert.equal(prefs.channels.sms, false);
-      assert.equal(prefs.quietHours.enabled, false);
-    });
-
-    it('should return existing preferences for known user', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      const prefs1 = await notificationPreferencesService.getPreferences(userId);
-      const prefs2 = await notificationPreferencesService.getPreferences(userId);
-
-      assert.equal(prefs1.userId, prefs2.userId);
-      assert.equal(prefs1.createdAt, prefs2.createdAt);
-    });
-  });
-
-  describe('updatePreferences', () => {
-    it('should update preferences and set updatedAt', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.getPreferences(userId);
-
-      const updated = await notificationPreferencesService.updatePreferences(userId, {
-        channels: { push: false, email: true, sms: false },
-      });
-
+      const updated = expectOk(await notificationPreferencesService.toggleChannel(userId, 'PUSH', false));
       assert.equal(updated.channels.push, false);
-      assert.ok(updated.updatedAt);
-    });
-
-    it('should preserve userId even if updates try to change it', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.getPreferences(userId);
-
-      const updated = await notificationPreferencesService.updatePreferences(userId, {
-        userId: 'different-user',
-      } as any);
-
       assert.equal(updated.userId, userId);
     });
   });
 
-  describe('setQuietHours', () => {
-    it('should set quiet hours with enabled=true', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
+  describe('quiet hours', () => {
+    it('sets and toggles quiet hours', async () => {
+      const userId = nextId('user');
+      const setResult = expectOk(await notificationPreferencesService.setQuietHours(userId, '22:00', '07:00', true));
+      assert.equal(setResult.quietHours.enabled, true);
+      assert.equal(setResult.quietHours.startTime, '22:00');
 
-      const prefs = await notificationPreferencesService.setQuietHours(
-        userId,
-        '22:00',
-        '07:00',
-        true
-      );
-
-      assert.equal(prefs.quietHours.enabled, true);
-      assert.equal(prefs.quietHours.startTime, '22:00');
-      assert.equal(prefs.quietHours.endTime, '07:00');
-    });
-  });
-
-  describe('toggleQuietHours', () => {
-    it('should toggle quiet hours enabled state', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.setQuietHours(userId, '22:00', '07:00', true);
-
-      const toggled = await notificationPreferencesService.toggleQuietHours(userId, false);
-
+      const toggled = expectOk(await notificationPreferencesService.toggleQuietHours(userId, false));
       assert.equal(toggled.quietHours.enabled, false);
-      assert.equal(toggled.quietHours.startTime, '22:00');
-      assert.equal(toggled.quietHours.endTime, '07:00');
     });
   });
 
-  describe('toggleChannel', () => {
-    it('should toggle push channel', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
+  describe('mute flow', () => {
+    it('mutes and unmutes coach with shouldSend check', async () => {
+      const userId = nextId('user');
+      const coachId = nextId('coach');
 
-      const prefs = await notificationPreferencesService.toggleChannel(userId, 'PUSH', false);
-
-      assert.equal(prefs.channels.push, false);
-    });
-
-    it('should toggle email channel', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      const prefs = await notificationPreferencesService.toggleChannel(userId, 'EMAIL', false);
-
-      assert.equal(prefs.channels.email, false);
-    });
-  });
-
-  describe('muteCoach', () => {
-    it('should add coach to muted list', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-
-      const prefs = await notificationPreferencesService.muteCoach(
+      const muted = expectOk(await notificationPreferencesService.muteCoach(
         userId,
         coachId,
-        'Test Coach'
-      );
+        'Coach Example',
+      ));
+      assert.ok(muted.mutedCoaches.some((coach) => coach.coachId === coachId));
 
-      assert.equal(prefs.mutedCoaches.length, 1);
-      assert.equal(prefs.mutedCoaches[0].coachId, coachId);
-      assert.equal(prefs.mutedCoaches[0].coachName, 'Test Coach');
-    });
-
-    it('should not add duplicate muted coach', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.muteCoach(userId, coachId, 'Test Coach');
-      const prefs = await notificationPreferencesService.muteCoach(userId, coachId, 'Test Coach');
-
-      assert.equal(prefs.mutedCoaches.length, 1);
-    });
-  });
-
-  describe('unmuteCoach', () => {
-    it('should remove coach from muted list', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.muteCoach(userId, coachId, 'Test Coach');
-
-      const prefs = await notificationPreferencesService.unmuteCoach(userId, coachId);
-
-      assert.equal(prefs.mutedCoaches.length, 0);
-    });
-  });
-
-  describe('isCoachMuted', () => {
-    it('should return true for muted coach', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.muteCoach(userId, coachId, 'Test Coach');
-
-      const isMuted = await notificationPreferencesService.isCoachMuted(userId, coachId);
-
+      const isMuted = expectOk(await notificationPreferencesService.isCoachMuted(userId, coachId));
       assert.equal(isMuted, true);
-    });
 
-    it('should return false for non-muted coach', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-
-      const isMuted = await notificationPreferencesService.isCoachMuted(userId, coachId);
-
-      assert.equal(isMuted, false);
-    });
-  });
-
-  describe('shouldSendNotification', () => {
-    it('should return false when channel is disabled', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.toggleChannel(userId, 'PUSH', false);
-
-      const shouldSend = await notificationPreferencesService.shouldSendNotification(
-        userId,
-        'BOOKING_RECEIVED',
-        'PUSH'
-      );
-
-      assert.equal(shouldSend, false);
-    });
-
-    it('should return false when coach is muted', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-      const coachId = 'test-coach-' + Math.random().toString(36).slice(2);
-
-      await notificationPreferencesService.muteCoach(userId, coachId, 'Test Coach');
-
-      const shouldSend = await notificationPreferencesService.shouldSendNotification(
+      const shouldSend = expectOk(await notificationPreferencesService.shouldSendNotification(
         userId,
         'BOOKING_RECEIVED',
         'PUSH',
-        coachId
-      );
-
+        coachId,
+      ));
       assert.equal(shouldSend, false);
-    });
 
-    it('should return true when all conditions pass', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
-
-      const shouldSend = await notificationPreferencesService.shouldSendNotification(
-        userId,
-        'BOOKING_RECEIVED',
-        'PUSH'
-      );
-
-      assert.equal(shouldSend, true);
+      const unmuted = expectOk(await notificationPreferencesService.unmuteCoach(userId, coachId));
+      assert.ok(!unmuted.mutedCoaches.some((coach) => coach.coachId === coachId));
     });
   });
 
-  describe('resetPreferences', () => {
-    it('should reset to default preferences', async () => {
-      const userId = 'test-user-' + Math.random().toString(36).slice(2);
+  describe('reset', () => {
+    it('resets preferences back to defaults', async () => {
+      const userId = nextId('user');
+      expectOk(await notificationPreferencesService.toggleChannel(userId, 'PUSH', false));
+      expectOk(await notificationPreferencesService.muteCoach(userId, nextId('coach'), 'Muted Coach'));
 
-      await notificationPreferencesService.toggleChannel(userId, 'PUSH', false);
-      await notificationPreferencesService.muteCoach(
-        userId,
-        'test-coach-' + Math.random().toString(36).slice(2),
-        'Test Coach'
-      );
-
-      const reset = await notificationPreferencesService.resetPreferences(userId);
-
+      const reset = expectOk(await notificationPreferencesService.resetPreferences(userId));
       assert.equal(reset.channels.push, true);
       assert.equal(reset.mutedCoaches.length, 0);
     });

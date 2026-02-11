@@ -8,12 +8,14 @@ import { Alert, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { commentService } from '@/services/comment-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
 import type { Post } from '@/constants/social-types';
 import type { ClubFeedPost } from '@/constants/club-types';
 import type { CommentThread, ThreadedComment } from '@/constants/comment-types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('PostDetail');
 
@@ -91,10 +93,7 @@ export function usePostDetail() {
     return null;
   }, [postId, currentUser?.id, currentUser?.role]);
 
-  const [threads, setThreads] = useState<CommentThread[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
   const [liked, setLiked] = useState(false);
@@ -113,16 +112,38 @@ export function usePostDetail() {
   }, [normalized, currentUser?.id]);
 
   const loadComments = useCallback(async () => {
-    if (!postId) return;
-    const result = await commentService.getCommentsForPost(postId);
-    if (result.success) { setThreads(result.data); setError(null); }
-    else setError(result.error.message);
-    setLoading(false);
+    if (!postId) {
+      return ok<CommentThread[]>([]);
+    }
+
+    try {
+      const result = await commentService.getCommentsForPost(postId);
+      if (!result.success) {
+        return err(result.error);
+      }
+
+      return ok(result.data);
+    } catch (loadError) {
+      logger.error('Failed to load comments', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load comments.', loadError));
+    }
   }, [postId]);
 
-  useEffect(() => { loadComments(); }, [loadComments]);
+  const {
+    data,
+    status,
+    error: loadError,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<CommentThread[]>({
+    load: loadComments,
+    deps: [postId],
+    isEmpty: (value) => value.length === 0,
+    refetchOnFocus: true,
+  });
 
-  const handleRefresh = useCallback(async () => { setRefreshing(true); await loadComments(); setRefreshing(false); }, [loadComments]);
+  const threads = data ?? [];
 
   const flatItems = useMemo(() => flattenThreads(threads), [threads]);
 
@@ -138,15 +159,22 @@ export function usePostDetail() {
   const handleLikePost = useCallback(() => {
     logger.press('LikePost', { postId });
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLiked((prev) => !prev);
-    setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
-  }, [liked, postId]);
+    setLiked((previousLiked) => {
+      setLikeCount((previousCount) => previousLiked ? previousCount - 1 : previousCount + 1);
+      return !previousLiked;
+    });
+  }, [postId]);
 
   const handleLikeComment = useCallback(async (commentId: string) => {
     if (!currentUser) return;
     const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
-    if (result.success) await loadComments();
-  }, [currentUser, loadComments]);
+    if (result.success) {
+      setActionError(null);
+      onRefresh();
+      return;
+    }
+    setActionError(result.error.message);
+  }, [currentUser, onRefresh]);
 
   const handleReply = useCallback((commentId: string, authorName: string) => { setReplyingTo({ commentId, authorName }); }, []);
   const handleCancelReply = useCallback(() => setReplyingTo(null), []);
@@ -157,10 +185,15 @@ export function usePostDetail() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         const result = await commentService.deleteComment({ commentId, userId: currentUser.id });
-        if (result.success) await loadComments();
+        if (result.success) {
+          setActionError(null);
+          onRefresh();
+          return;
+        }
+        setActionError(result.error.message);
       }},
     ]);
-  }, [currentUser, loadComments]);
+  }, [currentUser, onRefresh]);
 
   const handleSubmitComment = useCallback(async () => {
     if (!newComment.trim() || !currentUser) return;
@@ -169,8 +202,15 @@ export function usePostDetail() {
       postId: postId ?? '', authorId: currentUser.id, authorName: currentUser.name,
       authorAvatar: currentUser.avatar, content: newComment, parentId: replyingTo?.commentId,
     });
-    if (result.success) { setNewComment(''); setReplyingTo(null); await loadComments(); }
-  }, [newComment, currentUser, postId, replyingTo, loadComments]);
+    if (result.success) {
+      setActionError(null);
+      setNewComment('');
+      setReplyingTo(null);
+      onRefresh();
+      return;
+    }
+    setActionError(result.error.message);
+  }, [newComment, currentUser, postId, replyingTo, onRefresh]);
 
   const postAuthorName = normalized?.authorName ?? 'Unknown';
   const postAuthorAvatar = normalized?.authorAvatar;
@@ -178,12 +218,50 @@ export function usePostDetail() {
   const postTitle = normalized?.title;
   const postCreatedAt = normalized?.createdAt ?? '';
   const initials = postAuthorAvatar?.slice(0, 2) ?? postAuthorName.slice(0, 2).toUpperCase();
+  const error = actionError ?? (status === 'error' ? (loadError as ServiceError | null)?.message ?? 'Failed to load comments.' : null);
 
   return {
     post, postAuthorName, postAuthorAvatar, postContent, postTitle, postCreatedAt, initials,
-    currentUser, flatItems, loading, error, refreshing, newComment, setNewComment,
+    currentUser, flatItems,
+    loading: status === 'loading',
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    newComment, setNewComment,
     replyingTo, liked, likeCount, totalCommentCount,
-    loadComments, handleRefresh, handleLikePost, handleLikeComment,
+    loadComments: retry, handleRefresh: onRefresh, handleLikePost, handleLikeComment,
     handleReply, handleCancelReply, handleDeleteComment, handleSubmitComment,
+  } satisfies {
+    post: Post | ClubFeedPost | null;
+    postAuthorName: string;
+    postAuthorAvatar: string | undefined;
+    postContent: string;
+    postTitle: string | undefined;
+    postCreatedAt: string;
+    initials: string;
+    currentUser: ReturnType<typeof useAuth>['currentUser'];
+    flatItems: FlatItem[];
+    loading: boolean;
+    status: ScreenStatus;
+    error: string | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    newComment: string;
+    setNewComment: (value: string) => void;
+    replyingTo: { commentId: string; authorName: string } | null;
+    liked: boolean;
+    likeCount: number;
+    totalCommentCount: number;
+    loadComments: () => void;
+    handleRefresh: () => void;
+    handleLikePost: () => void;
+    handleLikeComment: (commentId: string) => Promise<void>;
+    handleReply: (commentId: string, authorName: string) => void;
+    handleCancelReply: () => void;
+    handleDeleteComment: (commentId: string) => Promise<void>;
+    handleSubmitComment: () => Promise<void>;
   };
 }

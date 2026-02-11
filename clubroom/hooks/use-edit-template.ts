@@ -10,9 +10,11 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useEditTemplate');
 
@@ -28,9 +30,7 @@ export const MAX_SLOTS_OPTIONS = [1, 2, 3, 4, 5];
 export function useEditTemplate(id: string | undefined) {
   const { currentUser } = useAuth();
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [template, setTemplate] = useState<AvailabilityTemplate | null>(null);
   const [dayOfWeek, setDayOfWeek] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(1);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
@@ -38,26 +38,41 @@ export function useEditTemplate(id: string | undefined) {
   const [bufferMinutes, setBufferMinutes] = useState(15);
 
   const loadTemplate = useCallback(async () => {
-    if (!id || !currentUser?.id) return;
+    if (!id || !currentUser?.id) {
+      return ok<AvailabilityTemplate | null>(null);
+    }
     try {
       const templates = await availabilityService.getTemplates(currentUser.id);
       const found = templates.find(t => t.id === id);
-      if (found) {
-        setTemplate(found);
-        setDayOfWeek(found.dayOfWeek);
-        setStartTime(found.startTime);
-        setEndTime(found.endTime);
-        setMaxSlots(found.maxConcurrent);
-        setBufferMinutes(found.bufferMinutes);
-      }
+      return ok<AvailabilityTemplate | null>(found ?? null);
     } catch (error) {
       logger.error('Failed to load template', error);
-    } finally {
-      setLoading(false);
+      return err(serviceError('UNKNOWN', 'Failed to load availability template.', error));
     }
   }, [id, currentUser?.id]);
 
-  useEffect(() => { loadTemplate(); }, [loadTemplate]);
+  const {
+    data: template,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<AvailabilityTemplate | null>({
+    load: loadTemplate,
+    deps: [id, currentUser?.id],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
+
+  useEffect(() => {
+    if (!template) return;
+    setDayOfWeek(template.dayOfWeek);
+    setStartTime(template.startTime);
+    setEndTime(template.endTime);
+    setMaxSlots(template.maxConcurrent);
+    setBufferMinutes(template.bufferMinutes);
+  }, [template?.id]);
 
   const handleSave = useCallback(async () => {
     if (!currentUser?.id || !template) return;
@@ -104,7 +119,14 @@ export function useEditTemplate(id: string | undefined) {
   }, [template]);
 
   return {
-    loading, saving, template,
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    loading: status === 'loading',
+    refreshing,
+    onRefresh,
+    retry,
+    saving,
+    template: template ?? null,
     dayOfWeek, startTime, endTime, maxSlots, bufferMinutes,
     setDayOfWeek, setStartTime, setEndTime, setMaxSlots, setBufferMinutes,
     handleSave, handleDelete,

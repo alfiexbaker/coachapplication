@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ParticipantCard } from '@/components/group/participant-card';
 import { RollCallModal } from '@/components/group/roll-call-modal';
 import { InjuryReportModal } from '@/components/group/injury-report-modal';
@@ -20,7 +20,7 @@ export default function SessionRosterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const {
-    session, loading, filter, setFilter,
+    session, status, error, refreshing, onRefresh, retry, filter, setFilter,
     showRollCall, setShowRollCall, rollCallAttendance, rollCallStats, rollCallParticipants,
     showInjuryReport, setShowInjuryReport, selectedParticipant,
     injuryBodyPart, setInjuryBodyPart, injurySeverity, setInjurySeverity,
@@ -31,15 +31,32 @@ export default function SessionRosterScreen() {
     openInjuryReport, submitInjuryReport,
   } = useGroupRoster(id);
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <Row gap="md" align="center" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
-        </Row>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty' || !session) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <EmptyState
+          icon="people-outline"
+          title="Session not found"
+          message="This session could not be loaded."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -91,7 +108,11 @@ export default function SessionRosterScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingTop: 0 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ padding: Spacing.lg, paddingTop: 0 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {filteredRoster.length === 0 ? (
           <EmptyState icon="people-outline" title="No participants" message={filter !== 'all' ? `No ${filter} participants yet` : 'No one has registered for this session yet'} />
         ) : (

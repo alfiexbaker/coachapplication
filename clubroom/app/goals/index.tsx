@@ -19,17 +19,19 @@ import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { GoalCard, ProgressRing } from '@/components/goals';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useGoalsDashboard, GOAL_CATEGORIES, type TabFilter } from '@/hooks/use-goals-dashboard';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
 export default function GoalsDashboardScreen() {
-  const { colors } = useTheme();
+  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    goals, loading, refreshing, activeTab, categoryFilter, stats,
-    handleRefresh, handleTabChange, handleCategoryToggle,
+    goals, loading, status, error, refreshing, activeTab, categoryFilter, stats,
+    handleRefresh, retry, handleTabChange, handleCategoryToggle,
   } = useGoalsDashboard();
 
   const handleCreateGoal = () => {
@@ -118,9 +120,9 @@ export default function GoalsDashboardScreen() {
 
         {/* Goals List */}
         {loading ? (
-          <View style={styles.loadingPlaceholder}>
-            <ThemedText style={{ color: colors.muted }}>Loading goals...</ThemedText>
-          </View>
+          <LoadingState variant="list" />
+        ) : status === 'error' ? (
+          <ErrorState message={error?.message ?? 'Failed to load goals.'} onRetry={retry} />
         ) : goals.length === 0 ? (
           <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
@@ -162,7 +164,6 @@ const styles = StyleSheet.create({
   categoryRow: { marginBottom: Spacing.md, marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg },
   categoryChip: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, borderWidth: 1 },
   categoryChipText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  loadingPlaceholder: { padding: Spacing.xl, alignItems: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
   emptyIcon: { width: 96, height: 96, borderRadius: Radii['3xl' as keyof typeof Radii] ?? 64, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
   emptyText: { textAlign: 'center', ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22), maxWidth: 280 },

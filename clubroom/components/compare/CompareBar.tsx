@@ -6,13 +6,14 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Shadows, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -116,7 +117,7 @@ export function CompareBar({
 
         {/* Action buttons */}
         <Row style={styles.actions}>
-          <Pressable
+          <Clickable
             accessibilityRole="button"
             accessibilityLabel="Clear comparison"
             onPress={handleClear}
@@ -126,9 +127,9 @@ export function CompareBar({
             ]}
           >
             <Ionicons name="close-circle" size={20} color={withAlpha(palette.onPrimary, 0.8)} />
-          </Pressable>
+          </Clickable>
 
-          <Pressable
+          <Clickable
             accessibilityRole="button"
             accessibilityLabel="View comparison"
             onPress={handleCompare}
@@ -143,7 +144,7 @@ export function CompareBar({
             <ThemedText style={[styles.compareButtonText, { color: palette.tint }]}>
               Compare
             </ThemedText>
-          </Pressable>
+          </Clickable>
         </Row>
       </View>
     </Animated.View>

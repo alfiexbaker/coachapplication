@@ -12,30 +12,51 @@ import { Clickable } from '@/components/primitives/clickable';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { ChildLevelCard } from '@/components/badges/child-level-card';
 import { ChildBadgeCard } from '@/components/badges/child-badge-card';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useChildBadges } from '@/hooks/use-child-badges';
 
 export default function ChildBadgesScreen() {
-  const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { child, awards, progressionData, loading, highlightBadge, loadData } = useChildBadges();
+  const { colors } = useTheme();
+  const { child, awards, progressionData, status, error, refreshing, onRefresh, retry, highlightBadge, loadData } = useChildBadges();
 
-  if (!child) {
+  if (status === 'loading') {
     return (
       <PageContainer>
-        <ThemedText>Child not found</ThemedText>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer>
+        <ErrorState message={error?.message || 'Failed to load child badges.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty' || !child) {
+    return (
+      <PageContainer>
+        <EmptyState
+          icon="ribbon-outline"
+          title="No badges yet"
+          message="Badges will appear here when coaches award achievements during training sessions."
+          actionLabel="Refresh"
+          onPressAction={onRefresh}
+        />
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer gap={Spacing.md}>
+    <PageContainer gap={Spacing.md} refreshing={refreshing} onRefresh={onRefresh}>
       {/* Header */}
       <Row gap="md" align="center">
         <Clickable onPress={() => router.back()} style={styles.backButton}>
@@ -63,27 +84,13 @@ export default function ChildBadgesScreen() {
       )}
 
       {/* Badge List */}
-      {awards.length === 0 ? (
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <SurfaceCard style={styles.emptyCard}>
-            <View style={styles.emptyContent}>
-              <Ionicons name="ribbon-outline" size={48} color={colors.icon} />
-              <ThemedText type="defaultSemiBold">No badges yet</ThemedText>
-              <ThemedText style={[Typography.bodySmall, { color: colors.muted, textAlign: 'center', maxWidth: 280 }]}>
-                Badges will appear here when coaches award them for achievements during training sessions.
-              </ThemedText>
-            </View>
-          </SurfaceCard>
-        </Animated.View>
-      ) : (
-        <View style={{ gap: Spacing.sm }}>
-          {awards.map((award, index) => (
-            <Animated.View key={award.id} entering={FadeInDown.delay(100 + index * 30).springify()}>
-              <ChildBadgeCard award={award} highlighted={highlightBadge === award.id} onRefresh={loadData} />
-            </Animated.View>
-          ))}
-        </View>
-      )}
+      <View style={{ gap: Spacing.sm }}>
+        {awards.map((award, index) => (
+          <Animated.View key={award.id} entering={FadeInDown.delay(100 + index * 30).springify()}>
+            <ChildBadgeCard award={award} highlighted={highlightBadge === award.id} onRefresh={loadData} />
+          </Animated.View>
+        ))}
+      </View>
     </PageContainer>
   );
 }
@@ -91,6 +98,4 @@ export default function ChildBadgesScreen() {
 const styles = StyleSheet.create({
   backButton: { padding: Spacing.xs },
   headerContent: { flex: 1, gap: Spacing.micro },
-  emptyCard: { padding: Spacing.xl },
-  emptyContent: { alignItems: 'center', gap: Spacing.md },
 });

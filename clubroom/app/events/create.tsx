@@ -11,16 +11,52 @@ import { CreateEventDetailsStep } from '@/components/event/create-event-details-
 import { CreateEventScheduleStep } from '@/components/event/create-event-schedule-step';
 import { CreateEventAudienceStep } from '@/components/event/create-event-audience-step';
 import { CreateEventReviewStep } from '@/components/event/create-event-review-step';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { useScreen } from '@/hooks/use-screen';
+import { ok } from '@/types/result';
 import { useCreateEvent, STEPS } from '@/hooks/use-create-event';
 
 export default function CreateEventScreen() {
-  const { colors: palette } = useTheme();
+  const { status, error, retry, colors: palette } = useScreen<boolean>({
+    load: async () => ok(true),
+    isEmpty: () => false,
+    refetchOnFocus: true,
+  });
   const {
     form, step, loading, squads, currentStepIndex,
     setField, canProceed, goNext, goBack, handleCreate,
   } = useCreateEvent();
+
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <LoadingState variant="form" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <ErrorState message={error?.message || 'Failed to open event creation flow.'} onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="calendar-outline"
+          title="Creation unavailable"
+          message="The event creation flow is currently unavailable."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
+      </SafeAreaView>
+    );
+  }
 
   const renderStep = () => {
     switch (step) {

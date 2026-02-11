@@ -17,7 +17,7 @@ import { Row } from '@/components/primitives/row';
 import { ChildSelector } from '@/components/bookings/child-selector';
 import { ObjectiveCard } from '@/components/bookings/objective-card';
 import { ObjectiveModal } from '@/components/bookings/objective-modal';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useObjectives } from '@/hooks/use-objectives';
@@ -28,6 +28,11 @@ const ITEM_SEPARATOR_HEIGHT = Spacing.md;
 export default function ObjectivesScreen() {
   const { colors: palette } = useTheme();
   const {
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
     filteredObjectives,
     children,
     selectedChildId,
@@ -93,6 +98,25 @@ export default function ObjectivesScreen() {
     [openAddModal]
   );
 
+  if (status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+        <ErrorState
+          message={error?.message ?? 'Failed to load objectives.'}
+          onRetry={retry}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
       <FlatList
@@ -102,6 +126,8 @@ export default function ObjectivesScreen() {
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={ListEmpty}
         ItemSeparatorComponent={ItemSeparator}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />

@@ -2,7 +2,7 @@
  * BadgeAwardModal — Sub-components.
  */
 import { memo } from 'react';
-import { View, StyleSheet, TextInput, Image, Pressable, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -57,7 +57,12 @@ export const BadgeSelector = memo(function BadgeSelector({ definitions, selected
           const isSelected = selectedBadgeId === badge.id;
           return (
             <Animated.View key={badge.id} entering={FadeIn.delay(index * 50)}>
-              <Pressable onPress={() => onSelect(badge.id)}>
+              <Clickable
+                onPress={() => onSelect(badge.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Select badge ${badge.label}`}
+                accessibilityState={{ selected: isSelected }}
+              >
                 <View style={[styles.badgeCard, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
                   <View style={[styles.badgeIconCircle, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.12) : withAlpha(palette.muted, 0.09) }]}>
                     <Ionicons name={getBadgeIcon(badge) as keyof typeof Ionicons.glyphMap} size={24} color={isSelected ? palette.tint : palette.icon} />
@@ -69,7 +74,7 @@ export const BadgeSelector = memo(function BadgeSelector({ definitions, selected
                     </View>
                   )}
                 </View>
-              </Pressable>
+              </Clickable>
             </Animated.View>
           );
         })}
@@ -89,11 +94,18 @@ export const ReasonSelector = memo(function ReasonSelector({ selectedReason, onS
         {BADGE_REASONS.map((reason) => {
           const isSelected = selectedReason === reason;
           return (
-            <Pressable key={reason} onPress={() => onSelect(reason)}>
+            <Clickable
+              key={reason}
+              onPress={() => onSelect(reason)}
+              accessibilityRole="button"
+              accessibilityLabel={`Set award reason ${reason}`}
+              accessibilityState={{ selected: isSelected }}
+              style={styles.reasonTapTarget}
+            >
               <View style={[styles.reasonPill, { backgroundColor: isSelected ? palette.tint : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
                 <ThemedText style={[styles.reasonText, { color: isSelected ? palette.onPrimary : palette.text }]}>{reason}</ThemedText>
               </View>
-            </Pressable>
+            </Clickable>
           );
         })}
       </Row>
@@ -113,11 +125,17 @@ export const NoteInput = memo(function NoteInput({ note, onNoteChange, onQuickNo
           placeholderTextColor={palette.muted} value={note} onChangeText={onNoteChange} multiline maxLength={280} />
         <Row style={styles.quickNotes}>
           {QUICK_NOTES.map((quickNote) => (
-            <Pressable key={quickNote} onPress={() => onQuickNote(quickNote)}>
+            <Clickable
+              key={quickNote}
+              onPress={() => onQuickNote(quickNote)}
+              accessibilityRole="button"
+              accessibilityLabel={`Add quick note ${quickNote}`}
+              style={styles.quickNoteTapTarget}
+            >
               <View style={[styles.quickNotePill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <ThemedText style={[styles.quickNoteText, { color: palette.tint }]}>+ {quickNote}</ThemedText>
               </View>
-            </Pressable>
+            </Clickable>
           ))}
         </Row>
       </View>
@@ -177,11 +195,13 @@ const styles = StyleSheet.create({
   badgeLabel: { ...Typography.caption, textAlign: 'center' },
   selectedCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
   reasonContainer: { flexWrap: 'wrap', gap: Spacing.xs },
+  reasonTapTarget: { minHeight: 44, justifyContent: 'center' },
   reasonPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.full, borderWidth: 1 },
   reasonText: { ...Typography.bodySmallSemiBold },
   noteInputContainer: { borderRadius: Radii.lg, borderWidth: 1, overflow: 'hidden' },
   noteInput: { ...Typography.body, padding: Spacing.md, minHeight: 80, textAlignVertical: 'top' },
   quickNotes: { flexWrap: 'wrap', gap: Spacing.xs, padding: Spacing.sm, paddingTop: 0 },
+  quickNoteTapTarget: { minHeight: 44, justifyContent: 'center' },
   quickNotePill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.full },
   quickNoteText: { ...Typography.caption },
   charCount: { ...Typography.caption, textAlign: 'right' },

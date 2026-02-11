@@ -6,11 +6,12 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, Pressable } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Row } from '@/components/primitives/row';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -94,7 +95,7 @@ export const NotesStep = memo(function NotesStep({
           {SKILL_OPTIONS.map(skill => {
             const isSelected = skillsFocused.includes(skill);
             return (
-              <Pressable
+              <Clickable
                 key={skill}
                 style={[
                   styles.skillChip,
@@ -105,11 +106,12 @@ export const NotesStep = memo(function NotesStep({
                 onPress={() => handleToggleSkill(skill)}
                 accessibilityLabel={`${isSelected ? 'Remove' : 'Add'} ${skill} skill`}
                 accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
               >
                 <ThemedText style={[styles.skillChipText, { color: isSelected ? colors.onPrimary : colors.text }]}>
                   {skill}
                 </ThemedText>
-              </Pressable>
+              </Clickable>
             );
           })}
         </Row>

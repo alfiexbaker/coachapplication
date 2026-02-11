@@ -8,11 +8,13 @@ import { Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen } from '@/hooks/use-screen';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { discoverService } from '@/services/discover-service';
 import { hasChildren } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 import type { CreateRecurringBookingParams, CoachProfile } from '@/constants/types';
+import { ok } from '@/types/result';
 
 const logger = createLogger('SubscribeScreen');
 
@@ -43,44 +45,45 @@ export function useSubscribe() {
   const params = useLocalSearchParams<{ coachId?: string }>();
 
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | null>(null);
-  const [coaches, setCoaches] = useState<CoachOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  const loadCoaches = useCallback(async () => {
+    const result = await discoverService.getAllCoaches();
+    if (result.success && result.data.length > 0) {
+      return ok(result.data.map(mapCoachProfileToOption));
+    }
 
-    const loadCoaches = async () => {
-      const result = await discoverService.getAllCoaches();
-      if (!active) {
-        return;
-      }
+    const fallbackCoaches = availableUsers
+      .filter((user) => user.role === 'COACH')
+      .map((coach) => ({
+        id: coach.id,
+        name: coach.name || coach.fullName || 'Coach',
+        photoUrl: coach.avatar,
+        sessionTypes: ['1-on-1 Training'],
+        pricePerSession: 50,
+        location: coach.postcode || 'TBD',
+        rating: 4.5,
+        totalSessions: 0,
+      }));
 
-      if (result.success && result.data.length > 0) {
-        setCoaches(result.data.map(mapCoachProfileToOption));
-        return;
-      }
-
-      const fallbackCoaches = availableUsers
-        .filter((user) => user.role === 'COACH')
-        .map((coach) => ({
-          id: coach.id,
-          name: coach.name || coach.fullName || 'Coach',
-          photoUrl: coach.avatar,
-          sessionTypes: ['1-on-1 Training'],
-          pricePerSession: 50,
-          location: coach.postcode || 'TBD',
-          rating: 4.5,
-          totalSessions: 0,
-        }));
-      setCoaches(fallbackCoaches);
-    };
-
-    void loadCoaches();
-
-    return () => {
-      active = false;
-    };
+    return ok(fallbackCoaches);
   }, [availableUsers]);
+
+  const {
+    data: coachesData,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+  } = useScreen<CoachOption[]>({
+    load: loadCoaches,
+    deps: [loadCoaches],
+    isEmpty: (list) => list.length === 0,
+    refetchOnFocus: true,
+  });
+  const coaches = coachesData ?? [];
 
   const athletes = useMemo(() => {
     if (!currentUser?.id || currentUser.role === 'COACH') return undefined;
@@ -121,7 +124,20 @@ export function useSubscribe() {
   const clearCoach = useCallback(() => setSelectedCoach(null), []);
 
   return {
-    currentUser, selectedCoach, submitting, coaches, athletes,
-    setSelectedCoach, handleSubmit, handleCancel, clearCoach,
+    currentUser,
+    selectedCoach,
+    submitting,
+    coaches,
+    athletes,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+    setSelectedCoach,
+    handleSubmit,
+    handleCancel,
+    clearCoach,
   };
 }

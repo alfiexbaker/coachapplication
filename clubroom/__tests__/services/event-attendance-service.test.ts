@@ -16,10 +16,8 @@ describe('eventAttendanceService', () => {
       const attendance = await eventAttendanceService.checkIn({
         eventId: 'event_1',
         userId: 'user_checkin_1',
-        userName: 'Test User',
         userRole: 'PARENT',
         checkedInBy: 'user_checkin_1',
-        checkedInByName: 'Test User',
         checkInMethod: 'SELF',
         guestsCheckedIn: 0,
       });
@@ -41,7 +39,7 @@ describe('eventAttendanceService', () => {
   describe('isUserCheckedIn', () => {
     test('returns false for user who has not checked in', async () => {
       const result = await eventAttendanceService.isUserCheckedIn('event_1', 'random_user_xyz');
-      assert.equal(result, false);
+      assert.strictEqual(result, false);
     });
   });
 
@@ -62,7 +60,7 @@ describe('eventAttendanceService', () => {
 
     test('returns false for a past event', () => {
       const event = { date: '2020-01-01' } as ClubEvent;
-      assert.equal(eventAttendanceService.isEventToday(event), false);
+      assert.strictEqual(eventAttendanceService.isEventToday(event), false);
     });
   });
 
@@ -70,7 +68,7 @@ describe('eventAttendanceService', () => {
     test('returns false for non-published event', () => {
       const today = new Date().toISOString().split('T')[0];
       const event = { date: today, status: 'DRAFT', startTime: '09:00', endTime: '10:00' } as ClubEvent;
-      assert.equal(eventAttendanceService.isCheckInAvailable(event), false);
+      assert.strictEqual(eventAttendanceService.isCheckInAvailable(event), false);
     });
 
     test('returns boolean for published event', () => {

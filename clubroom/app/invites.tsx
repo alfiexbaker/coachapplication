@@ -16,6 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InviteCard } from '@/components/invite/invite-card';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useInvites, type TabFilter } from '@/hooks/use-invites';
@@ -36,6 +37,37 @@ export default function InvitesScreen() {
     { key: 'maybe', label: 'Maybe', count: inv.maybeCount },
     { key: 'responded', label: 'History' },
   ];
+
+  if (inv.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Session Invites" subtitle="Loading invites" showBack onBackPress={() => router.back()} />
+        <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (inv.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Session Invites" subtitle="Unable to load invites" showBack onBackPress={() => router.back()} />
+        <ErrorState message={inv.error?.message || 'Failed to load invites.'} onRetry={inv.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (inv.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <PageHeader title="Session Invites" subtitle="From your coaches" showBack onBackPress={() => router.back()} />
+        <EmptyState
+          icon="mail-outline"
+          title="No pending invites"
+          message="When coaches invite you to sessions, they will appear here."
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -61,23 +93,15 @@ export default function InvitesScreen() {
         refreshControl={<RefreshControl refreshing={inv.refreshing} onRefresh={inv.handleRefresh} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(inv.error ? palette.error : palette.muted, 0.06) }]}>
-              <Ionicons name={inv.error ? 'alert-circle-outline' : inv.tabFilter === 'pending' ? 'mail-outline' : inv.tabFilter === 'maybe' ? 'help-circle-outline' : 'time-outline'} size={40} color={inv.error ? palette.error : palette.muted} />
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
+              <Ionicons name={inv.tabFilter === 'pending' ? 'mail-outline' : inv.tabFilter === 'maybe' ? 'help-circle-outline' : 'time-outline'} size={40} color={palette.muted} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              {inv.loading ? 'Loading invites...' : inv.error ? 'Something went wrong' : inv.tabFilter === 'pending' ? 'No pending invites' : inv.tabFilter === 'maybe' ? 'No maybe invites' : 'No invite history'}
+              {inv.tabFilter === 'pending' ? 'No pending invites' : inv.tabFilter === 'maybe' ? 'No maybe invites' : 'No invite history'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              {inv.error ? inv.error : inv.tabFilter === 'pending' ? 'When coaches invite you to sessions, they will appear here' : inv.tabFilter === 'maybe' ? 'Invites you marked as "maybe" will appear here' : 'Your responded invites will show here'}
+              {inv.tabFilter === 'pending' ? 'When coaches invite you to sessions, they will appear here' : inv.tabFilter === 'maybe' ? 'Invites you marked as "maybe" will appear here' : 'Your responded invites will show here'}
             </ThemedText>
-            {inv.error && !inv.loading && (
-              <Clickable style={[styles.retryButton, { borderColor: palette.tint }]} onPress={inv.loadInvites}>
-                <Row align="center" justify="center" gap="xs">
-                  <Ionicons name="refresh" size={18} color={palette.tint} />
-                  <ThemedText style={[styles.retryText, { color: palette.tint }]}>Retry</ThemedText>
-                </Row>
-              </Clickable>
-            )}
           </View>
         }
         ItemSeparatorComponent={ItemSeparator}
@@ -97,6 +121,4 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 72, height: 72, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
   emptyTitle: { ...Typography.heading },
   emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
-  retryButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44, marginTop: Spacing.sm },
-  retryText: { ...Typography.bodySemiBold },
 });

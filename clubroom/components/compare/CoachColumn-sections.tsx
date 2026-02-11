@@ -9,14 +9,16 @@
  */
 
 import { memo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Components, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { styles } from './coach-column-styles';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -93,7 +95,7 @@ export const CoachProfileSection = memo(function CoachProfileSection({
   palette,
 }: CoachProfileSectionProps) {
   return (
-    <Pressable onPress={onPress} style={styles.profileSection}>
+    <Clickable onPress={onPress} style={styles.profileSection} accessibilityRole="button" accessibilityLabel={`View ${name} profile`}>
       <Image
         source={{ uri: avatar }}
         style={styles.avatar}
@@ -108,7 +110,7 @@ export const CoachProfileSection = memo(function CoachProfileSection({
           {distanceMiles.toFixed(1)} mi
         </ThemedText>
       </Row>
-    </Pressable>
+    </Clickable>
   );
 });
 
@@ -165,7 +167,7 @@ export const BookButton = memo(function BookButton({
   palette,
 }: BookButtonProps) {
   return (
-    <Pressable
+    <Clickable
       accessibilityRole="button"
       accessibilityLabel={`Book session with ${name}`}
       onPress={onPress}
@@ -176,94 +178,8 @@ export const BookButton = memo(function BookButton({
     >
       <Ionicons name="calendar" size={18} color={palette.onPrimary} />
       <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>Book Session</ThemedText>
-    </Pressable>
+    </Clickable>
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  column: {
-    flex: 1,
-    minWidth: 160,
-    maxWidth: 200,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  header: {
-    justifyContent: 'flex-end',
-    padding: Spacing.xs,
-  },
-  removeButton: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileSection: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.sm,
-  },
-  avatar: {
-    width: Components.avatar.lg,
-    height: Components.avatar.lg,
-    borderRadius: Components.avatar.lg / 2,
-    marginBottom: Spacing.xs,
-  },
-  name: { ...Typography.body, textAlign: 'center' },
-  locationRow: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginTop: Spacing.micro,
-  },
-  location: { ...Typography.caption },
-  values: {
-    flex: 1,
-    padding: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  cell: {
-    padding: Spacing.xs,
-    borderRadius: Radii.sm,
-  },
-  cellHeader: {
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginBottom: Spacing.xxs,
-  },
-  cellLabel: { ...Typography.caption, flex: 1 },
-  cellValue: { ...Typography.bodySemiBold },
-  cellSuffix: { ...Typography.caption },
-  bestBadge: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-  },
-  bestText: {
-    ...Typography.micro,
-    textTransform: 'uppercase',
-  },
-  tags: {
-    flexWrap: 'wrap',
-    gap: Spacing.xxs,
-  },
-  tag: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  tagText: { ...Typography.caption },
-  languagesText: { ...Typography.small },
-  bookButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    margin: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radii.button,
-  },
-  bookButtonText: { ...Typography.bodySmallSemiBold },
-});
+export { styles };

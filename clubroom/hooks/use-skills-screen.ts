@@ -1,11 +1,13 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { skillTreeService } from '@/services/skills';
 import { createLogger } from '@/utils/logger';
 import type { SkillTreeCategory } from '@/constants/types';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('SkillsScreen');
 
@@ -30,31 +32,41 @@ export interface TreeSummary {
 export function useSkillsScreen() {
   const { currentUser } = useAuth();
 
-  const [trees, setTrees] = useState<TreeSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
   const loadTrees = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser?.id) {
+      return ok<{ trees: TreeSummary[] }>({ trees: [] });
+    }
 
     try {
       const summaryResult = await skillTreeService.getTreesSummary(currentUser.id);
       if (!summaryResult.success) {
         logger.error('skill_trees_load_failed', summaryResult.error);
-        setTrees([]);
-        return;
+        return err(summaryResult.error);
       }
       const summary = summaryResult.data;
-      setTrees(summary);
       logger.info('skill_trees_loaded', { count: summary.length });
+      return ok<{ trees: TreeSummary[] }>({ trees: summary });
     } catch (error) {
       logger.error('skill_trees_load_failed', { error });
+      return err(serviceError('UNKNOWN', 'Failed to load skill trees.', error));
     }
   }, [currentUser]);
 
-  useEffect(() => {
-    setIsLoading(true);
-    loadTrees().finally(() => setIsLoading(false));
-  }, [loadTrees]);
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<{ trees: TreeSummary[] }>({
+    load: loadTrees,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.trees.length === 0,
+    refetchOnFocus: true,
+  });
+
+  const trees = data?.trees ?? [];
 
   const handleTreePress = useCallback((tree: TreeSummary) => {
     logger.press('SkillTreeCard', { treeId: tree.treeId, category: tree.category });
@@ -78,7 +90,7 @@ export function useSkillsScreen() {
                 Alert.alert('Error', result.error.message);
                 return;
               }
-              await loadTrees();
+              onRefresh();
               Alert.alert('Success', 'Demo progress has been added!');
             } catch {
               Alert.alert('Error', 'Failed to initialize demo progress');
@@ -87,7 +99,7 @@ export function useSkillsScreen() {
         },
       ]
     );
-  }, [currentUser, loadTrees]);
+  }, [currentUser, onRefresh]);
 
   const overallStats = useMemo(() => {
     const totalSkills = trees.reduce((sum, t) => sum + t.totalNodes, 0);
@@ -97,8 +109,27 @@ export function useSkillsScreen() {
   }, [trees]);
 
   return {
-    currentUser, trees, isLoading,
+    currentUser,
+    trees,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    refreshing,
+    onRefresh,
+    retry,
     overallStats,
     handleTreePress, handleInitializeMock,
+  } satisfies {
+    currentUser: typeof currentUser;
+    trees: TreeSummary[];
+    loading: boolean;
+    status: ScreenStatus;
+    error: ServiceError | null;
+    refreshing: boolean;
+    onRefresh: () => void;
+    retry: () => void;
+    overallStats: { totalSkills: number; totalUnlocked: number; overallPercent: number };
+    handleTreePress: (tree: TreeSummary) => void;
+    handleInitializeMock: () => Promise<void>;
   };
 }

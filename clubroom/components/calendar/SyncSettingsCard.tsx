@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -45,9 +46,12 @@ export function SyncSettingsCard({
   return (
     <View style={styles.container}>
       {/* Header/Toggle */}
-      <Pressable
+      <Clickable
         onPress={() => !disabled && setIsExpanded(!isExpanded)}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel="Session reminder options"
+        accessibilityState={{ expanded: isExpanded, disabled }}
         style={({ pressed }) => [
           styles.header,
           {
@@ -70,7 +74,7 @@ export function SyncSettingsCard({
           size={20}
           color={palette.muted}
         />
-      </Pressable>
+      </Clickable>
 
       {/* Expanded Options */}
       {isExpanded && !disabled && (
@@ -79,9 +83,12 @@ export function SyncSettingsCard({
             const isSelected = reminderMinutes === option.value;
 
             return (
-              <Pressable
+              <Clickable
                 key={option.value}
                 onPress={() => handleSelect(option.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`Set reminder to ${option.label}`}
+                accessibilityState={{ selected: isSelected }}
                 style={({ pressed }) => [
                   styles.option,
                   {
@@ -101,7 +108,7 @@ export function SyncSettingsCard({
                 {isSelected && (
                   <Ionicons name="checkmark" size={20} color={palette.accent} />
                 )}
-              </Pressable>
+              </Clickable>
             );
           })}
         </View>
@@ -117,6 +124,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     padding: Components.card.padding,
+    minHeight: 44,
     gap: Spacing.sm,
   },
   iconContainer: {
@@ -139,6 +147,7 @@ const styles = StyleSheet.create({
   option: {
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 44,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
   },

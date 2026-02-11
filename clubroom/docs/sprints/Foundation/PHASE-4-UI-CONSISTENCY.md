@@ -3,6 +3,7 @@
 > **Duration:** ~1 week
 > **Goal:** Every screen and component uses the design system consistently. Zero split between "old" and "new" quality tiers.
 > **Depends on:** Phase 3 (screens must be structurally correct before UI polish)
+> **Live Tracker:** `docs/sprints/Foundation/PHASE-4-LIVE-TRACKER.md`
 
 ---
 

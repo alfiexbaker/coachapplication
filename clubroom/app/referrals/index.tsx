@@ -17,7 +17,7 @@ import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ReferralCodeCard, ReferralStats, ReferralHistory } from '@/components/referrals';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useReferrals } from '@/hooks/use-referrals';
@@ -34,6 +34,54 @@ export default function ReferralsDashboardScreen() {
   const { colors: palette } = useTheme();
   const c = useReferrals();
 
+  if (c.status === 'loading') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>Referrals</ThemedText>
+          </Row>
+        </Row>
+        <LoadingState variant="card" />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'error') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>Referrals</ThemedText>
+          </Row>
+        </Row>
+        <ErrorState message={c.error?.message || 'Failed to load referral data.'} onRetry={c.retry} />
+      </SafeAreaView>
+    );
+  }
+
+  if (c.status === 'empty') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <Row align="center" justify="space-between" style={styles.header}>
+          <Row gap="md" align="center">
+            <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+            <ThemedText type="title" style={styles.headerTitle}>Referrals</ThemedText>
+          </Row>
+        </Row>
+        <EmptyState
+          icon="gift-outline"
+          title="No referrals yet"
+          message="Share your invite code with friends to start earning credits."
+          actionLabel="Invite Friends"
+          onPressAction={c.handleInvitePress}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <Row align="center" justify="space-between" style={styles.header}>
@@ -48,10 +96,7 @@ export default function ReferralsDashboardScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}>
-        {c.loading ? (
-          <LoadingState variant="card" />
-        ) : (
-          <>
+        <>
             <Animated.View entering={FadeInDown.delay(100).springify()}>
               <View style={[styles.heroSection, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
                 <View style={[styles.heroIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -120,8 +165,7 @@ export default function ReferralsDashboardScreen() {
                 Invite Friends
               </Button>
             </Animated.View>
-          </>
-        )}
+        </>
       </ScrollView>
     </SafeAreaView>
   );

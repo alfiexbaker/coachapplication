@@ -8,9 +8,11 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { BrandingEditor } from '@/components/club/branding-editor';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 import { clubService, type ClubBranding } from '@/services/club-service';
 import { createLogger } from '@/utils/logger';
 
@@ -18,30 +20,44 @@ const logger = createLogger('BrandingScreen');
 
 export default function BrandingScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
+  const { colors: palette } = useTheme();
   const router = useRouter();
 
-  const [, setBranding] = useState<ClubBranding | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Track the working copy separately from the saved state
   const [draft, setDraft] = useState<ClubBranding | null>(null);
 
-  useEffect(() => {
-    if (!clubId) return;
-    (async () => {
-      try {
-        const data = await clubService.getBranding(clubId);
-        setBranding(data);
-        setDraft(data);
-      } catch {
-        // fallback handled by service
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const loadBranding = useCallback(async () => {
+    if (!clubId) {
+      return ok<ClubBranding | null>(null);
+    }
+
+    try {
+      const data = await clubService.getBranding(clubId);
+      return ok(data);
+    } catch (loadError) {
+      logger.error('Failed to load branding', loadError);
+      return err(serviceError('UNKNOWN', 'Failed to load club branding. Pull down to refresh.', loadError));
+    }
   }, [clubId]);
+
+  const {
+    data,
+    status,
+    error,
+    onRefresh,
+    retry,
+  } = useScreen<ClubBranding | null>({
+    load: loadBranding,
+    deps: [clubId],
+    isEmpty: (value) => value === null,
+    refetchOnFocus: true,
+  });
+
+  useEffect(() => {
+    setDraft(data ?? null);
+  }, [data]);
 
   const handleChange = useCallback((updates: Partial<ClubBranding>) => {
     setDraft((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -56,26 +72,70 @@ export default function BrandingScreen() {
         logger.error('Failed to save branding', result.error);
         return;
       }
-      setBranding(result.data);
       setDraft(result.data);
+      onRefresh();
       router.back();
     } catch {
       // Error handled by service logger
     } finally {
       setSaving(false);
     }
-  }, [clubId, draft, router]);
+  }, [clubId, draft, onRefresh, router]);
 
   const handleCancel = useCallback(() => {
     router.back();
   }, [router]);
 
-  if (loading) {
+  if (status === 'loading') {
     return (
-      <PageContainer>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-        </View>
+      <PageContainer
+        header={
+          <PageHeader
+            title="Club Branding"
+            showBack
+            subtitle="Customise your club's look and feel"
+          />
+        }
+      >
+        <LoadingState variant="form" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer
+        header={
+          <PageHeader
+            title="Club Branding"
+            showBack
+            subtitle="Customise your club's look and feel"
+          />
+        }
+      >
+        <ErrorState message={error?.message || 'Failed to load club branding.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'empty' || !draft) {
+    return (
+      <PageContainer
+        header={
+          <PageHeader
+            title="Club Branding"
+            showBack
+            subtitle="Customise your club's look and feel"
+          />
+        }
+      >
+        <EmptyState
+          icon="color-palette-outline"
+          title="Branding unavailable"
+          message="No branding profile was found for this club."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
       </PageContainer>
     );
   }
@@ -90,7 +150,7 @@ export default function BrandingScreen() {
         />
       }
     >
-      {draft && <BrandingEditor branding={draft} onChange={handleChange} />}
+      <BrandingEditor branding={draft} onChange={handleChange} />
 
       {/* Action buttons */}
       <Row style={styles.actions}>
@@ -141,12 +201,6 @@ export default function BrandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xl,
-  },
   actions: {
     gap: Spacing.sm,
     paddingTop: Spacing.sm,

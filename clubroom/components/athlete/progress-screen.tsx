@@ -3,7 +3,8 @@
  * Sub-components: ProgressProfileCard, ProgressSkillsTab, ProgressBadgesTab, ProgressGoalsTab
  * Hook: useAthleteProgress
  */
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -71,13 +72,16 @@ export function AthleteProgressScreen() {
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
-              <Pressable
+            <Clickable
                 key={tab.key}
                 onPress={() => handleSelectTab(tab.key)}
                 style={[
                   styles.tab,
                   isActive && [styles.tabActive, { backgroundColor: palette.tint }],
                 ]}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label}
+                accessibilityState={{ selected: isActive }}
               >
                 <Ionicons name={tab.icon} size={16} color={isActive ? palette.onPrimary : palette.muted} />
                 <ThemedText
@@ -89,10 +93,10 @@ export function AthleteProgressScreen() {
                 >
                   {tab.label}
                 </ThemedText>
-              </Pressable>
-            );
-          })}
-        </Row>
+            </Clickable>
+          );
+        })}
+      </Row>
 
         {activeTab === 'progress' && (
           <ProgressSkillsTab skills={skills} skillsByCategory={skillsByCategory} sortedSessions={sortedSessions} />

@@ -84,6 +84,7 @@ export interface ClubHubState {
 
   // Loading / error
   initialLoading: boolean;
+  refreshing: boolean;
   loadError: string | null;
 
   // Members
@@ -106,6 +107,7 @@ export interface ClubHubState {
   setFeedFilter: (filter: FeedFilter) => void;
   setShowMembersSection: (show: boolean) => void;
   loadAllData: () => Promise<void>;
+  onRefresh: () => void;
   handlePinToggle: (postId: string) => void;
   handleJoinWithCode: (code: string) => void;
   handleLeaveClub: () => void;
@@ -150,6 +152,7 @@ export function useClubHub(): ClubHubState {
 
   // ─── Loading / error ───────────────────────────────────────────
   const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // ─── Member management ─────────────────────────────────────────
@@ -250,9 +253,14 @@ export function useClubHub(): ClubHubState {
     }
   }, [currentUser]);
 
-  const loadAllData = useCallback(async () => {
+  const loadAllData = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
     setLoadError(null);
-    setInitialLoading(true);
+    if (mode === 'initial') {
+      setInitialLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+
     try {
       const results = await Promise.allSettled([
         loadClubMeta(),
@@ -270,9 +278,17 @@ export function useClubHub(): ClubHubState {
       setLoadError('Failed to load club data. Please try again.');
       logger.error('Failed to load all club data:', error);
     } finally {
-      setInitialLoading(false);
+      if (mode === 'initial') {
+        setInitialLoading(false);
+      } else {
+        setRefreshing(false);
+      }
     }
   }, [loadClubMeta, loadFeed, loadMembers, loadTrainingSessions, loadUpcomingMatches, loadUpcomingInvites]);
+
+  const onRefresh = useCallback(() => {
+    void loadAllData('refresh');
+  }, [loadAllData]);
 
   // ─── Effects ───────────────────────────────────────────────────
   useEffect(() => {
@@ -303,7 +319,7 @@ export function useClubHub(): ClubHubState {
   }, [currentUser?.id, currentUser?.role, userClubs]);
 
   useEffect(() => {
-    void loadAllData();
+    void loadAllData('initial');
   }, [loadAllData]);
 
   useEffect(() => {
@@ -484,6 +500,7 @@ export function useClubHub(): ClubHubState {
     upcomingMatches,
     upcomingInvites,
     initialLoading,
+    refreshing,
     loadError,
     members,
     showMembersSection,
@@ -497,7 +514,8 @@ export function useClubHub(): ClubHubState {
     filterCounts,
     setFeedFilter,
     setShowMembersSection,
-    loadAllData,
+    loadAllData: () => loadAllData('initial'),
+    onRefresh,
     handlePinToggle,
     handleJoinWithCode,
     handleLeaveClub,
