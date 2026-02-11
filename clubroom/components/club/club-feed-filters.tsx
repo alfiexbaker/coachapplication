@@ -26,8 +26,6 @@ export const ClubFeedFilters = memo(function ClubFeedFilters({
   onFilterChange,
   filterCounts,
 }: ClubFeedFiltersProps) {
-  const { colors } = useTheme();
-
   return (
     <ScrollView
       horizontal
@@ -93,21 +91,14 @@ const FilterTab = memo(function FilterTab({
         size={16}
         color={isActive ? colors.tint : colors.muted}
       />
-      <ThemedText
-        style={[styles.label, { color: isActive ? colors.tint : colors.muted }]}
-      >
+      <ThemedText style={[styles.label, { color: isActive ? colors.tint : colors.muted }]}>
         {label}
       </ThemedText>
       {count > 0 && (
         <View
-          style={[
-            styles.countBadge,
-            { backgroundColor: isActive ? colors.tint : colors.muted },
-          ]}
+          style={[styles.countBadge, { backgroundColor: isActive ? colors.tint : colors.muted }]}
         >
-          <ThemedText style={[styles.countText, { color: colors.onPrimary }]}>
-            {count}
-          </ThemedText>
+          <ThemedText style={[styles.countText, { color: colors.onPrimary }]}>{count}</ThemedText>
         </View>
       )}
     </Clickable>

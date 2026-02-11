@@ -45,7 +45,7 @@ export const CreateModeStep = memo(function CreateModeStep({
           How would you like to invite?
         </ThemedText>
         <ThemedText style={[styles.stepDescription, { color: colors.muted }]}>
-          Create a brand new session or invite to one you've already published
+          Create a brand new session or invite to one you&apos;ve already published
         </ThemedText>
 
         <Clickable
@@ -69,7 +69,9 @@ export const CreateModeStep = memo(function CreateModeStep({
               Set up session type, time slots, and details from scratch
             </ThemedText>
           </Column>
-          {inviteMode === 'new' && <Ionicons name="checkmark-circle" size={22} color={colors.tint} />}
+          {inviteMode === 'new' && (
+            <Ionicons name="checkmark-circle" size={22} color={colors.tint} />
+          )}
         </Clickable>
 
         <Clickable
@@ -78,7 +80,8 @@ export const CreateModeStep = memo(function CreateModeStep({
           style={[
             styles.modeItem,
             {
-              backgroundColor: inviteMode === 'existing' ? withAlpha(colors.tint, 0.06) : colors.surface,
+              backgroundColor:
+                inviteMode === 'existing' ? withAlpha(colors.tint, 0.06) : colors.surface,
               borderColor: inviteMode === 'existing' ? colors.tint : colors.border,
               opacity: hasExisting ? 1 : 0.5,
             },
@@ -97,7 +100,9 @@ export const CreateModeStep = memo(function CreateModeStep({
                 : 'No upcoming published sessions'}
             </ThemedText>
           </Column>
-          {inviteMode === 'existing' && <Ionicons name="checkmark-circle" size={22} color={colors.tint} />}
+          {inviteMode === 'existing' && (
+            <Ionicons name="checkmark-circle" size={22} color={colors.tint} />
+          )}
         </Clickable>
       </Column>
     </Animated.View>

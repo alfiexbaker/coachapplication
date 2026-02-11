@@ -65,17 +65,11 @@ export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
 
   return (
     <View style={errorStyles.container}>
-      <Ionicons
-        name="alert-circle-outline"
-        size={48}
-        color={colors.error}
-      />
+      <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
       <ThemedText style={[errorStyles.title, { color: colors.text }]}>
         {title ?? 'Something went wrong'}
       </ThemedText>
-      <ThemedText style={[errorStyles.message, { color: colors.muted }]}>
-        {message}
-      </ThemedText>
+      <ThemedText style={[errorStyles.message, { color: colors.muted }]}>{message}</ThemedText>
       <Clickable
         onPress={onRetry}
         style={[ButtonStyles.primary, { marginTop: Spacing.xs }]}

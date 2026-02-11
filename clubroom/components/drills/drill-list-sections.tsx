@@ -36,7 +36,10 @@ export interface DrillSectionHeaderProps {
   count: number;
 }
 
-export const DrillSectionHeader = memo(function DrillSectionHeader({ category, count }: DrillSectionHeaderProps) {
+export const DrillSectionHeader = memo(function DrillSectionHeader({
+  category,
+  count,
+}: DrillSectionHeaderProps) {
   const { colors: palette } = useTheme();
   const info = CATEGORY_INFO[category];
 

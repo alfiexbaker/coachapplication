@@ -15,7 +15,10 @@ interface RetentionFunnelProps {
   retention: RetentionMetrics;
 }
 
-export const RetentionFunnel = memo(function RetentionFunnel({ colors, retention }: RetentionFunnelProps) {
+export const RetentionFunnel = memo(function RetentionFunnel({
+  colors,
+  retention,
+}: RetentionFunnelProps) {
   const total = retention.totalActiveClients + retention.clientsLost;
   const activePercent = total > 0 ? (retention.totalActiveClients / total) * 100 : 0;
   const returningPercent = total > 0 ? (retention.returningClients / total) * 100 : 0;
@@ -27,15 +30,40 @@ export const RetentionFunnel = memo(function RetentionFunnel({ colors, retention
         <ThemedText style={styles.title}>Client Funnel</ThemedText>
       </Row>
       <Column gap="sm">
-        <FunnelBar width="100%" color={withAlpha(colors.tint, 0.38)} label={`${total} Total`} fgColor={colors.onPrimary} />
-        <FunnelBar width={`${activePercent}%`} color={withAlpha(colors.tint, 0.5)} label={`${retention.totalActiveClients} Active`} fgColor={colors.onPrimary} />
-        <FunnelBar width={`${returningPercent}%`} color={withAlpha(colors.success, 0.5)} label={`${retention.returningClients} Returning`} fgColor={colors.onPrimary} />
+        <FunnelBar
+          width="100%"
+          color={withAlpha(colors.tint, 0.38)}
+          label={`${total} Total`}
+          fgColor={colors.onPrimary}
+        />
+        <FunnelBar
+          width={`${activePercent}%`}
+          color={withAlpha(colors.tint, 0.5)}
+          label={`${retention.totalActiveClients} Active`}
+          fgColor={colors.onPrimary}
+        />
+        <FunnelBar
+          width={`${returningPercent}%`}
+          color={withAlpha(colors.success, 0.5)}
+          label={`${retention.returningClients} Returning`}
+          fgColor={colors.onPrimary}
+        />
       </Column>
     </SurfaceCard>
   );
 });
 
-function FunnelBar({ width, color, label, fgColor }: { width: string; color: string; label: string; fgColor: string }) {
+function FunnelBar({
+  width,
+  color,
+  label,
+  fgColor,
+}: {
+  width: string;
+  color: string;
+  label: string;
+  fgColor: string;
+}) {
   return (
     <View style={styles.step}>
       <View style={[styles.bar, { width: width as never, backgroundColor: color, minWidth: 80 }]}>
@@ -50,6 +78,11 @@ const styles = StyleSheet.create({
   header: { marginBottom: Spacing.md },
   title: { ...Typography.subheading },
   step: { height: 36 },
-  bar: { height: '100%', borderRadius: Radii.sm, justifyContent: 'center', paddingHorizontal: Spacing.sm },
+  bar: {
+    height: '100%',
+    borderRadius: Radii.sm,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
   barText: { ...Typography.smallSemiBold },
 });

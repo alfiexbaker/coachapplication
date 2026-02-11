@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -17,7 +17,6 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useAthleteDevelopment } from '@/hooks/use-athlete-development';
 import { Routes } from '@/navigation/routes';
-import { router } from 'expo-router';
 import { Clickable } from '@/components/primitives/clickable';
 
 export default function AthleteDetailScreen() {
@@ -55,7 +54,11 @@ export default function AthleteDetailScreen() {
   if (!athlete || !currentUser) {
     return (
       <PageContainer>
-        <EmptyState icon="person-outline" title="Athlete not found" message="This athlete profile is unavailable." />
+        <EmptyState
+          icon="person-outline"
+          title="Athlete not found"
+          message="This athlete profile is unavailable."
+        />
       </PageContainer>
     );
   }
@@ -65,7 +68,15 @@ export default function AthleteDetailScreen() {
       <PageContainer
         gap={Spacing.lg}
         header={
-          <Row align="center" justify="space-between" style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm }}>
+          <Row
+            align="center"
+            justify="space-between"
+            style={{
+              paddingHorizontal: Spacing.lg,
+              paddingTop: Spacing.md,
+              paddingBottom: Spacing.sm,
+            }}
+          >
             <Clickable onPress={() => router.back()} style={{ padding: Spacing.xs }}>
               <Ionicons name="arrow-back" size={24} color={colors.foreground} />
             </Clickable>
@@ -92,9 +103,7 @@ export default function AthleteDetailScreen() {
           onPress={() => router.push(Routes.developmentAthleteSpecialNeeds(athleteId!))}
         />
 
-        {progressionSummary && (
-          <DevProgressionCard summary={progressionSummary} colors={colors} />
-        )}
+        {progressionSummary && <DevProgressionCard summary={progressionSummary} colors={colors} />}
 
         <Column gap="xs" style={{ marginTop: Spacing.xs }}>
           <ThemedText type="heading">Session History</ThemedText>
@@ -124,7 +133,9 @@ export default function AthleteDetailScreen() {
         coachName={currentUser.name}
         sessionId={selectedSession?.id}
         sessionLabel={selectedSession ? selectedSessionLabel : undefined}
-        initialReason={selectedSession?.nextFocusAreas?.find((focus) => BADGE_REASONS.includes(focus))}
+        initialReason={selectedSession?.nextFocusAreas?.find((focus) =>
+          BADGE_REASONS.includes(focus),
+        )}
         onClose={handleCloseModal}
         onAwarded={handleOnAwarded}
       />

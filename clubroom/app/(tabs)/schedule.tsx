@@ -39,7 +39,10 @@ export default function ScheduleScreen() {
   // Loading state
   if (schedule.loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="calendar" />
       </SafeAreaView>
     );
@@ -48,18 +51,25 @@ export default function ScheduleScreen() {
   // Error state
   if (schedule.error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
         <ErrorState message={schedule.error} onRetry={schedule.retry} />
       </SafeAreaView>
     );
   }
 
-  const isSessionEmpty = schedule.segment === 'sessions' && schedule.weekData.every((day) => day.sessions.length === 0);
+  const isSessionEmpty =
+    schedule.segment === 'sessions' && schedule.weekData.every((day) => day.sessions.length === 0);
 
   if (isSessionEmpty) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row justify="between" align="center" style={styles.headerRow}>
           <ScreenHeader title="Schedule" subtitle="Your upcoming sessions" />
           <Clickable
@@ -88,12 +98,17 @@ export default function ScheduleScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row justify="between" align="center" style={styles.headerRow}>
         <ScreenHeader
           title="Schedule"
-          subtitle={schedule.segment === 'sessions' ? 'Your upcoming sessions' : 'Manage your availability'}
+          subtitle={
+            schedule.segment === 'sessions' ? 'Your upcoming sessions' : 'Manage your availability'
+          }
         />
         <Clickable
           onPress={schedule.handleOpenSettings}
@@ -116,7 +131,11 @@ export default function ScheduleScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
           refreshControl={
-            <RefreshControl refreshing={schedule.refreshing} onRefresh={schedule.onRefresh} tintColor={colors.tint} />
+            <RefreshControl
+              refreshing={schedule.refreshing}
+              onRefresh={schedule.onRefresh}
+              tintColor={colors.tint}
+            />
           }
         >
           {schedule.todayData && (
@@ -145,10 +164,7 @@ export default function ScheduleScreen() {
           <ScheduleQuickActions />
 
           {schedule.rules && (
-            <ScheduleRulesSummary
-              rules={schedule.rules}
-              onPress={schedule.handleOpenSettings}
-            />
+            <ScheduleRulesSummary rules={schedule.rules} onPress={schedule.handleOpenSettings} />
           )}
         </ScrollView>
       )}

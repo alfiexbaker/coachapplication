@@ -22,30 +22,61 @@ interface SettingsInvitesSectionProps {
 }
 
 export const SettingsInvitesSection = memo(function SettingsInvitesSection({
-  inviteCodes, colors, onCopy, onShare, onGenerate,
+  inviteCodes,
+  colors,
+  onCopy,
+  onShare,
+  onGenerate,
 }: SettingsInvitesSectionProps) {
   return (
     <Animated.View entering={FadeInDown.springify()}>
       <SurfaceCard style={styles.card}>
-        <ThemedText type="defaultSemiBold" style={Typography.heading}>Invite Codes</ThemedText>
-        <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>Share codes to invite coaches and members</ThemedText>
+        <ThemedText type="defaultSemiBold" style={Typography.heading}>
+          Invite Codes
+        </ThemedText>
+        <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
+          Share codes to invite coaches and members
+        </ThemedText>
 
         {inviteCodes.map((invite) => (
           <Row key={invite.code} style={[styles.inviteRow, { borderColor: colors.border }]}>
             <View style={{ flex: 1, gap: Spacing.xs }}>
-              <ThemedText type="defaultSemiBold" style={[Typography.subheading, { fontFamily: 'monospace' }]}>{invite.code}</ThemedText>
+              <ThemedText
+                type="defaultSemiBold"
+                style={[Typography.subheading, { fontFamily: 'monospace' }]}
+              >
+                {invite.code}
+              </ThemedText>
               <Row gap="sm" align="center">
-                <View style={[styles.roleBadge, { backgroundColor: withAlpha(clubService.getRoleColor(invite.role), 0.12) }]}>
-                  <ThemedText style={[Typography.caption, { color: clubService.getRoleColor(invite.role) }]}>{clubService.formatRole(invite.role)}</ThemedText>
+                <View
+                  style={[
+                    styles.roleBadge,
+                    { backgroundColor: withAlpha(clubService.getRoleColor(invite.role), 0.12) },
+                  ]}
+                >
+                  <ThemedText
+                    style={[Typography.caption, { color: clubService.getRoleColor(invite.role) }]}
+                  >
+                    {clubService.formatRole(invite.role)}
+                  </ThemedText>
                 </View>
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>{invite.remainingUses} uses left</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                  {invite.remainingUses} uses left
+                </ThemedText>
               </Row>
             </View>
             <Row gap="xs">
-              <Clickable style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]} onPress={() => onCopy(invite.code)}>
+              <Clickable
+                style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                onPress={() => onCopy(invite.code)}
+              >
                 <Ionicons name="copy-outline" size={18} color={colors.tint} />
               </Clickable>
-              <Clickable accessibilityLabel="Share invite link" style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]} onPress={() => onShare(invite.code, invite.role)}>
+              <Clickable
+                accessibilityLabel="Share invite link"
+                style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                onPress={() => onShare(invite.code, invite.role)}
+              >
                 <Ionicons name="share-outline" size={18} color={colors.tint} />
               </Clickable>
             </Row>
@@ -54,9 +85,15 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
 
         <Row gap="sm">
           {(['COACH', 'MEMBER'] as ClubRole[]).map((role) => (
-            <Clickable key={role} style={[styles.genBtn, { flex: 1, borderColor: colors.border }]} onPress={() => onGenerate(role)}>
+            <Clickable
+              key={role}
+              style={[styles.genBtn, { flex: 1, borderColor: colors.border }]}
+              onPress={() => onGenerate(role)}
+            >
               <Ionicons name="add" size={18} color={colors.tint} />
-              <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>{role === 'COACH' ? 'Coach' : 'Member'} Invite</ThemedText>
+              <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
+                {role === 'COACH' ? 'Coach' : 'Member'} Invite
+              </ThemedText>
             </Clickable>
           ))}
         </Row>
@@ -67,8 +104,31 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
-  inviteRow: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
-  roleBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
-  iconBtn: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  genBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  inviteRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  roleBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
 });

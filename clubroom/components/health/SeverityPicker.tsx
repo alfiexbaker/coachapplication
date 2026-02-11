@@ -13,11 +13,15 @@ import type { InjurySeverity } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
+import { SEVERITY_OPTIONS, SeverityOptionCard, SeverityScale } from './severity-picker-sections';
+
 // Re-export extracted components for backward compat
 export { SEVERITY_OPTIONS, SeverityOptionCard, SeverityScale } from './severity-picker-sections';
-export type { SeverityOption, SeverityOptionCardProps, SeverityScaleProps } from './severity-picker-sections';
-
-import { SEVERITY_OPTIONS, SeverityOptionCard, SeverityScale } from './severity-picker-sections';
+export type {
+  SeverityOption,
+  SeverityOptionCardProps,
+  SeverityScaleProps,
+} from './severity-picker-sections';
 
 interface SeverityPickerProps {
   selectedSeverity: InjurySeverity | null;

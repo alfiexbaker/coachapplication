@@ -15,12 +15,14 @@ import {
 
 interface LineupSelectorProps {
   match: Match;
-  onSetLineup: (lineup: {
-    athleteId: string;
-    position?: string;
-    jerseyNumber?: number;
-    isReserve?: boolean;
-  }[]) => Promise<void>;
+  onSetLineup: (
+    lineup: {
+      athleteId: string;
+      position?: string;
+      jerseyNumber?: number;
+      isReserve?: boolean;
+    }[],
+  ) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -33,44 +35,47 @@ interface SelectedPlayer extends MatchPlayer {
 export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelectorProps) {
   const { colors: palette } = useTheme();
 
-  const availablePlayers = useMemo(() =>
-    match.selectedPlayers.filter(p => p.status === 'AVAILABLE'),
-    [match.selectedPlayers]
+  const availablePlayers = useMemo(
+    () => match.selectedPlayers.filter((p) => p.status === 'AVAILABLE'),
+    [match.selectedPlayers],
   );
 
-  const unavailablePlayers = useMemo(() =>
-    match.selectedPlayers.filter(p => p.status === 'UNAVAILABLE'),
-    [match.selectedPlayers]
+  const unavailablePlayers = useMemo(
+    () => match.selectedPlayers.filter((p) => p.status === 'UNAVAILABLE'),
+    [match.selectedPlayers],
   );
 
-  const pendingPlayers = useMemo(() =>
-    match.selectedPlayers.filter(p => p.status === 'INVITED'),
-    [match.selectedPlayers]
+  const pendingPlayers = useMemo(
+    () => match.selectedPlayers.filter((p) => p.status === 'INVITED'),
+    [match.selectedPlayers],
   );
 
   const [selectedForLineup, setSelectedForLineup] = useState<SelectedPlayer[]>([]);
   const [reserves, setReserves] = useState<SelectedPlayer[]>([]);
 
-  const togglePlayerSelection = useCallback((player: MatchPlayer) => {
-    const isSelected = selectedForLineup.some(p => p.athleteId === player.athleteId);
-    const isReserve = reserves.some(p => p.athleteId === player.athleteId);
+  const togglePlayerSelection = useCallback(
+    (player: MatchPlayer) => {
+      const isSelected = selectedForLineup.some((p) => p.athleteId === player.athleteId);
+      const isReserve = reserves.some((p) => p.athleteId === player.athleteId);
 
-    if (isSelected) {
-      setSelectedForLineup(prev => prev.filter(p => p.athleteId !== player.athleteId));
-      setReserves(prev => [...prev, { ...player, isReserve: true }]);
-    } else if (isReserve) {
-      setReserves(prev => prev.filter(p => p.athleteId !== player.athleteId));
-    } else {
-      if (selectedForLineup.length >= match.maxPlayers) {
-        Alert.alert(
-          'Squad Full',
-          `Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`
-        );
-        return;
+      if (isSelected) {
+        setSelectedForLineup((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
+        setReserves((prev) => [...prev, { ...player, isReserve: true }]);
+      } else if (isReserve) {
+        setReserves((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
+      } else {
+        if (selectedForLineup.length >= match.maxPlayers) {
+          Alert.alert(
+            'Squad Full',
+            `Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`,
+          );
+          return;
+        }
+        setSelectedForLineup((prev) => [...prev, { ...player, isReserve: false }]);
       }
-      setSelectedForLineup(prev => [...prev, { ...player, isReserve: false }]);
-    }
-  }, [selectedForLineup, reserves, match.maxPlayers]);
+    },
+    [selectedForLineup, reserves, match.maxPlayers],
+  );
 
   const handleSubmitLineup = useCallback(async () => {
     if (selectedForLineup.length === 0) {
@@ -79,13 +84,13 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
     }
 
     const lineup = [
-      ...selectedForLineup.map(p => ({
+      ...selectedForLineup.map((p) => ({
         athleteId: p.athleteId,
         position: p.position,
         jerseyNumber: p.jerseyNumber,
         isReserve: false,
       })),
-      ...reserves.map(p => ({
+      ...reserves.map((p) => ({
         athleteId: p.athleteId,
         position: p.position,
         jerseyNumber: p.jerseyNumber,
@@ -96,11 +101,14 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
     await onSetLineup(lineup);
   }, [selectedForLineup, reserves, onSetLineup]);
 
-  const getPlayerStatus = useCallback((player: MatchPlayer): 'selected' | 'reserve' | 'available' => {
-    if (selectedForLineup.some(p => p.athleteId === player.athleteId)) return 'selected';
-    if (reserves.some(p => p.athleteId === player.athleteId)) return 'reserve';
-    return 'available';
-  }, [selectedForLineup, reserves]);
+  const getPlayerStatus = useCallback(
+    (player: MatchPlayer): 'selected' | 'reserve' | 'available' => {
+      if (selectedForLineup.some((p) => p.athleteId === player.athleteId)) return 'selected';
+      if (reserves.some((p) => p.athleteId === player.athleteId)) return 'reserve';
+      return 'available';
+    },
+    [selectedForLineup, reserves],
+  );
 
   return (
     <View style={styles.container}>
@@ -119,7 +127,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
               <View style={[styles.sectionDot, { backgroundColor: palette.success }]} />
               <ThemedText type="defaultSemiBold">Available ({availablePlayers.length})</ThemedText>
             </Row>
-            {availablePlayers.map(player => (
+            {availablePlayers.map((player) => (
               <SelectablePlayerRow
                 key={player.athleteId}
                 player={player}
@@ -135,9 +143,11 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
           <View style={styles.section}>
             <Row align="center" gap="xs" style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: palette.warning }]} />
-              <ThemedText type="defaultSemiBold">Awaiting Response ({pendingPlayers.length})</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                Awaiting Response ({pendingPlayers.length})
+              </ThemedText>
             </Row>
-            {pendingPlayers.map(player => (
+            {pendingPlayers.map((player) => (
               <DisabledPlayerRow
                 key={player.athleteId}
                 player={player}
@@ -152,9 +162,11 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
           <View style={styles.section}>
             <Row align="center" gap="xs" style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: palette.error }]} />
-              <ThemedText type="defaultSemiBold">Unavailable ({unavailablePlayers.length})</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                Unavailable ({unavailablePlayers.length})
+              </ThemedText>
             </Row>
-            {unavailablePlayers.map(player => (
+            {unavailablePlayers.map((player) => (
               <DisabledPlayerRow
                 key={player.athleteId}
                 player={player}

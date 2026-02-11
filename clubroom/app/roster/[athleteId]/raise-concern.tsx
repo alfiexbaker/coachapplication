@@ -17,11 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { rosterService } from '@/services/roster-service';
-import {
-  concernService,
-  type ConcernType,
-  type ConcernSeverity,
-} from '@/services/concern-service';
+import { concernService, type ConcernType, type ConcernSeverity } from '@/services/concern-service';
 import { createLogger } from '@/utils/logger';
 import { getRosterAthleteName } from '@/utils/roster-display';
 import { err, ok, serviceError } from '@/types/result';
@@ -43,15 +39,22 @@ export default function RaiseConcernScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const coachId = currentUser?.id || 'coach_1';
-  const { data, status, error, retry } = useScreen<{ athleteName: string | null }>({
+  const { data, status, error, retry } = useScreen<{
+    athleteName: string | null;
+    parentId: string | null;
+  }>({
     load: async () => {
       try {
         if (!athleteId) {
-          return ok<{ athleteName: string | null }>({ athleteName: null });
+          return ok<{ athleteName: string | null; parentId: string | null }>({
+            athleteName: null,
+            parentId: null,
+          });
         }
         const entry = await rosterService.getRosterEntry(coachId, athleteId);
-        return ok<{ athleteName: string | null }>({
+        return ok<{ athleteName: string | null; parentId: string | null }>({
           athleteName: entry ? getRosterAthleteName(entry) : null,
+          parentId: entry?.parentId ?? null,
         });
       } catch (loadError) {
         return err(serviceError('UNKNOWN', 'Failed to load athlete details.', loadError));
@@ -63,16 +66,28 @@ export default function RaiseConcernScreen() {
   });
 
   const athleteName = data?.athleteName || '';
+  const parentId = data?.parentId ?? undefined;
   const canSubmit = type !== null && title.trim().length > 0 && description.trim().length > 0;
+  const isEscalationRisk =
+    severity === 'URGENT' ||
+    (severity === 'HIGH' && (type === 'SAFEGUARDING' || type === 'MEDICAL'));
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !type) return;
+    if (isEscalationRisk && actionTaken.trim().length < 8) {
+      Alert.alert(
+        'Action required',
+        'For high-risk concerns, include immediate action taken before submitting.',
+      );
+      return;
+    }
 
     setSubmitting(true);
     try {
       const result = await concernService.raiseConcern({
         coachId,
         athleteId,
+        parentId,
         athleteName,
         type,
         severity,
@@ -85,9 +100,14 @@ export default function RaiseConcernScreen() {
         if (Platform.OS !== 'web') {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
-        Alert.alert('Concern Recorded', `Your concern about ${athleteName} has been recorded.`, [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        const escalated = result.data.status === 'ESCALATED';
+        Alert.alert(
+          escalated ? 'Concern Escalated' : 'Concern Recorded',
+          escalated
+            ? `Your concern about ${athleteName} has been escalated for urgent follow-up.`
+            : `Your concern about ${athleteName} has been recorded.`,
+          [{ text: 'OK', onPress: () => router.back() }],
+        );
       } else {
         Alert.alert('Error', result.error.message);
       }
@@ -97,11 +117,26 @@ export default function RaiseConcernScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, type, coachId, athleteId, athleteName, severity, title, description, actionTaken]);
+  }, [
+    canSubmit,
+    type,
+    isEscalationRisk,
+    coachId,
+    athleteId,
+    parentId,
+    athleteName,
+    severity,
+    title,
+    description,
+    actionTaken,
+  ]);
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -110,7 +145,10 @@ export default function RaiseConcernScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
         <ErrorState message={error?.message || 'Failed to load athlete details.'} onRetry={retry} />
       </SafeAreaView>
@@ -119,7 +157,10 @@ export default function RaiseConcernScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <RaiseConcernHeader colors={colors} athleteName="" onBack={() => router.back()} />
         <ErrorState message="Athlete not found in your roster." onRetry={retry} />
       </SafeAreaView>
@@ -127,7 +168,10 @@ export default function RaiseConcernScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <RaiseConcernHeader colors={colors} athleteName={athleteName} onBack={() => router.back()} />
 
       <ScrollView
@@ -147,6 +191,7 @@ export default function RaiseConcernScreen() {
           onDescriptionChange={setDescription}
           actionTaken={actionTaken}
           onActionTakenChange={setActionTaken}
+          isEscalationRisk={isEscalationRisk}
           canSubmit={canSubmit}
           submitting={submitting}
           onSubmit={handleSubmit}

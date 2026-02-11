@@ -58,14 +58,20 @@ const SIZE_CONFIG = {
     paddingV: 3,
     gap: Spacing.micro,
   },
-  medium: { ...Typography.caption, iconSize: 16,
+  medium: {
+    ...Typography.caption,
+    iconSize: 16,
     paddingH: Spacing.sm,
     paddingV: Spacing.xs / 2,
-    gap: Spacing.xs / 2 },
-  large: { ...Typography.bodySmall, iconSize: 20,
+    gap: Spacing.xs / 2,
+  },
+  large: {
+    ...Typography.bodySmall,
+    iconSize: 20,
     paddingH: Spacing.sm,
     paddingV: Spacing.xs,
-    gap: Spacing.xs },
+    gap: Spacing.xs,
+  },
 };
 
 export function VerificationBadge({
@@ -91,7 +97,11 @@ export function VerificationBadge({
         },
       ]}
     >
-      <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={sizeConfig.iconSize} color={color} />
+      <Ionicons
+        name={config.icon as keyof typeof Ionicons.glyphMap}
+        size={sizeConfig.iconSize}
+        color={color}
+      />
       {showLabel && (
         <ThemedText
           style={[
@@ -127,17 +137,15 @@ export function VerificationIcon({
     return null;
   }
 
-  return <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
+  return (
+    <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={size} color={color} />
+  );
 }
 
 /**
  * Full verification status display with all items
  */
-export function VerificationStatusDisplay({
-  status,
-}: {
-  status: VerificationStatus;
-}) {
+export function VerificationStatusDisplay({ status }: { status: VerificationStatus }) {
   const { colors: palette } = useTheme();
 
   const items = [
@@ -145,7 +153,7 @@ export function VerificationStatusDisplay({
     { label: 'Phone', verified: status.phone.status === 'VERIFIED' },
     { label: 'ID', verified: status.identity.status === 'VERIFIED' },
     { label: 'Background', verified: status.backgroundCheck.status === 'VERIFIED' },
-    { label: 'Credentials', verified: status.credentials.some(c => c.status === 'VERIFIED') },
+    { label: 'Credentials', verified: status.credentials.some((c) => c.status === 'VERIFIED') },
     { label: 'Insurance', verified: status.insurance.status === 'VERIFIED' },
   ];
 
@@ -190,7 +198,9 @@ const styles = StyleSheet.create({
   badgeRow: {
     alignItems: 'flex-start',
   },
-  itemsGrid: { /* layout moved to Row */ },
+  itemsGrid: {
+    /* layout moved to Row */
+  },
   statusItem: {
     minWidth: 90,
   },

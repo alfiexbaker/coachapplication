@@ -14,13 +14,17 @@ import { Button } from '@/components/primitives/button';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { ACCOUNT_TYPE_OPTIONS, AccountTypeCard } from './signup-type-selector-sections';
-export type { SignupType, AccountTypeOption, AccountTypeCardProps } from './signup-type-selector-sections';
-
 import { ACCOUNT_TYPE_OPTIONS, AccountTypeCard } from './signup-type-selector-sections';
 import type { SignupType } from './signup-type-selector-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export { ACCOUNT_TYPE_OPTIONS, AccountTypeCard } from './signup-type-selector-sections';
+export type {
+  SignupType,
+  AccountTypeOption,
+  AccountTypeCardProps,
+} from './signup-type-selector-sections';
 
 interface SignupTypeSelectorProps {
   visible: boolean;
@@ -42,7 +46,12 @@ export function SignupTypeSelector({ visible, onClose, onSelect }: SignupTypeSel
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+    >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable accessibilityLabel="Close" onPress={handleClose}>
@@ -54,7 +63,9 @@ export function SignupTypeSelector({ visible, onClose, onSelect }: SignupTypeSel
 
         <View style={styles.content}>
           <View style={styles.titleSection}>
-            <ThemedText type="title" style={styles.title}>How will you use the app?</ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              How will you use the app?
+            </ThemedText>
             <ThemedText style={[styles.description, { color: palette.muted }]}>
               Select the option that best describes you. You can change this later.
             </ThemedText>
@@ -74,7 +85,12 @@ export function SignupTypeSelector({ visible, onClose, onSelect }: SignupTypeSel
         </View>
 
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          <Button onPress={handleContinue} disabled={!selectedType} variant="primary" style={styles.continueButton}>
+          <Button
+            onPress={handleContinue}
+            disabled={!selectedType}
+            variant="primary"
+            style={styles.continueButton}
+          >
             Continue
           </Button>
         </View>

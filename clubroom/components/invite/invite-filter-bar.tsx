@@ -29,11 +29,7 @@ export const InviteModeToggle = memo(function InviteModeToggle({
 }: InviteModeToggleProps) {
   return (
     <Row gap="xs" paddingH="lg" style={styles.row}>
-      <Chip
-        label="Sent Invites"
-        selected={mode === 'sent'}
-        onPress={() => onChangeMode('sent')}
-      />
+      <Chip label="Sent Invites" selected={mode === 'sent'} onPress={() => onChangeMode('sent')} />
       <Chip
         label="Received"
         selected={mode === 'received'}
@@ -50,11 +46,7 @@ export const InviteStatusFilter = memo(function InviteStatusFilter({
 }: InviteStatusFilterProps) {
   return (
     <Row gap="xs" paddingH="lg" style={styles.row}>
-      <Chip
-        label="All"
-        selected={filter === 'all'}
-        onPress={() => onChangeFilter('all')}
-      />
+      <Chip label="All" selected={filter === 'all'} onPress={() => onChangeFilter('all')} />
       <Chip
         label={`Pending (${pendingCount})`}
         selected={filter === 'pending'}

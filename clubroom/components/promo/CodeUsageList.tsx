@@ -7,11 +7,11 @@ import { Spacing, Typography } from '@/constants/theme';
 import type { PromoCodeUsage } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { UsageItem } from './code-usage-list-sections';
+
 // Re-export extracted components for backward compat
 export { formatTimeAgo, UsageItem, CodeUsageSummary } from './code-usage-list-sections';
 export type { UsageItemProps, CodeUsageSummaryProps } from './code-usage-list-sections';
-
-import { UsageItem } from './code-usage-list-sections';
 
 interface CodeUsageListProps {
   usage: PromoCodeUsage[];
@@ -49,9 +49,7 @@ export function CodeUsageList({
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="receipt-outline" size={32} color={palette.muted} />
-        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-          {emptyMessage}
-        </ThemedText>
+        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{emptyMessage}</ThemedText>
       </View>
     );
   }

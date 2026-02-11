@@ -57,10 +57,7 @@ export default function MoreScreen() {
     default:
       return (
         <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-          <ScreenHeader
-            title="More"
-            subtitle="Settings and options"
-          />
+          <ScreenHeader title="More" subtitle="Settings and options" />
         </SafeAreaView>
       );
   }

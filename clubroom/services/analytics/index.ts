@@ -52,30 +52,26 @@ export const analyticsService = {
   /**
    * Get analytics for an athlete
    */
-  getAthleteAnalytics: (
-    ...args: Parameters<typeof analyticsQueryService.getAthleteAnalytics>
-  ) => analyticsQueryService.getAthleteAnalytics(...args),
+  getAthleteAnalytics: (...args: Parameters<typeof analyticsQueryService.getAthleteAnalytics>) =>
+    analyticsQueryService.getAthleteAnalytics(...args),
 
   /**
    * Get skill progression history for an athlete
    */
-  getSkillHistory: (
-    ...args: Parameters<typeof analyticsQueryService.getSkillHistory>
-  ) => analyticsQueryService.getSkillHistory(...args),
+  getSkillHistory: (...args: Parameters<typeof analyticsQueryService.getSkillHistory>) =>
+    analyticsQueryService.getSkillHistory(...args),
 
   /**
    * Get all goals for an athlete
    */
-  getAthleteGoals: (
-    ...args: Parameters<typeof analyticsQueryService.getAthleteGoals>
-  ) => analyticsQueryService.getAthleteGoals(...args),
+  getAthleteGoals: (...args: Parameters<typeof analyticsQueryService.getAthleteGoals>) =>
+    analyticsQueryService.getAthleteGoals(...args),
 
   /**
    * Get comparison stats (for radar chart)
    */
-  getSkillComparison: (
-    ...args: Parameters<typeof analyticsQueryService.getSkillComparison>
-  ) => analyticsQueryService.getSkillComparison(...args),
+  getSkillComparison: (...args: Parameters<typeof analyticsQueryService.getSkillComparison>) =>
+    analyticsQueryService.getSkillComparison(...args),
 
   // ==========================================================================
   // TRACKING METHODS (from analyticsTrackingService)
@@ -84,44 +80,38 @@ export const analyticsService = {
   /**
    * Create a new goal
    */
-  createGoal: (
-    ...args: Parameters<typeof analyticsTrackingService.createGoal>
-  ) => analyticsTrackingService.createGoal(...args),
+  createGoal: (...args: Parameters<typeof analyticsTrackingService.createGoal>) =>
+    analyticsTrackingService.createGoal(...args),
 
   /**
    * Update goal progress
    */
-  updateGoalProgress: (
-    ...args: Parameters<typeof analyticsTrackingService.updateGoalProgress>
-  ) => analyticsTrackingService.updateGoalProgress(...args),
+  updateGoalProgress: (...args: Parameters<typeof analyticsTrackingService.updateGoalProgress>) =>
+    analyticsTrackingService.updateGoalProgress(...args),
 
   /**
    * Complete a milestone
    */
-  completeMilestone: (
-    ...args: Parameters<typeof analyticsTrackingService.completeMilestone>
-  ) => analyticsTrackingService.completeMilestone(...args),
+  completeMilestone: (...args: Parameters<typeof analyticsTrackingService.completeMilestone>) =>
+    analyticsTrackingService.completeMilestone(...args),
 
   /**
    * Add milestone to goal
    */
-  addMilestone: (
-    ...args: Parameters<typeof analyticsTrackingService.addMilestone>
-  ) => analyticsTrackingService.addMilestone(...args),
+  addMilestone: (...args: Parameters<typeof analyticsTrackingService.addMilestone>) =>
+    analyticsTrackingService.addMilestone(...args),
 
   /**
    * Abandon a goal
    */
-  abandonGoal: (
-    ...args: Parameters<typeof analyticsTrackingService.abandonGoal>
-  ) => analyticsTrackingService.abandonGoal(...args),
+  abandonGoal: (...args: Parameters<typeof analyticsTrackingService.abandonGoal>) =>
+    analyticsTrackingService.abandonGoal(...args),
 
   /**
    * Update skill level (called after session)
    */
-  updateSkillLevel: (
-    ...args: Parameters<typeof analyticsTrackingService.updateSkillLevel>
-  ) => analyticsTrackingService.updateSkillLevel(...args),
+  updateSkillLevel: (...args: Parameters<typeof analyticsTrackingService.updateSkillLevel>) =>
+    analyticsTrackingService.updateSkillLevel(...args),
 };
 
 /**
@@ -132,23 +122,20 @@ export const coachAnalyticsService = {
   /**
    * Get comprehensive analytics for a coach
    */
-  getCoachAnalytics: (
-    ...args: Parameters<typeof analyticsExportService.getCoachAnalytics>
-  ) => analyticsExportService.getCoachAnalytics(...args),
+  getCoachAnalytics: (...args: Parameters<typeof analyticsExportService.getCoachAnalytics>) =>
+    analyticsExportService.getCoachAnalytics(...args),
 
   /**
    * Get revenue chart data for a specific period
    */
-  getRevenueChart: (
-    ...args: Parameters<typeof analyticsExportService.getRevenueChart>
-  ) => analyticsExportService.getRevenueChart(...args),
+  getRevenueChart: (...args: Parameters<typeof analyticsExportService.getRevenueChart>) =>
+    analyticsExportService.getRevenueChart(...args),
 
   /**
    * Get retention metrics for a coach
    */
-  getRetentionMetrics: (
-    ...args: Parameters<typeof analyticsExportService.getRetentionMetrics>
-  ) => analyticsExportService.getRetentionMetrics(...args),
+  getRetentionMetrics: (...args: Parameters<typeof analyticsExportService.getRetentionMetrics>) =>
+    analyticsExportService.getRetentionMetrics(...args),
 
   /**
    * Get cancellation patterns and statistics
@@ -160,28 +147,24 @@ export const coachAnalyticsService = {
   /**
    * Get peak hours data for heatmap visualization
    */
-  getPeakHours: (
-    ...args: Parameters<typeof analyticsExportService.getPeakHours>
-  ) => analyticsExportService.getPeakHours(...args),
+  getPeakHours: (...args: Parameters<typeof analyticsExportService.getPeakHours>) =>
+    analyticsExportService.getPeakHours(...args),
 
   /**
    * Get top skills taught by the coach
    */
-  getTopSkills: (
-    ...args: Parameters<typeof analyticsExportService.getTopSkills>
-  ) => analyticsExportService.getTopSkills(...args),
+  getTopSkills: (...args: Parameters<typeof analyticsExportService.getTopSkills>) =>
+    analyticsExportService.getTopSkills(...args),
 
   /**
    * Get session statistics
    */
-  getSessionStats: (
-    ...args: Parameters<typeof analyticsExportService.getSessionStats>
-  ) => analyticsExportService.getSessionStats(...args),
+  getSessionStats: (...args: Parameters<typeof analyticsExportService.getSessionStats>) =>
+    analyticsExportService.getSessionStats(...args),
 
   /**
    * Reset to mock data (useful for testing)
    */
-  resetToMockData: (
-    ...args: Parameters<typeof analyticsExportService.resetToMockData>
-  ) => analyticsExportService.resetToMockData(...args),
+  resetToMockData: (...args: Parameters<typeof analyticsExportService.resetToMockData>) =>
+    analyticsExportService.resetToMockData(...args),
 };

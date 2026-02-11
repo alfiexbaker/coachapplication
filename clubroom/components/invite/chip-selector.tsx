@@ -39,9 +39,7 @@ const ChipItem = memo(function ChipItem({ label, selected, onPress, colors }: Ch
       accessibilityLabel={`${label}${selected ? ', selected' : ''}`}
       accessibilityRole="button"
     >
-      <ThemedText
-        style={{ color: selected ? colors.onPrimary : colors.text, ...Typography.small }}
-      >
+      <ThemedText style={{ color: selected ? colors.onPrimary : colors.text, ...Typography.small }}>
         {label}
       </ThemedText>
     </Clickable>

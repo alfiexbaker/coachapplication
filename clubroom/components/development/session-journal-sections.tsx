@@ -84,10 +84,7 @@ export const MoodSelector = memo(function MoodSelector({
                 color={isActive ? palette.surface : palette.muted}
               />
               <ThemedText
-                style={[
-                  styles.moodLabel,
-                  { color: isActive ? palette.surface : palette.muted },
-                ]}
+                style={[styles.moodLabel, { color: isActive ? palette.surface : palette.muted }]}
               >
                 {opt.label}
               </ThemedText>
@@ -107,11 +104,7 @@ interface StarRatingProps {
   palette: ThemeColors;
 }
 
-export const StarRating = memo(function StarRating({
-  value,
-  onChange,
-  palette,
-}: StarRatingProps) {
+export const StarRating = memo(function StarRating({ value, onChange, palette }: StarRatingProps) {
   return (
     <Row style={styles.starRow}>
       {[1, 2, 3, 4, 5].map((star) => (
@@ -171,10 +164,7 @@ export const JournalTimelineEntry = memo(function JournalTimelineEntry({
             </Row>
           </Row>
         </Row>
-        <ThemedText
-          style={[styles.timelineText, { color: palette.foreground }]}
-          numberOfLines={3}
-        >
+        <ThemedText style={[styles.timelineText, { color: palette.foreground }]} numberOfLines={3}>
           {entry.personalNotes}
         </ThemedText>
       </SurfaceCard>

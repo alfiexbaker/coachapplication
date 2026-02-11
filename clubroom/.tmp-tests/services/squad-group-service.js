@@ -77,12 +77,8 @@ exports.squadGroupService = {
         try {
             const parents = await squad_service_1.squadService.getSquadParents(squadId);
             // Exclude creator from the memberIds list (they become OWNER automatically)
-            parentIds = parents
-                .filter((p) => p.parentId !== creatorId)
-                .map((p) => p.parentId);
-            parentNames = parents
-                .filter((p) => p.parentId !== creatorId)
-                .map((p) => p.parentName);
+            parentIds = parents.filter((p) => p.parentId !== creatorId).map((p) => p.parentId);
+            parentNames = parents.filter((p) => p.parentId !== creatorId).map((p) => p.parentName);
         }
         catch (error) {
             logger.warn('Failed to load squad parents for group seeding', error);

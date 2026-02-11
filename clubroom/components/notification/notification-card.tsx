@@ -1,14 +1,15 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { NotificationItem } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
 import { ExtendedNotificationItem } from '@/services/notification-service';
+import { navigateToDeepLink } from '@/utils/deep-link';
 
 const logger = createLogger('NotificationCard');
 
@@ -25,14 +26,16 @@ const ICONS: Record<NotificationItem['type'], string> = {
 // Color coding maps notification types to semantic theme tokens.
 // Each entry returns a function of palette → { bg, icon } so dark mode adapts automatically.
 type PaletteColors = ReturnType<typeof useTheme>['colors'];
-const getTypeColors = (p: PaletteColors): Record<NotificationItem['type'], { bg: string; icon: string }> => ({
-  booking:   { bg: withAlpha(p.info, 0.09),    icon: p.info },
-  message:   { bg: withAlpha(p.success, 0.09), icon: p.success },
-  review:    { bg: withAlpha(p.warning, 0.09), icon: p.warning },
-  payment:   { bg: withAlpha(p.accent, 0.09),  icon: p.accent },
-  reminder:  { bg: withAlpha(p.error, 0.09),   icon: p.error },
-  badge:     { bg: withAlpha(p.warning, 0.09), icon: p.warning },
-  community: { bg: withAlpha(p.info, 0.09),    icon: p.info },
+const getTypeColors = (
+  p: PaletteColors,
+): Record<NotificationItem['type'], { bg: string; icon: string }> => ({
+  booking: { bg: withAlpha(p.info, 0.09), icon: p.info },
+  message: { bg: withAlpha(p.success, 0.09), icon: p.success },
+  review: { bg: withAlpha(p.warning, 0.09), icon: p.warning },
+  payment: { bg: withAlpha(p.accent, 0.09), icon: p.accent },
+  reminder: { bg: withAlpha(p.error, 0.09), icon: p.error },
+  badge: { bg: withAlpha(p.warning, 0.09), icon: p.warning },
+  community: { bg: withAlpha(p.info, 0.09), icon: p.info },
 });
 
 export function NotificationCard({
@@ -48,7 +51,7 @@ export function NotificationCard({
   onAddToFeed?: () => void;
   showTypeIndicator?: boolean;
 }) {
-  const { colors: palette, scheme } = useTheme();
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const icon = ICONS[item.type] || 'notifications';
   const TYPE_COLORS = getTypeColors(palette);
@@ -62,7 +65,10 @@ export function NotificationCard({
     // Navigate to deep link if available
     if (item.deepLink) {
       try {
-        router.push(item.deepLink as Href);
+        const navigated = navigateToDeepLink(router, item.deepLink);
+        if (!navigated) {
+          logger.warn('Invalid notification deep link', { deepLink: item.deepLink });
+        }
       } catch (error) {
         logger.error('Failed to navigate', { deepLink: item.deepLink, error });
       }
@@ -117,7 +123,13 @@ export function NotificationCard({
           {item.type === 'badge' && item.badgeTitle ? (
             <Row align="center" style={styles.badgeInfo}>
               <Ionicons name="ribbon" size={14} color={palette.tint} />
-              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint, marginLeft: Spacing.xxs }}>
+              <ThemedText
+                style={{
+                  ...Typography.smallSemiBold,
+                  color: palette.tint,
+                  marginLeft: Spacing.xxs,
+                }}
+              >
                 {item.badgeTitle}
                 {item.athleteName ? ` - ${item.athleteName}` : ''}
               </ThemedText>
@@ -129,7 +141,14 @@ export function NotificationCard({
             <Row gap="xs" style={styles.actionRow}>
               {onAddToFeed && (
                 <Clickable onPress={onAddToFeed}>
-                  <Row align="center" gap="xs" style={[styles.actionChip, { backgroundColor: palette.tint, borderColor: palette.tint }]}>
+                  <Row
+                    align="center"
+                    gap="xs"
+                    style={[
+                      styles.actionChip,
+                      { backgroundColor: palette.tint, borderColor: palette.tint },
+                    ]}
+                  >
                     <Ionicons name="add-circle-outline" size={14} color={palette.onPrimary} />
                     <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>
                       Add to Feed
@@ -139,7 +158,11 @@ export function NotificationCard({
               )}
               {onShare && (
                 <Clickable onPress={onShare}>
-                  <Row align="center" gap="xs" style={[styles.actionChip, { borderColor: palette.border }]}>
+                  <Row
+                    align="center"
+                    gap="xs"
+                    style={[styles.actionChip, { borderColor: palette.border }]}
+                  >
                     <Ionicons name="eye-outline" size={14} color={palette.text} />
                     <ThemedText style={[styles.actionText, { color: palette.text }]}>
                       View
@@ -159,7 +182,9 @@ export function NotificationCard({
             {/* Type indicator */}
             {showTypeIndicator && (
               <View style={[styles.typeTag, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
-                <ThemedText style={{ ...Typography.micro, color: palette.muted, textTransform: 'capitalize' }}>
+                <ThemedText
+                  style={{ ...Typography.micro, color: palette.muted, textTransform: 'capitalize' }}
+                >
                   {item.type}
                 </ThemedText>
               </View>
@@ -169,12 +194,7 @@ export function NotificationCard({
 
         {/* Chevron for navigation hint */}
         {item.deepLink && (
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={palette.muted}
-            style={styles.chevron}
-          />
+          <Ionicons name="chevron-forward" size={16} color={palette.muted} style={styles.chevron} />
         )}
       </Row>
     </Clickable>

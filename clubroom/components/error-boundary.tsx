@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Appearance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clickable } from '@/components/primitives/clickable';
 import { logger } from '@/utils/logger';
-import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 
 interface Props {
   children: ReactNode;
@@ -69,11 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       // Use custom fallback if provided
       if (this.props.fallback) {
-        return this.props.fallback(
-          this.state.error!,
-          this.state.errorInfo!,
-          this.resetError
-        );
+        return this.props.fallback(this.state.error!, this.state.errorInfo!, this.resetError);
       }
 
       // Get current color scheme
@@ -90,19 +86,39 @@ export class ErrorBoundary extends Component<Props, State> {
             </Text>
 
             {__DEV__ && this.state.error && (
-              <View style={[styles.errorDetails, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                <Text style={[styles.errorTitle, { color: palette.error }]}>Error Details (Dev Only):</Text>
-                <Text style={[styles.errorName, { color: palette.error }]}>{this.state.error.name}</Text>
-                <Text style={[styles.errorMessage, { color: palette.muted }]}>{this.state.error.message}</Text>
+              <View
+                style={[
+                  styles.errorDetails,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                ]}
+              >
+                <Text style={[styles.errorTitle, { color: palette.error }]}>
+                  Error Details (Dev Only):
+                </Text>
+                <Text style={[styles.errorName, { color: palette.error }]}>
+                  {this.state.error.name}
+                </Text>
+                <Text style={[styles.errorMessage, { color: palette.muted }]}>
+                  {this.state.error.message}
+                </Text>
                 {this.state.error.stack && (
-                  <ScrollView style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]} horizontal>
-                    <Text style={[styles.errorStack, { color: palette.foreground }]}>{this.state.error.stack}</Text>
+                  <ScrollView
+                    style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]}
+                    horizontal
+                  >
+                    <Text style={[styles.errorStack, { color: palette.foreground }]}>
+                      {this.state.error.stack}
+                    </Text>
                   </ScrollView>
                 )}
                 {this.state.errorInfo && (
                   <>
-                    <Text style={[styles.componentStackTitle, { color: palette.error }]}>Component Stack:</Text>
-                    <ScrollView style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]}>
+                    <Text style={[styles.componentStackTitle, { color: palette.error }]}>
+                      Component Stack:
+                    </Text>
+                    <ScrollView
+                      style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]}
+                    >
                       <Text style={[styles.componentStack, { color: palette.muted }]}>
                         {this.state.errorInfo.componentStack}
                       </Text>
@@ -144,9 +160,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   title: { ...Typography.display, textAlign: 'center' },
-  message: { ...Typography.subheading, textAlign: 'center',
-    maxWidth: 400,
-    lineHeight: 24 },
+  message: { ...Typography.subheading, textAlign: 'center', maxWidth: 400, lineHeight: 24 },
   errorDetails: {
     marginTop: Spacing.lg,
     padding: Spacing.md,

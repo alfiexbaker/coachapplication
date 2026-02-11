@@ -28,7 +28,11 @@ interface DateTimeCardProps {
   time: string;
 }
 
-export const DateTimeCard = memo(function DateTimeCard({ weekday, dateStr, time }: DateTimeCardProps) {
+export const DateTimeCard = memo(function DateTimeCard({
+  weekday,
+  dateStr,
+  time,
+}: DateTimeCardProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -63,7 +67,7 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
   const handleOpenMap = useCallback(() => {
     const location = encodeURIComponent(locationLabel);
     Linking.openURL(`https://maps.google.com/?q=${location}`).catch(() =>
-      Alert.alert('Error', 'Could not open maps application.')
+      Alert.alert('Error', 'Could not open maps application.'),
     );
   }, [locationLabel]);
 
@@ -110,7 +114,9 @@ export const PaymentCard = memo(function PaymentCard() {
         </View>
         <Column gap="xxs" style={styles.flex1}>
           <ThemedText style={styles.cardTitle}>Payment</ThemedText>
-          <ThemedText type="subtitle" style={styles.cardValue}>&pound;65 (mock)</ThemedText>
+          <ThemedText type="subtitle" style={styles.cardValue}>
+            &pound;65 (mock)
+          </ThemedText>
         </Column>
       </Row>
     </SurfaceCard>
@@ -126,7 +132,10 @@ interface CoachCardProps {
   coachPhotoUrl: string;
 }
 
-export const BookingCoachCard = memo(function BookingCoachCard({ coachName, coachPhotoUrl }: CoachCardProps) {
+export const BookingCoachCard = memo(function BookingCoachCard({
+  coachName,
+  coachPhotoUrl,
+}: CoachCardProps) {
   const { colors: palette } = useTheme();
 
   const handlePress = useCallback(() => {
@@ -137,10 +146,16 @@ export const BookingCoachCard = memo(function BookingCoachCard({ coachName, coac
     <Clickable onPress={handlePress} accessibilityLabel={`View ${coachName} profile`}>
       <SurfaceCard style={styles.card}>
         <Row gap="md" align="center">
-          <Image source={{ uri: coachPhotoUrl }} style={styles.avatar} accessibilityLabel={`${coachName} photo`} />
+          <Image
+            source={{ uri: coachPhotoUrl }}
+            style={styles.avatar}
+            accessibilityLabel={`${coachName} photo`}
+          />
           <Column gap="xxs" style={styles.flex1}>
             <ThemedText style={styles.cardTitle}>Your Coach</ThemedText>
-            <ThemedText type="subtitle" style={styles.cardValue}>{coachName}</ThemedText>
+            <ThemedText type="subtitle" style={styles.cardValue}>
+              {coachName}
+            </ThemedText>
             <Row gap="xxs" align="center">
               <Ionicons name="star" size={14} color={palette.warning} />
               <ThemedText style={styles.ratingText}>4.9 &middot; 127 reviews</ThemedText>
@@ -163,7 +178,11 @@ interface AthleteCardProps {
   clientPhotoUrl: string;
 }
 
-export const BookingAthleteCard = memo(function BookingAthleteCard({ childName, clientId, clientPhotoUrl }: AthleteCardProps) {
+export const BookingAthleteCard = memo(function BookingAthleteCard({
+  childName,
+  clientId,
+  clientPhotoUrl,
+}: AthleteCardProps) {
   const { colors: palette } = useTheme();
 
   const handlePress = useCallback(() => {
@@ -174,10 +193,16 @@ export const BookingAthleteCard = memo(function BookingAthleteCard({ childName, 
     <Clickable onPress={handlePress} accessibilityLabel={`View ${childName} profile`}>
       <SurfaceCard style={styles.card}>
         <Row gap="md" align="center">
-          <Image source={{ uri: clientPhotoUrl }} style={styles.avatar} accessibilityLabel={`${childName} photo`} />
+          <Image
+            source={{ uri: clientPhotoUrl }}
+            style={styles.avatar}
+            accessibilityLabel={`${childName} photo`}
+          />
           <Column gap="xxs" style={styles.flex1}>
             <ThemedText style={styles.cardTitle}>Athlete</ThemedText>
-            <ThemedText type="subtitle" style={styles.cardValue}>{childName}</ThemedText>
+            <ThemedText type="subtitle" style={styles.cardValue}>
+              {childName}
+            </ThemedText>
           </Column>
           <Ionicons name="chevron-forward" size={20} color={palette.muted} />
         </Row>
@@ -192,14 +217,38 @@ export const BookingAthleteCard = memo(function BookingAthleteCard({ childName, 
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
-  iconCircle: { width: 48, height: 48, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   flex1: { flex: 1 },
-  cardTitle: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6, fontWeight: '600' },
+  cardTitle: {
+    ...Typography.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.6,
+    fontWeight: '600',
+  },
   cardValue: { ...Typography.subheading },
   cardSubtext: { ...Typography.bodySmall, opacity: 0.6 },
-  mapPreview: { height: 120, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center', gap: Spacing.xs },
+  mapPreview: {
+    height: 120,
+    borderRadius: Radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   mapText: { ...Typography.caption, opacity: 0.5 },
   avatar: { width: 48, height: 48, borderRadius: Radii.xl },
   ratingText: { ...Typography.caption, opacity: 0.6 },
-  actionIconButton: { width: 40, height: 40, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  actionIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

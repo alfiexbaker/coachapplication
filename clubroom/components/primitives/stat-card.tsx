@@ -67,8 +67,8 @@ export function StatCard({
     ? trend.startsWith('+') || trend.includes('↑')
       ? palette.success
       : trend.startsWith('-') || trend.includes('↓')
-      ? palette.error
-      : palette.muted
+        ? palette.error
+        : palette.muted
     : palette.muted;
 
   const finalTrendColor = trendColor || autoTrendColor;
@@ -88,13 +88,17 @@ export function StatCard({
         {icon}
         {trend ? (
           <View style={[styles.trendBadge, { backgroundColor: withAlpha(finalTrendColor, 0.12) }]}>
-            <ThemedText style={[styles.trendText, { color: finalTrendColor }]}>
-              {trend}
-            </ThemedText>
+            <ThemedText style={[styles.trendText, { color: finalTrendColor }]}>{trend}</ThemedText>
           </View>
         ) : null}
       </Row>
-      <ThemedText style={[styles.label, isCompact ? styles.labelCompact : undefined, { color: palette.muted }]}>
+      <ThemedText
+        style={[
+          styles.label,
+          isCompact ? styles.labelCompact : undefined,
+          { color: palette.muted },
+        ]}
+      >
         {label}
       </ThemedText>
     </View>
@@ -111,11 +115,8 @@ const styles = StyleSheet.create({
   },
   value: { ...Typography.display, letterSpacing: -0.4 },
   valueCompact: { ...Typography.title },
-  label: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.6 },
-  labelCompact: { ...Typography.small, textTransform: 'none',
-    letterSpacing: 0,
-    fontWeight: '400' },
+  label: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.6 },
+  labelCompact: { ...Typography.small, textTransform: 'none', letterSpacing: 0, fontWeight: '400' },
   trendBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,

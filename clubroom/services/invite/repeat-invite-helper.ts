@@ -26,7 +26,7 @@ export async function findRepeatSlot(
   coachId: string,
   originalDate: string,
   originalStartTime: string,
-  sessionTemplateId?: string
+  sessionTemplateId?: string,
 ): Promise<RepeatSlotResult> {
   // Calculate next week's matching date
   const orig = new Date(originalDate + 'T00:00:00');
@@ -44,13 +44,12 @@ export async function findRepeatSlot(
       coachId,
       startDate,
       endDate,
-      sessionTemplateId
+      sessionTemplateId,
     );
 
     // Find exact match: same date + same start time
-    const primarySlot = slots.find(
-      (s) => s.date === startDate && s.startTime === originalStartTime
-    ) || null;
+    const primarySlot =
+      slots.find((s) => s.date === startDate && s.startTime === originalStartTime) || null;
 
     // Find alternatives: same date different time, or nearby dates same time
     const alternatives = slots

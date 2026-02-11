@@ -33,11 +33,11 @@ export function useVideoReview(id: string | undefined) {
     averagePerMinute: 0,
   });
 
-  const hasAccess = video && (
-    video.athleteIds.includes(currentUser?.id ?? '') ||
-    video.sharedWith.includes(currentUser?.id ?? '') ||
-    video.visibility === 'PUBLIC'
-  );
+  const hasAccess =
+    video &&
+    (video.athleteIds.includes(currentUser?.id ?? '') ||
+      video.sharedWith.includes(currentUser?.id ?? '') ||
+      video.visibility === 'PUBLIC');
 
   const loadVideo = useCallback(async () => {
     if (!id) return;
@@ -68,9 +68,7 @@ export function useVideoReview(id: string | undefined) {
   useEffect(() => {
     if (!video) return;
 
-    const nearby = video.annotations.find(
-      (ann) => Math.abs(currentTime - ann.timestamp) < 2
-    );
+    const nearby = video.annotations.find((ann) => Math.abs(currentTime - ann.timestamp) < 2);
 
     if (nearby && nearby.id !== activeAnnotation?.id) {
       setActiveAnnotation(nearby);
@@ -121,23 +119,17 @@ export function useVideoReview(id: string | undefined) {
 
   const handleToggleType = useCallback((type: VideoAnnotationType) => {
     setSelectedTypes((prev) =>
-      prev.includes(type)
-        ? prev.filter((t) => t !== type)
-        : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   }, []);
 
-  const filteredAnnotations = video?.annotations.filter(
-    (ann) => selectedTypes.length === 0 || selectedTypes.includes(ann.type)
-  ) ?? [];
+  const filteredAnnotations =
+    video?.annotations.filter(
+      (ann) => selectedTypes.length === 0 || selectedTypes.includes(ann.type),
+    ) ?? [];
 
-  const status: ScreenStatus = loading && !video
-    ? 'loading'
-    : error && !video
-      ? 'error'
-      : !video
-        ? 'empty'
-        : 'success';
+  const status: ScreenStatus =
+    loading && !video ? 'loading' : error && !video ? 'error' : !video ? 'empty' : 'success';
 
   return {
     video,

@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Modal,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
@@ -7,7 +15,13 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
-import { DURATION_OPTIONS, TYPE_OPTIONS, SegmentSelector, CapacityStepper, PriceInput } from './session-type-modal-sections';
+import {
+  DURATION_OPTIONS,
+  TYPE_OPTIONS,
+  SegmentSelector,
+  CapacityStepper,
+  PriceInput,
+} from './session-type-modal-sections';
 import { Row } from '@/components/primitives';
 interface SessionTypeModalProps {
   visible: boolean;
@@ -70,21 +84,17 @@ export function SessionTypeModal({
     });
   };
   const handleDelete = () => {
-    Alert.alert(
-      `Delete "${name}"?`,
-      "This won't affect existing bookings or invites.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            onDelete?.();
-          },
+    Alert.alert(`Delete "${name}"?`, "This won't affect existing bookings or invites.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          onDelete?.();
         },
-      ]
-    );
+      },
+    ]);
   };
   const handleTypeSelect = (key: SessionType) => {
     setType(key);
@@ -110,7 +120,14 @@ export function SessionTypeModal({
           <View style={styles.field}>
             <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Name</ThemedText>
             <TextInput
-              style={[styles.textInput, { color: palette.text, borderColor: palette.border, backgroundColor: palette.background }]}
+              style={[
+                styles.textInput,
+                {
+                  color: palette.text,
+                  borderColor: palette.border,
+                  backgroundColor: palette.background,
+                },
+              ]}
               placeholder="e.g. 1-on-1 Skills Session"
               placeholderTextColor={palette.muted}
               value={name}
@@ -133,21 +150,22 @@ export function SessionTypeModal({
             palette={palette}
           />
           <Row style={styles.row}>
-            <CapacityStepper
-              value={capacity}
-              onChange={setCapacity}
-              palette={palette}
-            />
-            <PriceInput
-              value={price}
-              onChange={setPrice}
-              palette={palette}
-            />
+            <CapacityStepper value={capacity} onChange={setCapacity} palette={palette} />
+            <PriceInput value={price} onChange={setPrice} palette={palette} />
           </Row>
           <View style={styles.field}>
-            <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Description (optional)</ThemedText>
+            <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>
+              Description (optional)
+            </ThemedText>
             <TextInput
-              style={[styles.textAreaInput, { color: palette.text, borderColor: palette.border, backgroundColor: palette.background }]}
+              style={[
+                styles.textAreaInput,
+                {
+                  color: palette.text,
+                  borderColor: palette.border,
+                  backgroundColor: palette.background,
+                },
+              ]}
               placeholder="What athletes can expect"
               placeholderTextColor={palette.muted}
               value={description}
@@ -158,10 +176,7 @@ export function SessionTypeModal({
           </View>
           <Clickable
             onPress={handleSave}
-            style={[
-              styles.saveBtn,
-              { backgroundColor: isValid ? palette.tint : palette.border },
-            ]}
+            style={[styles.saveBtn, { backgroundColor: isValid ? palette.tint : palette.border }]}
           >
             <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
             <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>Save</ThemedText>

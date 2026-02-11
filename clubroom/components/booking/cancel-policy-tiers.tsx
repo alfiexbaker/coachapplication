@@ -28,9 +28,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
         <Ionicons name="document-text-outline" size={20} color={palette.tint} />
         <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
         <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
-            {policy.name}
-          </ThemedText>
+          <ThemedText style={[styles.badgeText, { color: palette.tint }]}>{policy.name}</ThemedText>
         </View>
       </Row>
 
@@ -56,11 +54,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
                 ]}
               >
                 <View
-                  style={[
-                    styles.dot,
-                    { backgroundColor: tierColor },
-                    isActive && styles.dotActive,
-                  ]}
+                  style={[styles.dot, { backgroundColor: tierColor }, isActive && styles.dotActive]}
                 />
                 <View style={styles.tierContent}>
                   <Row style={styles.tierTopRow}>
@@ -72,7 +66,9 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
                     </ThemedText>
                     {isActive && (
                       <View style={[styles.activeBadge, { backgroundColor: tierColor }]}>
-                        <ThemedText style={[styles.activeText, { color: palette.onPrimary }]}>Current</ThemedText>
+                        <ThemedText style={[styles.activeText, { color: palette.onPrimary }]}>
+                          Current
+                        </ThemedText>
                       </View>
                     )}
                   </Row>
@@ -92,18 +88,34 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   header: { alignItems: 'center', gap: Spacing.sm },
-  badge: { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  badge: {
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   badgeText: { ...Typography.caption },
   tiers: { marginTop: Spacing.xs },
   tierContainer: { position: 'relative' },
   connector: { position: 'absolute', left: 11, top: -6, width: 2, height: 12 },
   tierRow: { alignItems: 'flex-start', gap: Spacing.sm, paddingVertical: Spacing.xs },
   dot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: 5 },
-  dotActive: { width: 14, height: 14, borderRadius: Radii.sm, marginTop: Spacing.micro, marginLeft: -2, marginRight: -2 },
+  dotActive: {
+    width: 14,
+    height: 14,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.micro,
+    marginLeft: -2,
+    marginRight: -2,
+  },
   tierContent: { flex: 1 },
   tierTopRow: { alignItems: 'center', gap: Spacing.xs },
   tierPercent: { ...Typography.bodySmall },
-  activeBadge: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.xs },
+  activeBadge: {
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
+  },
   activeText: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
   tierDesc: { ...Typography.caption, marginTop: Spacing.micro, lineHeight: 16 },
 });

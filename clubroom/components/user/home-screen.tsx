@@ -13,13 +13,30 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { hasChildren } from '@/utils/user-helpers';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
-import { StatsRow, StreakCard, QuickActionsGrid, NextSessionCard, RecentBadgesSection, MyClubsSection } from './home-screen-sections';
+import {
+  StatsRow,
+  StreakCard,
+  QuickActionsGrid,
+  NextSessionCard,
+  RecentBadgesSection,
+  MyClubsSection,
+} from './home-screen-sections';
 
 export function UserHomeScreen() {
   const { colors: palette } = useTheme();
   const {
-    currentUser, refreshing, loading, error, recentBadges, clubs, stats, streakInfo,
-    selectedChildId, setSelectedChildId, onRefresh, upcomingBookings,
+    currentUser,
+    refreshing,
+    loading,
+    error,
+    recentBadges,
+    clubs,
+    stats,
+    streakInfo,
+    selectedChildId,
+    setSelectedChildId,
+    onRefresh,
+    upcomingBookings,
   } = useHomeScreen();
 
   if (!currentUser) return null;
@@ -27,25 +44,54 @@ export function UserHomeScreen() {
   const nextSession = upcomingBookings[0];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} colors={[palette.tint]} />}>
-
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={palette.tint}
+            colors={[palette.tint]}
+          />
+        }
+      >
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>Hey, {currentUser.name?.split(' ')[0] || 'Athlete'}</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Your training journey</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            Hey, {currentUser.name?.split(' ')[0] || 'Athlete'}
+          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            Your training journey
+          </ThemedText>
         </View>
 
         {hasChildren(currentUser) && currentUser.children && (
-          <ChildSwitcher childrenList={currentUser.children} selectedId={selectedChildId} onSelect={setSelectedChildId} showAll={false} />
+          <ChildSwitcher
+            childrenList={currentUser.children}
+            selectedId={selectedChildId}
+            onSelect={setSelectedChildId}
+            showAll={false}
+          />
         )}
 
         {loading && (
-          <View style={styles.loadingContainer}><ActivityIndicator size="large" color={palette.tint} /></View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={palette.tint} />
+          </View>
         )}
 
         {error && !loading && (
-          <Row align="center" gap="sm" style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
+          <Row
+            align="center"
+            gap="sm"
+            style={[
+              styles.errorContainer,
+              { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error },
+            ]}
+          >
             <Ionicons name="alert-circle" size={20} color={palette.error} />
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
           </Row>
@@ -64,7 +110,13 @@ export function UserHomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   header: { gap: Spacing.xs, marginBottom: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20, fontWeight: '500' },

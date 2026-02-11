@@ -46,9 +46,7 @@ export const MapClusterOverlay = memo(function MapClusterOverlay({
       />
       <SurfaceCard style={styles.clusterCard}>
         <Row style={styles.clusterHeader}>
-          <ThemedText type="defaultSemiBold">
-            {cluster.coaches.length} Coaches
-          </ThemedText>
+          <ThemedText type="defaultSemiBold">{cluster.coaches.length} Coaches</ThemedText>
           <Clickable
             accessibilityRole="button"
             accessibilityLabel="Close"

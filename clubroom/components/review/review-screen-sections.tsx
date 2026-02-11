@@ -15,7 +15,11 @@ type HeaderProps = {
   onBack: () => void;
 };
 
-export const ReviewHeader = React.memo(function ReviewHeader({ colors, submitted, onBack }: HeaderProps) {
+export const ReviewHeader = React.memo(function ReviewHeader({
+  colors,
+  submitted,
+  onBack,
+}: HeaderProps) {
   return (
     <Row align="center" justify="space-between" style={styles.header}>
       <Clickable onPress={onBack} style={styles.backButton} accessibilityLabel="Go back">
@@ -77,7 +81,9 @@ export const ReviewSuccessState = React.memo(function ReviewSuccessState({
       <View style={[styles.successIcon, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
         <Ionicons name="checkmark-circle" size={48} color={colors.success} />
       </View>
-      <ThemedText type="subtitle" style={styles.successTitle}>Thank you for your feedback!</ThemedText>
+      <ThemedText type="subtitle" style={styles.successTitle}>
+        Thank you for your feedback!
+      </ThemedText>
       <ThemedText style={[styles.successText, { color: colors.muted }]}>
         Your {submittedRating}-star review has been submitted.
         {coachName ? ` ${coachName} will appreciate your feedback.` : ''}

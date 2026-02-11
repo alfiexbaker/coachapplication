@@ -7,7 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Spacing } from '@/constants/theme';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { useTheme } from '@/hooks/useTheme';
+
 import { CoachAvatar, CoachNameRow } from './coach-card-header';
 import { RatingDisplay, ReviewQuote } from './coach-card-reviews';
 import { MetaRow } from './coach-card-availability';
@@ -16,7 +16,14 @@ import { FavouriteButton, ActionRow } from './coach-card-cta';
 import type { DiscoveryVariantProps } from './coach-card-shared';
 import { Row } from '@/components/primitives';
 
-function DiscoveryCardInner({ coach, onPress, onBookNow, onToggleFavourite, isFavourited = false, index = 0 }: DiscoveryVariantProps) {
+function DiscoveryCardInner({
+  coach,
+  onPress,
+  onBookNow,
+  onToggleFavourite,
+  isFavourited = false,
+  index = 0,
+}: DiscoveryVariantProps) {
   const [favourited, setFavourited] = useState(isFavourited);
   const specialties = coach.specialties || coach.footballFocuses || [];
 
@@ -26,20 +33,34 @@ function DiscoveryCardInner({ coach, onPress, onBookNow, onToggleFavourite, isFa
   };
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 60).duration(350).springify()}>
+    <Animated.View
+      entering={FadeInDown.delay(index * 60)
+        .duration(350)
+        .springify()}
+    >
       <SurfaceCard onPress={onPress} style={styles.card}>
         <Row style={styles.topRow}>
-          <CoachAvatar profilePhotoUrl={coach.profilePhotoUrl} trialAvailable={coach.trialAvailable} size="lg" />
+          <CoachAvatar
+            profilePhotoUrl={coach.profilePhotoUrl}
+            trialAvailable={coach.trialAvailable}
+            size="lg"
+          />
           <View style={styles.infoColumn}>
             <CoachNameRow fullName={coach.fullName} verified={coach.verified} />
-            {coach.rating !== undefined && <RatingDisplay rating={coach.rating} reviewCount={coach.reviewCount} />}
+            {coach.rating !== undefined && (
+              <RatingDisplay rating={coach.rating} reviewCount={coach.reviewCount} />
+            )}
             <MetaRow distanceMiles={coach.distanceMiles} pricePerHour={coach.pricePerHour} />
           </View>
           <FavouriteButton isFavourite={favourited} onPress={handleFavourite} size="lg" />
         </Row>
         {specialties.length > 0 && <SpecialtyTags specialties={specialties} />}
         {coach.reviewQuote && <ReviewQuote quote={coach.reviewQuote} author={coach.reviewAuthor} />}
-        <ActionRow nextAvailable={coach.nextAvailable} coachName={coach.fullName} onBookNow={onBookNow} />
+        <ActionRow
+          nextAvailable={coach.nextAvailable}
+          coachName={coach.fullName}
+          onBookNow={onBookNow}
+        />
       </SurfaceCard>
     </Animated.View>
   );

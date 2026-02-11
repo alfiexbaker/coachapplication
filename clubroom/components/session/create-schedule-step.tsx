@@ -32,17 +32,33 @@ interface CreateScheduleStepProps {
 }
 
 export const CreateScheduleStep = memo(function CreateScheduleStep({
-  colors, recurrence, selectedDate, selectedTime, location, price,
-  savedLocations, onRecurrenceChange, onDateChange, onTimeChange,
-  onLocationChange, onPriceChange }: CreateScheduleStepProps) {
-  const inputColors = { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border };
+  colors,
+  recurrence,
+  selectedDate,
+  selectedTime,
+  location,
+  price,
+  savedLocations,
+  onRecurrenceChange,
+  onDateChange,
+  onTimeChange,
+  onLocationChange,
+  onPriceChange,
+}: CreateScheduleStepProps) {
+  const inputColors = {
+    backgroundColor: colors.surface,
+    color: colors.text,
+    borderColor: colors.border,
+  };
 
   return (
     <Animated.View entering={FadeInRight.springify()}>
       <Column gap="lg">
         {/* Frequency */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Frequency</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Frequency
+          </ThemedText>
           <Row wrap gap="sm">
             {RECURRENCE_OPTIONS.map((opt) => {
               const selected = recurrence === opt.key;
@@ -51,13 +67,26 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
                   key={opt.key}
                   onPress={() => onRecurrenceChange(opt.key)}
                   accessibilityLabel={`Select ${opt.label} frequency`}
-                  style={[styles.recurrenceCard, {
-                    backgroundColor: selected ? withAlpha(colors.tint, 0.07) : colors.surface,
-                    borderColor: selected ? colors.tint : colors.border }]}
+                  style={[
+                    styles.recurrenceCard,
+                    {
+                      backgroundColor: selected ? withAlpha(colors.tint, 0.07) : colors.surface,
+                      borderColor: selected ? colors.tint : colors.border,
+                    },
+                  ]}
                 >
                   <Row align="center" gap="xs">
-                    <Ionicons name={opt.icon} size={20} color={selected ? colors.tint : colors.muted} />
-                    <ThemedText style={[styles.recurrenceLabel, { color: selected ? colors.tint : colors.text }]}>
+                    <Ionicons
+                      name={opt.icon}
+                      size={20}
+                      color={selected ? colors.tint : colors.muted}
+                    />
+                    <ThemedText
+                      style={[
+                        styles.recurrenceLabel,
+                        { color: selected ? colors.tint : colors.text },
+                      ]}
+                    >
                       {opt.label}
                     </ThemedText>
                   </Row>
@@ -84,7 +113,9 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
 
         {/* Time */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Time</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Time
+          </ThemedText>
           <TextInput
             style={[styles.input, styles.smallInput, inputColors]}
             placeholder="10:00"
@@ -97,7 +128,9 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
 
         {/* Location with saved */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Location *</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Location *
+          </ThemedText>
           <TextInput
             style={[styles.input, inputColors]}
             placeholder="e.g., Central Park Field 1"
@@ -116,13 +149,21 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
                       key={`loc-${loc}`}
                       onPress={() => onLocationChange(loc)}
                       accessibilityLabel={`Select saved location: ${loc}`}
-                      style={[styles.savedChip, {
-                        backgroundColor: location === loc ? withAlpha(colors.tint, 0.07) : colors.surface,
-                        borderColor: location === loc ? colors.tint : colors.border }]}
+                      style={[
+                        styles.savedChip,
+                        {
+                          backgroundColor:
+                            location === loc ? withAlpha(colors.tint, 0.07) : colors.surface,
+                          borderColor: location === loc ? colors.tint : colors.border,
+                        },
+                      ]}
                     >
                       <Row align="center" gap="xxs">
                         <Ionicons name="location" size={12} color={colors.muted} />
-                        <ThemedText style={[styles.caption, { color: colors.text }]} numberOfLines={1}>
+                        <ThemedText
+                          style={[styles.caption, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
                           {loc}
                         </ThemedText>
                       </Row>
@@ -136,7 +177,9 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
 
         {/* Price */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Price per Session (USD)</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Price per Session (USD)
+          </ThemedText>
           <Row align="center" gap="sm">
             <ThemedText style={[styles.currency, { color: colors.muted }]}>$</ThemedText>
             <TextInput
@@ -160,16 +203,31 @@ export const CreateScheduleStep = memo(function CreateScheduleStep({
 
 const styles = StyleSheet.create({
   label: { ...Typography.bodySmall },
-  input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body, borderWidth: 1 },
+  input: {
+    height: 48,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    ...Typography.body,
+    borderWidth: 1,
+  },
   smallInput: { width: 140 },
   recurrenceCard: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
   recurrenceLabel: { ...Typography.smallSemiBold },
   savedSection: { marginTop: Spacing.xs },
   caption: { ...Typography.caption },
   savedChip: {
-    paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm, borderWidth: 1, maxWidth: 180 },
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    maxWidth: 180,
+  },
   currency: { ...Typography.heading },
   priceInput: { flex: 1, maxWidth: 120 },
-  hint: { ...Typography.caption, marginTop: Spacing.xs } });
+  hint: { ...Typography.caption, marginTop: Spacing.xs },
+});

@@ -5,13 +5,7 @@
  */
 
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -28,12 +22,7 @@ interface BlockUserModalProps {
   userName: string;
 }
 
-export function BlockUserModal({
-  visible,
-  onClose,
-  userId,
-  userName,
-}: BlockUserModalProps) {
+export function BlockUserModal({ visible, onClose, userId, userName }: BlockUserModalProps) {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const ModalStyles = createModalStyles(palette);
@@ -60,35 +49,23 @@ export function BlockUserModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <View style={ModalStyles.overlayCenter}>
         <View style={[ModalStyles.containerCenter, { backgroundColor: palette.surface }]}>
           {blocked ? (
             /* Success state */
             <View style={styles.content}>
               <View
-                style={[
-                  styles.iconCircle,
-                  { backgroundColor: withAlpha(palette.success, 0.09) },
-                ]}
+                style={[styles.iconCircle, { backgroundColor: withAlpha(palette.success, 0.09) }]}
               >
-                <Ionicons
-                  name="checkmark-circle"
-                  size={40}
-                  color={palette.success}
-                />
+                <Ionicons name="checkmark-circle" size={40} color={palette.success} />
               </View>
               <ThemedText type="title" style={styles.title}>
                 User Blocked
               </ThemedText>
               <ThemedText style={[styles.message, { color: palette.muted }]}>
-                {userName} has been blocked. They will no longer be able to
-                contact you or find you in search.
+                {userName} has been blocked. They will no longer be able to contact you or find you
+                in search.
               </ThemedText>
               <Pressable
                 style={[ButtonStyles.primary, ButtonStyles.fullWidth]}
@@ -101,23 +78,16 @@ export function BlockUserModal({
             /* Confirmation state */
             <View style={styles.content}>
               <View
-                style={[
-                  styles.iconCircle,
-                  { backgroundColor: withAlpha(palette.error, 0.09) },
-                ]}
+                style={[styles.iconCircle, { backgroundColor: withAlpha(palette.error, 0.09) }]}
               >
-                <Ionicons
-                  name="ban"
-                  size={40}
-                  color={palette.error}
-                />
+                <Ionicons name="ban" size={40} color={palette.error} />
               </View>
               <ThemedText type="title" style={styles.title}>
                 Block {userName}?
               </ThemedText>
               <ThemedText style={[styles.message, { color: palette.muted }]}>
-                They won&apos;t be able to message you, send invites, or find you in
-                search. You can unblock them later from your settings.
+                They won&apos;t be able to message you, send invites, or find you in search. You can
+                unblock them later from your settings.
               </ThemedText>
 
               {/* Actions */}
@@ -136,9 +106,7 @@ export function BlockUserModal({
                   ) : (
                     <>
                       <Ionicons name="ban" size={18} color={palette.surface} />
-                      <ThemedText style={ButtonStyles.primaryText}>
-                        Block
-                      </ThemedText>
+                      <ThemedText style={ButtonStyles.primaryText}>Block</ThemedText>
                     </>
                   )}
                 </Pressable>
@@ -147,9 +115,7 @@ export function BlockUserModal({
                   onPress={handleClose}
                   disabled={blocking}
                 >
-                  <ThemedText style={ButtonStyles.secondaryText}>
-                    Cancel
-                  </ThemedText>
+                  <ThemedText style={ButtonStyles.secondaryText}>Cancel</ThemedText>
                 </Pressable>
               </View>
             </View>
@@ -176,9 +142,12 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
   },
-  message: { ...Typography.bodySmall, lineHeight: 20,
+  message: {
+    ...Typography.bodySmall,
+    lineHeight: 20,
     textAlign: 'center',
-    marginBottom: Spacing.sm },
+    marginBottom: Spacing.sm,
+  },
   actions: {
     width: '100%',
     gap: Spacing.xs,

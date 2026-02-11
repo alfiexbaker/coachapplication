@@ -60,14 +60,16 @@ const canPostAsClub = (role: ClubRole) =>
 
 function buildClubInvites(club: Club | undefined): ClubInvite[] {
   if (!club) return [];
-  return [{
-    code: club.inviteCode,
-    clubId: club.id,
-    createdBy: club.ownerId,
-    role: 'MEMBER',
-    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-    remainingUses: 999,
-  }];
+  return [
+    {
+      code: club.inviteCode,
+      clubId: club.id,
+      createdBy: club.ownerId,
+      role: 'MEMBER',
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      remainingUses: 999,
+    },
+  ];
 }
 
 export interface ClubHubState {
@@ -164,7 +166,9 @@ export function useClubHub(): ClubHubState {
   const lastMemberRemovalRef = useRef<ClubMemberRemovalRecord | null>(null);
 
   // ─── Derived permissions ───────────────────────────────────────
-  const canManagePosts = !!(membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role));
+  const canManagePosts = !!(
+    membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role)
+  );
   const canCreatePosts = !!membership;
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
@@ -178,9 +182,7 @@ export function useClubHub(): ClubHubState {
     }
 
     try {
-      const [clubSquads] = await Promise.all([
-        squadService.getSquads(membership.clubId),
-      ]);
+      const [clubSquads] = await Promise.all([squadService.getSquads(membership.clubId)]);
 
       setSquads(clubSquads);
       const activeClub = knownClubs.find((candidate) => candidate.id === membership.clubId);
@@ -253,38 +255,48 @@ export function useClubHub(): ClubHubState {
     }
   }, [currentUser]);
 
-  const loadAllData = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
-    setLoadError(null);
-    if (mode === 'initial') {
-      setInitialLoading(true);
-    } else {
-      setRefreshing(true);
-    }
-
-    try {
-      const results = await Promise.allSettled([
-        loadClubMeta(),
-        loadMembers(),
-        loadTrainingSessions(),
-        loadUpcomingMatches(),
-        loadUpcomingInvites(),
-      ]);
-      loadFeed();
-      const failures = results.filter((r) => r.status === 'rejected');
-      if (failures.length > 0) {
-        setLoadError('Some data failed to load. Pull to refresh or tap retry.');
-      }
-    } catch (error) {
-      setLoadError('Failed to load club data. Please try again.');
-      logger.error('Failed to load all club data:', error);
-    } finally {
+  const loadAllData = useCallback(
+    async (mode: 'initial' | 'refresh' = 'initial') => {
+      setLoadError(null);
       if (mode === 'initial') {
-        setInitialLoading(false);
+        setInitialLoading(true);
       } else {
-        setRefreshing(false);
+        setRefreshing(true);
       }
-    }
-  }, [loadClubMeta, loadFeed, loadMembers, loadTrainingSessions, loadUpcomingMatches, loadUpcomingInvites]);
+
+      try {
+        const results = await Promise.allSettled([
+          loadClubMeta(),
+          loadMembers(),
+          loadTrainingSessions(),
+          loadUpcomingMatches(),
+          loadUpcomingInvites(),
+        ]);
+        loadFeed();
+        const failures = results.filter((r) => r.status === 'rejected');
+        if (failures.length > 0) {
+          setLoadError('Some data failed to load. Pull to refresh or tap retry.');
+        }
+      } catch (error) {
+        setLoadError('Failed to load club data. Please try again.');
+        logger.error('Failed to load all club data:', error);
+      } finally {
+        if (mode === 'initial') {
+          setInitialLoading(false);
+        } else {
+          setRefreshing(false);
+        }
+      }
+    },
+    [
+      loadClubMeta,
+      loadFeed,
+      loadMembers,
+      loadTrainingSessions,
+      loadUpcomingMatches,
+      loadUpcomingInvites,
+    ],
+  );
 
   const onRefresh = useCallback(() => {
     void loadAllData('refresh');
@@ -327,7 +339,9 @@ export function useClubHub(): ClubHubState {
       void loadTrainingSessions();
       loadFeed();
     });
-    return () => { unsubSessionPublished(); };
+    return () => {
+      unsubSessionPublished();
+    };
   }, [loadTrainingSessions, loadFeed]);
 
   useEffect(() => {
@@ -373,7 +387,9 @@ export function useClubHub(): ClubHubState {
         Alert.alert('Enter invite code', 'Paste the club code shared with you.');
         return;
       }
-      const targetClub = knownClubs.find((candidate) => candidate.inviteCode.toUpperCase() === trimmedCode);
+      const targetClub = knownClubs.find(
+        (candidate) => candidate.inviteCode.toUpperCase() === trimmedCode,
+      );
       if (!targetClub) {
         Alert.alert('Code not found', 'Check the code or request a new one from the club admin.');
         return;
@@ -381,12 +397,14 @@ export function useClubHub(): ClubHubState {
 
       const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
       if (userIsCoach) {
-        router.push(Routes.coachInvitesWith({
-          code: targetClub.inviteCode,
-          clubId: targetClub.id,
-          clubName: targetClub.name,
-          role: 'COACH',
-        }));
+        router.push(
+          Routes.coachInvitesWith({
+            code: targetClub.inviteCode,
+            clubId: targetClub.id,
+            clubName: targetClub.name,
+            role: 'COACH',
+          }),
+        );
         return;
       }
 
@@ -422,17 +440,14 @@ export function useClubHub(): ClubHubState {
     ]);
   }, []);
 
-  const handleRemoveMember = useCallback(
-    (member: ClubMember) => {
-      if (!clubService.canBeRemoved(member.role)) {
-        Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
-        return;
-      }
-      setSelectedMemberForRemoval(member);
-      setShowMemberRemovalModal(true);
-    },
-    [],
-  );
+  const handleRemoveMember = useCallback((member: ClubMember) => {
+    if (!clubService.canBeRemoved(member.role)) {
+      Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
+      return;
+    }
+    setSelectedMemberForRemoval(member);
+    setShowMemberRemovalModal(true);
+  }, []);
 
   const handleConfirmMemberRemoval = useCallback(
     async (reason: MemberRemovalReason, customReason?: string) => {
@@ -481,7 +496,14 @@ export function useClubHub(): ClubHubState {
         setIsRemovingMember(false);
       }
     },
-    [selectedMemberForRemoval, membership?.clubId, currentUser, loadMembers, showUndoToast, showToast],
+    [
+      selectedMemberForRemoval,
+      membership?.clubId,
+      currentUser,
+      loadMembers,
+      showUndoToast,
+      showToast,
+    ],
   );
 
   const dismissRemovalModal = useCallback(() => {

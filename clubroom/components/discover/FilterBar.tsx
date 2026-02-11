@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Chip } from '@/components/primitives/chip';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CoachSearchFilters, FootballObjective } from '@/constants/types';
 
@@ -47,9 +47,7 @@ export function FilterBar({
   const handleFocusToggle = (focus: FootballObjective) => {
     const current = filters.focuses ?? [];
     const hasFocus = current.includes(focus);
-    const newFocuses = hasFocus
-      ? current.filter((f) => f !== focus)
-      : [...current, focus];
+    const newFocuses = hasFocus ? current.filter((f) => f !== focus) : [...current, focus];
 
     onFilterChange({
       ...filters,
@@ -145,9 +143,7 @@ export function FilterBar({
             style={styles.clearButton}
           >
             <Ionicons name="close-circle" size={16} color={palette.tint} />
-            <ThemedText style={[styles.clearText, { color: palette.tint }]}>
-              Clear all
-            </ThemedText>
+            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear all</ThemedText>
           </Clickable>
         )}
       </Row>

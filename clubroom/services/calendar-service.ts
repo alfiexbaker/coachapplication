@@ -15,11 +15,7 @@ import { api } from '@/constants/config';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Booking } from '@/constants/app-types';
-import type {
-  CalendarEvent,
-  CalendarSyncSettings,
-  CalendarProvider,
-} from '@/constants/types';
+import type { CalendarEvent, CalendarSyncSettings, CalendarProvider } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -42,7 +38,10 @@ const DEFAULT_SETTINGS: Omit<CalendarSyncSettings, 'userId'> = {
  */
 function formatICSDate(dateString: string): string {
   const date = new Date(dateString);
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
 }
 
 /**
@@ -143,7 +142,7 @@ function generateICSContent(event: CalendarEvent, settings?: CalendarSyncSetting
  */
 function generateMultiEventICSContent(
   events: CalendarEvent[],
-  settings?: CalendarSyncSettings
+  settings?: CalendarSyncSettings,
 ): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
@@ -193,8 +192,14 @@ function generateCalendarLink(event: CalendarEvent, provider: CalendarProvider):
   const end = new Date(event.endTime);
 
   // Format dates for URL
-  const startStr = start.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  const endStr = end.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const startStr = start
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
+  const endStr = end
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
 
   const title = encodeURIComponent(event.title);
   const location = encodeURIComponent(event.location || '');
@@ -223,7 +228,7 @@ export const calendarService = {
    */
   async generateICSFile(
     bookings: Booking[],
-    filename?: string
+    filename?: string,
   ): Promise<{ success: boolean; filePath?: string; error?: string }> {
     try {
       const settings = await this.getSyncSettings('current_user');
@@ -250,9 +255,7 @@ export const calendarService = {
   /**
    * Export a single booking to calendar (opens share sheet on mobile)
    */
-  async exportToCalendar(
-    booking: Booking
-  ): Promise<{ success: boolean; error?: string }> {
+  async exportToCalendar(booking: Booking): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.generateICSFile([booking], `session-${booking.id}.ics`);
 
@@ -287,7 +290,7 @@ export const calendarService = {
    * Export multiple bookings to calendar
    */
   async exportMultipleToCalendar(
-    bookings: Booking[]
+    bookings: Booking[],
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (bookings.length === 0) {
@@ -327,7 +330,10 @@ export const calendarService = {
   async getSyncSettings(userId: string): Promise<CalendarSyncSettings | null> {
     if (USE_MOCK) {
       try {
-        const stored = await apiClient.get<CalendarSyncSettings | null>(`${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`, null);
+        const stored = await apiClient.get<CalendarSyncSettings | null>(
+          `${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`,
+          null,
+        );
         return stored;
       } catch (error) {
         logger.error('Failed to get sync settings', error);
@@ -350,7 +356,7 @@ export const calendarService = {
    */
   async updateSyncSettings(
     userId: string,
-    settings: Partial<CalendarSyncSettings>
+    settings: Partial<CalendarSyncSettings>,
   ): Promise<{ success: boolean; settings?: CalendarSyncSettings; error?: string }> {
     if (USE_MOCK) {
       try {
@@ -399,10 +405,7 @@ export const calendarService = {
   /**
    * Generate a calendar link for a booking
    */
-  generateCalendarLink(
-    booking: Booking,
-    provider: CalendarProvider = 'GOOGLE'
-  ): string {
+  generateCalendarLink(booking: Booking, provider: CalendarProvider = 'GOOGLE'): string {
     const event = bookingToCalendarEvent(booking);
     return generateCalendarLink(event, provider);
   },

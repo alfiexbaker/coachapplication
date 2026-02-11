@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -41,7 +41,7 @@ export function AvailabilityGrid({
       });
       return { available: !!template, template };
     },
-    [templates]
+    [templates],
   );
 
   const handleSlotPress = (dayOfWeek: number, hour: number) => {
@@ -87,8 +87,8 @@ export function AvailabilityGrid({
                   backgroundColor: isSelected
                     ? withAlpha(palette.tint, 0.09)
                     : hasSlots
-                    ? withAlpha(palette.success, 0.03)
-                    : 'transparent',
+                      ? withAlpha(palette.success, 0.03)
+                      : 'transparent',
                 },
               ]}
             >
@@ -100,7 +100,9 @@ export function AvailabilityGrid({
               >
                 {day}
               </ThemedText>
-              {hasSlots && <View style={[styles.dayIndicator, { backgroundColor: palette.success }]} />}
+              {hasSlots && (
+                <View style={[styles.dayIndicator, { backgroundColor: palette.success }]} />
+              )}
             </Clickable>
           );
         })}
@@ -133,13 +135,15 @@ export function AvailabilityGrid({
                         backgroundColor: available
                           ? withAlpha(palette.success, 0.12)
                           : isSelected
-                          ? withAlpha(palette.tint, 0.03)
-                          : palette.surface,
+                            ? withAlpha(palette.tint, 0.03)
+                            : palette.surface,
                         borderColor: available ? palette.success : palette.border,
                       },
                     ]}
                   >
-                    {available && <View style={[styles.slotIndicator, { backgroundColor: palette.success }]} />}
+                    {available && (
+                      <View style={[styles.slotIndicator, { backgroundColor: palette.success }]} />
+                    )}
                   </Clickable>
                 );
               })}
@@ -170,16 +174,36 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
   timeColumn: { width: 50, alignItems: 'center', justifyContent: 'center' },
-  dayHeader: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs, borderRadius: Radii.sm, marginHorizontal: 1 },
+  dayHeader: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    marginHorizontal: 1,
+  },
   dayText: { ...Typography.caption },
   dayIndicator: { width: 4, height: 4, borderRadius: Radii.xs, marginTop: Spacing.micro },
   gridScroll: { flex: 1 },
   grid: { paddingHorizontal: Spacing.xs },
   row: { height: 36 },
   timeText: { ...Typography.micro },
-  cell: { flex: 1, marginHorizontal: 1, marginVertical: 1, borderRadius: Radii.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  cell: {
+    flex: 1,
+    marginHorizontal: 1,
+    marginVertical: 1,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   slotIndicator: { width: 6, height: 6, borderRadius: Radii.xs },
-  legend: { alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
+  legend: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+  },
   legendItem: { alignItems: 'center', gap: Spacing.xs },
   legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
   legendText: { ...Typography.caption },

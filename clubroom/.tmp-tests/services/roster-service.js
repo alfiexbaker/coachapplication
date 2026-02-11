@@ -223,7 +223,8 @@ class RosterServiceImpl extends base_service_1.BaseService {
         }
         if (filters?.skillLevel) {
             filtered = filtered.filter((r) => {
-                const skillLevel = r.athleteSkillLevel;
+                const skillLevel = r
+                    .athleteSkillLevel;
                 return skillLevel === filters.skillLevel;
             });
         }

@@ -45,7 +45,7 @@ async function updateSkillLevel(athleteId, skill, newLevel, coachId) {
     // Calculate trend based on last 3 entries
     let trend = 'steady';
     if (trimmedHistory.length >= 2) {
-        const recentLevels = trimmedHistory.slice(-3).map(h => h.level);
+        const recentLevels = trimmedHistory.slice(-3).map((h) => h.level);
         const avgRecent = recentLevels.reduce((a, b) => a + b, 0) / recentLevels.length;
         const firstLevel = recentLevels[0];
         if (avgRecent > firstLevel + 0.3)

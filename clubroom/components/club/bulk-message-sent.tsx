@@ -52,9 +52,13 @@ export const BulkMessageSent = memo(function BulkMessageSent({
             </ThemedText>
           </View>
           <View style={styles.recipientInfo}>
-            <ThemedText style={[styles.recipientName, { color: palette.text }]}>{item.name}</ThemedText>
+            <ThemedText style={[styles.recipientName, { color: palette.text }]}>
+              {item.name}
+            </ThemedText>
             {item.role ? (
-              <ThemedText style={[styles.recipientRole, { color: palette.muted }]}>{item.role}</ThemedText>
+              <ThemedText style={[styles.recipientRole, { color: palette.muted }]}>
+                {item.role}
+              </ThemedText>
             ) : null}
           </View>
           <Row style={styles.statusContainer}>
@@ -78,7 +82,9 @@ export const BulkMessageSent = memo(function BulkMessageSent({
       {/* Success banner */}
       <View style={[styles.successBanner, { backgroundColor: withAlpha(palette.success, 0.1) }]}>
         <Ionicons name="checkmark-circle" size={Components.icon.xl} color={palette.success} />
-        <ThemedText style={[styles.successText, { color: palette.success }]}>Message Sent</ThemedText>
+        <ThemedText style={[styles.successText, { color: palette.success }]}>
+          Message Sent
+        </ThemedText>
         <ThemedText style={[styles.successSub, { color: palette.muted }]}>
           Sent to {recipientLabel}
         </ThemedText>
@@ -87,7 +93,9 @@ export const BulkMessageSent = memo(function BulkMessageSent({
       {/* Delivery status list */}
       {recipients.length > 0 ? (
         <>
-          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Delivery Status</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+            Delivery Status
+          </ThemedText>
           <FlatList
             data={recipients}
             renderItem={renderRecipient}

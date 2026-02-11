@@ -37,9 +37,7 @@ export function FilterToggle({
   return (
     <Row align="center" justify="between" style={styles.container}>
       <View style={styles.labelContainer}>
-        <ThemedText style={[styles.label, { color: palette.text }]}>
-          {label}
-        </ThemedText>
+        <ThemedText style={[styles.label, { color: palette.text }]}>{label}</ThemedText>
         {description && (
           <ThemedText style={[styles.description, { color: palette.muted }]}>
             {description}

@@ -19,13 +19,7 @@ import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import type { EarningTransaction } from '@/constants/types';
 import { bookingService } from '@/services/booking-service';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  networkError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, networkError } from '@/types/result';
 
 const logger = createLogger('EarningsCalculatorService');
 
@@ -91,7 +85,7 @@ export const earningsCalculatorService = {
    * Useful for reconciliation and dashboard accuracy
    */
   async calculateEarningsFromBookings(
-    coachId: string
+    coachId: string,
   ): Promise<Result<EarningsFromBookings, ServiceError>> {
     logger.debug('Calculating earnings from bookings', { coachId });
 
@@ -136,8 +130,7 @@ export const earningsCalculatorService = {
         }
 
         const totalSessions = completedBookings.length;
-        const averageSessionValue =
-          totalSessions > 0 ? Math.round(totalEarned / totalSessions) : 0;
+        const averageSessionValue = totalSessions > 0 ? Math.round(totalEarned / totalSessions) : 0;
 
         logger.debug('Calculated earnings from bookings', {
           coachId,
@@ -175,15 +168,14 @@ export const earningsCalculatorService = {
   async getEarningsSummary(
     coachId: string,
     period: EarningsPeriod,
-    transactions: EarningTransaction[]
+    transactions: EarningTransaction[],
   ): Promise<Result<EarningsSummary, ServiceError>> {
     logger.debug('Getting earnings summary', { coachId, period });
 
     try {
       if (USE_MOCK) {
         const coachTransactions = transactions.filter(
-          (t) =>
-            t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED'
+          (t) => t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED',
         );
 
         const now = new Date();
@@ -208,19 +200,17 @@ export const earningsCalculatorService = {
         }
 
         const currentPeriodTxns = coachTransactions.filter(
-          (t) => new Date(t.createdAt) >= periodStart
+          (t) => new Date(t.createdAt) >= periodStart,
         );
 
         const lastPeriodTxns = coachTransactions.filter(
-          (t) =>
-            new Date(t.createdAt) >= lastPeriodStart && new Date(t.createdAt) <= lastPeriodEnd
+          (t) => new Date(t.createdAt) >= lastPeriodStart && new Date(t.createdAt) <= lastPeriodEnd,
         );
 
         const totalEarned = currentPeriodTxns.reduce((sum, t) => sum + t.amount, 0);
         const lastPeriodTotal = lastPeriodTxns.reduce((sum, t) => sum + t.amount, 0);
         const totalSessions = currentPeriodTxns.length;
-        const averagePerSession =
-          totalSessions > 0 ? Math.round(totalEarned / totalSessions) : 0;
+        const averagePerSession = totalSessions > 0 ? Math.round(totalEarned / totalSessions) : 0;
 
         const comparedToLastPeriod =
           lastPeriodTotal > 0
@@ -266,10 +256,10 @@ export const earningsCalculatorService = {
    */
   calculatePeriodTotals(
     transactions: EarningTransaction[],
-    coachId: string
+    coachId: string,
   ): { thisWeek: number; thisMonth: number; lastMonth: number } {
     const coachTxns = transactions.filter(
-      (t) => t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED'
+      (t) => t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED',
     );
 
     const now = new Date();
@@ -307,16 +297,9 @@ export const earningsCalculatorService = {
   /**
    * Calculate projected earnings based on current trends
    */
-  calculateProjectedEarnings(
-    currentMonthEarnings: number,
-    dayOfMonth: number
-  ): number {
+  calculateProjectedEarnings(currentMonthEarnings: number, dayOfMonth: number): number {
     if (dayOfMonth === 0) return 0;
-    const daysInMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth() + 1,
-      0
-    ).getDate();
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
     return Math.round((currentMonthEarnings / dayOfMonth) * daysInMonth);
   },
 
@@ -325,7 +308,7 @@ export const earningsCalculatorService = {
    */
   calculateAverageSessionValue(transactions: EarningTransaction[], coachId: string): number {
     const sessionPayments = transactions.filter(
-      (t) => t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED'
+      (t) => t.coachId === coachId && t.type === 'SESSION_PAYMENT' && t.status === 'COMPLETED',
     );
 
     if (sessionPayments.length === 0) return 0;

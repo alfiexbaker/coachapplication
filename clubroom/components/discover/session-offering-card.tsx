@@ -23,10 +23,13 @@ interface SessionOfferingCardProps {
   onPress: (offering: SessionOffering) => void;
 }
 
-export const SessionOfferingCard = memo(function SessionOfferingCard({ offering, onPress }: SessionOfferingCardProps) {
+export const SessionOfferingCard = memo(function SessionOfferingCard({
+  offering,
+  onPress,
+}: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
   const coachName = getSessionOfferingCoachName(offering);
-  const registeredCount = offering.registrations.filter(r => r.status === 'confirmed').length;
+  const registeredCount = offering.registrations.filter((r) => r.status === 'confirmed').length;
   const spotsLeft = offering.maxParticipants - registeredCount;
   const isFull = spotsLeft <= 0;
 
@@ -40,25 +43,37 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
             </ThemedText>
           </View>
           <View>
-            <ThemedText type="defaultSemiBold" style={styles.coachName}>{coachName}</ThemedText>
-            <ThemedText style={[styles.location, { color: palette.muted }]}>{offering.location}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.coachName}>
+              {coachName}
+            </ThemedText>
+            <ThemedText style={[styles.location, { color: palette.muted }]}>
+              {offering.location}
+            </ThemedText>
           </View>
         </Row>
         {offering.priceUsd !== undefined && offering.priceUsd > 0 && (
-          <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>£{offering.priceUsd}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
+            £{offering.priceUsd}
+          </ThemedText>
         )}
       </Row>
 
-      <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>{offering.title}</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>
+        {offering.title}
+      </ThemedText>
 
       {offering.description && (
-        <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>{offering.description}</ThemedText>
+        <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>
+          {offering.description}
+        </ThemedText>
       )}
 
       <View style={styles.meta}>
         <Row style={styles.metaRow}>
           <Ionicons name="calendar-outline" size={16} color={palette.icon} />
-          <ThemedText style={[styles.metaText, { color: palette.muted }]}>{formatNextSession(offering)}</ThemedText>
+          <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+            {formatNextSession(offering)}
+          </ThemedText>
         </Row>
 
         <Row style={styles.badges}>
@@ -70,13 +85,26 @@ export const SessionOfferingCard = memo(function SessionOfferingCard({ offering,
 
           {offering.footballSkill && (
             <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-              <ThemedText style={[styles.badgeText, { color: palette.tint }]}>{offering.footballSkill}</ThemedText>
+              <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
+                {offering.footballSkill}
+              </ThemedText>
             </View>
           )}
 
           {offering.sessionType === 'group' && (
-            <View style={[styles.badge, { backgroundColor: isFull ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09) }]}>
-              <ThemedText style={[styles.badgeText, { color: isFull ? palette.error : palette.success }]}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isFull
+                    ? withAlpha(palette.error, 0.09)
+                    : withAlpha(palette.success, 0.09),
+                },
+              ]}
+            >
+              <ThemedText
+                style={[styles.badgeText, { color: isFull ? palette.error : palette.success }]}
+              >
                 {isFull ? 'Full' : `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left`}
               </ThemedText>
             </View>
@@ -91,7 +119,13 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   cardHeader: { alignItems: 'flex-start', justifyContent: 'space-between' },
   coachInfo: { alignItems: 'center', gap: Spacing.sm },
-  avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatarText: { ...Typography.subheading },
   coachName: { ...Typography.bodySmall },
   location: { ...Typography.caption },

@@ -51,14 +51,7 @@ export function useWalletPromo() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<WalletPromoData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<WalletPromoData>({
     load: loadData,
     deps: [currentUser?.id],
     isEmpty: () => false,
@@ -68,14 +61,19 @@ export function useWalletPromo() {
   const userUsage = data?.userUsage ?? [];
   const balance = data?.balance ?? 0;
 
-  useFocusEffect(useCallback(() => {
-    setRedeemSuccess(null);
-  }, []));
+  useFocusEffect(
+    useCallback(() => {
+      setRedeemSuccess(null);
+    }, []),
+  );
 
-  const handleRedeem = useCallback((result: RedeemResult) => {
-    setRedeemSuccess(result);
-    onRefresh();
-  }, [onRefresh]);
+  const handleRedeem = useCallback(
+    (result: RedeemResult) => {
+      setRedeemSuccess(result);
+      onRefresh();
+    },
+    [onRefresh],
+  );
 
   const userId = currentUser?.id;
 

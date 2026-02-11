@@ -20,7 +20,15 @@ import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { RosterNote, FootballObjective, RosterEntry } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  storageError,
+} from '@/types/result';
 import { BaseService } from './base-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from './user-service';
@@ -108,7 +116,8 @@ const MOCK_ROSTER: RosterEntry[] = [
       hasSen: true,
       conditions: ['Dyspraxia'],
       supportNotes: 'Extra time for coordination drills. Responds well to visual demonstrations.',
-      communicationPreferences: 'Clear step-by-step instructions. Avoid rushing between activities.',
+      communicationPreferences:
+        'Clear step-by-step instructions. Avoid rushing between activities.',
     },
   },
   {
@@ -223,7 +232,9 @@ async function loadRemovalHistory(): Promise<AthleteRemovalRecord[]> {
   return [];
 }
 
-async function saveRemovalHistory(history: AthleteRemovalRecord[]): Promise<Result<void, ServiceError>> {
+async function saveRemovalHistory(
+  history: AthleteRemovalRecord[],
+): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, history);
     return ok(undefined);
@@ -268,14 +279,13 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     }
     if (filters?.skillLevel) {
       filtered = filtered.filter((r) => {
-        const skillLevel = (r as unknown as { athleteSkillLevel?: RosterFilters['skillLevel'] }).athleteSkillLevel;
+        const skillLevel = (r as unknown as { athleteSkillLevel?: RosterFilters['skillLevel'] })
+          .athleteSkillLevel;
         return skillLevel === filters.skillLevel;
       });
     }
     if (filters?.tags?.length) {
-      filtered = filtered.filter((r) =>
-        filters.tags!.some((tag) => r.tags.includes(tag))
-      );
+      filtered = filtered.filter((r) => filters.tags!.some((tag) => r.tags.includes(tag)));
     }
     const entryNames = new Map<string, { athleteName: string; parentName: string }>();
     await Promise.all(
@@ -304,7 +314,9 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
       // Active first, then by name
       if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
       if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
-      return (entryNames.get(a.id)?.athleteName || '').localeCompare(entryNames.get(b.id)?.athleteName || '');
+      return (entryNames.get(a.id)?.athleteName || '').localeCompare(
+        entryNames.get(b.id)?.athleteName || '',
+      );
     });
   }
 
@@ -335,9 +347,7 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     };
 
     const data = await this.loadFromStorage();
-    const entry = data.find(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (entry) {
       entry.notes.push(note);
       await this.saveToStorage(data);
@@ -348,11 +358,14 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   /**
    * Update note
    */
-  async updateNote(coachId: string, athleteId: string, noteId: string, content: string): Promise<Result<RosterNote, ServiceError>> {
+  async updateNote(
+    coachId: string,
+    athleteId: string,
+    noteId: string,
+    content: string,
+  ): Promise<Result<RosterNote, ServiceError>> {
     const data = await this.loadFromStorage();
-    const entry = data.find(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (entry) {
       const note = entry.notes.find((n: RosterNote) => n.id === noteId);
       if (note) {
@@ -370,9 +383,7 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
    */
   async deleteNote(coachId: string, athleteId: string, noteId: string): Promise<void> {
     const data = await this.loadFromStorage();
-    const entry = data.find(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (entry) {
       entry.notes = entry.notes.filter((n: RosterNote) => n.id !== noteId);
       await this.saveToStorage(data);
@@ -389,12 +400,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   async updateStatus(
     coachId: string,
     athleteId: string,
-    status: RosterEntry['status']
+    status: RosterEntry['status'],
   ): Promise<Result<RosterEntry, ServiceError>> {
     const data = await this.loadFromStorage();
-    const entry = data.find(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (!entry) return err(notFound('Roster entry', athleteId));
 
     entry.status = status;
@@ -405,11 +414,13 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   /**
    * Update tags
    */
-  async updateTags(coachId: string, athleteId: string, tags: string[]): Promise<Result<RosterEntry, ServiceError>> {
+  async updateTags(
+    coachId: string,
+    athleteId: string,
+    tags: string[],
+  ): Promise<Result<RosterEntry, ServiceError>> {
     const data = await this.loadFromStorage();
-    const entry = data.find(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (!entry) return err(notFound('Roster entry', athleteId));
 
     entry.tags = tags;
@@ -423,12 +434,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   async updatePrimaryFocus(
     coachId: string,
     athleteId: string,
-    focus: FootballObjective
+    focus: FootballObjective,
   ): Promise<Result<RosterEntry, ServiceError>> {
     const data = await this.loadFromStorage();
-    const entry = data.find(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (!entry) return err(notFound('Roster entry', athleteId));
 
     entry.primaryFocus = focus;
@@ -537,14 +546,12 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     options?: {
       customReason?: string;
       archive?: boolean; // If true, keep history; if false, permanently delete
-    }
+    },
   ): Promise<Result<AthleteRemovalRecord, ServiceError>> {
     const archive = options?.archive ?? true; // Default to archiving
 
     const data = await this.loadFromStorage();
-    const entryIndex = data.findIndex(
-      (r) => r.coachId === coachId && r.athleteId === athleteId
-    );
+    const entryIndex = data.findIndex((r) => r.coachId === coachId && r.athleteId === athleteId);
 
     if (entryIndex === -1) {
       return err(notFound('Athlete', athleteId));
@@ -582,10 +589,13 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   /**
    * Undo athlete removal (restore from archive)
    */
-  async undoRemoval(coachId: string, removalId: string): Promise<Result<RosterEntry, ServiceError>> {
+  async undoRemoval(
+    coachId: string,
+    removalId: string,
+  ): Promise<Result<RosterEntry, ServiceError>> {
     removalHistoryCache = await loadRemovalHistory();
     const recordIndex = removalHistoryCache.findIndex(
-      (r) => r.id === removalId && r.coachId === coachId
+      (r) => r.id === removalId && r.coachId === coachId,
     );
 
     if (recordIndex === -1) {

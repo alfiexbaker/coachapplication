@@ -23,11 +23,7 @@ import Animated, {
 import { Radii, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { styles } from './surface-card-styles';
-import {
-  buildLinearGradientUri,
-  darkenHex,
-  lightenHex,
-} from './surface-card-utils';
+import { buildLinearGradientUri, darkenHex, lightenHex } from './surface-card-utils';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -125,12 +121,10 @@ export function SurfaceCard({
   }, [scheme, shimmerColors]);
 
   const animatedCardStyle = useAnimatedStyle(() => {
-    const pressedBackground = scheme === 'light'
-      ? lightenHex(palette.card, 0.04)
-      : darkenHex(palette.card, 0.06);
-    const pressedBorder = scheme === 'light'
-      ? lightenHex(palette.border, 0.25)
-      : lightenHex(palette.border, 0.1);
+    const pressedBackground =
+      scheme === 'light' ? lightenHex(palette.card, 0.04) : darkenHex(palette.card, 0.06);
+    const pressedBorder =
+      scheme === 'light' ? lightenHex(palette.border, 0.25) : lightenHex(palette.border, 0.1);
 
     const shadowOpacity = animateElevation
       ? baseShadow.shadowOpacity + pressed.value * (scheme === 'light' ? 0.08 : 0.1)
@@ -195,7 +189,8 @@ export function SurfaceCard({
         },
         animatedCardStyle,
         style,
-      ]}>
+      ]}
+    >
       {children}
       {loading ? (
         <View pointerEvents="none" style={styles.shimmerOverlay}>

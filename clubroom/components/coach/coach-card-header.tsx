@@ -35,8 +35,6 @@ export interface CoachCardHeaderProps {
   rightContent?: React.ReactNode;
 }
 
-type Palette = ReturnType<typeof useTheme>['colors'];
-
 // -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
@@ -60,17 +58,12 @@ export function CoachCardHeader({
       <View style={styles.avatarContainer}>
         <Image
           source={{ uri: profilePhotoUrl }}
-          style={[
-            styles.avatar,
-            { width: avatarDimension, height: avatarDimension },
-          ]}
+          style={[styles.avatar, { width: avatarDimension, height: avatarDimension }]}
           contentFit="cover"
         />
         {trialAvailable && (
           <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-            <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>
-              TRIAL
-            </ThemedText>
+            <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>TRIAL</ThemedText>
           </View>
         )}
       </View>
@@ -79,18 +72,11 @@ export function CoachCardHeader({
       {layout === 'inline' && (
         <View style={styles.nameContainer}>
           <Row style={styles.nameRow}>
-            <ThemedText
-              style={[styles.coachName, { color: palette.text }]}
-              numberOfLines={1}
-            >
+            <ThemedText style={[styles.coachName, { color: palette.text }]} numberOfLines={1}>
               {fullName}
             </ThemedText>
             {verified && (
-              <Ionicons
-                name="checkmark-circle"
-                size={Components.icon.md}
-                color={palette.tint}
-              />
+              <Ionicons name="checkmark-circle" size={Components.icon.md} color={palette.tint} />
             )}
           </Row>
         </View>
@@ -125,17 +111,12 @@ export function CoachAvatar({
     <View style={styles.avatarContainer}>
       <Image
         source={{ uri: profilePhotoUrl || 'https://via.placeholder.com/64' }}
-        style={[
-          styles.avatar,
-          { width: avatarDimension, height: avatarDimension },
-        ]}
+        style={[styles.avatar, { width: avatarDimension, height: avatarDimension }]}
         contentFit="cover"
       />
       {trialAvailable && (
         <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-          <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>
-            TRIAL
-          </ThemedText>
+          <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>TRIAL</ThemedText>
         </View>
       )}
     </View>
@@ -152,29 +133,17 @@ export interface CoachNameRowProps {
   rightContent?: React.ReactNode;
 }
 
-export function CoachNameRow({
-  fullName,
-  verified = false,
-  rightContent,
-}: CoachNameRowProps) {
+export function CoachNameRow({ fullName, verified = false, rightContent }: CoachNameRowProps) {
   const { colors: palette } = useTheme();
 
   return (
     <Row style={styles.nameRowSpaceBetween}>
       <Row style={styles.nameRow}>
-        <ThemedText
-          type="subtitle"
-          style={styles.coachNameSubtitle}
-          numberOfLines={1}
-        >
+        <ThemedText type="subtitle" style={styles.coachNameSubtitle} numberOfLines={1}>
           {fullName}
         </ThemedText>
         {verified && (
-          <Ionicons
-            name="checkmark-circle"
-            size={Components.icon.md}
-            color={palette.tint}
-          />
+          <Ionicons name="checkmark-circle" size={Components.icon.md} color={palette.tint} />
         )}
       </Row>
       {rightContent}
@@ -232,8 +201,7 @@ const styles = StyleSheet.create({
     ...Typography.heading,
     flexShrink: 1,
   },
-  coachNameSubtitle: { ...Typography.heading, letterSpacing: -0.2,
-    flex: 1 },
+  coachNameSubtitle: { ...Typography.heading, letterSpacing: -0.2, flex: 1 },
 });
 
 export default CoachCardHeader;

@@ -11,11 +11,7 @@
 
 import React, { useEffect } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
@@ -43,12 +39,17 @@ export interface ProgressBarProps {
 
 function resolveBarColor(color: ProgressBarColor, palette: ThemeColors): string {
   switch (color) {
-    case 'success': return palette.success;
-    case 'warning': return palette.warning;
-    case 'error': return palette.error;
-    case 'info': return palette.info;
+    case 'success':
+      return palette.success;
+    case 'warning':
+      return palette.warning;
+    case 'error':
+      return palette.error;
+    case 'info':
+      return palette.info;
     case 'default':
-    default: return palette.tint;
+    default:
+      return palette.tint;
   }
 }
 
@@ -92,11 +93,7 @@ function ProgressBarInner({
       ]}
     >
       <Animated.View
-        style={[
-          styles.fill,
-          { backgroundColor: fillColor, borderRadius: height / 2 },
-          fillStyle,
-        ]}
+        style={[styles.fill, { backgroundColor: fillColor, borderRadius: height / 2 }, fillStyle]}
       />
     </View>
   );

@@ -55,9 +55,7 @@ export function AnnotationPanel({
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (ann) =>
-          ann.label.toLowerCase().includes(query) ||
-          ann.note?.toLowerCase().includes(query)
+        (ann) => ann.label.toLowerCase().includes(query) || ann.note?.toLowerCase().includes(query),
       );
     }
 
@@ -66,9 +64,7 @@ export function AnnotationPanel({
 
   const toggleTypeFilter = useCallback((type: VideoAnnotationType) => {
     setSelectedTypes((prev) =>
-      prev.includes(type)
-        ? prev.filter((t) => t !== type)
-        : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   }, []);
 
@@ -76,7 +72,7 @@ export function AnnotationPanel({
     (annotation: VideoAnnotation): boolean => {
       return Math.abs(currentTime - annotation.timestamp) < 2;
     },
-    [currentTime]
+    [currentTime],
   );
 
   return (
@@ -106,10 +102,7 @@ export function AnnotationPanel({
         showsVerticalScrollIndicator={false}
       >
         {filteredAnnotations.length === 0 ? (
-          <AnnotationEmptyState
-            hasAnnotations={annotations.length > 0}
-            palette={palette}
-          />
+          <AnnotationEmptyState hasAnnotations={annotations.length > 0} palette={palette} />
         ) : (
           filteredAnnotations.map((annotation, index) => (
             <Animated.View

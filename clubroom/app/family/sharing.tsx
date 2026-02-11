@@ -26,16 +26,36 @@ import { useFamilySharing } from '@/hooks/use-family-sharing';
 export default function FamilySharingScreen() {
   const { colors } = useTheme();
   const {
-    status, error, refreshing, onRefresh, retry, family, showInviteModal, setShowInviteModal,
-    inviteEmail, setInviteEmail, inviteName, setInviteName,
-    inviteRole, setInviteRole, inviteRelationship, setInviteRelationship,
-    inviteMessage, setInviteMessage, inviting,
-    handleInvite, handleRemoveGuardian, handleCancelInvite,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    family,
+    showInviteModal,
+    setShowInviteModal,
+    inviteEmail,
+    setInviteEmail,
+    inviteName,
+    setInviteName,
+    inviteRole,
+    setInviteRole,
+    inviteRelationship,
+    setInviteRelationship,
+    inviteMessage,
+    setInviteMessage,
+    inviting,
+    handleInvite,
+    handleRemoveGuardian,
+    handleCancelInvite,
   } = useFamilySharing();
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -44,16 +64,25 @@ export default function FamilySharingScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
-        <ErrorState message={error?.message || 'Failed to load family sharing settings.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message || 'Failed to load family sharing settings.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty' || !family) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
         <EmptyState
           icon="people-outline"
@@ -67,7 +96,10 @@ export default function FamilySharingScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <PageHeader title="Family Sharing" showBack onBackPress={() => router.back()} />
 
       <ScrollView
@@ -80,32 +112,51 @@ export default function FamilySharingScreen() {
           <View style={{ marginBottom: Spacing.xs }}>
             <Ionicons name="people-circle" size={40} color={colors.tint} />
           </View>
-          <ThemedText type="subtitle" style={{ textAlign: 'center' }}>Share access with family members</ThemedText>
+          <ThemedText type="subtitle" style={{ textAlign: 'center' }}>
+            Share access with family members
+          </ThemedText>
           <ThemedText style={[Typography.bodySmall, { color: colors.muted, textAlign: 'center' }]}>
-            Invite your partner, grandparents, or caregivers to view schedules, book sessions, and track your children&apos;s progress.
+            Invite your partner, grandparents, or caregivers to view schedules, book sessions, and
+            track your children&apos;s progress.
           </ThemedText>
         </SurfaceCard>
 
-        {family?.guardians && <SharingGuardiansSection guardians={family.guardians} onRemove={handleRemoveGuardian} />}
+        {family?.guardians && (
+          <SharingGuardiansSection guardians={family.guardians} onRemove={handleRemoveGuardian} />
+        )}
 
-        {family?.pendingInvites && <SharingPendingInvites invites={family.pendingInvites} onCancel={handleCancelInvite} />}
+        {family?.pendingInvites && (
+          <SharingPendingInvites invites={family.pendingInvites} onCancel={handleCancelInvite} />
+        )}
 
-        <Clickable style={[styles.inviteButton, { backgroundColor: colors.tint }]} onPress={() => setShowInviteModal(true)}>
+        <Clickable
+          style={[styles.inviteButton, { backgroundColor: colors.tint }]}
+          onPress={() => setShowInviteModal(true)}
+        >
           <Row align="center" justify="center" gap="sm">
             <Ionicons name="person-add" size={22} color={colors.onPrimary} />
-            <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Invite Family Member</ThemedText>
+            <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+              Invite Family Member
+            </ThemedText>
           </Row>
         </Clickable>
       </ScrollView>
 
       <SharingInviteModal
-        visible={showInviteModal} onClose={() => setShowInviteModal(false)}
-        inviteEmail={inviteEmail} onEmailChange={setInviteEmail}
-        inviteName={inviteName} onNameChange={setInviteName}
-        inviteRole={inviteRole} onRoleChange={setInviteRole}
-        inviteRelationship={inviteRelationship} onRelationshipChange={setInviteRelationship}
-        inviteMessage={inviteMessage} onMessageChange={setInviteMessage}
-        inviting={inviting} onSend={handleInvite}
+        visible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        inviteEmail={inviteEmail}
+        onEmailChange={setInviteEmail}
+        inviteName={inviteName}
+        onNameChange={setInviteName}
+        inviteRole={inviteRole}
+        onRoleChange={setInviteRole}
+        inviteRelationship={inviteRelationship}
+        onRelationshipChange={setInviteRelationship}
+        inviteMessage={inviteMessage}
+        onMessageChange={setInviteMessage}
+        inviting={inviting}
+        onSend={handleInvite}
       />
     </SafeAreaView>
   );

@@ -100,12 +100,7 @@ export function OfflineBanner() {
         {isFlushing ? (
           <ActivityIndicator size="small" color={textColor} style={styles.icon} />
         ) : (
-          <Ionicons
-            name={iconName}
-            size={16}
-            color={textColor}
-            style={styles.icon}
-          />
+          <Ionicons name={iconName} size={16} color={textColor} style={styles.icon} />
         )}
         <ThemedText style={[styles.text, { color: textColor }]}>{message}</ThemedText>
         {hasFailedActions && isConnected && (

@@ -14,7 +14,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Fonts, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------

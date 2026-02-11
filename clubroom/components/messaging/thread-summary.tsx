@@ -5,7 +5,7 @@ import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ChatThreadSummary } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -24,7 +24,8 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
       <Row align="center" gap="sm">
         <View
           style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.13) }]}
-          accessibilityLabel={`${displayName} avatar placeholder`}>
+          accessibilityLabel={`${displayName} avatar placeholder`}
+        >
           <IconSymbol name="person.circle" size={28} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
@@ -82,7 +83,9 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
           <ThemedText>{thread.memberCount} members</ThemedText>
           {typeof thread.unreadMentions === 'number' && thread.unreadMentions > 0 ? (
             <View style={[styles.badge, { backgroundColor: palette.secondary }]}>
-              <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>@{thread.unreadMentions}</ThemedText>
+              <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>
+                @{thread.unreadMentions}
+              </ThemedText>
             </View>
           ) : null}
         </Row>
@@ -98,11 +101,9 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
       ) : null}
       <Row
         gap="sm"
-        style={[
-          styles.safetyBanner,
-          { backgroundColor: withAlpha(palette.warning, 0.15) },
-        ]}
-        accessibilityRole="text">
+        style={[styles.safetyBanner, { backgroundColor: withAlpha(palette.warning, 0.15) }]}
+        accessibilityRole="text"
+      >
         <IconSymbol name="shield.checkerboard" size={18} color={palette.secondary} />
         <ThemedText style={styles.safetyCopy}>{thread.safetyCopy}</ThemedText>
       </Row>
@@ -142,8 +143,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.md,
   },
-  safetyCopy: { ...Typography.small, flex: 1,
-    lineHeight: 18 },
+  safetyCopy: { ...Typography.small, flex: 1, lineHeight: 18 },
   objectivesRow: {
     marginTop: -Spacing.xs,
   },

@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Typography } from '@/constants/theme';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -48,7 +48,13 @@ export const SubscribeCoachHeader = memo(SubscribeCoachHeaderInner);
 const styles = StyleSheet.create({
   card: { marginBottom: 0 },
   avatar: { width: 56, height: 56, borderRadius: Radii['2xl'] },
-  placeholder: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
+  placeholder: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1 },
   price: { ...Typography.small },
 });

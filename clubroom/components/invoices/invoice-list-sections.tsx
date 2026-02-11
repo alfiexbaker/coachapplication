@@ -17,7 +17,7 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { InvoiceStatus, InvoiceFilter } from '@/constants/types';
+import type { InvoiceStatus } from '@/constants/types';
 import { styles } from './invoice-list-styles';
 
 export interface FilterOption {
@@ -90,7 +90,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
         </ThemedText>
       </Clickable>
     ),
-    [selectedStatus, palette, onStatusChange]
+    [selectedStatus, palette, onStatusChange],
   );
 
   const filterKeyExtractor = useCallback((item: FilterOption) => item.value, []);
@@ -183,7 +183,10 @@ export const DateFilterModal = memo(function DateFilterModal({
           {DATE_OPTIONS.map((option) => (
             <Clickable
               key={option.days}
-              style={[styles.dateOption, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              style={[
+                styles.dateOption,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
               onPress={() => {
                 const now = new Date();
                 const from = new Date();
@@ -226,9 +229,7 @@ export const InvoiceEmptyState = memo(function InvoiceEmptyState({
   return (
     <View style={styles.emptyState}>
       <Ionicons name="receipt-outline" size={48} color={palette.muted} />
-      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-        {message}
-      </ThemedText>
+      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{message}</ThemedText>
       {hasFilter && (
         <Clickable
           style={[styles.clearFilterButton, { borderColor: palette.border }]}

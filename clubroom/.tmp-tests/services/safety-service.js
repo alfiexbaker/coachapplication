@@ -71,10 +71,25 @@ const MOCK_EMERGENCY_INFO = {
             notes: 'Carries inhaler in sports bag. Parent to be notified if inhaler used.',
         },
         consents: [
-            { type: 'PHOTO', granted: true, grantedAt: '2024-01-15T10:00:00Z', grantedBy: 'Sarah Henderson' },
-            { type: 'VIDEO', granted: true, grantedAt: '2024-01-15T10:00:00Z', grantedBy: 'Sarah Henderson' },
+            {
+                type: 'PHOTO',
+                granted: true,
+                grantedAt: '2024-01-15T10:00:00Z',
+                grantedBy: 'Sarah Henderson',
+            },
+            {
+                type: 'VIDEO',
+                granted: true,
+                grantedAt: '2024-01-15T10:00:00Z',
+                grantedBy: 'Sarah Henderson',
+            },
             { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
-            { type: 'EMERGENCY_TREATMENT', granted: true, grantedAt: '2024-01-15T10:00:00Z', grantedBy: 'Sarah Henderson' },
+            {
+                type: 'EMERGENCY_TREATMENT',
+                granted: true,
+                grantedAt: '2024-01-15T10:00:00Z',
+                grantedBy: 'Sarah Henderson',
+            },
         ],
         updatedAt: '2024-01-15T10:00:00Z',
     },
@@ -99,10 +114,30 @@ const MOCK_EMERGENCY_INFO = {
             notes: 'No significant medical history.',
         },
         consents: [
-            { type: 'PHOTO', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
-            { type: 'VIDEO', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
-            { type: 'SOCIAL_MEDIA', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
-            { type: 'EMERGENCY_TREATMENT', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
+            {
+                type: 'PHOTO',
+                granted: true,
+                grantedAt: '2024-02-01T14:30:00Z',
+                grantedBy: 'Michael Smith',
+            },
+            {
+                type: 'VIDEO',
+                granted: true,
+                grantedAt: '2024-02-01T14:30:00Z',
+                grantedBy: 'Michael Smith',
+            },
+            {
+                type: 'SOCIAL_MEDIA',
+                granted: true,
+                grantedAt: '2024-02-01T14:30:00Z',
+                grantedBy: 'Michael Smith',
+            },
+            {
+                type: 'EMERGENCY_TREATMENT',
+                granted: true,
+                grantedAt: '2024-02-01T14:30:00Z',
+                grantedBy: 'Michael Smith',
+            },
         ],
         updatedAt: '2024-02-01T14:30:00Z',
     },
@@ -161,7 +196,7 @@ class SafetyService {
             };
             // If this is marked as primary, unset other primaries
             if (newContact.isPrimary) {
-                info.contacts = info.contacts.map(c => ({ ...c, isPrimary: false }));
+                info.contacts = info.contacts.map((c) => ({ ...c, isPrimary: false }));
             }
             // If this is the first contact, make it primary
             if (info.contacts.length === 0) {
@@ -182,10 +217,10 @@ class SafetyService {
     async updateContact(athleteId, contactId, update) {
         try {
             const info = await this.getEmergencyInfoValue(athleteId);
-            let contacts = info.contacts.map(c => c.id === contactId ? { ...c, ...update } : c);
+            let contacts = info.contacts.map((c) => (c.id === contactId ? { ...c, ...update } : c));
             // If updating to primary, unset other primaries
             if (update.isPrimary) {
-                contacts = contacts.map(c => c.id === contactId ? c : { ...c, isPrimary: false });
+                contacts = contacts.map((c) => (c.id === contactId ? c : { ...c, isPrimary: false }));
             }
             return (0, result_1.ok)(await this.updateEmergencyInfoValue(athleteId, { contacts }));
         }
@@ -200,9 +235,9 @@ class SafetyService {
     async removeContact(athleteId, contactId) {
         try {
             const info = await this.getEmergencyInfoValue(athleteId);
-            const contacts = info.contacts.filter(c => c.id !== contactId);
+            const contacts = info.contacts.filter((c) => c.id !== contactId);
             // Ensure there's always a primary if contacts exist
-            if (contacts.length > 0 && !contacts.some(c => c.isPrimary)) {
+            if (contacts.length > 0 && !contacts.some((c) => c.isPrimary)) {
                 contacts[0].isPrimary = true;
             }
             return (0, result_1.ok)(await this.updateEmergencyInfoValue(athleteId, { contacts }));
@@ -233,7 +268,7 @@ class SafetyService {
     async updateConsent(athleteId, type, granted, grantedBy) {
         try {
             const info = await this.getEmergencyInfoValue(athleteId);
-            const consents = info.consents.map(c => c.type === type
+            const consents = info.consents.map((c) => c.type === type
                 ? {
                     ...c,
                     granted,
@@ -254,7 +289,7 @@ class SafetyService {
     async getPrimaryContact(athleteId) {
         try {
             const info = await this.getEmergencyInfoValue(athleteId);
-            return (0, result_1.ok)(info.contacts.find(c => c.isPrimary) ?? info.contacts[0] ?? null);
+            return (0, result_1.ok)(info.contacts.find((c) => c.isPrimary) ?? info.contacts[0] ?? null);
         }
         catch (error) {
             logger.error('Failed to get primary contact', { athleteId, error });
@@ -282,7 +317,7 @@ class SafetyService {
     async getConsent(athleteId, type) {
         try {
             const info = await this.getEmergencyInfoValue(athleteId);
-            return (0, result_1.ok)(info.consents.find(c => c.type === type) ?? null);
+            return (0, result_1.ok)(info.consents.find((c) => c.type === type) ?? null);
         }
         catch (error) {
             logger.error('Failed to get consent', { athleteId, type, error });
@@ -296,7 +331,7 @@ class SafetyService {
         try {
             const info = await this.getEmergencyInfoValue(athleteId);
             const hasContact = info.contacts.length > 0;
-            const hasEmergencyConsent = info.consents.find(c => c.type === 'EMERGENCY_TREATMENT')?.granted;
+            const hasEmergencyConsent = info.consents.find((c) => c.type === 'EMERGENCY_TREATMENT')?.granted;
             return (0, result_1.ok)(hasContact && Boolean(hasEmergencyConsent));
         }
         catch (error) {
@@ -314,7 +349,7 @@ class SafetyService {
             const total = 4; // contacts, medical, consents (emergency treatment), doctor info
             if (info.contacts.length > 0)
                 completed++;
-            if (info.consents.find(c => c.type === 'EMERGENCY_TREATMENT')?.granted)
+            if (info.consents.find((c) => c.type === 'EMERGENCY_TREATMENT')?.granted)
                 completed++;
             if (info.medical.doctorName || info.medical.doctorPhone)
                 completed++;
@@ -395,10 +430,10 @@ class SafetyService {
                     info = createDefaultEmergencyInfo(athleteId);
                 }
             }
-            const primaryContact = info.contacts.find(c => c.isPrimary) ?? info.contacts[0] ?? null;
+            const primaryContact = info.contacts.find((c) => c.isPrimary) ?? info.contacts[0] ?? null;
             const alertLevel = this.getMedicalAlertSeverity(info.medical);
             const hasAlerts = alertLevel !== 'none';
-            const emergencyTreatmentConsent = info.consents.find(c => c.type === 'EMERGENCY_TREATMENT')?.granted ?? false;
+            const emergencyTreatmentConsent = info.consents.find((c) => c.type === 'EMERGENCY_TREATMENT')?.granted ?? false;
             return (0, result_1.ok)({
                 athleteId,
                 athleteName: resolvedName,
@@ -442,8 +477,8 @@ class SafetyService {
                 const emergencyData = emergencyDataResult.data;
                 athletes.push(emergencyData);
                 // Aggregate allergies and conditions
-                emergencyData.allergies.forEach(a => allAllergies.add(a));
-                emergencyData.conditions.forEach(c => allConditions.add(c));
+                emergencyData.allergies.forEach((a) => allAllergies.add(a));
+                emergencyData.conditions.forEach((c) => allConditions.add(c));
                 // Count alerts
                 if (emergencyData.hasAlerts) {
                     athletesWithAlerts++;

@@ -98,7 +98,8 @@ export const CreateClubStep = memo(function CreateClubStep({
           style={[
             styles.clubItem,
             {
-              backgroundColor: selectedClub === null ? withAlpha(colors.tint, 0.06) : colors.surface,
+              backgroundColor:
+                selectedClub === null ? withAlpha(colors.tint, 0.06) : colors.surface,
               borderColor: selectedClub === null ? colors.tint : colors.border,
             },
           ]}
@@ -114,7 +115,9 @@ export const CreateClubStep = memo(function CreateClubStep({
               Send as yourself, not as a club
             </ThemedText>
           </Column>
-          {selectedClub === null && <Ionicons name="checkmark-circle" size={22} color={colors.tint} />}
+          {selectedClub === null && (
+            <Ionicons name="checkmark-circle" size={22} color={colors.tint} />
+          )}
         </Clickable>
 
         {/* Club options */}

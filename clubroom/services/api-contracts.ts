@@ -1194,7 +1194,10 @@ export interface WebSocketEvents {
   'notification:new': { notification: Notification };
 
   // Chat/messaging events
-  'message:received': { conversationId: string; message: { id: string; body: string; senderId: string; sentAt: string; readAt?: string } };
+  'message:received': {
+    conversationId: string;
+    message: { id: string; body: string; senderId: string; sentAt: string; readAt?: string };
+  };
 
   // Family events
   'guardian:invited': { invite: GuardianInvite };

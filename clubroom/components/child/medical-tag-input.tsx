@@ -17,7 +17,11 @@ interface MedicalTagInputProps {
 }
 
 export const MedicalTagInput = memo(function MedicalTagInput({
-  label, placeholder, items, onAdd, onRemove,
+  label,
+  placeholder,
+  items,
+  onAdd,
+  onRemove,
 }: MedicalTagInputProps) {
   const { colors } = useTheme();
   const [inputValue, setInputValue] = useState('');
@@ -42,14 +46,24 @@ export const MedicalTagInput = memo(function MedicalTagInput({
           onSubmitEditing={handleAdd}
           returnKeyType="done"
         />
-        <Clickable accessibilityLabel="Add medical tag" onPress={handleAdd} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+        <Clickable
+          accessibilityLabel="Add medical tag"
+          onPress={handleAdd}
+          style={[styles.addButton, { backgroundColor: colors.tint }]}
+        >
           <Ionicons name="add" size={20} color={colors.onPrimary} />
         </Clickable>
       </Row>
       {items.length > 0 && (
         <Row style={styles.tagList}>
           {items.map((item, index) => (
-            <Row key={index} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border }]}>
+            <Row
+              key={index}
+              style={[
+                styles.tag,
+                { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border },
+              ]}
+            >
               <ThemedText style={Typography.small}>{item}</ThemedText>
               <Clickable onPress={() => onRemove(index)}>
                 <Ionicons name="close" size={16} color={colors.muted} />
@@ -65,7 +79,20 @@ export const MedicalTagInput = memo(function MedicalTagInput({
 const styles = StyleSheet.create({
   container: { gap: Spacing.xs },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
-  addButton: { width: 44, height: 44, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   tagList: { flexWrap: 'wrap', gap: Spacing.xs },
-  tag: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  tag: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
 });

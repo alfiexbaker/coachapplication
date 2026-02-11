@@ -20,7 +20,11 @@ interface MemberRoleManagementProps {
 }
 
 export const MemberRoleManagement = memo(function MemberRoleManagement({
-  currentRole, assignableRoles, showPicker, onShowPicker, onChangeRole,
+  currentRole,
+  assignableRoles,
+  showPicker,
+  onShowPicker,
+  onChangeRole,
 }: MemberRoleManagementProps) {
   const { colors } = useTheme();
 
@@ -28,9 +32,13 @@ export const MemberRoleManagement = memo(function MemberRoleManagement({
     <SurfaceCard style={styles.card}>
       <Row gap="xs" align="center">
         <Ionicons name="key-outline" size={20} color={colors.tint} />
-        <ThemedText type="defaultSemiBold" style={Typography.subheading}>Role Management</ThemedText>
+        <ThemedText type="defaultSemiBold" style={Typography.subheading}>
+          Role Management
+        </ThemedText>
       </Row>
-      <ThemedText style={[Typography.small, { color: colors.muted }]}>Current role: {clubService.formatRole(currentRole)}</ThemedText>
+      <ThemedText style={[Typography.small, { color: colors.muted }]}>
+        Current role: {clubService.formatRole(currentRole)}
+      </ThemedText>
 
       {showPicker ? (
         <View style={styles.picker}>
@@ -38,20 +46,38 @@ export const MemberRoleManagement = memo(function MemberRoleManagement({
             const isCurrent = role === currentRole;
             const color = clubService.getRoleColor(role);
             return (
-              <Clickable key={role} disabled={isCurrent} onPress={() => onChangeRole(role)}
-                style={[styles.option, { borderColor: isCurrent ? color : colors.border, backgroundColor: isCurrent ? withAlpha(color, 0.06) : colors.surface }]}>
+              <Clickable
+                key={role}
+                disabled={isCurrent}
+                onPress={() => onChangeRole(role)}
+                style={[
+                  styles.option,
+                  {
+                    borderColor: isCurrent ? color : colors.border,
+                    backgroundColor: isCurrent ? withAlpha(color, 0.06) : colors.surface,
+                  },
+                ]}
+              >
                 <View style={[styles.dot, { backgroundColor: color }]} />
-                <ThemedText type="defaultSemiBold" style={{ flex: 1 }}>{clubService.formatRole(role)}</ThemedText>
+                <ThemedText type="defaultSemiBold" style={{ flex: 1 }}>
+                  {clubService.formatRole(role)}
+                </ThemedText>
                 {isCurrent && <Ionicons name="checkmark-circle" size={20} color={color} />}
               </Clickable>
             );
           })}
-          <Clickable style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={() => onShowPicker(false)}>
+          <Clickable
+            style={[styles.cancelBtn, { borderColor: colors.border }]}
+            onPress={() => onShowPicker(false)}
+          >
             <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
           </Clickable>
         </View>
       ) : (
-        <Clickable style={[styles.actionRow, { borderColor: colors.border }]} onPress={() => onShowPicker(true)}>
+        <Clickable
+          style={[styles.actionRow, { borderColor: colors.border }]}
+          onPress={() => onShowPicker(true)}
+        >
           <Ionicons name="swap-horizontal-outline" size={20} color={colors.tint} />
           <ThemedText style={{ flex: 1, color: colors.text }}>Change Role</ThemedText>
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
@@ -64,8 +90,25 @@ export const MemberRoleManagement = memo(function MemberRoleManagement({
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   picker: { gap: Spacing.xs },
-  option: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  option: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   dot: { width: 12, height: 12, borderRadius: Radii.sm },
-  cancelBtn: { alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  actionRow: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  cancelBtn: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  actionRow: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
 });

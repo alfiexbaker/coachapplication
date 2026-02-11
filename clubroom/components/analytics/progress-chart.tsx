@@ -6,12 +6,12 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillProgress } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { COLORS, ChartLegend } from './progress-chart-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { COLORS, Sparkline, ChartLegend } from './progress-chart-sections';
 export type { SparklineProps, ChartLegendProps } from './progress-chart-sections';
-
-import { COLORS, ChartLegend } from './progress-chart-sections';
-import { Row } from '@/components/primitives';
 
 const CHART_HEIGHT = 180;
 
@@ -21,7 +21,11 @@ interface ProgressChartProps {
   showLegend?: boolean;
 }
 
-export function ProgressChart({ skills, title = 'Progress Over Time', showLegend = true }: ProgressChartProps) {
+export function ProgressChart({
+  skills,
+  title = 'Progress Over Time',
+  showLegend = true,
+}: ProgressChartProps) {
   const { colors: palette } = useTheme();
 
   const allDates = new Set<string>();
@@ -72,10 +76,7 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
             {[0, 25, 50, 75, 100].map((level) => (
               <View
                 key={level}
-                style={[
-                  styles.gridLine,
-                  { top: getY(level), backgroundColor: palette.border },
-                ]}
+                style={[styles.gridLine, { top: getY(level), backgroundColor: palette.border }]}
               />
             ))}
           </View>

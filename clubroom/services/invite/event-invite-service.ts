@@ -20,10 +20,7 @@ import { eventService } from '../event-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from '../user-service';
 
-import {
-  loadSquadInvites,
-  saveSquadInvites,
-} from './squad-invite-service';
+import { loadSquadInvites, saveSquadInvites } from './squad-invite-service';
 
 const logger = createLogger('EventInviteService');
 
@@ -42,7 +39,15 @@ export interface InviteSquadsToEventInput {
   clubName: string;
   title: string;
   description: string;
-  eventType: 'TOURNAMENT' | 'SOCIAL' | 'MEETING' | 'PRESENTATION' | 'FUNDRAISER' | 'TRIAL_DAY' | 'TRAINING_CAMP' | 'OTHER';
+  eventType:
+    | 'TOURNAMENT'
+    | 'SOCIAL'
+    | 'MEETING'
+    | 'PRESENTATION'
+    | 'FUNDRAISER'
+    | 'TRIAL_DAY'
+    | 'TRAINING_CAMP'
+    | 'OTHER';
   date: string;
   startTime: string;
   endTime?: string;
@@ -140,8 +145,8 @@ export const eventInviteService = {
         const athleteNames = (
           await Promise.all(
             athletes.map((athlete, index) =>
-              resolveAthleteName(athlete.athleteId, `Athlete ${index + 1}`)
-            )
+              resolveAthleteName(athlete.athleteId, `Athlete ${index + 1}`),
+            ),
           )
         ).join(', ');
         await notificationService.create({
@@ -170,7 +175,15 @@ export const eventInviteService = {
 
     return {
       event,
-      inviteResult: { sent, successful: sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
+      inviteResult: {
+        sent,
+        successful: sent,
+        failed,
+        skipped: 0,
+        totalAttempted: eligibleMembers.length,
+        errors,
+        groupId,
+      },
     };
   },
 
@@ -179,9 +192,7 @@ export const eventInviteService = {
    */
   async getEventInvites(eventId: string): Promise<SquadInvite[]> {
     const squadInvitesCache = await loadSquadInvites();
-    return squadInvitesCache.filter(
-      (si) => si.targetType === 'EVENT' && si.targetId === eventId
-    );
+    return squadInvitesCache.filter((si) => si.targetType === 'EVENT' && si.targetId === eventId);
   },
 
   /**
@@ -190,7 +201,7 @@ export const eventInviteService = {
   async getOrganizerEventInvites(organizerId: string): Promise<SquadInvite[]> {
     const squadInvitesCache = await loadSquadInvites();
     return squadInvitesCache.filter(
-      (si) => si.targetType === 'EVENT' && si.invitedBy === organizerId
+      (si) => si.targetType === 'EVENT' && si.invitedBy === organizerId,
     );
   },
 
@@ -201,11 +212,11 @@ export const eventInviteService = {
     eventId: string,
     squadId: string,
     accepted: number,
-    declined: number
+    declined: number,
   ): Promise<void> {
     let squadInvitesCache = await loadSquadInvites();
     const index = squadInvitesCache.findIndex(
-      (si) => si.targetType === 'EVENT' && si.targetId === eventId && si.squadId === squadId
+      (si) => si.targetType === 'EVENT' && si.targetId === eventId && si.squadId === squadId,
     );
 
     if (index !== -1) {
@@ -240,7 +251,7 @@ export const eventInviteService = {
         pending: acc.pending + invite.responses.pending,
         total: acc.total + invite.memberCount,
       }),
-      { accepted: 0, declined: 0, pending: 0, total: 0 }
+      { accepted: 0, declined: 0, pending: 0, total: 0 },
     );
 
     return totals;

@@ -31,10 +31,7 @@ export interface SessionItemProps {
 
 // ─── SessionItem ──────────────────────────────────────────────────────────────
 
-export const SessionItem = React.memo(function SessionItem({
-  session,
-  isPast,
-}: SessionItemProps) {
+export const SessionItem = React.memo(function SessionItem({ session, isPast }: SessionItemProps) {
   const { colors } = useTheme();
   const date = new Date(session.scheduledAt);
 
@@ -53,9 +50,7 @@ export const SessionItem = React.memo(function SessionItem({
             style={[
               styles.dateBlock,
               {
-                backgroundColor: isPast
-                  ? colors.surfaceSecondary
-                  : withAlpha(colors.tint, 0.09),
+                backgroundColor: isPast ? colors.surfaceSecondary : withAlpha(colors.tint, 0.09),
               },
             ]}
           >
@@ -73,7 +68,12 @@ export const SessionItem = React.memo(function SessionItem({
                 {session.service || 'Training Session'}
               </ThemedText>
               {needsNotes && (
-                <View style={[styles.needsNotesBadge, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+                <View
+                  style={[
+                    styles.needsNotesBadge,
+                    { backgroundColor: withAlpha(colors.warning, 0.09) },
+                  ]}
+                >
                   <ThemedText style={[styles.needsNotesText, { color: colors.warning }]}>
                     Needs notes
                   </ThemedText>
@@ -87,10 +87,7 @@ export const SessionItem = React.memo(function SessionItem({
             </ThemedText>
 
             {isPast && session.notes && (
-              <ThemedText
-                style={[styles.notesPreview, { color: colors.muted }]}
-                numberOfLines={1}
-              >
+              <ThemedText style={[styles.notesPreview, { color: colors.muted }]} numberOfLines={1}>
                 {session.notes}
               </ThemedText>
             )}

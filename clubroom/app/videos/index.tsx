@@ -17,10 +17,25 @@ import { ok } from '@/types/result';
 
 export default function VideosScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
-  const { videos, loading, status, error, refreshing, onRefresh, retry, stats, isCoach, navigateToVideo, navigateToUpload } = useVideosList();
+  const {
+    videos,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    stats,
+    isCoach,
+    navigateToVideo,
+    navigateToUpload,
+  } = useVideosList();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -29,7 +44,10 @@ export default function VideosScreen() {
           <ThemedText type="title">Session Videos</ThemedText>
         </View>
         {isCoach && (
-          <Clickable onPress={navigateToUpload} style={[styles.uploadButton, { backgroundColor: colors.tint }]}>
+          <Clickable
+            onPress={navigateToUpload}
+            style={[styles.uploadButton, { backgroundColor: colors.tint }]}
+          >
             <Ionicons name="cloud-upload-outline" size={20} color={colors.onPrimary} />
           </Clickable>
         )}
@@ -46,18 +64,34 @@ export default function VideosScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
       >
         {loading ? (
           <LoadingState variant="list" />
         ) : status === 'error' ? (
           <ErrorState message={error?.message ?? 'Failed to load videos.'} onRetry={retry} />
         ) : videos.length === 0 ? (
-          <EmptyState icon="videocam-outline" title="No videos yet" message={isCoach ? 'Upload session videos to share progress with parents' : 'Videos shared by your coach will appear here'} />
+          <EmptyState
+            icon="videocam-outline"
+            title="No videos yet"
+            message={
+              isCoach
+                ? 'Upload session videos to share progress with parents'
+                : 'Videos shared by your coach will appear here'
+            }
+          />
         ) : (
           <View style={styles.list}>
             {videos.map((video, index) => (
-              <VideoCard key={video.id} video={video} index={index} onPress={() => navigateToVideo(video.id)} colors={colors} />
+              <VideoCard
+                key={video.id}
+                video={video}
+                index={index}
+                onPress={() => navigateToVideo(video.id)}
+                colors={colors}
+              />
             ))}
           </View>
         )}
@@ -66,10 +100,20 @@ export default function VideosScreen() {
   );
 }
 
-function StatCard({ label, value, colors }: { label: string; value: number; colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'] }) {
+function StatCard({
+  label,
+  value,
+  colors,
+}: {
+  label: string;
+  value: number;
+  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
+}) {
   return (
     <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-      <ThemedText type="heading" style={styles.statValue}>{value}</ThemedText>
+      <ThemedText type="heading" style={styles.statValue}>
+        {value}
+      </ThemedText>
       <ThemedText style={[styles.statLabel, { color: colors.muted }]}>{label}</ThemedText>
     </View>
   );
@@ -79,7 +123,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { flex: 1 },
-  uploadButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  uploadButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statsRow: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md },
   statValue: { ...Typography.title },

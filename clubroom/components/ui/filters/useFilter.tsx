@@ -64,7 +64,7 @@ export interface UseFilterReturn<T> {
 }
 
 export function useFilter<T extends Record<string, unknown>>(
-  config: FilterConfig<T>
+  config: FilterConfig<T>,
 ): UseFilterReturn<T> {
   // Build initial state from config defaults
   const getDefaults = useCallback((): FilterState<T> => {
@@ -98,7 +98,7 @@ export function useFilter<T extends Record<string, unknown>>(
     <K extends keyof T>(key: K) => {
       setFiltersState((prev) => ({ ...prev, [key]: config[key].default }));
     },
-    [config]
+    [config],
   );
 
   // Check if filter is active
@@ -122,7 +122,7 @@ export function useFilter<T extends Record<string, unknown>>(
       }
       return value !== defaultValue;
     },
-    [filters, config]
+    [filters, config],
   );
 
   // Count active filters

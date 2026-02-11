@@ -18,8 +18,18 @@ interface VideoCardProps {
   colors: ThemeColors;
 }
 
-export const VideoCard = memo(function VideoCard({ video, index, onPress, colors }: VideoCardProps) {
-  const visibilityIcon = video.visibility === 'PRIVATE' ? 'lock-closed' : video.visibility === 'SHARED' ? 'people' : 'globe';
+export const VideoCard = memo(function VideoCard({
+  video,
+  index,
+  onPress,
+  colors,
+}: VideoCardProps) {
+  const visibilityIcon =
+    video.visibility === 'PRIVATE'
+      ? 'lock-closed'
+      : video.visibility === 'SHARED'
+        ? 'people'
+        : 'globe';
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
@@ -37,27 +47,41 @@ export const VideoCard = memo(function VideoCard({ video, index, onPress, colors
         </View>
         <View style={styles.info}>
           <Row align="start" gap="sm">
-            <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>{video.title}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>
+              {video.title}
+            </ThemedText>
             <Ionicons name={visibilityIcon} size={16} color={colors.muted} />
           </Row>
-          <ThemedText style={[styles.athletes, { color: colors.muted }]} numberOfLines={1}>{video.athleteIds.join(', ')}</ThemedText>
+          <ThemedText style={[styles.athletes, { color: colors.muted }]} numberOfLines={1}>
+            {video.athleteIds.join(', ')}
+          </ThemedText>
           <Row align="center" gap="md">
             <Row align="center" gap="xxs">
               <Ionicons name="eye-outline" size={14} color={colors.muted} />
-              <ThemedText style={[styles.metaText, { color: colors.muted }]}>{video.viewCount} views</ThemedText>
+              <ThemedText style={[styles.metaText, { color: colors.muted }]}>
+                {video.viewCount} views
+              </ThemedText>
             </Row>
             <Row align="center" gap="xxs">
               <Ionicons name="bookmark-outline" size={14} color={colors.muted} />
-              <ThemedText style={[styles.metaText, { color: colors.muted }]}>{video.annotations.length} notes</ThemedText>
+              <ThemedText style={[styles.metaText, { color: colors.muted }]}>
+                {video.annotations.length} notes
+              </ThemedText>
             </Row>
             <ThemedText style={[styles.metaText, { color: colors.muted }]}>
-              {new Date(video.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              {new Date(video.createdAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+              })}
             </ThemedText>
           </Row>
           {video.tags.length > 0 && (
             <Row gap="xxs" style={styles.tagsRow}>
-              {video.tags.slice(0, 3).map(tag => (
-                <View key={tag} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
+              {video.tags.slice(0, 3).map((tag) => (
+                <View
+                  key={tag}
+                  style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                >
                   <ThemedText style={[styles.tagText, { color: colors.tint }]}>{tag}</ThemedText>
                 </View>
               ))}
@@ -73,9 +97,27 @@ const styles = StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },
   thumbnailContainer: { position: 'relative', height: 180 },
   thumbnail: { width: '100%', height: '100%' },
-  durationBadge: { position: 'absolute', bottom: Spacing.xs, right: Spacing.xs, paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.xs },
+  durationBadge: {
+    position: 'absolute',
+    bottom: Spacing.xs,
+    right: Spacing.xs,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
+  },
   durationText: { ...Typography.caption },
-  playButton: { position: 'absolute', top: '50%', left: '50%', marginLeft: -24, marginTop: -24, width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  playButton: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -24,
+    marginTop: -24,
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { padding: Spacing.md, gap: Spacing.xxs },
   title: { flex: 1, ...Typography.body },
   athletes: { ...Typography.small },

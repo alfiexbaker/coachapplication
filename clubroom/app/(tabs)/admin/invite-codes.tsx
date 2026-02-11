@@ -51,14 +51,17 @@ export default function InviteCodesScreen() {
     ({ item }: { item: InviteCode }) => (
       <InviteCodeCard item={item} onDeactivate={deactivateCode} onCopy={copyToClipboard} />
     ),
-    [deactivateCode, copyToClipboard]
+    [deactivateCode, copyToClipboard],
   );
 
   const keyExtractor = useCallback((item: InviteCode) => item.id, []);
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -66,17 +69,20 @@ export default function InviteCodesScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState
-          message={error?.message ?? 'Failed to load invite codes.'}
-          onRetry={retry}
-        />
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState message={error?.message ?? 'Failed to load invite codes.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row justify="between" align="center" style={styles.header}>
         <Column>
           <ThemedText type="title">Invite Codes</ThemedText>

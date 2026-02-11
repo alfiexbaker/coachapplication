@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing, runOnJS } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -62,13 +68,7 @@ export function BadgeCelebration({
       <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
         <Confetti active={visible} />
 
-        <Animated.View
-          style={[
-            styles.card,
-            { backgroundColor: palette.surface },
-            cardAnimStyle,
-          ]}
-        >
+        <Animated.View style={[styles.card, { backgroundColor: palette.surface }, cardAnimStyle]}>
           {/* Trophy icon */}
           <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
             <Ionicons name="trophy" size={48} color={palette.warning} />
@@ -99,7 +99,11 @@ export function BadgeCelebration({
                 onPress={onShareWithFamily}
                 style={[styles.primaryButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="share-outline" size={Components.icon.md} color={palette.onPrimary} />
+                <Ionicons
+                  name="share-outline"
+                  size={Components.icon.md}
+                  color={palette.onPrimary}
+                />
                 <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
                   Share with Family
                 </ThemedText>

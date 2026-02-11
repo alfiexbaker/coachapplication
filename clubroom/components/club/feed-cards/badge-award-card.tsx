@@ -40,15 +40,14 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
   };
 
   return (
-    <SurfaceCard
-      style={[styles.card, { backgroundColor: celebratoryBg }]}
-      onPress={onPress}
-    >
+    <SurfaceCard style={[styles.card, { backgroundColor: celebratoryBg }]} onPress={onPress}>
       {/* Header */}
       <Row style={styles.headerRow}>
         <Row style={styles.typeRow}>
           <Ionicons name="ribbon-outline" size={Components.icon.sm} color={palette.warning} />
-          <ThemedText style={[styles.typeLabel, { color: palette.warning }]}>Badge Awarded</ThemedText>
+          <ThemedText style={[styles.typeLabel, { color: palette.warning }]}>
+            Badge Awarded
+          </ThemedText>
         </Row>
         <ThemedText style={[styles.dateText, { color: palette.muted }]}>
           {formatDate(data.awardedAt)}
@@ -65,8 +64,7 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
             {data.badgeName}
           </ThemedText>
           <ThemedText style={[styles.athleteName, { color: palette.text }]}>
-            Awarded to{' '}
-            <ThemedText style={styles.nameHighlight}>{data.athleteName}</ThemedText>
+            Awarded to <ThemedText style={styles.nameHighlight}>{data.athleteName}</ThemedText>
           </ThemedText>
           <ThemedText style={[styles.coachLabel, { color: palette.muted }]}>
             by {data.coachName}
@@ -77,7 +75,11 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
       {/* Reason */}
       {data.reason ? (
         <Row style={[styles.reasonContainer, { backgroundColor: palette.surface }]}>
-          <Ionicons name="chatbubble-ellipses-outline" size={Components.icon.sm} color={palette.muted} />
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={Components.icon.sm}
+            color={palette.muted}
+          />
           <ThemedText style={[styles.reasonText, { color: palette.text }]}>
             {data.reason}
           </ThemedText>
@@ -88,11 +90,15 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
       <Row style={styles.footer}>
         <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
-          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
+          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>
+            {data.likeCount}
+          </ThemedText>
         </Clickable>
         <Clickable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
-          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
+          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>
+            {data.commentCount}
+          </ThemedText>
         </Clickable>
       </Row>
     </SurfaceCard>

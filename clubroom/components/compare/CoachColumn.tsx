@@ -48,7 +48,9 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
   }, [onBook, coach.coachId]);
 
   return (
-    <View style={[styles.column, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <View
+      style={[styles.column, { backgroundColor: palette.surface, borderColor: palette.border }]}
+    >
       <View style={styles.header}>
         <Clickable
           accessibilityRole="button"

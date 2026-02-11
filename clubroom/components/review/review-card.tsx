@@ -20,13 +20,22 @@ export function ReviewCard({ name, role, rating, text, date, response }: ReviewC
     <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
       <Row justify="space-between">
         <ThemedText type="defaultSemiBold">{name}</ThemedText>
-        <ThemedText style={{ color: palette.muted }}>{role === 'coach' ? 'Coach' : 'Player'}</ThemedText>
+        <ThemedText style={{ color: palette.muted }}>
+          {role === 'coach' ? 'Coach' : 'Player'}
+        </ThemedText>
       </Row>
       <RatingStars rating={rating} />
       {text ? <ThemedText style={{ marginTop: Spacing.xs }}>{text}</ThemedText> : null}
-      {date ? <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{date}</ThemedText> : null}
+      {date ? (
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{date}</ThemedText>
+      ) : null}
       {response ? (
-        <View style={[styles.response, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}>
+        <View
+          style={[
+            styles.response,
+            { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border },
+          ]}
+        >
           <ThemedText type="defaultSemiBold">Coach response</ThemedText>
           <ThemedText style={{ color: palette.muted }}>{response}</ThemedText>
         </View>

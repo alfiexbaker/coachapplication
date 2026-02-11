@@ -8,7 +8,11 @@ export function TypingIndicator() {
   const { colors: palette } = useTheme();
 
   return (
-    <Row align="center" gap="xs" style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row
+      align="center"
+      gap="xs"
+      style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}
+    >
       {[0, 1, 2].map((dot) => (
         <View key={dot} style={[styles.dot, { backgroundColor: palette.icon }]} />
       ))}

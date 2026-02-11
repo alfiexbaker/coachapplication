@@ -105,11 +105,7 @@ export const SuggestionRow = memo(function SuggestionRow({
   const iconName = getIconForType(suggestion.type);
 
   return (
-    <Clickable
-      accessibilityLabel={suggestion.text}
-      onPress={onPress}
-      style={rowStyles.container}
-    >
+    <Clickable accessibilityLabel={suggestion.text} onPress={onPress} style={rowStyles.container}>
       <View style={[rowStyles.iconCircle, { backgroundColor: palette.surfaceSecondary }]}>
         <Ionicons name={iconName} size={Components.icon.md} color={palette.muted} />
       </View>

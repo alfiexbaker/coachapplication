@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -10,12 +10,13 @@ import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing  , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
+import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 
@@ -30,7 +31,27 @@ export default function ConfirmationScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cancellationSummary, setCancellationSummary] = useState('Standard cancellation policy');
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
+
+  useEffect(() => {
+    const resolvedCoachId = coachId || draft.coachId;
+    if (!resolvedCoachId) return;
+
+    let isMounted = true;
+
+    void schedulingRulesService.getCancellationPolicy(resolvedCoachId).then((result) => {
+      if (!isMounted) return;
+      const summary = schedulingRulesService.getCancellationPolicySummary(
+        result.success ? result.data : null,
+      );
+      setCancellationSummary(summary);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [coachId, draft.coachId]);
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -82,7 +103,12 @@ export default function ConfirmationScreen() {
           router.replace(Routes.bookingCancel(result.data!.id));
         }, 2600);
       } else {
-        setError(result.success ? 'Failed to create booking.' : (result.error?.message || 'Failed to create booking. The slot may no longer be available.'));
+        setError(
+          result.success
+            ? 'Failed to create booking.'
+            : result.error?.message ||
+                'Failed to create booking. The slot may no longer be available.',
+        );
       }
     } catch (err) {
       logger.error('Error creating booking', err);
@@ -93,7 +119,10 @@ export default function ConfirmationScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <View style={styles.content}>
         <BookingWizardHeader
           title="Booking placed"
@@ -101,14 +130,20 @@ export default function ConfirmationScreen() {
           step={5}
         />
 
-        <View style={[styles.checkCircle, { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+        <View
+          style={[
+            styles.checkCircle,
+            { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.07) },
+          ]}
+        >
           <Ionicons name="checkmark" size={48} color={palette.tint} />
         </View>
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">{"What's next"}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            We emailed a confirmation. You can message your coach anytime or add this to your calendar.
+            We emailed a confirmation. You can message your coach anytime or add this to your
+            calendar.
           </ThemedText>
         </View>
 
@@ -132,10 +167,21 @@ export default function ConfirmationScreen() {
               <ThemedText style={{ color: palette.text }}>{draft.locationText}</ThemedText>
             </Row>
           )}
+          <Row align="center" gap="sm">
+            <Ionicons name="shield-checkmark-outline" size={18} color={palette.muted} />
+            <ThemedText style={{ color: palette.text, flex: 1 }}>{cancellationSummary}</ThemedText>
+          </Row>
         </View>
 
         {error && (
-          <Row align="center" gap="sm" style={[styles.errorBox, { backgroundColor: withAlpha(palette.error, 0.08), borderColor: palette.error }]}>
+          <Row
+            align="center"
+            gap="sm"
+            style={[
+              styles.errorBox,
+              { backgroundColor: withAlpha(palette.error, 0.08), borderColor: palette.error },
+            ]}
+          >
             <Ionicons name="alert-circle" size={20} color={palette.error} />
             <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
           </Row>
@@ -151,7 +197,9 @@ export default function ConfirmationScreen() {
           {isCreating ? (
             <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>View booking</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+              View booking
+            </ThemedText>
           )}
         </Clickable>
         <Clickable

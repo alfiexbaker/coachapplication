@@ -19,7 +19,11 @@ interface SquadAddMembersProps {
 }
 
 export const SquadAddMembers = memo(function SquadAddMembers({
-  visible, membersNotInSquad, squadName, colors, onAdd,
+  visible,
+  membersNotInSquad,
+  squadName,
+  colors,
+  onAdd,
 }: SquadAddMembersProps) {
   if (!visible) return null;
 
@@ -39,20 +43,30 @@ export const SquadAddMembers = memo(function SquadAddMembers({
   return (
     <SurfaceCard style={styles.card}>
       <ThemedText type="defaultSemiBold">Add Club Members</ThemedText>
-      <ThemedText style={[Typography.small, { color: colors.muted }]}>Tap to add to {squadName}</ThemedText>
+      <ThemedText style={[Typography.small, { color: colors.muted }]}>
+        Tap to add to {squadName}
+      </ThemedText>
       <View style={styles.list}>
         {membersNotInSquad.map((member) => {
           const roleColor = clubService.getRoleColor(member.role);
           const initials = member.userName.slice(0, 2).toUpperCase();
           return (
-            <Clickable key={member.userId} style={[styles.row, { borderColor: colors.border }]} onPress={() => onAdd(member)}>
+            <Clickable
+              key={member.userId}
+              style={[styles.row, { borderColor: colors.border }]}
+              onPress={() => onAdd(member)}
+            >
               <Row align="center" gap="sm">
                 <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
-                  <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>{initials}</ThemedText>
+                  <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>
+                    {initials}
+                  </ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-                  <ThemedText style={[Typography.caption, { color: roleColor }]}>{clubService.formatRole(member.role)}</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: roleColor }]}>
+                    {clubService.formatRole(member.role)}
+                  </ThemedText>
                 </View>
                 <View style={[styles.addIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
                   <Ionicons name="add" size={18} color={colors.tint} />
@@ -71,6 +85,18 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
   list: { gap: Spacing.xxs },
   row: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  addIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

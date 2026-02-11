@@ -149,7 +149,7 @@ class NotificationService {
                 body: 'New booking from Sarah Baker for Tom on Jan 15',
                 recipientId: 'coach1',
                 recipientRole: 'coach',
-                deepLink: '/booking/b1',
+                deepLink: '/bookings/b1',
                 timeLabel: '5 min ago',
                 read: false,
             },

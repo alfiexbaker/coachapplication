@@ -20,7 +20,11 @@ interface AnalyticsTopSkillsProps {
   formatCurrency: (amount: number) => string;
 }
 
-export const AnalyticsTopSkills = memo(function AnalyticsTopSkills({ colors, skills, formatCurrency }: AnalyticsTopSkillsProps) {
+export const AnalyticsTopSkills = memo(function AnalyticsTopSkills({
+  colors,
+  skills,
+  formatCurrency,
+}: AnalyticsTopSkillsProps) {
   return (
     <SurfaceCard style={styles.card}>
       <Row gap="xs" align="center" style={styles.header}>
@@ -35,10 +39,16 @@ export const AnalyticsTopSkills = memo(function AnalyticsTopSkills({ colors, ski
               <ThemedText style={styles.name}>{skill.skill}</ThemedText>
             </Row>
             <Row gap={4} align="baseline" style={{ marginRight: Spacing.md }}>
-              <ThemedText style={[styles.sessions, { color: colors.tint }]}>{skill.sessionCount}</ThemedText>
-              <ThemedText style={[styles.sessionsLabel, { color: colors.muted }]}>sessions</ThemedText>
+              <ThemedText style={[styles.sessions, { color: colors.tint }]}>
+                {skill.sessionCount}
+              </ThemedText>
+              <ThemedText style={[styles.sessionsLabel, { color: colors.muted }]}>
+                sessions
+              </ThemedText>
             </Row>
-            <ThemedText style={[styles.revenue, { color: colors.success }]}>{formatCurrency(skill.revenue)}</ThemedText>
+            <ThemedText style={[styles.revenue, { color: colors.success }]}>
+              {formatCurrency(skill.revenue)}
+            </ThemedText>
           </Row>
         ))}
       </View>

@@ -144,7 +144,7 @@ class CommunityMessagingService {
     async updateMessageStatus(groupId, messageId, status) {
         const persisted = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.GROUP_MESSAGES, {});
         const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
-        const updated = messages.map((msg) => msg.id === messageId ? { ...msg, status } : msg);
+        const updated = messages.map((msg) => (msg.id === messageId ? { ...msg, status } : msg));
         persisted[groupId] = updated;
         this.inMemoryMessages[groupId] = updated;
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.GROUP_MESSAGES, persisted);

@@ -40,7 +40,7 @@ export default function ChallengesScreen() {
     try {
       const challenges = await challengeService.getChallengesForSquad('squad_1');
       const submissionGroups = await Promise.all(
-        challenges.map((challenge) => challengeService.getSubmissionsForChallenge(challenge.id))
+        challenges.map((challenge) => challengeService.getSubmissionsForChallenge(challenge.id)),
       );
 
       return ok<ChallengesScreenData>({
@@ -68,37 +68,40 @@ export default function ChallengesScreen() {
     refetchOnFocus: true,
   });
 
-  const challenges = data?.challenges ?? [];
-  const submissions = data?.submissions ?? [];
+  const challenges = useMemo(() => data?.challenges ?? [], [data?.challenges]);
+  const submissions = useMemo(() => data?.submissions ?? [], [data?.submissions]);
 
   const handleTabChange = useCallback((tab: TabFilter) => {
     Platform.OS !== 'web' && void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(tab);
   }, []);
 
-  const now = Date.now();
   const filtered = useMemo(() => {
+    const now = Date.now();
     return challenges.filter((c) => {
       const expired = new Date(c.deadline).getTime() < now;
       return activeTab === 'active' ? !expired : expired;
     });
-  }, [challenges, activeTab, now]);
+  }, [challenges, activeTab]);
 
-  const activeCount = useMemo(
-    () => challenges.filter((c) => new Date(c.deadline).getTime() >= now).length,
-    [challenges, now]
-  );
+  const activeCount = useMemo(() => {
+    const now = Date.now();
+    return challenges.filter((c) => new Date(c.deadline).getTime() >= now).length;
+  }, [challenges]);
   const completedCount = challenges.length - activeCount;
   const badgesCount = submissions.filter((s) => s.awardedBadge).length;
 
   const getSubmissionsFor = useCallback(
     (challengeId: string) => submissions.filter((s) => s.challengeId === challengeId),
-    [submissions]
+    [submissions],
   );
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -106,14 +109,20 @@ export default function ChallengesScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load challenges.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -143,7 +152,11 @@ export default function ChallengesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <ChallengeStatsBar activeCount={activeCount} completedCount={completedCount} badgesCount={badgesCount} />
+          <ChallengeStatsBar
+            activeCount={activeCount}
+            completedCount={completedCount}
+            badgesCount={badgesCount}
+          />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(150).springify()}>
@@ -165,7 +178,10 @@ export default function ChallengesScreen() {
                 >
                   <Row align="center" justify="center" gap="xs">
                     <ThemedText
-                      style={[styles.tabText, { color: isActive ? palette.onPrimary : palette.text }]}
+                      style={[
+                        styles.tabText,
+                        { color: isActive ? palette.onPrimary : palette.text },
+                      ]}
                     >
                       {tab === 'active' ? 'Active' : 'Completed'}
                     </ThemedText>
@@ -180,7 +196,10 @@ export default function ChallengesScreen() {
                       ]}
                     >
                       <ThemedText
-                        style={[styles.tabBadgeText, { color: isActive ? palette.onPrimary : palette.muted }]}
+                        style={[
+                          styles.tabBadgeText,
+                          { color: isActive ? palette.onPrimary : palette.muted },
+                        ]}
                       >
                         {count}
                       </ThemedText>
@@ -219,7 +238,10 @@ export default function ChallengesScreen() {
         ) : (
           <View style={styles.challengeList}>
             {filtered.map((challenge, index) => (
-              <Animated.View key={challenge.id} entering={FadeInDown.delay(200 + index * 50).springify()}>
+              <Animated.View
+                key={challenge.id}
+                entering={FadeInDown.delay(200 + index * 50).springify()}
+              >
                 <ChallengeCard
                   challenge={challenge}
                   submissions={getSubmissionsFor(challenge.id)}
@@ -244,7 +266,14 @@ const styles = StyleSheet.create({
   tabRow: {},
   tab: { flex: 1, height: 44, borderRadius: Radii.md, borderWidth: 1 },
   tabText: { ...Typography.bodySmallSemiBold },
-  tabBadge: { minWidth: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxs },
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xxs,
+  },
   tabBadgeText: { ...Typography.caption },
   challengeList: { gap: Spacing.md },
 });

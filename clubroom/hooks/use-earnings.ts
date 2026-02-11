@@ -8,7 +8,12 @@ import { Alert } from 'react-native';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { earningsService, type TransactionFilter } from '@/services/earnings';
-import type { CoachEarnings, EarningTransaction, Withdrawal, PayoutMethod } from '@/constants/types';
+import type {
+  CoachEarnings,
+  EarningTransaction,
+  Withdrawal,
+  PayoutMethod,
+} from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
@@ -62,14 +67,7 @@ export function useEarnings() {
     }
   }, [coachId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<EarningsLoadData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<EarningsLoadData>({
     load: loadData,
     deps: [coachId],
     isEmpty: (value) =>
@@ -111,9 +109,18 @@ export function useEarnings() {
 
   const handleWithdraw = useCallback(async () => {
     const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount <= 0) { setWithdrawError('Please enter a valid amount'); return; }
-    if (!selectedPayoutMethod) { setWithdrawError('Please select a payout method'); return; }
-    if (!earnings || amount > earnings.availableBalance) { setWithdrawError('Insufficient available balance'); return; }
+    if (isNaN(amount) || amount <= 0) {
+      setWithdrawError('Please enter a valid amount');
+      return;
+    }
+    if (!selectedPayoutMethod) {
+      setWithdrawError('Please select a payout method');
+      return;
+    }
+    if (!earnings || amount > earnings.availableBalance) {
+      setWithdrawError('Insufficient available balance');
+      return;
+    }
 
     setWithdrawing(true);
     setWithdrawError(null);
@@ -133,26 +140,41 @@ export function useEarnings() {
     }
   }, [coachId, withdrawAmount, selectedPayoutMethod, earnings, onRefresh]);
 
-  const formatCurrency = useCallback((amount: number) => {
-    return earningsService.formatCurrency(amount, earnings?.currency || 'GBP');
-  }, [earnings?.currency]);
+  const formatCurrency = useCallback(
+    (amount: number) => {
+      return earningsService.formatCurrency(amount, earnings?.currency || 'GBP');
+    },
+    [earnings?.currency],
+  );
 
   const getWithdrawalStatusLabel = useCallback((status: string) => {
     switch (status) {
-      case 'PENDING': return 'Pending';
-      case 'PROCESSING': return 'Processing';
-      case 'COMPLETED': return 'Completed';
-      case 'FAILED': return 'Failed';
-      case 'CANCELLED': return 'Cancelled';
-      default: return status;
+      case 'PENDING':
+        return 'Pending';
+      case 'PROCESSING':
+        return 'Processing';
+      case 'COMPLETED':
+        return 'Completed';
+      case 'FAILED':
+        return 'Failed';
+      case 'CANCELLED':
+        return 'Cancelled';
+      default:
+        return status;
     }
   }, []);
 
   const handleAddPayoutMethod = useCallback(() => {
     Alert.alert('Add Payout Method', 'Choose how you want to receive your earnings.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Bank Account', onPress: () => Alert.alert('Coming Soon', 'Bank account linking will be available soon.') },
-      { text: 'PayPal', onPress: () => Alert.alert('Coming Soon', 'PayPal integration will be available soon.') },
+      {
+        text: 'Bank Account',
+        onPress: () => Alert.alert('Coming Soon', 'Bank account linking will be available soon.'),
+      },
+      {
+        text: 'PayPal',
+        onPress: () => Alert.alert('Coming Soon', 'PayPal integration will be available soon.'),
+      },
     ]);
   }, []);
 

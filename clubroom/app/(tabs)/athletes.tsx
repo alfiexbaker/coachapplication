@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,12 +62,15 @@ export default function AthletesScreen() {
       filter,
       setFilter,
       needsAttentionCount,
-    ]
+    ],
   );
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -76,7 +79,10 @@ export default function AthletesScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Athletes" subtitle="Manage your roster" bordered />
         <ErrorState message={error?.message || 'Failed to load athletes'} onRetry={retry} />
       </SafeAreaView>
@@ -85,7 +91,10 @@ export default function AthletesScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ScreenHeader
           title="Athletes"
           subtitle="Manage your roster"
@@ -108,7 +117,10 @@ export default function AthletesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <ScreenHeader
         title="Athletes"
         subtitle={`${roster.length} athletes`}
@@ -128,7 +140,9 @@ export default function AthletesScreen() {
         ListEmptyComponent={<AthletesSearchEmptyState colors={colors} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
       />
     </SafeAreaView>
   );

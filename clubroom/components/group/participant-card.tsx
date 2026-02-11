@@ -4,11 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import { Row } from '@/components/primitives';
-import { getGroupRegistrationAthleteName, getGroupRegistrationParentName } from '@/utils/group-display';
+import {
+  getGroupRegistrationAthleteName,
+  getGroupRegistrationParentName,
+} from '@/utils/group-display';
 
 interface ParticipantCardProps {
   registration: GroupRegistration;
@@ -51,9 +54,7 @@ export function ParticipantCard({
     <SurfaceCard style={styles.card}>
       <Row style={styles.main}>
         <View style={[styles.avatar, { backgroundColor: palette.border }]}>
-          <ThemedText style={styles.avatarText}>
-            {athleteName.slice(0, 2).toUpperCase()}
-          </ThemedText>
+          <ThemedText style={styles.avatarText}>{athleteName.slice(0, 2).toUpperCase()}</ThemedText>
         </View>
 
         <View style={styles.info}>
@@ -92,7 +93,10 @@ export function ParticipantCard({
         {onMessage && (
           <Clickable
             onPress={onMessage}
-            style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
           >
             <Ionicons name="chatbubble-outline" size={16} color={palette.tint} />
           </Clickable>
@@ -102,7 +106,10 @@ export function ParticipantCard({
           <Clickable
             accessibilityLabel="Close"
             onPress={onCancel}
-            style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
           >
             <Ionicons name="close" size={18} color={palette.error} />
           </Clickable>
@@ -148,8 +155,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     marginTop: Spacing.xxs,
   },
-  statusText: { ...Typography.micro, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+  statusText: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
   actions: {
     gap: Spacing.xs,
   },
@@ -168,6 +174,5 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
-  notesText: { ...Typography.caption, flex: 1,
-    lineHeight: 16 },
+  notesText: { ...Typography.caption, flex: 1, lineHeight: 16 },
 });

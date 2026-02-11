@@ -60,7 +60,7 @@ export function AvailabilityTutorial({ visible, onComplete }: AvailabilityTutori
         }
       });
     },
-    [fadeAnim, slideAnim]
+    [fadeAnim, slideAnim],
   );
 
   const handleComplete = useCallback(async () => {

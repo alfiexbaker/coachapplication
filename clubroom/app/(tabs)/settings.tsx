@@ -34,7 +34,10 @@ export default function SettingsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Profile" subtitle="Your account" />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -43,7 +46,10 @@ export default function SettingsScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Profile" subtitle="Your account" />
         <ErrorState message={error} onRetry={() => {}} />
       </SafeAreaView>
@@ -52,7 +58,10 @@ export default function SettingsScreen() {
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Profile" subtitle="Your account" />
         <EmptyState
           icon="person-outline"
@@ -64,7 +73,10 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title="Profile" subtitle="Your account" />
 

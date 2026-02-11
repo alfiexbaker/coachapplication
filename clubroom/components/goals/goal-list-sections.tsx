@@ -100,9 +100,7 @@ export const GoalSectionHeaderInner = memo(function GoalSectionHeaderInner({
       </Row>
       {count !== undefined && (
         <View style={[styles.countBadge, { backgroundColor: palette.surfaceSecondary }]}>
-          <ThemedText style={[styles.countText, { color: palette.muted }]}>
-            {count}
-          </ThemedText>
+          <ThemedText style={[styles.countText, { color: palette.muted }]}>{count}</ThemedText>
         </View>
       )}
     </Row>
@@ -134,9 +132,7 @@ export const GoalListEmptyState = memo(function GoalListEmptyState({
       <ThemedText type="subtitle" style={styles.emptyTitle}>
         {title}
       </ThemedText>
-      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-        {message}
-      </ThemedText>
+      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{message}</ThemedText>
       {showCreateButton && onCreateGoal && (
         <Button onPress={onCreateGoal} style={styles.emptyButton}>
           Create Goal

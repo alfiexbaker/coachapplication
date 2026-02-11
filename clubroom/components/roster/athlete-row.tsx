@@ -44,7 +44,7 @@ export function AthleteRow({
   const renderRightActions = (
     _progress: SharedValue<number>,
     translation: SharedValue<number>,
-    swipeableMethods: SwipeableMethods
+    swipeableMethods: SwipeableMethods,
   ) => {
     return (
       <RightActions
@@ -68,9 +68,7 @@ export function AthleteRow({
     >
       <Row align="center" gap="md">
         <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
-          <ThemedText style={styles.avatarText}>
-            {athleteName.slice(0, 2).toUpperCase()}
-          </ThemedText>
+          <ThemedText style={styles.avatarText}>{athleteName.slice(0, 2).toUpperCase()}</ThemedText>
         </View>
 
         <View style={styles.info}>
@@ -148,12 +146,7 @@ interface RightActionsProps {
   palette: ReturnType<typeof useTheme>['colors'];
 }
 
-function RightActions({
-  translation,
-  onRemovePress,
-  athleteName,
-  palette,
-}: RightActionsProps) {
+function RightActions({ translation, onRemovePress, athleteName, palette }: RightActionsProps) {
   const scaleStyle = useAnimatedStyle(() => ({
     transform: [
       {

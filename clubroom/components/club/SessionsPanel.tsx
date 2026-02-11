@@ -10,12 +10,12 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { GroupSession } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { TrainingSessionRow, EmptyTrainingState } from './sessions-panel-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { TrainingSessionRow, EmptyTrainingState } from './sessions-panel-sections';
 export type { TrainingSessionRowProps, EmptyTrainingStateProps } from './sessions-panel-sections';
-
-import { TrainingSessionRow, EmptyTrainingState } from './sessions-panel-sections';
-import { Row } from '@/components/primitives';
 
 export interface SessionsPanelProps {
   sessions: GroupSession[];
@@ -24,7 +24,12 @@ export interface SessionsPanelProps {
   onInviteSquad?: () => void;
 }
 
-export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSquad }: SessionsPanelProps) {
+export function SessionsPanel({
+  sessions,
+  isCoach,
+  onCreateSession,
+  onInviteSquad,
+}: SessionsPanelProps) {
   const { colors: palette } = useTheme();
 
   const handleCreateSession = () => {
@@ -46,17 +51,32 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
         </Row>
         {isCoach && (
           <Row style={styles.trainingHeaderButtons}>
-            <Clickable style={styles.manageAllLink} onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}>
-              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint }}>Manage All</ThemedText>
+            <Clickable
+              style={styles.manageAllLink}
+              onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}
+            >
+              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint }}>
+                Manage All
+              </ThemedText>
               <Ionicons name="chevron-forward" size={14} color={palette.tint} />
             </Clickable>
-            <Clickable style={[styles.inviteSquadButton, { borderColor: palette.tint }]} onPress={handleInviteSquad}>
+            <Clickable
+              style={[styles.inviteSquadButton, { borderColor: palette.tint }]}
+              onPress={handleInviteSquad}
+            >
               <Ionicons name="people" size={14} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, ...Typography.caption }}>Invite Squad</ThemedText>
+              <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
+                Invite Squad
+              </ThemedText>
             </Clickable>
-            <Clickable style={[styles.addTrainingButton, { backgroundColor: palette.tint }]} onPress={handleCreateSession}>
+            <Clickable
+              style={[styles.addTrainingButton, { backgroundColor: palette.tint }]}
+              onPress={handleCreateSession}
+            >
               <Ionicons name="add" size={16} color={palette.onPrimary} />
-              <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>Add</ThemedText>
+              <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>
+                Add
+              </ThemedText>
             </Clickable>
           </Row>
         )}
@@ -68,7 +88,10 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
             <TrainingSessionRow key={session.id} session={session} palette={palette} />
           ))}
           {sessions.length > 3 && (
-            <Clickable style={styles.viewAllButton} onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}>
+            <Clickable
+              style={styles.viewAllButton}
+              onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}
+            >
               <ThemedText style={{ ...Typography.small, color: palette.tint }}>
                 View all {sessions.length} training sessions
               </ThemedText>
@@ -77,7 +100,11 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
           )}
         </View>
       ) : (
-        <EmptyTrainingState isCoach={isCoach} onCreateSession={handleCreateSession} palette={palette} />
+        <EmptyTrainingState
+          isCoach={isCoach}
+          onCreateSession={handleCreateSession}
+          palette={palette}
+        />
       )}
     </SurfaceCard>
   );

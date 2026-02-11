@@ -22,7 +22,10 @@ import type { SessionInvite } from '@/constants/types';
 
 interface PendingInvitesSectionProps {
   invites: SessionInvite[];
-  onAccept: (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => Promise<void>;
+  onAccept: (
+    invite: SessionInvite,
+    selectedSlot?: SessionInvite['proposedSlots'][0],
+  ) => Promise<void>;
   onDecline: (invite: SessionInvite) => void;
 }
 
@@ -52,7 +55,7 @@ export const PendingInvitesSection = memo(function PendingInvitesSection({
         </View>
       </Row>
 
-      {invites.slice(0, 3).map(invite => (
+      {invites.slice(0, 3).map((invite) => (
         <SessionInviteCard
           key={invite.id}
           invite={invite}

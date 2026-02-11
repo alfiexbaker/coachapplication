@@ -7,7 +7,12 @@ import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/t
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-export interface WelcomeStep { key: string; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap }
+export interface WelcomeStep {
+  key: string;
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
 interface StepListContentProps {
   stepKey: string;
   squadNames: string[];
@@ -28,7 +33,13 @@ const StepListContent = memo(function StepListContent({
     return (
       <View style={styles.listContainer}>
         {squadNames.map((name) => (
-          <Row key={name} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row
+            key={name}
+            style={[
+              styles.listItem,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
             <Ionicons name="people" size={Components.icon.md} color={brandColor} />
             <ThemedText style={[styles.listItemText, { color: palette.text }]}>{name}</ThemedText>
           </Row>
@@ -40,11 +51,21 @@ const StepListContent = memo(function StepListContent({
     return (
       <View style={styles.listContainer}>
         {upcomingEvents.slice(0, 3).map((event, idx) => (
-          <Row key={idx} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row
+            key={idx}
+            style={[
+              styles.listItem,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
             <Ionicons name="calendar" size={Components.icon.md} color={brandColor} />
             <View style={styles.listItemInner}>
-              <ThemedText style={[styles.listItemText, { color: palette.text }]}>{event.title}</ThemedText>
-              <ThemedText style={[styles.listItemSub, { color: palette.muted }]}>{event.date}</ThemedText>
+              <ThemedText style={[styles.listItemText, { color: palette.text }]}>
+                {event.title}
+              </ThemedText>
+              <ThemedText style={[styles.listItemSub, { color: palette.muted }]}>
+                {event.date}
+              </ThemedText>
             </View>
           </Row>
         ))}
@@ -55,11 +76,21 @@ const StepListContent = memo(function StepListContent({
     return (
       <View style={styles.listContainer}>
         {coaches.map((coach, idx) => (
-          <Row key={idx} style={[styles.listItem, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Row
+            key={idx}
+            style={[
+              styles.listItem,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
             <Ionicons name="shield" size={Components.icon.md} color={brandColor} />
             <View style={styles.listItemInner}>
-              <ThemedText style={[styles.listItemText, { color: palette.text }]}>{coach.name}</ThemedText>
-              <ThemedText style={[styles.listItemSub, { color: palette.muted }]}>{coach.role}</ThemedText>
+              <ThemedText style={[styles.listItemText, { color: palette.text }]}>
+                {coach.name}
+              </ThemedText>
+              <ThemedText style={[styles.listItemSub, { color: palette.muted }]}>
+                {coach.role}
+              </ThemedText>
             </View>
           </Row>
         ))}
@@ -90,7 +121,9 @@ export const WelcomeStepSlide = memo(function WelcomeStepSlide({
         <Ionicons name={step.icon} size={48} color={brandColor} />
       </View>
       <ThemedText style={[styles.stepTitle, { color: palette.text }]}>{step.title}</ThemedText>
-      <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>{step.subtitle}</ThemedText>
+      <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
+        {step.subtitle}
+      </ThemedText>
       <StepListContent
         stepKey={step.key}
         squadNames={squadNames}

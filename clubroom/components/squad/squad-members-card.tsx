@@ -22,7 +22,12 @@ interface SquadMembersCardProps {
 }
 
 export const SquadMembersCard = memo(function SquadMembersCard({
-  members, clubId, showAddMembers, colors, onToggleAdd, onRemove,
+  members,
+  clubId,
+  showAddMembers,
+  colors,
+  onToggleAdd,
+  onRemove,
 }: SquadMembersCardProps) {
   return (
     <SurfaceCard style={styles.card}>
@@ -30,10 +35,19 @@ export const SquadMembersCard = memo(function SquadMembersCard({
         <ThemedText type="defaultSemiBold" style={Typography.subheading}>
           Squad Members ({members.length})
         </ThemedText>
-        <Clickable style={[styles.addBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]} onPress={onToggleAdd}>
+        <Clickable
+          style={[styles.addBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+          onPress={onToggleAdd}
+        >
           <Row align="center" gap="xxs">
-            <Ionicons name={showAddMembers ? 'close' : 'person-add-outline'} size={16} color={colors.tint} />
-            <ThemedText style={[Typography.caption, { color: colors.tint }]}>{showAddMembers ? 'Done' : 'Add'}</ThemedText>
+            <Ionicons
+              name={showAddMembers ? 'close' : 'person-add-outline'}
+              size={16}
+              color={colors.tint}
+            />
+            <ThemedText style={[Typography.caption, { color: colors.tint }]}>
+              {showAddMembers ? 'Done' : 'Add'}
+            </ThemedText>
           </Row>
         </Clickable>
       </Row>
@@ -54,15 +68,21 @@ export const SquadMembersCard = memo(function SquadMembersCard({
               <Clickable
                 key={member.userId}
                 style={[styles.row, { borderBottomColor: colors.border }]}
-                onPress={() => { if (clubId) router.push(Routes.clubMember(clubId, member.userId)); }}
+                onPress={() => {
+                  if (clubId) router.push(Routes.clubMember(clubId, member.userId));
+                }}
               >
                 <Row align="center" gap="sm">
                   <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
-                    <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>{initials}</ThemedText>
+                    <ThemedText style={[Typography.smallSemiBold, { color: roleColor }]}>
+                      {initials}
+                    </ThemedText>
                   </View>
                   <View style={{ flex: 1 }}>
                     <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-                    <ThemedText style={[Typography.caption, { color: roleColor }]}>{clubService.formatRole(member.role)}</ThemedText>
+                    <ThemedText style={[Typography.caption, { color: roleColor }]}>
+                      {clubService.formatRole(member.role)}
+                    </ThemedText>
                   </View>
                   <Row gap="xs" align="center">
                     <Clickable onPress={() => onRemove(member)} hitSlop={8}>
@@ -86,5 +106,11 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
   list: { gap: Spacing.xxs },
   row: { paddingVertical: Spacing.sm, borderBottomWidth: 1 },
-  avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

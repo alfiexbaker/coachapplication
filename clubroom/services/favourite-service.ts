@@ -99,7 +99,7 @@ export const favouriteService = {
 
       // Check if already favourited
       const existing = favouritesCache.find(
-        (f) => f.userId === input.userId && f.coachId === input.coachId && f.isFavourite
+        (f) => f.userId === input.userId && f.coachId === input.coachId && f.isFavourite,
       );
 
       if (existing) {
@@ -108,7 +108,7 @@ export const favouriteService = {
       }
 
       const softDeleted = favouritesCache.find(
-        (f) => f.userId === input.userId && f.coachId === input.coachId && !f.isFavourite
+        (f) => f.userId === input.userId && f.coachId === input.coachId && !f.isFavourite,
       );
 
       if (softDeleted) {
@@ -161,7 +161,7 @@ export const favouriteService = {
       favouritesCache = await loadFavourites();
 
       const favourite = favouritesCache.find(
-        (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
+        (f) => f.userId === userId && f.coachId === coachId && f.isFavourite,
       );
 
       if (!favourite) {
@@ -210,9 +210,7 @@ export const favouriteService = {
     try {
       favouritesCache = await loadFavourites();
       return ok(
-        favouritesCache.some(
-          (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
-        ),
+        favouritesCache.some((f) => f.userId === userId && f.coachId === coachId && f.isFavourite),
       );
     } catch (error) {
       logger.error('Failed to check favourite status', { userId, coachId, error });
@@ -261,7 +259,9 @@ export const favouriteService = {
   /**
    * Get favourite by ID
    */
-  async getFavouriteById(favouriteId: string): Promise<Result<FavouriteCoach | null, ServiceError>> {
+  async getFavouriteById(
+    favouriteId: string,
+  ): Promise<Result<FavouriteCoach | null, ServiceError>> {
     try {
       favouritesCache = await loadFavourites();
       return ok(favouritesCache.find((f) => f.id === favouriteId && f.isFavourite) || null);
@@ -283,7 +283,7 @@ export const favouriteService = {
       favouritesCache = await loadFavourites();
 
       const favourite = favouritesCache.find(
-        (f) => f.userId === userId && f.coachId === coachId && f.isFavourite
+        (f) => f.userId === userId && f.coachId === coachId && f.isFavourite,
       );
 
       if (!favourite) {

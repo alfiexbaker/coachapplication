@@ -38,11 +38,8 @@ const RESULT_LABELS: Record<MatchResultData['result'], string> = {
 export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResultCardProps) {
   const { colors: palette } = useTheme();
 
-  const resultColor = data.result === 'W'
-    ? palette.success
-    : data.result === 'D'
-      ? palette.muted
-      : palette.error;
+  const resultColor =
+    data.result === 'W' ? palette.success : data.result === 'D' ? palette.muted : palette.error;
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -61,7 +58,9 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
           <Ionicons name="football-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.typeLabel, { color: palette.muted }]}>Match Result</ThemedText>
         </Row>
-        <ThemedText style={[styles.dateText, { color: palette.muted }]}>{formatDate(data.date)}</ThemedText>
+        <ThemedText style={[styles.dateText, { color: palette.muted }]}>
+          {formatDate(data.date)}
+        </ThemedText>
       </Row>
 
       {/* Score display */}
@@ -77,7 +76,9 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
             {data.homeScore} - {data.awayScore}
           </ThemedText>
           <Row style={[styles.resultPill, { backgroundColor: resultColor }]}>
-            <ThemedText style={[styles.resultPillText, { color: palette.onPrimary }]}>{RESULT_LABELS[data.result]}</ThemedText>
+            <ThemedText style={[styles.resultPillText, { color: palette.onPrimary }]}>
+              {RESULT_LABELS[data.result]}
+            </ThemedText>
           </Row>
         </Row>
 
@@ -93,7 +94,8 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
         <Row style={[styles.potmRow, { backgroundColor: palette.surfaceSecondary }]}>
           <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
           <ThemedText style={[styles.potmText, { color: palette.text }]}>
-            Player of the Match: <ThemedText style={styles.potmName}>{data.playerOfTheMatch}</ThemedText>
+            Player of the Match:{' '}
+            <ThemedText style={styles.potmName}>{data.playerOfTheMatch}</ThemedText>
           </ThemedText>
         </Row>
       ) : null}
@@ -102,11 +104,15 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
       <Row style={styles.footer}>
         <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
-          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
+          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>
+            {data.likeCount}
+          </ThemedText>
         </Clickable>
         <Clickable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
-          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
+          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>
+            {data.commentCount}
+          </ThemedText>
         </Clickable>
       </Row>
     </SurfaceCard>

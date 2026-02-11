@@ -39,20 +39,13 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
       style={[
         styles.card,
         {
-          borderColor: emergencyData?.hasAlerts
-            ? withAlpha(alertColor, 0.25)
-            : colors.border,
+          borderColor: emergencyData?.hasAlerts ? withAlpha(alertColor, 0.25) : colors.border,
         },
       ]}
       onPress={handlePress}
     >
       <Row gap="sm" align="center" style={styles.header}>
-        <View
-          style={[
-            styles.icon,
-            { backgroundColor: withAlpha(alertColor, 0.09) },
-          ]}
-        >
+        <View style={[styles.icon, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
           <Ionicons
             name={emergencyData?.hasAlerts ? 'warning' : 'shield-checkmark'}
             size={20}
@@ -62,9 +55,7 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
         <Column gap="micro" style={styles.flex1}>
           <ThemedText type="defaultSemiBold">Emergency Info</ThemedText>
           <ThemedText style={[styles.subtext, { color: colors.muted }]}>
-            {emergencyData
-              ? safetyService.getAlertSummary(emergencyData)
-              : 'Tap to view'}
+            {emergencyData ? safetyService.getAlertSummary(emergencyData) : 'Tap to view'}
           </ThemedText>
         </Column>
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
@@ -78,7 +69,7 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
           {emergencyData.conditions.slice(0, 1).map((condition, i) => (
             <MedicalAlertBadge key={`c-${i}`} type="condition" label={condition} size="small" />
           ))}
-          {(emergencyData.allergies.length + emergencyData.conditions.length) > 3 && (
+          {emergencyData.allergies.length + emergencyData.conditions.length > 3 && (
             <View style={[styles.moreBadge, { backgroundColor: colors.surfaceSecondary }]}>
               <ThemedText style={[styles.moreText, { color: colors.muted }]}>
                 +{emergencyData.allergies.length + emergencyData.conditions.length - 3} more
@@ -89,11 +80,7 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
       )}
 
       {emergencyData?.primaryContact && (
-        <Row
-          gap="xs"
-          align="center"
-          style={[styles.contact, { borderTopColor: colors.border }]}
-        >
+        <Row gap="xs" align="center" style={[styles.contact, { borderTopColor: colors.border }]}>
           <Ionicons name="call" size={14} color={colors.success} />
           <ThemedText style={[styles.contactText, { color: colors.muted }]} numberOfLines={1}>
             {emergencyData.primaryContact.name} ({emergencyData.primaryContact.relationship})

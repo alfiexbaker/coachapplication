@@ -38,36 +38,35 @@ export function useAthleteDetail(athleteId: string) {
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [newTag, setNewTag] = useState('');
 
-  const { data, status, error, refreshing, onRefresh, retry } =
-    useScreen<AthleteProfileData>({
-      load: async (): Promise<Result<AthleteProfileData, ServiceError>> => {
-        try {
-          const entry = await rosterService.getRosterEntry(coachId, athleteId);
-          if (!entry) {
-            return err({ code: 'NOT_FOUND', message: 'Athlete not found' });
-          }
-          const athleteName = getRosterAthleteName(entry);
-          const [emergencyResult, childData] = await Promise.all([
-            safetyService.getAthleteEmergency(athleteId, athleteName),
-            childService.getChild(athleteId),
-          ]);
-          if (!emergencyResult.success) {
-            logger.warn('Failed to load athlete emergency data', emergencyResult.error);
-          }
-          return ok({
-            entry,
-            emergencyData: emergencyResult.success ? emergencyResult.data : null,
-            childData,
-          });
-        } catch (e) {
-          logger.error('Failed to load athlete profile', e);
-          return err(storageError('Failed to load athlete profile'));
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteProfileData>({
+    load: async (): Promise<Result<AthleteProfileData, ServiceError>> => {
+      try {
+        const entry = await rosterService.getRosterEntry(coachId, athleteId);
+        if (!entry) {
+          return err({ code: 'NOT_FOUND', message: 'Athlete not found' });
         }
-      },
-      deps: [coachId, athleteId],
-      events: [ServiceEvents.BOOKING_CREATED, ServiceEvents.CONCERN_RAISED],
-      isEmpty: (d) => !d.entry,
-    });
+        const athleteName = getRosterAthleteName(entry);
+        const [emergencyResult, childData] = await Promise.all([
+          safetyService.getAthleteEmergency(athleteId, athleteName),
+          childService.getChild(athleteId),
+        ]);
+        if (!emergencyResult.success) {
+          logger.warn('Failed to load athlete emergency data', emergencyResult.error);
+        }
+        return ok({
+          entry,
+          emergencyData: emergencyResult.success ? emergencyResult.data : null,
+          childData,
+        });
+      } catch (e) {
+        logger.error('Failed to load athlete profile', e);
+        return err(storageError('Failed to load athlete profile'));
+      }
+    },
+    deps: [coachId, athleteId],
+    events: [ServiceEvents.BOOKING_CREATED, ServiceEvents.CONCERN_RAISED],
+    isEmpty: (d) => !d.entry,
+  });
 
   const handleUpdateStatus = useCallback(
     async (newStatus: RosterEntry['status']) => {
@@ -76,7 +75,7 @@ export function useAthleteDetail(athleteId: string) {
       setShowStatusModal(false);
       onRefresh();
     },
-    [coachId, data, onRefresh]
+    [coachId, data, onRefresh],
   );
 
   const handleUpdateFocus = useCallback(
@@ -85,7 +84,7 @@ export function useAthleteDetail(athleteId: string) {
       await rosterService.updatePrimaryFocus(coachId, data.entry.athleteId, focus);
       onRefresh();
     },
-    [coachId, data, onRefresh]
+    [coachId, data, onRefresh],
   );
 
   const handleAddNote = useCallback(
@@ -94,7 +93,7 @@ export function useAthleteDetail(athleteId: string) {
       await rosterService.addNote(coachId, data.entry.athleteId, content);
       onRefresh();
     },
-    [coachId, data, onRefresh]
+    [coachId, data, onRefresh],
   );
 
   const handleDeleteNote = useCallback(
@@ -112,7 +111,7 @@ export function useAthleteDetail(athleteId: string) {
         },
       ]);
     },
-    [coachId, data, onRefresh]
+    [coachId, data, onRefresh],
   );
 
   const handleTagRemove = useCallback(
@@ -122,7 +121,7 @@ export function useAthleteDetail(athleteId: string) {
       await rosterService.updateTags(coachId, data.entry.athleteId, tags);
       onRefresh();
     },
-    [coachId, data, onRefresh]
+    [coachId, data, onRefresh],
   );
 
   const handleTagAdd = useCallback(() => setShowTagsModal(true), []);
@@ -159,7 +158,7 @@ export function useAthleteDetail(athleteId: string) {
             router.back();
           },
         },
-      ]
+      ],
     );
   }, [coachId, data]);
 

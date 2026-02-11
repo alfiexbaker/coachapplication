@@ -27,7 +27,10 @@ export interface InviteSlotHold {
 
 async function loadHolds(): Promise<InviteSlotHold[]> {
   try {
-    const stored = await apiClient.get<InviteSlotHold[] | null>(STORAGE_KEYS.INVITE_SLOT_HOLDS, null);
+    const stored = await apiClient.get<InviteSlotHold[] | null>(
+      STORAGE_KEYS.INVITE_SLOT_HOLDS,
+      null,
+    );
     return stored || [];
   } catch (error) {
     logger.error('Failed to load holds', error);
@@ -51,7 +54,7 @@ export const inviteHoldService = {
     coachId: string,
     inviteId: string,
     slots: { date: string; startTime: string; endTime: string }[],
-    expiresAt: string
+    expiresAt: string,
   ): Promise<InviteSlotHold[]> {
     const holds = await loadHolds();
     const newHolds: InviteSlotHold[] = slots.map((slot, i) => ({
@@ -113,9 +116,7 @@ export const inviteHoldService = {
   async getActiveHolds(coachId: string): Promise<InviteSlotHold[]> {
     const holds = await loadHolds();
     const now = new Date().toISOString();
-    return holds.filter(
-      (h) => h.coachId === coachId && h.status === 'active' && h.expiresAt > now
-    );
+    return holds.filter((h) => h.coachId === coachId && h.status === 'active' && h.expiresAt > now);
   },
 
   /**

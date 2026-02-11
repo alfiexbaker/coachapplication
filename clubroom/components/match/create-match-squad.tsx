@@ -21,13 +21,22 @@ interface CreateMatchSquadProps {
 }
 
 export const CreateMatchSquad = memo(function CreateMatchSquad({
-  squads, selectedSquadId, squadMemberCount, autoInvite, colors,
-  onSelectSquad, onAutoInviteChange,
+  squads,
+  selectedSquadId,
+  squadMemberCount,
+  autoInvite,
+  colors,
+  onSelectSquad,
+  onAutoInviteChange,
 }: CreateMatchSquadProps) {
   return (
     <View style={styles.stepContent}>
-      <ThemedText type="defaultSemiBold" style={styles.stepTitle}>Select Squad</ThemedText>
-      <ThemedText style={[styles.stepSubtitle, { color: colors.muted }]}>Choose the squad playing in this match</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.stepTitle}>
+        Select Squad
+      </ThemedText>
+      <ThemedText style={[styles.stepSubtitle, { color: colors.muted }]}>
+        Choose the squad playing in this match
+      </ThemedText>
 
       <View style={styles.squadList}>
         {squads.map((squad) => {
@@ -35,7 +44,11 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
           return (
             <Clickable
               key={squad.id}
-              style={[styles.squadCard, { borderColor: isSelected ? colors.tint : colors.border }, isSelected && { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+              style={[
+                styles.squadCard,
+                { borderColor: isSelected ? colors.tint : colors.border },
+                isSelected && { backgroundColor: withAlpha(colors.tint, 0.06) },
+              ]}
               onPress={() => onSelectSquad(squad.id)}
             >
               <Row align="center" gap="md" flex>
@@ -45,10 +58,16 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
                 <View style={styles.squadInfo}>
                   <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
                   <Row gap="sm" align="center">
-                    <View style={[styles.ageChip, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
-                      <ThemedText style={[Typography.caption, { color: colors.tint }]}>{squadService.getAgeGroupLabel(squad)}</ThemedText>
+                    <View
+                      style={[styles.ageChip, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                    >
+                      <ThemedText style={[Typography.caption, { color: colors.tint }]}>
+                        {squadService.getAgeGroupLabel(squad)}
+                      </ThemedText>
                     </View>
-                    <ThemedText style={[Typography.small, { color: colors.muted }]}>{squad.memberCount} players</ThemedText>
+                    <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                      {squad.memberCount} players
+                    </ThemedText>
                   </Row>
                 </View>
                 {isSelected ? (
@@ -76,7 +95,11 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
               Send availability requests to all {squadMemberCount} squad members
             </ThemedText>
           </View>
-          <Switch value={autoInvite} onValueChange={onAutoInviteChange} trackColor={{ false: colors.border, true: colors.tint }} />
+          <Switch
+            value={autoInvite}
+            onValueChange={onAutoInviteChange}
+            trackColor={{ false: colors.border, true: colors.tint }}
+          />
         </Row>
       )}
     </View>
@@ -89,9 +112,19 @@ const styles = StyleSheet.create({
   stepSubtitle: { textAlign: 'center', ...Typography.bodySmall, marginBottom: Spacing.sm },
   squadList: { gap: Spacing.sm },
   squadCard: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
-  squadIcon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  squadIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   squadInfo: { flex: 1, gap: Spacing.micro },
-  ageChip: { paddingHorizontal: Spacing.xxs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  ageChip: {
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
   emptyCheck: { width: 24, height: 24, borderRadius: Radii.md, borderWidth: 2 },
   emptySquads: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
   autoInviteRow: { paddingTop: Spacing.md, marginTop: Spacing.md, borderTopWidth: 1 },

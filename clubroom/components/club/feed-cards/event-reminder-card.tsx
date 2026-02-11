@@ -43,7 +43,9 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
       <Row style={styles.headerRow}>
         <Row style={styles.typeRow}>
           <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.tint} />
-          <ThemedText style={[styles.typeLabel, { color: palette.tint }]}>Upcoming Event</ThemedText>
+          <ThemedText style={[styles.typeLabel, { color: palette.tint }]}>
+            Upcoming Event
+          </ThemedText>
         </Row>
       </Row>
 
@@ -51,10 +53,17 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
       <ThemedText style={[styles.eventTitle, { color: palette.text }]}>{data.title}</ThemedText>
 
       {/* Details grid */}
-      <View style={[styles.detailsContainer, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}>
+      <View
+        style={[
+          styles.detailsContainer,
+          { backgroundColor: palette.surfaceSecondary, borderColor: palette.border },
+        ]}
+      >
         <Row style={styles.detailRow}>
           <Ionicons name="calendar" size={Components.icon.sm} color={palette.tint} />
-          <ThemedText style={[styles.detailText, { color: palette.text }]}>{formatDate(data.date)}</ThemedText>
+          <ThemedText style={[styles.detailText, { color: palette.text }]}>
+            {formatDate(data.date)}
+          </ThemedText>
         </Row>
         <Row style={styles.detailRow}>
           <Ionicons name="time-outline" size={Components.icon.sm} color={palette.tint} />
@@ -62,7 +71,9 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
         </Row>
         <Row style={styles.detailRow}>
           <Ionicons name="location-outline" size={Components.icon.sm} color={palette.tint} />
-          <ThemedText style={[styles.detailText, { color: palette.text }]}>{data.location}</ThemedText>
+          <ThemedText style={[styles.detailText, { color: palette.text }]}>
+            {data.location}
+          </ThemedText>
         </Row>
       </View>
 
@@ -71,7 +82,8 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
         <Row style={styles.rsvpCount}>
           <Ionicons name="people-outline" size={Components.icon.sm} color={palette.muted} />
           <ThemedText style={[styles.rsvpText, { color: palette.muted }]}>
-            {data.rsvpCount}{data.totalInvited ? `/${data.totalInvited}` : ''} attending
+            {data.rsvpCount}
+            {data.totalInvited ? `/${data.totalInvited}` : ''} attending
           </ThemedText>
         </Row>
 

@@ -16,12 +16,17 @@ import { BookingFlowSummary } from './booking-flow-summary';
 export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
   const availability = useMemo(() => buildAvailability(), []);
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(availability[0]?.slots[0]?.id);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(
+    availability[0]?.slots[0]?.id,
+  );
 
   useEffect(() => {
     const day = availability.find((entry) => entry.id === selectedDayId);
     if (!day) return;
-    if (!day.slots.length) { setSelectedSlotId(undefined); return; }
+    if (!day.slots.length) {
+      setSelectedSlotId(undefined);
+      return;
+    }
     const hasSelected = day.slots.some((s) => s.id === selectedSlotId);
     if (!hasSelected) setSelectedSlotId(day.slots[0].id);
   }, [availability, selectedDayId, selectedSlotId]);

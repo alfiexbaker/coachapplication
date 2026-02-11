@@ -214,14 +214,10 @@ async function getChallengeById(challengeId: string): Promise<Challenge | null> 
 /**
  * Check how many submissions an athlete has made for a challenge.
  */
-async function getAthleteSubmissionCount(
-  challengeId: string,
-  athleteId: string,
-): Promise<number> {
+async function getAthleteSubmissionCount(challengeId: string, athleteId: string): Promise<number> {
   const submissions = await getAllSubmissions();
-  return submissions.filter(
-    (s) => s.challengeId === challengeId && s.athleteId === athleteId,
-  ).length;
+  return submissions.filter((s) => s.challengeId === challengeId && s.athleteId === athleteId)
+    .length;
 }
 
 export const challengeService = {

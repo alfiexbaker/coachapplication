@@ -122,7 +122,7 @@ const MOCK_COACHES: Coach[] = [
   {
     id: 'coach-2',
     name: 'Sarah Williams',
-    bio: 'Passionate about developing young talent. Former England Women\'s U21 player with a focus on technical excellence and tactical awareness.',
+    bio: "Passionate about developing young talent. Former England Women's U21 player with a focus on technical excellence and tactical awareness.",
     sports: ['Football'],
     location: { city: 'London', state: 'Greater London', lat: 51.5074, lng: -0.1278 },
     distance: 5.0,
@@ -145,12 +145,8 @@ const MOCK_COACHES: Coach[] = [
         current: true,
       },
     ],
-    certifications: [
-      { name: 'UEFA A License', issuer: 'UEFA', issueDate: '2020' },
-    ],
-    languages: [
-      { name: 'English', proficiency: 'Native' },
-    ],
+    certifications: [{ name: 'UEFA A License', issuer: 'UEFA', issueDate: '2020' }],
+    languages: [{ name: 'English', proficiency: 'Native' }],
   },
 ];
 
@@ -161,7 +157,8 @@ const MOCK_REVIEWS: PublicReview[] = [
     reviewerName: 'James P.',
     reviewerId: 'parent-1',
     rating: 5,
-    comment: 'Marcus is fantastic with my son. His confidence on the ball has improved dramatically over the past 3 months. Highly recommend!',
+    comment:
+      'Marcus is fantastic with my son. His confidence on the ball has improved dramatically over the past 3 months. Highly recommend!',
     sessionType: '1-on-1 Session',
     createdAt: '2024-01-10T14:00:00Z',
   },
@@ -171,7 +168,8 @@ const MOCK_REVIEWS: PublicReview[] = [
     reviewerName: 'Emily R.',
     reviewerId: 'parent-2',
     rating: 5,
-    comment: 'Professional, punctual, and great with kids. My daughter loves her sessions with Marcus.',
+    comment:
+      'Professional, punctual, and great with kids. My daughter loves her sessions with Marcus.',
     sessionType: 'Group Session',
     createdAt: '2024-01-05T10:00:00Z',
   },
@@ -200,7 +198,8 @@ const MOCK_REVIEWS: PublicReview[] = [
     reviewerName: 'Michael B.',
     reviewerId: 'parent-5',
     rating: 5,
-    comment: 'Sarah is an incredible coach. Her experience as a professional really shows in how she teaches.',
+    comment:
+      'Sarah is an incredible coach. Her experience as a professional really shows in how she teaches.',
     sessionType: '1-on-1 Session',
     createdAt: '2024-01-08T09:00:00Z',
   },
@@ -248,7 +247,7 @@ export const coachService = {
       }
       if (filters?.sport) {
         coaches = coaches.filter((c) =>
-          c.sports.some((s) => s.toLowerCase() === filters.sport!.toLowerCase())
+          c.sports.some((s) => s.toLowerCase() === filters.sport!.toLowerCase()),
         );
       }
 
@@ -284,13 +283,14 @@ export const coachService = {
       comment?: string;
       sessionId?: string;
       sessionType?: string;
-    }
+    },
   ): Promise<Result<PublicReview, ServiceError>> {
     logger.info('Submitting review', { coachId, rating: review.rating });
     try {
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const reviews = await apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS);
-      const canonicalCoachId = coaches.find((coach) => accountIdsMatch(coach.id, coachId))?.id ?? coachId;
+      const canonicalCoachId =
+        coaches.find((coach) => accountIdsMatch(coach.id, coachId))?.id ?? coachId;
 
       const newReview: PublicReview = {
         id: `review-${Date.now()}`,
@@ -325,7 +325,7 @@ export const coachService = {
         (c) =>
           c.name.toLowerCase().includes(lowerQuery) ||
           c.bio?.toLowerCase().includes(lowerQuery) ||
-          c.footballFocuses?.some((f) => f.toLowerCase().includes(lowerQuery))
+          c.footballFocuses?.some((f) => f.toLowerCase().includes(lowerQuery)),
       );
       return ok(results);
     } catch (error) {

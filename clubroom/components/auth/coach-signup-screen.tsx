@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,7 +30,10 @@ export interface CoachSignupData {
   schoolName: string;
 }
 
-export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: CoachSignupScreenProps) {
+export default function CoachSignupScreen({
+  onSignupComplete,
+  onBackToLogin,
+}: CoachSignupScreenProps) {
   const { colors: palette } = useTheme();
 
   const [inviteCode, setInviteCode] = useState('');
@@ -96,7 +93,10 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
     }
 
     onSignupComplete({
-      fullName, email, phone, password,
+      fullName,
+      email,
+      phone,
+      password,
       inviteCode: inviteCode.trim().toUpperCase(),
       schoolId: validatedSchool.id,
       schoolName: validatedSchool.name,
@@ -110,21 +110,38 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
   };
 
   const isFormValid =
-    inviteValidated && fullName && email && phone &&
-    password && confirmPassword &&
-    password === confirmPassword && password.length >= 6;
+    inviteValidated &&
+    fullName &&
+    email &&
+    phone &&
+    password &&
+    confirmPassword &&
+    password === confirmPassword &&
+    password.length >= 6;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.wrapper}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <SurfaceCard style={styles.card}>
-            <ThemedText type="eyebrow" style={styles.eyebrow}>Coach Registration</ThemedText>
-            <ThemedText type="title" style={styles.title}>Join Your School</ThemedText>
-            <ThemedText style={styles.subtitle}>Enter your invite code from your school.</ThemedText>
+            <ThemedText type="eyebrow" style={styles.eyebrow}>
+              Coach Registration
+            </ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              Join Your School
+            </ThemedText>
+            <ThemedText style={styles.subtitle}>
+              Enter your invite code from your school.
+            </ThemedText>
 
             <InviteCodeSection
               inviteCode={inviteCode}
@@ -140,17 +157,29 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
               <>
                 <Divider spacing={Spacing.sm} />
                 <CoachFormFields
-                  fullName={fullName} email={email} phone={phone}
-                  password={password} confirmPassword={confirmPassword}
-                  onChangeFullName={setFullName} onChangeEmail={setEmail}
-                  onChangePhone={setPhone} onChangePassword={setPassword}
+                  fullName={fullName}
+                  email={email}
+                  phone={phone}
+                  password={password}
+                  confirmPassword={confirmPassword}
+                  onChangeFullName={setFullName}
+                  onChangeEmail={setEmail}
+                  onChangePhone={setPhone}
+                  onChangePassword={setPassword}
                   onChangeConfirmPassword={setConfirmPassword}
-                  onSubmit={handleSubmit} palette={palette}
+                  onSubmit={handleSubmit}
+                  palette={palette}
                 />
                 {formError ? (
-                  <ThemedText style={{ color: palette.error, opacity: 0.9 }}>{formError}</ThemedText>
+                  <ThemedText style={{ color: palette.error, opacity: 0.9 }}>
+                    {formError}
+                  </ThemedText>
                 ) : null}
-                <SignupSubmitButton isValid={!!isFormValid} onPress={handleSubmit} palette={palette} />
+                <SignupSubmitButton
+                  isValid={!!isFormValid}
+                  onPress={handleSubmit}
+                  palette={palette}
+                />
               </>
             )}
           </SurfaceCard>

@@ -9,7 +9,7 @@ import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { SessionTypeSelector } from '@/components/ui/booking/session-type-selector';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
@@ -20,7 +20,10 @@ export default function SessionTypeScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <BookingWizardHeader
           title="Book a session"
@@ -28,7 +31,10 @@ export default function SessionTypeScreen() {
           step={1}
         />
 
-        <SessionTypeSelector selected={draft.sessionType} onSelect={(id) => updateDraft({ sessionType: id, coachId })} />
+        <SessionTypeSelector
+          selected={draft.sessionType}
+          onSelect={(id) => updateDraft({ sessionType: id, coachId })}
+        />
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">Duration</ThemedText>
@@ -47,7 +53,9 @@ export default function SessionTypeScreen() {
                   ]}
                   onPress={() => updateDraft({ duration })}
                 >
-                  <ThemedText style={{ color: active ? palette.tint : palette.text }}>{duration} mins</ThemedText>
+                  <ThemedText style={{ color: active ? palette.tint : palette.text }}>
+                    {duration} mins
+                  </ThemedText>
                 </Clickable>
               );
             })}
@@ -73,7 +81,9 @@ export default function SessionTypeScreen() {
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+              Continue
+            </ThemedText>
           </Row>
         </Clickable>
       </View>
@@ -85,7 +95,12 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   row: { gap: Spacing.sm },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1.5 },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1.5,
+  },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: { padding: Spacing.md, borderRadius: Radii.button },

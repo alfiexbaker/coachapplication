@@ -170,9 +170,7 @@ class TrialService {
   async getTrialUsageCount(coachId: string, parentId: string): Promise<number> {
     logger.info('Checking trial usage', { coachId, parentId });
     const usages = await apiClient.get<TrialUsage[]>(STORAGE_KEYS.TRIAL_USAGES, []);
-    return usages.filter(
-      (u) => u.coachId === coachId && u.parentId === parentId,
-    ).length;
+    return usages.filter((u) => u.coachId === coachId && u.parentId === parentId).length;
   }
 
   /**
@@ -210,7 +208,12 @@ class TrialService {
     trialBookingId: string,
     regularBookingId: string,
   ): Promise<TrialConversion> {
-    logger.info('Recording trial conversion', { coachId, parentId, trialBookingId, regularBookingId });
+    logger.info('Recording trial conversion', {
+      coachId,
+      parentId,
+      trialBookingId,
+      regularBookingId,
+    });
 
     const conversion: TrialConversion = {
       id: apiClient.generateId('tc'),

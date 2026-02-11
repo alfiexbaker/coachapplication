@@ -21,10 +21,14 @@ export const ROLE_LABELS: Record<GroupMemberRole, string> = {
 
 export function getRoleBadgeColor(role: GroupMemberRole, palette: ThemeColors) {
   switch (role) {
-    case 'OWNER': return { bg: withAlpha(palette.warning, 0.12), text: palette.warning };
-    case 'ADMIN': return { bg: withAlpha(palette.info, 0.12), text: palette.info };
-    case 'MODERATOR': return { bg: withAlpha(palette.success, 0.12), text: palette.success };
-    default: return { bg: withAlpha(palette.muted, 0.09), text: palette.muted };
+    case 'OWNER':
+      return { bg: withAlpha(palette.warning, 0.12), text: palette.warning };
+    case 'ADMIN':
+      return { bg: withAlpha(palette.info, 0.12), text: palette.info };
+    case 'MODERATOR':
+      return { bg: withAlpha(palette.success, 0.12), text: palette.success };
+    default:
+      return { bg: withAlpha(palette.muted, 0.09), text: palette.muted };
   }
 }
 
@@ -56,7 +60,8 @@ export const MemberRowItem = memo(function MemberRowItem({
       <View style={styles.memberInfo}>
         <Row style={styles.memberNameRow}>
           <ThemedText style={[styles.memberName, { color: palette.text }]} numberOfLines={1}>
-            {item.parentId}{isSelf ? ' (You)' : ''}
+            {item.parentId}
+            {isSelf ? ' (You)' : ''}
           </ThemedText>
           <View style={[styles.roleBadge, { backgroundColor: colors.bg }]}>
             <ThemedText style={[styles.roleBadgeText, { color: colors.text }]}>
@@ -65,11 +70,19 @@ export const MemberRowItem = memo(function MemberRowItem({
           </View>
         </Row>
         <ThemedText style={[styles.memberJoined, { color: palette.muted }]}>
-          Joined {new Date(item.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          Joined{' '}
+          {new Date(item.joinedAt).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
         </ThemedText>
       </View>
       {canManage && (
-        <Clickable onPress={() => onMemberManage(item)} style={[styles.manageButton, { borderColor: palette.border }]}>
+        <Clickable
+          onPress={() => onMemberManage(item)}
+          style={[styles.manageButton, { borderColor: palette.border }]}
+        >
           <ThemedText style={[styles.manageButtonText, { color: palette.tint }]}>Manage</ThemedText>
         </Clickable>
       )}

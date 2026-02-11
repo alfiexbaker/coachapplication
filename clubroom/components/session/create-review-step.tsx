@@ -64,13 +64,13 @@ export const CreateReviewStep = memo(function CreateReviewStep({
   inviteType,
   defaultMaxParticipants,
 }: CreateReviewStepProps) {
-  const typeConfig = useMemo(() => SESSION_TYPES.find(t => t.key === sessionType), [sessionType]);
+  const typeConfig = useMemo(() => SESSION_TYPES.find((t) => t.key === sessionType), [sessionType]);
   const durationLabel = useMemo(
-    () => DURATION_OPTIONS.find(d => d.value === duration)?.label || `${duration} min`,
+    () => DURATION_OPTIONS.find((d) => d.value === duration)?.label || `${duration} min`,
     [duration],
   );
   const recurrenceLabel = useMemo(
-    () => RECURRENCE_OPTIONS.find(r => r.key === recurrence)?.label || 'One-time',
+    () => RECURRENCE_OPTIONS.find((r) => r.key === recurrence)?.label || 'One-time',
     [recurrence],
   );
   const participants = maxParticipants || defaultMaxParticipants;
@@ -95,7 +95,11 @@ export const CreateReviewStep = memo(function CreateReviewStep({
             <ThemedText type="title" style={styles.reviewTitle}>
               {title || 'Untitled Session'}
             </ThemedText>
-            <Row align="center" gap="xxs" style={[styles.typeBadge, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.typeBadge, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+            >
               <Ionicons name={typeConfig?.icon || 'fitness'} size={14} color={colors.tint} />
               <ThemedText style={[styles.typeBadgeText, { color: colors.tint }]}>
                 {typeConfig?.label}
@@ -117,7 +121,9 @@ export const CreateReviewStep = memo(function CreateReviewStep({
             <Row align="flex-start" gap="sm">
               <Ionicons name="time-outline" size={18} color={colors.muted} />
               <Column>
-                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>Duration</ThemedText>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Duration
+                </ThemedText>
                 <ThemedText type="defaultSemiBold">{durationLabel}</ThemedText>
               </Column>
             </Row>
@@ -125,7 +131,9 @@ export const CreateReviewStep = memo(function CreateReviewStep({
             <Row align="flex-start" gap="sm">
               <Ionicons name="calendar-outline" size={18} color={colors.muted} />
               <Column>
-                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>Schedule</ThemedText>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Schedule
+                </ThemedText>
                 <ThemedText type="defaultSemiBold">
                   {selectedDate} at {selectedTime}
                 </ThemedText>
@@ -138,7 +146,9 @@ export const CreateReviewStep = memo(function CreateReviewStep({
             <Row align="flex-start" gap="sm">
               <Ionicons name="location-outline" size={18} color={colors.muted} />
               <Column style={styles.flex}>
-                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>Location</ThemedText>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Location
+                </ThemedText>
                 <ThemedText type="defaultSemiBold" numberOfLines={2}>
                   {location}
                 </ThemedText>
@@ -148,7 +158,9 @@ export const CreateReviewStep = memo(function CreateReviewStep({
             <Row align="flex-start" gap="sm">
               <Ionicons name="people-outline" size={18} color={colors.muted} />
               <Column>
-                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>Capacity</ThemedText>
+                <ThemedText style={[styles.itemLabel, { color: colors.muted }]}>
+                  Capacity
+                </ThemedText>
                 <ThemedText type="defaultSemiBold">
                   {participants} {sessionType === '1on1' ? 'athlete' : 'athletes'}
                 </ThemedText>
@@ -173,7 +185,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
                 Focus Areas
               </ThemedText>
               <Row wrap gap="xs">
-                {focusAreas.map(area => (
+                {focusAreas.map((area) => (
                   <View
                     key={area}
                     style={[styles.focusTag, { backgroundColor: withAlpha(colors.success, 0.09) }]}

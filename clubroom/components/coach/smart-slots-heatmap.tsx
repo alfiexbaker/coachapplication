@@ -34,9 +34,14 @@ function HeatmapGridInner({ data }: { data: DayHeatmapData[] }) {
             <Text style={[styles.dayLabel, { color: colors.muted }]}>{dayData.shortDay}</Text>
           </View>
           {dayData.slots.map((slot) => (
-            <View key={`${dayData.day}-${slot.time}`} style={[styles.heatCell, { backgroundColor: getHeatColor(slot.bookingRate, colors) }]}>
+            <View
+              key={`${dayData.day}-${slot.time}`}
+              style={[styles.heatCell, { backgroundColor: getHeatColor(slot.bookingRate, colors) }]}
+            >
               {slot.bookingRate > 0 && (
-                <Text style={[styles.heatText, { color: getHeatTextColor(slot.bookingRate, colors) }]}>
+                <Text
+                  style={[styles.heatText, { color: getHeatTextColor(slot.bookingRate, colors) }]}
+                >
                   {Math.round(slot.bookingRate * 100)}
                 </Text>
               )}
@@ -49,7 +54,10 @@ function HeatmapGridInner({ data }: { data: DayHeatmapData[] }) {
       <Row style={styles.legend}>
         <Text style={[styles.legendLabel, { color: colors.muted }]}>Less busy</Text>
         {[0.1, 0.3, 0.6, 0.8, 0.95].map((rate) => (
-          <View key={rate} style={[styles.legendSwatch, { backgroundColor: getHeatColor(rate, colors) }]} />
+          <View
+            key={rate}
+            style={[styles.legendSwatch, { backgroundColor: getHeatColor(rate, colors) }]}
+          />
         ))}
         <Text style={[styles.legendLabel, { color: colors.muted }]}>More busy</Text>
       </Row>
@@ -67,9 +75,21 @@ const styles = StyleSheet.create({
   timeLabel: { ...Typography.caption, fontSize: 10 },
   dayRow: { marginBottom: Spacing.micro },
   dayLabel: { ...Typography.caption },
-  heatCell: { flex: 1, aspectRatio: 1.4, borderRadius: Radii.xs, alignItems: 'center', justifyContent: 'center', marginHorizontal: 1 },
+  heatCell: {
+    flex: 1,
+    aspectRatio: 1.4,
+    borderRadius: Radii.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 1,
+  },
   heatText: { ...Typography.micro },
-  legend: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, marginTop: Spacing.xs },
+  legend: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    marginTop: Spacing.xs,
+  },
   legendLabel: { ...Typography.caption, fontSize: 10 },
   legendSwatch: { width: 16, height: 10, borderRadius: Radii.xs },
 });

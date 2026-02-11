@@ -26,10 +26,16 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
   return (
     <SurfaceCard tactile onPress={onPress} style={styles.card}>
       <Row gap="sm" align="center">
-        <View style={[
-          styles.iconContainer,
-          { backgroundColor: hasNeeds ? withAlpha(colors.warning, 0.09) : withAlpha(colors.muted, 0.06) },
-        ]}>
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: hasNeeds
+                ? withAlpha(colors.warning, 0.09)
+                : withAlpha(colors.muted, 0.06),
+            },
+          ]}
+        >
           <Ionicons
             name="accessibility"
             size={Components.icon.md}
@@ -45,19 +51,36 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
           </ThemedText>
         </View>
         <Row gap="xs">
-          <View style={[
-            styles.counter,
-            { backgroundColor: disabilityCount > 0 ? colors.warning : withAlpha(colors.muted, 0.12) },
-          ]}>
-            <ThemedText style={[styles.counterText, { color: disabilityCount > 0 ? colors.onPrimary : colors.muted }]}>
+          <View
+            style={[
+              styles.counter,
+              {
+                backgroundColor:
+                  disabilityCount > 0 ? colors.warning : withAlpha(colors.muted, 0.12),
+              },
+            ]}
+          >
+            <ThemedText
+              style={[
+                styles.counterText,
+                { color: disabilityCount > 0 ? colors.onPrimary : colors.muted },
+              ]}
+            >
               {disabilityCount}
             </ThemedText>
           </View>
-          <View style={[
-            styles.counter,
-            { backgroundColor: allergyCount > 0 ? colors.error : withAlpha(colors.muted, 0.12) },
-          ]}>
-            <ThemedText style={[styles.counterText, { color: allergyCount > 0 ? colors.onPrimary : colors.muted }]}>
+          <View
+            style={[
+              styles.counter,
+              { backgroundColor: allergyCount > 0 ? colors.error : withAlpha(colors.muted, 0.12) },
+            ]}
+          >
+            <ThemedText
+              style={[
+                styles.counterText,
+                { color: allergyCount > 0 ? colors.onPrimary : colors.muted },
+              ]}
+            >
               {allergyCount}
             </ThemedText>
           </View>
@@ -68,7 +91,10 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
       {hasNeeds && disabilityCount > 0 && (
         <Row style={[styles.preview, { borderTopColor: withAlpha(colors.border, 0.3) }]}>
           {childProfile!.disabilities.slice(0, 2).map((d) => (
-            <View key={d.id} style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.07) }]}>
+            <View
+              key={d.id}
+              style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.07) }]}
+            >
               <ThemedText style={[styles.tagText, { color: colors.warning }]}>{d.type}</ThemedText>
             </View>
           ))}

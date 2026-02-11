@@ -9,11 +9,7 @@
  */
 
 import { api } from '@/constants/config';
-import {
-  WalletTransaction,
-  TransactionType,
-  TransactionStatus,
-} from '@/constants/types';
+import { WalletTransaction, TransactionType, TransactionStatus } from '@/constants/types';
 import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -270,7 +266,7 @@ class WalletTransactionService {
   async getTransactionsFiltered(
     userId: string,
     filter: TransactionFilter,
-    limit?: number
+    limit?: number,
   ): Promise<Result<WalletTransaction[], ServiceError>> {
     const transactionsResult = await this.getTransactions(userId);
     if (!transactionsResult.success) {
@@ -293,16 +289,12 @@ class WalletTransactionService {
     // Filter by date range
     if (filter.dateFrom) {
       const fromDate = new Date(filter.dateFrom).getTime();
-      transactions = transactions.filter(
-        (t) => new Date(t.createdAt).getTime() >= fromDate
-      );
+      transactions = transactions.filter((t) => new Date(t.createdAt).getTime() >= fromDate);
     }
 
     if (filter.dateTo) {
       const toDate = new Date(filter.dateTo).getTime();
-      transactions = transactions.filter(
-        (t) => new Date(t.createdAt).getTime() <= toDate
-      );
+      transactions = transactions.filter((t) => new Date(t.createdAt).getTime() <= toDate);
     }
 
     if (limit && limit > 0) {
@@ -349,9 +341,7 @@ class WalletTransactionService {
   /**
    * Save transactions to storage
    */
-  async saveTransactions(
-    transactions: WalletTransaction[],
-  ): Promise<Result<void, ServiceError>> {
+  async saveTransactions(transactions: WalletTransaction[]): Promise<Result<void, ServiceError>> {
     try {
       await apiClient.set(STORAGE_KEYS.WALLET_TRANSACTIONS, transactions);
       return ok(undefined);
@@ -365,7 +355,7 @@ class WalletTransactionService {
    * Create a new transaction record
    */
   async createTransaction(
-    params: Omit<WalletTransaction, 'id' | 'createdAt'>
+    params: Omit<WalletTransaction, 'id' | 'createdAt'>,
   ): Promise<Result<WalletTransaction, ServiceError>> {
     const transactionsResult = await this.getAllTransactions();
     if (!transactionsResult.success) {
@@ -400,7 +390,7 @@ class WalletTransactionService {
    */
   async updateTransaction(
     transactionId: string,
-    updates: Partial<WalletTransaction>
+    updates: Partial<WalletTransaction>,
   ): Promise<Result<WalletTransaction | null, ServiceError>> {
     const transactionsResult = await this.getAllTransactions();
     if (!transactionsResult.success) {

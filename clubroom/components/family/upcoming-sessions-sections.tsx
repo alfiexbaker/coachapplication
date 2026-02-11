@@ -54,7 +54,7 @@ export function formatTime(dateStr: string): string {
 
 export function getStatusBadge(
   status: FamilyCalendarEvent['status'],
-  palette: ThemeColors
+  palette: ThemeColors,
 ): { label: string; color: string } {
   switch (status) {
     case 'CONFIRMED':
@@ -109,10 +109,7 @@ export const SessionCard = memo(function SessionCard({
               </ThemedText>
             </Row>
             <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: withAlpha(statusBadge.color, 0.09) },
-              ]}
+              style={[styles.statusBadge, { backgroundColor: withAlpha(statusBadge.color, 0.09) }]}
             >
               <View style={[styles.statusDot, { backgroundColor: statusBadge.color }]} />
               <ThemedText style={[styles.statusText, { color: statusBadge.color }]}>
@@ -153,10 +150,7 @@ export const SessionCard = memo(function SessionCard({
             {session.location && (
               <Row style={styles.metaItem}>
                 <Ionicons name="location" size={12} color={palette.muted} />
-                <ThemedText
-                  style={[styles.metaText, { color: palette.muted }]}
-                  numberOfLines={1}
-                >
+                <ThemedText style={[styles.metaText, { color: palette.muted }]} numberOfLines={1}>
                   {session.location}
                 </ThemedText>
               </Row>
@@ -166,7 +160,8 @@ export const SessionCard = memo(function SessionCard({
           {session.price !== undefined && (
             <Row style={styles.priceRow}>
               <ThemedText type="defaultSemiBold" style={styles.priceText}>
-                {'\u00A3'}{session.price.toFixed(2)}
+                {'\u00A3'}
+                {session.price.toFixed(2)}
               </ThemedText>
             </Row>
           )}

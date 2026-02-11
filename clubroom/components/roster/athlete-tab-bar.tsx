@@ -50,10 +50,7 @@ export const AthleteTabBar = memo(function AthleteTabBar({
                 color={isActive ? colors.tint : colors.muted}
               />
               <ThemedText
-                style={[
-                  styles.tabLabel,
-                  { color: isActive ? colors.tint : colors.muted },
-                ]}
+                style={[styles.tabLabel, { color: isActive ? colors.tint : colors.muted }]}
               >
                 {tab.label}
               </ThemedText>

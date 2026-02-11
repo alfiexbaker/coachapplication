@@ -96,8 +96,20 @@ const MOCK_VIDEOS = [
         duration: 180, // 3 minutes
         fileSize: 45000000, // 45MB
         annotations: [
-            { id: 'ann_1', timestamp: 15, label: 'Good technique', note: 'Notice the planted foot position', type: 'TECHNIQUE' },
-            { id: 'ann_2', timestamp: 45, label: 'Area to improve', note: 'Follow through needs work', type: 'IMPROVEMENT' },
+            {
+                id: 'ann_1',
+                timestamp: 15,
+                label: 'Good technique',
+                note: 'Notice the planted foot position',
+                type: 'TECHNIQUE',
+            },
+            {
+                id: 'ann_2',
+                timestamp: 45,
+                label: 'Area to improve',
+                note: 'Follow through needs work',
+                type: 'IMPROVEMENT',
+            },
             { id: 'ann_3', timestamp: 120, label: 'Great finish!', type: 'HIGHLIGHT' },
         ],
         visibility: 'SHARED',
@@ -579,9 +591,7 @@ exports.videoService = {
             byType[ann.type]++;
         }
         const durationMinutes = video.duration / 60;
-        const averagePerMinute = durationMinutes > 0
-            ? video.annotations.length / durationMinutes
-            : 0;
+        const averagePerMinute = durationMinutes > 0 ? video.annotations.length / durationMinutes : 0;
         return {
             total: video.annotations.length,
             byType,

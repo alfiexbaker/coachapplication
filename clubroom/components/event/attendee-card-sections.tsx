@@ -22,17 +22,23 @@ import { styles } from './attendee-card-styles';
 
 export function getRoleIcon(role: string): keyof typeof Ionicons.glyphMap {
   switch (role) {
-    case 'COACH': return 'megaphone-outline';
-    case 'ATHLETE': return 'football-outline';
-    default: return 'person-outline';
+    case 'COACH':
+      return 'megaphone-outline';
+    case 'ATHLETE':
+      return 'football-outline';
+    default:
+      return 'person-outline';
   }
 }
 
 export function getRoleLabel(role: string): string {
   switch (role) {
-    case 'COACH': return 'Coach';
-    case 'ATHLETE': return 'Athlete';
-    default: return 'Parent';
+    case 'COACH':
+      return 'Coach';
+    case 'ATHLETE':
+      return 'Athlete';
+    default:
+      return 'Parent';
   }
 }
 
@@ -94,7 +100,11 @@ export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
         <View
           style={[
             styles.compactStatusDot,
-            { backgroundColor: eventService.getRSVPStatusColor(rsvpStatus as 'GOING' | 'MAYBE' | 'NOT_GOING') },
+            {
+              backgroundColor: eventService.getRSVPStatusColor(
+                rsvpStatus as 'GOING' | 'MAYBE' | 'NOT_GOING',
+              ),
+            },
           ]}
         />
       )}
@@ -133,12 +143,15 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
         {userPhotoUrl ? (
           <Image source={{ uri: userPhotoUrl }} style={styles.avatarImage} />
         ) : (
-          <ThemedText style={styles.avatarInitial}>
-            {userName.charAt(0).toUpperCase()}
-          </ThemedText>
+          <ThemedText style={styles.avatarInitial}>{userName.charAt(0).toUpperCase()}</ThemedText>
         )}
         {showCheckInStatus && isCheckedIn && (
-          <View style={[styles.checkInBadge, { backgroundColor: palette.success, borderColor: palette.surface }]}>
+          <View
+            style={[
+              styles.checkInBadge,
+              { backgroundColor: palette.success, borderColor: palette.surface },
+            ]}
+          >
             <Ionicons name="checkmark" size={10} color={palette.onSuccess} />
           </View>
         )}
@@ -146,7 +159,9 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
 
       <View style={styles.info}>
         <Row style={styles.nameRow}>
-          <ThemedText type="defaultSemiBold" style={styles.name}>{userName}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.name}>
+            {userName}
+          </ThemedText>
           {rsvp && (
             <View
               style={[
@@ -160,7 +175,10 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
                 color={eventService.getRSVPStatusColor(rsvp.status)}
               />
               <ThemedText
-                style={[styles.statusBadgeText, { color: eventService.getRSVPStatusColor(rsvp.status) }]}
+                style={[
+                  styles.statusBadgeText,
+                  { color: eventService.getRSVPStatusColor(rsvp.status) },
+                ]}
               >
                 {eventService.formatRSVPStatus(rsvp.status)}
               </ThemedText>

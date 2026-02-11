@@ -14,6 +14,14 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { useTheme } from '@/hooks/useTheme';
 
+import {
+  MOCK_RECENT_SEARCHES,
+  MOCK_POPULAR,
+  MOCK_AREAS,
+  SectionHeader,
+  SuggestionRow,
+} from './search-suggestions-sections';
+
 // Re-export extracted components for backward compat
 export {
   MOCK_RECENT_SEARCHES,
@@ -23,14 +31,6 @@ export {
   SuggestionRow,
 } from './search-suggestions-sections';
 export type { SectionHeaderProps, SuggestionRowProps } from './search-suggestions-sections';
-
-import {
-  MOCK_RECENT_SEARCHES,
-  MOCK_POPULAR,
-  MOCK_AREAS,
-  SectionHeader,
-  SuggestionRow,
-} from './search-suggestions-sections';
 
 // ---------------------------------------------------------------------------
 // Types

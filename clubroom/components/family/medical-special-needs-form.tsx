@@ -9,12 +9,12 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Disability } from '@/services/child-service';
 
+import { DisabilitySelector } from './medical-special-needs-form-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { DisabilitySelector } from './medical-special-needs-form-sections';
 export type { DisabilitySelectorProps } from './medical-special-needs-form-sections';
-
-import { DisabilitySelector } from './medical-special-needs-form-sections';
-import { Row } from '@/components/primitives';
 
 interface SpecialNeedsFormProps {
   firstName: string;
@@ -56,8 +56,8 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
       <SurfaceCard style={styles.infoCard}>
         <Ionicons name="heart-outline" size={24} color={palette.tint} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          This information helps coaches provide the best experience for your child.
-          It will be shared with coaches who work with {firstName || 'your child'}.
+          This information helps coaches provide the best experience for your child. It will be
+          shared with coaches who work with {firstName || 'your child'}.
         </ThemedText>
       </SurfaceCard>
 

@@ -8,7 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing  , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useBookingFlow } from '@/context/booking-flow-context';
@@ -26,7 +26,10 @@ export default function DetailsScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <BookingWizardHeader
           title="Add details"
@@ -93,7 +96,9 @@ export default function DetailsScreen() {
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+              Continue
+            </ThemedText>
           </Row>
         </Clickable>
       </View>
@@ -106,7 +111,13 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   option: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md },
-  textArea: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, minHeight: 120, textAlignVertical: 'top' },
+  textArea: {
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: { padding: Spacing.md, borderRadius: Radii.button },
 });

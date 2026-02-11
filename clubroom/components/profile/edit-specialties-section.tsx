@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -21,7 +21,10 @@ interface EditSpecialtiesSectionProps {
 }
 
 export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
-  colors, objectives, selectedFocuses, onToggleFocus,
+  colors,
+  objectives,
+  selectedFocuses,
+  onToggleFocus,
 }: EditSpecialtiesSectionProps) {
   return (
     <SurfaceCard style={styles.section}>
@@ -60,8 +63,10 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.md },
   subtitle: { opacity: 0.6, ...Typography.bodySmall },
   focusChip: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill, borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
   },
   focusText: { fontWeight: '600' },
 });

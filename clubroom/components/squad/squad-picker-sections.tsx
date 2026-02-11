@@ -59,7 +59,9 @@ export const SquadPickerItem = React.memo(function SquadPickerItem({
           <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
           <Row align="center" gap="sm">
             <View style={[styles.metaChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-              <ThemedText style={{ ...Typography.caption, color: palette.tint }}>{ageGroup}</ThemedText>
+              <ThemedText style={{ ...Typography.caption, color: palette.tint }}>
+                {ageGroup}
+              </ThemedText>
             </View>
             <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {squad.memberCount} athlete{squad.memberCount !== 1 ? 's' : ''}
@@ -115,7 +117,10 @@ export const QuickActionBar = React.memo(function QuickActionBar({
       </Clickable>
       <Clickable
         onPress={onClear}
-        style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
+        style={[
+          styles.quickActionButton,
+          { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
+        ]}
       >
         <ThemedText style={{ ...Typography.caption, color: palette.text }}>Clear</ThemedText>
       </Clickable>
@@ -141,7 +146,11 @@ export const SelectedBanner = React.memo(function SelectedBanner({
   if (selectedCount === 0) return null;
 
   return (
-    <Row align="center" gap="sm" style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+    <Row
+      align="center"
+      gap="sm"
+      style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+    >
       <Ionicons name="people" size={18} color={palette.tint} />
       <ThemedText style={{ color: palette.tint, fontWeight: '600', flex: 1 }}>
         {selectedCount} squad{selectedCount !== 1 ? 's' : ''} selected

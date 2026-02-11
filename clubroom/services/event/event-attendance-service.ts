@@ -58,7 +58,10 @@ let attendanceCache: EventAttendance[] = [...MOCK_ATTENDANCE];
 
 async function loadAttendance(): Promise<EventAttendance[]> {
   try {
-    const stored = await apiClient.get<EventAttendance[] | null>(STORAGE_KEYS.EVENT_ATTENDANCE, null);
+    const stored = await apiClient.get<EventAttendance[] | null>(
+      STORAGE_KEYS.EVENT_ATTENDANCE,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load attendance', error);
@@ -82,12 +85,7 @@ async function saveAttendance(attendance: EventAttendance[]): Promise<void> {
 /**
  * Calculate distance between two coordinates in meters using Haversine formula
  */
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth's radius in meters
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -133,7 +131,7 @@ export const eventAttendanceService = {
         input.location.latitude,
         input.location.longitude,
         venueLocation.latitude,
-        venueLocation.longitude
+        venueLocation.longitude,
       );
       attendance.distanceFromVenue = Math.round(distance);
       attendance.locationValidated = distance <= LOCATION_VALIDATION_THRESHOLD;
@@ -144,7 +142,7 @@ export const eventAttendanceService = {
 
       // Check if already checked in
       const existingIndex = attendanceCache.findIndex(
-        (a) => a.eventId === input.eventId && a.userId === input.userId
+        (a) => a.eventId === input.eventId && a.userId === input.userId,
       );
 
       if (existingIndex >= 0) {
@@ -173,9 +171,7 @@ export const eventAttendanceService = {
   async removeCheckIn(eventId: string, userId: string): Promise<void> {
     if (USE_MOCK) {
       attendanceCache = await loadAttendance();
-      const index = attendanceCache.findIndex(
-        (a) => a.eventId === eventId && a.userId === userId
-      );
+      const index = attendanceCache.findIndex((a) => a.eventId === eventId && a.userId === userId);
       if (index >= 0) {
         attendanceCache.splice(index, 1);
         await saveAttendance(attendanceCache);
@@ -256,15 +252,11 @@ export const eventAttendanceService = {
 
       // Calculate checked-in counts
       const checkedInCount = eventAttendance.length;
-      const guestsCheckedInCount = eventAttendance.reduce(
-        (sum, a) => sum + a.guestsCheckedIn,
-        0
-      );
+      const guestsCheckedInCount = eventAttendance.reduce((sum, a) => sum + a.guestsCheckedIn, 0);
 
       // Calculate attendance rate
       const goingCount = rsvpCounts.going;
-      const attendanceRate =
-        goingCount > 0 ? Math.round((checkedInCount / goingCount) * 100) : 0;
+      const attendanceRate = goingCount > 0 ? Math.round((checkedInCount / goingCount) * 100) : 0;
 
       // Breakdown by role
       const byRole = {

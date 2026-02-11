@@ -35,7 +35,7 @@ export const REASON_ICONS: Record<CancellationReason, keyof typeof Ionicons.glyp
 // ─── ReasonsBreakdown ───────────────────────────────────────────
 
 export interface ReasonsBreakdownProps {
-  byReason: Array<{ reason: CancellationReason; count: number; percentage: number }>;
+  byReason: { reason: CancellationReason; count: number; percentage: number }[];
   maxReasonCount: number;
   palette: ThemeColors;
 }
@@ -49,9 +49,7 @@ export const ReasonsBreakdown = memo(function ReasonsBreakdown({
 
   return (
     <View style={styles.reasonsSection}>
-      <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-        By Reason
-      </ThemedText>
+      <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>By Reason</ThemedText>
       <View style={styles.reasonsList}>
         {byReason.map((reason) => (
           <Row key={reason.reason} style={styles.reasonRow}>
@@ -62,9 +60,7 @@ export const ReasonsBreakdown = memo(function ReasonsBreakdown({
                 color={palette.muted}
                 style={styles.reasonIcon}
               />
-              <ThemedText style={styles.reasonLabel}>
-                {REASON_LABELS[reason.reason]}
-              </ThemedText>
+              <ThemedText style={styles.reasonLabel}>{REASON_LABELS[reason.reason]}</ThemedText>
             </Row>
             <View style={[styles.reasonBarContainer, { backgroundColor: palette.border }]}>
               <View
@@ -91,7 +87,7 @@ export const ReasonsBreakdown = memo(function ReasonsBreakdown({
 // ─── DayOfWeekBreakdown ─────────────────────────────────────────
 
 export interface DayOfWeekBreakdownProps {
-  byDayOfWeek: Array<{ dayOfWeek: number; dayName: string; count: number }>;
+  byDayOfWeek: { dayOfWeek: number; dayName: string; count: number }[];
   palette: ThemeColors;
 }
 
@@ -137,7 +133,8 @@ export const NoticeFooter = memo(function NoticeFooter({
     <Row style={[styles.noticeSection, { borderTopColor: palette.border }]}>
       <Ionicons name="alarm-outline" size={16} color={palette.muted} />
       <ThemedText style={[styles.noticeText, { color: palette.muted }]}>
-        Average notice: <ThemedText style={styles.noticeValue}>{avgNoticeHours}h</ThemedText> before session
+        Average notice: <ThemedText style={styles.noticeValue}>{avgNoticeHours}h</ThemedText> before
+        session
       </ThemedText>
     </Row>
   );

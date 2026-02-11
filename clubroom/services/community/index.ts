@@ -18,8 +18,15 @@ export { communityMessagingService } from './community-messaging-service';
 export { communityCarpoolService } from './community-carpool-service';
 
 // Re-export types
-export type { CreateGroupParams, GroupInvite, ChangeMemberRoleParams } from './community-group-service';
-export type { CreateCarpoolOfferParams, RequestCarpoolSeatParams } from './community-carpool-service';
+export type {
+  CreateGroupParams,
+  GroupInvite,
+  ChangeMemberRoleParams,
+} from './community-group-service';
+export type {
+  CreateCarpoolOfferParams,
+  RequestCarpoolSeatParams,
+} from './community-carpool-service';
 
 // Import services for the unified facade
 import { communityGroupService } from './community-group-service';
@@ -79,13 +86,16 @@ export const communityService = {
   // ==========================================================================
 
   getCarpoolOffers: communityCarpoolService.getCarpoolOffers.bind(communityCarpoolService),
-  getParentCarpoolOffers: communityCarpoolService.getParentCarpoolOffers.bind(communityCarpoolService),
-  getAvailableCarpoolOffers: communityCarpoolService.getAvailableCarpoolOffers.bind(communityCarpoolService),
+  getParentCarpoolOffers:
+    communityCarpoolService.getParentCarpoolOffers.bind(communityCarpoolService),
+  getAvailableCarpoolOffers:
+    communityCarpoolService.getAvailableCarpoolOffers.bind(communityCarpoolService),
   getCarpoolOffer: communityCarpoolService.getCarpoolOffer.bind(communityCarpoolService),
   createCarpoolOffer: communityCarpoolService.createCarpoolOffer.bind(communityCarpoolService),
   requestCarpoolSeat: communityCarpoolService.requestCarpoolSeat.bind(communityCarpoolService),
   acceptCarpoolRequest: communityCarpoolService.acceptCarpoolRequest.bind(communityCarpoolService),
-  declineCarpoolRequest: communityCarpoolService.declineCarpoolRequest.bind(communityCarpoolService),
+  declineCarpoolRequest:
+    communityCarpoolService.declineCarpoolRequest.bind(communityCarpoolService),
   cancelCarpoolOffer: communityCarpoolService.cancelCarpoolOffer.bind(communityCarpoolService),
   cancelCarpoolRequest: communityCarpoolService.cancelCarpoolRequest.bind(communityCarpoolService),
 };

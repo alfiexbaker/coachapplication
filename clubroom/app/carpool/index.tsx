@@ -38,36 +38,83 @@ export default function CarpoolScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name={icon} size={48} color={palette.tint} />
       </View>
-      <ThemedText type="subtitle" style={styles.emptyTitle}>{title}</ThemedText>
+      <ThemedText type="subtitle" style={styles.emptyTitle}>
+        {title}
+      </ThemedText>
       <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{message}</ThemedText>
-      {action && <Button onPress={action.onPress} style={styles.emptyButton}>{action.label}</Button>}
+      {action && (
+        <Button onPress={action.onPress} style={styles.emptyButton}>
+          {action.label}
+        </Button>
+      )}
     </View>
   );
 
   const renderTabContent = () => {
     switch (c.activeTab) {
       case 'available':
-        if (c.availableOffers.length === 0) return renderEmptyState('car-outline', 'No Rides Available', 'There are no carpool offers at the moment. Check back later or offer a ride!', { label: 'Offer a Ride', onPress: c.openCreateModal });
-        return <View style={styles.listContainer}>{c.availableOffers.map((offer) => (
-          <CarpoolOfferCard key={offer.id} offer={offer} currentUserId={c.parentId} onRequestSeat={() => c.handleRequestSeat(offer)} />
-        ))}</View>;
-      case 'my-offers':
-        if (c.myOffers.length === 0) return renderEmptyState('add-circle-outline', 'No Offers Yet', 'Create a carpool offer to help other parents get their kids to training.', { label: 'Create Offer', onPress: c.openCreateModal });
-        return <View style={styles.listContainer}>{c.myOffers.map((offer) => (
-          <View key={offer.id}>
-            <CarpoolOfferCard offer={offer} currentUserId={c.parentId} onManageRequests={() => c.handleManageRequests(offer)} />
-            {offer.status === 'ACTIVE' && (
-              <Clickable onPress={() => c.handleCancelOffer(offer)} style={styles.cancelLink}>
-                <ThemedText style={[styles.cancelLinkText, { color: palette.error }]}>Cancel this offer</ThemedText>
-              </Clickable>
-            )}
+        if (c.availableOffers.length === 0)
+          return renderEmptyState(
+            'car-outline',
+            'No Rides Available',
+            'There are no carpool offers at the moment. Check back later or offer a ride!',
+            { label: 'Offer a Ride', onPress: c.openCreateModal },
+          );
+        return (
+          <View style={styles.listContainer}>
+            {c.availableOffers.map((offer) => (
+              <CarpoolOfferCard
+                key={offer.id}
+                offer={offer}
+                currentUserId={c.parentId}
+                onRequestSeat={() => c.handleRequestSeat(offer)}
+              />
+            ))}
           </View>
-        ))}</View>;
+        );
+      case 'my-offers':
+        if (c.myOffers.length === 0)
+          return renderEmptyState(
+            'add-circle-outline',
+            'No Offers Yet',
+            'Create a carpool offer to help other parents get their kids to training.',
+            { label: 'Create Offer', onPress: c.openCreateModal },
+          );
+        return (
+          <View style={styles.listContainer}>
+            {c.myOffers.map((offer) => (
+              <View key={offer.id}>
+                <CarpoolOfferCard
+                  offer={offer}
+                  currentUserId={c.parentId}
+                  onManageRequests={() => c.handleManageRequests(offer)}
+                />
+                {offer.status === 'ACTIVE' && (
+                  <Clickable onPress={() => c.handleCancelOffer(offer)} style={styles.cancelLink}>
+                    <ThemedText style={[styles.cancelLinkText, { color: palette.error }]}>
+                      Cancel this offer
+                    </ThemedText>
+                  </Clickable>
+                )}
+              </View>
+            ))}
+          </View>
+        );
       case 'my-rides':
-        if (c.myRides.length === 0) return renderEmptyState('ticket-outline', 'No Confirmed Rides', 'Request a seat on an available carpool to get started.', { label: 'Find a Ride', onPress: () => c.setActiveTab('available') });
-        return <View style={styles.listContainer}>{c.myRides.map((offer) => (
-          <CarpoolOfferCard key={offer.id} offer={offer} currentUserId={c.parentId} />
-        ))}</View>;
+        if (c.myRides.length === 0)
+          return renderEmptyState(
+            'ticket-outline',
+            'No Confirmed Rides',
+            'Request a seat on an available carpool to get started.',
+            { label: 'Find a Ride', onPress: () => c.setActiveTab('available') },
+          );
+        return (
+          <View style={styles.listContainer}>
+            {c.myRides.map((offer) => (
+              <CarpoolOfferCard key={offer.id} offer={offer} currentUserId={c.parentId} />
+            ))}
+          </View>
+        );
     }
   };
 
@@ -75,7 +122,9 @@ export default function CarpoolScreen() {
   if (c.status === 'loading') {
     content = <LoadingState variant="list" />;
   } else if (c.status === 'error') {
-    content = <ErrorState message={c.error?.message || 'Failed to load carpool data.'} onRetry={c.retry} />;
+    content = (
+      <ErrorState message={c.error?.message || 'Failed to load carpool data.'} onRetry={c.retry} />
+    );
   } else if (c.status === 'empty') {
     content = (
       <EmptyState
@@ -91,14 +140,25 @@ export default function CarpoolScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row style={styles.header}>
         <Row style={styles.headerLeft}>
-          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>Carpool</ThemedText>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Carpool
+          </ThemedText>
         </Row>
-        <Clickable accessibilityLabel="Create carpool offer" onPress={c.openCreateModal} style={[styles.addButton, { backgroundColor: palette.tint }]}>
+        <Clickable
+          accessibilityLabel="Create carpool offer"
+          onPress={c.openCreateModal}
+          style={[styles.addButton, { backgroundColor: palette.tint }]}
+        >
           <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </Row>
@@ -106,12 +166,46 @@ export default function CarpoolScreen() {
       {/* Tabs */}
       <Row style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
         {c.tabs.map((tab) => (
-          <Clickable key={tab.key} onPress={() => c.setActiveTab(tab.key)} style={[styles.tab, c.activeTab === tab.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 }].filter(Boolean) as ViewStyle[]}>
+          <Clickable
+            key={tab.key}
+            onPress={() => c.setActiveTab(tab.key)}
+            style={
+              [
+                styles.tab,
+                c.activeTab === tab.key && {
+                  borderBottomColor: palette.tint,
+                  borderBottomWidth: 2,
+                },
+              ].filter(Boolean) as ViewStyle[]
+            }
+          >
             <Row align="center" justify="center" gap="xxs">
-              <ThemedText style={[styles.tabLabel, { color: c.activeTab === tab.key ? palette.tint : palette.muted }]}>{tab.label}</ThemedText>
+              <ThemedText
+                style={[
+                  styles.tabLabel,
+                  { color: c.activeTab === tab.key ? palette.tint : palette.muted },
+                ]}
+              >
+                {tab.label}
+              </ThemedText>
               {tab.count !== undefined && tab.count > 0 && (
-                <View style={[styles.tabBadge, { backgroundColor: c.activeTab === tab.key ? palette.tint : palette.surfaceSecondary }]}>
-                  <ThemedText style={[styles.tabBadgeText, { color: c.activeTab === tab.key ? palette.onPrimary : palette.muted }]}>{tab.count}</ThemedText>
+                <View
+                  style={[
+                    styles.tabBadge,
+                    {
+                      backgroundColor:
+                        c.activeTab === tab.key ? palette.tint : palette.surfaceSecondary,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.tabBadgeText,
+                      { color: c.activeTab === tab.key ? palette.onPrimary : palette.muted },
+                    ]}
+                  >
+                    {tab.count}
+                  </ThemedText>
                 </View>
               )}
             </Row>
@@ -120,35 +214,97 @@ export default function CarpoolScreen() {
       </Row>
 
       {/* Content */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}
+      >
         {content}
       </ScrollView>
 
-      <CarpoolCreateModal visible={c.showCreateModal} form={c.createForm} creating={c.creating} onChangeForm={c.setCreateForm} onSubmit={c.handleCreateOffer} onClose={c.closeCreateModal} />
-      <CarpoolRequestModal visible={c.showRequestModal} offer={c.selectedOffer} seats={c.requestSeats} message={c.requestMessage} requesting={c.requesting} onChangeSeats={c.setRequestSeats} onChangeMessage={c.setRequestMessage} onSubmit={c.handleSubmitRequest} onClose={c.closeRequestModal} />
+      <CarpoolCreateModal
+        visible={c.showCreateModal}
+        form={c.createForm}
+        creating={c.creating}
+        onChangeForm={c.setCreateForm}
+        onSubmit={c.handleCreateOffer}
+        onClose={c.closeCreateModal}
+      />
+      <CarpoolRequestModal
+        visible={c.showRequestModal}
+        offer={c.selectedOffer}
+        seats={c.requestSeats}
+        message={c.requestMessage}
+        requesting={c.requesting}
+        onChangeSeats={c.setRequestSeats}
+        onChangeMessage={c.setRequestMessage}
+        onSubmit={c.handleSubmitRequest}
+        onClose={c.closeRequestModal}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
   headerLeft: { alignItems: 'center', gap: Spacing.md },
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
-  addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabsContainer: { borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
   tab: { flex: 1, paddingVertical: Spacing.sm, marginBottom: -1 },
   tabLabel: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
-  tabBadge: { minWidth: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxs },
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xxs,
+  },
   tabBadgeText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   listContainer: { padding: Spacing.lg },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
-  emptyIcon: { width: 96, height: 96, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['3xl'],
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  emptyIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
   emptyTitle: { textAlign: 'center' },
-  emptyText: { textAlign: 'center', ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22) },
+  emptyText: {
+    textAlign: 'center',
+    ...Typography.body,
+    fontSize: scaleFont(Typography.body.fontSize),
+    lineHeight: scaleFont(22),
+  },
   emptyButton: { marginTop: Spacing.sm },
   cancelLink: { alignItems: 'center', paddingVertical: Spacing.sm, marginBottom: Spacing.md },
-  cancelLinkText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
+  cancelLinkText: {
+    ...Typography.smallSemiBold,
+    fontSize: scaleFont(Typography.smallSemiBold.fontSize),
+  },
 });

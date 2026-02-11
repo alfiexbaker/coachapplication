@@ -278,7 +278,7 @@ exports.counterOfferService = {
                     const scheduledAt = `${offer.proposedTime.date}T${offer.proposedTime.startTime}:00`;
                     const [startH, startM] = offer.proposedTime.startTime.split(':').map(Number);
                     const [endH, endM] = offer.proposedTime.endTime.split(':').map(Number);
-                    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+                    const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
                     const [coachName, athleteName, parentName] = await Promise.all([
                         resolveUserName(negotiation.coachId, 'Coach'),
                         resolveUserName(negotiation.athleteId, 'Athlete'),
@@ -298,10 +298,14 @@ exports.counterOfferService = {
                         serviceType: '1-on-1',
                     });
                     if (bookingResult.success) {
-                        logger.info('Booking created from counter-offer', { bookingId: bookingResult.data?.id });
+                        logger.info('Booking created from counter-offer', {
+                            bookingId: bookingResult.data?.id,
+                        });
                     }
                     else {
-                        logger.error('Failed to create booking from counter-offer', { error: bookingResult.error?.message });
+                        logger.error('Failed to create booking from counter-offer', {
+                            error: bookingResult.error?.message,
+                        });
                     }
                 }
             }
@@ -512,8 +516,7 @@ exports.counterOfferService = {
         try {
             if (USE_MOCK) {
                 negotiationsCache = await loadNegotiationsFromStorage();
-                return (0, result_1.ok)(negotiationsCache.filter((n) => n.status === 'IN_PROGRESS' &&
-                    (n.coachId === userId || n.parentId === userId)));
+                return (0, result_1.ok)(negotiationsCache.filter((n) => n.status === 'IN_PROGRESS' && (n.coachId === userId || n.parentId === userId)));
             }
             const response = await fetch(`/api/negotiations?userId=${userId}&status=IN_PROGRESS`);
             return (0, result_1.ok)(await response.json());

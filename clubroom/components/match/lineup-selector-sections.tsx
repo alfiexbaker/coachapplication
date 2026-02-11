@@ -89,8 +89,12 @@ export const SelectablePlayerRow = memo(function SelectablePlayerRow({
       style={[
         styles.playerRow,
         { borderColor: palette.border },
-        isSelected ? { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint } : undefined,
-        isReserve ? { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning } : undefined,
+        isSelected
+          ? { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }
+          : undefined,
+        isReserve
+          ? { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }
+          : undefined,
       ]}
       onPress={onPress}
     >
@@ -150,7 +154,11 @@ export const DisabledPlayerRow = memo(function DisabledPlayerRow({
   const subtitle = variant === 'pending' ? 'Waiting for response' : player.parentNote;
 
   return (
-    <Row align="center" justify="between" style={[styles.playerRow, styles.disabledRow, { borderColor: palette.border }]}>
+    <Row
+      align="center"
+      justify="between"
+      style={[styles.playerRow, styles.disabledRow, { borderColor: palette.border }]}
+    >
       <Row align="center" gap="sm" flex>
         <View style={[styles.playerAvatar, { backgroundColor: withAlpha(color, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color }]}>
@@ -202,7 +210,9 @@ export const SubmitLineupButton = memo(function SubmitLineupButton({
         disabled={isDisabled}
       >
         {isLoading ? (
-          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>Setting Lineup...</ThemedText>
+          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
+            Setting Lineup...
+          </ThemedText>
         ) : (
           <Row align="center" justify="center" gap="sm">
             <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />

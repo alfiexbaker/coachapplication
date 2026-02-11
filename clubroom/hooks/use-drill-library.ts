@@ -19,7 +19,14 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useDrillLibrary');
 
-export const CATEGORIES: (DrillCategory | null)[] = [null, 'WARMUP', 'TECHNIQUE', 'FITNESS', 'COOLDOWN', 'TACTICAL'];
+export const CATEGORIES: (DrillCategory | null)[] = [
+  null,
+  'WARMUP',
+  'TECHNIQUE',
+  'FITNESS',
+  'COOLDOWN',
+  'TACTICAL',
+];
 
 interface DrillLibraryData {
   drills: Drill[];
@@ -42,14 +49,7 @@ export function useDrillLibrary() {
     }
   }, [coachId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<DrillLibraryData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<DrillLibraryData>({
     load: loadData,
     deps: [coachId],
     isEmpty: (value) => value.drills.length === 0,
@@ -63,8 +63,11 @@ export function useDrillLibrary() {
     if (categoryFilter) filtered = filtered.filter((d) => d.category === categoryFilter);
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((d) =>
-        d.title.toLowerCase().includes(query) || d.description.toLowerCase().includes(query) || d.tags?.some((t) => t.toLowerCase().includes(query))
+      filtered = filtered.filter(
+        (d) =>
+          d.title.toLowerCase().includes(query) ||
+          d.description.toLowerCase().includes(query) ||
+          d.tags?.some((t) => t.toLowerCase().includes(query)),
       );
     }
     return filtered;
@@ -72,7 +75,9 @@ export function useDrillLibrary() {
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: drills.length };
-    for (const drill of drills) { counts[drill.category] = (counts[drill.category] ?? 0) + 1; }
+    for (const drill of drills) {
+      counts[drill.category] = (counts[drill.category] ?? 0) + 1;
+    }
     return counts;
   }, [drills]);
 

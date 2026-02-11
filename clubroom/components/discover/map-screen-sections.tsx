@@ -54,7 +54,11 @@ export const MapScreenHeader = React.memo(function MapScreenHeader({
           accessibilityLabel="Search coaches"
         />
         {searchQuery.length > 0 && (
-          <Clickable accessibilityRole="button" accessibilityLabel="Clear search" onPress={onClearSearch}>
+          <Clickable
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            onPress={onClearSearch}
+          >
             <Ionicons name="close-circle" size={18} color={colors.muted} />
           </Clickable>
         )}

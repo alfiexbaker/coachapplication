@@ -13,19 +13,33 @@ interface MemberProfileCardProps {
   member: ClubMember;
 }
 
-export const MemberProfileCard = memo(function MemberProfileCard({ member }: MemberProfileCardProps) {
+export const MemberProfileCard = memo(function MemberProfileCard({
+  member,
+}: MemberProfileCardProps) {
   const { colors } = useTheme();
   const roleColor = clubService.getRoleColor(member.role);
   const initials = member.userName.slice(0, 2).toUpperCase();
-  const joinDate = new Date(member.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const joinDate = new Date(member.joinedAt).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   return (
     <SurfaceCard style={styles.card}>
       <Row gap="md" align="center">
         {member.userPhotoUrl ? (
-          <Image source={{ uri: member.userPhotoUrl }} style={[styles.avatar, { borderColor: roleColor }]} />
+          <Image
+            source={{ uri: member.userPhotoUrl }}
+            style={[styles.avatar, { borderColor: roleColor }]}
+          />
         ) : (
-          <View style={[styles.avatar, { backgroundColor: withAlpha(roleColor, 0.09), borderColor: roleColor }]}>
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: withAlpha(roleColor, 0.09), borderColor: roleColor },
+            ]}
+          >
             <ThemedText style={[Typography.display, { color: roleColor }]}>{initials}</ThemedText>
           </View>
         )}
@@ -33,7 +47,9 @@ export const MemberProfileCard = memo(function MemberProfileCard({ member }: Mem
           <ThemedText type="title">{member.userName}</ThemedText>
           <Row style={[styles.roleBadge, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
             <View style={[styles.roleDot, { backgroundColor: roleColor }]} />
-            <ThemedText style={[Typography.caption, { color: roleColor }]}>{clubService.formatRole(member.role)}</ThemedText>
+            <ThemedText style={[Typography.caption, { color: roleColor }]}>
+              {clubService.formatRole(member.role)}
+            </ThemedText>
           </Row>
         </View>
       </Row>
@@ -41,7 +57,9 @@ export const MemberProfileCard = memo(function MemberProfileCard({ member }: Mem
       <View style={[styles.details, { borderTopColor: colors.border }]}>
         <Row gap="xs" align="center">
           <Ionicons name="calendar-outline" size={16} color={colors.muted} />
-          <ThemedText style={[Typography.small, { color: colors.muted }]}>Joined {joinDate}</ThemedText>
+          <ThemedText style={[Typography.small, { color: colors.muted }]}>
+            Joined {joinDate}
+          </ThemedText>
         </Row>
         <Row gap="xs" align="center">
           <Ionicons name="shield-checkmark-outline" size={16} color={colors.muted} />
@@ -64,8 +82,22 @@ export const MemberProfileCard = memo(function MemberProfileCard({ member }: Mem
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
-  avatar: { width: Components.avatar.lg, height: Components.avatar.lg, borderRadius: Components.avatar.lg / 2, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-  roleBadge: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill, alignSelf: 'flex-start' },
+  avatar: {
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  roleBadge: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.pill,
+    alignSelf: 'flex-start',
+  },
   roleDot: { width: 8, height: 8, borderRadius: Radii.xs },
   details: { borderTopWidth: 1, paddingTop: Spacing.md, gap: Spacing.sm },
 });

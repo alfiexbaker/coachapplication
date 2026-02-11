@@ -20,7 +20,12 @@ export interface AvailabilitySetupWizardProps {
   sessionTemplates?: SessionTemplate[];
 }
 
-export function AvailabilitySetupWizard({ coachId, onComplete, existingTemplates, sessionTemplates }: AvailabilitySetupWizardProps) {
+export function AvailabilitySetupWizard({
+  coachId,
+  onComplete,
+  existingTemplates,
+  sessionTemplates,
+}: AvailabilitySetupWizardProps) {
   const w = useAvailabilityWizard({ coachId, onComplete, existingTemplates, sessionTemplates });
 
   return (

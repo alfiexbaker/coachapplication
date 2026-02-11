@@ -7,7 +7,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { eventService } from '@/services/event-service';
 import { createLogger } from '@/utils/logger';
-import type { ClubEvent, EventRSVP, EventAttendance, EventAttendanceStats, CheckInInput } from '@/constants/types';
+import type {
+  ClubEvent,
+  EventRSVP,
+  EventAttendance,
+  EventAttendanceStats,
+  CheckInInput,
+} from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useEventAttendees');
@@ -60,8 +66,10 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
 
     try {
       const [eventData, rsvpsData, attendanceData, statsData, userAttendance] = await Promise.all([
-        eventService.getEvent(id), eventService.getEventRSVPs(id),
-        eventService.getAttendeeList(id), eventService.getAttendanceStats(id),
+        eventService.getEvent(id),
+        eventService.getEventRSVPs(id),
+        eventService.getAttendeeList(id),
+        eventService.getAttendanceStats(id),
         eventService.getUserAttendance(id, currentUser.id),
       ]);
 
@@ -74,18 +82,13 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       });
     } catch (loadError) {
       logger.error('Failed to load attendee data', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load attendees. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load attendees. Pull down to refresh.', loadError),
+      );
     }
   }, [id, currentUser]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<EventAttendeesData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<EventAttendeesData>({
     load: loadData,
     deps: [id, currentUser?.id],
     isEmpty: (value) => value.event === null,
@@ -99,15 +102,18 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const currentAttendance = data?.currentAttendance ?? null;
   const loading = status === 'loading';
 
-  const handleCheckIn = useCallback(async (input: CheckInInput) => {
-    try {
-      await eventService.checkIn(input);
-      onRefresh();
-    } catch (checkInError) {
-      logger.error('Failed to check in attendee', checkInError);
-      Alert.alert('Check-in failed', 'Could not complete check-in. Please try again.');
-    }
-  }, [onRefresh]);
+  const handleCheckIn = useCallback(
+    async (input: CheckInInput) => {
+      try {
+        await eventService.checkIn(input);
+        onRefresh();
+      } catch (checkInError) {
+        logger.error('Failed to check in attendee', checkInError);
+        Alert.alert('Check-in failed', 'Could not complete check-in. Please try again.');
+      }
+    },
+    [onRefresh],
+  );
 
   const handleUndoCheckIn = useCallback(async () => {
     if (!id || !currentUser) return;
@@ -127,18 +133,29 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
 
   const handleExport = useCallback(() => {
     logger.press('ExportAttendees', { eventId: id });
-    const names = attendance.map(a => a.userId).join('\n');
-    Alert.alert('Attendee List', `${attendance.length} checked in:\n\n${names || 'No attendees yet'}`, [{ text: 'OK' }]);
+    const names = attendance.map((a) => a.userId).join('\n');
+    Alert.alert(
+      'Attendee List',
+      `${attendance.length} checked in:\n\n${names || 'No attendees yet'}`,
+      [{ text: 'OK' }],
+    );
   }, [id, attendance]);
 
   const handleSendReminder = useCallback(() => {
     logger.press('SendReminder', { eventId: id });
-    const nonResponders = rsvps.filter(r => r.status === 'MAYBE').length;
-    Alert.alert('Send Reminder',
-      nonResponders > 0 ? `Send reminder to ${nonResponders} people who haven't responded?` : 'Everyone has already responded!',
+    const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
+    Alert.alert(
+      'Send Reminder',
       nonResponders > 0
-        ? [{ text: 'Cancel', style: 'cancel' }, { text: 'Send', onPress: () => Alert.alert('Sent', 'Reminders have been sent') }]
-        : [{ text: 'OK' }]);
+        ? `Send reminder to ${nonResponders} people who haven't responded?`
+        : 'Everyone has already responded!',
+      nonResponders > 0
+        ? [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Send', onPress: () => Alert.alert('Sent', 'Reminders have been sent') },
+          ]
+        : [{ text: 'OK' }],
+    );
   }, [id, rsvps]);
 
   const isEventToday = event ? eventService.isEventToday(event) : false;
@@ -157,7 +174,13 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
     onRefresh,
     retry,
     isCoach,
-    isEventToday, checkInAvailable, currentUser,
-    handleCheckIn, handleUndoCheckIn, handleAttendeePress, handleExport, handleSendReminder,
+    isEventToday,
+    checkInAvailable,
+    currentUser,
+    handleCheckIn,
+    handleUndoCheckIn,
+    handleAttendeePress,
+    handleExport,
+    handleSendReminder,
   };
 }

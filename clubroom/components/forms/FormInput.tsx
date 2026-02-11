@@ -22,7 +22,10 @@ export type FormInputType =
   | 'number'
   | 'multiline'
   | 'search';
-export interface FormInputProps extends Omit<TextInputProps, 'onChangeText' | 'value' | 'onBlur' | 'onChange'> {
+export interface FormInputProps extends Omit<
+  TextInputProps,
+  'onChangeText' | 'value' | 'onBlur' | 'onChange'
+> {
   name: string;
   label?: string;
   value: string;
@@ -83,11 +86,7 @@ export function FormInput({
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
-  const borderColor = error
-    ? palette.error
-    : isFocused
-      ? palette.tint
-      : palette.border;
+  const borderColor = error ? palette.error : isFocused ? palette.tint : palette.border;
   return (
     <View style={styles.container}>
       {label && (
@@ -126,7 +125,7 @@ export function FormInput({
             },
             type === 'multiline' ? styles.multilineInput : undefined,
             leftIcon ? styles.inputWithLeftIcon : null,
-            (rightIcon || type === 'password') ? styles.inputWithRightIcon : null,
+            rightIcon || type === 'password' ? styles.inputWithRightIcon : null,
           ]}
           value={value}
           onChangeText={onChange}
@@ -163,15 +162,17 @@ export function FormInput({
             disabled={!onRightIconPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <IconSymbol name={rightIcon as React.ComponentProps<typeof IconSymbol>['name']} size={20} color={palette.muted} />
+            <IconSymbol
+              name={rightIcon as React.ComponentProps<typeof IconSymbol>['name']}
+              size={20}
+              color={palette.muted}
+            />
           </Pressable>
         )}
       </View>
       <Row style={styles.bottomRow}>
         {error ? (
-          <ThemedText style={[styles.errorText, { color: palette.error }]}>
-            {error}
-          </ThemedText>
+          <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
         ) : helperText ? (
           <ThemedText style={[styles.helperText, { color: palette.muted }]}>
             {helperText}

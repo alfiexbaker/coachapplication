@@ -42,11 +42,7 @@ const CATEGORY_ICONS: Record<BadgeCategory, keyof typeof Ionicons.glyphMap> = {
   resilience: 'fitness',
 };
 
-const CategoryCard = memo(function CategoryCard({
-  cat,
-}: {
-  cat: CategoryBreakdownItem;
-}) {
+const CategoryCard = memo(function CategoryCard({ cat }: { cat: CategoryBreakdownItem }) {
   const { colors: palette } = useTheme();
   const hasActivity = cat.badgeCount > 0;
 
@@ -82,7 +78,9 @@ const CategoryCard = memo(function CategoryCard({
           <ThemedText style={[styles.milestoneText, { color: palette.muted }]}>
             {cat.badgeCount}/{cat.badgeCount + cat.badgesToNext} to {cat.nextMilestone}
           </ThemedText>
-          <View style={[styles.miniProgressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <View
+            style={[styles.miniProgressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+          >
             <View
               style={[
                 styles.miniProgressFill,
@@ -94,7 +92,11 @@ const CategoryCard = memo(function CategoryCard({
       )}
 
       {cat.currentMilestone !== 'None' && (
-        <Row gap="xxs" align="center" style={[styles.milestoneBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+        <Row
+          gap="xxs"
+          align="center"
+          style={[styles.milestoneBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+        >
           <Ionicons name="checkmark-circle" size={12} color={palette.success} />
           <ThemedText style={[styles.milestoneBadgeText, { color: palette.success }]}>
             {cat.currentMilestone}

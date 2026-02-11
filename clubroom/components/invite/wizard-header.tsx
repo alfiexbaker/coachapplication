@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+
 import type { ThemeColors } from '@/hooks/useTheme';
 
 export interface WizardHeaderProps {
@@ -30,23 +30,14 @@ export const WizardHeader = memo(function WizardHeader({
   colors,
 }: WizardHeaderProps) {
   return (
-    <Row
-      align="center"
-      justify="between"
-      paddingH="lg"
-      paddingV="md"
-    >
+    <Row align="center" justify="between" paddingH="lg" paddingV="md">
       <Clickable
         onPress={onBack}
         hitSlop={8}
         accessibilityLabel={showClose ? 'Close' : 'Go back'}
         accessibilityRole="button"
       >
-        <Ionicons
-          name={showClose ? 'close' : 'arrow-back'}
-          size={24}
-          color={colors.text}
-        />
+        <Ionicons name={showClose ? 'close' : 'arrow-back'} size={24} color={colors.text} />
       </Clickable>
       <ThemedText type="title">{title}</ThemedText>
       <View style={styles.spacer} />

@@ -65,7 +65,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
         setSaving(false);
       }
     },
-    [bookingId, logger]
+    [bookingId, logger],
   );
 
   useEffect(() => {

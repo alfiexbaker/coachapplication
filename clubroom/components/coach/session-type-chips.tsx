@@ -18,11 +18,13 @@ import { Row } from '@/components/primitives';
 
 // Session type colors — resolved from theme at render time via getTypeMeta()
 type ThemePalette = ReturnType<typeof useTheme>['colors'];
-const getTypeMeta = (p: ThemePalette): Record<SessionType, { color: string; icon: keyof typeof Ionicons.glyphMap }> => ({
+const getTypeMeta = (
+  p: ThemePalette,
+): Record<SessionType, { color: string; icon: keyof typeof Ionicons.glyphMap }> => ({
   '1-to-1': { color: p.info, icon: 'person-outline' },
   'small-group': { color: p.success, icon: 'people-outline' },
-  'clinic': { color: p.warning, icon: 'fitness-outline' },
-  'assessment': { color: p.accent, icon: 'clipboard-outline' },
+  clinic: { color: p.warning, icon: 'fitness-outline' },
+  assessment: { color: p.accent, icon: 'clipboard-outline' },
 });
 
 interface SessionTypeChipsProps {
@@ -43,7 +45,10 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
   if (templates.length === 0) {
     return (
       <Clickable
-        onPress={() => { hapticTap(); onAdd(); }}
+        onPress={() => {
+          hapticTap();
+          onAdd();
+        }}
         style={[styles.emptyState, { borderColor: palette.tint }]}
       >
         <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
@@ -57,9 +62,14 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
   return (
     <View style={styles.container}>
       <Row style={styles.header}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Session Types</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Session Types
+        </ThemedText>
         <Clickable
-          onPress={() => { hapticTap(); onAdd(); }}
+          onPress={() => {
+            hapticTap();
+            onAdd();
+          }}
           style={[styles.headerAddBtn, { backgroundColor: withAlpha(palette.tint, 0.1) }]}
         >
           <Ionicons name="add" size={16} color={palette.tint} />
@@ -67,15 +77,25 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
         </Clickable>
       </Row>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipRow}
+      >
         {templates.map((template) => {
-          const meta = TYPE_META[template.type] || { color: palette.tint, icon: 'ellipse-outline' as const };
+          const meta = TYPE_META[template.type] || {
+            color: palette.tint,
+            icon: 'ellipse-outline' as const,
+          };
           const isSelected = selectedId === template.id;
 
           return (
             <Clickable
               key={template.id}
-              onPress={() => { hapticTap(); onPress(template); }}
+              onPress={() => {
+                hapticTap();
+                onPress(template);
+              }}
               style={[
                 styles.chip,
                 {
@@ -94,7 +114,8 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
                   {template.name}
                 </ThemedText>
                 <ThemedText style={[styles.chipDetail, { color: palette.muted }]} numberOfLines={1}>
-                  {template.duration}m · {template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}
+                  {template.duration}m ·{' '}
+                  {template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}
                 </ThemedText>
               </View>
               <Ionicons name="chevron-forward" size={14} color={palette.muted} />
@@ -103,7 +124,10 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
         })}
         {/* Add chip */}
         <Clickable
-          onPress={() => { hapticTap(); onAdd(); }}
+          onPress={() => {
+            hapticTap();
+            onAdd();
+          }}
           style={[
             styles.addChip,
             { borderColor: palette.border, backgroundColor: palette.background },

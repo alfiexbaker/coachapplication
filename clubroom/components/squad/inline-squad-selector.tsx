@@ -93,9 +93,7 @@ export function InlineSquadSelector({
 
   return (
     <View style={styles.container}>
-      {label && (
-        <ThemedText style={styles.label}>{label}</ThemedText>
-      )}
+      {label && <ThemedText style={styles.label}>{label}</ThemedText>}
       <Row wrap gap="xs">
         {squads.map((squad) => {
           const isSelected = selectedSquadIds.includes(squad.id);
@@ -118,12 +116,18 @@ export function InlineSquadSelector({
                   color={isSelected ? palette.onPrimary : palette.muted}
                 />
                 <ThemedText
-                  style={{ ...Typography.small, color: isSelected ? palette.onPrimary : palette.text }}
+                  style={{
+                    ...Typography.small,
+                    color: isSelected ? palette.onPrimary : palette.text,
+                  }}
                 >
                   {squad.name}
                 </ThemedText>
                 <ThemedText
-                  style={{ ...Typography.caption, color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted }}
+                  style={{
+                    ...Typography.caption,
+                    color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted,
+                  }}
                 >
                   ({squad.memberCount})
                 </ThemedText>

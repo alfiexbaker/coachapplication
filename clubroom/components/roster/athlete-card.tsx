@@ -19,7 +19,11 @@ import { getRosterAthleteName } from '@/utils/roster-display';
 // ---------------------------------------------------------------------------
 
 function getInitials(name: string): string {
-  return name.split(' ').map((n) => n[0]).join('').toUpperCase();
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
 }
 
 function formatRelativeDate(dateStr: string | undefined): string {
@@ -63,16 +67,11 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
 
   const needsAttention =
     !athlete.lastSessionDate ||
-    Math.floor(
-      (Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)
-    ) > 14;
+    Math.floor((Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)) >
+      14;
 
   return (
-    <Clickable
-      onPress={() =>
-        router.push(Routes.rosterAthlete(athlete.athleteId))
-      }
-    >
+    <Clickable onPress={() => router.push(Routes.rosterAthlete(athlete.athleteId))}>
       <SurfaceCard style={styles.athleteCard}>
         <Row align="center" gap="md">
           {/* Avatar */}
@@ -81,7 +80,12 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
               {getInitials(athleteName)}
             </ThemedText>
             {needsAttention && (
-              <View style={[styles.attentionDot, { backgroundColor: palette.warning, borderColor: palette.surface }]} />
+              <View
+                style={[
+                  styles.attentionDot,
+                  { backgroundColor: palette.warning, borderColor: palette.surface },
+                ]}
+              />
             )}
           </View>
 
@@ -92,7 +96,9 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
                 {athleteName}
               </ThemedText>
               {athlete.status !== 'ACTIVE' && (
-                <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}>
+                <View
+                  style={[styles.statusBadge, { backgroundColor: withAlpha(palette.muted, 0.12) }]}
+                >
                   <ThemedText style={[styles.statusText, { color: palette.muted }]}>
                     {athlete.status.toLowerCase()}
                   </ThemedText>
@@ -111,14 +117,28 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
             </Row>
 
             {upcomingSession ? (
-              <Row align="center" gap="xxs" style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <Row
+                align="center"
+                gap="xxs"
+                style={[
+                  styles.upcomingBadge,
+                  { backgroundColor: withAlpha(palette.success, 0.09) },
+                ]}
+              >
                 <Ionicons name="calendar" size={12} color={palette.success} />
                 <ThemedText style={[styles.upcomingText, { color: palette.success }]}>
                   Next: {formatUpcomingDate(upcomingSession.scheduledAt)}
                 </ThemedText>
               </Row>
             ) : needsAttention ? (
-              <Row align="center" gap="xxs" style={[styles.upcomingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+              <Row
+                align="center"
+                gap="xxs"
+                style={[
+                  styles.upcomingBadge,
+                  { backgroundColor: withAlpha(palette.warning, 0.09) },
+                ]}
+              >
                 <Ionicons name="alert-circle" size={12} color={palette.warning} />
                 <ThemedText style={[styles.upcomingText, { color: palette.warning }]}>
                   No upcoming session
@@ -131,9 +151,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
           <Row align="center" gap="sm">
             <Clickable
               style={[styles.actionButton, { backgroundColor: palette.tint }]}
-              onPress={() =>
-                router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))
-              }
+              onPress={() => router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))}
             >
               <Ionicons name="add" size={18} color={palette.onPrimary} />
             </Clickable>

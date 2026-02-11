@@ -91,7 +91,10 @@ export function useReferralInvite() {
     retry,
     copied,
     linkCopied,
-    userName, creditAmount, creditText,
-    handleCopyCode, handleCopyLink,
+    userName,
+    creditAmount,
+    creditText,
+    handleCopyCode,
+    handleCopyLink,
   };
 }

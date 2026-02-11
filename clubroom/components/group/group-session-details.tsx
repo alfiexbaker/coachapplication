@@ -16,7 +16,9 @@ interface GroupSessionDetailsProps {
   session: GroupSession;
 }
 
-export const GroupSessionDetails = memo(function GroupSessionDetails({ session }: GroupSessionDetailsProps) {
+export const GroupSessionDetails = memo(function GroupSessionDetails({
+  session,
+}: GroupSessionDetailsProps) {
   const { colors } = useTheme();
   const coachName = getGroupSessionCoachName(session);
 
@@ -27,7 +29,9 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.card}>
             <ThemedText type="defaultSemiBold">About</ThemedText>
-            <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>{session.description}</ThemedText>
+            <ThemedText style={[Typography.bodySmall, { color: colors.muted }]}>
+              {session.description}
+            </ThemedText>
           </SurfaceCard>
         </Animated.View>
       )}
@@ -38,14 +42,22 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
           <ThemedText type="defaultSemiBold">Schedule</ThemedText>
           {session.schedule.map((sched, idx) => (
             <Row key={idx} gap="md" align="center">
-              <View style={[styles.scheduleIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+              <View
+                style={[styles.scheduleIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+              >
                 <Ionicons name="calendar" size={16} color={colors.tint} />
               </View>
               <View>
                 <ThemedText type="defaultSemiBold">
-                  {new Date(sched.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {new Date(sched.date).toLocaleDateString('en-GB', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                  })}
                 </ThemedText>
-                <ThemedText style={[Typography.small, { color: colors.muted }]}>{sched.startTime} - {sched.endTime}</ThemedText>
+                <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                  {sched.startTime} - {sched.endTime}
+                </ThemedText>
               </View>
             </Row>
           ))}
@@ -69,14 +81,24 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
       <Animated.View entering={FadeInDown.delay(250).springify()}>
         <SurfaceCard style={styles.card}>
           <Row gap="md" align="center">
-            <View style={[styles.coachPhoto, { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
+            <View
+              style={[
+                styles.coachPhoto,
+                { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+              ]}
+            >
               <Ionicons name="person" size={20} color={colors.muted} />
             </View>
             <View style={{ flex: 1 }}>
               <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
               <ThemedText style={{ color: colors.muted }}>Coach</ThemedText>
             </View>
-            <Clickable style={[styles.messageButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Clickable
+              style={[
+                styles.messageButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <Ionicons name="chatbubble-outline" size={18} color={colors.tint} />
             </Clickable>
           </Row>
@@ -91,7 +113,9 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
             {(session.ageMin || session.ageMax) && (
               <Row gap="xs" align="center">
                 <Ionicons name="people-outline" size={16} color={colors.muted} />
-                <ThemedText style={{ color: colors.muted }}>Ages {session.ageMin || 'Any'} - {session.ageMax || 'Any'}</ThemedText>
+                <ThemedText style={{ color: colors.muted }}>
+                  Ages {session.ageMin || 'Any'} - {session.ageMax || 'Any'}
+                </ThemedText>
               </Row>
             )}
             {session.skillLevel && session.skillLevel !== 'ALL' && (
@@ -103,7 +127,9 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
             {session.equipment && session.equipment.length > 0 && (
               <Row gap="xs" align="center">
                 <Ionicons name="bag-outline" size={16} color={colors.muted} />
-                <ThemedText style={{ color: colors.muted }}>Bring: {session.equipment.join(', ')}</ThemedText>
+                <ThemedText style={{ color: colors.muted }}>
+                  Bring: {session.equipment.join(', ')}
+                </ThemedText>
               </Row>
             )}
           </SurfaceCard>
@@ -113,11 +139,18 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
       {/* Focus Areas */}
       {session.focus && session.focus.length > 0 && (
         <View style={styles.focusSection}>
-          <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.xs }}>Focus Areas</ThemedText>
+          <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.xs }}>
+            Focus Areas
+          </ThemedText>
           <Row style={styles.focusRow}>
             {session.focus.map((f) => (
-              <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>{f}</ThemedText>
+              <View
+                key={f}
+                style={[styles.focusTag, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+              >
+                <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+                  {f}
+                </ThemedText>
               </View>
             ))}
           </Row>
@@ -129,10 +162,27 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({ session }
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  scheduleIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  scheduleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   coachPhoto: { width: 48, height: 48, borderRadius: Radii.xl },
-  messageButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  messageButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   focusSection: { marginTop: Spacing.sm },
   focusRow: { flexWrap: 'wrap', gap: Spacing.xs },
-  focusTag: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
+  focusTag: {
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.md,
+  },
 });

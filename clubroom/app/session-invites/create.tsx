@@ -31,7 +31,14 @@ import { Spacing } from '@/constants/theme';
 // STEP DISPLAY HELPERS
 // ============================================================================
 
-const DISPLAY_STEPS_NEW: readonly string[] = ['athlete', 'mode', 'type', 'slots', 'details', 'confirm'];
+const DISPLAY_STEPS_NEW: readonly string[] = [
+  'athlete',
+  'mode',
+  'type',
+  'slots',
+  'details',
+  'confirm',
+];
 const DISPLAY_STEPS_EXISTING: readonly string[] = ['athlete', 'mode', 'existing', 'confirm'];
 
 function getIndicatorStep(step: Step): string {
@@ -137,14 +144,13 @@ export default function CreateSessionInviteScreen() {
   }, [state, handlers, colors, handleRemoveCoverImage]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" justify="between" paddingH="lg" paddingV="md">
-        <Clickable
-          onPress={handlers.prevStep}
-          hitSlop={8}
-          accessibilityLabel="Go back"
-        >
+        <Clickable onPress={handlers.prevStep} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <ThemedText type="title">Create Invite</ThemedText>
@@ -154,11 +160,7 @@ export default function CreateSessionInviteScreen() {
       </Row>
 
       {/* Step indicator */}
-      <WizardStepIndicator
-        steps={displaySteps}
-        currentStep={indicatorStep}
-        colors={colors}
-      />
+      <WizardStepIndicator steps={displaySteps} currentStep={indicatorStep} colors={colors} />
 
       {/* Step content */}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

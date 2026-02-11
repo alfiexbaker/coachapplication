@@ -87,7 +87,10 @@ function getDateRangeForPeriod(period: CoachAnalyticsPeriod): AnalyticsDateRange
 /**
  * Generate mock revenue chart data
  */
-function generateMockRevenueChart(period: CoachAnalyticsPeriod, baseRevenue: number): RevenueDataPoint[] {
+function generateMockRevenueChart(
+  period: CoachAnalyticsPeriod,
+  baseRevenue: number,
+): RevenueDataPoint[] {
   const points: RevenueDataPoint[] = [];
   const now = new Date();
   let dataPoints: number;
@@ -367,7 +370,10 @@ let coachAnalyticsCache: Record<string, CoachAnalytics> = { ...MOCK_COACH_ANALYT
 
 async function loadCoachAnalytics(): Promise<Record<string, CoachAnalytics>> {
   try {
-    const stored = await apiClient.get<Record<string, CoachAnalytics> | null>(STORAGE_KEYS.COACH_ANALYTICS, null);
+    const stored = await apiClient.get<Record<string, CoachAnalytics> | null>(
+      STORAGE_KEYS.COACH_ANALYTICS,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load coach analytics', error);
@@ -393,7 +399,7 @@ export const analyticsExportService = {
    */
   async getCoachAnalytics(
     coachId: string,
-    period: CoachAnalyticsPeriod = 'MONTH'
+    period: CoachAnalyticsPeriod = 'MONTH',
   ): Promise<Result<CoachAnalytics | null, ServiceError>> {
     try {
       if (USE_MOCK) {
@@ -475,7 +481,7 @@ export const analyticsExportService = {
    */
   async getRevenueChart(
     coachId: string,
-    period: CoachAnalyticsPeriod = 'MONTH'
+    period: CoachAnalyticsPeriod = 'MONTH',
   ): Promise<Result<RevenueDataPoint[], ServiceError>> {
     try {
       if (USE_MOCK) {

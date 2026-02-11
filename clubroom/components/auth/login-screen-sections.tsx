@@ -18,15 +18,16 @@ export interface SignupCardProps {
 
 export const SignupCard = memo(function SignupCard({ onPress, palette }: SignupCardProps) {
   return (
-    <Clickable
-      style={[styles.signupCard, { backgroundColor: palette.tint }]}
-      onPress={onPress}
-    >
+    <Clickable style={[styles.signupCard, { backgroundColor: palette.tint }]} onPress={onPress}>
       <Row style={styles.signupCardContent}>
         <Ionicons name="person-add" size={24} color={palette.onPrimary} />
         <View style={styles.signupCardText}>
-          <ThemedText style={[styles.signupTitle, { color: palette.onPrimary }]}>New to Clubroom?</ThemedText>
-          <ThemedText style={[styles.signupSubtitle, { color: withAlpha(palette.onPrimary, 0.8) }]}>Create your free account</ThemedText>
+          <ThemedText style={[styles.signupTitle, { color: palette.onPrimary }]}>
+            New to Clubroom?
+          </ThemedText>
+          <ThemedText style={[styles.signupSubtitle, { color: withAlpha(palette.onPrimary, 0.8) }]}>
+            Create your free account
+          </ThemedText>
         </View>
       </Row>
       <Ionicons name="arrow-forward" size={20} color={palette.onPrimary} />
@@ -41,7 +42,10 @@ export interface InviteCodeCardProps {
   palette: ThemeColors;
 }
 
-export const InviteCodeCard = memo(function InviteCodeCard({ onPress, palette }: InviteCodeCardProps) {
+export const InviteCodeCard = memo(function InviteCodeCard({
+  onPress,
+  palette,
+}: InviteCodeCardProps) {
   return (
     <Clickable
       style={[styles.coachSignupCard, { backgroundColor: palette.card }]}
@@ -50,9 +54,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({ onPress, palette }:
       <ThemedText type="subtitle" style={styles.coachSignupTitle}>
         Have an invite code?
       </ThemedText>
-      <ThemedText style={styles.coachSignupText}>
-        Join your school or academy
-      </ThemedText>
+      <ThemedText style={styles.coachSignupText}>Join your school or academy</ThemedText>
       <ThemedText style={[styles.coachSignupCTA, { color: palette.tint }]}>
         Use Invite Code →
       </ThemedText>
@@ -63,11 +65,14 @@ export const InviteCodeCard = memo(function InviteCodeCard({ onPress, palette }:
 /* ---------- DemoAccountsCard ---------- */
 
 export interface DemoAccountsCardProps {
-  users: Array<{ username: string; password: string; role: string }>;
+  users: { username: string; password: string; role: string }[];
   palette: ThemeColors;
 }
 
-export const DemoAccountsCard = memo(function DemoAccountsCard({ users, palette }: DemoAccountsCardProps) {
+export const DemoAccountsCard = memo(function DemoAccountsCard({
+  users,
+  palette,
+}: DemoAccountsCardProps) {
   return (
     <SurfaceCard style={styles.credentialsCard}>
       <ThemedText type="subtitle" style={styles.credentialsTitle}>

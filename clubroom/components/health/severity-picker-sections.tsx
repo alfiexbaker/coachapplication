@@ -91,7 +91,12 @@ export const SeverityOptionCard = memo(function SeverityOptionCard({
             </ThemedText>
           </View>
         </Row>
-        <View style={[styles.examplesContainer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+        <View
+          style={[
+            styles.examplesContainer,
+            { backgroundColor: palette.background, borderTopColor: palette.border },
+          ]}
+        >
           <ThemedText style={[styles.examplesLabel, { color: palette.muted }]}>
             Examples:
           </ThemedText>

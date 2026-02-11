@@ -12,11 +12,7 @@
  */
 
 import { apiClient } from '../api-client';
-import type {
-  AthleteAnalytics,
-  SkillProgress,
-  Goal,
-} from '@/constants/types';
+import type { AthleteAnalytics, SkillProgress, Goal } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -135,10 +131,36 @@ const MOCK_GOALS: Goal[] = [
     targetDate: '2026-03-01',
     progress: 45,
     milestones: [
-      { id: 'ms_1', goalId: 'goal_1', title: 'Complete 5 weak foot drills', isCompleted: true, completedAt: '2025-12-15', order: 0 },
-      { id: 'ms_2', goalId: 'goal_1', title: 'Score 3 goals in training with weak foot', isCompleted: true, completedAt: '2026-01-05', order: 1 },
-      { id: 'ms_3', goalId: 'goal_1', title: 'Score weak foot goal in match', isCompleted: false, order: 2 },
-      { id: 'ms_4', goalId: 'goal_1', title: 'Consistent accuracy from 15 yards', isCompleted: false, order: 3 },
+      {
+        id: 'ms_1',
+        goalId: 'goal_1',
+        title: 'Complete 5 weak foot drills',
+        isCompleted: true,
+        completedAt: '2025-12-15',
+        order: 0,
+      },
+      {
+        id: 'ms_2',
+        goalId: 'goal_1',
+        title: 'Score 3 goals in training with weak foot',
+        isCompleted: true,
+        completedAt: '2026-01-05',
+        order: 1,
+      },
+      {
+        id: 'ms_3',
+        goalId: 'goal_1',
+        title: 'Score weak foot goal in match',
+        isCompleted: false,
+        order: 2,
+      },
+      {
+        id: 'ms_4',
+        goalId: 'goal_1',
+        title: 'Consistent accuracy from 15 yards',
+        isCompleted: false,
+        order: 3,
+      },
     ],
     status: 'ACTIVE',
     createdBy: 'COACH',
@@ -156,9 +178,29 @@ const MOCK_GOALS: Goal[] = [
     targetDate: '2026-02-15',
     progress: 70,
     milestones: [
-      { id: 'ms_5', goalId: 'goal_2', title: 'Practice receiving drills for 4 weeks', isCompleted: true, completedAt: '2025-12-20', order: 0 },
-      { id: 'ms_6', goalId: 'goal_2', title: 'Demonstrate in 1v1 scenarios', isCompleted: true, completedAt: '2026-01-03', order: 1 },
-      { id: 'ms_7', goalId: 'goal_2', title: 'Apply in match situations', isCompleted: false, order: 2 },
+      {
+        id: 'ms_5',
+        goalId: 'goal_2',
+        title: 'Practice receiving drills for 4 weeks',
+        isCompleted: true,
+        completedAt: '2025-12-20',
+        order: 0,
+      },
+      {
+        id: 'ms_6',
+        goalId: 'goal_2',
+        title: 'Demonstrate in 1v1 scenarios',
+        isCompleted: true,
+        completedAt: '2026-01-03',
+        order: 1,
+      },
+      {
+        id: 'ms_7',
+        goalId: 'goal_2',
+        title: 'Apply in match situations',
+        isCompleted: false,
+        order: 2,
+      },
     ],
     status: 'ACTIVE',
     createdBy: 'COACH',
@@ -176,9 +218,30 @@ const MOCK_GOALS: Goal[] = [
     targetDate: '2025-12-31',
     progress: 100,
     milestones: [
-      { id: 'ms_8', goalId: 'goal_3', title: '5 sessions', isCompleted: true, completedAt: '2025-11-20', order: 0 },
-      { id: 'ms_9', goalId: 'goal_3', title: '8 sessions', isCompleted: true, completedAt: '2025-12-10', order: 1 },
-      { id: 'ms_10', goalId: 'goal_3', title: '10 sessions', isCompleted: true, completedAt: '2025-12-28', order: 2 },
+      {
+        id: 'ms_8',
+        goalId: 'goal_3',
+        title: '5 sessions',
+        isCompleted: true,
+        completedAt: '2025-11-20',
+        order: 0,
+      },
+      {
+        id: 'ms_9',
+        goalId: 'goal_3',
+        title: '8 sessions',
+        isCompleted: true,
+        completedAt: '2025-12-10',
+        order: 1,
+      },
+      {
+        id: 'ms_10',
+        goalId: 'goal_3',
+        title: '10 sessions',
+        isCompleted: true,
+        completedAt: '2025-12-28',
+        order: 2,
+      },
     ],
     status: 'COMPLETED',
     createdBy: 'ATHLETE',
@@ -197,7 +260,10 @@ let goalsCache: Goal[] = [...MOCK_GOALS];
 
 async function loadAnalytics(): Promise<AthleteAnalytics[]> {
   try {
-    const stored = await apiClient.get<AthleteAnalytics[] | null>(STORAGE_KEYS.ATHLETE_ANALYTICS, null);
+    const stored = await apiClient.get<AthleteAnalytics[] | null>(
+      STORAGE_KEYS.ATHLETE_ANALYTICS,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load analytics', error);
@@ -261,7 +327,9 @@ export const analyticsQueryService = {
           attendanceRate: 0,
           skills: [],
           activeGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'ACTIVE'),
-          completedGoals: goalsCache.filter((g) => g.athleteId === athleteId && g.status === 'COMPLETED'),
+          completedGoals: goalsCache.filter(
+            (g) => g.athleteId === athleteId && g.status === 'COMPLETED',
+          ),
           improvementRate: 0,
           consistencyScore: 0,
           percentileRank: 50,
@@ -329,7 +397,9 @@ export const analyticsQueryService = {
           filtered = filtered.filter((g) => g.status === status);
         }
         return ok(
-          filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+          filtered.sort(
+            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          ),
         );
       }
 
@@ -350,9 +420,14 @@ export const analyticsQueryService = {
   /**
    * Get comparison stats (for radar chart)
    */
-  async getSkillComparison(athleteId: string): Promise<Result<{
-    skills: { name: string; athleteLevel: number; averageLevel: number }[];
-  }, ServiceError>> {
+  async getSkillComparison(athleteId: string): Promise<
+    Result<
+      {
+        skills: { name: string; athleteLevel: number; averageLevel: number }[];
+      },
+      ServiceError
+    >
+  > {
     try {
       const analyticsResult = await this.getAthleteAnalytics(athleteId);
       if (!analyticsResult.success) {

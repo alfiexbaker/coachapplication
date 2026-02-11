@@ -12,7 +12,14 @@ const logger = createLogger('GoalsDashboardScreen');
 
 export type TabFilter = 'active' | 'completed' | 'all';
 
-export const GOAL_CATEGORIES: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
+export const GOAL_CATEGORIES: GoalCategory[] = [
+  'SPEED',
+  'TECHNIQUE',
+  'FITNESS',
+  'TACTICAL',
+  'MENTAL',
+  'OTHER',
+];
 
 export function useGoalsDashboard() {
   const { currentUser } = useAuth();
@@ -32,14 +39,7 @@ export function useGoalsDashboard() {
     }
   }, [userId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ goals: Goal[] }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ goals: Goal[] }>({
     load: loadGoals,
     deps: [userId],
     isEmpty: (value) => value.goals.length === 0,
@@ -52,7 +52,8 @@ export function useGoalsDashboard() {
 
   const filteredGoals = useMemo(() => {
     let filtered = goals;
-    if (activeTab === 'active') filtered = filtered.filter((g) => g.status === 'ACTIVE' || g.status === 'PAUSED');
+    if (activeTab === 'active')
+      filtered = filtered.filter((g) => g.status === 'ACTIVE' || g.status === 'PAUSED');
     else if (activeTab === 'completed') filtered = filtered.filter((g) => g.status === 'COMPLETED');
     if (categoryFilter) filtered = filtered.filter((g) => g.category === categoryFilter);
     return filtered;
@@ -62,9 +63,10 @@ export function useGoalsDashboard() {
     const active = goals.filter((g) => g.status === 'ACTIVE').length;
     const completed = goals.filter((g) => g.status === 'COMPLETED').length;
     const activeGoals = goals.filter((g) => g.status === 'ACTIVE');
-    const avgProgress = activeGoals.length > 0
-      ? Math.round(activeGoals.reduce((sum, g) => sum + g.progress, 0) / activeGoals.length)
-      : 0;
+    const avgProgress =
+      activeGoals.length > 0
+        ? Math.round(activeGoals.reduce((sum, g) => sum + g.progress, 0) / activeGoals.length)
+        : 0;
     return { active, completed, total: goals.length, avgProgress };
   }, [goals]);
 

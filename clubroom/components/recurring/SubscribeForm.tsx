@@ -34,44 +34,87 @@ interface SubscribeFormProps {
   }>;
 }
 
-export function SubscribeForm({ coach, userId, userName, athletes, onSubmit, onCancel, submitting = false, defaultValues }: SubscribeFormProps) {
+export function SubscribeForm({
+  coach,
+  userId,
+  userName,
+  athletes,
+  onSubmit,
+  onCancel,
+  submitting = false,
+  defaultValues,
+}: SubscribeFormProps) {
   const { colors: palette } = useTheme();
   const form = useSubscribeForm({ coach, userId, userName, athletes, onSubmit, defaultValues });
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <SubscribeCoachHeader coach={coach} />
 
         <SubscribeScheduleSection
-          dayOfWeek={form.dayOfWeek} onDayChange={form.setDayOfWeek}
-          time={form.time} showTimePicker={form.showTimePicker} onShowTimePicker={form.setShowTimePicker}
-          timeDate={form.timeDate} onTimeChange={form.handleTimeChange}
-          frequency={form.frequency} onFrequencyChange={form.setFrequency}
+          dayOfWeek={form.dayOfWeek}
+          onDayChange={form.setDayOfWeek}
+          time={form.time}
+          showTimePicker={form.showTimePicker}
+          onShowTimePicker={form.setShowTimePicker}
+          timeDate={form.timeDate}
+          onTimeChange={form.handleTimeChange}
+          frequency={form.frequency}
+          onFrequencyChange={form.setFrequency}
           pricePerSession={coach.pricePerSession}
         />
 
         <SubscribeOptionsSection
-          athletes={athletes} selectedAthleteId={form.selectedAthleteId} onAthleteChange={form.setSelectedAthleteId}
-          sessionTypes={form.sessionTypes} sessionType={form.sessionType} onSessionTypeChange={form.setSessionType}
-          duration={form.duration} onDurationChange={form.setDuration}
-          location={form.location} onLocationChange={form.setLocation}
-          notes={form.notes} onNotesChange={form.setNotes}
-          hasEndDate={form.hasEndDate} onToggleEndDate={form.toggleEndDate}
-          endDate={form.endDate} showEndDatePicker={form.showEndDatePicker}
-          onShowEndDatePicker={form.setShowEndDatePicker} onEndDateChange={form.handleEndDateChange}
+          athletes={athletes}
+          selectedAthleteId={form.selectedAthleteId}
+          onAthleteChange={form.setSelectedAthleteId}
+          sessionTypes={form.sessionTypes}
+          sessionType={form.sessionType}
+          onSessionTypeChange={form.setSessionType}
+          duration={form.duration}
+          onDurationChange={form.setDuration}
+          location={form.location}
+          onLocationChange={form.setLocation}
+          notes={form.notes}
+          onNotesChange={form.setNotes}
+          hasEndDate={form.hasEndDate}
+          onToggleEndDate={form.toggleEndDate}
+          endDate={form.endDate}
+          showEndDatePicker={form.showEndDatePicker}
+          onShowEndDatePicker={form.setShowEndDatePicker}
+          onEndDateChange={form.handleEndDateChange}
         />
 
         <SubscribeSummary
-          dayOfWeek={form.dayOfWeek} time={form.time} frequency={form.frequency}
-          sessionType={form.sessionType} duration={form.duration}
-          athleteName={form.selectedAthlete?.name} monthlyEstimate={form.monthlyEstimate}
+          dayOfWeek={form.dayOfWeek}
+          time={form.time}
+          frequency={form.frequency}
+          sessionType={form.sessionType}
+          duration={form.duration}
+          athleteName={form.selectedAthlete?.name}
+          monthlyEstimate={form.monthlyEstimate}
         />
       </ScrollView>
 
       <Row gap="sm" style={[styles.footer, { borderTopColor: palette.border }]}>
-        {onCancel && <Button variant="outline" onPress={onCancel} style={styles.cancelButton}>Cancel</Button>}
-        <Button onPress={form.handleSubmit} disabled={!form.isValid || submitting} style={styles.submitButton}>
+        {onCancel && (
+          <Button variant="outline" onPress={onCancel} style={styles.cancelButton}>
+            Cancel
+          </Button>
+        )}
+        <Button
+          onPress={form.handleSubmit}
+          disabled={!form.isValid || submitting}
+          style={styles.submitButton}
+        >
           {submitting ? 'Creating...' : 'Start Subscription'}
         </Button>
       </Row>

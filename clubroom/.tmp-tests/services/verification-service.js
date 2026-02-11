@@ -236,7 +236,7 @@ class VerificationService {
         const phoneVerified = status.phone.status === 'VERIFIED';
         const identityVerified = status.identity.status === 'VERIFIED';
         const backgroundVerified = status.backgroundCheck.status === 'VERIFIED';
-        const hasVerifiedCredentials = status.credentials.some(c => c.status === 'VERIFIED');
+        const hasVerifiedCredentials = status.credentials.some((c) => c.status === 'VERIFIED');
         const insuranceVerified = status.insurance.status === 'VERIFIED';
         // PREMIUM: All verified
         if (emailVerified &&
@@ -271,7 +271,7 @@ class VerificationService {
             completed++;
         if (status.backgroundCheck.status === 'VERIFIED')
             completed++;
-        if (status.credentials.some(c => c.status === 'VERIFIED'))
+        if (status.credentials.some((c) => c.status === 'VERIFIED'))
             completed++;
         if (status.insurance.status === 'VERIFIED')
             completed++;

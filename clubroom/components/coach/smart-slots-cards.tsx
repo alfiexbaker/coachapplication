@@ -18,7 +18,13 @@ import { Row } from '@/components/primitives';
 // SuggestionCard
 // ---------------------------------------------------------------------------
 
-function SuggestionCardInner({ suggestion, onAction }: { suggestion: SlotSuggestion; onAction: (s: SlotSuggestion) => void }) {
+function SuggestionCardInner({
+  suggestion,
+  onAction,
+}: {
+  suggestion: SlotSuggestion;
+  onAction: (s: SlotSuggestion) => void;
+}) {
   const { colors, scheme } = useTheme();
   const isAdd = suggestion.type === 'add';
   const iconName: keyof typeof Ionicons.glyphMap = isAdd ? 'trending-up' : 'trending-down';
@@ -31,18 +37,30 @@ function SuggestionCardInner({ suggestion, onAction }: { suggestion: SlotSuggest
           <Ionicons name={iconName} size={18} color={iconColor} />
         </View>
         <Row style={styles.cardHeaderText}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{suggestion.day} {suggestion.time}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            {suggestion.day} {suggestion.time}
+          </Text>
           <View style={[styles.metricBadge, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
             <Text style={[styles.metricText, { color: iconColor }]}>{suggestion.metric}</Text>
           </View>
         </Row>
       </Row>
-      <Text style={[styles.cardDescription, { color: colors.muted }]}>{suggestion.description}</Text>
+      <Text style={[styles.cardDescription, { color: colors.muted }]}>
+        {suggestion.description}
+      </Text>
       <Clickable
-        style={[styles.actionButton, { backgroundColor: isAdd ? colors.tint : colors.surface }, !isAdd && { borderWidth: 1, borderColor: colors.border }]}
+        style={[
+          styles.actionButton,
+          { backgroundColor: isAdd ? colors.tint : colors.surface },
+          !isAdd && { borderWidth: 1, borderColor: colors.border },
+        ]}
         onPress={() => onAction(suggestion)}
       >
-        <Ionicons name={isAdd ? 'add' : 'remove'} size={16} color={isAdd ? colors.onPrimary : colors.muted} />
+        <Ionicons
+          name={isAdd ? 'add' : 'remove'}
+          size={16}
+          color={isAdd ? colors.onPrimary : colors.muted}
+        />
         <Text style={[styles.actionButtonText, { color: isAdd ? colors.onPrimary : colors.muted }]}>
           {isAdd ? 'Add slot' : 'Remove slot'}
         </Text>
@@ -62,12 +80,16 @@ function StatsSummaryInner() {
   return (
     <Row style={[styles.statsContainer, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
       <View style={styles.stat}>
-        <Text style={[styles.statValue, { color: colors.text }]}>{MOCK_STATS.totalSessionsLastMonth}</Text>
+        <Text style={[styles.statValue, { color: colors.text }]}>
+          {MOCK_STATS.totalSessionsLastMonth}
+        </Text>
         <Text style={[styles.statLabel, { color: colors.muted }]}>Sessions (30d)</Text>
       </View>
       <Divider vertical />
       <View style={styles.stat}>
-        <Text style={[styles.statValue, { color: colors.text }]}>{Math.round(MOCK_STATS.averageBookingRate * 100)}%</Text>
+        <Text style={[styles.statValue, { color: colors.text }]}>
+          {Math.round(MOCK_STATS.averageBookingRate * 100)}%
+        </Text>
         <Text style={[styles.statLabel, { color: colors.muted }]}>Fill rate</Text>
       </View>
       <Divider vertical />
@@ -85,13 +107,28 @@ const styles = StyleSheet.create({
   // Suggestion card
   card: { borderRadius: Radii.card, padding: Spacing.sm },
   cardHeader: { alignItems: 'center', marginBottom: Spacing.xs },
-  iconCircle: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.xs },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.xs,
+  },
   cardHeaderText: { flex: 1, alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { ...Typography.bodySemiBold },
   metricBadge: { paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
   metricText: { ...Typography.caption, fontWeight: '600' },
   cardDescription: { ...Typography.small, marginBottom: Spacing.sm },
-  actionButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, height: 36, borderRadius: Radii.sm, paddingHorizontal: Spacing.sm, alignSelf: 'flex-end' },
+  actionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    height: 36,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm,
+    alignSelf: 'flex-end',
+  },
   actionButtonText: { ...Typography.caption, fontWeight: '600' },
   // Stats
   statsContainer: { borderRadius: Radii.card, padding: Spacing.sm },

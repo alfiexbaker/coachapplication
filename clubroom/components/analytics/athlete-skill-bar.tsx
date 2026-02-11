@@ -14,36 +14,60 @@ interface AthleteSkillBarProps {
   index: number;
 }
 
-export const AthleteSkillBar = memo(function AthleteSkillBar({ skill, index }: AthleteSkillBarProps) {
+export const AthleteSkillBar = memo(function AthleteSkillBar({
+  skill,
+  index,
+}: AthleteSkillBarProps) {
   const { colors } = useTheme();
 
   const changeColor =
-    skill.changePercent > 0 ? colors.success : skill.changePercent < 0 ? colors.error : colors.muted;
+    skill.changePercent > 0
+      ? colors.success
+      : skill.changePercent < 0
+        ? colors.error
+        : colors.muted;
 
   return (
     <Animated.View entering={FadeInRight.delay(index * 75).springify()} style={styles.item}>
       <Row style={styles.header}>
-        <ThemedText type="defaultSemiBold" style={styles.name}>{skill.skillName}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.name}>
+          {skill.skillName}
+        </ThemedText>
         <Row style={styles.change}>
           {skill.changePercent !== 0 && (
-            <Ionicons name={skill.changePercent > 0 ? 'arrow-up' : 'arrow-down'} size={12} color={changeColor} />
+            <Ionicons
+              name={skill.changePercent > 0 ? 'arrow-up' : 'arrow-down'}
+              size={12}
+              color={changeColor}
+            />
           )}
           <ThemedText style={[styles.changeText, { color: changeColor }]}>
-            {skill.changePercent > 0 ? '+' : ''}{skill.changePercent.toFixed(1)}%
+            {skill.changePercent > 0 ? '+' : ''}
+            {skill.changePercent.toFixed(1)}%
           </ThemedText>
         </Row>
       </Row>
       <View style={[styles.barBg, { backgroundColor: colors.border }]}>
         <Animated.View
-          style={[styles.barFill, {
-            width: `${skill.currentLevel}%`,
-            backgroundColor: skill.currentLevel >= 70 ? colors.success : skill.currentLevel >= 50 ? colors.warning : colors.tint,
-          }]}
+          style={[
+            styles.barFill,
+            {
+              width: `${skill.currentLevel}%`,
+              backgroundColor:
+                skill.currentLevel >= 70
+                  ? colors.success
+                  : skill.currentLevel >= 50
+                    ? colors.warning
+                    : colors.tint,
+            },
+          ]}
         />
       </View>
       <Row style={styles.meta}>
         <ThemedText style={[styles.category, { color: colors.muted }]}>{skill.category}</ThemedText>
-        <ThemedText style={[styles.level, { color: colors.text }]}>{skill.currentLevel}/100</ThemedText>
+        <ThemedText style={[styles.level, { color: colors.text }]}>
+          {skill.currentLevel}/100
+        </ThemedText>
       </Row>
     </Animated.View>
   );

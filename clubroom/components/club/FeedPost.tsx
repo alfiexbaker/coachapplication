@@ -18,10 +18,8 @@ export interface FeedPostProps {
 
 export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
   const { colors: palette } = useTheme();
-  const authorLabel = post.postAs === 'club' ? (post.clubId || 'Club') : (post.authorId || 'Coach');
-  const initials = post.postAs === 'club'
-    ? 'CL'
-    : (authorLabel.slice(0, 2).toUpperCase() || 'ME');
+  const authorLabel = post.postAs === 'club' ? post.clubId || 'Club' : post.authorId || 'Coach';
+  const initials = post.postAs === 'club' ? 'CL' : authorLabel.slice(0, 2).toUpperCase() || 'ME';
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -37,7 +35,12 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
   };
 
   return (
-    <SurfaceCard style={[styles.feedCard, post.isPinned ? { borderColor: palette.tint, borderWidth: 1 } : undefined]}>
+    <SurfaceCard
+      style={[
+        styles.feedCard,
+        post.isPinned ? { borderColor: palette.tint, borderWidth: 1 } : undefined,
+      ]}
+    >
       {/* Pinned indicator */}
       {post.isPinned && (
         <Row style={[styles.pinnedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -48,7 +51,16 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post header */}
       <Row style={styles.feedHeader}>
-        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border, borderWidth: 1 }]}>
+        <View
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: withAlpha(palette.tint, 0.06),
+              borderColor: palette.border,
+              borderWidth: 1,
+            },
+          ]}
+        >
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
         </View>
         <View style={{ flex: 1 }}>
@@ -56,7 +68,9 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
             <ThemedText type="defaultSemiBold">{authorLabel}</ThemedText>
             {post.postAs === 'club' && (
               <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>Club</ThemedText>
+                <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>
+                  Club
+                </ThemedText>
               </View>
             )}
           </Row>
@@ -65,10 +79,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
           </ThemedText>
         </View>
         {canPin && (
-          <Clickable
-            onPress={() => onPinToggle?.(post.id)}
-            hitSlop={10}
-          >
+          <Clickable onPress={() => onPinToggle?.(post.id)} hitSlop={10}>
             <Ionicons
               name={post.isPinned ? 'pin' : 'pin-outline'}
               size={18}
@@ -80,29 +91,32 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post content */}
       <View style={styles.postContent}>
-        <ThemedText type="defaultSemiBold" style={{ ...Typography.body }}>{post.title}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={{ ...Typography.body }}>
+          {post.title}
+        </ThemedText>
         <ThemedText style={{ lineHeight: 20, color: palette.text }}>{post.body}</ThemedText>
       </View>
 
       {/* Image if present */}
       {post.imageUrl && (
-        <Image
-          source={{ uri: post.imageUrl }}
-          style={styles.postImage}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
       )}
 
       {/* Event details */}
       {post.postType === 'event' && post.eventDate && (
-        <View style={[styles.eventDetails, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border }]}>
+        <View
+          style={[
+            styles.eventDetails,
+            { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border },
+          ]}
+        >
           <Row style={styles.eventRow}>
             <Ionicons name="calendar" size={16} color={palette.tint} />
             <ThemedText style={{ color: palette.text }}>
               {new Date(post.eventDate).toLocaleDateString('en-GB', {
                 weekday: 'long',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
               })}
             </ThemedText>
           </Row>
@@ -116,17 +130,23 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
       )}
 
       {/* Badge awarded */}
-      {post.badgeAwarded && (
-        <Chip active>{post.badgeAwarded}</Chip>
-      )}
+      {post.badgeAwarded && <Chip active>{post.badgeAwarded}</Chip>}
 
       {/* Attachments */}
       {post.attachments && post.attachments.length > 0 && (
         <Row style={styles.attachments}>
           {post.attachments.map((attachment, idx) => (
-            <Row key={idx} style={[styles.attachmentChip, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row
+              key={idx}
+              style={[
+                styles.attachmentChip,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            >
               <Ionicons name="attach" size={14} color={palette.muted} />
-              <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{attachment}</ThemedText>
+              <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+                {attachment}
+              </ThemedText>
             </Row>
           ))}
         </Row>
@@ -136,11 +156,15 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
       <Row style={styles.feedFooter}>
         <Clickable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.reactionCount ?? 0}</ThemedText>
+          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+            {post.reactionCount ?? 0}
+          </ThemedText>
         </Clickable>
         <Clickable style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.commentCount ?? 0}</ThemedText>
+          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+            {post.commentCount ?? 0}
+          </ThemedText>
         </Clickable>
         <Clickable accessibilityLabel="Share post" style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />

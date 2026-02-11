@@ -248,9 +248,7 @@ class MultiWeekBookingService {
   async getSeriesForUser(userId: string): Promise<Result<BookingSeries[], ServiceError>> {
     try {
       const cache = await this.getCache();
-      const results = Array.from(cache.values()).filter(
-        (s) => s.createdById === userId
-      );
+      const results = Array.from(cache.values()).filter((s) => s.createdById === userId);
       return ok(results);
     } catch (error) {
       logger.error('Failed to get series for user', error);
@@ -264,9 +262,7 @@ class MultiWeekBookingService {
   async getSeriesForCoach(coachId: string): Promise<Result<BookingSeries[], ServiceError>> {
     try {
       const cache = await this.getCache();
-      const results = Array.from(cache.values()).filter(
-        (s) => s.coachId === coachId
-      );
+      const results = Array.from(cache.values()).filter((s) => s.coachId === coachId);
       return ok(results);
     } catch (error) {
       logger.error('Failed to get series for coach', error);
@@ -283,7 +279,7 @@ class MultiWeekBookingService {
    */
   async cancelSeries(
     seriesId: string,
-    reason?: string
+    reason?: string,
   ): Promise<Result<BookingSeries, ServiceError>> {
     const allSeries = await this.loadFromStorage();
     const index = allSeries.findIndex((s) => s.id === seriesId);

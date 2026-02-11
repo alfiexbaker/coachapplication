@@ -3,6 +3,7 @@
 > **Duration:** ~1.5 weeks
 > **Goal:** 70%+ service coverage. Critical path tested. strict:true enforced.
 > **Depends on:** Phases 1-4 (test the final code, not code that's about to change)
+> **Historical Baseline:** This document captures pre-close targets and execution plan; check `docs/AI_CONTEXT.md` for live gate status.
 
 ---
 

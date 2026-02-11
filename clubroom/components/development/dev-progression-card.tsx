@@ -28,7 +28,8 @@ export const DevProgressionCard = memo(function DevProgressionCard({
             Level {summary.currentLevel.level}: {summary.currentLevel.name}
           </ThemedText>
           <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-            {summary.totalPoints} pts from {summary.totalBadges} badge{summary.totalBadges !== 1 ? 's' : ''}
+            {summary.totalPoints} pts from {summary.totalBadges} badge
+            {summary.totalBadges !== 1 ? 's' : ''}
           </ThemedText>
         </View>
       </Row>
@@ -51,7 +52,9 @@ export const DevProgressionCard = memo(function DevProgressionCard({
 
       {summary.topCategories.length > 0 && (
         <View style={styles.categoriesSection}>
-          <ThemedText style={[Typography.micro, { color: colors.muted }]}>Top categories</ThemedText>
+          <ThemedText style={[Typography.micro, { color: colors.muted }]}>
+            Top categories
+          </ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Row gap="xs">
               {summary.topCategories.map((cat) => (

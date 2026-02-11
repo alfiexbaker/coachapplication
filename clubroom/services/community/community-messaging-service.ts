@@ -9,11 +9,7 @@
  * - Group metadata (lastMessageAt, unreadCount) is updated on message events
  */
 
-import {
-  ParentGroup,
-  GroupMessage,
-  ChatAttachment,
-} from '@/constants/types';
+import { ParentGroup, GroupMessage, ChatAttachment } from '@/constants/types';
 import { apiClient } from '../api-client';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -66,14 +62,12 @@ class CommunityMessagingService {
     try {
       const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
         STORAGE_KEYS.GROUP_MESSAGES,
-        {}
+        {},
       );
       const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
       return ok(
-        messages.sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
+        messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
       );
     } catch (error) {
       logger.error('Failed to get group messages', error);
@@ -90,7 +84,7 @@ class CommunityMessagingService {
     _senderName: string,
     body: string,
     _senderAvatar?: string,
-    attachments?: ChatAttachment[]
+    attachments?: ChatAttachment[],
   ): Promise<Result<GroupMessage, ServiceError>> {
     try {
       const timestamp = new Date().toISOString();
@@ -108,7 +102,7 @@ class CommunityMessagingService {
 
       const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
         STORAGE_KEYS.GROUP_MESSAGES,
-        {}
+        {},
       );
       const currentMessages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
       persisted[groupId] = [...currentMessages, newMessage];
@@ -145,7 +139,7 @@ class CommunityMessagingService {
     try {
       const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
         STORAGE_KEYS.GROUP_MESSAGES,
-        {}
+        {},
       );
       const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
@@ -180,17 +174,15 @@ class CommunityMessagingService {
   private async updateMessageStatus(
     groupId: string,
     messageId: string,
-    status: GroupMessage['status']
+    status: GroupMessage['status'],
   ): Promise<void> {
     const persisted = await apiClient.get<Record<string, GroupMessage[]>>(
       STORAGE_KEYS.GROUP_MESSAGES,
-      {}
+      {},
     );
     const messages = persisted[groupId] || this.inMemoryMessages[groupId] || [];
 
-    const updated = messages.map((msg) =>
-      msg.id === messageId ? { ...msg, status } : msg
-    );
+    const updated = messages.map((msg) => (msg.id === messageId ? { ...msg, status } : msg));
 
     persisted[groupId] = updated;
     this.inMemoryMessages[groupId] = updated;

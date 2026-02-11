@@ -13,9 +13,22 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('AddTemplate');
 
 export const TIME_OPTIONS = [
-  '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
-  '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
-  '18:00', '19:00', '20:00', '21:00',
+  '06:00',
+  '07:00',
+  '08:00',
+  '09:00',
+  '10:00',
+  '11:00',
+  '12:00',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+  '19:00',
+  '20:00',
+  '21:00',
 ];
 
 export const BUFFER_OPTIONS = [0, 10, 15, 30, 45];
@@ -47,8 +60,13 @@ export function useAddTemplate() {
     setSaving(true);
     try {
       await availabilityService.saveTemplate({
-        coachId: currentUser.id, dayOfWeek, startTime, endTime,
-        isRecurring: true, maxConcurrent: maxSlots, bufferMinutes,
+        coachId: currentUser.id,
+        dayOfWeek,
+        startTime,
+        endTime,
+        isRecurring: true,
+        maxConcurrent: maxSlots,
+        bufferMinutes,
       });
       Alert.alert('Template Added', 'Your availability has been updated', [
         { text: 'OK', onPress: () => router.back() },
@@ -63,8 +81,17 @@ export function useAddTemplate() {
   }, [currentUser?.id, dayOfWeek, startTime, endTime, maxSlots, bufferMinutes]);
 
   return {
-    dayOfWeek, startTime, endTime, maxSlots, bufferMinutes, saving,
-    setStartTime, setEndTime, setMaxSlots, setBufferMinutes,
-    handleDaySelect, handleSave,
+    dayOfWeek,
+    startTime,
+    endTime,
+    maxSlots,
+    bufferMinutes,
+    saving,
+    setStartTime,
+    setEndTime,
+    setMaxSlots,
+    setBufferMinutes,
+    handleDaySelect,
+    handleSave,
   };
 }

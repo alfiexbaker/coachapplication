@@ -42,7 +42,11 @@ interface SentInviteRowProps {
   colors: ThemeColors;
 }
 
-const SentInviteRow = memo(function SentInviteRow({ invite, statusConfig, colors }: SentInviteRowProps) {
+const SentInviteRow = memo(function SentInviteRow({
+  invite,
+  statusConfig,
+  colors,
+}: SentInviteRowProps) {
   const athleteNames = getSessionInviteAthleteNames(invite);
   const handlePress = useCallback(() => {
     router.push(Routes.sessionInvite(invite.id));
@@ -75,12 +79,15 @@ const SentInviteRow = memo(function SentInviteRow({ invite, statusConfig, colors
 // MAIN COMPONENT
 // ============================================================================
 
-export const SentInvitesBanner = memo(function SentInvitesBanner({ invites, colors }: SentInvitesBannerProps) {
-  if (invites.length === 0) return null;
-
+export const SentInvitesBanner = memo(function SentInvitesBanner({
+  invites,
+  colors,
+}: SentInvitesBannerProps) {
   const handleViewAll = useCallback(() => {
     router.push(Routes.SESSION_INVITES);
   }, []);
+
+  if (invites.length === 0) return null;
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.sentSection}>
@@ -88,10 +95,7 @@ export const SentInvitesBanner = memo(function SentInvitesBanner({ invites, colo
         <ThemedText type="defaultSemiBold" style={styles.sentTitle}>
           Recent Sent Invites
         </ThemedText>
-        <Clickable
-          onPress={handleViewAll}
-          accessibilityLabel="View all sent invites"
-        >
+        <Clickable onPress={handleViewAll} accessibilityLabel="View all sent invites">
           <ThemedText style={{ color: colors.tint, ...Typography.small }}>View All</ThemedText>
         </Clickable>
       </Row>
@@ -99,7 +103,12 @@ export const SentInvitesBanner = memo(function SentInvitesBanner({ invites, colo
         const getColors = STATUS_COLORS_MAP[invite.status] || STATUS_COLORS_MAP.PENDING;
         const statusConfig = getColors(colors);
         return (
-          <SentInviteRow key={invite.id} invite={invite} statusConfig={statusConfig} colors={colors} />
+          <SentInviteRow
+            key={invite.id}
+            invite={invite}
+            statusConfig={statusConfig}
+            colors={colors}
+          />
         );
       })}
     </Animated.View>

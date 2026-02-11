@@ -27,13 +27,26 @@ import { useFamilyCalendar } from '@/hooks/use-family-calendar';
 export default function FamilyCalendarScreen() {
   const { colors: palette } = useTheme();
   const {
-    status, error, refreshing, onRefresh, retry, members, events, selectedDate, selectedChildId, monthStats,
-    handleDateSelect, handleEventPress, handleChildFilterChange,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    members,
+    events,
+    selectedDate,
+    selectedChildId,
+    monthStats,
+    handleDateSelect,
+    handleEventPress,
+    handleChildFilterChange,
   } = useFamilyCalendar();
 
   if (status === 'loading') {
     return (
-      <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
+      <PageContainer
+        header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}
+      >
         <LoadingState variant="calendar" />
       </PageContainer>
     );
@@ -41,7 +54,9 @@ export default function FamilyCalendarScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
+      <PageContainer
+        header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}
+      >
         <ErrorState message={error?.message || 'Failed to load family calendar.'} onRetry={retry} />
       </PageContainer>
     );
@@ -49,7 +64,9 @@ export default function FamilyCalendarScreen() {
 
   if (status === 'empty') {
     return (
-      <PageContainer header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}>
+      <PageContainer
+        header={<PageHeader title="Family Calendar" subtitle="All sessions in one view" showBack />}
+      >
         <EmptyState
           icon="calendar-outline"
           title="No sessions scheduled"
@@ -78,18 +95,24 @@ export default function FamilyCalendarScreen() {
               </View>
               <View style={styles.statText}>
                 <ThemedText style={Typography.title}>{monthStats.totalSessions}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: palette.muted }]}>Upcoming</ThemedText>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                  Upcoming
+                </ThemedText>
               </View>
             </Row>
           </SurfaceCard>
           <SurfaceCard style={styles.statCard}>
             <Row align="center" gap="sm">
-              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
+              <View
+                style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}
+              >
                 <Ionicons name="checkmark-circle" size={20} color={palette.success} />
               </View>
               <View style={styles.statText}>
                 <ThemedText style={Typography.title}>{monthStats.completedSessions}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: palette.muted }]}>Completed</ThemedText>
+                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                  Completed
+                </ThemedText>
               </View>
             </Row>
           </SurfaceCard>
@@ -100,7 +123,9 @@ export default function FamilyCalendarScreen() {
       {members.length > 1 && (
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.legendCard}>
-            <ThemedText style={[Typography.caption, { color: palette.muted }]}>Color Legend</ThemedText>
+            <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+              Color Legend
+            </ThemedText>
             <Row gap="md" wrap>
               {members.map((member) => (
                 <Row key={member.id} gap="xxs" align="center">
@@ -117,9 +142,13 @@ export default function FamilyCalendarScreen() {
       <Animated.View entering={FadeInDown.delay(150).springify()}>
         <ErrorBoundary>
           <FamilyCalendar
-            events={events} members={members} selectedDate={selectedDate}
-            onDateSelect={handleDateSelect} onEventPress={handleEventPress}
-            selectedChildId={selectedChildId} onChildFilterChange={handleChildFilterChange}
+            events={events}
+            members={members}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onEventPress={handleEventPress}
+            selectedChildId={selectedChildId}
+            onChildFilterChange={handleChildFilterChange}
           />
         </ErrorBoundary>
       </Animated.View>
@@ -127,16 +156,26 @@ export default function FamilyCalendarScreen() {
       {/* Quick Actions */}
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <Row gap="sm">
-          <Clickable onPress={() => router.push(Routes.MORE)} style={[styles.actionButton, { backgroundColor: palette.tint }]}>
+          <Clickable
+            onPress={() => router.push(Routes.MORE)}
+            style={[styles.actionButton, { backgroundColor: palette.tint }]}
+          >
             <Row align="center" justify="center" gap="xs">
               <Ionicons name="add" size={20} color={palette.onPrimary} />
-              <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>Book Session</ThemedText>
+              <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
+                Book Session
+              </ThemedText>
             </Row>
           </Clickable>
-          <Clickable onPress={() => router.push(Routes.FAMILY_SPENDING)} style={[styles.actionButtonSecondary, { borderColor: palette.border }]}>
+          <Clickable
+            onPress={() => router.push(Routes.FAMILY_SPENDING)}
+            style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
+          >
             <Row align="center" justify="center" gap="xs">
               <Ionicons name="wallet-outline" size={20} color={palette.tint} />
-              <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>View Spending</ThemedText>
+              <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
+                View Spending
+              </ThemedText>
             </Row>
           </Clickable>
         </Row>
@@ -147,10 +186,21 @@ export default function FamilyCalendarScreen() {
 
 const styles = StyleSheet.create({
   statCard: { flex: 1, padding: Spacing.md },
-  statIcon: { width: 40, height: 40, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statText: { gap: Spacing.micro },
   legendCard: { padding: Spacing.sm, gap: Spacing.xs },
   legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
   actionButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg },
-  actionButtonSecondary: { flex: 1, paddingVertical: Spacing.md, borderRadius: Radii.lg, borderWidth: 1.5 },
+  actionButtonSecondary: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+  },
 });

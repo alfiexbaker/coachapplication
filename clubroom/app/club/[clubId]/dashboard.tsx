@@ -6,7 +6,6 @@
  */
 
 import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -54,21 +53,47 @@ export default function DashboardScreen() {
   }
 
   return (
-    <PageContainer header={<PageHeader title="Dashboard" showBack subtitle={`${stats.memberCount} members`} />}>
+    <PageContainer
+      header={<PageHeader title="Dashboard" showBack subtitle={`${stats.memberCount} members`} />}
+    >
       {/* Stats Row */}
       <Row style={styles.statsRow}>
-        <StatCard label="Sessions" value={stats.sessionsThisWeek} icon="fitness-outline" palette={palette} />
-        <StatCard label="Matches" value={stats.matchesThisWeek} icon="football-outline" palette={palette} />
-        <StatCard label="Events" value={stats.upcomingEvents} icon="calendar-outline" palette={palette} />
+        <StatCard
+          label="Sessions"
+          value={stats.sessionsThisWeek}
+          icon="fitness-outline"
+          palette={palette}
+        />
+        <StatCard
+          label="Matches"
+          value={stats.matchesThisWeek}
+          icon="football-outline"
+          palette={palette}
+        />
+        <StatCard
+          label="Events"
+          value={stats.upcomingEvents}
+          icon="calendar-outline"
+          palette={palette}
+        />
       </Row>
 
       {/* Recent Results */}
       <SurfaceCard style={styles.resultsCard} tactile={false}>
-        <ThemedText style={{ ...Typography.subheading, color: palette.foreground }}>Recent Results</ThemedText>
+        <ThemedText style={{ ...Typography.subheading, color: palette.foreground }}>
+          Recent Results
+        </ThemedText>
         {results.length > 0 ? (
           results.map((result) => <ResultRow key={result.id} result={result} palette={palette} />)
         ) : (
-          <ThemedText style={{ ...Typography.body, color: palette.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
+          <ThemedText
+            style={{
+              ...Typography.body,
+              color: palette.muted,
+              textAlign: 'center',
+              paddingVertical: Spacing.md,
+            }}
+          >
             No recent results
           </ThemedText>
         )}
@@ -76,14 +101,36 @@ export default function DashboardScreen() {
 
       {/* Quick Actions */}
       <View style={styles.quickActionsSection}>
-        <ThemedText style={{ ...Typography.subheading, color: palette.foreground }}>Quick Actions</ThemedText>
+        <ThemedText style={{ ...Typography.subheading, color: palette.foreground }}>
+          Quick Actions
+        </ThemedText>
         <Row style={styles.quickActionsGrid}>
-          <QuickAction icon="calendar-outline" label="Calendar" onPress={() => navigateTo(`/club/${clubId}/calendar`)} palette={palette} />
-          <QuickAction icon="create-outline" label="Post" onPress={() => navigateTo(`/(modal)/create-club-post?clubId=${clubId}`)} palette={palette} />
+          <QuickAction
+            icon="calendar-outline"
+            label="Calendar"
+            onPress={() => navigateTo(`/club/${clubId}/calendar`)}
+            palette={palette}
+          />
+          <QuickAction
+            icon="create-outline"
+            label="Post"
+            onPress={() => navigateTo(`/(modal)/create-club-post?clubId=${clubId}`)}
+            palette={palette}
+          />
         </Row>
         <Row style={styles.quickActionsGrid}>
-          <QuickAction icon="football-outline" label="Match" onPress={() => navigateTo('/matches/create')} palette={palette} />
-          <QuickAction icon="megaphone-outline" label="Event" onPress={() => navigateTo('/events/create')} palette={palette} />
+          <QuickAction
+            icon="football-outline"
+            label="Match"
+            onPress={() => navigateTo('/matches/create')}
+            palette={palette}
+          />
+          <QuickAction
+            icon="megaphone-outline"
+            label="Event"
+            onPress={() => navigateTo('/events/create')}
+            palette={palette}
+          />
         </Row>
       </View>
     </PageContainer>

@@ -66,7 +66,7 @@ export function useFamilyCalendar() {
       }));
 
       const allEvents = [...bookingsData, ...clubEventsAsCalendar].sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
       );
 
       return ok<FamilyCalendarData>({
@@ -79,14 +79,7 @@ export function useFamilyCalendar() {
     }
   }, [currentUser?.id, dateRange]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<FamilyCalendarData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyCalendarData>({
     load: loadData,
     deps: [currentUser?.id, dateRange.startDate, dateRange.endDate],
     isEmpty: (value) => value.events.length === 0,
@@ -112,16 +105,19 @@ export function useFamilyCalendar() {
     setSelectedChildId(childId);
   }, []);
 
-  const monthStats = useMemo(() => ({
-    totalSessions: events.filter(
-      (e) => (e.status === 'CONFIRMED' || e.status === 'PENDING') &&
-        (!selectedChildId || e.childId === selectedChildId)
-    ).length,
-    completedSessions: events.filter(
-      (e) => e.status === 'COMPLETED' &&
-        (!selectedChildId || e.childId === selectedChildId)
-    ).length,
-  }), [events, selectedChildId]);
+  const monthStats = useMemo(
+    () => ({
+      totalSessions: events.filter(
+        (e) =>
+          (e.status === 'CONFIRMED' || e.status === 'PENDING') &&
+          (!selectedChildId || e.childId === selectedChildId),
+      ).length,
+      completedSessions: events.filter(
+        (e) => e.status === 'COMPLETED' && (!selectedChildId || e.childId === selectedChildId),
+      ).length,
+    }),
+    [events, selectedChildId],
+  );
 
   return {
     status,

@@ -23,18 +23,33 @@ import { useMatchDetail } from '@/hooks/use-match-detail';
 
 export default function MatchDetailScreen() {
   const {
-    match, status, error, refreshing, onRefresh, retry, showLineupSelector, isSubmitting,
-    isCoach, currentPlayerInfo, isUpcoming, isComplete, isCancelled,
+    match,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    showLineupSelector,
+    isSubmitting,
+    isCoach,
+    currentPlayerInfo,
+    isUpcoming,
+    isComplete,
+    isCancelled,
     setShowLineupSelector,
-    handleSetLineup, handlePlayerResponse,
-    handleRecordResult, handleCancelMatch,
+    handleSetLineup,
+    handlePlayerResponse,
+    handleRecordResult,
+    handleCancelMatch,
   } = useMatchDetail();
 
   if (status === 'loading') {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <PageContainer header={<PageHeader title="Loading..." showBack onBackPress={() => router.back()} />}>
+        <PageContainer
+          header={<PageHeader title="Loading..." showBack onBackPress={() => router.back()} />}
+        >
           <LoadingState variant="detail" />
         </PageContainer>
       </>
@@ -45,7 +60,9 @@ export default function MatchDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <PageContainer header={<PageHeader title="Match Details" showBack onBackPress={() => router.back()} />}>
+        <PageContainer
+          header={<PageHeader title="Match Details" showBack onBackPress={() => router.back()} />}
+        >
           <ErrorState message={error?.message || 'Failed to load match details.'} onRetry={retry} />
         </PageContainer>
       </>
@@ -56,7 +73,9 @@ export default function MatchDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <PageContainer header={<PageHeader title="Match Details" showBack onBackPress={() => router.back()} />}>
+        <PageContainer
+          header={<PageHeader title="Match Details" showBack onBackPress={() => router.back()} />}
+        >
           <EmptyState
             icon="football-outline"
             title="Match not found"
@@ -74,8 +93,16 @@ export default function MatchDetailScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <PageContainer
-          header={<PageHeader title="Set Lineup" subtitle={match.title} showBack onBackPress={() => setShowLineupSelector(false)} />}
-          gap={0} horizontalSpacing={Spacing.md}
+          header={
+            <PageHeader
+              title="Set Lineup"
+              subtitle={match.title}
+              showBack
+              onBackPress={() => setShowLineupSelector(false)}
+            />
+          }
+          gap={0}
+          horizontalSpacing={Spacing.md}
         >
           <LineupSelector match={match} onSetLineup={handleSetLineup} isLoading={isSubmitting} />
         </PageContainer>
@@ -87,23 +114,42 @@ export default function MatchDetailScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <PageContainer
-        header={<PageHeader title="Match Details" subtitle={match.clubId} showBack onBackPress={() => router.back()} />}
-        gap={0} horizontalSpacing={0}
+        header={
+          <PageHeader
+            title="Match Details"
+            subtitle={match.clubId}
+            showBack
+            onBackPress={() => router.back()}
+          />
+        }
+        gap={0}
+        horizontalSpacing={0}
       >
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
           <MatchHeaderCard match={match} isUpcoming={!!isUpcoming} />
 
           {!isCoach && currentPlayerInfo && isUpcoming && (
             <View style={styles.section}>
-              <AvailabilityResponse match={match} player={currentPlayerInfo} onRespond={handlePlayerResponse} isLoading={isSubmitting} />
+              <AvailabilityResponse
+                match={match}
+                player={currentPlayerInfo}
+                onRespond={handlePlayerResponse}
+                isLoading={isSubmitting}
+              />
             </View>
           )}
 
           {isCoach && isUpcoming && (
             <View style={styles.section}>
-              <MatchAvailabilityStats match={match} onSetLineup={() => setShowLineupSelector(true)} />
+              <MatchAvailabilityStats
+                match={match}
+                onSetLineup={() => setShowLineupSelector(true)}
+              />
             </View>
           )}
 
@@ -116,8 +162,12 @@ export default function MatchDetailScreen() {
           {isCoach && (
             <View style={styles.section}>
               <MatchCoachActions
-                isComplete={!!isComplete} isUpcoming={!!isUpcoming} isCancelled={!!isCancelled}
-                hasResult={!!match.result} onRecordResult={handleRecordResult} onCancelMatch={handleCancelMatch}
+                isComplete={!!isComplete}
+                isUpcoming={!!isUpcoming}
+                isCancelled={!!isCancelled}
+                hasResult={!!match.result}
+                onRecordResult={handleRecordResult}
+                onCancelMatch={handleCancelMatch}
               />
             </View>
           )}

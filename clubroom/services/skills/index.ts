@@ -6,7 +6,11 @@
  */
 
 // Re-export individual services
-export { skillDefinitionService, SKILL_TREES, SKILL_TREE_CATEGORIES } from './skill-definition-service';
+export {
+  skillDefinitionService,
+  SKILL_TREES,
+  SKILL_TREE_CATEGORIES,
+} from './skill-definition-service';
 export { skillProgressService } from './skill-progress-service';
 export { skillAchievementService } from './skill-achievement-service';
 
@@ -22,12 +26,7 @@ import { skillProgressService } from './skill-progress-service';
 import { skillAchievementService } from './skill-achievement-service';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
-import type {
-  SkillTree,
-  SkillTreeCategory,
-  SkillNode,
-  SkillNodeProgress,
-} from '@/constants/types';
+import type { SkillTree, SkillTreeCategory, SkillNode, SkillNodeProgress } from '@/constants/types';
 
 const logger = createLogger('SkillTreeFacade');
 void logger;
@@ -60,9 +59,7 @@ class SkillTreeService {
   /**
    * Get category info for display
    */
-  getCategoryInfo(
-    category: SkillTreeCategory
-  ): { label: string; icon: string; color: string } {
+  getCategoryInfo(category: SkillTreeCategory): { label: string; icon: string; color: string } {
     return skillDefinitionService.getCategoryInfo(category);
   }
 
@@ -74,7 +71,7 @@ class SkillTreeService {
    * Get user's progress on all skill trees
    */
   async getAllUserProgress(
-    userId: string
+    userId: string,
   ): Promise<Result<Record<string, import('@/constants/types').SkillTreeProgress>, ServiceError>> {
     return skillProgressService.getAllUserProgress(userId);
   }
@@ -84,7 +81,7 @@ class SkillTreeService {
    */
   async getUserProgress(
     userId: string,
-    treeId: string
+    treeId: string,
   ): Promise<Result<import('@/constants/types').SkillTreeProgress | null, ServiceError>> {
     return skillProgressService.getUserProgress(userId, treeId);
   }
@@ -94,7 +91,7 @@ class SkillTreeService {
    */
   async getSkillTreeWithProgress(
     userId: string,
-    category: SkillTreeCategory
+    category: SkillTreeCategory,
   ): Promise<Result<SkillTree | null, ServiceError>> {
     return skillProgressService.getSkillTreeWithProgress(userId, category);
   }
@@ -112,13 +109,18 @@ class SkillTreeService {
   async addXpToNode(
     userId: string,
     nodeId: string,
-    xpAmount: number
-  ): Promise<Result<{
-    node: SkillNode;
-    progress: SkillNodeProgress;
-    justUnlocked: boolean;
-    badgeAwarded?: string;
-  }, ServiceError>> {
+    xpAmount: number,
+  ): Promise<
+    Result<
+      {
+        node: SkillNode;
+        progress: SkillNodeProgress;
+        justUnlocked: boolean;
+        badgeAwarded?: string;
+      },
+      ServiceError
+    >
+  > {
     return skillAchievementService.addXpWithAchievements(userId, nodeId, xpAmount);
   }
 
@@ -127,12 +129,17 @@ class SkillTreeService {
    */
   async unlockNode(
     userId: string,
-    nodeId: string
-  ): Promise<Result<{
-    node: SkillNode;
-    progress: SkillNodeProgress;
-    badgeAwarded?: string;
-  }, ServiceError>> {
+    nodeId: string,
+  ): Promise<
+    Result<
+      {
+        node: SkillNode;
+        progress: SkillNodeProgress;
+        badgeAwarded?: string;
+      },
+      ServiceError
+    >
+  > {
     return skillAchievementService.unlockNode(userId, nodeId);
   }
 
@@ -141,33 +148,39 @@ class SkillTreeService {
    */
   async calculateTreeProgress(
     userId: string,
-    treeId: string
-  ): Promise<Result<{
-    totalNodes: number;
-    unlockedNodes: number;
-    percentComplete: number;
-    totalXp: number;
-  }, ServiceError>> {
+    treeId: string,
+  ): Promise<
+    Result<
+      {
+        totalNodes: number;
+        unlockedNodes: number;
+        percentComplete: number;
+        totalXp: number;
+      },
+      ServiceError
+    >
+  > {
     return skillProgressService.calculateTreeProgress(userId, treeId);
   }
 
   /**
    * Get summary of all trees for a user
    */
-  async getTreesSummary(
-    userId: string
-  ): Promise<Result<
-    {
-      treeId: string;
-      category: SkillTreeCategory;
-      name: string;
-      icon: string;
-      themeColor: string;
-      totalNodes: number;
-      unlockedNodes: number;
-      percentComplete: number;
-    }[]
-  , ServiceError>> {
+  async getTreesSummary(userId: string): Promise<
+    Result<
+      {
+        treeId: string;
+        category: SkillTreeCategory;
+        name: string;
+        icon: string;
+        themeColor: string;
+        totalNodes: number;
+        unlockedNodes: number;
+        percentComplete: number;
+      }[],
+      ServiceError
+    >
+  > {
     return skillProgressService.getTreesSummary(userId);
   }
 

@@ -24,7 +24,7 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
 
   const priceLabel = (() => {
     if (post.sessionPrice == null || post.sessionPrice === 0) return 'Free';
-    const symbol = post.sessionCurrency === 'GBP' ? '\u00A3' : post.sessionCurrency ?? '';
+    const symbol = post.sessionCurrency === 'GBP' ? '\u00A3' : (post.sessionCurrency ?? '');
     return `${symbol}${post.sessionPrice}`;
   })();
 
@@ -51,7 +51,11 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
     >
       {/* Session type chip */}
       <Row align="center" justify="between">
-        <Row align="center" gap="xxs" style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}
+        >
           <Ionicons name="fitness" size={14} color={palette.tint} />
           <ThemedText style={[styles.sessionTypeBadgeText, { color: palette.tint }]}>
             {post.sessionType?.replace('_', ' ') || 'Open Session'}
@@ -88,10 +92,7 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
         {post.eventLocation ? (
           <Row align="center" gap="xxs">
             <Ionicons name="location-outline" size={14} color={palette.muted} />
-            <ThemedText
-              style={[styles.detailText, { color: palette.text }]}
-              numberOfLines={1}
-            >
+            <ThemedText style={[styles.detailText, { color: palette.text }]} numberOfLines={1}>
               {post.eventLocation}
             </ThemedText>
           </Row>
@@ -104,9 +105,7 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
         onPress={handleBookNow}
       >
         <Ionicons name="flash" size={16} color={palette.onPrimary} />
-        <ThemedText style={[styles.bookNowText, { color: palette.onPrimary }]}>
-          Book Now
-        </ThemedText>
+        <ThemedText style={[styles.bookNowText, { color: palette.onPrimary }]}>Book Now</ThemedText>
       </Clickable>
     </View>
   );

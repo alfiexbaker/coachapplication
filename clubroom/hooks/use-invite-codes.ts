@@ -51,7 +51,10 @@ export function useInviteCodes(): UseInviteCodesResult {
 
   const loadCodes = useCallback(async () => {
     try {
-      const storedCodes = await apiClient.get<InviteCode[]>(INVITE_CODES_STORAGE_KEY, INVITE_CODE_SEEDS);
+      const storedCodes = await apiClient.get<InviteCode[]>(
+        INVITE_CODES_STORAGE_KEY,
+        INVITE_CODE_SEEDS,
+      );
       return ok(storedCodes);
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load invite codes.', loadError));
@@ -93,18 +96,21 @@ export function useInviteCodes(): UseInviteCodesResult {
     setSelectedSchool(null);
   }, [selectedSchool, newCodeText, maxUses, codes, onRefresh]);
 
-  const deactivateCode = useCallback((codeId: string) => {
-    const next = codes.map((code) =>
-      code.id === codeId
-        ? {
-            ...code,
-            status: code.status === 'active' ? ('exhausted' as const) : ('active' as const),
-          }
-        : code
-    );
-    void apiClient.set(INVITE_CODES_STORAGE_KEY, next);
-    onRefresh();
-  }, [codes, onRefresh]);
+  const deactivateCode = useCallback(
+    (codeId: string) => {
+      const next = codes.map((code) =>
+        code.id === codeId
+          ? {
+              ...code,
+              status: code.status === 'active' ? ('exhausted' as const) : ('active' as const),
+            }
+          : code,
+      );
+      void apiClient.set(INVITE_CODES_STORAGE_KEY, next);
+      onRefresh();
+    },
+    [codes, onRefresh],
+  );
 
   const copyToClipboard = useCallback((code: string) => {
     // In production, use Clipboard.setString(code)

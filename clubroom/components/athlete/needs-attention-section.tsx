@@ -41,11 +41,7 @@ interface AttentionItem {
 // ATTENTION ITEM
 // ============================================================================
 
-const AttentionItemCard = React.memo(function AttentionItemCard({
-  item,
-}: {
-  item: AttentionItem;
-}) {
+const AttentionItemCard = React.memo(function AttentionItemCard({ item }: { item: AttentionItem }) {
   const { colors } = useTheme();
 
   const handlePress = useCallback(() => {
@@ -98,7 +94,7 @@ function NeedsAttentionSectionInner({ roster }: NeedsAttentionSectionProps) {
         });
       } else if (now - new Date(athlete.lastSessionDate).getTime() > twoWeeksMs) {
         const days = Math.floor(
-          (now - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)
+          (now - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24),
         );
         items.push({
           athlete,

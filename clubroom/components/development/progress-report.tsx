@@ -80,7 +80,9 @@ export function ProgressReport({
     <SurfaceCard style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <ThemedText style={[styles.reportTitle, { color: palette.foreground }]}>Progress Report</ThemedText>
+        <ThemedText style={[styles.reportTitle, { color: palette.foreground }]}>
+          Progress Report
+        </ThemedText>
         <ThemedText style={[styles.period, { color: palette.muted }]}>{period}</ThemedText>
       </View>
 
@@ -90,7 +92,9 @@ export function ProgressReport({
           <Ionicons name="person" size={Components.icon.lg} color={palette.muted} />
         </View>
         <View style={styles.athleteInfo}>
-          <ThemedText style={[styles.athleteName, { color: palette.foreground }]}>{athleteName}</ThemedText>
+          <ThemedText style={[styles.athleteName, { color: palette.foreground }]}>
+            {athleteName}
+          </ThemedText>
           <ThemedText style={[styles.athleteMeta, { color: palette.muted }]}>
             Age {athleteAge} &middot; Coach: {coachName}
           </ThemedText>
@@ -100,9 +104,16 @@ export function ProgressReport({
       <StatsRow sessionsCount={sessionsCount} attendanceRate={attendanceRate} />
 
       {/* Radar chart placeholder */}
-      <View style={[styles.radarPlaceholder, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}>
+      <View
+        style={[
+          styles.radarPlaceholder,
+          { backgroundColor: palette.surfaceSecondary, borderColor: palette.border },
+        ]}
+      >
         <Ionicons name="analytics-outline" size={Components.icon.xl} color={palette.muted} />
-        <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>Radar chart integration</ThemedText>
+        <ThemedText style={[styles.placeholderText, { color: palette.muted }]}>
+          Radar chart integration
+        </ThemedText>
       </View>
 
       <SkillsSection skillImprovements={skillImprovements} />
@@ -124,9 +135,20 @@ export function ProgressReport({
           </Row>
         </Clickable>
         <Clickable onPress={onDownload} accessibilityLabel="Download report">
-          <Row style={[styles.actionButton, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
-            <Ionicons name="download-outline" size={Components.icon.md} color={palette.foreground} />
-            <ThemedText style={[styles.actionText, { color: palette.foreground }]}>Download</ThemedText>
+          <Row
+            style={[
+              styles.actionButton,
+              { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
+            ]}
+          >
+            <Ionicons
+              name="download-outline"
+              size={Components.icon.md}
+              color={palette.foreground}
+            />
+            <ThemedText style={[styles.actionText, { color: palette.foreground }]}>
+              Download
+            </ThemedText>
           </Row>
         </Clickable>
       </Row>
@@ -142,15 +164,40 @@ const styles = StyleSheet.create({
   reportTitle: { ...Typography.title },
   period: { ...Typography.small },
   athleteRow: { alignItems: 'center', gap: Spacing.sm },
-  avatarPlaceholder: { width: Components.avatar.lg, height: Components.avatar.lg, borderRadius: Components.avatar.lg / 2, alignItems: 'center', justifyContent: 'center' },
+  avatarPlaceholder: {
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   athleteInfo: { flex: 1, gap: Spacing.xs / 2 },
   athleteName: { ...Typography.heading },
   athleteMeta: { ...Typography.small },
-  radarPlaceholder: { height: 160, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', gap: Spacing.xs },
+  radarPlaceholder: {
+    height: 160,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: Spacing.xs,
+  },
   placeholderText: { ...Typography.caption },
-  brandingFooter: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, alignItems: 'center' },
+  brandingFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.sm,
+    alignItems: 'center',
+  },
   brandingText: { ...Typography.caption, letterSpacing: 1, textTransform: 'uppercase' },
   actionsRow: { gap: Spacing.sm },
-  actionButton: { flex: 1, alignItems: 'center', justifyContent: 'center', height: Components.button.height, borderRadius: Radii.button, gap: Spacing.xs },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: Components.button.height,
+    borderRadius: Radii.button,
+    gap: Spacing.xs,
+  },
   actionText: { ...Typography.bodySemiBold },
 });

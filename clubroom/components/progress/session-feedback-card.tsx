@@ -38,7 +38,9 @@ export function SessionFeedbackCard({
   const { colors: palette } = useTheme();
 
   if (compact) {
-    return <CompactFeedbackCard feedback={feedback} onPress={onPress} showCoachName={showCoachName} />;
+    return (
+      <CompactFeedbackCard feedback={feedback} onPress={onPress} showCoachName={showCoachName} />
+    );
   }
 
   return (
@@ -46,16 +48,22 @@ export function SessionFeedbackCard({
       {/* Header */}
       <Row justify="space-between" align="flex-start">
         <View style={styles.headerLeft}>
-          <ThemedText type="defaultSemiBold" style={styles.date}>{formatDate(feedback.createdAt)}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.date}>
+            {formatDate(feedback.createdAt)}
+          </ThemedText>
           {showCoachName && (
             <Row align="center" gap="xxs">
               <Ionicons name="person" size={12} color={palette.muted} />
-              <ThemedText style={[styles.coachName, { color: palette.muted }]}>{feedback.coachName}</ThemedText>
+              <ThemedText style={[styles.coachName, { color: palette.muted }]}>
+                {feedback.coachName}
+              </ThemedText>
             </Row>
           )}
         </View>
         <View style={styles.headerRight}>
-          <View style={[styles.performanceBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <View
+            style={[styles.performanceBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+          >
             <ThemedText style={[styles.performanceText, { color: palette.tint }]}>
               {getPerformanceLabel(feedback.overallPerformance)}
             </ThemedText>
@@ -66,7 +74,9 @@ export function SessionFeedbackCard({
       {/* Ratings Row */}
       <Row gap="lg">
         <View style={styles.ratingItem}>
-          <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>Performance</ThemedText>
+          <ThemedText style={[styles.ratingLabel, { color: palette.muted }]}>
+            Performance
+          </ThemedText>
           <RatingStars rating={feedback.overallPerformance} />
         </View>
         <View style={styles.ratingItem}>
@@ -85,10 +95,14 @@ export function SessionFeedbackCard({
       {/* Skills Worked On */}
       {feedback.skillsWorkedOn.length > 0 && (
         <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skills covered</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+            Skills covered
+          </ThemedText>
           <Row gap="xxs" wrap>
             {feedback.skillsWorkedOn.map((skill, index) => (
-              <Chip key={index} dense>{skill}</Chip>
+              <Chip key={index} dense>
+                {skill}
+              </Chip>
             ))}
           </Row>
         </View>
@@ -97,7 +111,9 @@ export function SessionFeedbackCard({
       <SkillRatingsGrid ratings={feedback.skillRatings} />
       <FeedbackCardDetails feedback={feedback} />
 
-      {onPress && <Ionicons name="chevron-forward" size={16} color={palette.muted} style={styles.chevron} />}
+      {onPress && (
+        <Ionicons name="chevron-forward" size={16} color={palette.muted} style={styles.chevron} />
+      )}
     </SurfaceCard>
   );
 }
@@ -153,12 +169,21 @@ const styles = StyleSheet.create({
   headerRight: {},
   date: { ...Typography.body },
   coachName: { ...Typography.caption },
-  performanceBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  performanceBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   performanceText: { ...Typography.caption },
   ratingItem: { gap: Spacing.xxs },
   ratingLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3 },
   section: { gap: Spacing.xxs },
-  sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '600' },
+  sectionLabel: {
+    ...Typography.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    fontWeight: '600',
+  },
   summaryText: { ...Typography.bodySmall, lineHeight: 20 },
   chevron: { position: 'absolute', top: Spacing.md, right: Spacing.sm },
   list: { gap: Spacing.sm },

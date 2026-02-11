@@ -56,20 +56,12 @@ export function FavouriteButton({
 }: FavouriteButtonProps) {
   const { colors: palette } = useTheme();
 
-  const iconSize = size === 'lg'
-    ? Components.icon.lg
-    : size === 'sm'
-    ? Components.icon.md
-    : 20;
+  const iconSize = size === 'lg' ? Components.icon.lg : size === 'sm' ? Components.icon.md : 20;
 
   const buttonSize = size === 'lg' ? 36 : size === 'sm' ? 28 : 32;
 
   return (
-    <Clickable
-      onPress={onPress}
-      accessibilityLabel="Toggle favourite"
-      disabled={loading}
-    >
+    <Clickable onPress={onPress} accessibilityLabel="Toggle favourite" disabled={loading}>
       <View
         style={[
           styles.favouriteButton,
@@ -103,14 +95,9 @@ export function BookButton({
       <Clickable
         accessibilityLabel={`Book ${coachName}`}
         onPress={onPress}
-        style={[
-          styles.bookButtonCompact,
-          { backgroundColor: palette.tint },
-        ]}
+        style={[styles.bookButtonCompact, { backgroundColor: palette.tint }]}
       >
-        <ThemedText
-          style={[styles.bookButtonText, { color: palette.onPrimary }]}
-        >
+        <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
           {label}
         </ThemedText>
       </Clickable>

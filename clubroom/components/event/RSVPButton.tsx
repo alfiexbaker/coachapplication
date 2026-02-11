@@ -36,16 +36,19 @@ export function RSVPButton({
   const rsvpClosed = eventService.isRSVPClosed(event);
   const isDisabled = disabled || rsvpClosed || (isFull && currentRSVP?.status !== 'GOING');
 
-  const handlePress = useCallback(async (status: RSVPStatus) => {
-    if (isDisabled || loading) return;
+  const handlePress = useCallback(
+    async (status: RSVPStatus) => {
+      if (isDisabled || loading) return;
 
-    setLoading(status);
-    try {
-      await onRSVP(status);
-    } finally {
-      setLoading(null);
-    }
-  }, [isDisabled, loading, onRSVP]);
+      setLoading(status);
+      try {
+        await onRSVP(status);
+      } finally {
+        setLoading(null);
+      }
+    },
+    [isDisabled, loading, onRSVP],
+  );
 
   if (event.status === 'CANCELLED') {
     return <RSVPStatusBanner variant="cancelled" palette={palette} />;
@@ -69,9 +72,7 @@ export function RSVPButton({
 
   return (
     <View style={styles.container}>
-      {isFull && !currentRSVP && (
-        <RSVPStatusBanner variant="full" palette={palette} />
-      )}
+      {isFull && !currentRSVP && <RSVPStatusBanner variant="full" palette={palette} />}
 
       <FullRSVPButtonRow
         currentRSVP={currentRSVP}
@@ -82,9 +83,7 @@ export function RSVPButton({
         palette={palette}
       />
 
-      {currentRSVP && (
-        <CurrentRSVPStatus currentRSVP={currentRSVP} palette={palette} />
-      )}
+      {currentRSVP && <CurrentRSVPStatus currentRSVP={currentRSVP} palette={palette} />}
     </View>
   );
 }

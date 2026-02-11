@@ -17,10 +17,16 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
+import { Shadows } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-import { MIN_RADIUS, MAX_RADIUS, MILES_TO_KM, DEBOUNCE_MS, QUICK_VALUES } from './travel-radius-picker-constants';
+import {
+  MIN_RADIUS,
+  MAX_RADIUS,
+  MILES_TO_KM,
+  DEBOUNCE_MS,
+  QUICK_VALUES,
+} from './travel-radius-picker-constants';
 import { styles } from './travel-radius-picker-styles';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -41,12 +47,19 @@ export const UnitToggle = memo(function UnitToggle({
   return (
     <Row style={[styles.unitToggle, { backgroundColor: palette.background }]}>
       <Clickable
-        style={[styles.unitButton, unit === 'miles' ? { backgroundColor: palette.tint } : undefined]}
+        style={[
+          styles.unitButton,
+          unit === 'miles' ? { backgroundColor: palette.tint } : undefined,
+        ]}
         onPress={onSetMiles}
         accessibilityLabel="Switch to miles"
       >
         <Text
-          style={[styles.unitButtonText, { color: palette.muted }, unit === 'miles' ? { color: palette.onPrimary } : undefined]}
+          style={[
+            styles.unitButtonText,
+            { color: palette.muted },
+            unit === 'miles' ? { color: palette.onPrimary } : undefined,
+          ]}
         >
           mi
         </Text>
@@ -57,7 +70,11 @@ export const UnitToggle = memo(function UnitToggle({
         accessibilityLabel="Switch to kilometres"
       >
         <Text
-          style={[styles.unitButtonText, { color: palette.muted }, unit === 'km' ? { color: palette.onPrimary } : undefined]}
+          style={[
+            styles.unitButtonText,
+            { color: palette.muted },
+            unit === 'km' ? { color: palette.onPrimary } : undefined,
+          ]}
         >
           km
         </Text>
@@ -162,7 +179,9 @@ export const QuickSetRow = memo(function QuickSetRow({
           style={[
             styles.quickSetBtn,
             { backgroundColor: palette.surface, borderColor: palette.border },
-            localValue === val ? { backgroundColor: palette.tint, borderColor: palette.tint } : undefined,
+            localValue === val
+              ? { backgroundColor: palette.tint, borderColor: palette.tint }
+              : undefined,
           ]}
           onPress={() => onQuickSet(val)}
           accessibilityLabel={`Set radius to ${val} miles`}
@@ -188,15 +207,13 @@ interface RadiusHelperTextProps {
   palette: ThemeColors;
 }
 
-export const RadiusHelperText = memo(function RadiusHelperText({
-  palette,
-}: RadiusHelperTextProps) {
+export const RadiusHelperText = memo(function RadiusHelperText({ palette }: RadiusHelperTextProps) {
   return (
     <Row style={styles.helperArea}>
       <Ionicons name="information-circle-outline" size={16} color={palette.muted} />
       <Text style={[styles.helperText, { color: palette.muted }]}>
-        Parents searching for coaches will only see you if they are within your travel
-        radius. This does not apply to sessions at your own venue.
+        Parents searching for coaches will only see you if they are within your travel radius. This
+        does not apply to sessions at your own venue.
       </Text>
     </Row>
   );
@@ -223,12 +240,7 @@ export const SavedToast = memo(function SavedToast({
 
   return (
     <Animated.View
-      style={[
-        styles.toast,
-        { backgroundColor: palette.surface },
-        Shadows[scheme].card,
-        animStyle,
-      ]}
+      style={[styles.toast, { backgroundColor: palette.surface }, Shadows[scheme].card, animStyle]}
       pointerEvents="none"
     >
       <Ionicons name="checkmark-circle" size={18} color={palette.success} />
@@ -239,11 +251,4 @@ export const SavedToast = memo(function SavedToast({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-export {
-  styles,
-  MIN_RADIUS,
-  MAX_RADIUS,
-  MILES_TO_KM,
-  DEBOUNCE_MS,
-  QUICK_VALUES,
-};
+export { styles, MIN_RADIUS, MAX_RADIUS, MILES_TO_KM, DEBOUNCE_MS, QUICK_VALUES };

@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack, router, type Href } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+} from '@react-navigation/native';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -13,6 +17,8 @@ import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
 import { NotificationToastProvider } from '@/components/notification/notification-toast';
 import { ToastProvider } from '@/components/ui/toast';
 import { OfflineBanner } from '@/components/ui/offline-banner';
+import { pushNotificationService } from '@/services/push-notification-service';
+import { navigateToDeepLink } from '@/utils/deep-link';
 
 // Lazy-load expo-notifications for deep linking
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -38,25 +44,40 @@ function RootNavigation() {
     isAuthenticated,
     colorScheme,
     userRole: currentUser?.role,
-    username: currentUser?.username
+    username: currentUser?.username,
   });
 
-  // Deep linking: listen for notification taps and navigate to the relevant screen
+  // Register push token for authenticated users.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void pushNotificationService.registerForPushNotifications();
+  }, [isAuthenticated]);
+
+  // Deep linking: handle notification taps and initial launch tap.
   useEffect(() => {
     if (!Notifications || !isAuthenticated) return;
 
+    const handleResponse = (response: {
+      notification: { request: { content: { data: Record<string, unknown> } } };
+    }) => {
+      const data = response.notification.request.content.data;
+      logger.info('Notification tapped — deep linking', { data });
+
+      const navigated = navigateToDeepLink(router, data?.deepLink);
+      if (!navigated) {
+        logger.warn('Ignored invalid deep link in notification payload', { data });
+      }
+    };
+
+    void Notifications.getLastNotificationResponseAsync?.().then((response) => {
+      if (response) {
+        handleResponse(response);
+      }
+    });
+
     notificationResponseSubscription.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-        logger.info('Notification tapped — deep linking', { data });
-
-        if (data?.deepLink && typeof data.deepLink === 'string') {
-          try {
-            router.push(data.deepLink as Href);
-          } catch (error) {
-            logger.error('Deep link navigation failed', error);
-          }
-        }
+        handleResponse(response);
       });
 
     return () => {
@@ -66,19 +87,19 @@ function RootNavigation() {
     };
   }, [isAuthenticated]);
 
-    return (
-      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {isAuthenticated ? (
-          <ToastProvider>
-            <NotificationToastProvider>
-              <Stack>
+  return (
+    <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      {isAuthenticated ? (
+        <ToastProvider>
+          <NotificationToastProvider>
+            <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="(modal)/post-detail"
                 options={{
                   presentation: 'modal',
                   headerShown: false,
-                  animation: 'slide_from_bottom'
+                  animation: 'slide_from_bottom',
                 }}
               />
               <Stack.Screen
@@ -86,7 +107,7 @@ function RootNavigation() {
                 options={{
                   presentation: 'modal',
                   headerShown: false,
-                  animation: 'slide_from_bottom'
+                  animation: 'slide_from_bottom',
                 }}
               />
               <Stack.Screen
@@ -94,7 +115,7 @@ function RootNavigation() {
                 options={{
                   presentation: 'modal',
                   headerShown: false,
-                  animation: 'slide_from_bottom'
+                  animation: 'slide_from_bottom',
                 }}
               />
               <Stack.Screen
@@ -126,30 +147,30 @@ function RootNavigation() {
                 }}
               />
             </Stack>
-              <StatusBar style="auto" />
-              <OfflineBanner />
-            </NotificationToastProvider>
-          </ToastProvider>
-        ) : (
-          <>
-            <LoginScreen />
             <StatusBar style="auto" />
-          </>
-        )}
-      </NavigationThemeProvider>
-    );
-  }
+            <OfflineBanner />
+          </NotificationToastProvider>
+        </ToastProvider>
+      ) : (
+        <>
+          <LoginScreen />
+          <StatusBar style="auto" />
+        </>
+      )}
+    </NavigationThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   logger.info('App initializing');
 
-    return (
-      <ErrorBoundary>
-        <AppThemeProvider>
-          <AuthProvider>
-            <RootNavigation />
-          </AuthProvider>
-        </AppThemeProvider>
-      </ErrorBoundary>
-    );
-  }
+  return (
+    <ErrorBoundary>
+      <AppThemeProvider>
+        <AuthProvider>
+          <RootNavigation />
+        </AuthProvider>
+      </AppThemeProvider>
+    </ErrorBoundary>
+  );
+}

@@ -36,9 +36,7 @@ export function FilterTray({ groups, onClear }: FilterTrayProps) {
           </Row>
         </View>
       ))}
-      {onClear ? (
-        <Chip onPress={onClear}>Clear filters</Chip>
-      ) : null}
+      {onClear ? <Chip onPress={onClear}>Clear filters</Chip> : null}
     </View>
   );
 }

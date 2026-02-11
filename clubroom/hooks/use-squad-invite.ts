@@ -26,7 +26,14 @@ import type {
 const logger = createLogger('SquadInviteScreen');
 
 export const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Training'];
-export const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
+export const FOCUSES = [
+  'Dribbling',
+  'Passing',
+  'Finishing',
+  'Defending',
+  'Goalkeeping',
+  'Conditioning',
+];
 
 export type ViewMode = 'form' | 'sending' | 'result';
 
@@ -130,18 +137,17 @@ export function useSquadInvite() {
       });
     } catch (loadError) {
       logger.error('Failed to load squad invite data:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load squad invite data. Pull down to refresh.', loadError));
+      return err(
+        serviceError(
+          'UNKNOWN',
+          'Failed to load squad invite data. Pull down to refresh.',
+          loadError,
+        ),
+      );
     }
   }, [squadId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<SquadInviteData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<SquadInviteData>({
     load: loadSquadData,
     deps: [squadId],
     isEmpty: (value) => value.squad === null,
@@ -198,7 +204,7 @@ export function useSquadInvite() {
       sessionType !== '' &&
       focus !== '' &&
       proposedSlots.length > 0,
-    [selectedMemberIds, sessionTitle, sessionType, focus, proposedSlots]
+    [selectedMemberIds, sessionTitle, sessionType, focus, proposedSlots],
   );
 
   const sendBulkInvites = useCallback(async () => {
@@ -239,7 +245,18 @@ export function useSquadInvite() {
     } finally {
       setSendingInvites(false);
     }
-  }, [currentUser, squadId, canSend, sessionTitle, squad, proposedSlots, sessionType, focus, notes, price]);
+  }, [
+    currentUser,
+    squadId,
+    canSend,
+    sessionTitle,
+    squad,
+    proposedSlots,
+    sessionType,
+    focus,
+    notes,
+    price,
+  ]);
 
   const handleDone = useCallback(() => {
     router.back();

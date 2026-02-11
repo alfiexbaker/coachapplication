@@ -126,8 +126,7 @@ export function CalendarExportButton({
   }
 
   const buttonLabel = label ?? (bookings?.length ? 'Export All' : 'Add to Calendar');
-  const backgroundColor =
-    variant === 'primary' ? palette.accent : withAlpha(palette.accent, 0.09);
+  const backgroundColor = variant === 'primary' ? palette.accent : withAlpha(palette.accent, 0.09);
   const textColor = variant === 'primary' ? palette.onPrimary : palette.accent;
 
   return (
@@ -150,16 +149,9 @@ export function CalendarExportButton({
         <ActivityIndicator size="small" color={textColor} />
       ) : (
         <>
-          <Ionicons
-            name="calendar-outline"
-            size={sizeStyles.iconSize}
-            color={textColor}
-          />
+          <Ionicons name="calendar-outline" size={sizeStyles.iconSize} color={textColor} />
           <ThemedText
-            style={[
-              styles.buttonText,
-              { color: textColor, fontSize: sizeStyles.fontSize },
-            ]}
+            style={[styles.buttonText, { color: textColor, fontSize: sizeStyles.fontSize }]}
           >
             {buttonLabel}
           </ThemedText>

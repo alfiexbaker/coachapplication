@@ -28,9 +28,14 @@ export default function EmergencyQuickAccessScreen() {
 
   if (e.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
           <ThemedText type="title">Emergency Info</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
@@ -41,22 +46,35 @@ export default function EmergencyQuickAccessScreen() {
 
   if (e.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
           <ThemedText type="title">Emergency Info</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
-        <ErrorState message={e.error?.message || 'Could not load emergency information for this athlete.'} onRetry={e.retry} />
+        <ErrorState
+          message={e.error?.message || 'Could not load emergency information for this athlete.'}
+          onRetry={e.retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (e.status === 'empty' || !e.emergencyData) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
           <ThemedText type="title">Emergency Info</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
@@ -72,15 +90,26 @@ export default function EmergencyQuickAccessScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+        <Clickable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={palette.text} />
+        </Clickable>
         <Row align="center" justify="center" gap="xs" style={styles.headerCenter}>
           <ThemedText type="title">Emergency Info</ThemedText>
           {e.emergencyData.isCached && (
-            <Row align="center" gap="xxs" style={[styles.cachedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.cachedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+            >
               <Ionicons name="cloud-offline" size={12} color={palette.warning} />
-              <ThemedText style={[styles.cachedText, { color: palette.warning }]}>Cached</ThemedText>
+              <ThemedText style={[styles.cachedText, { color: palette.warning }]}>
+                Cached
+              </ThemedText>
             </Row>
           )}
         </Row>
@@ -89,19 +118,42 @@ export default function EmergencyQuickAccessScreen() {
         </Clickable>
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={e.refreshing} onRefresh={e.handleRefresh} tintColor={palette.tint} />}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={e.refreshing}
+            onRefresh={e.handleRefresh}
+            tintColor={palette.tint}
+          />
+        }
       >
         <Animated.View entering={FadeInDown.springify()}>
           <EmergencyQuickCard
-            athleteName={e.emergencyData.athleteName} alertLevel={e.emergencyData.alertLevel}
-            allergies={e.emergencyData.allergies} conditions={e.emergencyData.conditions}
-            medications={e.emergencyData.medications} primaryContact={e.emergencyData.primaryContact}
-            onCallPrimary={e.emergencyData.primaryContact ? () => e.handleCallContact(e.emergencyData!.primaryContact!.phone, e.emergencyData!.primaryContact!.name) : undefined}
+            athleteName={e.emergencyData.athleteName}
+            alertLevel={e.emergencyData.alertLevel}
+            allergies={e.emergencyData.allergies}
+            conditions={e.emergencyData.conditions}
+            medications={e.emergencyData.medications}
+            primaryContact={e.emergencyData.primaryContact}
+            onCallPrimary={
+              e.emergencyData.primaryContact
+                ? () =>
+                    e.handleCallContact(
+                      e.emergencyData!.primaryContact!.phone,
+                      e.emergencyData!.primaryContact!.name,
+                    )
+                : undefined
+            }
           />
         </Animated.View>
 
-        <EmergencyDetails data={e.emergencyData} onCallContact={e.handleCallContact} onCallDoctor={e.handleCallDoctor} />
+        <EmergencyDetails
+          data={e.emergencyData}
+          onCallContact={e.handleCallContact}
+          onCallDoctor={e.handleCallDoctor}
+        />
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -113,7 +165,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerCenter: { flex: 1, alignItems: 'center' as const },
-  cachedBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
+  cachedBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
   cachedText: { ...Typography.micro },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   loadingText: { ...Typography.bodySmall },

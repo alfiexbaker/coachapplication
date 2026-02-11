@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import type { GroupMember, GroupMemberRole } from '@/constants/types';
 
@@ -65,12 +65,7 @@ function GroupRolePickerInner({
   const { colors: palette } = useTheme();
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Clickable
         style={[styles.rolePickerOverlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         onPress={onClose}
@@ -101,8 +96,8 @@ function GroupRolePickerInner({
                       backgroundColor: pressed
                         ? withAlpha(palette.tint, 0.03)
                         : isCurrentRole
-                        ? withAlpha(palette.tint, 0.03)
-                        : 'transparent',
+                          ? withAlpha(palette.tint, 0.03)
+                          : 'transparent',
                     },
                   ]}
                   onPress={() => onRoleChange(role)}

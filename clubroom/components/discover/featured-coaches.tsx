@@ -74,7 +74,9 @@ export function FeaturedCoaches({
       <Row style={styles.headerRow}>
         <Row style={styles.headerLeft}>
           <Ionicons name="location" size={Components.icon.lg} color={palette.tint} />
-          <ThemedText style={[styles.headerTitle, { color: palette.text }]}>Featured Near You</ThemedText>
+          <ThemedText style={[styles.headerTitle, { color: palette.text }]}>
+            Featured Near You
+          </ThemedText>
         </Row>
         {onSeeAll && (
           <Clickable onPress={onSeeAll} accessibilityLabel="See all featured coaches">
@@ -95,7 +97,9 @@ export function FeaturedCoaches({
         decelerationRate="fast"
         snapToInterval={CARD_WIDTH + Spacing.sm}
         snapToAlignment="start"
-        onScrollBeginDrag={() => { scrollIndexRef.current = 0; }}
+        onScrollBeginDrag={() => {
+          scrollIndexRef.current = 0;
+        }}
       >
         {filteredCoaches.map((coach, index) => (
           <FeaturedCard
@@ -118,7 +122,11 @@ export function FeaturedCoaches({
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
-  headerRow: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md },
+  headerRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+  },
   headerLeft: { alignItems: 'center', gap: Spacing.xs, flex: 1 },
   headerTitle: { ...Typography.title, flexShrink: 1 },
   seeAllRow: { alignItems: 'center', gap: Spacing.xs / 2 },

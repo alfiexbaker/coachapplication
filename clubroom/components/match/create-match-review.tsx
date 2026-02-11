@@ -27,38 +27,68 @@ interface CreateMatchReviewProps {
 }
 
 export const CreateMatchReview = memo(function CreateMatchReview({
-  matchType, opponent, isHome, venue, date, kickoffTime, meetTime, maxPlayers, notes,
-  selectedSquad, squadMemberCount, autoInvite, colors,
+  matchType,
+  opponent,
+  isHome,
+  venue,
+  date,
+  kickoffTime,
+  meetTime,
+  maxPlayers,
+  notes,
+  selectedSquad,
+  squadMemberCount,
+  autoInvite,
+  colors,
 }: CreateMatchReviewProps) {
   const typeColor = matchService.getMatchTypeColor(matchType);
 
   return (
     <View style={styles.stepContent}>
-      <ThemedText type="defaultSemiBold" style={styles.stepTitle}>Review Match</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.stepTitle}>
+        Review Match
+      </ThemedText>
 
       <SurfaceCard style={styles.reviewCard}>
         <Row gap="sm">
           <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
-            <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>{matchService.formatMatchType(matchType)}</ThemedText>
+            <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
+              {matchService.formatMatchType(matchType)}
+            </ThemedText>
           </View>
-          <Row align="center" gap="xxs" style={[styles.homeAwayBadge, { backgroundColor: colors.surface }]}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.homeAwayBadge, { backgroundColor: colors.surface }]}
+          >
             <Ionicons name={isHome ? 'home' : 'airplane'} size={12} color={colors.muted} />
-            <ThemedText style={[Typography.caption, { color: colors.muted }]}>{isHome ? 'Home' : 'Away'}</ThemedText>
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+              {isHome ? 'Home' : 'Away'}
+            </ThemedText>
           </Row>
         </Row>
 
-        <ThemedText type="title" style={Typography.title}>{selectedSquad?.name || 'Team'} vs {opponent}</ThemedText>
+        <ThemedText type="title" style={Typography.title}>
+          {selectedSquad?.name || 'Team'} vs {opponent}
+        </ThemedText>
 
         <View style={styles.details}>
           {[
             { icon: 'calendar', text: date || 'Date not set' },
-            { icon: 'time', text: `Kickoff: ${kickoffTime || '--:--'}${meetTime ? ` (Meet: ${meetTime})` : ''}` },
+            {
+              icon: 'time',
+              text: `Kickoff: ${kickoffTime || '--:--'}${meetTime ? ` (Meet: ${meetTime})` : ''}`,
+            },
             { icon: 'location', text: venue },
             { icon: 'people', text: `${selectedSquad?.name} (${squadMemberCount} players)` },
             { icon: 'person', text: `Squad size: ${maxPlayers}` },
           ].map(({ icon, text }) => (
             <Row key={icon} gap="sm" align="center">
-              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={colors.tint} />
+              <Ionicons
+                name={icon as keyof typeof Ionicons.glyphMap}
+                size={18}
+                color={colors.tint}
+              />
               <ThemedText>{text}</ThemedText>
             </Row>
           ))}
@@ -72,9 +102,15 @@ export const CreateMatchReview = memo(function CreateMatchReview({
         ) : null}
 
         {autoInvite && (
-          <Row gap="sm" align="center" style={[styles.inviteInfo, { backgroundColor: withAlpha(colors.success, 0.06) }]}>
+          <Row
+            gap="sm"
+            align="center"
+            style={[styles.inviteInfo, { backgroundColor: withAlpha(colors.success, 0.06) }]}
+          >
             <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-            <ThemedText style={{ color: colors.success }}>Invites will be sent to all squad members</ThemedText>
+            <ThemedText style={{ color: colors.success }}>
+              Invites will be sent to all squad members
+            </ThemedText>
           </Row>
         )}
       </SurfaceCard>
@@ -86,9 +122,17 @@ const styles = StyleSheet.create({
   stepContent: { gap: Spacing.md },
   stepTitle: { ...Typography.heading, marginBottom: Spacing.sm },
   reviewCard: { gap: Spacing.md },
-  typeBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  typeBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   typeBadgeText: { ...Typography.caption, textTransform: 'uppercase' },
-  homeAwayBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  homeAwayBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   details: { gap: Spacing.sm },
   notesBox: { padding: Spacing.sm, borderRadius: Radii.sm, gap: Spacing.xxs },
   inviteInfo: { padding: Spacing.sm, borderRadius: Radii.sm },

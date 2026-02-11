@@ -22,23 +22,33 @@ import { styles } from './parent-group-card-styles';
 
 export function getGroupTypeIcon(type: GroupType): string {
   switch (type) {
-    case 'CLUB': return 'football-outline';
-    case 'SESSION': return 'calendar-outline';
-    case 'CARPOOL': return 'car-outline';
-    case 'SQUAD': return 'people';
+    case 'CLUB':
+      return 'football-outline';
+    case 'SESSION':
+      return 'calendar-outline';
+    case 'CARPOOL':
+      return 'car-outline';
+    case 'SQUAD':
+      return 'people';
     case 'GENERAL':
-    default: return 'chatbubbles-outline';
+    default:
+      return 'chatbubbles-outline';
   }
 }
 
 export function getGroupTypeLabel(type: GroupType): string {
   switch (type) {
-    case 'CLUB': return 'Club';
-    case 'SESSION': return 'Session';
-    case 'CARPOOL': return 'Carpool';
-    case 'SQUAD': return 'Squad';
+    case 'CLUB':
+      return 'Club';
+    case 'SESSION':
+      return 'Session';
+    case 'CARPOOL':
+      return 'Carpool';
+    case 'SQUAD':
+      return 'Squad';
     case 'GENERAL':
-    default: return 'General';
+    default:
+      return 'General';
   }
 }
 
@@ -78,7 +88,11 @@ export const CompactGroupCardContent = memo(function CompactGroupCardContent({
   return (
     <SurfaceCard style={styles.compactCard} onPress={onPress}>
       <View style={[styles.avatarContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-        <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
+        <Ionicons
+          name={typeIcon as keyof typeof Ionicons.glyphMap}
+          size={20}
+          color={palette.tint}
+        />
       </View>
       <View style={styles.compactContent}>
         <Row style={styles.compactHeader}>
@@ -92,10 +106,7 @@ export const CompactGroupCardContent = memo(function CompactGroupCardContent({
           )}
         </Row>
         <Row style={styles.compactDetails}>
-          <ThemedText
-            style={[styles.previewText, { color: palette.muted }]}
-            numberOfLines={1}
-          >
+          <ThemedText style={[styles.previewText, { color: palette.muted }]} numberOfLines={1}>
             {group.lastMessagePreview || `${group.members.length} members`}
           </ThemedText>
           {hasUnread && (
@@ -133,7 +144,11 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
     <SurfaceCard style={styles.card} onPress={onPress}>
       <Row style={styles.header}>
         <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={28} color={palette.tint} />
+          <Ionicons
+            name={typeIcon as keyof typeof Ionicons.glyphMap}
+            size={28}
+            color={palette.tint}
+          />
         </View>
         <View style={styles.headerInfo}>
           <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={1}>
@@ -174,10 +189,7 @@ export const FullGroupCardContent = memo(function FullGroupCardContent({
             Last message
           </ThemedText>
           <Row style={styles.lastMessageRow}>
-            <ThemedText
-              style={[styles.lastMessageText, { color: palette.text }]}
-              numberOfLines={1}
-            >
+            <ThemedText style={[styles.lastMessageText, { color: palette.text }]} numberOfLines={1}>
               {group.lastMessagePreview}
             </ThemedText>
             {group.lastMessageAt && (

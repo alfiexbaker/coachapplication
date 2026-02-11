@@ -12,37 +12,36 @@ interface BookingParentViewProps {
   onReportProblem: () => void;
 }
 
-function BookingParentViewInner({
-  onMessageCoach,
-  onReportProblem,
-}: BookingParentViewProps) {
+function BookingParentViewInner({ onMessageCoach, onReportProblem }: BookingParentViewProps) {
   const { colors: palette } = useTheme();
 
   return (
     <View style={styles.actions}>
       <Clickable
         onPress={onMessageCoach}
-        style={({ pressed }) => [
-          styles.primaryButton,
-          { backgroundColor: palette.tint },
-          pressed && { opacity: 0.8 },
-        ].filter(Boolean) as ViewStyle[]}
+        style={({ pressed }) =>
+          [
+            styles.primaryButton,
+            { backgroundColor: palette.tint },
+            pressed && { opacity: 0.8 },
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
-        <ThemedText
-          style={[styles.primaryButtonText, { color: palette.onPrimary }]}
-        >
+        <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
           Message Coach
         </ThemedText>
       </Clickable>
 
       <Clickable
         onPress={onReportProblem}
-        style={({ pressed }) => [
-          styles.secondaryButton,
-          { borderColor: palette.border },
-          pressed && { backgroundColor: palette.border, opacity: 0.7 },
-        ].filter(Boolean) as ViewStyle[]}
+        style={({ pressed }) =>
+          [
+            styles.secondaryButton,
+            { borderColor: palette.border },
+            pressed && { backgroundColor: palette.border, opacity: 0.7 },
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Ionicons name="warning-outline" size={20} color={palette.foreground} />
         <ThemedText style={styles.secondaryButtonText}>Report Problem</ThemedText>

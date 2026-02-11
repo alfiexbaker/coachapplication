@@ -23,15 +23,31 @@ export default function VideoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    video, loading, status, error, retry, currentTime, showAnnotationModal, isOwner,
-    handleTimeUpdate, handleSeekToAnnotation, handleQuickAnnotation,
-    handleSaveAnnotation, handleShare, handleToggleVisibility,
-    handleDelete, dismissAnnotationModal, setCurrentTime,
+    video,
+    loading,
+    status,
+    error,
+    retry,
+    currentTime,
+    showAnnotationModal,
+    isOwner,
+    handleTimeUpdate,
+    handleSeekToAnnotation,
+    handleQuickAnnotation,
+    handleSaveAnnotation,
+    handleShare,
+    handleToggleVisibility,
+    handleDelete,
+    dismissAnnotationModal,
+    setCurrentTime,
   } = useVideoDetail(id);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -46,7 +62,10 @@ export default function VideoDetailScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load video.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -54,14 +73,24 @@ export default function VideoDetailScreen() {
 
   if (status === 'empty' || !video) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <EmptyState icon="videocam-outline" title="Video not found" message="This video is unavailable." />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <EmptyState
+          icon="videocam-outline"
+          title="Video not found"
+          message="This video is unavailable."
+        />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -71,7 +100,12 @@ export default function VideoDetailScreen() {
           <Ionicons name="share-outline" size={22} color={colors.text} />
         </Clickable>
         {isOwner && (
-          <Clickable accessibilityLabel="Delete video" onPress={handleDelete} hitSlop={8} style={{ marginLeft: Spacing.md }}>
+          <Clickable
+            accessibilityLabel="Delete video"
+            onPress={handleDelete}
+            hitSlop={8}
+            style={{ marginLeft: Spacing.md }}
+          >
             <Ionicons name="trash-outline" size={22} color={colors.error} />
           </Clickable>
         )}
@@ -104,7 +138,10 @@ export default function VideoDetailScreen() {
             <VideoDetailActions
               colors={colors}
               visibility={video.visibility}
-              onAddAnnotation={() => { dismissAnnotationModal(); handleQuickAnnotation('HIGHLIGHT' as never); }}
+              onAddAnnotation={() => {
+                dismissAnnotationModal();
+                handleQuickAnnotation('HIGHLIGHT' as never);
+              }}
               onToggleVisibility={handleToggleVisibility}
             />
           </Animated.View>

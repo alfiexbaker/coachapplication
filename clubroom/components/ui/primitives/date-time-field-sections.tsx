@@ -9,9 +9,7 @@ import React, { memo } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
-import DateTimePicker, {
-  type DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 import { Components, Fonts, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -101,15 +99,21 @@ export const IOSPickerModal = memo(function IOSPickerModal({
       />
       <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
         <Row justify="between" style={styles.modalHeader}>
-          <Clickable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Cancel picker">
-            <Text style={[styles.modalButtonText, { color: colors.muted }]}>
-              Cancel
-            </Text>
+          <Clickable
+            onPress={onCancel}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel picker"
+          >
+            <Text style={[styles.modalButtonText, { color: colors.muted }]}>Cancel</Text>
           </Clickable>
-          <Clickable onPress={onDone} hitSlop={12} accessibilityRole="button" accessibilityLabel="Confirm picker">
-            <Text style={[styles.modalButtonText, { color: colors.tint }]}>
-              Done
-            </Text>
+          <Clickable
+            onPress={onDone}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Confirm picker"
+          >
+            <Text style={[styles.modalButtonText, { color: colors.tint }]}>Done</Text>
           </Clickable>
         </Row>
         <DateTimePicker

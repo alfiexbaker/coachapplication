@@ -26,7 +26,12 @@ interface DevBadgesTabProps {
   selectedChildId: string | undefined;
 }
 
-function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChildId }: DevBadgesTabProps) {
+function DevBadgesTabInner({
+  awards,
+  sharedBadges,
+  coachOnlyCount,
+  selectedChildId,
+}: DevBadgesTabProps) {
   const { colors: palette } = useTheme();
 
   const handleViewAll = useCallback(() => {
@@ -39,12 +44,18 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
       {sharedBadges.length > 0 && (
         <SurfaceCard style={styles.sharedCard}>
           <Row align="flex-start" gap="sm">
-            <Row align="center" justify="center" style={[styles.headerIcon, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+            <Row
+              align="center"
+              justify="center"
+              style={[styles.headerIcon, { backgroundColor: withAlpha(palette.success, 0.07) }]}
+            >
               <Ionicons name="share" size={16} color={palette.success} />
             </Row>
             <View style={styles.headerContent}>
               <ThemedText type="defaultSemiBold">Shared With You</ThemedText>
-              <ThemedText style={[styles.hint, { color: palette.muted }]}>Badges coaches wanted you to see</ThemedText>
+              <ThemedText style={[styles.hint, { color: palette.muted }]}>
+                Badges coaches wanted you to see
+              </ThemedText>
             </View>
           </Row>
           <View style={styles.sharedList}>
@@ -55,18 +66,38 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
                 style={[styles.sharedBadge, { borderColor: palette.border }]}
               >
                 <Row gap="sm">
-                  <Row align="center" justify="center" style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory, palette), 0.09) }]}>
-                    <Ionicons name={getBadgeIcon(award.badgeCategory) as keyof typeof Ionicons.glyphMap} size={20} color={getBadgeColor(award.badgeCategory, palette)} />
+                  <Row
+                    align="center"
+                    justify="center"
+                    style={[
+                      styles.badgeIcon,
+                      {
+                        backgroundColor: withAlpha(
+                          getBadgeColor(award.badgeCategory, palette),
+                          0.09,
+                        ),
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={getBadgeIcon(award.badgeCategory) as keyof typeof Ionicons.glyphMap}
+                      size={20}
+                      color={getBadgeColor(award.badgeCategory, palette)}
+                    />
                   </Row>
                   <View style={styles.badgeContent}>
                     <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
-                    <ThemedText style={[styles.reason, { color: palette.muted }]}>{award.reason}</ThemedText>
+                    <ThemedText style={[styles.reason, { color: palette.muted }]}>
+                      {award.reason}
+                    </ThemedText>
                     {award.note && (
                       <ThemedText style={[styles.note, { color: palette.text }]} numberOfLines={2}>
                         &quot;{award.note}&quot;
                       </ThemedText>
                     )}
-                    <ThemedText style={[styles.date, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
+                    <ThemedText style={[styles.date, { color: palette.muted }]}>
+                      {formatShortDateWithYear(award.awardedAt)}
+                    </ThemedText>
                   </View>
                 </Row>
               </Animated.View>
@@ -78,14 +109,22 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
       {/* Badge Log */}
       <View style={styles.section}>
         <Row align="center" justify="space-between">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Badge Log</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Badge Log
+          </ThemedText>
           <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <ThemedText style={[styles.countText, { color: palette.tint }]}>{awards.length}</ThemedText>
+            <ThemedText style={[styles.countText, { color: palette.tint }]}>
+              {awards.length}
+            </ThemedText>
           </View>
         </Row>
 
         {coachOnlyCount > 0 && (
-          <Row align="center" gap="xs" style={[styles.infoStrip, { backgroundColor: withAlpha(palette.icon, 0.03) }]}>
+          <Row
+            align="center"
+            gap="xs"
+            style={[styles.infoStrip, { backgroundColor: withAlpha(palette.icon, 0.03) }]}
+          >
             <Ionicons name="shield" size={14} color={palette.icon} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
               {coachOnlyCount} coach-only badge{coachOnlyCount > 1 ? 's are' : ' is'} hidden
@@ -94,11 +133,20 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
         )}
 
         {awards.length === 0 ? (
-          <EmptyMetrics icon="ribbon-outline" title="No Badges Yet" description="Badges will appear here when coaches award them" />
+          <EmptyMetrics
+            icon="ribbon-outline"
+            title="No Badges Yet"
+            description="Badges will appear here when coaches award them"
+          />
         ) : selectedChildId ? (
           <>
             <Clickable onPress={handleViewAll}>
-              <Row align="center" justify="center" gap="xs" style={[styles.viewAllLink, { borderColor: palette.border }]}>
+              <Row
+                align="center"
+                justify="center"
+                gap="xs"
+                style={[styles.viewAllLink, { borderColor: palette.border }]}
+              >
                 <Ionicons name="ribbon-outline" size={16} color={palette.tint} />
                 <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
                   View all {awards.length} badge{awards.length !== 1 ? 's' : ''}
@@ -111,22 +159,59 @@ function DevBadgesTabInner({ awards, sharedBadges, coachOnlyCount, selectedChild
                 <Animated.View key={award.id} entering={FadeInDown.delay(index * 50).springify()}>
                   <SurfaceCard style={styles.badgeCard}>
                     <Row align="flex-start" gap="sm">
-                      <Row align="center" justify="center" style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory, palette), 0.09) }]}>
-                        <Ionicons name={getBadgeIcon(award.badgeCategory) as keyof typeof Ionicons.glyphMap} size={20} color={getBadgeColor(award.badgeCategory, palette)} />
+                      <Row
+                        align="center"
+                        justify="center"
+                        style={[
+                          styles.badgeIcon,
+                          {
+                            backgroundColor: withAlpha(
+                              getBadgeColor(award.badgeCategory, palette),
+                              0.09,
+                            ),
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={getBadgeIcon(award.badgeCategory) as keyof typeof Ionicons.glyphMap}
+                          size={20}
+                          color={getBadgeColor(award.badgeCategory, palette)}
+                        />
                       </Row>
                       <View style={styles.badgeCardContent}>
                         <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
-                        <ThemedText style={[styles.reason, { color: palette.muted }]}>{award.reason}</ThemedText>
+                        <ThemedText style={[styles.reason, { color: palette.muted }]}>
+                          {award.reason}
+                        </ThemedText>
                       </View>
-                      <ThemedText style={[styles.date, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
+                      <ThemedText style={[styles.date, { color: palette.muted }]}>
+                        {formatShortDateWithYear(award.awardedAt)}
+                      </ThemedText>
                     </Row>
                     <Row>
-                      <Row align="center" gap="xxs" style={[
-                        styles.visibilityPill,
-                        { backgroundColor: award.shared ? withAlpha(palette.success, 0.07) : withAlpha(palette.icon, 0.03) }
-                      ]}>
-                        <Ionicons name={award.shared ? 'share' : 'eye'} size={12} color={award.shared ? palette.success : palette.icon} />
-                        <ThemedText style={[styles.visibilityText, { color: award.shared ? palette.success : palette.icon }]}>
+                      <Row
+                        align="center"
+                        gap="xxs"
+                        style={[
+                          styles.visibilityPill,
+                          {
+                            backgroundColor: award.shared
+                              ? withAlpha(palette.success, 0.07)
+                              : withAlpha(palette.icon, 0.03),
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={award.shared ? 'share' : 'eye'}
+                          size={12}
+                          color={award.shared ? palette.success : palette.icon}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.visibilityText,
+                            { color: award.shared ? palette.success : palette.icon },
+                          ]}
+                        >
                           {award.shared ? 'Shared with you' : 'Visible in app'}
                         </ThemedText>
                       </Row>
@@ -159,15 +244,27 @@ const styles = StyleSheet.create({
   date: { ...Typography.caption },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading },
-  countBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
+  countBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
   countText: { ...Typography.caption },
-  infoStrip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
+  infoStrip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.md,
+  },
   infoText: { ...Typography.caption },
   viewAllLink: { paddingVertical: Spacing.sm, borderWidth: 1, borderRadius: Radii.md },
   viewAllText: { ...Typography.smallSemiBold },
   badgeList: { gap: Spacing.sm },
   badgeCard: { padding: Spacing.md, gap: Spacing.sm },
   badgeCardContent: { flex: 1, gap: Spacing.xxs },
-  visibilityPill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  visibilityPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   visibilityText: { ...Typography.caption },
 });

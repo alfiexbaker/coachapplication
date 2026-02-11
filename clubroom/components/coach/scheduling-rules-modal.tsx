@@ -11,26 +11,42 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, withAlpha } from '@/constants/theme';
 import { schedulingRulesService, POLICY_TEMPLATES } from '@/services/scheduling-rules-service';
-import type { CancellationPolicy } from '@/constants/types';
+
 import { createLogger } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
 
-import { ChipSection, ToggleCard, CancellationSection, SettingsSummary } from './scheduling-rules-sections';
+import {
+  ChipSection,
+  ToggleCard,
+  CancellationSection,
+  SettingsSummary,
+} from './scheduling-rules-sections';
 import { Row } from '@/components/primitives';
 
 const logger = createLogger('SchedulingRulesModal');
 
 const NOTICE_OPTIONS = [
-  { value: 0, label: 'None' }, { value: 2, label: '2h' }, { value: 6, label: '6h' },
-  { value: 24, label: '24h' }, { value: 48, label: '48h' }, { value: 72, label: '3d' },
+  { value: 0, label: 'None' },
+  { value: 2, label: '2h' },
+  { value: 6, label: '6h' },
+  { value: 24, label: '24h' },
+  { value: 48, label: '48h' },
+  { value: 72, label: '3d' },
 ];
 const BUFFER_OPTIONS = [
-  { value: 0, label: 'None' }, { value: 10, label: '10m' }, { value: 15, label: '15m' },
-  { value: 30, label: '30m' }, { value: 45, label: '45m' }, { value: 60, label: '1h' },
+  { value: 0, label: 'None' },
+  { value: 10, label: '10m' },
+  { value: 15, label: '15m' },
+  { value: 30, label: '30m' },
+  { value: 45, label: '45m' },
+  { value: 60, label: '1h' },
 ];
 const WINDOW_OPTIONS = [
-  { value: 7, label: '1 week' }, { value: 14, label: '2 weeks' }, { value: 30, label: '1 month' },
-  { value: 60, label: '2 months' }, { value: 90, label: '3 months' },
+  { value: 7, label: '1 week' },
+  { value: 14, label: '2 weeks' },
+  { value: 30, label: '1 month' },
+  { value: 60, label: '2 months' },
+  { value: 90, label: '3 months' },
 ];
 
 interface SchedulingRulesModalProps {
@@ -40,7 +56,12 @@ interface SchedulingRulesModalProps {
   onSaved?: () => void;
 }
 
-export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: SchedulingRulesModalProps) {
+export function SchedulingRulesModal({
+  visible,
+  onClose,
+  coachId,
+  onSaved,
+}: SchedulingRulesModalProps) {
   const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState(true);
@@ -75,7 +96,9 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
       if (policyResult.success && policyResult.data) {
         const policy = policyResult.data;
         const pName = policy.name.toLowerCase();
-        setCancellationPreset(pName === 'flexible' || pName === 'standard' || pName === 'strict' ? pName : 'standard');
+        setCancellationPreset(
+          pName === 'flexible' || pName === 'standard' || pName === 'strict' ? pName : 'standard',
+        );
       } else if (!policyResult.success) {
         logger.error('Failed to load cancellation policy', policyResult.error);
       }
@@ -86,18 +109,27 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
     }
   }, [coachId, visible]);
 
-  useEffect(() => { if (visible) loadRules(); }, [visible, loadRules]);
+  useEffect(() => {
+    if (visible) loadRules();
+  }, [visible, loadRules]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
       const [rulesResult, policyResult] = await Promise.all([
         schedulingRulesService.updateCoachRules(coachId, {
-          minimumAdvanceBookingHours: minimumAdvanceHours, maxAdvanceBookingDays: maxAdvanceDays,
-          bufferMinutesDefault: bufferMinutes, maxConcurrentDefault: 1,
-          allowSameDayBookings, allowRescheduling, rescheduleDeadlineHours,
+          minimumAdvanceBookingHours: minimumAdvanceHours,
+          maxAdvanceBookingDays: maxAdvanceDays,
+          bufferMinutesDefault: bufferMinutes,
+          maxConcurrentDefault: 1,
+          allowSameDayBookings,
+          allowRescheduling,
+          rescheduleDeadlineHours,
         }),
-        schedulingRulesService.setCancellationPolicy(coachId, cancellationPreset as keyof typeof POLICY_TEMPLATES),
+        schedulingRulesService.setCancellationPolicy(
+          coachId,
+          cancellationPreset as keyof typeof POLICY_TEMPLATES,
+        ),
       ]);
       if (!rulesResult.success) {
         logger.error('Failed to save scheduling rules', rulesResult.error);
@@ -118,7 +150,18 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
     } finally {
       setSaving(false);
     }
-  }, [coachId, minimumAdvanceHours, maxAdvanceDays, bufferMinutes, allowSameDayBookings, allowRescheduling, rescheduleDeadlineHours, cancellationPreset, onSaved, onClose]);
+  }, [
+    coachId,
+    minimumAdvanceHours,
+    maxAdvanceDays,
+    bufferMinutes,
+    allowSameDayBookings,
+    allowRescheduling,
+    rescheduleDeadlineHours,
+    cancellationPreset,
+    onSaved,
+    onClose,
+  ]);
 
   const handlePresetChange = useCallback((preset: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -126,33 +169,81 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
   }, []);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable onPress={onClose} disabled={saving}><ThemedText style={{ color: palette.muted }}>Cancel</ThemedText></Clickable>
+          <Clickable onPress={onClose} disabled={saving}>
+            <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
+          </Clickable>
           <ThemedText type="subtitle">Scheduling Rules</ThemedText>
           <Clickable onPress={handleSave} disabled={saving || loading}>
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</ThemedText>
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+              {saving ? 'Saving...' : 'Save'}
+            </ThemedText>
           </Clickable>
         </Row>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Row style={[styles.summaryBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
             <Ionicons name="information-circle" size={20} color={palette.tint} />
-            <ThemedText style={[styles.summaryText, { color: palette.muted }]}>These rules control how athletes can book sessions with you</ThemedText>
+            <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
+              These rules control how athletes can book sessions with you
+            </ThemedText>
           </Row>
 
-          <ChipSection icon="time-outline" iconColor={palette.warning} title="Minimum Notice" hint="Required time before session" options={NOTICE_OPTIONS} selected={minimumAdvanceHours} onSelect={setMinimumAdvanceHours} compact />
-          <ChipSection icon="pause-outline" iconColor={palette.tint} title="Buffer Between Sessions" hint="Break time between bookings" options={BUFFER_OPTIONS} selected={bufferMinutes} onSelect={setBufferMinutes} compact />
-          <ChipSection icon="calendar-outline" iconColor={palette.success} title="Booking Window" hint="How far ahead can they book?" options={WINDOW_OPTIONS} selected={maxAdvanceDays} onSelect={setMaxAdvanceDays} />
+          <ChipSection
+            icon="time-outline"
+            iconColor={palette.warning}
+            title="Minimum Notice"
+            hint="Required time before session"
+            options={NOTICE_OPTIONS}
+            selected={minimumAdvanceHours}
+            onSelect={setMinimumAdvanceHours}
+            compact
+          />
+          <ChipSection
+            icon="pause-outline"
+            iconColor={palette.tint}
+            title="Buffer Between Sessions"
+            hint="Break time between bookings"
+            options={BUFFER_OPTIONS}
+            selected={bufferMinutes}
+            onSelect={setBufferMinutes}
+            compact
+          />
+          <ChipSection
+            icon="calendar-outline"
+            iconColor={palette.success}
+            title="Booking Window"
+            hint="How far ahead can they book?"
+            options={WINDOW_OPTIONS}
+            selected={maxAdvanceDays}
+            onSelect={setMaxAdvanceDays}
+          />
 
-          <ToggleCard allowSameDayBookings={allowSameDayBookings} allowRescheduling={allowRescheduling} rescheduleDeadlineHours={rescheduleDeadlineHours}
-            onSameDayChange={setAllowSameDayBookings} onRescheduleChange={setAllowRescheduling} onDeadlineChange={setRescheduleDeadlineHours} />
+          <ToggleCard
+            allowSameDayBookings={allowSameDayBookings}
+            allowRescheduling={allowRescheduling}
+            rescheduleDeadlineHours={rescheduleDeadlineHours}
+            onSameDayChange={setAllowSameDayBookings}
+            onRescheduleChange={setAllowRescheduling}
+            onDeadlineChange={setRescheduleDeadlineHours}
+          />
 
           <CancellationSection preset={cancellationPreset} onPresetChange={handlePresetChange} />
 
-          <SettingsSummary minimumAdvanceHours={minimumAdvanceHours} bufferMinutes={bufferMinutes}
-            maxAdvanceDays={maxAdvanceDays} allowSameDayBookings={allowSameDayBookings} cancellationPreset={cancellationPreset} />
+          <SettingsSummary
+            minimumAdvanceHours={minimumAdvanceHours}
+            bufferMinutes={bufferMinutes}
+            maxAdvanceDays={maxAdvanceDays}
+            allowSameDayBookings={allowSameDayBookings}
+            cancellationPreset={cancellationPreset}
+          />
         </ScrollView>
       </View>
     </Modal>
@@ -161,7 +252,13 @@ export function SchedulingRulesModal({ visible, onClose, coachId, onSaved }: Sch
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
   content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
   summaryBanner: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: 12 },
   summaryText: { fontSize: 13, lineHeight: 20, flex: 1 },

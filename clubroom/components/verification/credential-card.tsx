@@ -16,22 +16,34 @@ interface CredentialCardProps {
   colors: ThemeColors;
 }
 
-export const CredentialCard = memo(function CredentialCard({ credential, index, colors }: CredentialCardProps) {
+export const CredentialCard = memo(function CredentialCard({
+  credential,
+  index,
+  colors,
+}: CredentialCardProps) {
   const getStatusTone = () => {
     switch (credential.status) {
-      case 'VERIFIED': return 'success';
-      case 'PENDING': return 'warning';
-      default: return 'neutral';
+      case 'VERIFIED':
+        return 'success';
+      case 'PENDING':
+        return 'warning';
+      default:
+        return 'neutral';
     }
   };
 
   const getStatusLabel = () => {
     switch (credential.status) {
-      case 'VERIFIED': return 'Verified';
-      case 'PENDING': return 'Under Review';
-      case 'EXPIRED': return 'Expired';
-      case 'FAILED': return 'Rejected';
-      default: return 'Unknown';
+      case 'VERIFIED':
+        return 'Verified';
+      case 'PENDING':
+        return 'Under Review';
+      case 'EXPIRED':
+        return 'Expired';
+      case 'FAILED':
+        return 'Rejected';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -42,7 +54,9 @@ export const CredentialCard = memo(function CredentialCard({ credential, index, 
           <Ionicons name="ribbon" size={20} color={colors.tint} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold">{credential.notes || `Credential ${index + 1}`}</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {credential.notes || `Credential ${index + 1}`}
+          </ThemedText>
           {credential.verifiedAt && (
             <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
               Verified: {new Date(credential.verifiedAt).toLocaleDateString()}

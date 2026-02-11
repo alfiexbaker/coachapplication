@@ -6,7 +6,14 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSharedValue, withSequence, withTiming, withDelay, runOnJS, type SharedValue } from 'react-native-reanimated';
+import {
+  useSharedValue,
+  withSequence,
+  withTiming,
+  withDelay,
+  runOnJS,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -66,9 +73,12 @@ export function useCoachingSettings() {
     setShowSaved(true);
     toastOpacity.value = withSequence(
       withTiming(1, { duration: 200 }),
-      withDelay(1200, withTiming(0, { duration: 300 }, (finished) => {
-        if (finished) runOnJS(setShowSaved)(false);
-      })),
+      withDelay(
+        1200,
+        withTiming(0, { duration: 300 }, (finished) => {
+          if (finished) runOnJS(setShowSaved)(false);
+        }),
+      ),
     );
   }, [toastOpacity]);
 
@@ -116,9 +126,11 @@ export function useCoachingSettings() {
     };
   }, []);
 
-  const error = saveError ?? (status === 'error'
-    ? (loadError as ServiceError | null)?.message ?? 'Failed to load coaching settings.'
-    : null);
+  const error =
+    saveError ??
+    (status === 'error'
+      ? ((loadError as ServiceError | null)?.message ?? 'Failed to load coaching settings.')
+      : null);
 
   return {
     loading: status === 'loading' && !rules,
@@ -142,10 +154,7 @@ export function useCoachingSettings() {
     rules: CoachSchedulingRules | null;
     showSaved: boolean;
     toastOpacity: SharedValue<number>;
-    update: <K extends keyof CoachSchedulingRules>(
-      key: K,
-      value: CoachSchedulingRules[K]
-    ) => void;
+    update: <K extends keyof CoachSchedulingRules>(key: K, value: CoachSchedulingRules[K]) => void;
     currentUser: ReturnType<typeof useAuth>['currentUser'];
   };
 }

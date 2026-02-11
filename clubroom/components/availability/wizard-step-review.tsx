@@ -26,8 +26,15 @@ interface WizardStepReviewProps {
 }
 
 function WizardStepReviewInner({
-  selectedDays, selectedCount, totalHoursLive, getHoursForDay,
-  location, linkedSessionTemplate, saving, onConfirm, onBack,
+  selectedDays,
+  selectedCount,
+  totalHoursLive,
+  getHoursForDay,
+  location,
+  linkedSessionTemplate,
+  saving,
+  onConfirm,
+  onBack,
 }: WizardStepReviewProps) {
   const { colors: palette } = useTheme();
 
@@ -35,9 +42,13 @@ function WizardStepReviewInner({
     <>
       <View style={styles.stepHeader}>
         <View style={[styles.stepBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-          <ThemedText style={[styles.stepBadgeText, { color: palette.success }]}>Step 3 of 3</ThemedText>
+          <ThemedText style={[styles.stepBadgeText, { color: palette.success }]}>
+            Step 3 of 3
+          </ThemedText>
         </View>
-        <ThemedText type="subtitle" style={styles.stepTitle}>Review your schedule</ThemedText>
+        <ThemedText type="subtitle" style={styles.stepTitle}>
+          Review your schedule
+        </ThemedText>
         <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
           {totalHoursLive} hours/week across {selectedCount} day{selectedCount !== 1 ? 's' : ''}
         </ThemedText>
@@ -50,7 +61,12 @@ function WizardStepReviewInner({
           return (
             <Row key={DAYS_FULL_MAP[i]} style={[styles.reviewRow, { borderColor: palette.border }]}>
               <ThemedText type="defaultSemiBold">{DAYS_FULL_MAP[i]}</ThemedText>
-              <Row style={[styles.reviewTimeBadge, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+              <Row
+                style={[
+                  styles.reviewTimeBadge,
+                  { backgroundColor: withAlpha(palette.success, 0.07) },
+                ]}
+              >
                 <Ionicons name="time-outline" size={14} color={palette.success} />
                 <ThemedText style={[styles.reviewTimeText, { color: palette.success }]}>
                   {formatTime(hours.start)} - {formatTime(hours.end)}
@@ -64,26 +80,53 @@ function WizardStepReviewInner({
       {(location || linkedSessionTemplate) && (
         <Row style={styles.reviewExtras}>
           {location ? (
-            <Row style={[styles.reviewExtraBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+            <Row
+              style={[styles.reviewExtraBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}
+            >
               <Ionicons name="location-outline" size={14} color={palette.tint} />
-              <ThemedText style={[styles.reviewExtraText, { color: palette.tint }]}>{location}</ThemedText>
+              <ThemedText style={[styles.reviewExtraText, { color: palette.tint }]}>
+                {location}
+              </ThemedText>
             </Row>
           ) : null}
           {linkedSessionTemplate ? (
-            <Row style={[styles.reviewExtraBadge, { backgroundColor: withAlpha(palette.accent, 0.07) }]}>
-              <Ionicons name={linkedSessionTemplate.capacity === 1 ? 'person-outline' : 'people-outline'} size={14} color={palette.accent} />
-              <ThemedText style={[styles.reviewExtraText, { color: palette.accent }]}>{linkedSessionTemplate.name}</ThemedText>
+            <Row
+              style={[
+                styles.reviewExtraBadge,
+                { backgroundColor: withAlpha(palette.accent, 0.07) },
+              ]}
+            >
+              <Ionicons
+                name={linkedSessionTemplate.capacity === 1 ? 'person-outline' : 'people-outline'}
+                size={14}
+                color={palette.accent}
+              />
+              <ThemedText style={[styles.reviewExtraText, { color: palette.accent }]}>
+                {linkedSessionTemplate.name}
+              </ThemedText>
             </Row>
           ) : null}
         </Row>
       )}
 
       <Row style={styles.navRow}>
-        <Clickable onPress={onBack} style={[styles.backBtn, { borderColor: palette.border }]} accessibilityLabel="Back to hours">
+        <Clickable
+          onPress={onBack}
+          style={[styles.backBtn, { borderColor: palette.border }]}
+          accessibilityLabel="Back to hours"
+        >
           <Ionicons name="arrow-back" size={18} color={palette.text} />
           <ThemedText>Back</ThemedText>
         </Clickable>
-        <Clickable onPress={onConfirm} disabled={saving} style={[styles.confirmBtn, { backgroundColor: palette.success, flex: 1, opacity: saving ? 0.6 : 1 }]} accessibilityLabel={saving ? 'Saving schedule' : 'Confirm schedule'}>
+        <Clickable
+          onPress={onConfirm}
+          disabled={saving}
+          style={[
+            styles.confirmBtn,
+            { backgroundColor: palette.success, flex: 1, opacity: saving ? 0.6 : 1 },
+          ]}
+          accessibilityLabel={saving ? 'Saving schedule' : 'Confirm schedule'}
+        >
           <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
           <ThemedText style={[styles.confirmBtnText, { color: palette.onPrimary }]}>
             {saving ? 'Saving...' : 'Confirm'}
@@ -98,19 +141,59 @@ export const WizardStepReview = memo(WizardStepReviewInner);
 
 const styles = StyleSheet.create({
   stepHeader: { gap: Spacing.xs },
-  stepBadge: { alignSelf: 'flex-start', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  stepBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   stepBadgeText: { ...Typography.caption, fontWeight: '600' },
   stepTitle: { marginTop: Spacing.xs },
   stepSubtitle: { ...Typography.body },
   reviewList: { gap: Spacing.sm },
-  reviewRow: { justifyContent: 'space-between', alignItems: 'center', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44 },
-  reviewTimeBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  reviewRow: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
+  },
+  reviewTimeBadge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   reviewTimeText: { ...Typography.smallSemiBold },
   reviewExtras: { flexWrap: 'wrap', gap: Spacing.xs },
-  reviewExtraBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  reviewExtraBadge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   reviewExtraText: { ...Typography.smallSemiBold },
   navRow: { gap: Spacing.sm },
-  backBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, borderWidth: 1, minHeight: 52 },
-  confirmBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, minHeight: 52 },
+  backBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 52,
+  },
+  confirmBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    minHeight: 52,
+  },
   confirmBtnText: { fontWeight: '600', fontSize: Typography.body.fontSize },
 });

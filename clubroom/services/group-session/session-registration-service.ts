@@ -245,7 +245,10 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
 
 export async function loadRegistrations(): Promise<GroupRegistration[]> {
   try {
-    const stored = await apiClient.get<GroupRegistration[] | null>(STORAGE_KEYS.GROUP_REGISTRATIONS, null);
+    const stored = await apiClient.get<GroupRegistration[] | null>(
+      STORAGE_KEYS.GROUP_REGISTRATIONS,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load registrations', error);
@@ -302,7 +305,11 @@ export const sessionRegistrationService = {
       // Trigger notification to coach for new registration
       if (!isFull) {
         const athleteDisplayName = await resolveUserName(athleteId, 'Athlete');
-        await notificationTriggers.groupRegistered(athleteDisplayName, session.title, session.coachId);
+        await notificationTriggers.groupRegistered(
+          athleteDisplayName,
+          session.title,
+          session.coachId,
+        );
       }
 
       // Update session counts
@@ -390,7 +397,11 @@ export const sessionRegistrationService = {
       const sessionForNotif = sessionsCache.find((s) => s.id === registration.sessionId);
       if (sessionForNotif && wasRegistered) {
         const athleteDisplayName = await resolveUserName(registration.athleteId, 'Athlete');
-        await notificationTriggers.groupCancelledRegistration(athleteDisplayName, sessionForNotif.title, sessionForNotif.coachId);
+        await notificationTriggers.groupCancelledRegistration(
+          athleteDisplayName,
+          sessionForNotif.title,
+          sessionForNotif.coachId,
+        );
       }
 
       // Update session counts
@@ -404,7 +415,7 @@ export const sessionRegistrationService = {
 
           // Promote from waitlist if applicable
           const waitlisted = registrationsCache.find(
-            (r) => r.sessionId === session.id && r.status === 'WAITLISTED'
+            (r) => r.sessionId === session.id && r.status === 'WAITLISTED',
           );
           if (waitlisted) {
             waitlisted.status = 'REGISTERED';
@@ -448,7 +459,11 @@ export const sessionRegistrationService = {
   /**
    * Mark attendance
    */
-  async markAttendance(registrationId: string, date: string, attended: boolean): Promise<Result<GroupRegistration, ServiceError>> {
+  async markAttendance(
+    registrationId: string,
+    date: string,
+    attended: boolean,
+  ): Promise<Result<GroupRegistration, ServiceError>> {
     if (USE_MOCK) {
       registrationsCache = await loadRegistrations();
       const registration = registrationsCache.find((r) => r.id === registrationId);
@@ -481,7 +496,9 @@ export const sessionRegistrationService = {
   /**
    * Get parent's registrations
    */
-  async getParentRegistrations(parentId: string): Promise<(GroupRegistration & { session: GroupSession })[]> {
+  async getParentRegistrations(
+    parentId: string,
+  ): Promise<(GroupRegistration & { session: GroupSession })[]> {
     if (USE_MOCK) {
       registrationsCache = await loadRegistrations();
       const sessionsCache = await loadSessions();

@@ -18,37 +18,70 @@ import { HeatmapGrid } from './smart-slots-heatmap';
 import { SuggestionCard, StatsSummary } from './smart-slots-cards';
 import { Row } from '@/components/primitives';
 
-export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLastWeek }: SmartSlotsProps) {
+export default function SmartSlots({
+  coachId,
+  onAddSlot,
+  onRemoveSlot,
+  onCopyLastWeek,
+}: SmartSlotsProps) {
   const { colors, scheme } = useTheme();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
-  const suggestions = useMemo(() => MOCK_SUGGESTIONS.filter((s) => !dismissedIds.has(s.id)), [dismissedIds]);
+  const suggestions = useMemo(
+    () => MOCK_SUGGESTIONS.filter((s) => !dismissedIds.has(s.id)),
+    [dismissedIds],
+  );
   const addSuggestions = suggestions.filter((s) => s.type === 'add');
   const removeSuggestions = suggestions.filter((s) => s.type === 'remove');
 
-  const handleSuggestionAction = useCallback((suggestion: SlotSuggestion) => {
-    if (suggestion.type === 'add') {
-      onAddSlot?.(suggestion.day, suggestion.time);
-      Alert.alert('Slot added', `${suggestion.day} at ${suggestion.time} has been added to your availability.`);
-    } else {
-      onRemoveSlot?.(suggestion.day, suggestion.time);
-      Alert.alert('Slot removed', `${suggestion.day} at ${suggestion.time} has been removed from your availability.`);
-    }
-    setDismissedIds((prev) => new Set(prev).add(suggestion.id));
-  }, [onAddSlot, onRemoveSlot]);
+  const handleSuggestionAction = useCallback(
+    (suggestion: SlotSuggestion) => {
+      if (suggestion.type === 'add') {
+        onAddSlot?.(suggestion.day, suggestion.time);
+        Alert.alert(
+          'Slot added',
+          `${suggestion.day} at ${suggestion.time} has been added to your availability.`,
+        );
+      } else {
+        onRemoveSlot?.(suggestion.day, suggestion.time);
+        Alert.alert(
+          'Slot removed',
+          `${suggestion.day} at ${suggestion.time} has been removed from your availability.`,
+        );
+      }
+      setDismissedIds((prev) => new Set(prev).add(suggestion.id));
+    },
+    [onAddSlot, onRemoveSlot],
+  );
 
   const handleCopyLastWeek = useCallback(() => {
-    Alert.alert('Copy last week?', 'This will duplicate your availability from last week into next week.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Copy', onPress: () => { onCopyLastWeek?.(); Alert.alert('Done', "Last week's availability has been copied to next week."); } },
-    ]);
+    Alert.alert(
+      'Copy last week?',
+      'This will duplicate your availability from last week into next week.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Copy',
+          onPress: () => {
+            onCopyLastWeek?.();
+            Alert.alert('Done', "Last week's availability has been copied to next week.");
+          },
+        },
+      ],
+    );
   }, [onCopyLastWeek]);
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.headerArea}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Smart Slots</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.muted }]}>Insights from your booking patterns to help optimise your availability.</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
+          Insights from your booking patterns to help optimise your availability.
+        </Text>
       </View>
 
       <StatsSummary />
@@ -56,9 +89,14 @@ export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLas
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Booking heatmap</Text>
       <HeatmapGrid data={MOCK_HEATMAP} />
 
-      <Clickable style={[styles.copyWeekButton, { backgroundColor: colors.surface }, Shadows[scheme].subtle]} onPress={handleCopyLastWeek}>
+      <Clickable
+        style={[styles.copyWeekButton, { backgroundColor: colors.surface }, Shadows[scheme].subtle]}
+        onPress={handleCopyLastWeek}
+      >
         <Ionicons name="copy-outline" size={18} color={colors.tint} />
-        <Text style={[styles.copyWeekText, { color: colors.tint }]}>Copy last week&apos;s schedule</Text>
+        <Text style={[styles.copyWeekText, { color: colors.tint }]}>
+          Copy last week&apos;s schedule
+        </Text>
         <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Clickable>
 
@@ -69,7 +107,9 @@ export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLas
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Popular slots to add</Text>
           </Row>
           <View style={styles.suggestionsContainer}>
-            {addSuggestions.map((s) => <SuggestionCard key={s.id} suggestion={s} onAction={handleSuggestionAction} />)}
+            {addSuggestions.map((s) => (
+              <SuggestionCard key={s.id} suggestion={s} onAction={handleSuggestionAction} />
+            ))}
           </View>
         </>
       )}
@@ -81,7 +121,9 @@ export default function SmartSlots({ coachId, onAddSlot, onRemoveSlot, onCopyLas
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Low-demand slots</Text>
           </Row>
           <View style={styles.suggestionsContainer}>
-            {removeSuggestions.map((s) => <SuggestionCard key={s.id} suggestion={s} onAction={handleSuggestionAction} />)}
+            {removeSuggestions.map((s) => (
+              <SuggestionCard key={s.id} suggestion={s} onAction={handleSuggestionAction} />
+            ))}
           </View>
         </>
       )}
@@ -97,9 +139,27 @@ const styles = StyleSheet.create({
   headerArea: { paddingHorizontal: Spacing.xs, marginBottom: Spacing.md },
   headerTitle: { ...Typography.title, marginBottom: Spacing.xxs },
   headerSubtitle: { ...Typography.body },
-  sectionTitle: { ...Typography.heading, marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs },
-  sectionHeader: { alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs },
-  copyWeekButton: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.card, paddingHorizontal: Spacing.sm, paddingVertical: 14, marginTop: Spacing.md },
+  sectionTitle: {
+    ...Typography.heading,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+  },
+  copyWeekButton: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    borderRadius: Radii.card,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 14,
+    marginTop: Spacing.md,
+  },
   copyWeekText: { flex: 1, ...Typography.bodySemiBold },
   suggestionsContainer: { gap: Spacing.xs },
   bottomSpacer: { height: Spacing.lg },

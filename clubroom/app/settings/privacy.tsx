@@ -45,23 +45,29 @@ export default function PrivacySettingsScreen() {
     logger.press('DownloadData');
     Alert.alert(
       'Download Your Data',
-      'We\'ll prepare a copy of your data and email it to you within 48 hours.',
+      "We'll prepare a copy of your data and email it to you within 48 hours.",
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Request Download', onPress: () => {
-          Alert.alert('Request Sent', 'You\'ll receive an email when your data is ready.');
-        }},
-      ]
+        {
+          text: 'Request Download',
+          onPress: () => {
+            Alert.alert('Request Sent', "You'll receive an email when your data is ready.");
+          },
+        },
+      ],
     );
   };
 
   const handleManageBlockedUsers = () => {
     logger.press('ManageBlockedUsers');
-    Alert.alert('Blocked Users', 'You haven\'t blocked any users yet.');
+    Alert.alert('Blocked Users', "You haven't blocked any users yet.");
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -73,10 +79,7 @@ export default function PrivacySettingsScreen() {
         <View style={{ width: 24 }} />
       </Row>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Visibility */}
         <SettingsSection title="Profile Visibility">
           <SettingsToggleRow
@@ -202,7 +205,8 @@ export default function PrivacySettingsScreen() {
         {/* Info text */}
         <View style={styles.infoContainer}>
           <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            Your privacy is important to us. We only collect data necessary to provide and improve our services.
+            Your privacy is important to us. We only collect data necessary to provide and improve
+            our services.
           </ThemedText>
         </View>
       </ScrollView>

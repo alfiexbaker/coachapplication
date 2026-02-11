@@ -26,12 +26,23 @@ interface CreateMatchDetailsProps {
 }
 
 export const CreateMatchDetails = memo(function CreateMatchDetails({
-  matchType, opponent, isHome, venue, address, colors,
-  onMatchTypeChange, onOpponentChange, onIsHomeChange, onVenueChange, onAddressChange,
+  matchType,
+  opponent,
+  isHome,
+  venue,
+  address,
+  colors,
+  onMatchTypeChange,
+  onOpponentChange,
+  onIsHomeChange,
+  onVenueChange,
+  onAddressChange,
 }: CreateMatchDetailsProps) {
   return (
     <View style={styles.stepContent}>
-      <ThemedText type="defaultSemiBold" style={styles.stepTitle}>Match Details</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.stepTitle}>
+        Match Details
+      </ThemedText>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>Match Type</ThemedText>
@@ -42,12 +53,27 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
             return (
               <Clickable
                 key={t.type}
-                style={[styles.typeBtn, { borderColor: isSelected ? color : colors.border }, isSelected && { backgroundColor: withAlpha(color, 0.09) }]}
+                style={[
+                  styles.typeBtn,
+                  { borderColor: isSelected ? color : colors.border },
+                  isSelected && { backgroundColor: withAlpha(color, 0.09) },
+                ]}
                 onPress={() => onMatchTypeChange(t.type)}
               >
                 <Row align="center" gap="xs">
-                  <Ionicons name={t.icon as keyof typeof Ionicons.glyphMap} size={20} color={isSelected ? color : colors.muted} />
-                  <ThemedText style={[Typography.bodySmallSemiBold, { color: isSelected ? color : colors.text }]}>{t.label}</ThemedText>
+                  <Ionicons
+                    name={t.icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={isSelected ? color : colors.muted}
+                  />
+                  <ThemedText
+                    style={[
+                      Typography.bodySmallSemiBold,
+                      { color: isSelected ? color : colors.text },
+                    ]}
+                  >
+                    {t.label}
+                  </ThemedText>
                 </Row>
               </Clickable>
             );
@@ -58,23 +84,42 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>Opponent *</ThemedText>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-          placeholder="e.g., Hackney FC" placeholderTextColor={colors.muted} value={opponent} onChangeText={onOpponentChange}
+          style={[
+            styles.input,
+            { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+          ]}
+          placeholder="e.g., Hackney FC"
+          placeholderTextColor={colors.muted}
+          value={opponent}
+          onChangeText={onOpponentChange}
         />
       </View>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>Location</ThemedText>
         <Row gap="sm">
-          {[{ label: 'Home', icon: 'home', val: true }, { label: 'Away', icon: 'airplane', val: false }].map(({ label, icon, val }) => (
+          {[
+            { label: 'Home', icon: 'home', val: true },
+            { label: 'Away', icon: 'airplane', val: false },
+          ].map(({ label, icon, val }) => (
             <Clickable
               key={label}
-              style={[styles.toggleBtn, { flex: 1, borderColor: isHome === val ? colors.tint : colors.border }, isHome === val && { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+              style={[
+                styles.toggleBtn,
+                { flex: 1, borderColor: isHome === val ? colors.tint : colors.border },
+                isHome === val && { backgroundColor: withAlpha(colors.tint, 0.09) },
+              ]}
               onPress={() => onIsHomeChange(val)}
             >
               <Row align="center" justify="center" gap="xs">
-                <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={isHome === val ? colors.tint : colors.muted} />
-                <ThemedText style={{ color: isHome === val ? colors.tint : colors.text }}>{label}</ThemedText>
+                <Ionicons
+                  name={icon as keyof typeof Ionicons.glyphMap}
+                  size={18}
+                  color={isHome === val ? colors.tint : colors.muted}
+                />
+                <ThemedText style={{ color: isHome === val ? colors.tint : colors.text }}>
+                  {label}
+                </ThemedText>
               </Row>
             </Clickable>
           ))}
@@ -84,16 +129,30 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>Venue *</ThemedText>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-          placeholder="e.g., Bradwell Sports Ground" placeholderTextColor={colors.muted} value={venue} onChangeText={onVenueChange}
+          style={[
+            styles.input,
+            { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+          ]}
+          placeholder="e.g., Bradwell Sports Ground"
+          placeholderTextColor={colors.muted}
+          value={venue}
+          onChangeText={onVenueChange}
         />
       </View>
 
       <View style={styles.fieldGroup}>
-        <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>Address (optional)</ThemedText>
+        <ThemedText style={[styles.fieldLabel, { color: colors.muted }]}>
+          Address (optional)
+        </ThemedText>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
-          placeholder="Full address for parents" placeholderTextColor={colors.muted} value={address} onChangeText={onAddressChange}
+          style={[
+            styles.input,
+            { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+          ]}
+          placeholder="Full address for parents"
+          placeholderTextColor={colors.muted}
+          value={address}
+          onChangeText={onAddressChange}
         />
       </View>
     </View>
@@ -105,7 +164,18 @@ const styles = StyleSheet.create({
   stepTitle: { ...Typography.heading, marginBottom: Spacing.sm },
   fieldGroup: { gap: Spacing.xs },
   fieldLabel: { ...Typography.smallSemiBold },
-  input: { borderRadius: Radii.md, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.body },
-  typeBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  input: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body,
+  },
+  typeBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   toggleBtn: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
 });

@@ -27,7 +27,11 @@ interface MatchInfoCardProps {
   palette: ThemeColors;
 }
 
-export const MatchInfoCard = memo(function MatchInfoCard({ match, player, palette }: MatchInfoCardProps) {
+export const MatchInfoCard = memo(function MatchInfoCard({
+  match,
+  player,
+  palette,
+}: MatchInfoCardProps) {
   const matchDate = new Date(match.date);
   const dateLabel = matchDate.toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -81,7 +85,11 @@ interface SelectedCardProps {
   palette: ThemeColors;
 }
 
-export const SelectedCard = memo(function SelectedCard({ match, player, palette }: SelectedCardProps) {
+export const SelectedCard = memo(function SelectedCard({
+  match,
+  player,
+  palette,
+}: SelectedCardProps) {
   const athleteName = getMatchPlayerAthleteName(player);
   const isReserve = player.status === 'RESERVE';
 
@@ -95,8 +103,17 @@ export const SelectedCard = memo(function SelectedCard({ match, player, palette 
       }
     >
       <View style={styles.selectionHeader}>
-        <View style={[styles.iconCircle, { backgroundColor: isReserve ? palette.warning : palette.success }]}>
-          <Ionicons name={isReserve ? 'hourglass' : 'football'} size={28} color={palette.onPrimary} />
+        <View
+          style={[
+            styles.iconCircle,
+            { backgroundColor: isReserve ? palette.warning : palette.success },
+          ]}
+        >
+          <Ionicons
+            name={isReserve ? 'hourglass' : 'football'}
+            size={28}
+            color={palette.onPrimary}
+          />
         </View>
         <ThemedText type="title" style={styles.selectionTitle}>
           {isReserve ? "You're on the Bench!" : "You're in the Lineup!"}
@@ -137,7 +154,11 @@ export const RespondedCard = memo(function RespondedCard({
         <View
           style={[
             styles.statusIcon,
-            { backgroundColor: isAvailable ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) },
+            {
+              backgroundColor: isAvailable
+                ? withAlpha(palette.success, 0.09)
+                : withAlpha(palette.error, 0.09),
+            },
           ]}
         >
           <Ionicons
@@ -179,17 +200,13 @@ export const RespondedCard = memo(function RespondedCard({
       <Clickable
         style={[styles.changeButton, { borderColor: palette.border }]}
         onPress={() => {
-          Alert.alert(
-            'Change Response',
-            'Are you sure you want to change your response?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: isAvailable ? 'Mark Unavailable' : 'Mark Available',
-                onPress: () => onChangeResponse(isAvailable ? 'UNAVAILABLE' : 'AVAILABLE'),
-              },
-            ]
-          );
+          Alert.alert('Change Response', 'Are you sure you want to change your response?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: isAvailable ? 'Mark Unavailable' : 'Mark Available',
+              onPress: () => onChangeResponse(isAvailable ? 'UNAVAILABLE' : 'AVAILABLE'),
+            },
+          ]);
         }}
       >
         <ThemedText style={[styles.changeButtonText, { color: palette.muted }]}>
@@ -208,16 +225,34 @@ const styles = StyleSheet.create({
   matchInfoText: { ...Typography.bodySmall, flex: 1 },
   addressText: { ...Typography.small, marginLeft: 26 },
   selectionHeader: { alignItems: 'center', gap: Spacing.sm },
-  iconCircle: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   selectionTitle: { ...Typography.title, textAlign: 'center' },
   selectionMessage: { ...Typography.body, textAlign: 'center', lineHeight: 22 },
-  statusIcon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  statusIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   responseInfo: { flex: 1 },
   responseSubtext: { ...Typography.small },
   noteDisplay: { padding: Spacing.sm, borderRadius: Radii.sm, gap: Spacing.xxs },
   noteLabel: { ...Typography.caption },
   noteContent: { ...Typography.bodySmall, fontStyle: 'italic' },
   waitingText: { ...Typography.small, textAlign: 'center', fontStyle: 'italic' },
-  changeButton: { alignSelf: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
+  changeButton: {
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
   changeButtonText: { ...Typography.small },
 });

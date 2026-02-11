@@ -41,7 +41,10 @@ export default function CoachProfileScreen() {
   if (p.status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState message={p.error?.message ?? 'Failed to load coach profile.'} onRetry={p.retry} />
+        <ErrorState
+          message={p.error?.message ?? 'Failed to load coach profile.'}
+          onRetry={p.retry}
+        />
       </SafeAreaView>
     );
   }
@@ -63,17 +66,57 @@ export default function CoachProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={palette.tint} />}>
-        <CoachDetailHero coach={p.coach} isOwnProfile={p.isOwnProfile} isFollowing={p.isFollowing} onFollow={p.handleFollow} onMessage={p.handleMessage} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={p.refreshing}
+            onRefresh={p.onRefresh}
+            tintColor={palette.tint}
+          />
+        }
+      >
+        <CoachDetailHero
+          coach={p.coach}
+          isOwnProfile={p.isOwnProfile}
+          isFollowing={p.isFollowing}
+          onFollow={p.handleFollow}
+          onMessage={p.handleMessage}
+        />
 
         {/* Tabs */}
         <Row style={[styles.tabBar, { borderBottomColor: palette.border }]}>
           {COACH_TABS.map((tab) => (
-            <Clickable key={tab.id} onPress={() => p.setActiveTab(tab.id)} style={[styles.tab, p.activeTab === tab.id ? { borderBottomColor: palette.tint, borderBottomWidth: 2 } : undefined].filter(Boolean) as ViewStyle[]}>
+            <Clickable
+              key={tab.id}
+              onPress={() => p.setActiveTab(tab.id)}
+              style={
+                [
+                  styles.tab,
+                  p.activeTab === tab.id
+                    ? { borderBottomColor: palette.tint, borderBottomWidth: 2 }
+                    : undefined,
+                ].filter(Boolean) as ViewStyle[]
+              }
+            >
               <Row align="center" justify="center" gap="xxs">
-                <Ionicons name={tab.icon as keyof typeof Ionicons.glyphMap} size={18} color={p.activeTab === tab.id ? palette.tint : palette.muted} />
-                <ThemedText style={{ color: p.activeTab === tab.id ? palette.tint : palette.muted, fontWeight: p.activeTab === tab.id ? '600' : '400' }}>{tab.label}</ThemedText>
+                <Ionicons
+                  name={tab.icon as keyof typeof Ionicons.glyphMap}
+                  size={18}
+                  color={p.activeTab === tab.id ? palette.tint : palette.muted}
+                />
+                <ThemedText
+                  style={{
+                    color: p.activeTab === tab.id ? palette.tint : palette.muted,
+                    fontWeight: p.activeTab === tab.id ? '600' : '400',
+                  }}
+                >
+                  {tab.label}
+                </ThemedText>
               </Row>
             </Clickable>
           ))}
@@ -83,18 +126,29 @@ export default function CoachProfileScreen() {
         <View style={styles.tabContentContainer}>
           {p.activeTab === 'about' && <CoachDetailAbout coach={p.coach} />}
           {p.activeTab === 'reviews' && <CoachDetailReviews coach={p.coach} reviews={p.reviews} />}
-          {p.activeTab === 'sessions' && <CoachDetailSessions coach={p.coach} onBook={p.handleBook} />}
+          {p.activeTab === 'sessions' && (
+            <CoachDetailSessions coach={p.coach} onBook={p.handleBook} />
+          )}
         </View>
       </ScrollView>
 
       {/* Fixed Book Footer */}
       {!p.isOwnProfile && (
-        <Row style={[styles.fixedFooter, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+        <Row
+          style={[
+            styles.fixedFooter,
+            { backgroundColor: palette.background, borderTopColor: palette.border },
+          ]}
+        >
           <View style={styles.footerPrice}>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>From</ThemedText>
-            <ThemedText type="title" style={{ color: palette.tint }}>£{p.coach.minPriceUsd}</ThemedText>
+            <ThemedText type="title" style={{ color: palette.tint }}>
+              £{p.coach.minPriceUsd}
+            </ThemedText>
           </View>
-          <Button onPress={p.handleBook} style={{ flex: 1 }}>Book Session</Button>
+          <Button onPress={p.handleBook} style={{ flex: 1 }}>
+            Book Session
+          </Button>
         </Row>
       )}
     </SafeAreaView>
@@ -103,10 +157,25 @@ export default function CoachProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    padding: Spacing.xl,
+  },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.md },
   tabContentContainer: { paddingBottom: 100 },
-  fixedFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', gap: Spacing.md, padding: Spacing.lg, borderTopWidth: 1 },
+  fixedFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+  },
   footerPrice: { alignItems: 'center' },
 });

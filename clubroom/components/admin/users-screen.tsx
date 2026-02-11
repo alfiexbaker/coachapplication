@@ -21,7 +21,10 @@ export function AdminUsersScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
@@ -78,8 +81,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: { ...Typography.body, lineHeight: 22,
-    fontWeight: '500' },
+  subtitle: { ...Typography.body, lineHeight: 22, fontWeight: '500' },
   statsGrid: {
     flexWrap: 'wrap',
     gap: Spacing.md,
@@ -92,6 +94,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: { ...Typography.display },
-  statLabel: { ...Typography.smallSemiBold, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+  statLabel: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5 },
 });

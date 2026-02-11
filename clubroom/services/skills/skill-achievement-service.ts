@@ -17,10 +17,7 @@ import {
   validationError,
   storageError,
 } from '@/types/result';
-import type {
-  SkillNode,
-  SkillNodeProgress,
-} from '@/constants/types';
+import type { SkillNode, SkillNodeProgress } from '@/constants/types';
 
 const logger = createLogger('SkillAchievementService');
 
@@ -53,10 +50,7 @@ class SkillAchievementService {
    * Unlock a skill node directly (bypass XP requirement)
    * Awards badge if node has one
    */
-  async unlockNode(
-    userId: string,
-    nodeId: string
-  ): Promise<Result<UnlockResult, ServiceError>> {
+  async unlockNode(userId: string, nodeId: string): Promise<Result<UnlockResult, ServiceError>> {
     try {
       // Find the node
       const nodeResult = skillDefinitionService.findNodeById(nodeId);
@@ -69,11 +63,7 @@ class SkillAchievementService {
       const { node: targetNode } = nodeResult;
 
       // Add enough XP to unlock
-      const result = await skillProgressService.addXpToNode(
-        userId,
-        nodeId,
-        targetNode.xpRequired
-      );
+      const result = await skillProgressService.addXpToNode(userId, nodeId, targetNode.xpRequired);
 
       if (!result.success) {
         return err(result.error);
@@ -118,13 +108,18 @@ class SkillAchievementService {
   async addXpWithAchievements(
     userId: string,
     nodeId: string,
-    xpAmount: number
-  ): Promise<Result<{
-    node: SkillNode;
-    progress: SkillNodeProgress;
-    justUnlocked: boolean;
-    badgeAwarded?: string;
-  }, ServiceError>> {
+    xpAmount: number,
+  ): Promise<
+    Result<
+      {
+        node: SkillNode;
+        progress: SkillNodeProgress;
+        justUnlocked: boolean;
+        badgeAwarded?: string;
+      },
+      ServiceError
+    >
+  > {
     try {
       const result = await skillProgressService.addXpToNode(userId, nodeId, xpAmount);
 
@@ -169,7 +164,7 @@ class SkillAchievementService {
    */
   async checkMilestones(
     userId: string,
-    treeId: string
+    treeId: string,
   ): Promise<Result<MilestoneInfo, ServiceError>> {
     const treeResult = await skillDefinitionService.getSkillTreeById(treeId);
     if (!treeResult.success) {
@@ -208,10 +203,15 @@ class SkillAchievementService {
   /**
    * Get all unlocked nodes for a user across all trees
    */
-  async getUnlockedNodes(userId: string): Promise<Result<{
-    total: number;
-    byTree: Record<string, number>;
-  }, ServiceError>> {
+  async getUnlockedNodes(userId: string): Promise<
+    Result<
+      {
+        total: number;
+        byTree: Record<string, number>;
+      },
+      ServiceError
+    >
+  > {
     const treesResult = await skillProgressService.getAllSkillTreesWithProgress(userId);
     if (!treesResult.success) {
       return err(treesResult.error);
@@ -233,15 +233,20 @@ class SkillAchievementService {
    */
   async getRecentAchievements(
     userId: string,
-    limit: number = 10
-  ): Promise<Result<{
-    nodeId: string;
-    nodeName: string;
-    treeId: string;
-    treeName: string;
-    unlockedAt: string;
-    badgeId?: string;
-  }[], ServiceError>> {
+    limit: number = 10,
+  ): Promise<
+    Result<
+      {
+        nodeId: string;
+        nodeName: string;
+        treeId: string;
+        treeName: string;
+        unlockedAt: string;
+        badgeId?: string;
+      }[],
+      ServiceError
+    >
+  > {
     const allProgressResult = await skillProgressService.getAllUserProgress(userId);
     if (!allProgressResult.success) {
       return err(allProgressResult.error);
@@ -282,8 +287,8 @@ class SkillAchievementService {
     }
 
     // Sort by unlock time, most recent first
-    achievements.sort((a, b) =>
-      new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime()
+    achievements.sort(
+      (a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime(),
     );
 
     return ok(achievements.slice(0, limit));
@@ -292,13 +297,16 @@ class SkillAchievementService {
   /**
    * Get next achievable nodes (unlockable based on current progress)
    */
-  async getNextAchievableNodes(
-    userId: string
-  ): Promise<Result<{
-    treeId: string;
-    treeName: string;
-    nodes: SkillNode[];
-  }[], ServiceError>> {
+  async getNextAchievableNodes(userId: string): Promise<
+    Result<
+      {
+        treeId: string;
+        treeName: string;
+        nodes: SkillNode[];
+      }[],
+      ServiceError
+    >
+  > {
     const treesResult = await skillProgressService.getAllSkillTreesWithProgress(userId);
     if (!treesResult.success) {
       return err(treesResult.error);
@@ -358,14 +366,19 @@ class SkillAchievementService {
   /**
    * Get achievement stats for a user
    */
-  async getAchievementStats(userId: string): Promise<Result<{
-    totalXp: number;
-    totalNodesUnlocked: number;
-    totalNodes: number;
-    treesStarted: number;
-    treesCompleted: number;
-    badgesEarned: number;
-  }, ServiceError>> {
+  async getAchievementStats(userId: string): Promise<
+    Result<
+      {
+        totalXp: number;
+        totalNodesUnlocked: number;
+        totalNodes: number;
+        treesStarted: number;
+        treesCompleted: number;
+        badgesEarned: number;
+      },
+      ServiceError
+    >
+  > {
     const treesResult = await skillProgressService.getAllSkillTreesWithProgress(userId);
     if (!treesResult.success) {
       return err(treesResult.error);

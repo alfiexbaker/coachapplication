@@ -40,7 +40,11 @@ export const FeaturedCard = memo(function FeaturedCard({
   onToggleFavourite,
 }: FeaturedCardProps) {
   return (
-    <Animated.View entering={FadeInRight.delay(index * 80).duration(300).springify()}>
+    <Animated.View
+      entering={FadeInRight.delay(index * 80)
+        .duration(300)
+        .springify()}
+    >
       <SurfaceCard onPress={onPress} style={styles.card}>
         {/* Top section: avatar + badges */}
         <View style={styles.topSection}>
@@ -50,7 +54,12 @@ export const FeaturedCard = memo(function FeaturedCard({
               <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
             </View>
           )}
-          <Clickable onPress={onToggleFavourite} accessibilityLabel="Toggle favourite" style={styles.favButton} hitSlop={8}>
+          <Clickable
+            onPress={onToggleFavourite}
+            accessibilityLabel="Toggle favourite"
+            style={styles.favButton}
+            hitSlop={8}
+          >
             <View style={[styles.favCircle, { backgroundColor: withAlpha(palette.surface, 0.9) }]}>
               <Ionicons
                 name={isFavourited ? 'heart' : 'heart-outline'}
@@ -61,7 +70,9 @@ export const FeaturedCard = memo(function FeaturedCard({
           </Clickable>
           {coach.trialAvailable && (
             <View style={[styles.trialPill, { backgroundColor: palette.success }]}>
-              <ThemedText style={[styles.trialText, { color: palette.onPrimary }]}>FREE TRIAL</ThemedText>
+              <ThemedText style={[styles.trialText, { color: palette.onPrimary }]}>
+                FREE TRIAL
+              </ThemedText>
             </View>
           )}
         </View>
@@ -86,16 +97,16 @@ export const FeaturedCard = memo(function FeaturedCard({
           </Row>
           <Row style={styles.bottomRow}>
             <ThemedText style={[styles.price, { color: palette.text }]}>
-              {'\u00A3'}{coach.pricePerHour}/hr
+              {'\u00A3'}
+              {coach.pricePerHour}/hr
             </ThemedText>
             <Clickable
               onPress={onBookNow}
-              style={[
-                styles.bookBtn,
-                { backgroundColor: palette.tint },
-              ]}
+              style={[styles.bookBtn, { backgroundColor: palette.tint }]}
             >
-              <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>Book Now</ThemedText>
+              <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>
+                Book Now
+              </ThemedText>
             </Clickable>
           </Row>
         </View>
@@ -109,11 +120,38 @@ export const FeaturedCard = memo(function FeaturedCard({
 const styles = StyleSheet.create({
   card: { width: CARD_WIDTH, padding: 0, overflow: 'hidden' },
   topSection: { position: 'relative', height: 140 },
-  avatar: { width: '100%', height: '100%', borderTopLeftRadius: Radii.card, borderTopRightRadius: Radii.card },
-  verifiedBadge: { position: 'absolute', top: Spacing.xs, left: Spacing.xs, width: 20, height: 20, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: '100%',
+    height: '100%',
+    borderTopLeftRadius: Radii.card,
+    borderTopRightRadius: Radii.card,
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    top: Spacing.xs,
+    left: Spacing.xs,
+    width: 20,
+    height: 20,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   favButton: { position: 'absolute', top: Spacing.xs, right: Spacing.xs },
-  favCircle: { width: 32, height: 32, borderRadius: Radii.pill, alignItems: 'center', justifyContent: 'center' },
-  trialPill: { position: 'absolute', bottom: Spacing.xs, left: Spacing.xs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  favCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trialPill: {
+    position: 'absolute',
+    bottom: Spacing.xs,
+    left: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
   trialText: { ...Typography.micro, fontSize: 9 },
   infoSection: { padding: Spacing.sm, gap: Spacing.xs / 2 },
   name: { ...Typography.bodySemiBold },
@@ -124,6 +162,11 @@ const styles = StyleSheet.create({
   distance: { ...Typography.caption },
   bottomRow: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
   price: { ...Typography.bodySemiBold, fontWeight: '700' },
-  bookBtn: { paddingHorizontal: Spacing.sm, minHeight: 44, justifyContent: 'center', borderRadius: Radii.button },
+  bookBtn: {
+    paddingHorizontal: Spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: Radii.button,
+  },
   bookBtnText: { ...Typography.caption, fontWeight: '700' },
 });

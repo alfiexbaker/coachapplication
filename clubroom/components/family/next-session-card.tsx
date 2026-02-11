@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -24,10 +24,13 @@ export const NextSessionCard = memo(function NextSessionCard({
   const handlePress = useCallback(() => onPress(session), [onPress, session]);
 
   const formattedDate = new Date(session.start).toLocaleDateString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
   });
   const formattedTime = new Date(session.start).toLocaleTimeString('en-GB', {
-    hour: '2-digit', minute: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   return (
@@ -35,21 +38,31 @@ export const NextSessionCard = memo(function NextSessionCard({
       <SurfaceCard style={[styles.card, { borderColor: session.colorCode, borderWidth: 2 }]}>
         <Row style={[styles.badge, { backgroundColor: withAlpha(session.colorCode, 0.09) }]}>
           <Ionicons name="time" size={16} color={session.colorCode} />
-          <ThemedText style={[Typography.caption, { color: session.colorCode }]}>Next Up</ThemedText>
+          <ThemedText style={[Typography.caption, { color: session.colorCode }]}>
+            Next Up
+          </ThemedText>
         </Row>
-        <ThemedText type="defaultSemiBold" style={Typography.subheading}>{session.title}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={Typography.subheading}>
+          {session.title}
+        </ThemedText>
         <Row gap="md" style={{ flexWrap: 'wrap' }}>
           <Row gap="xxs" align="center">
             <Ionicons name="person" size={14} color={palette.muted} />
-            <ThemedText style={[Typography.small, { color: palette.muted }]}>{session.childId}</ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              {session.childId}
+            </ThemedText>
           </Row>
           <Row gap="xxs" align="center">
             <Ionicons name="calendar" size={14} color={palette.muted} />
-            <ThemedText style={[Typography.small, { color: palette.muted }]}>{formattedDate}</ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              {formattedDate}
+            </ThemedText>
           </Row>
           <Row gap="xxs" align="center">
             <Ionicons name="time" size={14} color={palette.muted} />
-            <ThemedText style={[Typography.small, { color: palette.muted }]}>{formattedTime}</ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              {formattedTime}
+            </ThemedText>
           </Row>
         </Row>
       </SurfaceCard>
@@ -59,5 +72,12 @@ export const NextSessionCard = memo(function NextSessionCard({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
-  badge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xxs, borderRadius: Radii.pill, alignSelf: 'flex-start' },
+  badge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+    alignSelf: 'flex-start',
+  },
 });

@@ -56,7 +56,10 @@ export const AgePickerRow = memo(function AgePickerRow({
             ]}
           >
             <ThemedText
-              style={[Typography.bodySemiBold, { color: selected ? palette.onPrimary : palette.text }]}
+              style={[
+                Typography.bodySemiBold,
+                { color: selected ? palette.onPrimary : palette.text },
+              ]}
             >
               {age}
             </ThemedText>

@@ -7,7 +7,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -73,7 +73,7 @@ function RsvpButtonGroupComponent({
       }
       onRespond(status);
     },
-    [onRespond]
+    [onRespond],
   );
 
   return (

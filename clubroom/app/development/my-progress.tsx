@@ -28,10 +28,24 @@ import * as Haptics from 'expo-haptics';
 export default function MyProgressScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    currentUser, loading, status, error, refreshing, progress, feedback, badges,
-    activeTab, setActiveTab, trendInfo,
-    showGoalForm, setShowGoalForm, newGoalTitle, setNewGoalTitle,
-    handleRefresh, handleCreateGoal, retry,
+    currentUser,
+    loading,
+    status,
+    error,
+    refreshing,
+    progress,
+    feedback,
+    badges,
+    activeTab,
+    setActiveTab,
+    trendInfo,
+    showGoalForm,
+    setShowGoalForm,
+    newGoalTitle,
+    setNewGoalTitle,
+    handleRefresh,
+    handleCreateGoal,
+    retry,
   } = useMyProgress();
 
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -41,9 +55,10 @@ export default function MyProgressScreen() {
     const loadJournal = async () => {
       const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
       const userId = currentUser?.id ?? 'user2';
-      const data = stored.length > 0
-        ? stored.filter((e) => e.athleteId === userId)
-        : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
+      const data =
+        stored.length > 0
+          ? stored.filter((e) => e.athleteId === userId)
+          : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
       setJournalEntries(data);
     };
     loadJournal();
@@ -63,10 +78,11 @@ export default function MyProgressScreen() {
       };
       const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
       await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, [newEntry, ...stored]);
-      Platform.OS !== 'web' && void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Platform.OS !== 'web' &&
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setJournalEntries((prev) => [newEntry, ...prev]);
     },
-    [currentUser?.id]
+    [currentUser?.id],
   );
 
   if (loading) {
@@ -88,7 +104,11 @@ export default function MyProgressScreen() {
   if (!currentUser || status === 'empty' || !progress) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <EmptyState icon="analytics-outline" title="No progress yet" message="Complete sessions to start tracking your progress." />
+        <EmptyState
+          icon="analytics-outline"
+          title="No progress yet"
+          message="Complete sessions to start tracking your progress."
+        />
       </SafeAreaView>
     );
   }
@@ -96,17 +116,32 @@ export default function MyProgressScreen() {
   const trendColor = trendInfo ? colors[trendInfo.color] : colors.muted;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} style={{ padding: Spacing.xs }}>
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </Clickable>
         <View style={styles.headerCenter}>
-          <ThemedText type="title" style={Typography.heading}>My Progress</ThemedText>
+          <ThemedText type="title" style={Typography.heading}>
+            My Progress
+          </ThemedText>
           {trendInfo && (
-            <Row align="center" gap="xxs" style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
-              <Ionicons name={trendInfo.icon as keyof typeof Ionicons.glyphMap} size={12} color={trendColor} />
-              <ThemedText style={[Typography.caption, { color: trendColor }]}>{trendInfo.label}</ThemedText>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}
+            >
+              <Ionicons
+                name={trendInfo.icon as keyof typeof Ionicons.glyphMap}
+                size={12}
+                color={trendColor}
+              />
+              <ThemedText style={[Typography.caption, { color: trendColor }]}>
+                {trendInfo.label}
+              </ThemedText>
             </Row>
           )}
         </View>
@@ -121,12 +156,32 @@ export default function MyProgressScreen() {
             <Clickable
               key={tab.id}
               onPress={() => setActiveTab(tab.id)}
-              style={[styles.tab, activeTab === tab.id && [styles.activeTab, { borderBottomColor: colors.tint }]].filter(Boolean) as ViewStyle[]}
+              style={
+                [
+                  styles.tab,
+                  activeTab === tab.id && [styles.activeTab, { borderBottomColor: colors.tint }],
+                ].filter(Boolean) as ViewStyle[]
+              }
             >
-              <View style={[styles.tabIcon, activeTab === tab.id && { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <Ionicons name={tab.icon as keyof typeof Ionicons.glyphMap} size={20} color={activeTab === tab.id ? colors.tint : colors.muted} />
+              <View
+                style={[
+                  styles.tabIcon,
+                  activeTab === tab.id && { backgroundColor: withAlpha(colors.tint, 0.09) },
+                ]}
+              >
+                <Ionicons
+                  name={tab.icon as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={activeTab === tab.id ? colors.tint : colors.muted}
+                />
               </View>
-              <ThemedText style={[Typography.caption, { color: activeTab === tab.id ? colors.tint : colors.muted }]} numberOfLines={1}>
+              <ThemedText
+                style={[
+                  Typography.caption,
+                  { color: activeTab === tab.id ? colors.tint : colors.muted },
+                ]}
+                numberOfLines={1}
+              >
                 {tab.shortLabel}
               </ThemedText>
             </Clickable>
@@ -134,40 +189,74 @@ export default function MyProgressScreen() {
         </Row>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         {activeTab === 'overview' && (
-          <ProgressDashboard progress={progress} athleteName="My" viewerRole="athlete"
-            onViewAllSkills={() => setActiveTab('skills')} onViewAllFeedback={() => setActiveTab('feedback')} onViewBadges={() => setActiveTab('badges')} />
+          <ProgressDashboard
+            progress={progress}
+            athleteName="My"
+            viewerRole="athlete"
+            onViewAllSkills={() => setActiveTab('skills')}
+            onViewAllFeedback={() => setActiveTab('feedback')}
+            onViewBadges={() => setActiveTab('badges')}
+          />
         )}
         {activeTab === 'skills' && (
           <View style={styles.section}>
             <Row justify="space-between" align="center" style={styles.sectionHeader}>
-              <ThemedText type="heading" style={Typography.heading}>My Skills</ThemedText>
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>Based on coach assessments</ThemedText>
+              <ThemedText type="heading" style={Typography.heading}>
+                My Skills
+              </ThemedText>
+              <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                Based on coach assessments
+              </ThemedText>
             </Row>
             {progress.skills.length > 0 ? (
               <SkillLevelGrid skills={progress.skills} groupByCategory showUpdatedBy />
             ) : (
               <SurfaceCard style={styles.empty}>
                 <Ionicons name="analytics-outline" size={32} color={colors.muted} />
-                <ThemedText style={[Typography.bodySemiBold, { color: colors.muted }]}>No skill ratings yet</ThemedText>
-                <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>Complete sessions to get skill ratings from coaches</ThemedText>
+                <ThemedText style={[Typography.bodySemiBold, { color: colors.muted }]}>
+                  No skill ratings yet
+                </ThemedText>
+                <ThemedText
+                  style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}
+                >
+                  Complete sessions to get skill ratings from coaches
+                </ThemedText>
               </SurfaceCard>
             )}
           </View>
         )}
         {activeTab === 'goals' && (
-          <ProgressGoalsTab progress={progress} showGoalForm={showGoalForm} newGoalTitle={newGoalTitle} colors={colors}
-            onToggleForm={() => setShowGoalForm(!showGoalForm)} onGoalTitleChange={setNewGoalTitle}
-            onCreateGoal={handleCreateGoal} onCancelForm={() => setShowGoalForm(false)} />
+          <ProgressGoalsTab
+            progress={progress}
+            showGoalForm={showGoalForm}
+            newGoalTitle={newGoalTitle}
+            colors={colors}
+            onToggleForm={() => setShowGoalForm(!showGoalForm)}
+            onGoalTitleChange={setNewGoalTitle}
+            onCreateGoal={handleCreateGoal}
+            onCancelForm={() => setShowGoalForm(false)}
+          />
         )}
         {activeTab === 'feedback' && (
           <View style={styles.section}>
             <Row justify="space-between" align="center" style={styles.sectionHeader}>
-              <ThemedText type="heading" style={Typography.heading}>Coach Feedback</ThemedText>
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>Notes from your coaches</ThemedText>
+              <ThemedText type="heading" style={Typography.heading}>
+                Coach Feedback
+              </ThemedText>
+              <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                Notes from your coaches
+              </ThemedText>
             </Row>
-            <FeedbackList feedback={feedback} showCoachName emptyMessage="No feedback yet. Complete sessions to receive feedback from coaches." />
+            <FeedbackList
+              feedback={feedback}
+              showCoachName
+              emptyMessage="No feedback yet. Complete sessions to receive feedback from coaches."
+            />
           </View>
         )}
         {activeTab === 'badges' && <ProgressBadgesTab badges={badges} colors={colors} />}
@@ -183,13 +272,24 @@ export default function MyProgressScreen() {
         {activeTab === 'radar' && (
           <View style={styles.section}>
             <Row justify="space-between" align="center" style={styles.sectionHeader}>
-              <ThemedText type="heading" style={Typography.heading}>Skills Radar</ThemedText>
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>Visual breakdown of skill levels</ThemedText>
+              <ThemedText type="heading" style={Typography.heading}>
+                Skills Radar
+              </ThemedText>
+              <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                Visual breakdown of skill levels
+              </ThemedText>
             </Row>
-            <SkillRadar skills={(progress?.skills ?? []).map((s) => ({
-              skillName: s.skill, category: '', currentLevel: s.level,
-              previousLevel: s.previousLevel ?? s.level, changePercent: 0, history: s.history.map((h) => ({ date: h.date, level: h.level })),
-            }))} showDetailedList />
+            <SkillRadar
+              skills={(progress?.skills ?? []).map((s) => ({
+                skillName: s.skill,
+                category: '',
+                currentLevel: s.level,
+                previousLevel: s.previousLevel ?? s.level,
+                changePercent: 0,
+                history: s.history.map((h) => ({ date: h.date, level: h.level })),
+              }))}
+              showDetailedList
+            />
           </View>
         )}
       </ScrollView>
@@ -201,11 +301,29 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   headerCenter: { alignItems: 'center', gap: Spacing.xxs },
-  trendBadge: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  trendBadge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
   tabBar: { borderBottomWidth: 1, paddingHorizontal: Spacing.sm },
-  tab: { flex: 1, alignItems: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.sm,
+    marginBottom: -1,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
   activeTab: { borderBottomWidth: 2 },
-  tabIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  tabIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { padding: Spacing.md, gap: Spacing.lg, paddingBottom: Spacing['2xl'] },
   section: { gap: Spacing.md },
   sectionHeader: {},

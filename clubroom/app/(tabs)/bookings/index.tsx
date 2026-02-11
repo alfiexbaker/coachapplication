@@ -44,7 +44,10 @@ export default function BookingsScreen() {
   // ─── Loading ───────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader
           title="Bookings"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
@@ -57,7 +60,10 @@ export default function BookingsScreen() {
   // ─── Error ─────────────────────────────────────────────────────
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader
           title="Bookings"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
@@ -70,7 +76,10 @@ export default function BookingsScreen() {
   // ─── Empty ─────────────────────────────────────────────────────
   if (displayItems.length === 0 && pendingInvitesList.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader
           title="Bookings"
           subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
@@ -104,7 +113,10 @@ export default function BookingsScreen() {
 
   // ─── Success ───────────────────────────────────────────────────
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <PageHeader
         title="Bookings"
         subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}

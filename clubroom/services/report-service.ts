@@ -32,7 +32,7 @@ export const reportService = {
    * Submit a new report against a user.
    */
   async submitReport(
-    report: Omit<Report, 'id' | 'createdAt' | 'status'>
+    report: Omit<Report, 'id' | 'createdAt' | 'status'>,
   ): Promise<Result<Report, ServiceError>> {
     try {
       const newReport: Report = {

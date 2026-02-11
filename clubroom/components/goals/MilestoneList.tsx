@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInLeft } from 'react-native-reanimated';
@@ -17,7 +17,6 @@ import { Spacing, Radii } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
-import { Alert } from 'react-native';
 import { MilestoneItem, CompactMilestoneList } from './milestone-list-sections';
 import { Row } from '@/components/primitives';
 
@@ -56,35 +55,31 @@ export function MilestoneList({
       void Haptics.impactAsync(
         milestone.isCompleted
           ? Haptics.ImpactFeedbackStyle.Light
-          : Haptics.ImpactFeedbackStyle.Medium
+          : Haptics.ImpactFeedbackStyle.Medium,
       );
 
       await onToggleMilestone?.(milestone.id, !milestone.isCompleted);
     },
-    [editable, loading, onToggleMilestone]
+    [editable, loading, onToggleMilestone],
   );
 
   const handleDelete = useCallback(
     (milestone: GoalMilestone) => {
       if (!editable || loading) return;
 
-      Alert.alert(
-        'Delete Milestone',
-        `Are you sure you want to delete "${milestone.title}"?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              void onDeleteMilestone?.(milestone.id);
-            },
+      Alert.alert('Delete Milestone', `Are you sure you want to delete "${milestone.title}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            void onDeleteMilestone?.(milestone.id);
           },
-        ]
-      );
+        },
+      ]);
     },
-    [editable, loading, onDeleteMilestone]
+    [editable, loading, onDeleteMilestone],
   );
 
   const handleAddMilestone = useCallback(async () => {

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
@@ -62,49 +62,23 @@ export function BookingRequest({
 
       {/* Details */}
       <View style={styles.details}>
-        <DetailRow
-          icon="person-outline"
-          label="Parent"
-          value={parentName}
-          palette={palette}
-        />
-        <DetailRow
-          icon="football-outline"
-          label="Athlete"
-          value={athleteName}
-          palette={palette}
-        />
-        <DetailRow
-          icon="layers-outline"
-          label="Session"
-          value={sessionType}
-          palette={palette}
-        />
-        <DetailRow
-          icon="calendar-outline"
-          label="Date"
-          value={date}
-          palette={palette}
-        />
-        <DetailRow
-          icon="time-outline"
-          label="Time"
-          value={time}
-          palette={palette}
-        />
+        <DetailRow icon="person-outline" label="Parent" value={parentName} palette={palette} />
+        <DetailRow icon="football-outline" label="Athlete" value={athleteName} palette={palette} />
+        <DetailRow icon="layers-outline" label="Session" value={sessionType} palette={palette} />
+        <DetailRow icon="calendar-outline" label="Date" value={date} palette={palette} />
+        <DetailRow icon="time-outline" label="Time" value={time} palette={palette} />
       </View>
 
       {/* Actions */}
       <Row style={styles.actions}>
         <Clickable
           onPress={() => onConfirm(bookingId)}
-          style={[
-            styles.confirmButton,
-            { backgroundColor: palette.success },
-          ]}
+          style={[styles.confirmButton, { backgroundColor: palette.success }]}
         >
           <Ionicons name="checkmark" size={Components.icon.md} color={palette.onPrimary} />
-          <ThemedText style={[styles.confirmLabel, { color: palette.onPrimary }]}>Confirm</ThemedText>
+          <ThemedText style={[styles.confirmLabel, { color: palette.onPrimary }]}>
+            Confirm
+          </ThemedText>
         </Clickable>
 
         <Clickable
@@ -125,10 +99,7 @@ export function BookingRequest({
       </Row>
 
       {/* Decline as text-only */}
-      <Clickable
-        onPress={() => onDecline(bookingId)}
-        style={styles.declineButton}
-      >
+      <Clickable onPress={() => onDecline(bookingId)} style={styles.declineButton}>
         <ThemedText style={[Typography.small, { color: palette.error }]}>
           Decline Request
         </ThemedText>
@@ -158,9 +129,7 @@ function DetailRow({
       <ThemedText style={[Typography.small, styles.detailLabel, { color: palette.muted }]}>
         {label}
       </ThemedText>
-      <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
-        {value}
-      </ThemedText>
+      <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>{value}</ThemedText>
     </Row>
   );
 }

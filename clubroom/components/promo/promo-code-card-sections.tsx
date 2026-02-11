@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -74,9 +74,7 @@ export const PromoStatsRow = memo(function PromoStatsRow({
       {onePerUser && (
         <Row align="center" gap="xxs">
           <Ionicons name="person-outline" size={14} color={palette.muted} />
-          <ThemedText style={[styles.statText, { color: palette.muted }]}>
-            One per user
-          </ThemedText>
+          <ThemedText style={[styles.statText, { color: palette.muted }]}>One per user</ThemedText>
         </Row>
       )}
     </Row>
@@ -106,7 +104,10 @@ export const PromoActionButtons = memo(function PromoActionButtons({
     <Row gap="sm" style={styles.actions}>
       {onViewUsage && (
         <Clickable
-          style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[
+            styles.actionButton,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
           onPress={() => onViewUsage(codeId)}
         >
           <Row align="center" justify="center" gap="xs">
@@ -120,7 +121,9 @@ export const PromoActionButtons = memo(function PromoActionButtons({
           style={[
             styles.actionButton,
             {
-              backgroundColor: isActive ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09),
+              backgroundColor: isActive
+                ? withAlpha(palette.error, 0.09)
+                : withAlpha(palette.success, 0.09),
               borderColor: isActive ? palette.error : palette.success,
             },
           ]}

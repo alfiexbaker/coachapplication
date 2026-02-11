@@ -48,10 +48,22 @@ export default function ChatScreen() {
     return ok({ thread, messages });
   }, [threadId]);
 
-  const { data, status, error, refreshing, onRefresh, retry, colors: palette } = useScreen<ChatScreenData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<ChatScreenData>({
     load: loadChat,
     deps: [threadId],
-    events: [ServiceEvents.MESSAGE_SENT, ServiceEvents.MESSAGE_DELETED, ServiceEvents.MESSAGE_EDITED],
+    events: [
+      ServiceEvents.MESSAGE_SENT,
+      ServiceEvents.MESSAGE_DELETED,
+      ServiceEvents.MESSAGE_EDITED,
+    ],
     isEmpty: (chatData) => chatData.thread === null,
     refetchOnFocus: true,
   });
@@ -66,11 +78,11 @@ export default function ChatScreen() {
       return;
     }
 
-    setPostingAs((currentPostingAs) => (
+    setPostingAs((currentPostingAs) =>
       currentPostingAs && postingAsOptions.includes(currentPostingAs)
         ? currentPostingAs
-        : postingAsOptions[0]
-    ));
+        : postingAsOptions[0],
+    );
   }, [thread?.id, thread?.postingAsOptions]);
 
   const handleSend = async (body: string) => {
@@ -144,8 +156,17 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <ChatScreenHeader colors={palette} thread={thread} onBack={() => router.back()} />
-      <ChatSafetyBanner colors={palette} showSafetyBanner={showSafetyBanner} onDismiss={() => setShowSafetyBanner(false)} />
-      <ChatPostingAsSelector colors={palette} thread={thread} postingAs={postingAs} onSelect={setPostingAs} />
+      <ChatSafetyBanner
+        colors={palette}
+        showSafetyBanner={showSafetyBanner}
+        onDismiss={() => setShowSafetyBanner(false)}
+      />
+      <ChatPostingAsSelector
+        colors={palette}
+        thread={thread}
+        postingAs={postingAs}
+        onSelect={setPostingAs}
+      />
       <ScrollView
         contentContainerStyle={styles.chatContent}
         refreshControl={

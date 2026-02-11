@@ -6,13 +6,23 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted items for backward compat
-export { formatDate, groupByMonth, getEntryIcon, getDotColor, TimelineEntryRow } from './progress-timeline-sections';
-export type { TimelineEntryType, TimelineEntry, TimelineEntryRowProps } from './progress-timeline-sections';
-
 import { groupByMonth, TimelineEntryRow } from './progress-timeline-sections';
 import type { TimelineEntry } from './progress-timeline-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted items for backward compat
+export {
+  formatDate,
+  groupByMonth,
+  getEntryIcon,
+  getDotColor,
+  TimelineEntryRow,
+} from './progress-timeline-sections';
+export type {
+  TimelineEntryType,
+  TimelineEntry,
+  TimelineEntryRowProps,
+} from './progress-timeline-sections';
 
 export interface ProgressTimelineProps {
   entries: TimelineEntry[];

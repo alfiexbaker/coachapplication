@@ -15,18 +15,21 @@ export function useAppearance() {
   const { colorScheme, setColorScheme } = useThemePreferences();
 
   const [selectedTheme, setSelectedTheme] = useState<ThemeOption>(
-    colorScheme === 'dark' ? 'dark' : 'light'
+    colorScheme === 'dark' ? 'dark' : 'light',
   );
   const [reducedMotion, setReducedMotion] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
 
-  const handleThemeSelect = useCallback((theme: ThemeOption) => {
-    logger.press('ThemeSelect', { theme });
-    setSelectedTheme(theme);
-    if (theme === 'dark') setColorScheme('dark');
-    else setColorScheme('light');
-  }, [setColorScheme]);
+  const handleThemeSelect = useCallback(
+    (theme: ThemeOption) => {
+      logger.press('ThemeSelect', { theme });
+      setSelectedTheme(theme);
+      if (theme === 'dark') setColorScheme('dark');
+      else setColorScheme('light');
+    },
+    [setColorScheme],
+  );
 
   const handleReducedMotion = useCallback((v: boolean) => {
     logger.debug('Toggle reducedMotion', { newValue: v });
@@ -48,8 +51,14 @@ export function useAppearance() {
   }, []);
 
   return {
-    selectedTheme, reducedMotion, largeText, highContrast,
-    handleThemeSelect, handleReducedMotion, handleLargeText,
-    handleHighContrast, handleAppIconPress,
+    selectedTheme,
+    reducedMotion,
+    largeText,
+    highContrast,
+    handleThemeSelect,
+    handleReducedMotion,
+    handleLargeText,
+    handleHighContrast,
+    handleAppIconPress,
   };
 }

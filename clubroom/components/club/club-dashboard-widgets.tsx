@@ -44,7 +44,9 @@ function OutcomeBadge({ outcome, palette }: { outcome: 'W' | 'D' | 'L'; palette:
 
   return (
     <View style={[styles.outcomeBadge, { backgroundColor: config.bg }]}>
-      <ThemedText style={[styles.outcomeBadgeText, { color: palette.onPrimary }]}>{config.label}</ThemedText>
+      <ThemedText style={[styles.outcomeBadgeText, { color: palette.onPrimary }]}>
+        {config.label}
+      </ThemedText>
     </View>
   );
 }
@@ -60,17 +62,24 @@ interface ResultRowProps {
 
 export const ResultRow = memo(function ResultRow({ result, palette }: ResultRowProps) {
   const formattedDate = new Date(result.date).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short',
+    day: 'numeric',
+    month: 'short',
   });
 
   return (
     <Row style={[styles.resultRow, { borderBottomColor: palette.border }]}>
       <OutcomeBadge outcome={result.outcome} palette={palette} />
       <View style={styles.resultInfo}>
-        <ThemedText style={{ ...Typography.bodySemiBold, color: palette.foreground }}>vs {result.opponent}</ThemedText>
-        <ThemedText style={{ ...Typography.small, color: palette.muted }}>{result.squad} &middot; {formattedDate}</ThemedText>
+        <ThemedText style={{ ...Typography.bodySemiBold, color: palette.foreground }}>
+          vs {result.opponent}
+        </ThemedText>
+        <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+          {result.squad} &middot; {formattedDate}
+        </ThemedText>
       </View>
-      <ThemedText style={{ ...Typography.heading, color: palette.foreground }}>{result.scoreHome} - {result.scoreAway}</ThemedText>
+      <ThemedText style={{ ...Typography.heading, color: palette.foreground }}>
+        {result.scoreHome} - {result.scoreAway}
+      </ThemedText>
     </Row>
   );
 });
@@ -86,12 +95,20 @@ interface QuickActionProps {
   palette: ThemeColors;
 }
 
-export const QuickAction = memo(function QuickAction({ icon, label, onPress, palette }: QuickActionProps) {
+export const QuickAction = memo(function QuickAction({
+  icon,
+  label,
+  onPress,
+  palette,
+}: QuickActionProps) {
   return (
     <Clickable
       onPress={onPress}
       accessibilityLabel={label}
-      style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+      style={[
+        styles.quickAction,
+        { backgroundColor: palette.surface, borderColor: palette.border },
+      ]}
     >
       <Ionicons name={icon} size={Components.icon.lg} color={palette.tint} />
       <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{label}</ThemedText>
@@ -104,10 +121,35 @@ export const QuickAction = memo(function QuickAction({ icon, label, onPress, pal
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  statCard: { flex: 1, alignItems: 'center', gap: Spacing.xs / 2, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
-  outcomeBadge: { width: 32, height: 32, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  outcomeBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   outcomeBadgeText: { ...Typography.caption },
-  resultRow: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  resultRow: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+  },
   resultInfo: { flex: 1, gap: Spacing.micro },
-  quickAction: { flex: 1, height: 80, borderRadius: Radii.card, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xs / 2 },
+  quickAction: {
+    flex: 1,
+    height: 80,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs / 2,
+  },
 });

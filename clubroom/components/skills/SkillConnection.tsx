@@ -14,7 +14,8 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Line, Path } from 'react-native-svg';import { useTheme } from '@/hooks/useTheme';
+import Svg, { Line, Path } from 'react-native-svg';
+import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedLine = Animated.createAnimatedComponent(Line);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -66,7 +67,7 @@ export function SkillConnection({
       withTiming(1, {
         duration: 600,
         easing: Easing.out(Easing.cubic),
-      })
+      }),
     );
   }, [animationDelay, animationProgress]);
 
@@ -95,7 +96,10 @@ export function SkillConnection({
 
   if (curved) {
     return (
-      <View style={[styles.container, { width: containerWidth, height: containerHeight }]} pointerEvents="none">
+      <View
+        style={[styles.container, { width: containerWidth, height: containerHeight }]}
+        pointerEvents="none"
+      >
         <Svg width={containerWidth} height={containerHeight} style={StyleSheet.absoluteFill}>
           {/* Background path (dashed when locked) */}
           <Path
@@ -123,7 +127,10 @@ export function SkillConnection({
   }
 
   return (
-    <View style={[styles.container, { width: containerWidth, height: containerHeight }]} pointerEvents="none">
+    <View
+      style={[styles.container, { width: containerWidth, height: containerHeight }]}
+      pointerEvents="none"
+    >
       <Svg width={containerWidth} height={containerHeight} style={StyleSheet.absoluteFill}>
         {/* Background line (dashed when locked) */}
         <Line

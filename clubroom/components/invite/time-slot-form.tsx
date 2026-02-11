@@ -7,7 +7,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -16,7 +16,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { TimeSlot } from '@/constants/types';
 
@@ -108,12 +108,7 @@ export const TimeSlotForm = memo(function TimeSlotForm({
 
         <SurfaceCard style={styles.addSlotCard}>
           <Row gap="sm">
-            <DateTimeField
-              mode="date"
-              label="Date"
-              value={slotDate}
-              onChange={onSlotDateChange}
-            />
+            <DateTimeField mode="date" label="Date" value={slotDate} onChange={onSlotDateChange} />
           </Row>
           <Row gap="sm">
             <DateTimeField

@@ -34,7 +34,9 @@ export function useDrillAssign() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedAthlete, setSelectedAthlete] = useState<DrillAthlete | null>(null);
   const [dueDate, setDueDate] = useState<Date>(() => {
-    const d = new Date(); d.setDate(d.getDate() + 7); return d;
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d;
   });
   const [notes, setNotes] = useState('');
   const [repetitions, setRepetitions] = useState('1');
@@ -70,14 +72,7 @@ export function useDrillAssign() {
     }
   }, [coachId, drillId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<DrillAssignData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<DrillAssignData>({
     load: loadData,
     deps: [drillId, coachId],
     isEmpty: (value) => value.drill === null,
@@ -89,7 +84,9 @@ export function useDrillAssign() {
 
   const handleDateSelect = useCallback((daysFromNow: number) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const d = new Date(); d.setDate(d.getDate() + daysFromNow); setDueDate(d);
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    setDueDate(d);
   }, []);
 
   const handlePrioritySelect = useCallback((p: 1 | 2 | 3) => {
@@ -99,28 +96,50 @@ export function useDrillAssign() {
 
   const handleAthleteSelect = useCallback((athlete: DrillAthlete) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedAthlete(prev => prev?.id === athlete.id ? null : athlete);
+    setSelectedAthlete((prev) => (prev?.id === athlete.id ? null : athlete));
   }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!drill || !selectedAthlete) {
-      Alert.alert('Missing Information', 'Please select a drill and athlete.'); return;
+      Alert.alert('Missing Information', 'Please select a drill and athlete.');
+      return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setSubmitting(true);
     try {
-      const assignmentResult = await drillService.assignDrill(drill.id, selectedAthlete.id, selectedAthlete.name, coachId, coachName, {
-        dueDate: dueDate.toISOString(), notes: notes.trim() || undefined,
-        repetitions: parseInt(repetitions, 10) || 1, priority,
-      });
+      const assignmentResult = await drillService.assignDrill(
+        drill.id,
+        selectedAthlete.id,
+        selectedAthlete.name,
+        coachId,
+        coachName,
+        {
+          dueDate: dueDate.toISOString(),
+          notes: notes.trim() || undefined,
+          repetitions: parseInt(repetitions, 10) || 1,
+          priority,
+        },
+      );
       if (!assignmentResult.success) {
         Alert.alert('Error', assignmentResult.error.message);
         return;
       }
-      Alert.alert('Drill Assigned!', `"${drill.title}" has been assigned to ${selectedAthlete.name}.`, [
-        { text: 'Assign Another', onPress: () => { setSelectedAthlete(null); setNotes(''); setRepetitions('1'); setPriority(2); } },
-        { text: 'Done', onPress: () => router.back() },
-      ]);
+      Alert.alert(
+        'Drill Assigned!',
+        `"${drill.title}" has been assigned to ${selectedAthlete.name}.`,
+        [
+          {
+            text: 'Assign Another',
+            onPress: () => {
+              setSelectedAthlete(null);
+              setNotes('');
+              setRepetitions('1');
+              setPriority(2);
+            },
+          },
+          { text: 'Done', onPress: () => router.back() },
+        ],
+      );
     } catch (error) {
       logger.error('Failed to assign drill', error);
       Alert.alert('Error', 'Failed to assign drill. Please try again.');
@@ -133,8 +152,10 @@ export function useDrillAssign() {
     d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
   const getDaysFromNow = (d: Date): number => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const target = new Date(d); target.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(d);
+    target.setHours(0, 0, 0, 0);
     return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
 
@@ -148,11 +169,20 @@ export function useDrillAssign() {
     onRefresh,
     retry,
     submitting,
-    selectedAthlete, dueDate, notes, setNotes,
-    repetitions, setRepetitions, priority,
-    daysFromNow: getDaysFromNow(dueDate), formattedDate: formatDate(dueDate),
+    selectedAthlete,
+    dueDate,
+    notes,
+    setNotes,
+    repetitions,
+    setRepetitions,
+    priority,
+    daysFromNow: getDaysFromNow(dueDate),
+    formattedDate: formatDate(dueDate),
     handleRefresh: onRefresh,
-    handleDateSelect, handlePrioritySelect, handleAthleteSelect, handleSubmit,
+    handleDateSelect,
+    handlePrioritySelect,
+    handleAthleteSelect,
+    handleSubmit,
   } satisfies {
     drill: Drill | null;
     athletes: DrillAthlete[];

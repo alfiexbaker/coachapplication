@@ -78,11 +78,11 @@ export const Routes = {
   academyInvite: (id: string) => ({
     pathname: '/academy/[id]/invite',
     params: { id },
-  }) as unknown as Href,
+  }) as Href,
   academyStaffMember: (id: string, staffId: string) => ({
     pathname: '/academy/[id]/staff/[staffId]',
     params: { id, staffId },
-  }) as unknown as Href,
+  }) as Href,
 
   // ─── Admin ─────────────────────────────────────────────────────
   ADMIN_PROMO_CODES: '/admin/promo-codes' as Href,
@@ -99,7 +99,7 @@ export const Routes = {
   analyticsAthleteGoals: (athleteId: string) => ({
     pathname: '/analytics/[athleteId]/goals',
     params: { athleteId },
-  }) as unknown as Href,
+  }) as Href,
 
   // ─── Availability ──────────────────────────────────────────────
   AVAILABILITY_ADD_TEMPLATE: '/availability/add-template' as Href,
@@ -156,7 +156,7 @@ export const Routes = {
   bookCoach: (coachId: string) => ({
     pathname: '/book/[coachId]',
     params: { coachId },
-  }) as unknown as Href,
+  }) as Href,
   bookMultiWeek: (coachId: string) => ({
     pathname: '/book/[coachId]/multi-week',
     params: { coachId },
@@ -258,11 +258,11 @@ export const Routes = {
   coachInviteAthlete: (athleteId: string) => ({
     pathname: '/coach/invite',
     params: { athleteId },
-  }) as unknown as Href,
+  }) as Href,
   chatWithAthlete: (athleteId: string) => ({
     pathname: '/chat',
     params: { athleteId },
-  }) as unknown as Href,
+  }) as Href,
   coachPublic: (coachId: string) => ({
     pathname: '/coach/[coachId]/public',
     params: { coachId },
@@ -419,7 +419,7 @@ export const Routes = {
   profile: (userId: string) => ({
     pathname: '/profile/[userId]',
     params: { userId },
-  }) as unknown as Href,
+  }) as Href,
 
   // ─── Rate / Review ─────────────────────────────────────────────
   RATE_COACH: '/rate-coach' as Href,
@@ -430,7 +430,7 @@ export const Routes = {
   reviewCreate: (bookingId: string, coachId: string) => ({
     pathname: '/review/create',
     params: { bookingId, coachId },
-  }) as unknown as Href,
+  }) as Href,
 
   // ─── Referrals ─────────────────────────────────────────────────
   REFERRALS: '/referrals' as Href,
@@ -454,7 +454,7 @@ export const Routes = {
   rosterAthleteConcern: (athleteId: string) => ({
     pathname: '/roster/[athleteId]/raise-concern',
     params: { athleteId },
-  }) as unknown as Href,
+  }) as Href,
 
   // ─── Sessions ──────────────────────────────────────────────────
   SESSIONS_CREATE: '/sessions/create' as Href,

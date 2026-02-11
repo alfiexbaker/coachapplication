@@ -27,8 +27,18 @@ interface RecurringConfirmModalProps {
 }
 
 export const RecurringConfirmModal = memo(function RecurringConfirmModal({
-  visible, title, description, reason, onReasonChange, placeholder,
-  confirmLabel, loadingLabel, loading, onConfirm, onCancel, destructive,
+  visible,
+  title,
+  description,
+  reason,
+  onReasonChange,
+  placeholder,
+  confirmLabel,
+  loadingLabel,
+  loading,
+  onConfirm,
+  onCancel,
+  destructive,
 }: RecurringConfirmModalProps) {
   const { colors: palette } = useTheme();
 
@@ -36,16 +46,36 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <ThemedView style={styles.content}>
-          <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
-          <ThemedText style={[styles.description, { color: palette.muted }]}>{description}</ThemedText>
+          <ThemedText type="subtitle" style={styles.title}>
+            {title}
+          </ThemedText>
+          <ThemedText style={[styles.description, { color: palette.muted }]}>
+            {description}
+          </ThemedText>
           <TextInput
-            style={[styles.reasonInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.foreground }]}
-            placeholder={placeholder} placeholderTextColor={palette.muted}
-            value={reason} onChangeText={onReasonChange} multiline
+            style={[
+              styles.reasonInput,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+                color: palette.foreground,
+              },
+            ]}
+            placeholder={placeholder}
+            placeholderTextColor={palette.muted}
+            value={reason}
+            onChangeText={onReasonChange}
+            multiline
           />
           <Row gap="sm" justify="center">
-            <Button variant="outline" onPress={onCancel}>{destructive ? 'Go Back' : 'Cancel'}</Button>
-            <Button onPress={onConfirm} disabled={loading} style={destructive ? { backgroundColor: palette.error } : undefined}>
+            <Button variant="outline" onPress={onCancel}>
+              {destructive ? 'Go Back' : 'Cancel'}
+            </Button>
+            <Button
+              onPress={onConfirm}
+              disabled={loading}
+              style={destructive ? { backgroundColor: palette.error } : undefined}
+            >
               {loading ? loadingLabel : confirmLabel}
             </Button>
           </Row>
@@ -57,8 +87,21 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
-  content: { width: '100%', maxWidth: Components.modal.maxWidth, borderRadius: Components.modal.borderRadius, padding: Components.modal.padding, gap: Spacing.md },
+  content: {
+    width: '100%',
+    maxWidth: Components.modal.maxWidth,
+    borderRadius: Components.modal.borderRadius,
+    padding: Components.modal.padding,
+    gap: Spacing.md,
+  },
   title: { textAlign: 'center' },
   description: { textAlign: 'center', ...Typography.body },
-  reasonInput: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, minHeight: 80, textAlignVertical: 'top', ...Typography.body },
+  reasonInput: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    ...Typography.body,
+  },
 });

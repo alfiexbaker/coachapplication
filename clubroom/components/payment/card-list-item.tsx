@@ -15,12 +15,14 @@ interface PaymentCard {
 export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?: () => void }) {
   const { colors: palette } = useTheme();
   return (
-    <View style={[styles.card, { borderColor: palette.border }]}> 
+    <View style={[styles.card, { borderColor: palette.border }]}>
       <Row align="center" gap="md">
         <Ionicons name="card" size={24} color={palette.tint} />
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">{card.brand || 'Visa ending 4242'}</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>{card.number || '•••• •••• •••• 4242'}</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            {card.number || '•••• •••• •••• 4242'}
+          </ThemedText>
         </View>
         {card.default && (
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -29,7 +31,10 @@ export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?:
         )}
       </Row>
       {onDelete ? (
-        <Clickable onPress={onDelete} style={[styles.delete, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+        <Clickable
+          onPress={onDelete}
+          style={[styles.delete, { backgroundColor: withAlpha(palette.error, 0.06) }]}
+        >
           <Ionicons name="trash" size={16} color={palette.error} />
           <ThemedText style={{ color: palette.error, fontWeight: '700' }}>Delete</ThemedText>
         </Clickable>

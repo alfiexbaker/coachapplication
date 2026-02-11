@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -48,7 +48,8 @@ function CreateEventTypeStepInner({ eventType, onEventTypeChange }: CreateEventT
               style={[
                 styles.typeCard,
                 {
-                  backgroundColor: eventType === type.key ? withAlpha(typeColor, 0.09) : palette.surface,
+                  backgroundColor:
+                    eventType === type.key ? withAlpha(typeColor, 0.09) : palette.surface,
                   borderColor: eventType === type.key ? typeColor : palette.border,
                 },
               ]}

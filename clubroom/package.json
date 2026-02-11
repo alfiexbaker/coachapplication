@@ -10,7 +10,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "typecheck": "NODE_OPTIONS=--max-old-space-size=8192 tsc -p tsconfig.typecheck.json",
     "test:compile": "rm -rf .tmp-tests && tsc -p tsconfig.test.json",
     "test:snapshots": "npm run test:compile && node --require ./scripts/test-register.js --test .tmp-tests/__tests__/book-coach.snapshot.js",
     "test:favourites": "rm -rf .tmp-tests && tsc -p tsconfig.favourites-test.json && node --require ./scripts/test-register.js --test \".tmp-tests/__tests__/favourites/*.js\"",
@@ -78,7 +78,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "prettier": "^3.5.3",
+    "prettier": "3.8.1",
     "typescript": "~5.9.2"
   },
   "private": true

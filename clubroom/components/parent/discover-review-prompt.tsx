@@ -1,7 +1,7 @@
 /**
  * DiscoverReviewPrompt — Review prompt cards for completed sessions.
  */
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { router } from 'expo-router';
@@ -34,7 +34,11 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
       {sessions.map((session, index) => {
         const sessionDate = new Date(session.scheduledAt);
         const isToday = sessionDate.toDateString() === new Date().toDateString();
-        const timeStr = sessionDate.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const timeStr = sessionDate.toLocaleTimeString('en-GB', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
         const dateStr = isToday
           ? `Today ${timeStr}`
           : `${sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${timeStr}`;
@@ -63,11 +67,13 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                       logger.press('RateNow', { bookingId: session.id });
                       router.push(Routes.reviewCreate(session.id, session.coachId));
                     }}
-                    >
-                      <Row align="center" gap="xs">
-                        <Ionicons name="star" size={14} color={palette.surface} />
-                        <ThemedText style={[styles.rateText, { color: palette.surface }]}>Rate Now</ThemedText>
-                      </Row>
+                  >
+                    <Row align="center" gap="xs">
+                      <Ionicons name="star" size={14} color={palette.surface} />
+                      <ThemedText style={[styles.rateText, { color: palette.surface }]}>
+                        Rate Now
+                      </ThemedText>
+                    </Row>
                   </Clickable>
                   <Clickable
                     accessibilityLabel="Rate later"
@@ -78,7 +84,9 @@ function DiscoverReviewPromptInner({ sessions, onDismiss }: DiscoverReviewPrompt
                     ]}
                     onPress={() => onDismiss(session.id)}
                   >
-                    <ThemedText style={[styles.laterText, { color: palette.muted }]}>Later</ThemedText>
+                    <ThemedText style={[styles.laterText, { color: palette.muted }]}>
+                      Later
+                    </ThemedText>
                   </Clickable>
                 </Row>
               </View>
@@ -100,12 +108,20 @@ const styles = StyleSheet.create({
   title: { ...Typography.subheading, letterSpacing: -0.2 },
   meta: { ...Typography.small },
   rateButton: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.sm, minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    minHeight: 44,
   },
   rateText: { ...Typography.bodySmallSemiBold },
   laterButton: {
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1, minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    minHeight: 44,
   },
   laterText: { ...Typography.bodySmallSemiBold },
 });

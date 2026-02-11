@@ -93,13 +93,11 @@ const EventCard = memo(function EventCardComponent({
 const Separator = () => <View style={styles.separator} />;
 
 function UpcomingEventsCarouselComponent({ invites, onPress }: UpcomingEventsCarouselProps) {
-  const { colors: palette, scheme } = useTheme();
+  const { colors: palette } = useTheme();
 
   const renderItem = useCallback(
-    ({ item }: { item: SessionInvite }) => (
-      <EventCard invite={item} onPress={onPress} />
-    ),
-    [onPress]
+    ({ item }: { item: SessionInvite }) => <EventCard invite={item} onPress={onPress} />,
+    [onPress],
   );
 
   const keyExtractor = useCallback((item: SessionInvite) => item.id, []);

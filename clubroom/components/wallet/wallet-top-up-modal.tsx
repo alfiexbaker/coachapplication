@@ -70,9 +70,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
         {/* Content */}
         <Column gap="sm" style={styles.content}>
           {/* Preset Amounts */}
-          <ThemedText style={[styles.label, { color: colors.muted }]}>
-            Select an amount
-          </ThemedText>
+          <ThemedText style={[styles.label, { color: colors.muted }]}>Select an amount</ThemedText>
           <Row wrap gap="sm">
             {PRESET_AMOUNTS.map((amount) => {
               const isSelected = selectedAmount === amount;
@@ -82,9 +80,7 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
                   style={[
                     styles.presetButton,
                     {
-                      backgroundColor: isSelected
-                        ? withAlpha(colors.tint, 0.09)
-                        : colors.surface,
+                      backgroundColor: isSelected ? withAlpha(colors.tint, 0.09) : colors.surface,
                       borderColor: isSelected ? colors.tint : colors.border,
                     },
                   ]}
@@ -95,12 +91,10 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
                 >
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.presetText,
-                      { color: isSelected ? colors.tint : colors.text },
-                    ]}
+                    style={[styles.presetText, { color: isSelected ? colors.tint : colors.text }]}
                   >
-                    {'\u00A3'}{amount}
+                    {'\u00A3'}
+                    {amount}
                   </ThemedText>
                 </Clickable>
               );
@@ -154,7 +148,8 @@ export const WalletTopUpModal = memo(function WalletTopUpModal({
               <>
                 <Ionicons name="card-outline" size={20} color={colors.onPrimary} />
                 <ThemedText style={[styles.confirmText, { color: colors.onPrimary }]}>
-                  Add {'\u00A3'}{displayAmount}
+                  Add {'\u00A3'}
+                  {displayAmount}
                 </ThemedText>
               </>
             )}

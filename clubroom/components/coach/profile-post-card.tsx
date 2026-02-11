@@ -29,11 +29,7 @@ export interface ProfilePostCardProps {
 
 // ─── Component ──────────────────────────────────────────────────
 
-function ProfilePostCardInner({
-  post,
-  coachName,
-  coachAvatar,
-}: ProfilePostCardProps) {
+function ProfilePostCardInner({ post, coachName, coachAvatar }: ProfilePostCardProps) {
   const { colors: palette } = useTheme();
 
   return (

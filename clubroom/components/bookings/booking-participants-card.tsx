@@ -81,7 +81,11 @@ interface ParticipantRowProps {
   isCoach: boolean;
 }
 
-const ParticipantRow = memo(function ParticipantRow({ participant, coachId, isCoach }: ParticipantRowProps) {
+const ParticipantRow = memo(function ParticipantRow({
+  participant,
+  coachId,
+  isCoach,
+}: ParticipantRowProps) {
   const { colors: palette } = useTheme();
 
   const colorKey = statusColorKey[participant.status];
@@ -110,7 +114,9 @@ const ParticipantRow = memo(function ParticipantRow({ participant, coachId, isCo
         disabled={!isCoach}
         accessibilityLabel={`${participant.name} - ${participant.status}`}
       >
-        <View style={[styles.participantAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+        <View
+          style={[styles.participantAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
+        >
           <ThemedText style={[styles.participantAvatarText, { color: palette.tint }]}>
             {participant.avatar}
           </ThemedText>
@@ -122,7 +128,9 @@ const ParticipantRow = memo(function ParticipantRow({ participant, coachId, isCo
             </ThemedText>
             {isCoach && <Ionicons name="arrow-forward" size={14} color={palette.tint} />}
           </Row>
-          <View style={[styles.participantStatus, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
+          <View
+            style={[styles.participantStatus, { backgroundColor: withAlpha(statusColor, 0.12) }]}
+          >
             <ThemedText style={[styles.participantStatusText, { color: statusColor }]}>
               {participant.status.charAt(0).toUpperCase() + participant.status.slice(1)}
             </ThemedText>
@@ -148,16 +156,39 @@ const ParticipantRow = memo(function ParticipantRow({ participant, coachId, isCo
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
-  cardTitle: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6, fontWeight: '600' },
+  cardTitle: {
+    ...Typography.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.6,
+    fontWeight: '600',
+  },
   capacityBadge: { ...Typography.bodySmallSemiBold },
   headerSpacing: { marginBottom: Spacing.sm },
   participantRow: { paddingVertical: Spacing.sm, borderBottomWidth: 1 },
   participantInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1 },
-  participantAvatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   participantAvatarText: { ...Typography.heading },
   flex1: { flex: 1 },
   clickableText: { textDecorationLine: 'underline' },
-  participantStatus: { alignSelf: 'flex-start', paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.md },
+  participantStatus: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
+  },
   participantStatusText: { ...Typography.caption, textTransform: 'capitalize' },
-  messageButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  messageButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -21,13 +21,25 @@ interface BodyDiagramProps {
 
 export const BodyDiagram = memo(function BodyDiagram({ selectedPart, palette }: BodyDiagramProps) {
   return (
-    <View style={[styles.bodyDiagram, { backgroundColor: palette.surface }]}> 
+    <View style={[styles.bodyDiagram, { backgroundColor: palette.surface }]}>
       <View style={styles.bodyFigure}>
         <View style={[styles.head, getPartStyle('HEAD', selectedPart, palette)]} />
         <Row style={styles.torsoContainer}>
-          <View style={[styles.shoulder, styles.leftShoulder, getPartStyle('LEFT_SHOULDER', selectedPart, palette)]} />
+          <View
+            style={[
+              styles.shoulder,
+              styles.leftShoulder,
+              getPartStyle('LEFT_SHOULDER', selectedPart, palette),
+            ]}
+          />
           <View style={[styles.torso, getPartStyle('CHEST', selectedPart, palette)]} />
-          <View style={[styles.shoulder, styles.rightShoulder, getPartStyle('RIGHT_SHOULDER', selectedPart, palette)]} />
+          <View
+            style={[
+              styles.shoulder,
+              styles.rightShoulder,
+              getPartStyle('RIGHT_SHOULDER', selectedPart, palette),
+            ]}
+          />
         </Row>
         <Row style={styles.armsContainer}>
           <View style={[styles.arm, getPartStyle('LEFT_ARM', selectedPart, palette)]} />
@@ -97,10 +109,7 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
               color={hasSelectedPart ? palette.tint : palette.text}
             />
             <ThemedText
-              style={[
-                styles.categoryLabel,
-                hasSelectedPart ? { color: palette.tint } : undefined,
-              ]}
+              style={[styles.categoryLabel, hasSelectedPart ? { color: palette.tint } : undefined]}
             >
               {category.label}
             </ThemedText>
@@ -114,7 +123,10 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
       </Clickable>
 
       {isExpanded && (
-        <Animated.View entering={FadeIn.duration(200)} style={[styles.partsGrid, { backgroundColor: palette.surface }]}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          style={[styles.partsGrid, { backgroundColor: palette.surface }]}
+        >
           {parts.map((part) => {
             const isSelected = selectedPart === part;
             return (
@@ -128,7 +140,12 @@ export const CategoryAccordionItem = memo(function CategoryAccordionItem({
                     },
                   ]}
                 >
-                  <ThemedText style={[styles.partLabel, { color: isSelected ? palette.onPrimary : palette.text }]}>
+                  <ThemedText
+                    style={[
+                      styles.partLabel,
+                      { color: isSelected ? palette.onPrimary : palette.text },
+                    ]}
+                  >
                     {injuryService.getBodyPartLabel(part)}
                   </ThemedText>
                   {isSelected && <Ionicons name="checkmark" size={16} color={palette.onPrimary} />}

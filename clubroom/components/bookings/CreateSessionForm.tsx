@@ -70,7 +70,10 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
         <View style={styles.fieldContainer}>
           <ThemedText style={styles.label}>Session Title *</ThemedText>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[
+              styles.input,
+              { backgroundColor: palette.card, borderColor: palette.border, color: palette.text },
+            ]}
             placeholder="e.g., Advanced Dribbling Skills, Goalkeeper Training"
             placeholderTextColor={palette.muted}
             value={props.sessionTitle}
@@ -82,7 +85,11 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
         <View style={styles.fieldContainer}>
           <ThemedText style={styles.label}>Description (Optional)</ThemedText>
           <TextInput
-            style={[styles.input, styles.multilineInput, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[
+              styles.input,
+              styles.multilineInput,
+              { backgroundColor: palette.card, borderColor: palette.border, color: palette.text },
+            ]}
             placeholder="Add details about the session..."
             placeholderTextColor={palette.muted}
             value={props.description}
@@ -97,7 +104,10 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
           <View style={styles.fieldContainer}>
             <ThemedText style={styles.label}>Max Participants</ThemedText>
             <TextInput
-              style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+              style={[
+                styles.input,
+                { backgroundColor: palette.card, borderColor: palette.border, color: palette.text },
+              ]}
               placeholder="Enter maximum number of participants"
               placeholderTextColor={palette.muted}
               value={props.maxParticipants}
@@ -111,7 +121,10 @@ export function CreateSessionForm(props: CreateSessionFormProps) {
         <View style={styles.fieldContainer}>
           <ThemedText style={styles.label}>Location</ThemedText>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }]}
+            style={[
+              styles.input,
+              { backgroundColor: palette.card, borderColor: palette.border, color: palette.text },
+            ]}
             placeholder="Enter session location"
             placeholderTextColor={palette.muted}
             value={props.location}

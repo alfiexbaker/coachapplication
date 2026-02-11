@@ -57,7 +57,8 @@ export const MiniCoachCard = memo(function MiniCoachCard({
             </ThemedText>
           </Row>
           <ThemedText style={[styles.price, { color: palette.text }]}>
-            {'\u00A3'}{coach.pricePerHour}/hr
+            {'\u00A3'}
+            {coach.pricePerHour}/hr
           </ThemedText>
         </View>
 
@@ -65,10 +66,7 @@ export const MiniCoachCard = memo(function MiniCoachCard({
         <Clickable
           accessibilityLabel={`Book ${coach.fullName}`}
           onPress={onBookNow}
-          style={[
-            styles.bookButton,
-            { backgroundColor: palette.tint },
-          ]}
+          style={[styles.bookButton, { backgroundColor: palette.tint }]}
         >
           <ThemedText style={[styles.bookText, { color: palette.onPrimary }]}>Book</ThemedText>
         </Clickable>
@@ -82,13 +80,25 @@ export const MiniCoachCard = memo(function MiniCoachCard({
 const styles = StyleSheet.create({
   card: { width: 260, padding: Spacing.sm },
   row: { alignItems: 'center', gap: Spacing.sm },
-  avatar: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1, gap: Spacing.xs / 2 },
   name: { ...Typography.bodySemiBold },
   metaRow: { alignItems: 'center', gap: Spacing.xs / 2 },
   metaText: { ...Typography.caption },
   dot: { width: 3, height: 3, borderRadius: Radii.pill },
   price: { ...Typography.bodySemiBold, fontWeight: '700' },
-  bookButton: { height: Components.buttonCompact.height, paddingHorizontal: Spacing.sm, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
+  bookButton: {
+    height: Components.buttonCompact.height,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bookText: { ...Typography.caption, fontWeight: '700' },
 });

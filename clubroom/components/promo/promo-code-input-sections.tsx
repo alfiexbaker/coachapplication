@@ -116,15 +116,12 @@ export const LoadingStateMessage = memo(function LoadingStateMessage({
 }: LoadingStateMessageProps) {
   if (!state) return null;
 
-  const message = state === 'validating'
-    ? 'Validating code...'
-    : 'Applying credit to your wallet...';
+  const message =
+    state === 'validating' ? 'Validating code...' : 'Applying credit to your wallet...';
 
   return (
     <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.loadingMessage}>
-      <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-        {message}
-      </ThemedText>
+      <ThemedText style={[styles.loadingText, { color: palette.muted }]}>{message}</ThemedText>
     </Animated.View>
   );
 });

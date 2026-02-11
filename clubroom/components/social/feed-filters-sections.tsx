@@ -8,7 +8,7 @@
  * EmptyFeedFiltered — empty state when filter yields no posts.
  */
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { router, type Href } from 'expo-router';
@@ -88,10 +88,7 @@ interface ClubPillRowProps {
   palette: ThemeColors;
 }
 
-export const ClubPillRow = memo(function ClubPillRow({
-  clubs,
-  palette,
-}: ClubPillRowProps) {
+export const ClubPillRow = memo(function ClubPillRow({ clubs, palette }: ClubPillRowProps) {
   if (clubs.length === 0) return null;
 
   return (
@@ -101,7 +98,10 @@ export const ClubPillRow = memo(function ClubPillRow({
           key={club.id}
           style={[
             styles.clubPill,
-            { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.15) },
+            {
+              backgroundColor: withAlpha(palette.tint, 0.06),
+              borderColor: withAlpha(palette.tint, 0.15),
+            },
           ]}
           onPress={() => router.push(Routes.club(club.id))}
         >
@@ -168,9 +168,7 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
         </Clickable>
         <Clickable
           style={[styles.emptyStateButtonOutline, { borderColor: palette.border }]}
-          onPress={() =>
-            router.push(isCoach ? '/club/create' : ('/(tabs)/more' as Href))
-          }
+          onPress={() => router.push(isCoach ? '/club/create' : ('/(tabs)/more' as Href))}
         >
           <Ionicons
             name={isCoach ? 'add-circle-outline' : 'search-outline'}

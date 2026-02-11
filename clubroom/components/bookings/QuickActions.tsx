@@ -1,9 +1,9 @@
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Typography, Spacing} from '@/constants/theme';
+import { Radii, Typography, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
@@ -43,21 +43,24 @@ export function QuickActions({
       <Row style={styles.quickActions}>
         <Clickable
           onPress={onDiscoverSessionsPress || (() => {})}
-          style={[styles.actionPill, { borderColor: palette.border }]}>
+          style={[styles.actionPill, { borderColor: palette.border }]}
+        >
           <Ionicons name="search-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Discover</ThemedText>
         </Clickable>
 
         <Clickable
           onPress={onFindCoachPress || (() => {})}
-          style={[styles.actionPill, { borderColor: palette.border }]}>
+          style={[styles.actionPill, { borderColor: palette.border }]}
+        >
           <Ionicons name="people-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Find Coach</ThemedText>
         </Clickable>
 
         <Clickable
           onPress={onGroupSessionsPress || (() => {})}
-          style={[styles.actionPill, { borderColor: palette.border }]}>
+          style={[styles.actionPill, { borderColor: palette.border }]}
+        >
           <Ionicons name="people-circle-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
         </Clickable>
@@ -71,21 +74,24 @@ export function QuickActions({
       <Row style={styles.quickActions}>
         <Clickable
           onPress={onGroupSessionsPress || (() => {})}
-          style={[styles.actionPill, { borderColor: palette.border }]}>
+          style={[styles.actionPill, { borderColor: palette.border }]}
+        >
           <Ionicons name="people-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
         </Clickable>
 
         <Clickable
           onPress={onCalendarPress}
-          style={[styles.actionPill, { borderColor: palette.border }]}>
+          style={[styles.actionPill, { borderColor: palette.border }]}
+        >
           <Ionicons name="calendar-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Calendar</ThemedText>
         </Clickable>
 
         <Clickable
           onPress={onSettingsPress}
-          style={[styles.actionPill, { borderColor: palette.border }]}>
+          style={[styles.actionPill, { borderColor: palette.border }]}
+        >
           <Ionicons name="person-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Settings</ThemedText>
         </Clickable>

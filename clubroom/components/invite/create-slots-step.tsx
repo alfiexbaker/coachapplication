@@ -37,7 +37,10 @@ interface SelectedSlotRowProps {
 const SelectedSlotRow = memo(function SelectedSlotRow({ slot, colors }: SelectedSlotRowProps) {
   return (
     <View
-      style={[styles.slotItem, { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.tint }]}
+      style={[
+        styles.slotItem,
+        { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.tint },
+      ]}
     >
       <Ionicons name="checkmark-circle" size={20} color={colors.tint} />
       <Column gap="micro" style={styles.slotInfo}>
@@ -89,11 +92,7 @@ export const CreateSlotsStep = memo(function CreateSlotsStep({
           <Column gap="sm" style={styles.slotsList}>
             <ThemedText style={styles.formLabel}>Selected Slots</ThemedText>
             {selectedSlots.map((slot) => (
-              <SelectedSlotRow
-                key={`${slot.date}_${slot.startTime}`}
-                slot={slot}
-                colors={colors}
-              />
+              <SelectedSlotRow key={`${slot.date}_${slot.startTime}`} slot={slot} colors={colors} />
             ))}
           </Column>
         )}

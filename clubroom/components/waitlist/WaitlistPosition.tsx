@@ -3,7 +3,7 @@ import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistPositionProps {
@@ -70,15 +70,15 @@ export function WaitlistPosition({
   if (compact) {
     return (
       <View style={[styles.compactContainer, { backgroundColor: withAlpha(color, 0.09) }]}>
-        <ThemedText style={[styles.compactText, { color }]}>
-          #{position}
-        </ThemedText>
+        <ThemedText style={[styles.compactText, { color }]}>#{position}</ThemedText>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, currentSize.container, { backgroundColor: withAlpha(color, 0.09) }]}>
+    <View
+      style={[styles.container, currentSize.container, { backgroundColor: withAlpha(color, 0.09) }]}
+    >
       <Row align="center" gap="xxs">
         <Ionicons name="time" size={currentSize.icon} color={color} />
         <ThemedText style={[currentSize.position, { color }]}>
@@ -119,7 +119,9 @@ const styles = StyleSheet.create({
     padding: Spacing.xs + Spacing.xxs,
     minWidth: 60,
   },
-  positionRow: { /* layout moved to Row */ },
+  positionRow: {
+    /* layout moved to Row */
+  },
   positionSmall: { ...Typography.bodySmallSemiBold },
   positionMedium: { ...Typography.heading },
   positionLarge: { ...Typography.display },
@@ -132,9 +134,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  nextBadgeText: { ...Typography.micro, /* color set inline for dynamic theming */
+  nextBadgeText: {
+    ...Typography.micro /* color set inline for dynamic theming */,
     textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+    letterSpacing: 0.5,
+  },
   compactContainer: {
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,

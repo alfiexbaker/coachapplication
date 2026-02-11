@@ -32,7 +32,9 @@ function StatItem({ value, label, color }: { value: string; label: string; color
   const { colors } = useTheme();
   return (
     <View style={styles.stat}>
-      <ThemedText type="heading" style={{ color }}>{value}</ThemedText>
+      <ThemedText type="heading" style={{ color }}>
+        {value}
+      </ThemedText>
       <ThemedText style={[Typography.caption, { color: colors.muted }]}>{label}</ThemedText>
     </View>
   );

@@ -78,7 +78,7 @@ export function VideoPlayer({
         onComplete?.();
       }
     },
-    [onComplete]
+    [onComplete],
   );
 
   const handlePlayPause = useCallback(async () => {

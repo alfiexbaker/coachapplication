@@ -55,13 +55,9 @@ export default function CoachProfileScreen() {
 
   const renderPostCard = useCallback(
     (post: NormalizedPost) => (
-      <ProfilePostCard
-        post={post}
-        coachName={coach.fullName}
-        coachAvatar={coach.profilePhotoUrl}
-      />
+      <ProfilePostCard post={post} coachName={coach.fullName} coachAvatar={coach.profilePhotoUrl} />
     ),
-    [coach.fullName, coach.profilePhotoUrl]
+    [coach.fullName, coach.profilePhotoUrl],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -72,7 +68,10 @@ export default function CoachProfileScreen() {
   // ── Loading state ──
   if (profileLoading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -82,7 +81,10 @@ export default function CoachProfileScreen() {
   // ── Error state ──
   if (profileError) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <ErrorState message={profileError} onRetry={loadProfileData} />
       </SafeAreaView>
@@ -91,7 +93,10 @@ export default function CoachProfileScreen() {
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
         <EmptyState
           icon="person-outline"
@@ -104,7 +109,10 @@ export default function CoachProfileScreen() {
 
   // ── Success state ──
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScreenHeader title="Coach Profile" subtitle="Your coaching identity" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {currentUser?.role === 'COACH' && (

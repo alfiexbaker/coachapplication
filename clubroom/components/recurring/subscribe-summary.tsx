@@ -2,7 +2,7 @@
  * SubscribeSummary — Summary card showing subscription details.
  */
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { Row } from '@/components/primitives/row';
@@ -23,15 +23,27 @@ interface Props {
   monthlyEstimate: number | null;
 }
 
-function SubscribeSummaryInner({ dayOfWeek, time, frequency, sessionType, duration, athleteName, monthlyEstimate }: Props) {
+function SubscribeSummaryInner({
+  dayOfWeek,
+  time,
+  frequency,
+  sessionType,
+  duration,
+  athleteName,
+  monthlyEstimate,
+}: Props) {
   const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="defaultSemiBold" style={styles.title}>Subscription Summary</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.title}>
+        Subscription Summary
+      </ThemedText>
       <Row justify="between" align="center">
         <ThemedText style={{ color: palette.muted }}>Schedule</ThemedText>
-        <ThemedText type="defaultSemiBold">{getDayName(dayOfWeek)}s at {formatTime(time)}</ThemedText>
+        <ThemedText type="defaultSemiBold">
+          {getDayName(dayOfWeek)}s at {formatTime(time)}
+        </ThemedText>
       </Row>
       <Row justify="between" align="center">
         <ThemedText style={{ color: palette.muted }}>Frequency</ThemedText>
@@ -39,7 +51,9 @@ function SubscribeSummaryInner({ dayOfWeek, time, frequency, sessionType, durati
       </Row>
       <Row justify="between" align="center">
         <ThemedText style={{ color: palette.muted }}>Session</ThemedText>
-        <ThemedText type="defaultSemiBold">{sessionType} ({duration} min)</ThemedText>
+        <ThemedText type="defaultSemiBold">
+          {sessionType} ({duration} min)
+        </ThemedText>
       </Row>
       {athleteName && (
         <Row justify="between" align="center">
@@ -48,9 +62,15 @@ function SubscribeSummaryInner({ dayOfWeek, time, frequency, sessionType, durati
         </Row>
       )}
       {monthlyEstimate !== null && (
-        <Row justify="between" align="center" style={[styles.total, { borderTopColor: palette.border }]}>
+        <Row
+          justify="between"
+          align="center"
+          style={[styles.total, { borderTopColor: palette.border }]}
+        >
           <ThemedText style={{ color: palette.muted }}>Est. Monthly Cost</ThemedText>
-          <ThemedText type="subtitle" style={{ color: palette.tint }}>${monthlyEstimate}</ThemedText>
+          <ThemedText type="subtitle" style={{ color: palette.tint }}>
+            ${monthlyEstimate}
+          </ThemedText>
         </Row>
       )}
     </SurfaceCard>
@@ -62,5 +82,9 @@ export const SubscribeSummary = memo(SubscribeSummaryInner);
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   title: { marginBottom: Spacing.xs },
-  total: { paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, marginTop: Spacing.xs },
+  total: {
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: Spacing.xs,
+  },
 });

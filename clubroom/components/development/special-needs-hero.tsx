@@ -17,7 +17,12 @@ interface SpecialNeedsHeroProps {
 }
 
 export const SpecialNeedsHero = memo(function SpecialNeedsHero({
-  name, avatar, totalCount, disabilityCount, specialNeedsCount, allergyCount,
+  name,
+  avatar,
+  totalCount,
+  disabilityCount,
+  specialNeedsCount,
+  allergyCount,
 }: SpecialNeedsHeroProps) {
   const { colors } = useTheme();
 
@@ -61,7 +66,19 @@ function StatCard({ value, label, color }: { value: number; label: string; color
 
 const styles = StyleSheet.create({
   heroCard: { padding: Spacing.sm },
-  avatar: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Components.avatar.md / 2, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heroInfo: { flex: 1, gap: Spacing.xs },
-  statCard: { flex: 1, padding: Spacing.sm, borderRadius: Radii.card, alignItems: 'center', gap: Spacing.xs },
+  statCard: {
+    flex: 1,
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
 });

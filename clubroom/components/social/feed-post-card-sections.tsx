@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
@@ -63,7 +63,9 @@ export const PostHeader = memo(function PostHeader({
         <Row align="center" gap="xs">
           <ThemedText type="defaultSemiBold">{authorName}</ThemedText>
           {postAs === 'club' && (
-            <View style={[styles.officialBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <View
+              style={[styles.officialBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+            >
               <ThemedText style={[styles.officialBadgeText, { color: palette.tint }]}>
                 Official
               </ThemedText>

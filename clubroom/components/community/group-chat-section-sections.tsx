@@ -37,7 +37,10 @@ export function formatDateHeader(dateString: string): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
-export function shouldShowDateHeader(current: GroupMessage, prev: GroupMessage | undefined): boolean {
+export function shouldShowDateHeader(
+  current: GroupMessage,
+  prev: GroupMessage | undefined,
+): boolean {
   if (!prev) return true;
   return new Date(current.createdAt).toDateString() !== new Date(prev.createdAt).toDateString();
 }
@@ -104,20 +107,12 @@ export const MessageBubble = memo(function MessageBubble({
           ]}
         >
           <ThemedText
-            style={[
-              styles.messageText,
-              { color: isOwnMessage ? palette.onPrimary : palette.text },
-            ]}
+            style={[styles.messageText, { color: isOwnMessage ? palette.onPrimary : palette.text }]}
           >
             {message.body}
           </ThemedText>
         </View>
-        <View
-          style={[
-            styles.messageFooter,
-            isOwnMessage ? styles.ownFooter : styles.otherFooter,
-          ]}
-        >
+        <View style={[styles.messageFooter, isOwnMessage ? styles.ownFooter : styles.otherFooter]}>
           <ThemedText style={[styles.messageTime, { color: palette.muted }]}>
             {formatTime(message.createdAt)}
           </ThemedText>
@@ -127,8 +122,8 @@ export const MessageBubble = memo(function MessageBubble({
                 message.status === 'seen'
                   ? 'checkmark-done'
                   : message.status === 'delivered'
-                  ? 'checkmark-done-outline'
-                  : 'checkmark'
+                    ? 'checkmark-done-outline'
+                    : 'checkmark'
               }
               size={14}
               color={message.status === 'seen' ? palette.tint : palette.muted}

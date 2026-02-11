@@ -30,25 +30,42 @@ export const GoalMetaCard = memo(function GoalMetaCard({ goal }: GoalMetaCardPro
             <Ionicons name="flag-outline" size={20} color={colors.icon} />
             <View>
               <ThemedText style={[styles.label, { color: colors.muted }]}>Milestones</ThemedText>
-              <ThemedText type="defaultSemiBold">{completedMilestones} / {goal.milestones.length}</ThemedText>
+              <ThemedText type="defaultSemiBold">
+                {completedMilestones} / {goal.milestones.length}
+              </ThemedText>
             </View>
           </Row>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <Row style={styles.item}>
-            <Ionicons name="calendar-outline" size={20} color={isOverdue ? colors.error : colors.icon} />
+            <Ionicons
+              name="calendar-outline"
+              size={20}
+              color={isOverdue ? colors.error : colors.icon}
+            />
             <View>
-              <ThemedText style={[styles.label, { color: colors.muted }]}>{isOverdue ? 'Overdue' : 'Target'}</ThemedText>
-              <ThemedText type="defaultSemiBold" style={{ color: isOverdue ? colors.error : colors.text }}>
+              <ThemedText style={[styles.label, { color: colors.muted }]}>
+                {isOverdue ? 'Overdue' : 'Target'}
+              </ThemedText>
+              <ThemedText
+                type="defaultSemiBold"
+                style={{ color: isOverdue ? colors.error : colors.text }}
+              >
                 {progressService.formatTargetDate(goal.targetDate)}
               </ThemedText>
             </View>
           </Row>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <Row style={styles.item}>
-            <Ionicons name={goal.status === 'COMPLETED' ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={statusColor} />
+            <Ionicons
+              name={goal.status === 'COMPLETED' ? 'checkmark-circle' : 'ellipse-outline'}
+              size={20}
+              color={statusColor}
+            />
             <View>
               <ThemedText style={[styles.label, { color: colors.muted }]}>Status</ThemedText>
-              <ThemedText type="defaultSemiBold" style={{ color: statusColor }}>{statusLabel}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={{ color: statusColor }}>
+                {statusLabel}
+              </ThemedText>
             </View>
           </Row>
         </Row>
@@ -61,6 +78,11 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.md, marginBottom: Spacing.md },
   row: { alignItems: 'center' },
   item: { flex: 1, alignItems: 'center', gap: Spacing.xs },
-  label: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: {
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   divider: { width: 1, height: 32, marginHorizontal: Spacing.sm },
 });

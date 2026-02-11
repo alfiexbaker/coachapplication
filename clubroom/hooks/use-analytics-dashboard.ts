@@ -65,14 +65,7 @@ export function useAnalyticsDashboard() {
     return err(result.error);
   }, [currentUser?.id, period]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<AnalyticsDashboardData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AnalyticsDashboardData>({
     load: fetchAnalytics,
     deps: [currentUser?.id, period],
     isEmpty: (value) => value.analytics === null,
@@ -81,11 +74,14 @@ export function useAnalyticsDashboard() {
 
   const analytics = data?.analytics ?? null;
 
-  const handlePeriodChange = useCallback((newPeriod: CoachAnalyticsPeriod) => {
-    if (newPeriod !== period) {
-      setPeriod(newPeriod);
-    }
-  }, [period]);
+  const handlePeriodChange = useCallback(
+    (newPeriod: CoachAnalyticsPeriod) => {
+      if (newPeriod !== period) {
+        setPeriod(newPeriod);
+      }
+    },
+    [period],
+  );
 
   const formatCurrency = useCallback((amount: number): string => {
     return `\u00A3${amount.toLocaleString()}`;

@@ -56,7 +56,11 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
               <View
                 style={[
                   styles.iconCircle,
-                  { backgroundColor: active ? withAlpha(palette.tint, 0.09) : withAlpha(palette.muted, 0.06) },
+                  {
+                    backgroundColor: active
+                      ? withAlpha(palette.tint, 0.09)
+                      : withAlpha(palette.muted, 0.06),
+                  },
                 ]}
               >
                 <Ionicons name={r.icon} size={16} color={active ? palette.tint : palette.muted} />
@@ -86,8 +90,20 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   title: { marginBottom: Spacing.xxs },
   options: { gap: Spacing.xs },
-  option: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5 },
-  iconCircle: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  option: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+    borderWidth: 1.5,
+  },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   notice: { alignItems: 'center', gap: Spacing.xxs, padding: Spacing.xs, borderRadius: Radii.sm },
   noticeText: { ...Typography.caption },
 });

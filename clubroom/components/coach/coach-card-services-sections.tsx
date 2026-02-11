@@ -21,13 +21,11 @@ import { Row } from '@/components/primitives';
 export function formatPrice(
   pricePerHour?: number,
   priceMin?: number,
-  priceMax?: number
+  priceMax?: number,
 ): string | null {
   if (pricePerHour) return `£${pricePerHour}`;
   if (priceMin && priceMax) {
-    return priceMin === priceMax
-      ? `£${priceMin}`
-      : `£${priceMin}-£${priceMax}`;
+    return priceMin === priceMax ? `£${priceMin}` : `£${priceMin}-£${priceMax}`;
   }
   return null;
 }
@@ -50,13 +48,8 @@ export function SpecialtyTags({ specialties }: SpecialtyTagsProps) {
   return (
     <Row style={styles.tagsRow}>
       {specialties.map((tag) => (
-        <View
-          key={tag}
-          style={[styles.tagPill, { backgroundColor: palette.surfaceSecondary }]}
-        >
-          <ThemedText style={[styles.tagText, { color: palette.muted }]}>
-            {tag}
-          </ThemedText>
+        <View key={tag} style={[styles.tagPill, { backgroundColor: palette.surfaceSecondary }]}>
+          <ThemedText style={[styles.tagText, { color: palette.muted }]}>{tag}</ThemedText>
         </View>
       ))}
     </Row>
@@ -76,9 +69,7 @@ export function FocusBadge({ focus }: FocusBadgeProps) {
 
   return (
     <View style={[styles.focusBadge, { backgroundColor: palette.surfaceSecondary }]}>
-      <ThemedText style={[styles.focusText, { color: palette.muted }]}>
-        {focus}
-      </ThemedText>
+      <ThemedText style={[styles.focusText, { color: palette.muted }]}>{focus}</ThemedText>
     </View>
   );
 }
@@ -113,9 +104,7 @@ export function InlinePrice({
       <ThemedText type="defaultSemiBold" style={styles.inlinePrice}>
         {priceStr}
       </ThemedText>
-      <ThemedText style={[styles.inlinePriceSuffix, { color: palette.muted }]}>
-        {suffix}
-      </ThemedText>
+      <ThemedText style={[styles.inlinePriceSuffix, { color: palette.muted }]}>{suffix}</ThemedText>
     </Row>
   );
 }

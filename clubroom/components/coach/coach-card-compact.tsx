@@ -23,7 +23,11 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
   const priceStr = formatPrice(coach.pricePerHour, coach.priceMin, coach.priceMax);
 
   return (
-    <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify()}>
+    <Animated.View
+      entering={FadeInDown.duration(300)
+        .delay(index * 50)
+        .springify()}
+    >
       <SurfaceCard
         accessibilityHint="View coach details"
         onPress={onPress}
@@ -34,10 +38,16 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
         <Row style={styles.row}>
           <CoachAvatar profilePhotoUrl={coach.profilePhotoUrl} size="lg" />
           <View style={styles.meta}>
-            <ThemedText type="subtitle" style={styles.name}>{coach.fullName}</ThemedText>
-            {coach.distanceMiles !== undefined && <DistanceDisplay distanceMiles={coach.distanceMiles} />}
+            <ThemedText type="subtitle" style={styles.name}>
+              {coach.fullName}
+            </ThemedText>
+            {coach.distanceMiles !== undefined && (
+              <DistanceDisplay distanceMiles={coach.distanceMiles} />
+            )}
             <Row style={styles.metaRow}>
-              {coach.rating !== undefined && <RatingDisplay rating={coach.rating} showCount={false} />}
+              {coach.rating !== undefined && (
+                <RatingDisplay rating={coach.rating} showCount={false} />
+              )}
               {primaryFocus && (
                 <>
                   <Divider vertical style={{ height: 12, opacity: 0.5 }} />
@@ -48,8 +58,12 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
           </View>
           {priceStr && (
             <View style={styles.priceColumn}>
-              <ThemedText type="defaultSemiBold" style={styles.price}>{priceStr}</ThemedText>
-              <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>per session</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.price}>
+                {priceStr}
+              </ThemedText>
+              <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
+                per session
+              </ThemedText>
             </View>
           )}
         </Row>

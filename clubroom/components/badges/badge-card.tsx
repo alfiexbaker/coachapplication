@@ -49,7 +49,11 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
         <View
           style={[
             styles.iconContainer,
-            { backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12) },
+            {
+              backgroundColor: isLocked
+                ? withAlpha(palette.muted, 0.09)
+                : withAlpha(tierColor, 0.12),
+            },
           ]}
         >
           <Ionicons
@@ -68,7 +72,11 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
           <View
             style={[
               styles.tierPill,
-              { backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12) },
+              {
+                backgroundColor: isLocked
+                  ? withAlpha(palette.muted, 0.09)
+                  : withAlpha(tierColor, 0.12),
+              },
             ]}
           >
             <ThemedText style={[styles.tierText, { color: isLocked ? palette.muted : tierColor }]}>
@@ -97,7 +105,10 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
         <View style={styles.progressSection}>
           <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <View
-              style={[styles.progressFill, { backgroundColor: palette.tint, width: `${badge.progress}%` }]}
+              style={[
+                styles.progressFill,
+                { backgroundColor: palette.tint, width: `${badge.progress}%` },
+              ]}
             />
           </View>
           <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>

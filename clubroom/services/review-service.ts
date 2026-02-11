@@ -70,10 +70,7 @@ const DEFAULT_REVIEWS: ExtendedReview[] = [
 class ReviewService {
   async list(): Promise<Result<ExtendedReview[], ServiceError>> {
     try {
-      const reviews = await apiClient.get<ExtendedReview[]>(
-        STORAGE_KEYS.REVIEWS,
-        DEFAULT_REVIEWS,
-      );
+      const reviews = await apiClient.get<ExtendedReview[]>(STORAGE_KEYS.REVIEWS, DEFAULT_REVIEWS);
       return ok(reviews);
     } catch (error) {
       logger.error('Failed to list reviews', error);

@@ -23,12 +23,24 @@ export const AGE_GROUPS = [
 export type AgeGroup = (typeof AGE_GROUPS)[number];
 
 export const SQUAD_LEVELS = [
-  'Development', 'Competitive', 'Elite', 'Performance', 'Foundation', 'Fun Football',
+  'Development',
+  'Competitive',
+  'Elite',
+  'Performance',
+  'Foundation',
+  'Fun Football',
 ] as const;
 
 export const SKILL_TAGS = [
-  'Ball Mastery', 'Finishing', 'Tactics', 'Teamwork', 'Confidence',
-  'Technical', 'Conditioning', 'Goalkeeping', 'Match Play',
+  'Ball Mastery',
+  'Finishing',
+  'Tactics',
+  'Teamwork',
+  'Confidence',
+  'Technical',
+  'Conditioning',
+  'Goalkeeping',
+  'Match Play',
 ] as const;
 
 export function useCreateSquad() {
@@ -60,9 +72,18 @@ export function useCreateSquad() {
   const isValid = Boolean(squadName.trim() && selectedAgeGroup && selectedLevel);
 
   const handleCreate = useCallback(async () => {
-    if (!squadName.trim()) { Alert.alert('Error', 'Please enter a squad name'); return; }
-    if (!selectedAgeGroup) { Alert.alert('Error', 'Please select an age group'); return; }
-    if (!selectedLevel) { Alert.alert('Error', 'Please select a level'); return; }
+    if (!squadName.trim()) {
+      Alert.alert('Error', 'Please enter a squad name');
+      return;
+    }
+    if (!selectedAgeGroup) {
+      Alert.alert('Error', 'Please select an age group');
+      return;
+    }
+    if (!selectedLevel) {
+      Alert.alert('Error', 'Please select a level');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -87,9 +108,20 @@ export function useCreateSquad() {
   }, [squadName, selectedAgeGroup, selectedLevel, meetLocation, selectedTags, clubId]);
 
   return {
-    club, clubId, squadName, selectedAgeGroup, selectedLevel, meetLocation,
-    selectedTags, isSubmitting, isValid,
-    setSquadName, setSelectedAgeGroup, setSelectedLevel, setMeetLocation,
-    toggleTag, handleCreate,
+    club,
+    clubId,
+    squadName,
+    selectedAgeGroup,
+    selectedLevel,
+    meetLocation,
+    selectedTags,
+    isSubmitting,
+    isValid,
+    setSquadName,
+    setSelectedAgeGroup,
+    setSelectedLevel,
+    setMeetLocation,
+    toggleTag,
+    handleCreate,
   };
 }

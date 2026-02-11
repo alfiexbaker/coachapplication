@@ -2,7 +2,7 @@
  * StepAccountType — Account type selection step of onboarding.
  */
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';

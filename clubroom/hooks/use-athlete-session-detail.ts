@@ -41,24 +41,22 @@ export function useAthleteSessionDetail() {
 
       return ok<AthleteSessionDetailData>({ session: foundSession });
     } catch (error) {
-      logger.error('Failed to load athlete session detail', { sessionId: resolvedSessionId, error });
+      logger.error('Failed to load athlete session detail', {
+        sessionId: resolvedSessionId,
+        error,
+      });
       return err(serviceError('UNKNOWN', 'Failed to load session details.', error));
     }
   }, [resolvedSessionId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<AthleteSessionDetailData>({
-    load: loadSession,
-    deps: [resolvedSessionId],
-    isEmpty: (value) => value.session === null,
-    refetchOnFocus: true,
-  });
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteSessionDetailData>(
+    {
+      load: loadSession,
+      deps: [resolvedSessionId],
+      isEmpty: (value) => value.session === null,
+      refetchOnFocus: true,
+    },
+  );
 
   const session = data?.session ?? null;
 

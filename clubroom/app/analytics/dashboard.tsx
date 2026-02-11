@@ -11,7 +11,8 @@ import {
   RevenueChart,
   PeakHoursHeatmap,
   RetentionCard,
-  CancellationChart } from '@/components/analytics';
+  CancellationChart,
+} from '@/components/analytics';
 import { AnalyticsTopSkills } from '@/components/analytics/analytics-top-skills';
 import { AnalyticsSessionTypes } from '@/components/analytics/analytics-session-types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
@@ -38,7 +39,10 @@ export default function AnalyticsDashboardScreen() {
 
   if (analytics.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <LoadingState variant="card" />
       </SafeAreaView>
@@ -47,7 +51,10 @@ export default function AnalyticsDashboardScreen() {
 
   if (analytics.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <ErrorState
           message={analytics.error?.message || 'Failed to load analytics.'}
@@ -59,7 +66,10 @@ export default function AnalyticsDashboardScreen() {
 
   if (analytics.status === 'empty' || !analytics.analytics) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <EmptyState
           icon="analytics-outline"
@@ -75,10 +85,15 @@ export default function AnalyticsDashboardScreen() {
   const dashboard = analytics.analytics;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={analytics.refreshing} onRefresh={analytics.onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={analytics.refreshing} onRefresh={analytics.onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {header}
@@ -99,7 +114,10 @@ export default function AnalyticsDashboardScreen() {
               accessibilityLabel={`${option.label} period`}
             >
               <ThemedText
-                style={[styles.periodText, { color: analytics.period === option.value ? palette.onPrimary : palette.text }]}
+                style={[
+                  styles.periodText,
+                  { color: analytics.period === option.value ? palette.onPrimary : palette.text },
+                ]}
               >
                 {option.label}
               </ThemedText>
@@ -110,52 +128,86 @@ export default function AnalyticsDashboardScreen() {
         {/* Key metrics */}
         <Row gap="md">
           <AnalyticsStatCard
-            label="Revenue" value={dashboard.totalRevenue}
-            changePercent={dashboard.revenueChangePercent} trend={dashboard.revenueTrend}
-            icon="cash" iconColor={palette.success} isCurrency onPress={analytics.navigateToRevenue}
+            label="Revenue"
+            value={dashboard.totalRevenue}
+            changePercent={dashboard.revenueChangePercent}
+            trend={dashboard.revenueTrend}
+            icon="cash"
+            iconColor={palette.success}
+            isCurrency
+            onPress={analytics.navigateToRevenue}
           />
           <AnalyticsStatCard
-            label="Sessions" value={dashboard.sessions.totalSessions}
+            label="Sessions"
+            value={dashboard.sessions.totalSessions}
             changePercent={dashboard.sessions.sessionsChangePercent}
-            trend={dashboard.sessions.sessionsChangePercent > 2 ? 'UP' : dashboard.sessions.sessionsChangePercent < -2 ? 'DOWN' : 'STABLE'}
-            icon="calendar" iconColor={palette.tint}
+            trend={
+              dashboard.sessions.sessionsChangePercent > 2
+                ? 'UP'
+                : dashboard.sessions.sessionsChangePercent < -2
+                  ? 'DOWN'
+                  : 'STABLE'
+            }
+            icon="calendar"
+            iconColor={palette.tint}
           />
         </Row>
         <Row gap="md">
           <AnalyticsStatCard
-            label="Active Clients" value={dashboard.retention.totalActiveClients}
-            icon="people" iconColor={palette.tint} onPress={analytics.navigateToRetention}
+            label="Active Clients"
+            value={dashboard.retention.totalActiveClients}
+            icon="people"
+            iconColor={palette.tint}
+            onPress={analytics.navigateToRetention}
           />
           <AnalyticsStatCard
-            label="Avg Rating" value={dashboard.avgRating.toFixed(1)}
+            label="Avg Rating"
+            value={dashboard.avgRating.toFixed(1)}
             change={dashboard.ratingChange}
-            trend={dashboard.ratingChange > 0 ? 'UP' : dashboard.ratingChange < 0 ? 'DOWN' : 'STABLE'}
-            icon="star" iconColor={palette.warning}
+            trend={
+              dashboard.ratingChange > 0 ? 'UP' : dashboard.ratingChange < 0 ? 'DOWN' : 'STABLE'
+            }
+            icon="star"
+            iconColor={palette.warning}
           />
         </Row>
 
         <RevenueChart
-          data={dashboard.revenueChart} title="Revenue Trend"
-          totalRevenue={dashboard.totalRevenue} trend={dashboard.revenueTrend}
-          changePercent={dashboard.revenueChangePercent} onPress={analytics.navigateToRevenue}
+          data={dashboard.revenueChart}
+          title="Revenue Trend"
+          totalRevenue={dashboard.totalRevenue}
+          trend={dashboard.revenueTrend}
+          changePercent={dashboard.revenueChangePercent}
+          onPress={analytics.navigateToRevenue}
         />
         <PeakHoursHeatmap
-          data={dashboard.peakHours} title="Peak Hours"
+          data={dashboard.peakHours}
+          title="Peak Hours"
           subtitle="When your sessions are scheduled"
-          busiestDay={dashboard.busiestDay} busiestHour={dashboard.busiestHour}
+          busiestDay={dashboard.busiestDay}
+          busiestHour={dashboard.busiestHour}
         />
         <RetentionCard
-          metrics={dashboard.retention} title="Client Retention"
+          metrics={dashboard.retention}
+          title="Client Retention"
           onPress={analytics.navigateToRetention}
         />
         {dashboard.cancellations.totalCancellations > 0 && (
           <CancellationChart stats={dashboard.cancellations} title="Cancellations" />
         )}
         {dashboard.topSkills.length > 0 && (
-          <AnalyticsTopSkills colors={palette} skills={dashboard.topSkills} formatCurrency={analytics.formatCurrency} />
+          <AnalyticsTopSkills
+            colors={palette}
+            skills={dashboard.topSkills}
+            formatCurrency={analytics.formatCurrency}
+          />
         )}
         {dashboard.sessions.bySessionType.length > 0 && (
-          <AnalyticsSessionTypes colors={palette} sessionTypes={dashboard.sessions.bySessionType} formatCurrency={analytics.formatCurrency} />
+          <AnalyticsSessionTypes
+            colors={palette}
+            sessionTypes={dashboard.sessions.bySessionType}
+            formatCurrency={analytics.formatCurrency}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -164,9 +216,21 @@ export default function AnalyticsDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   header: { marginBottom: Spacing.sm },
   subtitle: { ...Typography.body, marginTop: Spacing.xxs, marginLeft: 32 },
-  periodButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
+  periodButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
   periodText: { ...Typography.bodySmallSemiBold },
 });

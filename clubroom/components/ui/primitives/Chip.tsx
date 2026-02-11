@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { Components, Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Components, Fonts, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
@@ -87,21 +87,9 @@ function ChipInner({
       ]}
     >
       <Row align="center" gap="xxs">
-        {icon ? (
-          <Ionicons
-            name={icon}
-            size={Components.icon.sm}
-            color={iconColor}
-          />
-        ) : null}
+        {icon ? <Ionicons name={icon} size={Components.icon.sm} color={iconColor} /> : null}
 
-        <Text
-          style={[
-            styles.label,
-            { color: iconColor },
-          ]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.label, { color: iconColor }]} numberOfLines={1}>
           {label}
         </Text>
 
@@ -113,11 +101,7 @@ function ChipInner({
             hitSlop={8}
             style={styles.removeButton}
           >
-            <Ionicons
-              name="close-circle"
-              size={Components.icon.sm}
-              color={iconColor}
-            />
+            <Ionicons name="close-circle" size={Components.icon.sm} color={iconColor} />
           </Clickable>
         ) : null}
       </Row>

@@ -20,9 +20,19 @@ export const AttendeeRow = memo(function AttendeeRow({ response }: AttendeeRowPr
   return (
     <Row style={styles.attendeeRow}>
       {response.userPhotoUrl ? (
-        <Image source={{ uri: response.userPhotoUrl }} style={styles.attendeeAvatar} contentFit="cover" />
+        <Image
+          source={{ uri: response.userPhotoUrl }}
+          style={styles.attendeeAvatar}
+          contentFit="cover"
+        />
       ) : (
-        <View style={[styles.attendeeAvatar, styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+        <View
+          style={[
+            styles.attendeeAvatar,
+            styles.avatarPlaceholder,
+            { backgroundColor: withAlpha(palette.tint, 0.12) },
+          ]}
+        >
           <ThemedText style={[styles.avatarInitial, { color: palette.tint }]}>
             {response.userName.charAt(0).toUpperCase()}
           </ThemedText>

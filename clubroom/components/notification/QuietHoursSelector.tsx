@@ -54,7 +54,7 @@ export function QuietHoursSelector({
         }
       }
     },
-    [value, onChange]
+    [value, onChange],
   );
 
   const handleEndTimeChange = useCallback(
@@ -68,7 +68,7 @@ export function QuietHoursSelector({
         }
       }
     },
-    [value, onChange]
+    [value, onChange],
   );
 
   const handleConfirmStartTime = useCallback(() => {
@@ -92,7 +92,9 @@ export function QuietHoursSelector({
   const isDisabled = disabled || loading;
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
+    <View
+      style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}
+    >
       <QuietHoursHeader
         enabled={value.enabled}
         disabled={isDisabled}

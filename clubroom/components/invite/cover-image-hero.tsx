@@ -10,7 +10,7 @@ import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface CoverImageHeroProps {
@@ -34,18 +34,9 @@ function CoverImageHeroComponent({ imageUrl, sessionType, height = 180 }: CoverI
   if (imageUrl) {
     return (
       <View style={[styles.container, { height }]}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={[styles.image, { height }]}
-          contentFit="cover"
-        />
+        <Image source={{ uri: imageUrl }} style={[styles.image, { height }]} contentFit="cover" />
         {/* Bottom gradient overlay for text readability */}
-        <View
-          style={[
-            styles.gradientOverlay,
-            { backgroundColor: withAlpha(palette.text, 0.3) },
-          ]}
-        />
+        <View style={[styles.gradientOverlay, { backgroundColor: withAlpha(palette.text, 0.3) }]} />
       </View>
     );
   }
@@ -58,11 +49,7 @@ function CoverImageHeroComponent({ imageUrl, sessionType, height = 180 }: CoverI
         { height, backgroundColor: withAlpha(palette.tint, 0.09) },
       ]}
     >
-      <Ionicons
-        name={getSessionIcon(sessionType)}
-        size={48}
-        color={withAlpha(palette.tint, 0.4)}
-      />
+      <Ionicons name={getSessionIcon(sessionType)} size={48} color={withAlpha(palette.tint, 0.4)} />
     </View>
   );
 }

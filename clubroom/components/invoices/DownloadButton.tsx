@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -48,7 +48,11 @@ export function DownloadButton({
     try {
       const result = await invoiceService.downloadInvoice(invoice.id);
       if (result) {
-        Alert.alert('Invoice Downloaded', `${invoice.invoiceNumber} has been saved to your device.`, [{ text: 'OK' }]);
+        Alert.alert(
+          'Invoice Downloaded',
+          `${invoice.invoiceNumber} has been saved to your device.`,
+          [{ text: 'OK' }],
+        );
         onDownloadComplete?.(true);
       } else {
         Alert.alert('Download Failed', 'Could not download the invoice. Please try again.');
@@ -86,7 +90,10 @@ export function DownloadButton({
     return (
       <Row gap="xs">
         <Clickable
-          style={[styles.iconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[
+            styles.iconButton,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
           onPress={handleDownload}
           disabled={downloading || sharing}
         >
@@ -98,7 +105,10 @@ export function DownloadButton({
         </Clickable>
         <Clickable
           accessibilityLabel="Share invoice"
-          style={[styles.iconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[
+            styles.iconButton,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
           onPress={handleShare}
           disabled={downloading || sharing}
         >
@@ -120,7 +130,8 @@ export function DownloadButton({
     <Row gap="sm">
       <Clickable
         style={[
-          styles.button, btnSize,
+          styles.button,
+          btnSize,
           {
             backgroundColor: isPrimary ? palette.tint : palette.surface,
             borderColor: isPrimary ? palette.tint : palette.border,
@@ -135,8 +146,17 @@ export function DownloadButton({
           <ActivityIndicator size="small" color={isPrimary ? palette.onPrimary : palette.tint} />
         ) : (
           <>
-            <Ionicons name="download-outline" size={iconSz} color={isPrimary ? palette.onPrimary : palette.text} />
-            <ThemedText style={[styles.buttonText, { color: isPrimary ? palette.onPrimary : palette.text, fontSize }]}>
+            <Ionicons
+              name="download-outline"
+              size={iconSz}
+              color={isPrimary ? palette.onPrimary : palette.text}
+            />
+            <ThemedText
+              style={[
+                styles.buttonText,
+                { color: isPrimary ? palette.onPrimary : palette.text, fontSize },
+              ]}
+            >
               Download
             </ThemedText>
           </>
@@ -145,8 +165,14 @@ export function DownloadButton({
 
       <Clickable
         style={[
-          styles.button, btnSize,
-          { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1, flex: 1 },
+          styles.button,
+          btnSize,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+            borderWidth: 1,
+            flex: 1,
+          },
         ]}
         onPress={handleShare}
         disabled={downloading || sharing}
@@ -156,7 +182,9 @@ export function DownloadButton({
         ) : (
           <>
             <Ionicons name="share-outline" size={iconSz} color={palette.text} />
-            <ThemedText style={[styles.buttonText, { color: palette.text, fontSize }]}>Share</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: palette.text, fontSize }]}>
+              Share
+            </ThemedText>
           </>
         )}
       </Clickable>

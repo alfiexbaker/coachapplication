@@ -16,7 +16,11 @@ type HeaderProps = {
   onBack: () => void;
 };
 
-export const ChatScreenHeader = React.memo(function ChatScreenHeader({ colors, thread, onBack }: HeaderProps) {
+export const ChatScreenHeader = React.memo(function ChatScreenHeader({
+  colors,
+  thread,
+  onBack,
+}: HeaderProps) {
   const isGroup = thread.kind === 'group';
   const headerTitle = thread.title || thread.serviceName || 'Conversation';
   const headerSubtitle =
@@ -26,16 +30,22 @@ export const ChatScreenHeader = React.memo(function ChatScreenHeader({ colors, t
       : thread.serviceName);
 
   return (
-    <Row align="center" gap="md" style={[styles.chatHeader, { borderBottomColor: colors.border }]}> 
+    <Row align="center" gap="md" style={[styles.chatHeader, { borderBottomColor: colors.border }]}>
       <Clickable onPress={onBack} style={styles.backButton} accessibilityLabel="Go back">
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>
       <View style={styles.chatHeaderInfo}>
-        <ThemedText type="subtitle" style={styles.chatHeaderName}>{headerTitle}</ThemedText>
-        <ThemedText style={[styles.chatSubtitle, { color: colors.muted }]}>{headerSubtitle}</ThemedText>
+        <ThemedText type="subtitle" style={styles.chatHeaderName}>
+          {headerTitle}
+        </ThemedText>
+        <ThemedText style={[styles.chatSubtitle, { color: colors.muted }]}>
+          {headerSubtitle}
+        </ThemedText>
       </View>
       {isGroup && thread.groupType ? (
-        <Chip dense>{thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'}</Chip>
+        <Chip dense>
+          {thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'}
+        </Chip>
       ) : null}
     </Row>
   );

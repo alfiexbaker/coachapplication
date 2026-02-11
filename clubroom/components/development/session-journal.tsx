@@ -16,16 +16,12 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import {
-  MoodSelector,
-  StarRating,
-  JournalTimelineEntry,
-} from './session-journal-sections';
+import { MoodSelector, StarRating, JournalTimelineEntry } from './session-journal-sections';
+import type { JournalEntry } from './session-journal-sections';
+import { Row } from '@/components/primitives';
 
 // Re-export types for backward compat
 export type { JournalEntry } from './session-journal-sections';
-import type { JournalEntry } from './session-journal-sections';
-import { Row } from '@/components/primitives';
 
 export interface SessionJournalProps {
   coachNotes?: string;

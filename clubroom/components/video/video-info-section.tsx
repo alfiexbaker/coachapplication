@@ -15,11 +15,16 @@ interface VideoInfoSectionProps {
   colors: ThemeColors;
 }
 
-export const VideoInfoSection = memo(function VideoInfoSection({ video, colors }: VideoInfoSectionProps) {
+export const VideoInfoSection = memo(function VideoInfoSection({
+  video,
+  colors,
+}: VideoInfoSectionProps) {
   const visibilityColor =
-    video.visibility === 'PRIVATE' ? colors.muted
-    : video.visibility === 'SHARED' ? colors.tint
-    : colors.success;
+    video.visibility === 'PRIVATE'
+      ? colors.muted
+      : video.visibility === 'SHARED'
+        ? colors.tint
+        : colors.success;
 
   return (
     <View style={styles.container}>
@@ -48,11 +53,23 @@ export const VideoInfoSection = memo(function VideoInfoSection({ video, colors }
 
       <Row gap="xs" wrap align="center">
         {video.tags.map((tag) => (
-          <Chip key={tag} dense selected={false}>{tag}</Chip>
+          <Chip key={tag} dense selected={false}>
+            {tag}
+          </Chip>
         ))}
-        <Row align="center" gap="xxs" style={[styles.visibilityBadge, { backgroundColor: withAlpha(visibilityColor, 0.09) }]}>
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.visibilityBadge, { backgroundColor: withAlpha(visibilityColor, 0.09) }]}
+        >
           <Ionicons
-            name={video.visibility === 'PRIVATE' ? 'lock-closed' : video.visibility === 'SHARED' ? 'people' : 'globe'}
+            name={
+              video.visibility === 'PRIVATE'
+                ? 'lock-closed'
+                : video.visibility === 'SHARED'
+                  ? 'people'
+                  : 'globe'
+            }
             size={12}
             color={visibilityColor}
           />

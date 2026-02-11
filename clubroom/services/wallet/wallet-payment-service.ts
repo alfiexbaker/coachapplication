@@ -9,10 +9,7 @@
  * - Events are emitted via the service event bus for cross-service reactions
  */
 
-import {
-  Wallet,
-  WalletTransaction,
-} from '@/constants/types';
+import { Wallet, WalletTransaction } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { walletCrudService } from './wallet-crud-service';
@@ -143,7 +140,7 @@ class WalletPaymentService {
     userId: string,
     bookingId: string,
     amount: number,
-    metadata?: Record<string, string | number | boolean>
+    metadata?: Record<string, string | number | boolean>,
   ): Promise<Result<PaymentResult, ServiceError>> {
     // Validate amount
     if (amount <= 0) {
@@ -242,7 +239,7 @@ class WalletPaymentService {
     userId: string,
     bookingId: string,
     amount: number,
-    reason?: string
+    reason?: string,
   ): Promise<Result<PaymentResult, ServiceError>> {
     // Validate amount
     if (amount <= 0) {
@@ -263,7 +260,7 @@ class WalletPaymentService {
         return transactionsResult;
       }
       const originalPayment = transactionsResult.data.find(
-        (t) => t.reference === bookingId && t.type === 'BOOKING_PAYMENT'
+        (t) => t.reference === bookingId && t.type === 'BOOKING_PAYMENT',
       );
 
       // Create refund transaction
@@ -332,7 +329,7 @@ class WalletPaymentService {
   async applyPromoCredit(
     userId: string,
     amount: number,
-    promoCode: string
+    promoCode: string,
   ): Promise<Result<PaymentResult, ServiceError>> {
     if (amount <= 0) {
       return ok({ success: false, error: 'Credit amount must be greater than zero' });
@@ -385,7 +382,9 @@ class WalletPaymentService {
       });
     } catch (error) {
       logger.error('promo_credit_failed', { userId, amount, promoCode, error });
-      return err(storageError(error instanceof Error ? error.message : 'Failed to apply promo credit'));
+      return err(
+        storageError(error instanceof Error ? error.message : 'Failed to apply promo credit'),
+      );
     }
   }
 

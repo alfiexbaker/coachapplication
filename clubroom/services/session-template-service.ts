@@ -44,7 +44,10 @@ const DEFAULT_TEMPLATES: Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt'>[]
 
 async function loadTemplates(): Promise<SessionTemplate[]> {
   try {
-    const stored = await apiClient.get<SessionTemplate[] | null>(STORAGE_KEYS.SESSION_TEMPLATES, null);
+    const stored = await apiClient.get<SessionTemplate[] | null>(
+      STORAGE_KEYS.SESSION_TEMPLATES,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load session templates', error);
@@ -117,7 +120,7 @@ export const sessionTemplateService = {
    * Create or update a session type preset.
    */
   async saveTemplate(
-    template: Omit<SessionTemplate, 'id' | 'createdAt'> & { id?: string; createdAt?: string }
+    template: Omit<SessionTemplate, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
   ): Promise<SessionTemplate> {
     const saved: SessionTemplate = {
       ...template,

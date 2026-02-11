@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Radii, Typography, Components } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface RosterSearchBarProps {

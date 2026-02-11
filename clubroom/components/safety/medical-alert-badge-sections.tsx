@@ -24,16 +24,39 @@ type AlertType = 'allergy' | 'condition' | 'medication' | 'restriction';
 
 export type { AlertType };
 
-export function getAlertConfig(type: AlertType, palette: { error: string; warning: string; tint: string; muted: string }) {
+export function getAlertConfig(
+  type: AlertType,
+  palette: { error: string; warning: string; tint: string; muted: string },
+) {
   switch (type) {
     case 'allergy':
-      return { icon: 'alert-circle' as const, color: palette.error, typeLabel: 'Allergy', bgColor: withAlpha(palette.error, 0.07) };
+      return {
+        icon: 'alert-circle' as const,
+        color: palette.error,
+        typeLabel: 'Allergy',
+        bgColor: withAlpha(palette.error, 0.07),
+      };
     case 'condition':
-      return { icon: 'fitness' as const, color: palette.warning, typeLabel: 'Condition', bgColor: withAlpha(palette.warning, 0.07) };
+      return {
+        icon: 'fitness' as const,
+        color: palette.warning,
+        typeLabel: 'Condition',
+        bgColor: withAlpha(palette.warning, 0.07),
+      };
     case 'medication':
-      return { icon: 'medkit' as const, color: palette.tint, typeLabel: 'Medication', bgColor: withAlpha(palette.tint, 0.07) };
+      return {
+        icon: 'medkit' as const,
+        color: palette.tint,
+        typeLabel: 'Medication',
+        bgColor: withAlpha(palette.tint, 0.07),
+      };
     case 'restriction':
-      return { icon: 'ban' as const, color: palette.muted, typeLabel: 'Restriction', bgColor: withAlpha(palette.muted, 0.09) };
+      return {
+        icon: 'ban' as const,
+        color: palette.muted,
+        typeLabel: 'Restriction',
+        bgColor: withAlpha(palette.muted, 0.09),
+      };
   }
 }
 
@@ -48,7 +71,8 @@ export function MedicalAlertRow({
   type,
   label,
   description,
-  onPress }: {
+  onPress,
+}: {
   type: AlertType;
   label: string;
   description?: string;
@@ -73,9 +97,7 @@ export function MedicalAlertRow({
           </ThemedText>
         )}
       </View>
-      {onPress && (
-        <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-      )}
+      {onPress && <Ionicons name="chevron-forward" size={16} color={palette.muted} />}
     </Row>
   );
 
@@ -95,7 +117,8 @@ export function MedicalAlertRow({
  */
 export function AlertSeverityDot({
   level,
-  size = 8 }: {
+  size = 8,
+}: {
   level: 'none' | 'low' | 'medium' | 'high';
   size?: number;
 }) {
@@ -123,7 +146,8 @@ export function AlertSeverityDot({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: getColor() },
+          backgroundColor: getColor(),
+        },
       ]}
     />
   );
@@ -138,7 +162,8 @@ export function AlertSeverityDot({
  */
 export function AlertCountBadge({
   count,
-  type = 'allergy' }: {
+  type = 'allergy',
+}: {
   count: number;
   type?: 'allergy' | 'condition' | 'medication' | 'total';
 }) {
@@ -177,17 +202,19 @@ export function AlertCountBadge({
 
 const styles = StyleSheet.create({
   row: {
-    paddingVertical: Spacing.sm },
+    paddingVertical: Spacing.sm,
+  },
   rowIcon: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   rowContent: {
-    flex: 1 },
-  rowTypeLabel: { ...Typography.micro, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+    flex: 1,
+  },
+  rowTypeLabel: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
   rowDescription: { ...Typography.caption, marginTop: Spacing.micro },
   dot: {},
   countBadge: {
@@ -196,5 +223,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 5 },
-  countText: { ...Typography.caption } });
+    paddingHorizontal: 5,
+  },
+  countText: { ...Typography.caption },
+});

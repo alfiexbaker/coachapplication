@@ -15,15 +15,15 @@ import { rosterService } from '@/services/roster-service';
 import type { GroupSession } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError } from '@/types/result';
-import {
-  AddToSessionHeader,
-  AddToSessionCard,
-} from '@/components/roster/add-to-session-sections';
+import { AddToSessionHeader, AddToSessionCard } from '@/components/roster/add-to-session-sections';
 
 const logger = createLogger('AddToSession');
 
 export default function AddToSessionScreen() {
-  const { athleteId, athleteName } = useLocalSearchParams<{ athleteId: string; athleteName: string }>();
+  const { athleteId, athleteName } = useLocalSearchParams<{
+    athleteId: string;
+    athleteName: string;
+  }>();
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [adding, setAdding] = useState<string | null>(null);
@@ -39,7 +39,8 @@ export default function AddToSessionScreen() {
     try {
       const coachSessions = await groupSessionService.getCoachSessions(currentUser.id);
       const available = coachSessions.filter(
-        (session) => session.status === 'PUBLISHED' && session.currentParticipants < session.maxParticipants
+        (session) =>
+          session.status === 'PUBLISHED' && session.currentParticipants < session.maxParticipants,
       );
 
       let athleteInfo: { parentId?: string } = {};
@@ -92,7 +93,7 @@ export default function AddToSessionScreen() {
         await groupSessionService.register(
           session.id,
           athleteId,
-          athleteInfo.parentId || 'parent_unknown'
+          athleteInfo.parentId || 'parent_unknown',
         );
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -109,20 +110,19 @@ export default function AddToSessionScreen() {
         setAdding(null);
       }
     },
-    [athleteId, athleteName, athleteInfo.parentId, onRefresh]
+    [athleteId, athleteName, athleteInfo.parentId, onRefresh],
   );
 
   const header = (
-    <AddToSessionHeader
-      colors={palette}
-      athleteName={athleteName}
-      onClose={() => router.back()}
-    />
+    <AddToSessionHeader colors={palette} athleteName={athleteName} onClose={() => router.back()} />
   );
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -131,16 +131,25 @@ export default function AddToSessionScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
-        <ErrorState message={error?.message || 'Failed to load upcoming sessions.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message || 'Failed to load upcoming sessions.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <EmptyState
           icon="calendar-outline"
@@ -154,7 +163,10 @@ export default function AddToSessionScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {header}
       <FlatList
         data={sessions}
@@ -171,7 +183,9 @@ export default function AddToSessionScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
       />
     </SafeAreaView>
   );

@@ -96,11 +96,7 @@ export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           This Week
         </ThemedText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.strip}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.strip}>
           <Row gap="xs" style={styles.days}>
             {weekData.map((day, index) => (
               <DayPill

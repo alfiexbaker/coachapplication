@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -27,9 +27,15 @@ export const DrillDetailHeader = React.memo(function DrillDetailHeader({
       </Clickable>
       <Row align="center" gap="sm">
         {isCompleted ? (
-          <Row align="center" gap="xxs" style={[styles.completedBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}> 
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.completedBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}
+          >
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-            <ThemedText style={[styles.completedBadgeText, { color: colors.success }]}>Completed</ThemedText>
+            <ThemedText style={[styles.completedBadgeText, { color: colors.success }]}>
+              Completed
+            </ThemedText>
           </Row>
         ) : null}
       </Row>

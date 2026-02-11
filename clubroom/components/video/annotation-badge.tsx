@@ -25,12 +25,20 @@ export const AnnotationBadge = memo(function AnnotationBadge({
   compact = false,
 }: AnnotationBadgeProps) {
   const { colors: palette } = useTheme();
-  const typeConfig = ANNOTATION_TYPES.find((t) => t.type === annotation.type) || ANNOTATION_TYPES[0];
+  const typeConfig =
+    ANNOTATION_TYPES.find((t) => t.type === annotation.type) || ANNOTATION_TYPES[0];
 
   if (compact) {
     return (
-      <Clickable onPress={onPress} style={[styles.compactBadge, { backgroundColor: typeConfig.color }]}>
-        <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color={palette.onPrimary} />
+      <Clickable
+        onPress={onPress}
+        style={[styles.compactBadge, { backgroundColor: typeConfig.color }]}
+      >
+        <Ionicons
+          name={typeConfig.icon as keyof typeof Ionicons.glyphMap}
+          size={10}
+          color={palette.onPrimary}
+        />
       </Clickable>
     );
   }
@@ -52,8 +60,22 @@ export const AnnotationBadge = memo(function AnnotationBadge({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  compactBadge: { width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1, gap: Spacing.xs },
+  compactBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    gap: Spacing.xs,
+  },
   badgeDot: { width: 6, height: 6, borderRadius: Radii.xs },
   badgeLabel: { ...Typography.caption },
   badgeTime: { ...Typography.caption },

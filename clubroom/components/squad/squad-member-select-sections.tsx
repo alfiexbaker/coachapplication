@@ -91,7 +91,11 @@ export const NotificationBanner = memo(function NotificationBanner({
   palette,
 }: NotificationBannerProps) {
   return (
-    <Row align="center" gap="sm" style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+    <Row
+      align="center"
+      gap="sm"
+      style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+    >
       <Ionicons name="notifications-outline" size={16} color={palette.tint} />
       <ThemedText style={[styles.notificationText, { color: palette.tint }]}>
         {parentCount} parent{parentCount !== 1 ? 's' : ''} will receive notifications
@@ -145,7 +149,8 @@ export const MemberCard = memo(function MemberCard({
             {member.position && (
               <>
                 <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
-                  {' '}{'\u2022'}{' '}
+                  {' '}
+                  {'\u2022'}{' '}
                 </ThemedText>
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   {member.position}
@@ -155,7 +160,8 @@ export const MemberCard = memo(function MemberCard({
             {member.jerseyNumber && (
               <>
                 <ThemedText style={[styles.metaDot, { color: palette.muted }]}>
-                  {' '}{'\u2022'}{' '}
+                  {' '}
+                  {'\u2022'}{' '}
                 </ThemedText>
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                   #{member.jerseyNumber}
@@ -169,7 +175,9 @@ export const MemberCard = memo(function MemberCard({
         </View>
 
         {member.hasPendingInvite ? (
-          <View style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+          <View
+            style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+          >
             <ThemedText style={[styles.pendingText, { color: palette.warning }]}>
               Invited
             </ThemedText>

@@ -29,7 +29,10 @@ export default function NotificationsScreen() {
   }, [markAllAsRead]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScreenHeader title="Notifications" subtitle="Stay updated" />
       <NotificationsActionsBar
         unreadCount={unreadCount}

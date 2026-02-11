@@ -28,17 +28,32 @@ interface EditCertificationsSectionProps {
 }
 
 export const EditCertificationsSection = memo(function EditCertificationsSection({
-  colors, certifications, onOpenModal, onRemove,
-  modalVisible, draft, onDraftChange, onSave, onCloseModal,
+  colors,
+  certifications,
+  onOpenModal,
+  onRemove,
+  modalVisible,
+  draft,
+  onDraftChange,
+  onSave,
+  onCloseModal,
 }: EditCertificationsSectionProps) {
-  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+  const inputStyle = [
+    styles.input,
+    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
+  ];
 
   return (
     <>
       <SurfaceCard style={styles.section}>
         <Row justify="between" align="center">
           <ThemedText type="subtitle">Certifications</ThemedText>
-          <Clickable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add certification" accessibilityRole="button">
+          <Clickable
+            onPress={() => onOpenModal()}
+            style={styles.inlineAction}
+            accessibilityLabel="Add certification"
+            accessibilityRole="button"
+          >
             <Row align="center" gap="xs">
               <Ionicons name="add-circle" size={22} color={colors.tint} />
               <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
@@ -52,24 +67,63 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
         {certifications.length > 0 ? (
           <View style={styles.list}>
             {certifications.map((cert) => {
-              const issueDate = cert.issueDate ? new Date(cert.issueDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '';
-              const expiryDate = cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null;
+              const issueDate = cert.issueDate
+                ? new Date(cert.issueDate).toLocaleDateString('en-GB', {
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : '';
+              const expiryDate = cert.expiryDate
+                ? new Date(cert.expiryDate).toLocaleDateString('en-GB', {
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : null;
               const isExpired = cert.expiryDate && new Date(cert.expiryDate) < new Date();
 
               return (
                 <View key={cert.id} style={[styles.card, { borderColor: colors.border }]}>
                   <Row justify="between" align="center">
-                    <Row align="center" gap="xs" style={[styles.pill, { backgroundColor: isExpired ? withAlpha(colors.warning, 0.09) : withAlpha(colors.success, 0.09) }]}>
-                      <Ionicons name={isExpired ? 'alert-circle' : 'ribbon'} size={14} color={isExpired ? colors.warning : colors.success} />
-                      <ThemedText style={styles.pillText} lightColor={isExpired ? colors.warning : colors.success} darkColor={isExpired ? colors.warning : colors.success}>
+                    <Row
+                      align="center"
+                      gap="xs"
+                      style={[
+                        styles.pill,
+                        {
+                          backgroundColor: isExpired
+                            ? withAlpha(colors.warning, 0.09)
+                            : withAlpha(colors.success, 0.09),
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isExpired ? 'alert-circle' : 'ribbon'}
+                        size={14}
+                        color={isExpired ? colors.warning : colors.success}
+                      />
+                      <ThemedText
+                        style={styles.pillText}
+                        lightColor={isExpired ? colors.warning : colors.success}
+                        darkColor={isExpired ? colors.warning : colors.success}
+                      >
                         {isExpired ? 'Expired' : 'Valid'}
                       </ThemedText>
                     </Row>
                     <Row gap="sm">
-                      <Clickable onPress={() => onOpenModal(cert)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Edit certification" accessibilityRole="button">
+                      <Clickable
+                        onPress={() => onOpenModal(cert)}
+                        style={[styles.iconButton, { borderColor: colors.border }]}
+                        accessibilityLabel="Edit certification"
+                        accessibilityRole="button"
+                      >
                         <Ionicons name="pencil" size={16} color={colors.muted} />
                       </Clickable>
-                      <Clickable onPress={() => onRemove(cert.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel="Remove certification" accessibilityRole="button">
+                      <Clickable
+                        onPress={() => onRemove(cert.id)}
+                        style={[styles.iconButton, { borderColor: colors.border }]}
+                        accessibilityLabel="Remove certification"
+                        accessibilityRole="button"
+                      >
                         <Ionicons name="trash" size={16} color={colors.warning} />
                       </Clickable>
                     </Row>
@@ -77,11 +131,16 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
                   <View style={styles.cardBody}>
                     <ThemedText type="subtitle">{cert.name}</ThemedText>
                     <ThemedText style={styles.issuer}>{cert.issuer}</ThemedText>
-                    <ThemedText style={styles.date}>Issued: {issueDate}{expiryDate ? ` \u2022 Expires: ${expiryDate}` : ''}</ThemedText>
+                    <ThemedText style={styles.date}>
+                      Issued: {issueDate}
+                      {expiryDate ? ` \u2022 Expires: ${expiryDate}` : ''}
+                    </ThemedText>
                     {cert.credentialUrl ? (
                       <Row align="center" gap="xs" style={styles.linkRow}>
                         <Ionicons name="link" size={12} color={colors.tint} />
-                        <ThemedText style={[styles.link, { color: colors.tint }]} numberOfLines={1}>{cert.credentialUrl}</ThemedText>
+                        <ThemedText style={[styles.link, { color: colors.tint }]} numberOfLines={1}>
+                          {cert.credentialUrl}
+                        </ThemedText>
                       </Row>
                     ) : null}
                   </View>
@@ -93,7 +152,8 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
           <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]}>
             <Ionicons name="ribbon-outline" size={20} color={colors.muted} />
             <ThemedText style={styles.emptyText}>
-              Add your FA badges, UEFA licenses, or other coaching qualifications to build trust with parents.
+              Add your FA badges, UEFA licenses, or other coaching qualifications to build trust
+              with parents.
             </ThemedText>
           </SurfaceCard>
         )}
@@ -104,36 +164,89 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Certification</ThemedText>
-              <Clickable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
+              <Clickable
+                onPress={onCloseModal}
+                accessibilityLabel="Close"
+                accessibilityRole="button"
+              >
                 <Ionicons name="close" size={22} color={colors.foreground} />
               </Clickable>
             </Row>
-            <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Certification Name</ThemedText>
-                <TextInput value={draft.name} onChangeText={(t) => onDraftChange((p) => ({ ...p, name: t }))} placeholder="e.g., UEFA B License, FA Level 2..." placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Certification name" />
+                <TextInput
+                  value={draft.name}
+                  onChangeText={(t) => onDraftChange((p) => ({ ...p, name: t }))}
+                  placeholder="e.g., UEFA B License, FA Level 2..."
+                  placeholderTextColor={colors.muted}
+                  style={inputStyle}
+                  accessibilityLabel="Certification name"
+                />
               </View>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Issuing Organisation</ThemedText>
-                <TextInput value={draft.issuer} onChangeText={(t) => onDraftChange((p) => ({ ...p, issuer: t }))} placeholder="e.g., UEFA, The FA, US Soccer..." placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Issuing organisation" />
+                <TextInput
+                  value={draft.issuer}
+                  onChangeText={(t) => onDraftChange((p) => ({ ...p, issuer: t }))}
+                  placeholder="e.g., UEFA, The FA, US Soccer..."
+                  placeholderTextColor={colors.muted}
+                  style={inputStyle}
+                  accessibilityLabel="Issuing organisation"
+                />
               </View>
               <Row gap="md">
                 <View style={[styles.fieldGroup, styles.inlineField]}>
                   <ThemedText style={styles.label}>Issue Date</ThemedText>
-                  <TextInput value={draft.issueDate} onChangeText={(t) => onDraftChange((p) => ({ ...p, issueDate: t }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Issue date" />
+                  <TextInput
+                    value={draft.issueDate}
+                    onChangeText={(t) => onDraftChange((p) => ({ ...p, issueDate: t }))}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.muted}
+                    style={inputStyle}
+                    accessibilityLabel="Issue date"
+                  />
                 </View>
                 <View style={[styles.fieldGroup, styles.inlineField]}>
                   <ThemedText style={styles.label}>Expiry Date (optional)</ThemedText>
-                  <TextInput value={draft.expiryDate || ''} onChangeText={(t) => onDraftChange((p) => ({ ...p, expiryDate: t }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Expiry date" />
+                  <TextInput
+                    value={draft.expiryDate || ''}
+                    onChangeText={(t) => onDraftChange((p) => ({ ...p, expiryDate: t }))}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.muted}
+                    style={inputStyle}
+                    accessibilityLabel="Expiry date"
+                  />
                 </View>
               </Row>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Credential URL (optional)</ThemedText>
-                <TextInput value={draft.credentialUrl || ''} onChangeText={(t) => onDraftChange((p) => ({ ...p, credentialUrl: t }))} placeholder="https://credentials.fa.com/..." keyboardType="url" autoCapitalize="none" placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Credential URL" />
-                <ThemedText style={styles.helper}>Link to your digital badge or certificate verification page</ThemedText>
+                <TextInput
+                  value={draft.credentialUrl || ''}
+                  onChangeText={(t) => onDraftChange((p) => ({ ...p, credentialUrl: t }))}
+                  placeholder="https://credentials.fa.com/..."
+                  keyboardType="url"
+                  autoCapitalize="none"
+                  placeholderTextColor={colors.muted}
+                  style={inputStyle}
+                  accessibilityLabel="Credential URL"
+                />
+                <ThemedText style={styles.helper}>
+                  Link to your digital badge or certificate verification page
+                </ThemedText>
               </View>
-              <Clickable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save certification" accessibilityRole="button">
-                <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save certification</ThemedText>
+              <Clickable
+                onPress={onSave}
+                style={[styles.primaryButton, { backgroundColor: colors.tint }]}
+                accessibilityLabel="Save certification"
+                accessibilityRole="button"
+              >
+                <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+                  Save certification
+                </ThemedText>
               </Clickable>
             </ScrollView>
           </SurfaceCard>
@@ -152,13 +265,27 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, gap: Spacing.sm },
   pill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   pillText: { ...Typography.caption },
-  iconButton: { width: 36, height: 36, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardBody: { gap: Spacing.xxs },
   issuer: { fontWeight: '600', opacity: 0.8 },
   date: { ...Typography.caption, opacity: 0.6 },
   linkRow: { marginTop: Spacing.xxs },
   link: { ...Typography.caption, flex: 1 },
-  emptyCard: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, borderStyle: 'dashed', alignItems: 'center', gap: Spacing.xs },
+  emptyCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   emptyText: { textAlign: 'center', opacity: 0.7 },
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
@@ -166,9 +293,20 @@ const styles = StyleSheet.create({
   modalContent: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading },
+  input: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.subheading,
+  },
   inlineField: { flex: 1 },
   helper: { ...Typography.caption, opacity: 0.6 },
-  primaryButton: { marginTop: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg, alignItems: 'center' },
+  primaryButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+  },
   primaryButtonText: { ...Typography.subheading },
 });

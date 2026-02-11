@@ -9,7 +9,9 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Coach } from '@/services/coach-service';
 import { Row } from '@/components/primitives';
 
-interface CoachDetailAboutProps { coach: Coach; }
+interface CoachDetailAboutProps {
+  coach: Coach;
+}
 
 export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachDetailAboutProps) {
   const { colors: palette } = useTheme();
@@ -18,16 +20,23 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
     <Animated.View entering={FadeIn} style={styles.tabContent}>
       {coach.bio && (
         <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>About</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            About
+          </ThemedText>
           <ThemedText style={styles.bioText}>{coach.bio}</ThemedText>
         </SurfaceCard>
       )}
       {coach.footballFocuses && coach.footballFocuses.length > 0 && (
         <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Specialties</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Specialties
+          </ThemedText>
           <Row style={styles.chipGrid}>
             {coach.footballFocuses.map((focus, index) => (
-              <View key={index} style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+              <View
+                key={index}
+                style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+              >
                 <ThemedText style={[styles.chipText, { color: palette.tint }]}>{focus}</ThemedText>
               </View>
             ))}
@@ -36,15 +45,21 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
       )}
       {coach.experiences && coach.experiences.length > 0 && (
         <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Experience</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Experience
+          </ThemedText>
           {coach.experiences.map((exp, index) => (
             <Row key={index} style={styles.experienceItem}>
               <View style={[styles.expDot, { backgroundColor: palette.tint }]} />
               <View style={styles.expContent}>
                 <ThemedText type="defaultSemiBold">{exp.title}</ThemedText>
                 <ThemedText style={{ color: palette.muted }}>{exp.organization}</ThemedText>
-                <ThemedText style={[styles.expDates, { color: palette.muted }]}>{exp.startDate} - {exp.current ? 'Present' : exp.endDate}</ThemedText>
-                {exp.description && <ThemedText style={styles.expDesc}>{exp.description}</ThemedText>}
+                <ThemedText style={[styles.expDates, { color: palette.muted }]}>
+                  {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
+                </ThemedText>
+                {exp.description && (
+                  <ThemedText style={styles.expDesc}>{exp.description}</ThemedText>
+                )}
               </View>
             </Row>
           ))}
@@ -52,13 +67,17 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
       )}
       {coach.certifications && coach.certifications.length > 0 && (
         <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Certifications</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Certifications
+          </ThemedText>
           {coach.certifications.map((cert, index) => (
             <Row key={index} style={styles.certItem}>
               <Ionicons name="ribbon-outline" size={20} color={palette.tint} />
               <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">{cert.name}</ThemedText>
-                <ThemedText style={{ color: palette.muted, ...Typography.small }}>{cert.issuer} • {cert.issueDate}</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+                  {cert.issuer} • {cert.issueDate}
+                </ThemedText>
               </View>
             </Row>
           ))}
@@ -66,11 +85,21 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
       )}
       {coach.languages && coach.languages.length > 0 && (
         <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Languages</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Languages
+          </ThemedText>
           <Row style={styles.chipGrid}>
             {coach.languages.map((lang, index) => (
-              <View key={index} style={[styles.chip, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}>
-                <ThemedText style={styles.chipText}>{lang.name} • {lang.proficiency}</ThemedText>
+              <View
+                key={index}
+                style={[
+                  styles.chip,
+                  { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
+                ]}
+              >
+                <ThemedText style={styles.chipText}>
+                  {lang.name} • {lang.proficiency}
+                </ThemedText>
               </View>
             ))}
           </Row>

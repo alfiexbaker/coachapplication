@@ -69,24 +69,23 @@ export function useDiscoverSessions() {
     try {
       const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
       const available = allOfferings.filter(
-        (offering) => offering.status === 'active' && offering.coachId !== currentUser?.id
+        (offering) => offering.status === 'active' && offering.coachId !== currentUser?.id,
       );
       logger.debug('Loaded offerings', { count: available.length });
       return ok<DiscoverSessionsData>({ offerings: available });
     } catch (loadError) {
       logger.error('Failed to load offerings', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load discover sessions. Pull down to refresh.', loadError));
+      return err(
+        serviceError(
+          'UNKNOWN',
+          'Failed to load discover sessions. Pull down to refresh.',
+          loadError,
+        ),
+      );
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<DiscoverSessionsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<DiscoverSessionsData>({
     load: loadOfferings,
     deps: [currentUser?.id],
     isEmpty: (value) => value.offerings.length === 0,
@@ -100,16 +99,19 @@ export function useDiscoverSessions() {
     let filtered = offerings;
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(o =>
-        o.title.toLowerCase().includes(query) ||
-        getSessionOfferingCoachName(o).toLowerCase().includes(query) ||
-        o.location.toLowerCase().includes(query) ||
-        (o.description?.toLowerCase().includes(query))
+      filtered = filtered.filter(
+        (o) =>
+          o.title.toLowerCase().includes(query) ||
+          getSessionOfferingCoachName(o).toLowerCase().includes(query) ||
+          o.location.toLowerCase().includes(query) ||
+          o.description?.toLowerCase().includes(query),
       );
     }
-    if (skillFilter) filtered = filtered.filter(o => o.footballSkill === skillFilter);
-    if (typeFilter) filtered = filtered.filter(o => o.sessionType === typeFilter);
-    return filtered.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    if (skillFilter) filtered = filtered.filter((o) => o.footballSkill === skillFilter);
+    if (typeFilter) filtered = filtered.filter((o) => o.sessionType === typeFilter);
+    return filtered.sort(
+      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+    );
   }, [offerings, searchQuery, skillFilter, typeFilter]);
 
   const handleOfferingPress = useCallback((offering: SessionOffering) => {
@@ -125,7 +127,9 @@ export function useDiscoverSessions() {
   const handleModalUpdate = useCallback(() => {
     onRefresh();
   }, [onRefresh]);
-  const clearSearch = useCallback(() => { setSearchQuery(''); }, []);
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
 
   return {
     loading,
@@ -157,6 +161,10 @@ export function formatNextSession(offering: SessionOffering): string {
   }
   const date = new Date(offering.scheduledAt);
   return date.toLocaleDateString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }

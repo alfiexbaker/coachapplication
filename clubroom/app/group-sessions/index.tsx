@@ -23,11 +23,15 @@ import { useGroupSessions, SESSION_FILTERS } from '@/hooks/use-group-sessions';
 
 export default function GroupSessionsScreen() {
   const { colors } = useTheme();
-  const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach } = useGroupSessions();
+  const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach } =
+    useGroupSessions();
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -35,33 +39,64 @@ export default function GroupSessionsScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message || 'Failed to load group sessions.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <View style={{ flex: 1 }}>
           <ThemedText type="title">Group Sessions</ThemedText>
-          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>Camps, clinics & open training</ThemedText>
+          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
+            Camps, clinics & open training
+          </ThemedText>
         </View>
         {isCoach && (
-          <Clickable accessibilityLabel="Create group session" onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)} style={[styles.createButton, { backgroundColor: colors.tint }]}>
+          <Clickable
+            accessibilityLabel="Create group session"
+            onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
+            style={[styles.createButton, { backgroundColor: colors.tint }]}
+          >
             <Ionicons name="add" size={20} color={colors.onPrimary} />
           </Clickable>
         )}
       </Row>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContainer} style={styles.filtersScroll}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filtersContainer}
+        style={styles.filtersScroll}
+      >
         {SESSION_FILTERS.map((f) => (
-          <Clickable key={f.key} onPress={() => setFilter(f.key)} style={[styles.filterChip, { backgroundColor: filter === f.key ? colors.tint : colors.surface }]}>
-            <ThemedText style={[Typography.smallSemiBold, { color: filter === f.key ? colors.onPrimary : colors.text }]}>{f.label}</ThemedText>
+          <Clickable
+            key={f.key}
+            onPress={() => setFilter(f.key)}
+            style={[
+              styles.filterChip,
+              { backgroundColor: filter === f.key ? colors.tint : colors.surface },
+            ]}
+          >
+            <ThemedText
+              style={[
+                Typography.smallSemiBold,
+                { color: filter === f.key ? colors.onPrimary : colors.text },
+              ]}
+            >
+              {f.label}
+            </ThemedText>
           </Clickable>
         ))}
       </ScrollView>
@@ -75,12 +110,21 @@ export default function GroupSessionsScreen() {
           <EmptyState
             icon="calendar-outline"
             title="No sessions found"
-            message={filter !== 'ALL' ? `No ${SESSION_FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} available` : 'Check back later for upcoming group sessions'}
+            message={
+              filter !== 'ALL'
+                ? `No ${SESSION_FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} available`
+                : 'Check back later for upcoming group sessions'
+            }
           />
         ) : (
           <View style={{ gap: Spacing.md }}>
             {sessions.map((session, index) => (
-              <GroupSessionCard key={session.id} session={session} index={index} onPress={() => router.push(Routes.groupSession(session.id))} />
+              <GroupSessionCard
+                key={session.id}
+                session={session}
+                index={index}
+                onPress={() => router.push(Routes.groupSession(session.id))}
+              />
             ))}
           </View>
         )}
@@ -92,9 +136,19 @@ export default function GroupSessionsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  createButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  createButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filtersScroll: { flexGrow: 0 },
   filtersContainer: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.sm },
-  filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.full },
+  filterChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.full,
+  },
   content: { padding: Spacing.lg, paddingTop: 0 },
 });

@@ -34,7 +34,11 @@ export const CarpoolActions = memo(function CarpoolActions({
   if (isOwnOffer) {
     return (
       <View style={styles.actions}>
-        <Button onPress={onManageRequests ?? (() => {})} variant="secondary" style={styles.actionButton}>
+        <Button
+          onPress={onManageRequests ?? (() => {})}
+          variant="secondary"
+          style={styles.actionButton}
+        >
           <Row style={styles.buttonContent}>
             <Ionicons name="settings-outline" size={18} color={palette.text} />
             <ThemedText style={styles.buttonText}>Manage Requests</ThemedText>
@@ -47,9 +51,13 @@ export const CarpoolActions = memo(function CarpoolActions({
   if (userRequestAccepted) {
     return (
       <View style={styles.actions}>
-        <Row style={[styles.confirmedBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}> 
+        <Row
+          style={[styles.confirmedBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+        >
           <Ionicons name="checkmark-circle" size={20} color={palette.success} />
-          <ThemedText style={[styles.confirmedText, { color: palette.success }]}>Your seat is confirmed!</ThemedText>
+          <ThemedText style={[styles.confirmedText, { color: palette.success }]}>
+            Your seat is confirmed!
+          </ThemedText>
         </Row>
       </View>
     );
@@ -58,9 +66,11 @@ export const CarpoolActions = memo(function CarpoolActions({
   if (hasUserRequested) {
     return (
       <View style={styles.actions}>
-        <Row style={[styles.pendingBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}> 
+        <Row style={[styles.pendingBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <Ionicons name="hourglass-outline" size={20} color={palette.warning} />
-          <ThemedText style={[styles.pendingBannerText, { color: palette.warning }]}>Request pending</ThemedText>
+          <ThemedText style={[styles.pendingBannerText, { color: palette.warning }]}>
+            Request pending
+          </ThemedText>
         </Row>
       </View>
     );

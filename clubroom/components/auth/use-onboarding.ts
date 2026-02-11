@@ -6,7 +6,7 @@
  */
 
 import { useReducer, useCallback } from 'react';
-import Animated, { useSharedValue, withTiming, runOnJS, type SharedValue } from 'react-native-reanimated';
+import { useSharedValue, withTiming, runOnJS, type SharedValue } from 'react-native-reanimated';
 
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';

@@ -17,7 +17,8 @@ export function computeRSVPNames(rsvps: SessionRsvp[]) {
     goingNames: rsvps.filter((r) => r.status === 'going').map(getName),
     cantNames: rsvps.filter((r) => r.status === 'not_going').map(getName),
     maybeNames: rsvps.filter((r) => r.status === 'maybe').map(getName),
-    pendingNames: rsvps.filter((r) => r.status === 'pending').map(getName) };
+    pendingNames: rsvps.filter((r) => r.status === 'pending').map(getName),
+  };
 }
 
 // --- CountBadge -------------------------------------------------------------
@@ -31,7 +32,12 @@ type CountBadgeProps = {
 
 export const CountBadge = memo(function CountBadge({ count, label, color, icon }: CountBadgeProps) {
   return (
-    <Row align="center" justify="center" gap="xs" style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.07) }]}>
+    <Row
+      align="center"
+      justify="center"
+      gap="xs"
+      style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.07) }]}
+    >
       <Ionicons name={icon} size={18} color={color} />
       <ThemedText style={[styles.countNumber, { color }]}>{count}</ThemedText>
       <ThemedText style={[styles.countLabel, { color }]}>{label}</ThemedText>
@@ -64,7 +70,9 @@ export function ExpandableList({ title, names, color, icon, mutedColor }: Expand
         <Row align="center" justify="between">
           <Row align="center" gap="xs">
             <Ionicons name={icon} size={18} color={color} />
-            <ThemedText style={styles.expandableTitle}>{title} ({names.length})</ThemedText>
+            <ThemedText style={styles.expandableTitle}>
+              {title} ({names.length})
+            </ThemedText>
           </Row>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={mutedColor} />
         </Row>
@@ -92,13 +100,22 @@ type ProgressIndicatorProps = {
   palette: ThemeColors;
 };
 
-export const ProgressIndicator = memo(function ProgressIndicator({ confirmed, total, palette }: ProgressIndicatorProps) {
+export const ProgressIndicator = memo(function ProgressIndicator({
+  confirmed,
+  total,
+  palette,
+}: ProgressIndicatorProps) {
   const progressPercent = total > 0 ? (confirmed / total) * 100 : 0;
 
   return (
     <View style={styles.progressContainer}>
       <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
-        <View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: palette.success }]} />
+        <View
+          style={[
+            styles.progressFill,
+            { width: `${progressPercent}%`, backgroundColor: palette.success },
+          ]}
+        />
       </View>
       <ThemedText style={[styles.progressText, { color: palette.muted }]}>
         {confirmed}/{total} confirmed
@@ -116,7 +133,12 @@ type ReminderButtonProps = {
   palette: ThemeColors;
 };
 
-export const ReminderButton = memo(function ReminderButton({ pendingCount, sessionId, sendReminder, palette }: ReminderButtonProps) {
+export const ReminderButton = memo(function ReminderButton({
+  pendingCount,
+  sessionId,
+  sendReminder,
+  palette,
+}: ReminderButtonProps) {
   const [sending, setSending] = useState(false);
 
   const handlePress = async () => {
@@ -128,7 +150,10 @@ export const ReminderButton = memo(function ReminderButton({ pendingCount, sessi
     setSending(true);
     try {
       await sendReminder(sessionId);
-      Alert.alert('Reminders Sent', `Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`);
+      Alert.alert(
+        'Reminders Sent',
+        `Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`,
+      );
     } catch {
       Alert.alert('Error', 'Failed to send reminders. Please try again.');
     } finally {
@@ -151,7 +176,9 @@ export const ReminderButton = memo(function ReminderButton({ pendingCount, sessi
         ) : (
           <>
             <Ionicons name="notifications-outline" size={18} color={palette.tint} />
-            <ThemedText style={[styles.reminderButtonText, { color: palette.tint }]}>Send Reminder ({pendingCount} pending)</ThemedText>
+            <ThemedText style={[styles.reminderButtonText, { color: palette.tint }]}>
+              Send Reminder ({pendingCount} pending)
+            </ThemedText>
           </>
         )}
       </Row>
@@ -162,7 +189,12 @@ export const ReminderButton = memo(function ReminderButton({ pendingCount, sessi
 // --- Styles -----------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  countBadge: { flex: 1, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs, borderRadius: Radii.sm },
+  countBadge: {
+    flex: 1,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    borderRadius: Radii.sm,
+  },
   countNumber: { ...Typography.bodySemiBold },
   countLabel: { ...Typography.smallSemiBold },
   expandableContainer: { borderRadius: Radii.sm, overflow: 'hidden' },
@@ -175,5 +207,12 @@ const styles = StyleSheet.create({
   progressBar: { height: 6, borderRadius: Radii.sm, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: Radii.sm },
   progressText: { ...Typography.caption },
-  reminderButton: { height: Components.button.height, borderRadius: Components.button.borderRadius, borderWidth: 1.5, backgroundColor: 'transparent', marginTop: Spacing.xs },
-  reminderButtonText: { ...Typography.bodySemiBold } });
+  reminderButton: {
+    height: Components.button.height,
+    borderRadius: Components.button.borderRadius,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
+    marginTop: Spacing.xs,
+  },
+  reminderButtonText: { ...Typography.bodySemiBold },
+});

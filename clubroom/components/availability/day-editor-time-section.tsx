@@ -22,8 +22,13 @@ interface DayEditorTimeSectionProps {
 }
 
 function DayEditorTimeSectionInner({
-  startTime, endTime, isValid, durationLabel, overlapWarning,
-  onStartTimeChange, onEndTimeChange,
+  startTime,
+  endTime,
+  isValid,
+  durationLabel,
+  overlapWarning,
+  onStartTimeChange,
+  onEndTimeChange,
 }: DayEditorTimeSectionProps) {
   const { colors: palette } = useTheme();
 
@@ -31,25 +36,45 @@ function DayEditorTimeSectionInner({
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Time Range</ThemedText>
       <Row style={styles.timeRow}>
-        <DateTimeField mode="time" label="Start" value={startTime} onChange={onStartTimeChange} minuteInterval={15} style={{ flex: 1 }} />
+        <DateTimeField
+          mode="time"
+          label="Start"
+          value={startTime}
+          onChange={onStartTimeChange}
+          minuteInterval={15}
+          style={{ flex: 1 }}
+        />
         <View style={styles.timeArrow}>
           <Ionicons name="arrow-forward" size={16} color={palette.muted} />
         </View>
-        <DateTimeField mode="time" label="End" value={endTime} onChange={onEndTimeChange} minuteInterval={15} style={{ flex: 1 }} />
+        <DateTimeField
+          mode="time"
+          label="End"
+          value={endTime}
+          onChange={onEndTimeChange}
+          minuteInterval={15}
+          style={{ flex: 1 }}
+        />
       </Row>
       {durationLabel && isValid && (
         <Row style={[styles.durationBadge, { backgroundColor: withAlpha(palette.success, 0.08) }]}>
           <Ionicons name="time-outline" size={14} color={palette.success} />
-          <ThemedText style={[styles.durationText, { color: palette.success }]}>{durationLabel}</ThemedText>
+          <ThemedText style={[styles.durationText, { color: palette.success }]}>
+            {durationLabel}
+          </ThemedText>
         </Row>
       )}
       {!isValid && (
-        <ThemedText style={[styles.errorText, { color: palette.error }]}>End time must be after start time</ThemedText>
+        <ThemedText style={[styles.errorText, { color: palette.error }]}>
+          End time must be after start time
+        </ThemedText>
       )}
       {isValid && overlapWarning && (
         <Row style={[styles.overlapWarning, { backgroundColor: withAlpha(palette.warning, 0.08) }]}>
           <Ionicons name="warning-outline" size={14} color={palette.warning} />
-          <ThemedText style={[styles.overlapText, { color: palette.warning }]}>{overlapWarning}</ThemedText>
+          <ThemedText style={[styles.overlapText, { color: palette.warning }]}>
+            {overlapWarning}
+          </ThemedText>
         </Row>
       )}
     </View>
@@ -63,9 +88,21 @@ const styles = StyleSheet.create({
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   timeRow: { alignItems: 'flex-end', gap: Spacing.xs },
   timeArrow: { paddingBottom: Spacing.sm },
-  durationBadge: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs, borderRadius: Radii.md },
+  durationBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+  },
   durationText: { ...Typography.smallSemiBold },
   errorText: { ...Typography.small },
-  overlapWarning: { alignItems: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm, borderRadius: Radii.md },
+  overlapWarning: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.md,
+  },
   overlapText: { ...Typography.small, flex: 1 },
 });

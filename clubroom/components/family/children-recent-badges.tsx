@@ -52,12 +52,12 @@ const BadgeItem = memo(function BadgeItem({
       >
         {!badge.seenByParent && (
           <View style={[styles.newBadgeIndicator, { backgroundColor: palette.warning }]}>
-            <ThemedText style={[styles.newBadgeText, { color: palette.onPrimary }]}>
-              NEW
-            </ThemedText>
+            <ThemedText style={[styles.newBadgeText, { color: palette.onPrimary }]}>NEW</ThemedText>
           </View>
         )}
-        <View style={[styles.badgeIconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+        <View
+          style={[styles.badgeIconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+        >
           <Ionicons name="ribbon" size={20} color={palette.warning} />
         </View>
         <ThemedText type="defaultSemiBold" style={styles.badgeLabel} numberOfLines={1}>
@@ -108,11 +108,7 @@ export const ChildrenRecentBadges = memo(function ChildrenRecentBadges({
           contentContainerStyle={styles.badgeScroll}
         >
           {badges.map((badge) => (
-            <BadgeItem
-              key={badge.id}
-              badge={badge}
-              onPress={handleBadgePress(badge)}
-            />
+            <BadgeItem key={badge.id} badge={badge} onPress={handleBadgePress(badge)} />
           ))}
         </ScrollView>
       </SurfaceCard>

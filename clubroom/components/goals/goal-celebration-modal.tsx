@@ -17,7 +17,10 @@ interface GoalCelebrationModalProps {
 }
 
 export const GoalCelebrationModal = memo(function GoalCelebrationModal({
-  visible, title, confettiRef, celebrationStyle,
+  visible,
+  title,
+  confettiRef,
+  celebrationStyle,
 }: GoalCelebrationModalProps) {
   const { colors } = useTheme();
 
@@ -25,12 +28,20 @@ export const GoalCelebrationModal = memo(function GoalCelebrationModal({
 
   return (
     <Modal transparent visible={visible} animationType="none">
-      <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}>
-        <Animated.View style={[styles.content, { backgroundColor: colors.surface }, celebrationStyle]}>
+      <Animated.View
+        entering={FadeIn}
+        exiting={FadeOut}
+        style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.5) }]}
+      >
+        <Animated.View
+          style={[styles.content, { backgroundColor: colors.surface }, celebrationStyle]}
+        >
           <Animated.View style={[styles.icon, { backgroundColor: colors.success }]}>
             <Ionicons name="trophy" size={48} color={colors.onPrimary} />
           </Animated.View>
-          <ThemedText type="title" style={styles.title}>Goal Achieved!</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            Goal Achieved!
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
             Congratulations on completing &quot;{title}&quot;
           </ThemedText>
@@ -51,8 +62,25 @@ export const GoalCelebrationModal = memo(function GoalCelebrationModal({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { alignItems: 'center', gap: Spacing.md, padding: Spacing.xl, borderRadius: Radii.xl, marginHorizontal: Spacing.xl },
-  icon: { width: 80, height: 80, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  content: {
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.xl,
+    borderRadius: Radii.xl,
+    marginHorizontal: Spacing.xl,
+  },
+  icon: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
   title: { textAlign: 'center' },
-  subtitle: { textAlign: 'center', ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
+  subtitle: {
+    textAlign: 'center',
+    ...Typography.body,
+    fontSize: scaleFont(Typography.body.fontSize),
+  },
 });

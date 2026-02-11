@@ -22,7 +22,11 @@ export { progressReportService } from './progress-report-service';
 
 // Re-export types
 export type { SkillLevel, AthleteSkillLevels } from './progress-skills-service';
-export type { SessionFeedback, SessionNoteFields, SessionNoteRecord } from './progress-feedback-service';
+export type {
+  SessionFeedback,
+  SessionNoteFields,
+  SessionNoteRecord,
+} from './progress-feedback-service';
 export type { AthleteProgress } from './progress-report-service';
 
 // Import services for the unified facade

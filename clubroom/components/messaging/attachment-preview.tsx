@@ -21,10 +21,14 @@ interface AttachmentPreviewProps {
 
 function getIcon(type: string) {
   switch (type) {
-    case 'IMAGE': return 'image';
-    case 'VIDEO': return 'videocam';
-    case 'DOCUMENT': return 'document';
-    default: return 'attach';
+    case 'IMAGE':
+      return 'image';
+    case 'VIDEO':
+      return 'videocam';
+    case 'DOCUMENT':
+      return 'document';
+    default:
+      return 'attach';
   }
 }
 
@@ -47,9 +51,18 @@ export const AttachmentPreview = memo(function AttachmentPreview({
 
   if (compact) {
     return (
-      <Row align="center" gap="xs" style={[styles.compactPreview, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Row
+        align="center"
+        gap="xs"
+        style={[
+          styles.compactPreview,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
+      >
         <Ionicons name={iconName} size={14} color={palette.tint} />
-        <ThemedText style={styles.compactName} numberOfLines={1}>{attachment.name}</ThemedText>
+        <ThemedText style={styles.compactName} numberOfLines={1}>
+          {attachment.name}
+        </ThemedText>
         {onRemove && (
           <Clickable accessibilityLabel="Remove attachment" onPress={onRemove}>
             <Ionicons name="close-circle" size={16} color={palette.muted} />
@@ -60,22 +73,37 @@ export const AttachmentPreview = memo(function AttachmentPreview({
   }
 
   return (
-    <Row align="center" gap="md" style={[styles.previewCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row
+      align="center"
+      gap="md"
+      style={[
+        styles.previewCard,
+        { backgroundColor: palette.surface, borderColor: palette.border },
+      ]}
+    >
       {attachment.type === 'IMAGE' && attachment.thumbnailUrl ? (
         <Image source={{ uri: attachment.thumbnailUrl }} style={styles.previewImage} />
       ) : (
-        <View style={[styles.previewPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <View
+          style={[styles.previewPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+        >
           <Ionicons name={iconName} size={32} color={palette.tint} />
         </View>
       )}
       <View style={styles.previewInfo}>
-        <ThemedText type="defaultSemiBold" numberOfLines={1}>{attachment.name}</ThemedText>
+        <ThemedText type="defaultSemiBold" numberOfLines={1}>
+          {attachment.name}
+        </ThemedText>
         <ThemedText style={[styles.previewMeta, { color: palette.muted }]}>
           {attachment.type} {formatSize(attachment.size)}
         </ThemedText>
       </View>
       {onRemove && (
-        <Clickable accessibilityLabel="Remove attachment" onPress={onRemove} style={styles.removeButton}>
+        <Clickable
+          accessibilityLabel="Remove attachment"
+          onPress={onRemove}
+          style={styles.removeButton}
+        >
           <Ionicons name="trash-outline" size={18} color={palette.error} />
         </Clickable>
       )}
@@ -86,11 +114,23 @@ export const AttachmentPreview = memo(function AttachmentPreview({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  compactPreview: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1, maxWidth: 150 },
+  compactPreview: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    maxWidth: 150,
+  },
   compactName: { ...Typography.caption, flex: 1 },
   previewCard: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   previewImage: { width: 48, height: 48, borderRadius: Radii.sm },
-  previewPlaceholder: { width: 48, height: 48, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
+  previewPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   previewInfo: { flex: 1, gap: Spacing.micro },
   previewMeta: { ...Typography.caption },
   removeButton: { padding: Spacing.xs },

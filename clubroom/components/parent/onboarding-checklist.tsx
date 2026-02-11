@@ -3,19 +3,19 @@ import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
+import { ChecklistItemRow } from './onboarding-checklist-sections';
+import type { ChecklistItem } from './onboarding-checklist-sections';
+
 // Re-export extracted components for backward compat
 export { ChecklistItemRow } from './onboarding-checklist-sections';
 export type { ChecklistItem, ChecklistItemRowProps } from './onboarding-checklist-sections';
-
-import { ChecklistItemRow } from './onboarding-checklist-sections';
-import type { ChecklistItem } from './onboarding-checklist-sections';
 
 interface ParentOnboardingChecklistProps {
   parentId: string;
@@ -29,7 +29,12 @@ interface ParentOnboardingChecklistProps {
 const DISMISS_KEY_PREFIX = 'clubroom.parent_onboarding_dismissed_';
 
 export function ParentOnboardingChecklist({
-  parentId, hasChild, hasEmergencyContacts, hasMedicalInfo, hasConsentPreferences, hasFirstBooking,
+  parentId,
+  hasChild,
+  hasEmergencyContacts,
+  hasMedicalInfo,
+  hasConsentPreferences,
+  hasFirstBooking,
 }: ParentOnboardingChecklistProps) {
   const router = useRouter();
   const { colors: palette } = useTheme();
@@ -51,9 +56,19 @@ export function ParentOnboardingChecklist({
   const items: ChecklistItem[] = [
     { id: 'account', label: 'Account created', isComplete: true, route: '/settings' },
     { id: 'child', label: 'Child added', isComplete: hasChild, route: '/children' },
-    { id: 'emergency', label: 'Emergency contacts added', isComplete: hasEmergencyContacts, route: '/family' },
+    {
+      id: 'emergency',
+      label: 'Emergency contacts added',
+      isComplete: hasEmergencyContacts,
+      route: '/family',
+    },
     { id: 'medical', label: 'Medical info reviewed', isComplete: hasMedicalInfo, route: '/health' },
-    { id: 'consent', label: 'Consent preferences set', isComplete: hasConsentPreferences, route: '/settings' },
+    {
+      id: 'consent',
+      label: 'Consent preferences set',
+      isComplete: hasConsentPreferences,
+      route: '/settings',
+    },
     { id: 'booking', label: 'First booking made', isComplete: hasFirstBooking, route: '/discover' },
   ];
 
@@ -63,10 +78,14 @@ export function ParentOnboardingChecklist({
   if (isDismissed) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <View
+      style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}
+    >
       <Row align="flex-start" justify="space-between" style={styles.header}>
         <View style={styles.headerTextGroup}>
-          <ThemedText type="defaultSemiBold" style={[styles.title, { color: palette.text }]}>Get started</ThemedText>
+          <ThemedText type="defaultSemiBold" style={[styles.title, { color: palette.text }]}>
+            Get started
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             {completedCount} of {items.length} steps done
           </ThemedText>
@@ -77,7 +96,12 @@ export function ParentOnboardingChecklist({
       </Row>
 
       <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
-        <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: palette.success }]} />
+        <View
+          style={[
+            styles.progressFill,
+            { width: `${Math.round(progress * 100)}%`, backgroundColor: palette.success },
+          ]}
+        />
       </View>
 
       <View style={styles.itemsList}>
@@ -92,7 +116,9 @@ export function ParentOnboardingChecklist({
       </View>
 
       <Clickable style={styles.dismissButton} onPress={handleDismiss}>
-        <ThemedText style={[styles.dismissButtonText, { color: palette.muted }]}>Dismiss checklist</ThemedText>
+        <ThemedText style={[styles.dismissButtonText, { color: palette.muted }]}>
+          Dismiss checklist
+        </ThemedText>
       </Clickable>
     </View>
   );

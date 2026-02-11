@@ -34,11 +34,16 @@ export const ReplyPreview = memo(function ReplyPreview({
   palette,
 }: ReplyPreviewProps) {
   return (
-    <Row align="center" gap="sm" style={[styles.replyPreview, { backgroundColor: palette.surface, borderLeftColor: palette.tint }]}>
+    <Row
+      align="center"
+      gap="sm"
+      style={[
+        styles.replyPreview,
+        { backgroundColor: palette.surface, borderLeftColor: palette.tint },
+      ]}
+    >
       <View style={styles.replyContent}>
-        <ThemedText style={[styles.replyLabel, { color: palette.tint }]}>
-          Replying to
-        </ThemedText>
+        <ThemedText style={[styles.replyLabel, { color: palette.tint }]}>Replying to</ThemedText>
         <ThemedText style={styles.replyText} numberOfLines={1}>
           {replyingTo.preview}
         </ThemedText>
@@ -70,7 +75,10 @@ export const AttachmentsPreview = memo(function AttachmentsPreview({
           key={index}
           align="center"
           gap="xs"
-          style={[styles.attachmentPreview, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[
+            styles.attachmentPreview,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
         >
           <Ionicons
             name={getAttachmentIcon(attachment.type) as keyof typeof Ionicons.glyphMap}
@@ -81,7 +89,10 @@ export const AttachmentsPreview = memo(function AttachmentsPreview({
             {attachment.name || `File ${index + 1}`}
           </ThemedText>
           {onRemoveAttachment && (
-            <Clickable accessibilityLabel="Remove attachment" onPress={() => onRemoveAttachment(index)}>
+            <Clickable
+              accessibilityLabel="Remove attachment"
+              onPress={() => onRemoveAttachment(index)}
+            >
               <Ionicons name="close-circle" size={16} color={palette.muted} />
             </Clickable>
           )}
@@ -127,7 +138,11 @@ export const ComposerInputRow = memo(function ComposerInputRow({
   palette,
 }: ComposerInputRowProps) {
   return (
-    <Row align="flex-end" gap="xs" style={[styles.composerRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
+    <Row
+      align="flex-end"
+      gap="xs"
+      style={[styles.composerRow, { borderColor: palette.border, backgroundColor: palette.card }]}
+    >
       {/* Action Buttons */}
       <Row align="center" gap="xxs" style={styles.actionsRow}>
         <Clickable
@@ -222,11 +237,18 @@ export const QuickActionsBarInner = memo(function QuickActionsBarInner({
         <Clickable
           key={index}
           onPress={action.onPress}
-          style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[
+            styles.quickAction,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
         >
           <Row align="center" gap="xs">
             {action.icon && (
-              <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={14} color={palette.tint} />
+              <Ionicons
+                name={action.icon as keyof typeof Ionicons.glyphMap}
+                size={14}
+                color={palette.tint}
+              />
             )}
             <ThemedText style={[styles.quickActionText, { color: palette.text }]}>
               {action.label}

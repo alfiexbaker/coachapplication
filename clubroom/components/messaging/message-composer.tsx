@@ -72,11 +72,7 @@ export function MessageComposer({
   return (
     <View style={styles.container}>
       {replyingTo && (
-        <ReplyPreview
-          replyingTo={replyingTo}
-          onCancelReply={onCancelReply}
-          palette={palette}
-        />
+        <ReplyPreview replyingTo={replyingTo} onCancelReply={onCancelReply} palette={palette} />
       )}
 
       <AttachmentsPreview
@@ -107,7 +103,11 @@ export function MessageComposer({
 }
 
 // Backward-compat wrapper
-export function QuickActionsBar({ actions }: { actions: { label: string; icon?: string; onPress: () => void }[] }) {
+export function QuickActionsBar({
+  actions,
+}: {
+  actions: { label: string; icon?: string; onPress: () => void }[];
+}) {
   const { colors: palette } = useTheme();
   return <QuickActionsBarInner actions={actions} palette={palette} />;
 }

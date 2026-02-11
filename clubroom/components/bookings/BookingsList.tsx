@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -124,7 +123,7 @@ export function BookingsList({
         </View>
       );
     },
-    [isCoach, onOfferingPress, timeFilter]
+    [isCoach, onOfferingPress, timeFilter],
   );
 
   const keyExtractor = useCallback((item: DisplayItem) => {
@@ -141,7 +140,9 @@ export function BookingsList({
           style={[
             styles.filterPill,
             { borderColor: timeFilter === 'upcoming' ? palette.tint : palette.border },
-            timeFilter === 'upcoming' ? { backgroundColor: withAlpha(palette.tint, 0.1) } : undefined,
+            timeFilter === 'upcoming'
+              ? { backgroundColor: withAlpha(palette.tint, 0.1) }
+              : undefined,
           ]}
         >
           <ThemedText
@@ -181,7 +182,13 @@ export function BookingsList({
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={ListSeparator}
           refreshControl={
-            onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} /> : undefined
+            onRefresh ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={palette.tint}
+              />
+            ) : undefined
           }
         />
       ) : (
@@ -198,8 +205,16 @@ export function BookingsList({
                   ? 'Book your first coaching session'
                   : 'No past sessions yet'
             }
-            actionLabel={timeFilter === 'upcoming' ? (isCoach ? 'Create Session' : 'Find a Coach') : undefined}
-            onPressAction={timeFilter === 'upcoming' ? (isCoach ? onCreateSessionPress : onFindCoachPress) : undefined}
+            actionLabel={
+              timeFilter === 'upcoming' ? (isCoach ? 'Create Session' : 'Find a Coach') : undefined
+            }
+            onPressAction={
+              timeFilter === 'upcoming'
+                ? isCoach
+                  ? onCreateSessionPress
+                  : onFindCoachPress
+                : undefined
+            }
           />
         </View>
       )}

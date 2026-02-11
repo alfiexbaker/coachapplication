@@ -63,10 +63,11 @@ export default function CreateChallengeScreen() {
           description: description.trim(),
           deadline,
           squadId: 'squad_1',
-        }
+        },
       );
 
-      Platform.OS !== 'web' && void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Platform.OS !== 'web' &&
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (err) {
       logger.error('Failed to create challenge', err);
@@ -77,7 +78,10 @@ export default function CreateChallengeScreen() {
   }, [isValid, creating, title, description, deadline, currentUser]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Close">
@@ -98,7 +102,14 @@ export default function CreateChallengeScreen() {
             Challenge Details
           </ThemedText>
           <TextInput
-            style={[styles.input, { color: palette.text, backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}
+            style={[
+              styles.input,
+              {
+                color: palette.text,
+                backgroundColor: palette.surfaceSecondary,
+                borderColor: palette.border,
+              },
+            ]}
             placeholder="Challenge title"
             placeholderTextColor={palette.muted}
             value={title}
@@ -106,7 +117,14 @@ export default function CreateChallengeScreen() {
             maxLength={80}
           />
           <TextInput
-            style={[styles.inputMultiline, { color: palette.text, backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}
+            style={[
+              styles.inputMultiline,
+              {
+                color: palette.text,
+                backgroundColor: palette.surfaceSecondary,
+                borderColor: palette.border,
+              },
+            ]}
             placeholder="Describe the challenge..."
             placeholderTextColor={palette.muted}
             value={description}
@@ -123,9 +141,22 @@ export default function CreateChallengeScreen() {
             <Ionicons name="videocam-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText type="subheading">Demo Video</ThemedText>
           </Row>
-          <Clickable onPress={() => Alert.alert('Coming Soon', 'Video upload will be available in a future update.')}>
-            <View style={[styles.videoPlaceholder, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}>
-              <Ionicons name="cloud-upload-outline" size={Components.icon.xl} color={palette.muted} />
+          <Clickable
+            onPress={() =>
+              Alert.alert('Coming Soon', 'Video upload will be available in a future update.')
+            }
+          >
+            <View
+              style={[
+                styles.videoPlaceholder,
+                { backgroundColor: palette.surfaceSecondary, borderColor: palette.border },
+              ]}
+            >
+              <Ionicons
+                name="cloud-upload-outline"
+                size={Components.icon.xl}
+                color={palette.muted}
+              />
               <ThemedText style={[Typography.body, { color: palette.muted }]}>
                 Tap to upload demo video
               </ThemedText>
@@ -142,7 +173,11 @@ export default function CreateChallengeScreen() {
             <Ionicons name="calendar-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText type="subheading">Deadline</ThemedText>
           </Row>
-          <Row align="center" justify="space-between" style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}>
+          <Row
+            align="center"
+            justify="space-between"
+            style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}
+          >
             <ThemedText style={{ color: palette.text }}>{deadlineLabel}</ThemedText>
             <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.muted} />
           </Row>
@@ -154,7 +189,11 @@ export default function CreateChallengeScreen() {
             <Ionicons name="people-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText type="subheading">Audience</ThemedText>
           </Row>
-          <Row align="center" justify="space-between" style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}>
+          <Row
+            align="center"
+            justify="space-between"
+            style={[styles.deadlineRow, { backgroundColor: palette.surfaceSecondary }]}
+          >
             <ThemedText style={{ color: palette.text }}>U12 Lions</ThemedText>
             <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.muted} />
           </Row>
@@ -174,7 +213,12 @@ export default function CreateChallengeScreen() {
               },
             ]}
           >
-            <ThemedText style={[Typography.bodySemiBold, { color: isValid ? palette.onPrimary : palette.muted }]}>
+            <ThemedText
+              style={[
+                Typography.bodySemiBold,
+                { color: isValid ? palette.onPrimary : palette.muted },
+              ]}
+            >
               {creating ? 'Creating...' : 'Create Challenge'}
             </ThemedText>
           </View>

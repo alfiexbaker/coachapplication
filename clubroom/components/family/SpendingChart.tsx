@@ -47,7 +47,11 @@ export function SpendingChart({
     const monthlyMap = new Map<string, { month: string; amount: number; sessionCount: number }>();
     spending.forEach((child) => {
       child.monthlyBreakdown?.forEach((mb) => {
-        const existing = monthlyMap.get(mb.month) || { month: mb.month, amount: 0, sessionCount: 0 };
+        const existing = monthlyMap.get(mb.month) || {
+          month: mb.month,
+          amount: 0,
+          sessionCount: 0,
+        };
         existing.amount += mb.amount;
         existing.sessionCount += mb.sessionCount;
         monthlyMap.set(mb.month, existing);

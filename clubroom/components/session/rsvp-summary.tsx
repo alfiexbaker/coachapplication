@@ -20,7 +20,8 @@ import {
   CountBadge,
   ExpandableList,
   ProgressIndicator,
-  ReminderButton } from './rsvp-summary-sections';
+  ReminderButton,
+} from './rsvp-summary-sections';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,9 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
 
   if (loading) {
     return (
-      <View style={[styles.cardBase, styles.loadingContainer, { backgroundColor: palette.surface }]}>
+      <View
+        style={[styles.cardBase, styles.loadingContainer, { backgroundColor: palette.surface }]}
+      >
         <ActivityIndicator size="small" color={palette.tint} />
       </View>
     );
@@ -84,20 +87,59 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
 
       {/* Count badges */}
       <Row gap="xs">
-        <CountBadge count={counts.going} label="Going" color={palette.success} icon="checkmark-circle" />
-        <CountBadge count={counts.notGoing} label="Can't" color={palette.error} icon="close-circle" />
+        <CountBadge
+          count={counts.going}
+          label="Going"
+          color={palette.success}
+          icon="checkmark-circle"
+        />
+        <CountBadge
+          count={counts.notGoing}
+          label="Can't"
+          color={palette.error}
+          icon="close-circle"
+        />
         <CountBadge count={counts.maybe} label="Maybe" color={palette.warning} icon="help-circle" />
       </Row>
 
       {/* Expandable lists */}
       <View style={styles.listsContainer}>
-        <ExpandableList title="Going" names={goingNames} color={palette.success} icon="checkmark-circle-outline" mutedColor={palette.muted} />
-        <ExpandableList title="Can't Make It" names={cantNames} color={palette.error} icon="close-circle-outline" mutedColor={palette.muted} />
-        <ExpandableList title="Maybe" names={maybeNames} color={palette.warning} icon="help-circle-outline" mutedColor={palette.muted} />
-        <ExpandableList title="Awaiting Response" names={pendingNames} color={palette.muted} icon="time-outline" mutedColor={palette.muted} />
+        <ExpandableList
+          title="Going"
+          names={goingNames}
+          color={palette.success}
+          icon="checkmark-circle-outline"
+          mutedColor={palette.muted}
+        />
+        <ExpandableList
+          title="Can't Make It"
+          names={cantNames}
+          color={palette.error}
+          icon="close-circle-outline"
+          mutedColor={palette.muted}
+        />
+        <ExpandableList
+          title="Maybe"
+          names={maybeNames}
+          color={palette.warning}
+          icon="help-circle-outline"
+          mutedColor={palette.muted}
+        />
+        <ExpandableList
+          title="Awaiting Response"
+          names={pendingNames}
+          color={palette.muted}
+          icon="time-outline"
+          mutedColor={palette.muted}
+        />
       </View>
 
-      <ReminderButton pendingCount={counts.pending} sessionId={sessionId} sendReminder={rsvpService.sendReminder} palette={palette} />
+      <ReminderButton
+        pendingCount={counts.pending}
+        sessionId={sessionId}
+        sendReminder={rsvpService.sendReminder}
+        palette={palette}
+      />
     </View>
   );
 }
@@ -110,8 +152,14 @@ const styles = StyleSheet.create({
   cardBase: { borderRadius: Radii.card, padding: Spacing.sm },
   container: { gap: Spacing.sm },
   loadingContainer: { alignItems: 'center', justifyContent: 'center', minHeight: 100 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 100 },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    minHeight: 100,
+  },
   emptyText: { ...Typography.small },
   sectionTitle: { ...Typography.subheading },
   badgeRow: {},
-  listsContainer: { gap: Spacing.xs } });
+  listsContainer: { gap: Spacing.xs },
+});

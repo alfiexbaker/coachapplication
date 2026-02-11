@@ -14,8 +14,24 @@
 
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
-import type { Academy, AcademyMembership, AcademyInvite, AcademyPermission, SportCategory, FootballObjective } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, storageError } from '@/types/result';
+import type {
+  Academy,
+  AcademyMembership,
+  AcademyInvite,
+  AcademyPermission,
+  SportCategory,
+  FootballObjective,
+} from '@/constants/types';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  conflictError,
+  storageError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -30,7 +46,8 @@ const MOCK_ACADEMIES: Academy[] = [
     id: 'academy_1',
     name: 'East London FC Academy',
     slug: 'east-london-fc',
-    description: 'Premier youth football development program in East London. Building tomorrow\'s stars today.',
+    description:
+      "Premier youth football development program in East London. Building tomorrow's stars today.",
     logoUrl: 'https://picsum.photos/seed/elfc/200/200',
     bannerUrl: 'https://picsum.photos/seed/elfc-banner/1200/400',
     primaryColor: '#1E40AF',
@@ -87,7 +104,15 @@ const MOCK_MEMBERSHIPS: AcademyMembership[] = [
     academyId: 'academy_1',
     userId: 'coach1',
     role: 'OWNER',
-    permissions: ['MANAGE_STAFF', 'MANAGE_SETTINGS', 'CREATE_SESSIONS', 'VIEW_ANALYTICS', 'MANAGE_BILLING', 'POST_AS_ACADEMY', 'INVITE_MEMBERS'],
+    permissions: [
+      'MANAGE_STAFF',
+      'MANAGE_SETTINGS',
+      'CREATE_SESSIONS',
+      'VIEW_ANALYTICS',
+      'MANAGE_BILLING',
+      'POST_AS_ACADEMY',
+      'INVITE_MEMBERS',
+    ],
     status: 'ACTIVE',
     joinedAt: '2024-06-15T10:00:00Z',
   },
@@ -151,7 +176,10 @@ async function saveAcademies(academies: Academy[]): Promise<void> {
 
 async function loadMemberships(): Promise<AcademyMembership[]> {
   try {
-    const stored = await apiClient.get<AcademyMembership[] | null>(STORAGE_KEYS.ACADEMY_MEMBERSHIPS, null);
+    const stored = await apiClient.get<AcademyMembership[] | null>(
+      STORAGE_KEYS.ACADEMY_MEMBERSHIPS,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load memberships', error);
@@ -275,14 +303,16 @@ export const academyService = {
   /**
    * Get academies where user is a member
    */
-  async getUserAcademies(userId: string): Promise<Result<(Academy & { membership: AcademyMembership })[], ServiceError>> {
+  async getUserAcademies(
+    userId: string,
+  ): Promise<Result<(Academy & { membership: AcademyMembership })[], ServiceError>> {
     try {
       if (USE_MOCK) {
         academiesCache = await loadAcademies();
         membershipsCache = await loadMemberships();
 
         const userMemberships = membershipsCache.filter(
-          (m) => m.userId === userId && m.status === 'ACTIVE'
+          (m) => m.userId === userId && m.status === 'ACTIVE',
         );
 
         const data = userMemberships
@@ -337,7 +367,15 @@ export const academyService = {
         academyId: newAcademy.id,
         userId: input.ownerId,
         role: 'OWNER',
-        permissions: ['MANAGE_STAFF', 'MANAGE_SETTINGS', 'CREATE_SESSIONS', 'VIEW_ANALYTICS', 'MANAGE_BILLING', 'POST_AS_ACADEMY', 'INVITE_MEMBERS'],
+        permissions: [
+          'MANAGE_STAFF',
+          'MANAGE_SETTINGS',
+          'CREATE_SESSIONS',
+          'VIEW_ANALYTICS',
+          'MANAGE_BILLING',
+          'POST_AS_ACADEMY',
+          'INVITE_MEMBERS',
+        ],
         status: 'ACTIVE',
         joinedAt: new Date().toISOString(),
       };
@@ -370,7 +408,10 @@ export const academyService = {
   /**
    * Update academy branding
    */
-  async updateBranding(academyId: string, branding: UpdateBrandingInput): Promise<Result<Academy, ServiceError>> {
+  async updateBranding(
+    academyId: string,
+    branding: UpdateBrandingInput,
+  ): Promise<Result<Academy, ServiceError>> {
     if (USE_MOCK) {
       academiesCache = await loadAcademies();
       const academy = academiesCache.find((a) => a.id === academyId);
@@ -394,7 +435,7 @@ export const academyService = {
    */
   async updateSettings(
     academyId: string,
-    settings: Partial<Pick<Academy, 'name' | 'description' | 'isPublic' | 'requiresApproval'>>
+    settings: Partial<Pick<Academy, 'name' | 'description' | 'isPublic' | 'requiresApproval'>>,
   ): Promise<Result<Academy, ServiceError>> {
     if (USE_MOCK) {
       academiesCache = await loadAcademies();
@@ -449,10 +490,13 @@ export const academyService = {
     createdBy: string,
     createdByName: string,
     expiresInDays: number = 30,
-    maxUses: number = 10
+    maxUses: number = 10,
   ): Promise<Result<AcademyInvite, ServiceError>> {
     try {
-      const code = `${academyName.slice(0, 4).toUpperCase().replace(/[^A-Z]/g, '')}${Date.now().toString(36).toUpperCase().slice(-4)}`;
+      const code = `${academyName
+        .slice(0, 4)
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '')}${Date.now().toString(36).toUpperCase().slice(-4)}`;
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiresInDays);
@@ -495,7 +539,7 @@ export const academyService = {
     code: string,
     userId: string,
     userName: string,
-    userPhotoUrl?: string
+    userPhotoUrl?: string,
   ): Promise<Result<AcademyMembership, ServiceError>> {
     if (USE_MOCK) {
       invitesCache = await loadInvites();
@@ -503,13 +547,13 @@ export const academyService = {
       academiesCache = await loadAcademies();
 
       const invite = invitesCache.find(
-        (i) => i.code === code && new Date(i.expiresAt) > new Date() && i.currentUses < i.maxUses
+        (i) => i.code === code && new Date(i.expiresAt) > new Date() && i.currentUses < i.maxUses,
       );
       if (!invite) return err(validationError('Invalid or expired invite code'));
 
       // Check if already a member
       const existingMembership = membershipsCache.find(
-        (m) => m.academyId === invite.academyId && m.userId === userId
+        (m) => m.academyId === invite.academyId && m.userId === userId,
       );
       if (existingMembership) return err(conflictError('Already a member of this academy'));
 
@@ -554,7 +598,7 @@ export const academyService = {
   async updateMemberRole(
     membershipId: string,
     role: AcademyMembership['role'],
-    permissions: AcademyPermission[]
+    permissions: AcademyPermission[],
   ): Promise<Result<AcademyMembership, ServiceError>> {
     if (USE_MOCK) {
       membershipsCache = await loadMemberships();
@@ -601,19 +645,25 @@ export const academyService = {
   /**
    * Check if user has permission
    */
-  async hasPermission(academyId: string, userId: string, permission: AcademyPermission): Promise<Result<boolean, ServiceError>> {
+  async hasPermission(
+    academyId: string,
+    userId: string,
+    permission: AcademyPermission,
+  ): Promise<Result<boolean, ServiceError>> {
     try {
       if (USE_MOCK) {
         membershipsCache = await loadMemberships();
         const membership = membershipsCache.find(
-          (m) => m.academyId === academyId && m.userId === userId && m.status === 'ACTIVE'
+          (m) => m.academyId === academyId && m.userId === userId && m.status === 'ACTIVE',
         );
         if (!membership) return ok(false);
         if (membership.role === 'OWNER') return ok(true);
         return ok(membership.permissions.includes(permission));
       }
 
-      const response = await fetch(`/api/academies/${academyId}/permissions/${userId}/${permission}`);
+      const response = await fetch(
+        `/api/academies/${academyId}/permissions/${userId}/${permission}`,
+      );
       const data = await response.json();
       return ok(data.hasPermission);
     } catch (error) {

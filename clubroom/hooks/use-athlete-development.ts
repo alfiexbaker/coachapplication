@@ -23,7 +23,12 @@ export interface ProgressionSummary {
   progressPercent: number;
   pointsToNext: number;
   totalBadges: number;
-  topCategories: { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[];
+  topCategories: {
+    category: BadgeCategory;
+    label: string;
+    badgeCount: number;
+    totalPoints: number;
+  }[];
 }
 
 export interface LevelBadge {
@@ -34,7 +39,11 @@ export interface LevelBadge {
 
 function formatDate(date: Date | string): string {
   const resolvedDate = typeof date === 'string' ? new Date(date) : date;
-  return resolvedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return resolvedDate.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export function useAthleteDevelopment(athleteId: string) {
@@ -95,7 +104,7 @@ export function useAthleteDevelopment(athleteId: string) {
       try {
         const asyncSessions = await apiClient.get<Session[]>('coach_sessions', []);
         const athleteAsyncSessions = asyncSessions.filter(
-          (s) => s.athleteId === athleteId && s.coachId === currentUser.id
+          (s) => s.athleteId === athleteId && s.coachId === currentUser.id,
         );
         setSessions(athleteAsyncSessions);
         logger.debug('Sessions loaded', {
@@ -135,7 +144,11 @@ export function useAthleteDevelopment(athleteId: string) {
         const profile = await childService.getChildByName(firstName, lastName);
         if (profile) {
           setChildProfile(profile);
-          logger.debug('Child profile loaded', { athleteId, childId: profile.id, hasSpecialNeeds: profile.hasSpecialNeeds });
+          logger.debug('Child profile loaded', {
+            athleteId,
+            childId: profile.id,
+            hasSpecialNeeds: profile.hasSpecialNeeds,
+          });
         }
       } catch (error) {
         logger.error('Failed to load child profile', error);
@@ -148,12 +161,15 @@ export function useAthleteDevelopment(athleteId: string) {
   const trend = useMemo(() => {
     if (sessions.length < 2) return 'steady' as const;
     const sorted = [...sessions].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
     );
-    const recentAvg = sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) / Math.min(3, sorted.length);
+    const recentAvg =
+      sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) /
+      Math.min(3, sorted.length);
     const prevSlice = sorted.slice(3, 6);
     if (sorted.length < 4 || prevSlice.length === 0) return 'steady' as const;
-    const previousAvg = prevSlice.reduce((sum, s) => sum + s.performanceRating, 0) / prevSlice.length;
+    const previousAvg =
+      prevSlice.reduce((sum, s) => sum + s.performanceRating, 0) / prevSlice.length;
     if (recentAvg > previousAvg + 0.3) return 'improving' as const;
     if (recentAvg < previousAvg - 0.3) return 'declining' as const;
     return 'steady' as const;
@@ -169,8 +185,11 @@ export function useAthleteDevelopment(athleteId: string) {
 
   // Computed: sorted sessions
   const sortedSessions = useMemo(
-    () => [...sessions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()),
-    [sessions]
+    () =>
+      [...sessions].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+      ),
+    [sessions],
   );
 
   // Computed: selected session label
@@ -216,14 +235,17 @@ export function useAthleteDevelopment(athleteId: string) {
   }, [athleteId]);
 
   // Handler: select session for badge workspace
-  const handleSelectSession = useCallback((session: Session) => {
-    logger.info('badge_workspace_deeplink', {
-      sessionId: session.id,
-      athleteId,
-      source: 'AthleteSessionHistory',
-    });
-    setSelectedSession(session);
-  }, [athleteId]);
+  const handleSelectSession = useCallback(
+    (session: Session) => {
+      logger.info('badge_workspace_deeplink', {
+        sessionId: session.id,
+        athleteId,
+        source: 'AthleteSessionHistory',
+      });
+      setSelectedSession(session);
+    },
+    [athleteId],
+  );
 
   // Handler: close modal
   const handleCloseModal = useCallback(() => {

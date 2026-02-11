@@ -182,9 +182,7 @@ export const SlotChip = memo(function SlotChip({
           </Row>
         )}
       </View>
-      {isSelected && (
-        <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-      )}
+      {isSelected && <Ionicons name="checkmark-circle" size={18} color={palette.tint} />}
       {!isOpen && !isPast && (
         <ThemedText style={[styles.slotBadge, { color: palette.muted }]}>
           {slot.bookedCount > 0 ? 'Booked' : 'Held'}
@@ -220,7 +218,9 @@ export const DayRow = memo(function DayRow({
     >
       <View style={[styles.dayHeader, isPast && { opacity: 0.4 }]}>
         <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>{day}</ThemedText>
-        <ThemedText type="defaultSemiBold" style={styles.dayDate}>{date}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.dayDate}>
+          {date}
+        </ThemedText>
       </View>
 
       <Row style={styles.slotsRow}>

@@ -29,12 +29,20 @@ export default function AdminPromoCodesScreen() {
   const { colors: palette } = useTheme();
   const c = usePromoCodes();
   const pageHeader = (
-    <PageHeader title="Promo Codes" subtitle="Manage promotional codes" showBack
+    <PageHeader
+      title="Promo Codes"
+      subtitle="Manage promotional codes"
+      showBack
       right={
-        <Clickable style={[styles.createButton, { backgroundColor: palette.tint }]} onPress={c.handleCreateCode}>
+        <Clickable
+          style={[styles.createButton, { backgroundColor: palette.tint }]}
+          onPress={c.handleCreateCode}
+        >
           <Row align="center" gap="xs">
             <Ionicons name="add" size={20} color={palette.onPrimary} />
-            <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>New</ThemedText>
+            <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>
+              New
+            </ThemedText>
           </Row>
         </Clickable>
       }
@@ -52,10 +60,7 @@ export default function AdminPromoCodesScreen() {
   if (c.status === 'error') {
     return (
       <PageContainer header={pageHeader}>
-        <ErrorState
-          message={c.error?.message || 'Failed to load promo codes.'}
-          onRetry={c.retry}
-        />
+        <ErrorState message={c.error?.message || 'Failed to load promo codes.'} onRetry={c.retry} />
       </PageContainer>
     );
   }
@@ -85,12 +90,25 @@ export default function AdminPromoCodesScreen() {
                 { value: c.stats.totalCodes, label: 'Total Codes' },
                 { value: c.stats.activeCodes, label: 'Active', color: palette.success },
                 { value: c.stats.totalRedemptions, label: 'Redeemed' },
-                { value: promoService.formatCredit(c.stats.totalCreditsAwarded), label: 'Awarded', color: palette.success },
+                {
+                  value: promoService.formatCredit(c.stats.totalCreditsAwarded),
+                  label: 'Awarded',
+                  color: palette.success,
+                },
               ].map((stat, i) => (
                 <View key={stat.label} style={styles.statItem}>
-                  {i > 0 && <View style={[styles.statDivider, { backgroundColor: palette.border }]} />}
-                  <ThemedText type="title" style={[styles.statValue, stat.color ? { color: stat.color } : undefined]}>{stat.value}</ThemedText>
-                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{stat.label}</ThemedText>
+                  {i > 0 && (
+                    <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+                  )}
+                  <ThemedText
+                    type="title"
+                    style={[styles.statValue, stat.color ? { color: stat.color } : undefined]}
+                  >
+                    {stat.value}
+                  </ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                    {stat.label}
+                  </ThemedText>
                 </View>
               ))}
             </Row>
@@ -102,11 +120,23 @@ export default function AdminPromoCodesScreen() {
       <Animated.View entering={FadeInDown.delay(100).springify()}>
         <Row style={styles.filterContainer}>
           {FILTERS.map((f) => (
-            <Clickable key={f} style={[styles.filterButton, {
-              backgroundColor: c.filter === f ? palette.tint : palette.surface,
-              borderColor: c.filter === f ? palette.tint : palette.border,
-            }]} onPress={() => c.setFilter(f)}>
-              <ThemedText style={[styles.filterText, { color: c.filter === f ? palette.onPrimary : palette.text }]}>
+            <Clickable
+              key={f}
+              style={[
+                styles.filterButton,
+                {
+                  backgroundColor: c.filter === f ? palette.tint : palette.surface,
+                  borderColor: c.filter === f ? palette.tint : palette.border,
+                },
+              ]}
+              onPress={() => c.setFilter(f)}
+            >
+              <ThemedText
+                style={[
+                  styles.filterText,
+                  { color: c.filter === f ? palette.onPrimary : palette.text },
+                ]}
+              >
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </ThemedText>
             </Clickable>
@@ -115,17 +145,25 @@ export default function AdminPromoCodesScreen() {
       </Animated.View>
 
       <View style={styles.listHeader}>
-        <ThemedText type="subtitle" style={styles.listTitle}>Promo Codes ({c.filteredCodes.length})</ThemedText>
+        <ThemedText type="subtitle" style={styles.listTitle}>
+          Promo Codes ({c.filteredCodes.length})
+        </ThemedText>
       </View>
     </>
   );
 
   return (
     <PageContainer header={pageHeader} gap={Spacing.md} scrollable={false}>
-      <FlatList data={c.filteredCodes} keyExtractor={(item) => item.id}
+      <FlatList
+        data={c.filteredCodes}
+        keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(150 + index * 50).springify()}>
-            <PromoCodeCard promoCode={item} onToggleActive={c.handleToggleActive} onViewUsage={c.handleViewUsage} />
+            <PromoCodeCard
+              promoCode={item}
+              onToggleActive={c.handleToggleActive}
+              onViewUsage={c.handleViewUsage}
+            />
           </Animated.View>
         )}
         ListHeaderComponent={renderHeader}
@@ -138,24 +176,43 @@ export default function AdminPromoCodesScreen() {
               {c.filter === 'all' ? 'No promo codes yet' : `No ${c.filter} codes`}
             </ThemedText>
             <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
-              {c.filter === 'all' ? 'Create your first promo code to get started' : `No promo codes match the "${c.filter}" filter`}
+              {c.filter === 'all'
+                ? 'Create your first promo code to get started'
+                : `No promo codes match the "${c.filter}" filter`}
             </ThemedText>
             {c.filter === 'all' && (
-              <Clickable style={[styles.createButtonSmall, { backgroundColor: palette.tint }]} onPress={c.handleCreateCode}>
+              <Clickable
+                style={[styles.createButtonSmall, { backgroundColor: palette.tint }]}
+                onPress={c.handleCreateCode}
+              >
                 <Row align="center" gap="xs">
                   <Ionicons name="add" size={18} color={palette.onPrimary} />
-                  <ThemedText style={[styles.createButtonSmallText, { color: palette.onPrimary }]}>Create Code</ThemedText>
+                  <ThemedText style={[styles.createButtonSmallText, { color: palette.onPrimary }]}>
+                    Create Code
+                  </ThemedText>
                 </Row>
               </Clickable>
             )}
           </View>
         }
-        showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} tintColor={palette.tint} />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={c.refreshing}
+            onRefresh={c.handleRefresh}
+            tintColor={palette.tint}
+          />
+        }
       />
 
-      <PromoUsageModal visible={c.usageModalVisible} selectedCode={c.selectedCode}
-        usageData={c.usageData} usageLoading={c.usageLoading} onClose={c.closeUsageModal} />
+      <PromoUsageModal
+        visible={c.usageModalVisible}
+        selectedCode={c.selectedCode}
+        usageData={c.usageData}
+        usageLoading={c.usageLoading}
+        onClose={c.closeUsageModal}
+      />
     </PageContainer>
   );
 }
@@ -171,16 +228,42 @@ const styles = StyleSheet.create({
   statLabel: { ...Typography.caption, marginTop: Spacing.micro },
   statDivider: { width: 1, height: 36, position: 'absolute', left: 0 },
   filterContainer: { gap: Spacing.xs, flexWrap: 'wrap' },
-  filterButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  filterButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
   filterText: { ...Typography.smallSemiBold },
   listHeader: { marginTop: Spacing.xs },
   listTitle: { ...Typography.heading },
-  createButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  createButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
   createButtonText: { ...Typography.bodySmallSemiBold },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
-  emptyIcon: { width: 80, height: 80, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
   emptyTitle: { ...Typography.subheading },
   emptyDescription: { ...Typography.bodySmall, textAlign: 'center', paddingHorizontal: Spacing.lg },
-  createButtonSmall: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.md },
+  createButtonSmall: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    marginTop: Spacing.md,
+  },
   createButtonSmallText: { ...Typography.bodySmallSemiBold },
 });

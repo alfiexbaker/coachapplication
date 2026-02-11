@@ -27,12 +27,11 @@ interface ShareUrlBoxProps {
 
 export const ShareUrlBox = memo(function ShareUrlBox({ url, palette }: ShareUrlBoxProps) {
   return (
-    <Row style={[styles.urlBox, { backgroundColor: palette.background, borderColor: palette.border }]}>
+    <Row
+      style={[styles.urlBox, { backgroundColor: palette.background, borderColor: palette.border }]}
+    >
       <Ionicons name="link-outline" size={Components.icon.md} color={palette.muted} />
-      <ThemedText
-        style={[Typography.body, { color: palette.text, flex: 1 }]}
-        numberOfLines={1}
-      >
+      <ThemedText style={[Typography.body, { color: palette.text, flex: 1 }]} numberOfLines={1}>
         {url}
       </ThemedText>
     </Row>
@@ -71,16 +70,16 @@ export const ShareActionRow = memo(function ShareActionRow({
       onPress={onPress}
       style={[styles.actionRow, { backgroundColor: bgOverride ?? palette.background }]}
     >
-      <View style={[styles.actionIcon, { backgroundColor: iconBg ?? withAlpha(palette.tint, 0.07) }]}>
+      <View
+        style={[styles.actionIcon, { backgroundColor: iconBg ?? withAlpha(palette.tint, 0.07) }]}
+      >
         <Ionicons name={icon} size={Components.icon.md} color={iconColor ?? palette.tint} />
       </View>
       <View style={{ flex: 1 }}>
         <ThemedText style={[Typography.bodySemiBold, { color: titleColor ?? palette.text }]}>
           {title}
         </ThemedText>
-        <ThemedText style={[Typography.small, { color: palette.muted }]}>
-          {subtitle}
-        </ThemedText>
+        <ThemedText style={[Typography.small, { color: palette.muted }]}>{subtitle}</ThemedText>
       </View>
       {showChevron && (
         <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.muted} />
@@ -105,11 +104,16 @@ export const ShareQrSection = memo(function ShareQrSection({ url, palette }: Sha
       <View style={[styles.qrPlaceholder, { borderColor: palette.border }]}>
         <Ionicons name="qr-code-outline" size={48} color={palette.muted} />
         <ThemedText
-          style={[Typography.small, { color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }]}
+          style={[
+            Typography.small,
+            { color: palette.muted, textAlign: 'center', marginTop: Spacing.xs },
+          ]}
         >
           {url}
         </ThemedText>
-        <ThemedText style={[Typography.caption, { color: palette.muted, marginTop: Spacing.xs / 2 }]}>
+        <ThemedText
+          style={[Typography.caption, { color: palette.muted, marginTop: Spacing.xs / 2 }]}
+        >
           Scan to view profile
         </ThemedText>
       </View>
@@ -140,10 +144,13 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
 }: ShareSlugEditorProps) {
   return (
     <View style={styles.slugSection}>
-      <ThemedText style={[Typography.heading, { color: palette.text }]}>
-        Custom URL Slug
-      </ThemedText>
-      <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.xs / 2, marginBottom: Spacing.sm }]}>
+      <ThemedText style={[Typography.heading, { color: palette.text }]}>Custom URL Slug</ThemedText>
+      <ThemedText
+        style={[
+          Typography.small,
+          { color: palette.muted, marginTop: Spacing.xs / 2, marginBottom: Spacing.sm },
+        ]}
+      >
         Personalise your profile URL for easier sharing
       </ThemedText>
       <Row style={styles.slugInputRow}>
@@ -152,10 +159,7 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
         </ThemedText>
         {editing ? (
           <TextInput
-            style={[
-              styles.slugInput,
-              { borderColor: palette.tint, color: palette.text },
-            ]}
+            style={[styles.slugInput, { borderColor: palette.tint, color: palette.text }]}
             value={slug}
             onChangeText={onChangeSlug}
             autoFocus

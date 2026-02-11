@@ -16,15 +16,22 @@ export function renderStars(rating: number, color: string) {
   const hasHalf = rating % 1 >= 0.5;
   for (let i = 0; i < 5; i++) {
     if (i < full) stars.push(<Ionicons key={i} name="star" size={14} color={color} />);
-    else if (i === full && hasHalf) stars.push(<Ionicons key={i} name="star-half" size={14} color={color} />);
+    else if (i === full && hasHalf)
+      stars.push(<Ionicons key={i} name="star-half" size={14} color={color} />);
     else stars.push(<Ionicons key={i} name="star-outline" size={14} color={color} />);
   }
   return stars;
 }
 
-interface CoachDetailReviewsProps { coach: Coach; reviews: PublicReview[]; }
+interface CoachDetailReviewsProps {
+  coach: Coach;
+  reviews: PublicReview[];
+}
 
-export const CoachDetailReviews = memo(function CoachDetailReviews({ coach, reviews }: CoachDetailReviewsProps) {
+export const CoachDetailReviews = memo(function CoachDetailReviews({
+  coach,
+  reviews,
+}: CoachDetailReviewsProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -33,7 +40,9 @@ export const CoachDetailReviews = memo(function CoachDetailReviews({ coach, revi
         <View style={styles.ratingBig}>
           <ThemedText style={styles.ratingNumber}>{coach.rating.toFixed(1)}</ThemedText>
           <Row style={styles.starsRow}>{renderStars(coach.rating, palette.warning)}</Row>
-          <ThemedText style={{ color: palette.muted }}>{coach.reviewCount} review{coach.reviewCount !== 1 ? 's' : ''}</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            {coach.reviewCount} review{coach.reviewCount !== 1 ? 's' : ''}
+          </ThemedText>
         </View>
       </SurfaceCard>
       {reviews.length > 0 ? (
@@ -41,21 +50,38 @@ export const CoachDetailReviews = memo(function CoachDetailReviews({ coach, revi
           <Animated.View key={review.id} entering={FadeInDown.delay(index * 50)}>
             <SurfaceCard style={styles.reviewCard}>
               <Row style={styles.reviewHeader}>
-                <View style={[styles.reviewAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                  <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>{review.reviewerName.charAt(0)}</ThemedText>
+                <View
+                  style={[styles.reviewAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+                >
+                  <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                    {review.reviewerName.charAt(0)}
+                  </ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">{review.reviewerName}</ThemedText>
                   <Row style={styles.starsRow}>{renderStars(review.rating, palette.warning)}</Row>
                 </View>
                 <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                  {new Date(review.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {new Date(review.createdAt).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
                 </ThemedText>
               </Row>
-              {review.comment && <ThemedText style={styles.reviewText}>{review.comment}</ThemedText>}
+              {review.comment && (
+                <ThemedText style={styles.reviewText}>{review.comment}</ThemedText>
+              )}
               {review.sessionType && (
-                <View style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-                  <ThemedText style={{ color: palette.tint, ...Typography.caption }}>{review.sessionType}</ThemedText>
+                <View
+                  style={[
+                    styles.sessionTypeBadge,
+                    { backgroundColor: withAlpha(palette.tint, 0.06) },
+                  ]}
+                >
+                  <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
+                    {review.sessionType}
+                  </ThemedText>
                 </View>
               )}
             </SurfaceCard>
@@ -79,8 +105,24 @@ const styles = StyleSheet.create({
   starsRow: { gap: Spacing.micro },
   reviewCard: { gap: Spacing.sm },
   reviewHeader: { alignItems: 'center', gap: Spacing.sm },
-  reviewAvatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   reviewText: { lineHeight: 20 },
-  sessionTypeBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
-  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['2xl'], gap: Spacing.sm },
+  sessionTypeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['2xl'],
+    gap: Spacing.sm,
+  },
 });

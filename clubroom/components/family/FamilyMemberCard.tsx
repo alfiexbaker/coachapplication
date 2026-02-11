@@ -68,9 +68,7 @@ export function FamilyMemberCard({
               { backgroundColor: withAlpha(member.colorCode, 0.12) },
             ]}
           >
-            <ThemedText
-              style={[styles.avatarText, { color: member.colorCode }]}
-            >
+            <ThemedText style={[styles.avatarText, { color: member.colorCode }]}>
               {getInitials(member.name)}
             </ThemedText>
           </View>
@@ -82,9 +80,7 @@ export function FamilyMemberCard({
             <ThemedText type="defaultSemiBold" style={styles.name}>
               {member.name}
             </ThemedText>
-            <View
-              style={[styles.colorDot, { backgroundColor: member.colorCode }]}
-            />
+            <View style={[styles.colorDot, { backgroundColor: member.colorCode }]} />
           </Row>
           <Row style={styles.metaRow}>
             <ThemedText style={[styles.meta, { color: palette.muted }]}>
@@ -106,9 +102,7 @@ export function FamilyMemberCard({
         </View>
 
         {/* Chevron */}
-        {onPress && (
-          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-        )}
+        {onPress && <Ionicons name="chevron-forward" size={20} color={palette.muted} />}
       </Row>
 
       {/* Stats Row */}
@@ -116,21 +110,13 @@ export function FamilyMemberCard({
         <Row style={[styles.statsRow, { borderTopColor: palette.border }]}>
           <Row style={styles.stat}>
             <Ionicons name="calendar-outline" size={16} color={member.colorCode} />
-            <ThemedText style={styles.statValue}>
-              {member.totalSessions || 0}
-            </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-              sessions
-            </ThemedText>
+            <ThemedText style={styles.statValue}>{member.totalSessions || 0}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>sessions</ThemedText>
           </Row>
           <Row style={styles.stat}>
             <Ionicons name="ribbon-outline" size={16} color={palette.rating} />
-            <ThemedText style={styles.statValue}>
-              {member.totalBadges || 0}
-            </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-              badges
-            </ThemedText>
+            <ThemedText style={styles.statValue}>{member.totalBadges || 0}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>badges</ThemedText>
           </Row>
           {member.primarySport && (
             <Row style={styles.stat}>
@@ -146,11 +132,7 @@ export function FamilyMemberCard({
   );
 
   if (onPress) {
-    return (
-      <Clickable onPress={() => onPress(member)}>
-        {content}
-      </Clickable>
-    );
+    return <Clickable onPress={() => onPress(member)}>{content}</Clickable>;
   }
 
   return content;

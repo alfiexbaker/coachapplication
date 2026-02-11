@@ -7,7 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { QuietHoursSelector, ChannelToggle, NotificationTypeList, MutedCoachesList } from '@/components/notification';
+import {
+  QuietHoursSelector,
+  ChannelToggle,
+  NotificationTypeList,
+  MutedCoachesList,
+} from '@/components/notification';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useNotificationPrefs } from '@/hooks/use-notification-prefs';
@@ -23,13 +28,19 @@ export default function NotificationPreferencesScreen() {
     onRefresh,
     retry,
     updating,
-    handleRefresh, handleQuietHoursChange, handleChannelToggle,
-    handleTypeToggle, handleUnmuteCoach,
+    handleRefresh,
+    handleQuietHoursChange,
+    handleChannelToggle,
+    handleTypeToggle,
+    handleUnmuteCoach,
   } = useNotificationPrefs();
 
   if (loading && !preferences) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Header colors={colors} updating={false} />
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -38,50 +49,88 @@ export default function NotificationPreferencesScreen() {
 
   if (status === 'error' && !preferences) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Header colors={colors} updating={false} />
-        <ErrorState
-          message={error ?? 'Failed to load notification preferences.'}
-          onRetry={retry}
-        />
+        <ErrorState message={error ?? 'Failed to load notification preferences.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Header colors={colors} updating={updating} />
 
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+        }
       >
         {preferences && (
           <>
             <View style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>QUIET HOURS</ThemedText>
-              <QuietHoursSelector value={preferences.quietHours} onChange={handleQuietHoursChange} disabled={updating} loading={updating} />
+              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
+                QUIET HOURS
+              </ThemedText>
+              <QuietHoursSelector
+                value={preferences.quietHours}
+                onChange={handleQuietHoursChange}
+                disabled={updating}
+                loading={updating}
+              />
             </View>
 
             <View style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>NOTIFICATION CHANNELS</ThemedText>
-              <ChannelToggle value={preferences.channels} onChange={handleChannelToggle} disabled={updating} loading={updating} />
+              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
+                NOTIFICATION CHANNELS
+              </ThemedText>
+              <ChannelToggle
+                value={preferences.channels}
+                onChange={handleChannelToggle}
+                disabled={updating}
+                loading={updating}
+              />
             </View>
 
             <View style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>NOTIFICATION TYPES</ThemedText>
-              <ThemedText style={[styles.sectionDescription, { color: colors.muted }]}>Choose which notifications you want to receive. Tap a category to expand.</ThemedText>
-              <NotificationTypeList typePreferences={preferences.typePreferences} onToggle={handleTypeToggle} disabled={updating} loading={updating} />
+              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
+                NOTIFICATION TYPES
+              </ThemedText>
+              <ThemedText style={[styles.sectionDescription, { color: colors.muted }]}>
+                Choose which notifications you want to receive. Tap a category to expand.
+              </ThemedText>
+              <NotificationTypeList
+                typePreferences={preferences.typePreferences}
+                onToggle={handleTypeToggle}
+                disabled={updating}
+                loading={updating}
+              />
             </View>
 
             <View style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>MUTED COACHES</ThemedText>
-              <MutedCoachesList mutedCoaches={preferences.mutedCoaches} onUnmute={handleUnmuteCoach} disabled={updating} loading={updating} />
+              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
+                MUTED COACHES
+              </ThemedText>
+              <MutedCoachesList
+                mutedCoaches={preferences.mutedCoaches}
+                onUnmute={handleUnmuteCoach}
+                disabled={updating}
+                loading={updating}
+              />
             </View>
 
             <View style={styles.infoContainer}>
-              <ThemedText style={[styles.infoText, { color: colors.muted }]}>Some critical notifications like account security and payment issues cannot be disabled.</ThemedText>
+              <ThemedText style={[styles.infoText, { color: colors.muted }]}>
+                Some critical notifications like account security and payment issues cannot be
+                disabled.
+              </ThemedText>
             </View>
           </>
         )}
@@ -96,14 +145,24 @@ export default function NotificationPreferencesScreen() {
   );
 }
 
-function Header({ colors, updating }: { colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors']; updating: boolean }) {
+function Header({
+  colors,
+  updating,
+}: {
+  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
+  updating: boolean;
+}) {
   return (
     <Row justify="space-between" align="center" style={styles.header}>
       <Clickable onPress={() => router.back()} hitSlop={8}>
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>
-      <ThemedText type="title" style={styles.headerTitle}>Notification Preferences</ThemedText>
-      <View style={{ width: 24 }}>{updating && <ActivityIndicator size="small" color={colors.accent} />}</View>
+      <ThemedText type="title" style={styles.headerTitle}>
+        Notification Preferences
+      </ThemedText>
+      <View style={{ width: 24 }}>
+        {updating && <ActivityIndicator size="small" color={colors.accent} />}
+      </View>
     </Row>
   );
 }
@@ -116,7 +175,13 @@ const styles = StyleSheet.create({
   loadingText: { ...Typography.bodySmall },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'] },
   section: { marginBottom: Spacing.xl },
-  sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: Spacing.sm, marginBottom: Spacing.sm },
+  sectionTitle: {
+    ...Typography.smallSemiBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginLeft: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   sectionDescription: { ...Typography.small, marginLeft: Spacing.sm, marginBottom: Spacing.sm },
   infoContainer: { paddingHorizontal: Spacing.sm, marginTop: Spacing.sm },
   infoText: { ...Typography.small, textAlign: 'center' },

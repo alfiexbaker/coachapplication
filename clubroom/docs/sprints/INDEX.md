@@ -1,31 +1,34 @@
 # Sprints Index
 
-> **Active work:** `Foundation/` — API-ready hardening (Phases 1-5)
-> **Feature backlog:** `../USER-STORIES.md` — DO NOT start features until Foundation is complete
+> **Active work:** Functionality execution from `../USER-STORIES.md` and `../ROADMAP.md`
+> **Foundation status:** Complete (Phases 1-5 closed, Sprint 46 POC stabilization closed)
+> **Live metrics + route atlas:** `../AI_CONTEXT.md` and `../COACH_PARENT_FUNCTIONALITY_ATLAS.md`
 
 ---
 
-## Foundation/ (9 files) — ACTIVE
+## Foundation/ — Closed Trackers
 
-**The current plan. Do these in order. No feature work until all 5 phases pass their quality gates.**
+Foundation docs remain as reference trackers and contracts. Completed sprint files were moved to `CompletedSprints/` to reduce execution noise.
+Raw counts inside older closed trackers are historical snapshots; use `../AI_CONTEXT.md` for current code metrics.
 
 | File | Status | Duration | What |
 |------|--------|----------|------|
 | `PHASE-2-DATA-ACCESS.md` | COMPLETE | ~1.5 weeks | 70 mock-data imports → services, UserService, remove denormalized fields |
 | `PHASE-2-EXECUTION-PLAY.md` | COMPLETE | ~1.5 weeks | Repo-validated Phase 2 sequencing, risk controls, and quality gates |
 | `PHASE-2-LIVE-TRACKER.md` | COMPLETE | Rolling | Exact 70-file migration checklist with per-item status tracking |
-| `PHASE-3-SCREEN-INFRASTRUCTURE.md` | ACTIVE | ~1.5 weeks | Enhance useScreen(), migrate 175 screens, 4 visual states everywhere |
-| `PHASE-3-LIVE-TRACKER.md` | ACTIVE | Rolling | Exact 189-screen migration checklist with per-screen status and wave mapping |
-| `SPRINT-43-PHASE-3-WAVE-1.md` | COMPLETE | ~3 days | Phase 3 kickoff batch completed: useScreen infra upgrades + first high-traffic migration screens |
-| `PHASE-4-UI-CONSISTENCY.md` | Pending | ~1 week | Decompose 188 components, Pressable→Clickable, Row, Reanimated, tokens |
-| `PHASE-4-PROGRESS.md` | Tracking | — | Progress tracker for Phase 4 migration batches |
-| `PHASE-5-TEST-COVERAGE.md` | Pending | ~1.5 weeks | 70%+ service coverage, strict:true, critical path tests |
+| `PHASE-3-SCREEN-INFRASTRUCTURE.md` | COMPLETE | ~1.5 weeks | `useScreen` migration and screen infra hardening |
+| `PHASE-3-LIVE-TRACKER.md` | COMPLETE | Rolling | Exact 189-screen migration checklist with per-screen status and wave mapping |
+| `PHASE-4-UI-CONSISTENCY.md` | COMPLETE | ~1 week | Component decomposition + consistency hardening |
+| `PHASE-4-PROGRESS.md` | COMPLETE | — | Progress tracker for Phase 4 migration batches |
+| `PHASE-5-TEST-COVERAGE.md` | COMPLETE | ~1.5 weeks | 70%+ service coverage, strict test typing, runtime gates |
+| `PHASE-5-LIVE-TRACKER.md` | COMPLETE | Rolling | Phase 5 wave + gate tracker |
+| `POC-MOCK-SERVICE-CONTRACT.md` | ACTIVE | Ongoing | POC mock-service operating contract with one-flag switchover |
 | `SPRINT-9-TODO-AFTER.md` | — | — | Parking lot for post-foundation work |
 | `INDEX.md` | — | — | This overview |
 
 ---
 
-## CompletedSprints/ (20 files)
+## CompletedSprints/ (24 files)
 
 All verified done. Historical reference only.
 
@@ -40,6 +43,10 @@ All verified done. Historical reference only.
 | `SPRINT8-COLORS-LIGHT.md` | Colors.light → dynamic colors — ~216 files |
 | `SPRINT9-FONTWEIGHT-CLEANUP.md` | fontWeight → Typography tokens — 17 files |
 | `PHASE-1-SERVICE-HARDENING.md` | Foundation Phase 1 complete — services hardened for Result<T>/apiClient/events |
+| `SPRINT-43-PHASE-3-WAVE-1.md` | Phase 3 kickoff and Wave 1 completion record |
+| `SPRINT-44-PHASE-4-WAVE-1.md` | Phase 4 kickoff and Wave 1 completion record |
+| `SPRINT-45-PHASE-5-WAVE-1.md` | Phase 5 kickoff and wave closure record |
+| `SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md` | POC mock-service stabilization closeout |
 | `1A-api-client-service-pattern.md` | API client + 59 services migrated |
 | `1B-fix-broken-flows.md` | Invite→booking + counter-offer→booking |
 | `1C-offline-support.md` | Offline banner + action queue |

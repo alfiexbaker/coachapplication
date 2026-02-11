@@ -17,23 +17,40 @@ import { CalendarGrid } from '@/components/club/calendar-grid';
 import { CalendarEventList } from '@/components/club/calendar-event-list';
 import { CalendarSquadFilter } from '@/components/club/calendar-squad-filter';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubCalendar, MONTH_LABELS } from '@/hooks/use-club-calendar';
 
 export default function CalendarScreen() {
   const { colors } = useTheme();
   const {
-    year, month, selectedDay, setSelectedDay,
-    status, error, refreshing, onRefresh, retry,
-    squads, squadFilter, setSquadFilter,
-    eventsByDate, selectedEvents, weeks,
-    isToday, handlePrevMonth, handleNextMonth,
+    year,
+    month,
+    selectedDay,
+    setSelectedDay,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    squads,
+    squadFilter,
+    setSquadFilter,
+    eventsByDate,
+    selectedEvents,
+    weeks,
+    isToday,
+    handlePrevMonth,
+    handleNextMonth,
   } = useClubCalendar();
 
   if (status === 'loading') {
     return (
-      <PageContainer header={<PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />}>
+      <PageContainer
+        header={
+          <PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />
+        }
+      >
         <LoadingState variant="calendar" />
       </PageContainer>
     );
@@ -41,7 +58,11 @@ export default function CalendarScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer header={<PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />}>
+      <PageContainer
+        header={
+          <PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />
+        }
+      >
         <ErrorState message={error?.message || 'Failed to load club calendar.'} onRetry={retry} />
       </PageContainer>
     );
@@ -59,13 +80,27 @@ export default function CalendarScreen() {
 
       {/* Month Navigation */}
       <Row align="center" justify="space-between">
-        <Clickable onPress={handlePrevMonth} accessibilityLabel="Previous month" style={[styles.navButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Clickable
+          onPress={handlePrevMonth}
+          accessibilityLabel="Previous month"
+          style={[
+            styles.navButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
           <Ionicons name="chevron-back" size={Components.icon.md} color={colors.foreground} />
         </Clickable>
         <ThemedText style={[Typography.heading, { color: colors.foreground }]}>
           {MONTH_LABELS[month]} {year}
         </ThemedText>
-        <Clickable onPress={handleNextMonth} accessibilityLabel="Next month" style={[styles.navButton, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Clickable
+          onPress={handleNextMonth}
+          accessibilityLabel="Next month"
+          style={[
+            styles.navButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
           <Ionicons name="chevron-forward" size={Components.icon.md} color={colors.foreground} />
         </Clickable>
       </Row>
@@ -79,14 +114,24 @@ export default function CalendarScreen() {
 
       {/* Calendar Grid */}
       <CalendarGrid
-        year={year} month={month} selectedDay={selectedDay}
-        weeks={weeks} eventsByDate={eventsByDate} loading={false}
-        isToday={isToday} onSelectDay={setSelectedDay}
+        year={year}
+        month={month}
+        selectedDay={selectedDay}
+        weeks={weeks}
+        eventsByDate={eventsByDate}
+        loading={false}
+        isToday={isToday}
+        onSelectDay={setSelectedDay}
       />
 
       {/* Selected Day Events */}
       {selectedDay !== null && (
-        <CalendarEventList year={year} month={month} selectedDay={selectedDay} events={selectedEvents} />
+        <CalendarEventList
+          year={year}
+          month={month}
+          selectedDay={selectedDay}
+          events={selectedEvents}
+        />
       )}
 
       {Object.keys(eventsByDate).length === 0 && (
@@ -110,6 +155,13 @@ function LegendItem({ color, muted, label }: { color: string; muted: string; lab
 }
 
 const styles = StyleSheet.create({
-  navButton: { width: Components.button.height, height: Components.button.height, borderRadius: Radii.button, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  navButton: {
+    width: Components.button.height,
+    height: Components.button.height,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dot: { width: 5, height: 5, borderRadius: Radii.xs },
 });

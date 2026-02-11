@@ -11,7 +11,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { WaitlistCard } from '@/components/waitlist/WaitlistCard';
-import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -74,7 +74,10 @@ export default function WaitlistScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -82,17 +85,20 @@ export default function WaitlistScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState
-          message={error?.message ?? 'Failed to load waitlists.'}
-          onRetry={retry}
-        />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState message={error?.message ?? 'Failed to load waitlists.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -111,11 +117,7 @@ export default function WaitlistScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={palette.tint}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
         }
       >
         {entries.length === 0 ? (
@@ -145,8 +147,10 @@ export default function WaitlistScreen() {
             <Row align="start" gap="sm" style={styles.infoRow}>
               <Ionicons name="flash" size={16} color={palette.tint} />
               <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-                <ThemedText style={{ fontWeight: '600', color: palette.tint }}>Auto-book</ThemedText>
-                {' '}automatically reserves your spot when available
+                <ThemedText style={{ fontWeight: '600', color: palette.tint }}>
+                  Auto-book
+                </ThemedText>{' '}
+                automatically reserves your spot when available
               </ThemedText>
             </Row>
             <Row align="start" gap="sm" style={styles.infoRow}>

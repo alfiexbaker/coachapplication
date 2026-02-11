@@ -25,15 +25,30 @@ import { useEmergencyContacts } from '@/hooks/use-emergency-contacts';
 export default function EmergencyContactsScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    loading, status, error, contacts, showForm, editingContact,
-    refreshing, onRefresh, retry,
-    handleAddContact, handleUpdateContact, handleDeleteContact, handleSetPrimary,
-    openForm, closeForm, startEdit,
+    loading,
+    status,
+    error,
+    contacts,
+    showForm,
+    editingContact,
+    refreshing,
+    onRefresh,
+    retry,
+    handleAddContact,
+    handleUpdateContact,
+    handleDeleteContact,
+    handleSetPrimary,
+    openForm,
+    closeForm,
+    startEdit,
   } = useEmergencyContacts();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -41,17 +56,28 @@ export default function EmergencyContactsScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <ErrorState message={error?.message ?? 'Failed to load emergency contacts.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load emergency contacts.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
       >
         <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
@@ -61,7 +87,11 @@ export default function EmergencyContactsScreen() {
             <ThemedText type="title">Emergency Contacts</ThemedText>
           </View>
           {!showForm && !editingContact && contacts.length > 0 && (
-            <Clickable accessibilityLabel="Add emergency contact" onPress={openForm} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+            <Clickable
+              accessibilityLabel="Add emergency contact"
+              onPress={openForm}
+              style={[styles.addButton, { backgroundColor: colors.tint }]}
+            >
               <Ionicons name="add" size={20} color={colors.onPrimary} />
             </Clickable>
           )}
@@ -117,6 +147,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
-  addButton: { width: 36, height: 36, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   infoBox: { padding: Spacing.md, borderRadius: Radii.md, backgroundColor: 'transparent' },
 });

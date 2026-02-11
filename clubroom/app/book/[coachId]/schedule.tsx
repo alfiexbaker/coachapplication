@@ -51,12 +51,14 @@ export default function ScheduleScreen() {
         coachId,
         dateRange.startDate,
         dateRange.endDate,
-        duration
+        duration,
       );
       return ok(slots);
     } catch (loadError) {
       logger.error('Failed to fetch availability:', loadError);
-      return err(serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
+      );
     }
   }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration]);
 
@@ -74,7 +76,7 @@ export default function ScheduleScreen() {
     isEmpty: (slots) => !slots.some((slot) => slot.isAvailable),
     refetchOnFocus: true,
   });
-  const allSlots = data ?? [];
+  const allSlots = useMemo(() => data ?? [], [data]);
 
   // Auto-select first available date if none selected
   useEffect(() => {
@@ -123,7 +125,10 @@ export default function ScheduleScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="calendar" />
       </SafeAreaView>
     );
@@ -131,15 +136,24 @@ export default function ScheduleScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={error?.message ?? 'Unable to load available times. Please try again.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message ?? 'Unable to load available times. Please try again.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <BookingWizardHeader
           title="Choose date & time"
           subtitle="No availability in the next 2 weeks"
@@ -157,10 +171,15 @@ export default function ScheduleScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
       >
         <BookingWizardHeader
           title="Choose date & time"
@@ -199,7 +218,9 @@ export default function ScheduleScreen() {
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+              Continue
+            </ThemedText>
           </Row>
         </Clickable>
       </View>

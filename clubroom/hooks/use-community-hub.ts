@@ -80,18 +80,13 @@ export function useCommunityHub(): UseCommunityHubResult {
       });
     } catch (loadError) {
       logger.error('Failed to load community data:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load community data. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load community data. Pull down to refresh.', loadError),
+      );
     }
   }, [parentId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<CommunityHubData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CommunityHubData>({
     load: loadData,
     deps: [parentId],
     events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
@@ -107,45 +102,82 @@ export function useCommunityHub(): UseCommunityHubResult {
   const carpoolOffers = data?.carpoolOffers ?? [];
   const loading = status === 'loading';
 
-  const handleCreateGroup = useCallback(async (data: CreateGroupFormData) => {
-    setCreatingGroup(true);
-    try {
-      const result = await communityService.createGroup({
-        name: data.name, description: data.description, type: data.type,
-        memberIds: [], memberNames: [], creatorId: parentId, creatorName: parentName, isPublic: data.isPublic,
-      });
-      if (!result.success) {
-        Alert.alert('Could not create group', result.error.message);
-        return;
+  const handleCreateGroup = useCallback(
+    async (data: CreateGroupFormData) => {
+      setCreatingGroup(true);
+      try {
+        const result = await communityService.createGroup({
+          name: data.name,
+          description: data.description,
+          type: data.type,
+          memberIds: [],
+          memberNames: [],
+          creatorId: parentId,
+          creatorName: parentName,
+          isPublic: data.isPublic,
+        });
+        if (!result.success) {
+          Alert.alert('Could not create group', result.error.message);
+          return;
+        }
+        setShowCreateModal(false);
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to create group:', error);
+      } finally {
+        setCreatingGroup(false);
       }
-      setShowCreateModal(false);
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to create group:', error);
-    } finally {
-      setCreatingGroup(false);
-    }
-  }, [parentId, parentName, onRefresh]);
+    },
+    [parentId, parentName, onRefresh],
+  );
 
   const isCoachUser = currentUser?.role === 'COACH';
 
-  const handleJoinGroup = useCallback(async (group: ParentGroup) => {
-    try {
-      const result = await communityService.joinGroup(group.id, parentId, parentName, { isCoach: isCoachUser });
-      if (!result.success) { Alert.alert('Could not join', result.error.message); return; }
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to join group:', error);
-      Alert.alert('Error', 'Failed to join group. Please try again.');
-    }
-  }, [parentId, parentName, isCoachUser, onRefresh]);
+  const handleJoinGroup = useCallback(
+    async (group: ParentGroup) => {
+      try {
+        const result = await communityService.joinGroup(group.id, parentId, parentName, {
+          isCoach: isCoachUser,
+        });
+        if (!result.success) {
+          Alert.alert('Could not join', result.error.message);
+          return;
+        }
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to join group:', error);
+        Alert.alert('Error', 'Failed to join group. Please try again.');
+      }
+    },
+    [parentId, parentName, isCoachUser, onRefresh],
+  );
 
-  const handleGroupPress = useCallback((group: ParentGroup) => { router.push(Routes.communityGroup(group.id)); }, []);
-  const handleCarpoolPress = useCallback(() => { router.push(Routes.CARPOOL); }, []);
+  const handleGroupPress = useCallback((group: ParentGroup) => {
+    router.push(Routes.communityGroup(group.id));
+  }, []);
+  const handleCarpoolPress = useCallback(() => {
+    router.push(Routes.CARPOOL);
+  }, []);
 
   return {
-    activeTab, setActiveTab, myGroups, publicGroups, carpoolOffers,
-    status, loading, error, refreshing, showCreateModal, setShowCreateModal, creatingGroup,
-    parentId, onRefresh, retry, handleCreateGroup, handleJoinGroup, handleGroupPress, handleCarpoolPress,
+    activeTab,
+    setActiveTab,
+    myGroups,
+    publicGroups,
+    carpoolOffers,
+    status,
+    loading,
+    error,
+    refreshing,
+    showCreateModal,
+    setShowCreateModal,
+    creatingGroup,
+    parentId,
+    onRefresh,
+    retry,
+    handleCreateGroup,
+    handleJoinGroup,
+    handleGroupPress,
+    handleCarpoolPress,
   };
 }

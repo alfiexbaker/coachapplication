@@ -70,9 +70,7 @@ export function FilterSlider({
       />
 
       {showValue && (
-        <ThemedText style={[styles.value, { color: palette.muted }]}>
-          {displayValue}
-        </ThemedText>
+        <ThemedText style={[styles.value, { color: palette.muted }]}>{displayValue}</ThemedText>
       )}
 
       {presets && presets.length > 0 && (

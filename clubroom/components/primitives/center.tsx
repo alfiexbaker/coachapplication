@@ -26,7 +26,8 @@ export interface CenterProps {
 }
 
 export const Center = memo(function Center({ flex, padding, style, children }: CenterProps) {
-  const px = padding === undefined ? undefined : typeof padding === 'number' ? padding : Spacing[padding];
+  const px =
+    padding === undefined ? undefined : typeof padding === 'number' ? padding : Spacing[padding];
 
   const computed: ViewStyle = {
     alignItems: 'center',

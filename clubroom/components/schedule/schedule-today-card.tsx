@@ -10,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { DayData, SessionData } from './schedule-types';
 
@@ -43,7 +43,10 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
   return (
     <Animated.View entering={FadeInDown.delay(100).springify()}>
       <SurfaceCard
-        style={[styles.card, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+        ]}
       >
         <Row justify="between" align="flex-start">
           <Column>
@@ -64,21 +67,12 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
         </Row>
 
         {nextSession ? (
-          <Row
-            align="center"
-            style={[styles.nextBanner, { backgroundColor: colors.background }]}
-          >
+          <Row align="center" style={[styles.nextBanner, { backgroundColor: colors.background }]}>
             <Column flex>
-              <ThemedText
-                style={[styles.nextTitle, { color: colors.text }]}
-                numberOfLines={1}
-              >
+              <ThemedText style={[styles.nextTitle, { color: colors.text }]} numberOfLines={1}>
                 {nextSession.athleteName || nextSession.title}
               </ThemedText>
-              <ThemedText
-                style={[styles.nextMeta, { color: colors.muted }]}
-                numberOfLines={1}
-              >
+              <ThemedText style={[styles.nextMeta, { color: colors.muted }]} numberOfLines={1}>
                 {nextSession.time} · {nextSession.location || 'Location TBD'}
               </ThemedText>
             </Column>

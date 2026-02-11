@@ -63,8 +63,8 @@ const MOCK_INVOICES: Invoice[] = [
     sessionType: 'Group Training - Striker Camp',
     sessionLocation: 'Hackney Sports Centre',
     sessionDuration: 90,
-    amount: 62.50,
-    tax: 12.50,
+    amount: 62.5,
+    tax: 12.5,
     taxRate: 20,
     total: 75.0,
     currency: 'GBP',
@@ -108,8 +108,8 @@ const MOCK_INVOICES: Invoice[] = [
     sessionType: 'Goalkeeper Training',
     sessionLocation: 'North London Sports Complex',
     sessionDuration: 60,
-    amount: 37.50,
-    tax: 7.50,
+    amount: 37.5,
+    tax: 7.5,
     taxRate: 20,
     total: 45.0,
     currency: 'GBP',
@@ -154,8 +154,8 @@ const MOCK_INVOICES: Invoice[] = [
     sessionType: '1-on-1 Training',
     sessionLocation: 'Hackney Sports Centre',
     sessionDuration: 60,
-    amount: 37.50,
-    tax: 7.50,
+    amount: 37.5,
+    tax: 7.5,
     taxRate: 20,
     total: 45.0,
     currency: 'GBP',
@@ -193,19 +193,22 @@ const MOCK_INVOICES: Invoice[] = [
 ];
 
 // Mock booking data for generating invoices
-const MOCK_BOOKINGS: Record<string, {
-  coachId: string;
-  coachName: string;
-  athleteId: string;
-  athleteName: string;
-  userId: string;
-  userName: string;
-  sessionDate: string;
-  sessionType: string;
-  sessionLocation: string;
-  sessionDuration: number;
-  amount: number;
-}> = {
+const MOCK_BOOKINGS: Record<
+  string,
+  {
+    coachId: string;
+    coachName: string;
+    athleteId: string;
+    athleteName: string;
+    userId: string;
+    userName: string;
+    sessionDate: string;
+    sessionType: string;
+    sessionLocation: string;
+    sessionDuration: number;
+    amount: number;
+  }
+> = {
   booking_new_001: {
     coachId: 'coach1',
     coachName: 'Sarah Mitchell',
@@ -269,7 +272,7 @@ class InvoiceService {
   async getInvoicesFiltered(
     userId: string,
     filter: InvoiceFilter,
-    limit?: number
+    limit?: number,
   ): Promise<Invoice[]> {
     let invoices = await this.getUserInvoices(userId);
 
@@ -292,16 +295,12 @@ class InvoiceService {
     // Filter by date range
     if (filter.dateFrom) {
       const fromDate = new Date(filter.dateFrom).getTime();
-      invoices = invoices.filter(
-        (inv) => new Date(inv.sessionDate).getTime() >= fromDate
-      );
+      invoices = invoices.filter((inv) => new Date(inv.sessionDate).getTime() >= fromDate);
     }
 
     if (filter.dateTo) {
       const toDate = new Date(filter.dateTo).getTime();
-      invoices = invoices.filter(
-        (inv) => new Date(inv.sessionDate).getTime() <= toDate
-      );
+      invoices = invoices.filter((inv) => new Date(inv.sessionDate).getTime() <= toDate);
     }
 
     if (limit && limit > 0) {
@@ -537,7 +536,7 @@ class InvoiceService {
    */
   private async updateInvoice(
     invoiceId: string,
-    updates: Partial<Invoice>
+    updates: Partial<Invoice>,
   ): Promise<Invoice | null> {
     const invoices = await this.getAllInvoices();
     const index = invoices.findIndex((inv) => inv.id === invoiceId);
@@ -629,7 +628,6 @@ class InvoiceService {
       return false;
     }
   }
-
 
   // ==========================================================================
   // SUMMARY & STATISTICS

@@ -48,13 +48,23 @@ export const CoachSelectList = memo(function CoachSelectList({
               <View style={styles.coachInfo}>
                 <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
                 <ThemedText style={[styles.coachMeta, { color: palette.muted }]}>
-                  {item.sessionCount} session{item.sessionCount !== 1 ? 's' : ''} - Last: {formatCoachDate(item.lastSession)}
+                  {item.sessionCount} session{item.sessionCount !== 1 ? 's' : ''} - Last:{' '}
+                  {formatCoachDate(item.lastSession)}
                 </ThemedText>
               </View>
               {item.hasReview ? (
-                <Row align="center" gap="xxs" style={[styles.reviewedBadge, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
+                <Row
+                  align="center"
+                  gap="xxs"
+                  style={[
+                    styles.reviewedBadge,
+                    { backgroundColor: withAlpha(palette.success, 0.12) },
+                  ]}
+                >
                   <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-                  <ThemedText style={[styles.reviewedText, { color: palette.success }]}>Reviewed</ThemedText>
+                  <ThemedText style={[styles.reviewedText, { color: palette.success }]}>
+                    Reviewed
+                  </ThemedText>
                 </Row>
               ) : (
                 <Ionicons name="chevron-forward" size={20} color={palette.muted} />
@@ -66,8 +76,12 @@ export const CoachSelectList = memo(function CoachSelectList({
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="person-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No coaches to rate yet</ThemedText>
-          <ThemedText style={[styles.emptySubtext, { color: palette.muted }]}>Complete some sessions first</ThemedText>
+          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            No coaches to rate yet
+          </ThemedText>
+          <ThemedText style={[styles.emptySubtext, { color: palette.muted }]}>
+            Complete some sessions first
+          </ThemedText>
         </View>
       }
     />
@@ -77,10 +91,20 @@ export const CoachSelectList = memo(function CoachSelectList({
 const styles = StyleSheet.create({
   list: { padding: Spacing.md, gap: Spacing.sm },
   coachCard: { padding: Spacing.md },
-  avatar: { width: 52, height: 52, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   coachInfo: { flex: 1, gap: Spacing.xxs },
   coachMeta: { ...Typography.small },
-  reviewedBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  reviewedBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   reviewedText: { ...Typography.caption },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2, gap: Spacing.sm },
   emptyText: { ...Typography.subheading },

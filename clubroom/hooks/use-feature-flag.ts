@@ -88,7 +88,7 @@ export function useFeatureFlag(flag: FeatureFlag): boolean {
  * Hook to get multiple feature flags at once.
  */
 export function useFeatureFlags<T extends readonly FeatureFlag[]>(
-  flags: T
+  flags: T,
 ): Record<T[number], boolean> {
   type FlagRecord = Record<T[number], boolean>;
 
@@ -146,8 +146,14 @@ export function FeatureGate({
  * List all feature flags and their current values.
  * Useful for debugging.
  */
-export const listFeatureFlags = (): Record<FeatureFlag, { config: boolean; override?: boolean; effective: boolean }> => {
-  const result = {} as Record<FeatureFlag, { config: boolean; override?: boolean; effective: boolean }>;
+export const listFeatureFlags = (): Record<
+  FeatureFlag,
+  { config: boolean; override?: boolean; effective: boolean }
+> => {
+  const result = {} as Record<
+    FeatureFlag,
+    { config: boolean; override?: boolean; effective: boolean }
+  >;
 
   for (const [key, configValue] of Object.entries(features)) {
     const flag = key as FeatureFlag;

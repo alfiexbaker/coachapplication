@@ -10,11 +10,14 @@ import { scaleFont } from '@/utils/scale';
 import { useTheme } from '@/hooks/useTheme';
 import { getSessionOfferingCoachName } from '@/utils/session-display';
 
+import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
+
 // Re-export extracted components for backward compat
 export { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
-export type { SessionTypeBadgeProps, SessionFooterBadgesProps } from './session-offering-card-sections';
-
-import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
+export type {
+  SessionTypeBadgeProps,
+  SessionFooterBadgesProps,
+} from './session-offering-card-sections';
 
 interface SessionOfferingCardProps {
   offering: SessionOffering;
@@ -23,11 +26,16 @@ interface SessionOfferingCardProps {
   showCapacity?: boolean;
 }
 
-export function SessionOfferingCard({ offering, onPress, showCoach = false, showCapacity = true }: SessionOfferingCardProps) {
+export function SessionOfferingCard({
+  offering,
+  onPress,
+  showCoach = false,
+  showCapacity = true,
+}: SessionOfferingCardProps) {
   const { colors: palette } = useTheme();
   const coachName = getSessionOfferingCoachName(offering);
 
-  const registeredCount = offering.registrations.filter(r => r.status === 'confirmed').length;
+  const registeredCount = offering.registrations.filter((r) => r.status === 'confirmed').length;
   const isFull = registeredCount >= offering.maxParticipants;
   const capacityText = `${registeredCount}/${offering.maxParticipants}`;
 
@@ -37,21 +45,31 @@ export function SessionOfferingCard({ offering, onPress, showCoach = false, show
       return `Every ${days[offering.dayOfWeek]} at ${offering.timeOfDay}`;
     }
     const date = new Date(offering.scheduledAt);
-    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   };
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       <View style={styles.header}>
         <Row wrap align="center" gap={10}>
-          <ThemedText type="defaultSemiBold" style={styles.title}>{offering.title}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.title}>
+            {offering.title}
+          </ThemedText>
           <SessionTypeBadge sessionType={offering.sessionType} palette={palette} />
         </Row>
         {showCoach && <ThemedText style={styles.coachName}>with {coachName}</ThemedText>}
       </View>
 
       {offering.description && (
-        <ThemedText style={styles.description} numberOfLines={2}>{offering.description}</ThemedText>
+        <ThemedText style={styles.description} numberOfLines={2}>
+          {offering.description}
+        </ThemedText>
       )}
 
       <Row align="center" gap={14} style={styles.detailsRow}>
@@ -101,9 +119,26 @@ export function SessionOfferingCard({ offering, onPress, showCoach = false, show
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.lg, gap: Spacing.sm },
   header: { gap: 10 },
-  title: { flex: 1, fontSize: scaleFont(18), fontWeight: '700', letterSpacing: -0.4, lineHeight: scaleFont(25) },
-  coachName: { fontSize: scaleFont(15), opacity: 0.6, fontWeight: '500', lineHeight: scaleFont(21), marginTop: Spacing.micro },
-  description: { fontSize: scaleFont(15), opacity: 0.7, lineHeight: scaleFont(22), marginTop: Spacing.xxs },
+  title: {
+    flex: 1,
+    fontSize: scaleFont(18),
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    lineHeight: scaleFont(25),
+  },
+  coachName: {
+    fontSize: scaleFont(15),
+    opacity: 0.6,
+    fontWeight: '500',
+    lineHeight: scaleFont(21),
+    marginTop: Spacing.micro,
+  },
+  description: {
+    fontSize: scaleFont(15),
+    opacity: 0.7,
+    lineHeight: scaleFont(22),
+    marginTop: Spacing.xxs,
+  },
   detailsRow: { marginTop: Spacing.xxs },
   detailText: { fontSize: scaleFont(14), flex: 1, opacity: 0.8, lineHeight: scaleFont(20) },
   fullOverlay: {
@@ -114,5 +149,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs - 2,
     borderRadius: Radii.sm,
   },
-  fullText: { fontSize: scaleFont(12), fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+  fullText: {
+    fontSize: scaleFont(12),
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
 });

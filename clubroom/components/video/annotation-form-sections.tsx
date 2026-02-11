@@ -45,7 +45,13 @@ export const TimestampControl = memo(function TimestampControl({
         >
           <Ionicons name="remove" size={20} color={palette.text} />
         </Clickable>
-        <Row flex align="center" justify="center" gap="xs" style={[styles.timestampDisplay, { backgroundColor: palette.background }]}>
+        <Row
+          flex
+          align="center"
+          justify="center"
+          gap="xs"
+          style={[styles.timestampDisplay, { backgroundColor: palette.background }]}
+        >
           <Ionicons name="time-outline" size={18} color={palette.tint} />
           <ThemedText type="defaultSemiBold" style={styles.timestampText}>
             {formatTimestamp(timestamp)}
@@ -68,7 +74,12 @@ export const TimestampControl = memo(function TimestampControl({
 
 // ─── Type Selector Grid ──────────────────────────────────────────────────────
 
-const FORM_ANNOTATION_TYPES: VideoAnnotationType[] = ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
+const FORM_ANNOTATION_TYPES: VideoAnnotationType[] = [
+  'HIGHLIGHT',
+  'IMPROVEMENT',
+  'TECHNIQUE',
+  'GENERAL',
+];
 
 type TypeSelectorGridProps = {
   selectedType: VideoAnnotationType;
@@ -101,9 +112,15 @@ export const TypeSelectorGrid = memo(function TypeSelectorGrid({
               ]}
             >
               <View style={[styles.typeIcon, { backgroundColor: withAlpha(config.color, 0.12) }]}>
-                <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={18} color={config.color} />
+                <Ionicons
+                  name={config.icon as keyof typeof Ionicons.glyphMap}
+                  size={18}
+                  color={config.color}
+                />
               </View>
-              <ThemedText style={[styles.typeLabel, { color: isSelected ? config.color : palette.text }]}>
+              <ThemedText
+                style={[styles.typeLabel, { color: isSelected ? config.color : palette.text }]}
+              >
                 {config.label}
               </ThemedText>
             </Clickable>
@@ -132,7 +149,14 @@ export const AnnotationPreview = memo(function AnnotationPreview({
   const { colors: palette } = useTheme();
 
   return (
-    <Row align="start" gap="sm" style={[styles.preview, { backgroundColor: withAlpha(typeColor, 0.06), borderColor: typeColor }]}>
+    <Row
+      align="start"
+      gap="sm"
+      style={[
+        styles.preview,
+        { backgroundColor: withAlpha(typeColor, 0.06), borderColor: typeColor },
+      ]}
+    >
       <View style={[styles.previewDot, { backgroundColor: typeColor }]} />
       <View style={styles.previewContent}>
         <Row align="center" justify="between">
@@ -181,12 +205,34 @@ export const ErrorDisplay = memo(function ErrorDisplay({ errors }: ErrorDisplayP
 const styles = StyleSheet.create({
   section: { gap: Spacing.xs },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
-  timestampButton: { width: 40, height: 40, borderRadius: Radii.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  timestampButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   timestampDisplay: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
   timestampText: { ...Typography.heading },
   timestampTotal: { ...Typography.bodySmall },
-  typeOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs },
-  typeIcon: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  typeOption: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.xs,
+  },
+  typeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   typeLabel: { ...Typography.smallSemiBold },
   preview: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
   previewDot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: Spacing.xxs },

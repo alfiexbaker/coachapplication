@@ -65,7 +65,9 @@ async function getAllSessionFeedback(): Promise<SessionFeedback[]> {
   return apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);
 }
 
-async function addSessionFeedback(feedback: Omit<SessionFeedback, 'id' | 'createdAt'>): Promise<SessionFeedback> {
+async function addSessionFeedback(
+  feedback: Omit<SessionFeedback, 'id' | 'createdAt'>,
+): Promise<SessionFeedback> {
   const allFeedback = await getAllSessionFeedback();
 
   const newFeedback: SessionFeedback = {
@@ -78,8 +80,8 @@ async function addSessionFeedback(feedback: Omit<SessionFeedback, 'id' | 'create
   if (feedback.skillRatings && feedback.skillRatings.length > 0) {
     await progressSkillsService.updateMultipleSkillLevels(
       feedback.athleteId,
-      feedback.skillRatings.map(r => ({ skill: r.skill, level: r.rating })),
-      feedback.coachId
+      feedback.skillRatings.map((r) => ({ skill: r.skill, level: r.rating })),
+      feedback.coachId,
     );
   }
 
@@ -99,26 +101,26 @@ async function addSessionFeedback(feedback: Omit<SessionFeedback, 'id' | 'create
 
 async function getSessionFeedback(sessionId: string): Promise<SessionFeedback | null> {
   const allFeedback = await getAllSessionFeedback();
-  return allFeedback.find(f => f.sessionId === sessionId) ?? null;
+  return allFeedback.find((f) => f.sessionId === sessionId) ?? null;
 }
 
 async function getFeedbackForAthlete(
   athleteId: string,
   viewerRole: 'coach' | 'parent' | 'athlete',
-  limit?: number
+  limit?: number,
 ): Promise<SessionFeedback[]> {
   const allFeedback = await getAllSessionFeedback();
-  let filtered = allFeedback.filter(f => f.athleteId === athleteId);
+  let filtered = allFeedback.filter((f) => f.athleteId === athleteId);
 
   // Filter based on visibility
   if (viewerRole === 'parent') {
-    filtered = filtered.filter(f => f.visibility !== 'coach_only');
+    filtered = filtered.filter((f) => f.visibility !== 'coach_only');
     // Remove private notes for parents
-    filtered = filtered.map(f => ({ ...f, privateNotes: undefined }));
+    filtered = filtered.map((f) => ({ ...f, privateNotes: undefined }));
   } else if (viewerRole === 'athlete') {
-    filtered = filtered.filter(f => f.visibility === 'athlete');
+    filtered = filtered.filter((f) => f.visibility === 'athlete');
     // Remove private notes for athletes
-    filtered = filtered.map(f => ({ ...f, privateNotes: undefined }));
+    filtered = filtered.map((f) => ({ ...f, privateNotes: undefined }));
   }
 
   if (limit) {
@@ -143,7 +145,7 @@ async function getSessionNote(bookingId: string): Promise<SessionNoteRecord | nu
 
 async function saveSessionNote(
   bookingId: string,
-  payload: SessionNoteFields
+  payload: SessionNoteFields,
 ): Promise<SessionNoteRecord> {
   const existing = await getAllSessionNotes();
   const record: SessionNoteRecord = {

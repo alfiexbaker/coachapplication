@@ -19,16 +19,11 @@
  */
 
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Alert,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+import { StyleSheet, Alert, Platform, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import * as Calendar from 'expo-calendar';
 import { Ionicons } from '@expo/vector-icons';
-import { Spacing, Components , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Components, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -64,9 +59,7 @@ async function getDefaultCalendarId(tintColor: string): Promise<string | null> {
   const writable = calendars.find(
     (cal) =>
       cal.allowsModifications &&
-      (cal.source?.type === 'local' ||
-        cal.source?.type === 'LOCAL' ||
-        cal.type === 'local'),
+      (cal.source?.type === 'local' || cal.source?.type === 'LOCAL' || cal.type === 'local'),
   );
   if (writable) return writable.id;
 
@@ -195,7 +188,9 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
             size={20}
             color={added ? palette.success : palette.tint}
           />
-          <ThemedText style={[styles.buttonText, { color: added ? palette.success : palette.tint }]}>
+          <ThemedText
+            style={[styles.buttonText, { color: added ? palette.success : palette.tint }]}
+          >
             {added ? 'Added to Calendar' : 'Add to Calendar'}
           </ThemedText>
         </>
@@ -222,11 +217,9 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.8,
   },
-  buttonAdded: {
-  },
+  buttonAdded: {},
   buttonText: { ...Typography.bodySemiBold },
-  buttonTextAdded: {
-  },
+  buttonTextAdded: {},
 });
 
 export default AddToCalendar;

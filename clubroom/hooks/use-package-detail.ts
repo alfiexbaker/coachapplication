@@ -42,14 +42,7 @@ export function usePackageDetail() {
     }
   }, [id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<PackageDetailData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<PackageDetailData>({
     load: loadPackage,
     deps: [id],
     isEmpty: (value) => value.pkg === null,
@@ -63,13 +56,18 @@ export function usePackageDetail() {
     router.back();
   }, [showToast]);
 
-  const handlePurchaseError = useCallback((error: string) => {
-    showToast(error, 'error');
-  }, [showToast]);
+  const handlePurchaseError = useCallback(
+    (error: string) => {
+      showToast(error, 'error');
+    },
+    [showToast],
+  );
 
   const isCoach = currentUser?.role === 'COACH';
   const isOwnPackage = pkg?.coachId === currentUser?.id;
-  const pricePerSession = pkg ? (pkg.pricePerSession ?? Math.round((pkg.price / pkg.sessionCount) * 100) / 100) : 0;
+  const pricePerSession = pkg
+    ? (pkg.pricePerSession ?? Math.round((pkg.price / pkg.sessionCount) * 100) / 100)
+    : 0;
 
   return {
     pkg,
@@ -82,7 +80,8 @@ export function usePackageDetail() {
     isCoach,
     isOwnPackage,
     pricePerSession,
-    handlePurchaseSuccess, handlePurchaseError,
+    handlePurchaseSuccess,
+    handlePurchaseError,
   } satisfies {
     pkg: SessionPackage | null;
     loading: boolean;

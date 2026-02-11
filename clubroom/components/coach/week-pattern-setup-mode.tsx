@@ -44,7 +44,12 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
     setSetupDays((prev) => {
       const next = { ...prev };
       for (const d of DAYS_ORDERED) {
-        next[d.index] = { ...next[d.index], enabled: preset.days.includes(d.index), startTime: preset.start, endTime: preset.end };
+        next[d.index] = {
+          ...next[d.index],
+          enabled: preset.days.includes(d.index),
+          startTime: preset.start,
+          endTime: preset.end,
+        };
       }
       return next;
     });
@@ -53,15 +58,22 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
   const handleToggleDay = useCallback((dayIndex: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActivePreset('custom');
-    setSetupDays((prev) => ({ ...prev, [dayIndex]: { ...prev[dayIndex], enabled: !prev[dayIndex].enabled } }));
+    setSetupDays((prev) => ({
+      ...prev,
+      [dayIndex]: { ...prev[dayIndex], enabled: !prev[dayIndex].enabled },
+    }));
   }, []);
 
-  const handleTimeChange = useCallback((dayIndex: number, field: 'startTime' | 'endTime', value: string) => {
-    setSetupDays((prev) => ({ ...prev, [dayIndex]: { ...prev[dayIndex], [field]: value } }));
-  }, []);
+  const handleTimeChange = useCallback(
+    (dayIndex: number, field: 'startTime' | 'endTime', value: string) => {
+      setSetupDays((prev) => ({ ...prev, [dayIndex]: { ...prev[dayIndex], [field]: value } }));
+    },
+    [],
+  );
 
   const handleComplete = useCallback(() => {
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const newTemplates: AvailabilityTemplate[] = [];
     for (const d of DAYS_ORDERED) {
       const config = setupDays[d.index];
@@ -88,7 +100,9 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
     <SurfaceCard style={styles.card}>
       <View style={styles.header}>
         <Ionicons name="calendar-outline" size={28} color={palette.tint} />
-        <ThemedText style={[styles.title, { color: palette.text }]}>Set Your Weekly Hours</ThemedText>
+        <ThemedText style={[styles.title, { color: palette.text }]}>
+          Set Your Weekly Hours
+        </ThemedText>
         <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
           Choose when athletes can book sessions with you
         </ThemedText>
@@ -101,9 +115,19 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
             <Clickable
               key={preset.id}
               onPress={() => handlePreset(preset.id)}
-              style={[styles.presetChip, { backgroundColor: isActive ? palette.tint : palette.surface, borderColor: isActive ? palette.tint : palette.border }]}
+              style={[
+                styles.presetChip,
+                {
+                  backgroundColor: isActive ? palette.tint : palette.surface,
+                  borderColor: isActive ? palette.tint : palette.border,
+                },
+              ]}
             >
-              <ThemedText style={[styles.presetText, { color: isActive ? palette.onPrimary : palette.text }]}>{preset.label}</ThemedText>
+              <ThemedText
+                style={[styles.presetText, { color: isActive ? palette.onPrimary : palette.text }]}
+              >
+                {preset.label}
+              </ThemedText>
             </Clickable>
           );
         })}
@@ -115,7 +139,14 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
           return (
             <View key={d.index} style={[styles.dayRow, { borderBottomColor: palette.border }]}>
               <Row style={styles.dayHeader}>
-                <ThemedText style={[styles.dayLabel, { color: config.enabled ? palette.text : palette.muted }]}>{d.full}</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.dayLabel,
+                    { color: config.enabled ? palette.text : palette.muted },
+                  ]}
+                >
+                  {d.full}
+                </ThemedText>
                 <Switch
                   value={config.enabled}
                   onValueChange={() => handleToggleDay(d.index)}
@@ -125,9 +156,25 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
               </Row>
               {config.enabled && (
                 <Row style={styles.dayTimes}>
-                  <DateTimeField mode="time" label="Start" value={config.startTime} onChange={(v) => handleTimeChange(d.index, 'startTime', v)} minuteInterval={15} style={{ flex: 1 }} />
-                  <View style={styles.timeArrow}><Ionicons name="arrow-forward" size={16} color={palette.muted} /></View>
-                  <DateTimeField mode="time" label="End" value={config.endTime} onChange={(v) => handleTimeChange(d.index, 'endTime', v)} minuteInterval={15} style={{ flex: 1 }} />
+                  <DateTimeField
+                    mode="time"
+                    label="Start"
+                    value={config.startTime}
+                    onChange={(v) => handleTimeChange(d.index, 'startTime', v)}
+                    minuteInterval={15}
+                    style={{ flex: 1 }}
+                  />
+                  <View style={styles.timeArrow}>
+                    <Ionicons name="arrow-forward" size={16} color={palette.muted} />
+                  </View>
+                  <DateTimeField
+                    mode="time"
+                    label="End"
+                    value={config.endTime}
+                    onChange={(v) => handleTimeChange(d.index, 'endTime', v)}
+                    minuteInterval={15}
+                    style={{ flex: 1 }}
+                  />
                 </Row>
               )}
             </View>
@@ -138,10 +185,18 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
       <Clickable
         onPress={handleComplete}
         disabled={enabledCount === 0}
-        style={[styles.getStartedBtn, { backgroundColor: enabledCount > 0 ? palette.tint : palette.border, opacity: enabledCount > 0 ? 1 : 0.5 }]}
+        style={[
+          styles.getStartedBtn,
+          {
+            backgroundColor: enabledCount > 0 ? palette.tint : palette.border,
+            opacity: enabledCount > 0 ? 1 : 0.5,
+          },
+        ]}
       >
         <ThemedText style={[styles.getStartedText, { color: palette.onPrimary }]}>
-          {enabledCount > 0 ? `Get Started with ${enabledCount} Day${enabledCount !== 1 ? 's' : ''}` : 'Select at Least One Day'}
+          {enabledCount > 0
+            ? `Get Started with ${enabledCount} Day${enabledCount !== 1 ? 's' : ''}`
+            : 'Select at Least One Day'}
         </ThemedText>
       </Clickable>
     </SurfaceCard>
@@ -156,7 +211,14 @@ const styles = StyleSheet.create({
   title: { ...Typography.title, textAlign: 'center' },
   subtitle: { ...Typography.bodySmall, textAlign: 'center' },
   presetsRow: { gap: Spacing.xs, justifyContent: 'center' },
-  presetChip: { paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  presetChip: {
+    paddingHorizontal: Spacing.sm,
+    minHeight: 44,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   presetText: { ...Typography.smallSemiBold },
   daysList: { gap: 0 },
   dayRow: { paddingVertical: Spacing.sm, borderBottomWidth: 1 },
@@ -164,6 +226,11 @@ const styles = StyleSheet.create({
   dayLabel: { ...Typography.bodySemiBold },
   dayTimes: { alignItems: 'flex-end', gap: Spacing.xs, marginTop: Spacing.sm },
   timeArrow: { paddingBottom: Spacing.sm },
-  getStartedBtn: { minHeight: 52, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  getStartedBtn: {
+    minHeight: 52,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   getStartedText: { ...Typography.bodySemiBold },
 });

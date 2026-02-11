@@ -39,7 +39,11 @@ interface ProgressSkillsTabProps {
   sortedSessions: Session[];
 }
 
-function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: ProgressSkillsTabProps) {
+function ProgressSkillsTabInner({
+  skills,
+  skillsByCategory,
+  sortedSessions,
+}: ProgressSkillsTabProps) {
   const { colors: palette } = useTheme();
 
   const handleSessionPress = useCallback((session: Session) => {
@@ -57,10 +61,17 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
 
       {Object.entries(skillsByCategory).length > 0 && (
         <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Skills by Category</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Skills by Category
+          </ThemedText>
           <View style={styles.categoryList}>
             {Object.entries(skillsByCategory).map(([category, categorySkills], index) => (
-              <SkillCategoryGroup key={category} category={category} skills={categorySkills} initialExpanded={index === 0} />
+              <SkillCategoryGroup
+                key={category}
+                category={category}
+                skills={categorySkills}
+                initialExpanded={index === 0}
+              />
             ))}
           </View>
         </View>
@@ -68,12 +79,20 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
 
       <View style={styles.section}>
         <Row style={styles.sectionHeader}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Sessions</ThemedText>
-          <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>{sortedSessions.length} total</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Recent Sessions
+          </ThemedText>
+          <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>
+            {sortedSessions.length} total
+          </ThemedText>
         </Row>
 
         {sortedSessions.length === 0 ? (
-          <EmptyMetrics icon="football-outline" title="No Sessions Yet" description="Book your first session to start tracking your progress" />
+          <EmptyMetrics
+            icon="football-outline"
+            title="No Sessions Yet"
+            description="Book your first session to start tracking your progress"
+          />
         ) : (
           <View style={styles.list}>
             {sortedSessions.slice(0, 5).map((session, index) => (
@@ -82,11 +101,17 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
                   <SurfaceCard style={styles.card}>
                     <Row style={styles.cardHeader}>
                       <View style={styles.cardLeft}>
-                        <ThemedText type="defaultSemiBold" style={styles.date}>{formatShortDateWithYear(session.completedAt)}</ThemedText>
-                        <ThemedText style={[styles.coach, { color: palette.muted }]}>with {session.coachName}</ThemedText>
+                        <ThemedText type="defaultSemiBold" style={styles.date}>
+                          {formatShortDateWithYear(session.completedAt)}
+                        </ThemedText>
+                        <ThemedText style={[styles.coach, { color: palette.muted }]}>
+                          with {session.coachName}
+                        </ThemedText>
                       </View>
                       <Row style={styles.rating}>
-                        <ThemedText style={styles.ratingValue}>{session.performanceRating}</ThemedText>
+                        <ThemedText style={styles.ratingValue}>
+                          {session.performanceRating}
+                        </ThemedText>
                         <Ionicons name="star" size={14} color={palette.warning} />
                       </Row>
                     </Row>
@@ -94,8 +119,16 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
                     {session.skillsWorkedOn.length > 0 && (
                       <Row style={styles.skillsRow}>
                         {session.skillsWorkedOn.map((skill, idx) => (
-                          <View key={idx} style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
-                            <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>{skill}</ThemedText>
+                          <View
+                            key={idx}
+                            style={[
+                              styles.skillChip,
+                              { backgroundColor: withAlpha(palette.tint, 0.07) },
+                            ]}
+                          >
+                            <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>
+                              {skill}
+                            </ThemedText>
                           </View>
                         ))}
                       </Row>
@@ -106,14 +139,17 @@ function ProgressSkillsTabInner({ skills, skillsByCategory, sortedSessions }: Pr
                         {session.notes && session.notes.trim() !== '' && (
                           <Row style={styles.indicator}>
                             <Ionicons name="document-text" size={12} color={palette.muted} />
-                            <ThemedText style={[styles.indicatorText, { color: palette.muted }]}>Notes</ThemedText>
+                            <ThemedText style={[styles.indicatorText, { color: palette.muted }]}>
+                              Notes
+                            </ThemedText>
                           </Row>
                         )}
                         {session.videoUrls && session.videoUrls.length > 0 && (
                           <Row style={styles.indicator}>
                             <Ionicons name="videocam" size={12} color={palette.muted} />
                             <ThemedText style={[styles.indicatorText, { color: palette.muted }]}>
-                              {session.videoUrls.length} video{session.videoUrls.length > 1 ? 's' : ''}
+                              {session.videoUrls.length} video
+                              {session.videoUrls.length > 1 ? 's' : ''}
                             </ThemedText>
                           </Row>
                         )}
@@ -149,7 +185,11 @@ const styles = StyleSheet.create({
   rating: { alignItems: 'center', gap: Spacing.xxs },
   ratingValue: { ...Typography.subheading },
   skillsRow: { flexWrap: 'wrap', gap: Spacing.xs },
-  skillChip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  skillChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
   skillChipText: { ...Typography.caption },
   footer: { justifyContent: 'space-between', alignItems: 'center' },
   indicators: { gap: Spacing.sm },

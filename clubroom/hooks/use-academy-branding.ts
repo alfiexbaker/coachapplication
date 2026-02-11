@@ -17,8 +17,14 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('useAcademyBranding');
 
 export const COLOR_OPTIONS = [
-  '#1E40AF', '#7C3AED', '#059669', '#DC2626',
-  '#EA580C', '#0891B2', '#4F46E5', '#0F172A',
+  '#1E40AF',
+  '#7C3AED',
+  '#059669',
+  '#DC2626',
+  '#EA580C',
+  '#0891B2',
+  '#4F46E5',
+  '#0F172A',
 ] as const;
 
 export function useAcademyBranding(id: string | undefined) {
@@ -70,7 +76,9 @@ export function useAcademyBranding(id: string | undefined) {
       }
       if (currentUser?.id) {
         const membership = staffResult.data.find((m) => m.userId === currentUser.id);
-        setCanEdit(membership?.role === 'OWNER' || !!membership?.permissions.includes('MANAGE_SETTINGS'));
+        setCanEdit(
+          membership?.role === 'OWNER' || !!membership?.permissions.includes('MANAGE_SETTINGS'),
+        );
       }
     } catch (error) {
       logger.error('Failed to load academy:', error);
@@ -88,10 +96,14 @@ export function useAcademyBranding(id: string | undefined) {
     setSaving(true);
     try {
       const branding: UpdateBrandingInput = {
-        logoUrl: logoUrl || undefined, bannerUrl: bannerUrl || undefined,
-        primaryColor, secondaryColor,
-        email: email || undefined, phone: phone || undefined,
-        website: website || undefined, address: address || undefined,
+        logoUrl: logoUrl || undefined,
+        bannerUrl: bannerUrl || undefined,
+        primaryColor,
+        secondaryColor,
+        email: email || undefined,
+        phone: phone || undefined,
+        website: website || undefined,
+        address: address || undefined,
       };
       const result = await academyService.updateBranding(academy.id, branding);
       if (!result.success) {
@@ -109,11 +121,26 @@ export function useAcademyBranding(id: string | undefined) {
   }, [academy, logoUrl, bannerUrl, primaryColor, secondaryColor, email, phone, website, address]);
 
   return {
-    academy, loading, saving, canEdit,
-    logoUrl, bannerUrl, primaryColor, secondaryColor,
-    email, phone, website, address,
-    setLogoUrl, setBannerUrl, setPrimaryColor, setSecondaryColor,
-    setEmail, setPhone, setWebsite, setAddress,
+    academy,
+    loading,
+    saving,
+    canEdit,
+    logoUrl,
+    bannerUrl,
+    primaryColor,
+    secondaryColor,
+    email,
+    phone,
+    website,
+    address,
+    setLogoUrl,
+    setBannerUrl,
+    setPrimaryColor,
+    setSecondaryColor,
+    setEmail,
+    setPhone,
+    setWebsite,
+    setAddress,
     handleSave,
   };
 }

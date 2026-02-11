@@ -34,7 +34,13 @@ type ProgressDashboardProps = {
 };
 
 export function ProgressDashboard({
-  progress, athleteName, viewerRole, onViewAllSkills, onViewAllFeedback, onViewGoal, onViewBadges,
+  progress,
+  athleteName,
+  viewerRole,
+  onViewAllSkills,
+  onViewAllFeedback,
+  onViewGoal,
+  onViewBadges,
 }: ProgressDashboardProps) {
   const { colors: palette } = useTheme();
 
@@ -45,10 +51,14 @@ export function ProgressDashboard({
       {/* Skills */}
       <View style={styles.section}>
         <Row justify="space-between" align="center">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Skills</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Skills
+          </ThemedText>
           {onViewAllSkills && progress.skills.length > 4 && (
             <SurfaceCard style={styles.viewAllButton} onPress={onViewAllSkills} tactile>
-              <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
+              <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
+                View All
+              </ThemedText>
             </SurfaceCard>
           )}
         </Row>
@@ -57,7 +67,9 @@ export function ProgressDashboard({
         ) : (
           <SurfaceCard style={styles.emptyCard}>
             <Ionicons name="analytics-outline" size={24} color={palette.muted} />
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No skill ratings yet</ThemedText>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+              No skill ratings yet
+            </ThemedText>
           </SurfaceCard>
         )}
       </View>
@@ -65,7 +77,9 @@ export function ProgressDashboard({
       {/* Goals */}
       <View style={styles.section}>
         <Row justify="space-between" align="center">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Active Goals</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Active Goals
+          </ThemedText>
           <Chip dense>{progress.activeGoals.length} active</Chip>
         </Row>
         <GoalsSection goals={progress.activeGoals} onViewGoal={onViewGoal} />
@@ -74,7 +88,9 @@ export function ProgressDashboard({
       {/* Badges */}
       <View style={styles.section}>
         <Row justify="space-between" align="center">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Badges</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Recent Badges
+          </ThemedText>
           <Chip dense>{progress.totalBadges} earned</Chip>
         </Row>
         <BadgesSection badges={progress.recentBadges} onViewAll={onViewBadges} />
@@ -83,14 +99,22 @@ export function ProgressDashboard({
       {/* Recent Feedback */}
       <View style={styles.section}>
         <Row justify="space-between" align="center">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Feedback</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Recent Feedback
+          </ThemedText>
           {onViewAllFeedback && progress.recentFeedback.length > 3 && (
             <SurfaceCard style={styles.viewAllButton} onPress={onViewAllFeedback} tactile>
-              <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
+              <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
+                View All
+              </ThemedText>
             </SurfaceCard>
           )}
         </Row>
-        <FeedbackList feedback={progress.recentFeedback.slice(0, 3)} compact emptyMessage="No feedback from coaches yet" />
+        <FeedbackList
+          feedback={progress.recentFeedback.slice(0, 3)}
+          compact
+          emptyMessage="No feedback from coaches yet"
+        />
       </View>
     </View>
   );

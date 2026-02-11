@@ -45,7 +45,9 @@ export function ParentDiscoverScreen() {
   const [postcode, setPostcode] = useState('');
   const [children, setChildren] = useState<ChildOption[]>([]);
   const [allCoaches, setAllCoaches] = useState<CoachOption[]>([]);
-  const [nextAvailableSlots, setNextAvailableSlots] = useState<Record<string, AvailabilitySlot | null>>({});
+  const [nextAvailableSlots, setNextAvailableSlots] = useState<
+    Record<string, AvailabilitySlot | null>
+  >({});
   const [pendingInvites, setPendingInvites] = useState<SessionInvite[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | undefined>(undefined);
   const [loadingInvites, setLoadingInvites] = useState(false);
@@ -117,14 +119,17 @@ export function ParentDiscoverScreen() {
     try {
       const bookings = await bookingService.getBookingsForUser(currentUser.id, 'parent');
       const dismissed = await apiClient.get<Record<string, number>>('dismissed_reviews', {});
-      const now = Date.now(), DAY = 86_400_000;
+      const now = Date.now(),
+        DAY = 86_400_000;
       const needsReview = bookings.filter((b) => {
         if (b.status !== 'COMPLETED') return false;
         if (!dismissed[b.id]) return true;
         return !dismissed[`${b.id}_second`] && now - dismissed[b.id] > DAY;
       });
       setCompletedSessions(needsReview.slice(0, 2));
-    } catch (e) { logger.error('Failed to load completed sessions', e); }
+    } catch (e) {
+      logger.error('Failed to load completed sessions', e);
+    }
   }, [currentUser?.id]);
   const dismissReview = useCallback(async (bookingId: string) => {
     try {
@@ -132,7 +137,9 @@ export function ParentDiscoverScreen() {
       map[map[bookingId] ? `${bookingId}_second` : bookingId] = Date.now();
       await apiClient.set('dismissed_reviews', map);
       setCompletedSessions((prev) => prev.filter((b) => b.id !== bookingId));
-    } catch (e) { logger.error('Failed to dismiss review', e); }
+    } catch (e) {
+      logger.error('Failed to dismiss review', e);
+    }
   }, []);
   const loadPendingInvites = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -140,7 +147,9 @@ export function ParentDiscoverScreen() {
     setInvitesError(null);
     try {
       const invites = await sessionInviteService.getInvitesForParent(currentUser.id);
-      const pending = invites.filter((inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date());
+      const pending = invites.filter(
+        (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date(),
+      );
       setPendingInvites(pending.slice(0, 3));
     } catch (error) {
       logger.error('Failed to load pending invites', { error });
@@ -206,7 +215,10 @@ export function ParentDiscoverScreen() {
     />
   );
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[0]}>
         <DiscoverHeader
           childOptions={children}
@@ -223,25 +235,33 @@ export function ParentDiscoverScreen() {
           </View>
         )}
         {invitesError && !loadingInvites && (
-          <Row align="center" gap="sm" style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
+          <Row
+            align="center"
+            gap="sm"
+            style={[
+              styles.errorContainer,
+              { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error },
+            ]}
+          >
             <Ionicons name="alert-circle" size={16} color={palette.error} />
-            <ThemedText style={[styles.errorText, { color: palette.error }]}>{invitesError}</ThemedText>
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>
+              {invitesError}
+            </ThemedText>
             <Clickable onPress={loadPendingInvites}>
               <ThemedText style={[styles.retryLink, { color: palette.tint }]}>Retry</ThemedText>
             </Clickable>
           </Row>
         )}
         {!loadingInvites && <DiscoverPendingInvites invites={pendingInvites} />}
-        {emptyState || (
-          nearbyCoaches.length > 0 && (
+        {emptyState ||
+          (nearbyCoaches.length > 0 && (
             <DiscoverCoachList
               coaches={nearbyCoaches}
               postcode={postcode}
               selectedChildId={selectedChildId}
               nextAvailableSlots={nextAvailableSlots}
             />
-          )
-        )}
+          ))}
       </ScrollView>
     </SafeAreaView>
   );

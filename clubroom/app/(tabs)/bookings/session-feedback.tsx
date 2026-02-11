@@ -73,9 +73,7 @@ export default function SessionFeedbackScreen() {
         const bookings = await apiClient.get<Booking[]>('session_bookings', []);
         if (bookings.length > 0) {
           const updatedBookings = bookings.map((booking) =>
-            booking.id === bookingId
-              ? { ...booking, status: 'COMPLETED', sessionId }
-              : booking
+            booking.id === bookingId ? { ...booking, status: 'COMPLETED', sessionId } : booking,
           );
           await apiClient.set('session_bookings', updatedBookings);
         }

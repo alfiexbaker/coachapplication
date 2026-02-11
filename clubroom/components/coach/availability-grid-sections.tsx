@@ -19,7 +19,15 @@ import { Row } from '@/components/primitives';
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-export const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const FULL_DAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 export const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
 
 // ─── SlotCard ───────────────────────────────────────────────────────────────
@@ -34,7 +42,9 @@ const SlotCard = memo(function SlotCard({ template, onEdit, onDelete }: SlotCard
   const { colors: palette } = useTheme();
 
   return (
-    <Row style={[styles.slotCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row
+      style={[styles.slotCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+    >
       <View style={[styles.slotTime, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
         <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
           {template.startTime}

@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha, Shadows } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -100,8 +100,14 @@ export function AnnotationMarker({
           ]}
         >
           <Row align="center" gap="xs" style={styles.tooltipHeader}>
-            <View style={[styles.tooltipBadge, { backgroundColor: withAlpha(typeConfig.color, 0.12) }]}>
-              <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={12} color={typeConfig.color} />
+            <View
+              style={[styles.tooltipBadge, { backgroundColor: withAlpha(typeConfig.color, 0.12) }]}
+            >
+              <Ionicons
+                name={typeConfig.icon as keyof typeof Ionicons.glyphMap}
+                size={12}
+                color={typeConfig.color}
+              />
             </View>
             <ThemedText style={styles.tooltipTime}>
               {formatTimestamp(annotation.timestamp)}
@@ -137,7 +143,7 @@ export function AnnotationMarker({
             ...Shadows[scheme].subtle,
           },
         ]}
-        >
+      >
         {size === 'large' && (
           <Ionicons
             name={typeConfig.icon as keyof typeof Ionicons.glyphMap}
@@ -148,9 +154,7 @@ export function AnnotationMarker({
       </AnimatedClickable>
 
       {/* Active indicator line */}
-      {isActive && (
-        <View style={[styles.activeLine, { backgroundColor: typeConfig.color }]} />
-      )}
+      {isActive && <View style={[styles.activeLine, { backgroundColor: typeConfig.color }]} />}
     </View>
   );
 }
@@ -174,7 +178,11 @@ export function CompactAnnotationMarker({ type, onPress }: CompactMarkerProps) {
       accessibilityRole="button"
       accessibilityLabel={`${type} annotation`}
     >
-      <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color={palette.onPrimary} />
+      <Ionicons
+        name={typeConfig.icon as keyof typeof Ionicons.glyphMap}
+        size={10}
+        color={palette.onPrimary}
+      />
     </Clickable>
   );
 }

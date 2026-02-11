@@ -163,14 +163,12 @@ export const squadInviteService = {
    */
   async getSquadInvitePreview(
     squadId: string,
-    excludeMemberIds: string[] = []
+    excludeMemberIds: string[] = [],
   ): Promise<SquadInvitePreview> {
     const squad = await squadService.getSquad(squadId);
     const members = await squadService.getSquadMembers(squadId);
 
-    const eligibleMembers = members.filter(
-      (m) => !excludeMemberIds.includes(m.athleteId)
-    );
+    const eligibleMembers = members.filter((m) => !excludeMemberIds.includes(m.athleteId));
 
     const uniqueParents = new Set(eligibleMembers.map((m) => m.parentId));
 
@@ -180,7 +178,7 @@ export const squadInviteService = {
         athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
         parentId: member.parentId,
         parentName: await resolveUserName(member.parentId, 'Parent'),
-      }))
+      })),
     );
 
     return {
@@ -197,14 +195,14 @@ export const squadInviteService = {
    */
   async getMultipleSquadsPreview(
     squadIds: string[],
-    excludeMemberIds: string[] = []
+    excludeMemberIds: string[] = [],
   ): Promise<{
     squads: SquadInvitePreview[];
     totalMembers: number;
     totalParents: number;
   }> {
     const previews = await Promise.all(
-      squadIds.map((id) => this.getSquadInvitePreview(id, excludeMemberIds))
+      squadIds.map((id) => this.getSquadInvitePreview(id, excludeMemberIds)),
     );
 
     // Count unique parents across all squads
@@ -229,11 +227,11 @@ export const squadInviteService = {
    */
   async getSquadInvitesForTarget(
     targetType: 'SESSION' | 'MATCH' | 'EVENT',
-    targetId: string
+    targetId: string,
   ): Promise<SquadInvite[]> {
     squadInvitesCache = await loadSquadInvites();
     return squadInvitesCache.filter(
-      (si) => si.targetType === targetType && si.targetId === targetId
+      (si) => si.targetType === targetType && si.targetId === targetId,
     );
   },
 
@@ -257,7 +255,7 @@ export const squadInviteService = {
    */
   async getSquadMembersWithMetadata(
     squadId: string,
-    sessionId?: string
+    sessionId?: string,
   ): Promise<SquadMemberWithSelection[]> {
     const members = await squadService.getSquadMembers(squadId);
 
@@ -267,7 +265,7 @@ export const squadInviteService = {
     if (sessionId) {
       squadSessionInvitesCache = await loadSquadSessionInvites();
       const relatedInvites = squadSessionInvitesCache.filter(
-        (inv) => inv.squadId === squadId && inv.sessionId === sessionId
+        (inv) => inv.squadId === squadId && inv.sessionId === sessionId,
       );
 
       relatedInvites.forEach((inv) => {
@@ -294,10 +292,15 @@ export const squadInviteService = {
    * Get squad members grouped by parent
    */
   async getSquadMembersGroupedByParent(
-    squadId: string
-  ): Promise<Map<string, { parent: { id: string; name: string; email?: string }; athletes: SquadMember[] }>> {
+    squadId: string,
+  ): Promise<
+    Map<string, { parent: { id: string; name: string; email?: string }; athletes: SquadMember[] }>
+  > {
     const members = await squadService.getSquadMembers(squadId);
-    const parentMap = new Map<string, { parent: { id: string; name: string; email?: string }; athletes: SquadMember[] }>();
+    const parentMap = new Map<
+      string,
+      { parent: { id: string; name: string; email?: string }; athletes: SquadMember[] }
+    >();
 
     for (const member of members) {
       const existing = parentMap.get(member.parentId);
@@ -361,7 +364,9 @@ export const squadInviteService = {
    */
   async updateInviteHistoryEntry(
     entryId: string,
-    updates: Partial<Pick<SquadInviteHistoryEntry, 'acceptedCount' | 'declinedCount' | 'pendingCount' | 'status'>>
+    updates: Partial<
+      Pick<SquadInviteHistoryEntry, 'acceptedCount' | 'declinedCount' | 'pendingCount' | 'status'>
+    >,
   ): Promise<void> {
     inviteHistoryCache = await loadInviteHistory();
     const index = inviteHistoryCache.findIndex((e) => e.id === entryId);
@@ -446,7 +451,7 @@ export const squadInviteService = {
     return squadSessionInvitesCache.some(
       (inv) =>
         inv.sessionId === sessionId &&
-        inv.invitedMembers.some((m) => m.memberId === memberId && m.status === 'SENT')
+        inv.invitedMembers.some((m) => m.memberId === memberId && m.status === 'SENT'),
     );
   },
 

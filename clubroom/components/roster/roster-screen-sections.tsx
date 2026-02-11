@@ -7,8 +7,7 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { RosterStats } from '@/services/roster-service';
-import { rosterService, type RosterFilters } from '@/services/roster-service';
+import { rosterService, type RosterStats, type RosterFilters } from '@/services/roster-service';
 
 type HeaderProps = {
   colors: ThemeColors;
@@ -16,7 +15,11 @@ type HeaderProps = {
   onBack: () => void;
 };
 
-export const RosterHeader = React.memo(function RosterHeader({ colors, total, onBack }: HeaderProps) {
+export const RosterHeader = React.memo(function RosterHeader({
+  colors,
+  total,
+  onBack,
+}: HeaderProps) {
   return (
     <Row align="center" gap="md" style={styles.header}>
       <Clickable onPress={onBack} hitSlop={8} accessibilityLabel="Go back">
@@ -41,19 +44,27 @@ export const RosterStatsRow = React.memo(function RosterStatsRow({ colors, stats
   return (
     <Row gap="xs" style={styles.statsRow}>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.success }}>{stats.active}</ThemedText>
+        <ThemedText type="heading" style={{ color: colors.success }}>
+          {stats.active}
+        </ThemedText>
         <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Active</ThemedText>
       </View>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.warning }}>{stats.paused}</ThemedText>
+        <ThemedText type="heading" style={{ color: colors.warning }}>
+          {stats.paused}
+        </ThemedText>
         <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Paused</ThemedText>
       </View>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.tint }}>{stats.graduated}</ThemedText>
+        <ThemedText type="heading" style={{ color: colors.tint }}>
+          {stats.graduated}
+        </ThemedText>
         <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Graduated</ThemedText>
       </View>
       <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-        <ThemedText type="heading" style={{ color: colors.tint }}>{rosterService.formatRevenue(stats.totalRevenue)}</ThemedText>
+        <ThemedText type="heading" style={{ color: colors.tint }}>
+          {rosterService.formatRevenue(stats.totalRevenue)}
+        </ThemedText>
         <ThemedText style={[styles.statLabel, { color: colors.muted }]}>Revenue</ThemedText>
       </View>
     </Row>
@@ -76,12 +87,12 @@ export const RosterSearchBar = React.memo(function RosterSearchBar({
   onToggleFilters,
 }: SearchProps) {
   const activeFiltersCount = Object.values(filters).filter(
-    (value) => value !== undefined && (Array.isArray(value) ? value.length > 0 : true)
+    (value) => value !== undefined && (Array.isArray(value) ? value.length > 0 : true),
   ).length;
 
   return (
     <Row gap="sm" style={styles.searchSection}>
-      <Row align="center" gap="xs" style={[styles.searchBar, { backgroundColor: colors.surface }]}> 
+      <Row align="center" gap="xs" style={[styles.searchBar, { backgroundColor: colors.surface }]}>
         <Ionicons name="search" size={18} color={colors.muted} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -99,7 +110,10 @@ export const RosterSearchBar = React.memo(function RosterSearchBar({
       </Row>
       <Clickable
         onPress={onToggleFilters}
-        style={[styles.filterButton, { backgroundColor: activeFiltersCount > 0 ? colors.tint : colors.surface }]}
+        style={[
+          styles.filterButton,
+          { backgroundColor: activeFiltersCount > 0 ? colors.tint : colors.surface },
+        ]}
         accessibilityLabel="Toggle filters"
       >
         <Ionicons
@@ -108,8 +122,10 @@ export const RosterSearchBar = React.memo(function RosterSearchBar({
           color={activeFiltersCount > 0 ? colors.onPrimary : colors.text}
         />
         {activeFiltersCount > 0 ? (
-          <View style={[styles.filterBadge, { backgroundColor: colors.surface }]}> 
-            <ThemedText style={[styles.filterBadgeText, { color: colors.text }]}>{activeFiltersCount}</ThemedText>
+          <View style={[styles.filterBadge, { backgroundColor: colors.surface }]}>
+            <ThemedText style={[styles.filterBadgeText, { color: colors.text }]}>
+              {activeFiltersCount}
+            </ThemedText>
           </View>
         ) : null}
       </Clickable>

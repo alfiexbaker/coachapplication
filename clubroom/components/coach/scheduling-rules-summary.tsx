@@ -52,8 +52,8 @@ export const SchedulingRulesSummary = memo(function SchedulingRulesSummary({
         <Row style={styles.summaryItem}>
           <Ionicons name="checkmark-circle" size={16} color={colors.success} />
           <ThemedText style={[styles.summaryText, { color: colors.text }]}>
-            Booking up to{' '}
-            <ThemedText type="defaultSemiBold">{maxAdvanceDays} days</ThemedText> in advance
+            Booking up to <ThemedText type="defaultSemiBold">{maxAdvanceDays} days</ThemedText> in
+            advance
           </ThemedText>
         </Row>
         <Row style={styles.summaryItem}>

@@ -31,7 +31,7 @@ export const WaitlistManageHeader = React.memo(function WaitlistManageHeader({
       </Clickable>
       <View style={styles.headerTitle}>
         <ThemedText type="title">Manage Waitlists</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: colors.muted }]}> 
+        <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
           {totalWaiting === 0
             ? 'No one waiting'
             : `${totalWaiting} ${totalWaiting === 1 ? 'person' : 'people'} across ${summariesCount} ${summariesCount === 1 ? 'session' : 'sessions'}`}
@@ -96,8 +96,12 @@ export const WaitlistQuickActions = React.memo(function WaitlistQuickActions({
   if (summaries.length === 0) return null;
 
   return (
-    <View style={[styles.quickActions, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-      <ThemedText type="defaultSemiBold" style={styles.quickActionsTitle}>Quick Actions</ThemedText>
+    <View
+      style={[styles.quickActions, { backgroundColor: colors.surface, borderColor: colors.border }]}
+    >
+      <ThemedText type="defaultSemiBold" style={styles.quickActionsTitle}>
+        Quick Actions
+      </ThemedText>
       <Row gap="sm" style={styles.actionButtons}>
         <Clickable
           onPress={() => summaries.forEach((summary) => onNotify(summary.sessionId))}
@@ -106,7 +110,9 @@ export const WaitlistQuickActions = React.memo(function WaitlistQuickActions({
         >
           <Row align="center" gap="xs">
             <Ionicons name="notifications-outline" size={18} color={colors.tint} />
-            <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>Notify All Next</ThemedText>
+            <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>
+              Notify All Next
+            </ThemedText>
           </Row>
         </Clickable>
       </Row>

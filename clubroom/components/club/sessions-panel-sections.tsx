@@ -43,7 +43,9 @@ export const TrainingSessionRow = memo(function TrainingSessionRow({
         </ThemedText>
         <Row style={styles.trainingMeta}>
           {session.isRecurring && (
-            <Row style={[styles.recurringBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <Row
+              style={[styles.recurringBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+            >
               <Ionicons name="repeat" size={10} color={palette.tint} />
               <ThemedText style={{ ...Typography.micro, color: palette.tint }}>
                 {dayName}s

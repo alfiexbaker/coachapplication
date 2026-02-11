@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { CalendarGrid, CalendarDayDetail } from '@/components/availability/calendar-grid';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useAvailabilityCalendar, MONTHS } from '@/hooks/use-availability-calendar';
@@ -23,7 +23,8 @@ export default function AvailabilityCalendarScreen() {
     status,
     error,
     refreshing,
-    calendarDays, selectedSlots,
+    calendarDays,
+    selectedSlots,
     setSelectedDate,
     navigateMonth,
     formatTime,
@@ -33,7 +34,10 @@ export default function AvailabilityCalendarScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
         <LoadingState variant="calendar" />
       </SafeAreaView>
@@ -42,16 +46,25 @@ export default function AvailabilityCalendarScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
-        <ErrorState message={error?.message || 'Failed to load availability calendar.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message || 'Failed to load availability calendar.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
         <EmptyState
           icon="calendar-outline"
@@ -65,18 +78,27 @@ export default function AvailabilityCalendarScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <PageHeader title="Availability Calendar" showBack onBackPress={() => router.back()} />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}>
-
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
+      >
         {/* Month Navigation */}
         <Row style={[styles.monthNav, { backgroundColor: palette.surface }]}>
           <Clickable onPress={() => navigateMonth(-1)} style={styles.navButton}>
             <Ionicons name="chevron-back" size={24} color={palette.text} />
           </Clickable>
-          <ThemedText type="subtitle">{MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}</ThemedText>
+          <ThemedText type="subtitle">
+            {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </ThemedText>
           <Clickable onPress={() => navigateMonth(1)} style={styles.navButton}>
             <Ionicons name="chevron-forward" size={24} color={palette.text} />
           </Clickable>
@@ -84,35 +106,67 @@ export default function AvailabilityCalendarScreen() {
 
         {/* Legend */}
         <Row style={styles.legend}>
-          <Row style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.success }]} /><ThemedText style={[styles.legendText, { color: palette.muted }]}>Available</ThemedText></Row>
-          <Row style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.error }]} /><ThemedText style={[styles.legendText, { color: palette.muted }]}>Blocked</ThemedText></Row>
-          <Row style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: palette.tint }]} /><ThemedText style={[styles.legendText, { color: palette.muted }]}>Booked</ThemedText></Row>
+          <Row style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
+            <ThemedText style={[styles.legendText, { color: palette.muted }]}>Available</ThemedText>
+          </Row>
+          <Row style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: palette.error }]} />
+            <ThemedText style={[styles.legendText, { color: palette.muted }]}>Blocked</ThemedText>
+          </Row>
+          <Row style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: palette.tint }]} />
+            <ThemedText style={[styles.legendText, { color: palette.muted }]}>Booked</ThemedText>
+          </Row>
         </Row>
 
         {/* Calendar Grid */}
-        <CalendarGrid calendarDays={calendarDays} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+        <CalendarGrid
+          calendarDays={calendarDays}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
 
         {/* Selected Day Details */}
         {selectedDate && (
-          <CalendarDayDetail selectedDate={selectedDate} selectedSlots={selectedSlots} formatTime={formatTime}
-            onBlockDate={() => router.push(Routes.AVAILABILITY_BLOCK_DATE)} onAddTemplate={() => router.push(Routes.AVAILABILITY_ADD_TEMPLATE)} />
+          <CalendarDayDetail
+            selectedDate={selectedDate}
+            selectedSlots={selectedSlots}
+            formatTime={formatTime}
+            onBlockDate={() => router.push(Routes.AVAILABILITY_BLOCK_DATE)}
+            onAddTemplate={() => router.push(Routes.AVAILABILITY_ADD_TEMPLATE)}
+          />
         )}
 
         {/* Summary Stats */}
         <SurfaceCard style={styles.statsCard}>
-          <ThemedText type="subtitle" style={styles.statsTitle}>This Month</ThemedText>
+          <ThemedText type="subtitle" style={styles.statsTitle}>
+            This Month
+          </ThemedText>
           <Row style={styles.statsGrid}>
             <View style={styles.statItem}>
-              <ThemedText type="title" style={{ color: palette.success }}>{calendarDays.filter(d => d.isCurrentMonth && d.hasAvailability).length}</ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Available Days</ThemedText>
+              <ThemedText type="title" style={{ color: palette.success }}>
+                {calendarDays.filter((d) => d.isCurrentMonth && d.hasAvailability).length}
+              </ThemedText>
+              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                Available Days
+              </ThemedText>
             </View>
             <View style={styles.statItem}>
-              <ThemedText type="title" style={{ color: palette.error }}>{calendarDays.filter(d => d.isCurrentMonth && d.isBlocked).length}</ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Blocked Days</ThemedText>
+              <ThemedText type="title" style={{ color: palette.error }}>
+                {calendarDays.filter((d) => d.isCurrentMonth && d.isBlocked).length}
+              </ThemedText>
+              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                Blocked Days
+              </ThemedText>
             </View>
             <View style={styles.statItem}>
-              <ThemedText type="title" style={{ color: palette.tint }}>{calendarDays.filter(d => d.isCurrentMonth && d.bookingCount > 0).length}</ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Days with Bookings</ThemedText>
+              <ThemedText type="title" style={{ color: palette.tint }}>
+                {calendarDays.filter((d) => d.isCurrentMonth && d.bookingCount > 0).length}
+              </ThemedText>
+              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                Days with Bookings
+              </ThemedText>
             </View>
           </Row>
         </SurfaceCard>
@@ -126,7 +180,12 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentInner: { padding: Spacing.md, paddingBottom: 100, gap: Spacing.md },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  monthNav: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md },
+  monthNav: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+  },
   navButton: { padding: Spacing.xs },
   legend: { justifyContent: 'center', gap: Spacing.lg },
   legendItem: { alignItems: 'center', gap: Spacing.xs },

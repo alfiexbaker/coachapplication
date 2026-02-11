@@ -83,9 +83,7 @@ function SectionInner({
         </Row>
       ) : null}
 
-      <View style={noPadding ? undefined : styles.content}>
-        {children}
-      </View>
+      <View style={noPadding ? undefined : styles.content}>{children}</View>
     </View>
   );
 }

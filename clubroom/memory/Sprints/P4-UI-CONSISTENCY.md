@@ -2,7 +2,7 @@
 
 > Date: 2026-02-11
 > Phase: Foundation Phase 4 (UI Consistency)
-> Sprint Anchor: `docs/sprints/Foundation/SPRINT-44-PHASE-4-WAVE-1.md`
+> Sprint Anchor: `docs/sprints/CompletedSprints/SPRINT-44-PHASE-4-WAVE-1.md`
 > Live Tracker: `docs/sprints/Foundation/PHASE-4-LIVE-TRACKER.md`
 > Source of truth: `docs/SOURCE_OF_TRUTH.md`, `docs/sprints/Foundation/PHASE-4-UI-CONSISTENCY.md`
 > Status: DONE
@@ -19,7 +19,7 @@
 - Phase 3 status: complete (`189/189 DONE`).
 - Phase 4 tracker/sprint docs:
   - `docs/sprints/Foundation/PHASE-4-LIVE-TRACKER.md` created.
-  - `docs/sprints/Foundation/SPRINT-44-PHASE-4-WAVE-1.md` created.
+  - `docs/sprints/CompletedSprints/SPRINT-44-PHASE-4-WAVE-1.md` created.
 - Wave 1 status: complete (6-file settings/calendar/shared-header batch).
 - Wave 2 status: complete (Pressable cleanup to exception-only baseline).
 - Latest baseline deltas:

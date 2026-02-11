@@ -3,7 +3,7 @@
  * Sub-components: TemplateDaySection, TemplateTimeSection, TemplateOptionsSection
  * Hook: useRecurringTemplateForm
  */
-import { View, StyleSheet, Modal, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, Modal, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -26,7 +26,10 @@ interface RecurringTemplateModalProps {
   preselectedDay?: number;
   preselectedHour?: number;
   sessionTemplates?: SessionTemplate[];
-  onCheckLocationDrift?: (dayOfWeek: number, newLocation: string) => Promise<{
+  onCheckLocationDrift?: (
+    dayOfWeek: number,
+    newLocation: string,
+  ) => Promise<{
     affectedCount: number;
     affectedBookingIds: string[];
     oldLocation: string;
@@ -35,25 +38,52 @@ interface RecurringTemplateModalProps {
 }
 
 export function RecurringTemplateModal({
-  visible, onClose, onSave, onDelete, editingTemplate, preselectedDay, preselectedHour,
-  sessionTemplates, onCheckLocationDrift, onUpdateBookingLocations,
+  visible,
+  onClose,
+  onSave,
+  onDelete,
+  editingTemplate,
+  preselectedDay,
+  preselectedHour,
+  sessionTemplates,
+  onCheckLocationDrift,
+  onUpdateBookingLocations,
 }: RecurringTemplateModalProps) {
   const { colors: palette } = useTheme();
   const form = useRecurringTemplateForm({
-    visible, editingTemplate, preselectedDay, preselectedHour,
-    onSave, onDelete, onClose, onCheckLocationDrift, onUpdateBookingLocations,
+    visible,
+    editingTemplate,
+    preselectedDay,
+    preselectedHour,
+    onSave,
+    onDelete,
+    onClose,
+    onCheckLocationDrift,
+    onUpdateBookingLocations,
   });
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={[styles.container, { backgroundColor: palette.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         {/* Header */}
         <Row style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={onClose} disabled={form.saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="subtitle">
-            {form.isEditing ? 'Edit Availability' : form.isQuickAdd ? 'Quick Add Slot' : 'Add Availability'}
+            {form.isEditing
+              ? 'Edit Availability'
+              : form.isQuickAdd
+                ? 'Quick Add Slot'
+                : 'Add Availability'}
           </ThemedText>
           <Clickable onPress={form.handleSave} disabled={form.saving}>
             <ThemedText style={{ ...Typography.bodySemiBold, color: palette.tint }}>
@@ -109,6 +139,12 @@ export function RecurringTemplateModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
   content: { padding: Spacing.lg, gap: Spacing.xl, paddingBottom: Spacing['2xl'] },
 });

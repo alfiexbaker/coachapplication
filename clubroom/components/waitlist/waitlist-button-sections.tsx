@@ -145,15 +145,17 @@ export const WaitlistOptionsCard = memo(function WaitlistOptionsCard({
 }: WaitlistOptionsCardProps) {
   return (
     <View style={styles.container}>
-      <View style={[styles.optionsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <View
+        style={[
+          styles.optionsCard,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
+      >
         <ThemedText type="defaultSemiBold" style={styles.optionsTitle}>
           Join Waitlist
         </ThemedText>
 
-        <Clickable
-          onPress={() => onToggleAutoBook(!localAutoBook)}
-          style={styles.autoBookOption}
-        >
+        <Clickable onPress={() => onToggleAutoBook(!localAutoBook)} style={styles.autoBookOption}>
           <Row align="flex-start" gap="sm">
             <Ionicons
               name={localAutoBook ? 'checkbox' : 'square-outline'}
@@ -184,7 +186,9 @@ export const WaitlistOptionsCard = memo(function WaitlistOptionsCard({
             {isLoading ? (
               <ActivityIndicator size="small" color={palette.onPrimary} />
             ) : (
-              <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Join Waitlist</ThemedText>
+              <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>
+                Join Waitlist
+              </ThemedText>
             )}
           </Clickable>
         </Row>
@@ -217,11 +221,7 @@ export const JoinWaitlistButton = memo(function JoinWaitlistButton({
     : [styles.joinButton, { backgroundColor: palette.warning }];
 
   return (
-    <Clickable
-      onPress={onPress}
-      disabled={isLoading || disabled}
-      style={joinButtonStyle}
-    >
+    <Clickable onPress={onPress} disabled={isLoading || disabled} style={joinButtonStyle}>
       {isLoading ? (
         <ActivityIndicator size="small" color={palette.onPrimary} />
       ) : (
@@ -231,8 +231,12 @@ export const JoinWaitlistButton = memo(function JoinWaitlistButton({
             {compact ? 'Waitlist' : 'Join Waitlist'}
           </ThemedText>
           {totalWaiting !== undefined && totalWaiting > 0 && (
-            <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.onPrimary, 0.2) }]}>
-              <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{totalWaiting}</ThemedText>
+            <View
+              style={[styles.countBadge, { backgroundColor: withAlpha(palette.onPrimary, 0.2) }]}
+            >
+              <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>
+                {totalWaiting}
+              </ThemedText>
             </View>
           )}
         </>

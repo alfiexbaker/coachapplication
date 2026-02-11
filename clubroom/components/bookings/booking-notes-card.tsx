@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { SessionNotesView } from '@/components/session/session-notes-view';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionNoteRecord } from '@/services/progress-service';
 
@@ -74,7 +74,9 @@ export const BookingNotesCard = memo(function BookingNotesCard({
           accessibilityLabel="Retry loading notes"
         >
           <Ionicons name="refresh" size={16} color={palette.error} />
-          <ThemedText style={{ color: palette.error, fontWeight: '700' }}>Retry loading notes</ThemedText>
+          <ThemedText style={{ color: palette.error, fontWeight: '700' }}>
+            Retry loading notes
+          </ThemedText>
         </Clickable>
       ) : null}
 
@@ -89,11 +91,19 @@ export const BookingNotesCard = memo(function BookingNotesCard({
           </ThemedText>
           <Clickable
             onPress={handleNavigateToNotes}
-            style={[styles.ctaButton, { backgroundColor: withAlpha(palette.tint, 0.07), borderColor: withAlpha(palette.border, 0.25) }]}
+            style={[
+              styles.ctaButton,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.07),
+                borderColor: withAlpha(palette.border, 0.25),
+              },
+            ]}
             accessibilityLabel="Add coach notes"
           >
             <Ionicons name="create" size={16} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Add coach notes</ThemedText>
+            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+              Add coach notes
+            </ThemedText>
           </Clickable>
         </Column>
       ) : null}
@@ -121,7 +131,10 @@ export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
   const followUps = [
     { label: 'Share homework reminder', completed: Boolean(sessionNote?.homework) },
     { label: 'Confirm attendance', completed: Boolean(sessionNote?.attendance) },
-    { label: 'Log effort & focus', completed: Boolean(sessionNote?.effort && sessionNote?.focus?.length) },
+    {
+      label: 'Log effort & focus',
+      completed: Boolean(sessionNote?.effort && sessionNote?.focus?.length),
+    },
   ];
 
   return (
@@ -162,7 +175,26 @@ export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
-  linkPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill },
-  errorPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, alignItems: 'center', gap: Spacing.xs },
-  ctaButton: { marginTop: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.button, borderWidth: 1, alignItems: 'center', gap: Spacing.sm, alignSelf: 'flex-start' },
+  linkPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+  },
+  errorPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  ctaButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: Spacing.sm,
+    alignSelf: 'flex-start',
+  },
 });

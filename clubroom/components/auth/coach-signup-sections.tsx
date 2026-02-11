@@ -125,8 +125,16 @@ interface CoachFormFieldsProps {
 }
 
 export const CoachFormFields = memo(function CoachFormFields({
-  fullName, email, phone, password, confirmPassword,
-  onChangeFullName, onChangeEmail, onChangePhone, onChangePassword, onChangeConfirmPassword,
+  fullName,
+  email,
+  phone,
+  password,
+  confirmPassword,
+  onChangeFullName,
+  onChangeEmail,
+  onChangePhone,
+  onChangePassword,
+  onChangeConfirmPassword,
   onSubmit,
   palette,
 }: CoachFormFieldsProps) {
@@ -136,36 +144,68 @@ export const CoachFormFields = memo(function CoachFormFields({
     <>
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Full Name</ThemedText>
-        <TextInput value={fullName} onChangeText={onChangeFullName} placeholder="John Smith"
-          placeholderTextColor={palette.muted} style={inputStyle} returnKeyType="next" />
+        <TextInput
+          value={fullName}
+          onChangeText={onChangeFullName}
+          placeholder="John Smith"
+          placeholderTextColor={palette.muted}
+          style={inputStyle}
+          returnKeyType="next"
+        />
       </View>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Email</ThemedText>
-        <TextInput value={email} onChangeText={onChangeEmail} autoCapitalize="none"
-          keyboardType="email-address" placeholder="coach@email.com"
-          placeholderTextColor={palette.muted} style={inputStyle} returnKeyType="next" />
+        <TextInput
+          value={email}
+          onChangeText={onChangeEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="coach@email.com"
+          placeholderTextColor={palette.muted}
+          style={inputStyle}
+          returnKeyType="next"
+        />
       </View>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Phone</ThemedText>
-        <TextInput value={phone} onChangeText={onChangePhone} keyboardType="phone-pad"
-          placeholder="+1 (555) 123-4567" placeholderTextColor={palette.muted}
-          style={inputStyle} returnKeyType="next" />
+        <TextInput
+          value={phone}
+          onChangeText={onChangePhone}
+          keyboardType="phone-pad"
+          placeholder="+1 (555) 123-4567"
+          placeholderTextColor={palette.muted}
+          style={inputStyle}
+          returnKeyType="next"
+        />
       </View>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Password</ThemedText>
-        <TextInput value={password} onChangeText={onChangePassword} secureTextEntry
-          placeholder="••••••••" placeholderTextColor={palette.muted}
-          style={inputStyle} returnKeyType="next" />
+        <TextInput
+          value={password}
+          onChangeText={onChangePassword}
+          secureTextEntry
+          placeholder="••••••••"
+          placeholderTextColor={palette.muted}
+          style={inputStyle}
+          returnKeyType="next"
+        />
       </View>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Confirm Password</ThemedText>
-        <TextInput value={confirmPassword} onChangeText={onChangeConfirmPassword}
-          secureTextEntry placeholder="••••••••" placeholderTextColor={palette.muted}
-          style={inputStyle} returnKeyType="go" onSubmitEditing={onSubmit} />
+        <TextInput
+          value={confirmPassword}
+          onChangeText={onChangeConfirmPassword}
+          secureTextEntry
+          placeholder="••••••••"
+          placeholderTextColor={palette.muted}
+          style={inputStyle}
+          returnKeyType="go"
+          onSubmitEditing={onSubmit}
+        />
       </View>
     </>
   );
@@ -190,11 +230,7 @@ export const SignupSubmitButton = memo(function SignupSubmitButton({
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: !isValid
-            ? palette.border
-            : pressed
-              ? palette.tintPressed
-              : palette.tint,
+          backgroundColor: !isValid ? palette.border : pressed ? palette.tintPressed : palette.tint,
           opacity: pressed || !isValid ? 0.9 : 1,
         },
       ]}

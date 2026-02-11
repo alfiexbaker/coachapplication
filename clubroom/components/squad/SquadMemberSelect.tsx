@@ -80,7 +80,7 @@ export function SquadMemberSelect({
         : [...selectedMemberIds, memberId];
       onSelectionChange(newSelection);
     },
-    [selectedMemberIds, onSelectionChange, disabled]
+    [selectedMemberIds, onSelectionChange, disabled],
   );
 
   const selectAll = useCallback(() => {
@@ -105,7 +105,8 @@ export function SquadMemberSelect({
   }, [uniqueParentCount, onParentCountChange]);
 
   const selectedCount = selectedMemberIds.length;
-  const allSelected = selectedCount > 0 && selectedCount === members.filter((m) => !m.hasPendingInvite).length;
+  const allSelected =
+    selectedCount > 0 && selectedCount === members.filter((m) => !m.hasPendingInvite).length;
 
   if (loading) return <MemberSelectLoading palette={palette} />;
   if (error) return <MemberSelectError error={error} onRetry={loadMembers} palette={palette} />;

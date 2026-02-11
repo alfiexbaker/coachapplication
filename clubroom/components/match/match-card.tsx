@@ -6,7 +6,7 @@ import { Routes } from '@/navigation/routes';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
@@ -51,7 +51,11 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
     const resultColor = isWin ? palette.success : isDraw ? palette.warning : palette.error;
 
     return (
-      <Row align="center" gap="xs" style={[styles.resultBadge, { backgroundColor: withAlpha(resultColor, 0.09) }]}>
+      <Row
+        align="center"
+        gap="xs"
+        style={[styles.resultBadge, { backgroundColor: withAlpha(resultColor, 0.09) }]}
+      >
         <ThemedText style={[styles.resultText, { color: resultColor }]}>
           {match.isHome ? `${home} - ${away}` : `${away} - ${home}`}
         </ThemedText>
@@ -75,12 +79,12 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
             {matchService.formatMatchType(match.matchType)}
           </ThemedText>
         </View>
-        <Row align="center" gap="xxs" style={[styles.homeAwayBadge, { backgroundColor: palette.surface }]}>
-          <Ionicons
-            name={match.isHome ? 'home' : 'airplane'}
-            size={12}
-            color={palette.muted}
-          />
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.homeAwayBadge, { backgroundColor: palette.surface }]}
+        >
+          <Ionicons name={match.isHome ? 'home' : 'airplane'} size={12} color={palette.muted} />
           <ThemedText style={[styles.homeAwayText, { color: palette.muted }]}>
             {match.isHome ? 'Home' : 'Away'}
           </ThemedText>
@@ -111,7 +115,8 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
             KO {match.kickoffTime}
             {match.meetTime && (
               <ThemedText style={[styles.meetTime, { color: palette.muted }]}>
-                {' '}(Meet {match.meetTime})
+                {' '}
+                (Meet {match.meetTime})
               </ThemedText>
             )}
           </ThemedText>
@@ -130,9 +135,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
       {showClub && (
         <Row align="center" gap="xs">
           <Ionicons name="shield-outline" size={14} color={palette.muted} />
-          <ThemedText style={[styles.clubText, { color: palette.muted }]}>
-            {clubLabel}
-          </ThemedText>
+          <ThemedText style={[styles.clubText, { color: palette.muted }]}>{clubLabel}</ThemedText>
         </Row>
       )}
 

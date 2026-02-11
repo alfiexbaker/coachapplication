@@ -105,9 +105,7 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
       )}
       {groupByDay(items).map((group) => (
         <View key={group.label} style={styles.dayGroup}>
-          <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>
-            {group.label}
-          </ThemedText>
+          <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>{group.label}</ThemedText>
           {group.items.map((item) => (
             <NotificationCard
               key={item.id}

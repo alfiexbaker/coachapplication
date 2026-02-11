@@ -34,7 +34,7 @@ export const InviteErrorDetails = memo(function InviteErrorDetails({
             size={16}
             color={palette.error}
           />
-          <ThemedText style={[styles.errorToggleText, { color: palette.error }]}> 
+          <ThemedText style={[styles.errorToggleText, { color: palette.error }]}>
             View {errors.length} error{errors.length !== 1 ? 's' : ''}
           </ThemedText>
         </Row>
@@ -83,10 +83,15 @@ export const InviteActionRow = memo(function InviteActionRow({
   return (
     <Row wrap gap="sm" style={styles.actionRow}>
       {onViewInvites && sent > 0 && (
-        <Clickable onPress={onViewInvites} style={[styles.actionButton, { borderColor: palette.tint }]}> 
+        <Clickable
+          onPress={onViewInvites}
+          style={[styles.actionButton, { borderColor: palette.tint }]}
+        >
           <Row align="center" gap="xs">
             <Ionicons name="eye-outline" size={16} color={palette.tint} />
-            <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>View Invites</ThemedText>
+            <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>
+              View Invites
+            </ThemedText>
           </Row>
         </Clickable>
       )}
@@ -98,14 +103,21 @@ export const InviteActionRow = memo(function InviteActionRow({
         >
           <Row align="center" gap="xs">
             <Ionicons name="refresh" size={16} color={palette.warning} />
-            <ThemedText style={[styles.actionButtonText, { color: palette.warning }]}>Retry Failed</ThemedText>
+            <ThemedText style={[styles.actionButtonText, { color: palette.warning }]}>
+              Retry Failed
+            </ThemedText>
           </Row>
         </Clickable>
       )}
 
       {onDone && (
-        <Clickable onPress={onDone} style={[styles.primaryButton, { backgroundColor: palette.tint }]}> 
-          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Done</ThemedText>
+        <Clickable
+          onPress={onDone}
+          style={[styles.primaryButton, { backgroundColor: palette.tint }]}
+        >
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
+            Done
+          </ThemedText>
         </Clickable>
       )}
     </Row>
@@ -132,7 +144,9 @@ export const CompactInviteResultInner = memo(function CompactInviteResultInner({
       style={[
         styles.compactContainer,
         {
-          backgroundColor: isSuccess ? withAlpha(palette.success, 0.12) : withAlpha(palette.warning, 0.12),
+          backgroundColor: isSuccess
+            ? withAlpha(palette.success, 0.12)
+            : withAlpha(palette.warning, 0.12),
         },
       ]}
     >
@@ -141,7 +155,9 @@ export const CompactInviteResultInner = memo(function CompactInviteResultInner({
         size={18}
         color={isSuccess ? palette.success : palette.warning}
       />
-      <ThemedText style={[styles.compactText, { color: isSuccess ? palette.success : palette.warning }]}>
+      <ThemedText
+        style={[styles.compactText, { color: isSuccess ? palette.success : palette.warning }]}
+      >
         {result.sent} invite{result.sent !== 1 ? 's' : ''} sent
         {result.failed > 0 && `, ${result.failed} failed`}
       </ThemedText>

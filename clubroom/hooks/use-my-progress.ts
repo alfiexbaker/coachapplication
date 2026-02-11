@@ -5,7 +5,11 @@ import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
+import {
+  progressService,
+  type AthleteProgress,
+  type SessionFeedback,
+} from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
@@ -13,7 +17,14 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('MyProgressScreen');
 
-export type ProgressTab = 'overview' | 'skills' | 'feedback' | 'goals' | 'badges' | 'journal' | 'radar';
+export type ProgressTab =
+  | 'overview'
+  | 'skills'
+  | 'feedback'
+  | 'goals'
+  | 'badges'
+  | 'journal'
+  | 'radar';
 
 export const PROGRESS_TABS: { id: ProgressTab; shortLabel: string; icon: string }[] = [
   { id: 'overview', shortLabel: 'Home', icon: 'grid-outline' },
@@ -69,14 +80,7 @@ export function useMyProgress() {
     }
   }, [currentUser?.id, currentUser?.name]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<MyProgressData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<MyProgressData>({
     load: loadData,
     deps: [currentUser?.id],
     isEmpty: (value) => !value.progress,
@@ -91,9 +95,15 @@ export function useMyProgress() {
     if (!newGoalTitle.trim() || !currentUser) return;
     try {
       await progressService.createGoal(currentUser.id, {
-        userId: currentUser.id, athleteId: currentUser.id,
-        title: newGoalTitle.trim(), category: 'OTHER', progress: 0,
-        milestones: [], status: 'ACTIVE', createdBy: 'ATHLETE', createdById: currentUser.id,
+        userId: currentUser.id,
+        athleteId: currentUser.id,
+        title: newGoalTitle.trim(),
+        category: 'OTHER',
+        progress: 0,
+        milestones: [],
+        status: 'ACTIVE',
+        createdBy: 'ATHLETE',
+        createdById: currentUser.id,
       });
       setNewGoalTitle('');
       setShowGoalForm(false);
@@ -105,13 +115,18 @@ export function useMyProgress() {
     }
   }, [newGoalTitle, currentUser, onRefresh]);
 
-  const trendInfo = progress ? (() => {
-    switch (progress.overallTrend) {
-      case 'improving': return { icon: 'trending-up', color: 'success' as const, label: 'Improving' };
-      case 'declining': return { icon: 'trending-down', color: 'error' as const, label: 'Keep Pushing' };
-      default: return { icon: 'remove', color: 'muted' as const, label: 'Steady' };
-    }
-  })() : null;
+  const trendInfo = progress
+    ? (() => {
+        switch (progress.overallTrend) {
+          case 'improving':
+            return { icon: 'trending-up', color: 'success' as const, label: 'Improving' };
+          case 'declining':
+            return { icon: 'trending-down', color: 'error' as const, label: 'Keep Pushing' };
+          default:
+            return { icon: 'remove', color: 'muted' as const, label: 'Steady' };
+        }
+      })()
+    : null;
 
   return {
     currentUser,

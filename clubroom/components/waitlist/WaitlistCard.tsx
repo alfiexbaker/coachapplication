@@ -11,7 +11,11 @@ import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/t
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { getWaitlistCoachName, getWaitlistScheduledAt, getWaitlistSessionTitle } from '@/utils/waitlist-display';
+import {
+  getWaitlistCoachName,
+  getWaitlistScheduledAt,
+  getWaitlistSessionTitle,
+} from '@/utils/waitlist-display';
 
 interface WaitlistCardProps {
   /** The waitlist entry to display */
@@ -35,7 +39,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Leave', style: 'destructive', onPress: onLeave },
-      ]
+      ],
     );
   };
 
@@ -62,7 +66,11 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       ]}
     >
       {isNotified && (
-        <Row align="center" gap="xs" style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+        <Row
+          align="center"
+          gap="xs"
+          style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+        >
           <Ionicons name="checkmark-circle" size={16} color={palette.success} />
           <ThemedText style={[styles.notificationText, { color: palette.success }]}>
             A spot is available! Book now before it expires.
@@ -149,10 +157,15 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       </View>
 
       {entry.expiresAt && isNotified && (
-        <Row align="center" gap="xs" style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+        <Row
+          align="center"
+          gap="xs"
+          style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}
+        >
           <Ionicons name="alarm-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
-            Expires {new Date(entry.expiresAt).toLocaleString('en-GB', {
+            Expires{' '}
+            {new Date(entry.expiresAt).toLocaleString('en-GB', {
               weekday: 'short',
               hour: 'numeric',
               minute: '2-digit',
@@ -183,14 +196,18 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   sessionTitle: { ...Typography.subheading },
-  coachRow: { /* layout moved to Row */ },
+  coachRow: {
+    /* layout moved to Row */
+  },
   coachName: { ...Typography.caption },
   details: {
     padding: Components.card.padding,
     paddingTop: Spacing.sm,
     gap: Spacing.xxs,
   },
-  detailRow: { /* layout moved to Row */ },
+  detailRow: {
+    /* layout moved to Row */
+  },
   detailText: { ...Typography.small },
   footer: {
     padding: Components.card.padding,
@@ -201,7 +218,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  autoBookInfo: { /* layout moved to Row */ },
+  autoBookInfo: {
+    /* layout moved to Row */
+  },
   autoBookText: {
     flex: 1,
     gap: Spacing.micro,

@@ -41,7 +41,8 @@ export const WizardNavButtons = memo(function WizardNavButtons({
   submitting,
   onNext,
   onPrev,
-  onComplete }: WizardNavButtonsProps) {
+  onComplete,
+}: WizardNavButtonsProps) {
   return (
     <Row gap="sm" style={styles.container}>
       {currentStepIndex > 0 && (
@@ -77,7 +78,10 @@ export const WizardNavButtons = memo(function WizardNavButtons({
         </Clickable>
       ) : (
         <Clickable
-          style={[styles.submitButton, { backgroundColor: submitting ? colors.muted : colors.tint }]}
+          style={[
+            styles.submitButton,
+            { backgroundColor: submitting ? colors.muted : colors.tint },
+          ]}
           onPress={onComplete}
           disabled={submitting}
           accessibilityLabel="Complete session"
@@ -85,11 +89,15 @@ export const WizardNavButtons = memo(function WizardNavButtons({
         >
           <Row align="center" justify="center" gap="sm">
             {submitting ? (
-              <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>Saving...</ThemedText>
+              <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>
+                Saving...
+              </ThemedText>
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={22} color={colors.onPrimary} />
-                <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>Complete Session</ThemedText>
+                <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>
+                  Complete Session
+                </ThemedText>
               </>
             )}
           </Row>
@@ -105,23 +113,31 @@ export const WizardNavButtons = memo(function WizardNavButtons({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: Spacing.md },
+    marginTop: Spacing.md,
+  },
   primaryButton: {
     flex: 1,
     height: Components.button.height,
-    borderRadius: Components.button.borderRadius },
+    borderRadius: Components.button.borderRadius,
+  },
   primaryText: {
-    ...Typography.subheading },
+    ...Typography.subheading,
+  },
   secondaryButton: {
     height: Components.button.height,
     paddingHorizontal: Spacing.md,
     borderRadius: Components.button.borderRadius,
-    borderWidth: 1.5 },
+    borderWidth: 1.5,
+  },
   secondaryText: {
-    ...Typography.subheading },
+    ...Typography.subheading,
+  },
   submitButton: {
     flex: 1,
     height: Components.button.height,
-    borderRadius: Components.button.borderRadius },
+    borderRadius: Components.button.borderRadius,
+  },
   submitText: {
-    ...Typography.heading } });
+    ...Typography.heading,
+  },
+});

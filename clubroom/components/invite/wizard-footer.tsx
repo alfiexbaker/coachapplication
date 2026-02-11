@@ -67,10 +67,7 @@ export const WizardFooter = memo(function WizardFooter({
         <Clickable
           onPress={onNext}
           disabled={!canProceed}
-          style={[
-            styles.button,
-            { backgroundColor: colors.tint, opacity: canProceed ? 1 : 0.5 },
-          ]}
+          style={[styles.button, { backgroundColor: colors.tint, opacity: canProceed ? 1 : 0.5 }]}
           accessibilityLabel="Continue to next step"
           accessibilityRole="button"
         >

@@ -57,7 +57,11 @@ export const FindCoachSearchBar = memo(function FindCoachSearchBar({
   palette,
 }: FindCoachSearchBarProps) {
   return (
-    <Row align="center" gap="md" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row
+      align="center"
+      gap="md"
+      style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}
+    >
       <Ionicons name="search" size={22} color={palette.icon} />
       <TextInput
         value={postcode}
@@ -93,11 +97,7 @@ export const FindCoachEmptyState = memo(function FindCoachEmptyState({
   return (
     <View style={styles.emptyState}>
       <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-        <Ionicons
-          name={isSearch ? 'search' : 'location-outline'}
-          size={32}
-          color={palette.icon}
-        />
+        <Ionicons name={isSearch ? 'search' : 'location-outline'} size={32} color={palette.icon} />
       </View>
       <ThemedText type="subtitle" style={styles.emptyTitle}>
         {isSearch ? 'Search for coaches' : 'No coaches nearby'}
@@ -128,10 +128,7 @@ export const CoachResultCard = memo(function CoachResultCard({
         logger.press('CoachCard', { coachId: coach.id });
         router.push(Routes.BOOK_COACH);
       }}
-      style={({ pressed }) => [
-        styles.coachCard,
-        { opacity: pressed ? 0.7 : 1 },
-      ]}
+      style={({ pressed }) => [styles.coachCard, { opacity: pressed ? 0.7 : 1 }]}
     >
       <SurfaceCard style={styles.cardContent} tactile={false}>
         <Row align="center" gap="md">
@@ -170,7 +167,10 @@ export const CoachResultCard = memo(function CoachResultCard({
 
         <Row wrap gap="sm" align="center">
           {coach.profile.specialties.slice(0, 3).map((specialty) => (
-            <View key={specialty} style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+            <View
+              key={specialty}
+              style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+            >
               <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
                 {specialty}
               </ThemedText>

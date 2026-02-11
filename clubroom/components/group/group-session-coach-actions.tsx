@@ -15,7 +15,11 @@ interface GroupSessionCoachActionsProps {
   onCancel: () => void;
 }
 
-export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({ sessionId, rosterCount, onCancel }: GroupSessionCoachActionsProps) {
+export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({
+  sessionId,
+  rosterCount,
+  onCancel,
+}: GroupSessionCoachActionsProps) {
   const { colors } = useTheme();
 
   return (
@@ -25,11 +29,16 @@ export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({
         style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
         <Ionicons name="people" size={20} color={colors.tint} />
-        <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>View Roster ({rosterCount})</ThemedText>
+        <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
+          View Roster ({rosterCount})
+        </ThemedText>
       </Clickable>
       <Clickable
         onPress={onCancel}
-        style={[styles.button, { backgroundColor: withAlpha(colors.error, 0.06), borderColor: colors.error }]}
+        style={[
+          styles.button,
+          { backgroundColor: withAlpha(colors.error, 0.06), borderColor: colors.error },
+        ]}
       >
         <Ionicons name="close-circle" size={20} color={colors.error} />
         <ThemedText style={{ color: colors.error, fontWeight: '600' }}>Cancel Session</ThemedText>
@@ -40,5 +49,12 @@ export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm, marginTop: Spacing.md },
-  button: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  button: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
 });

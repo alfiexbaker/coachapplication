@@ -38,7 +38,10 @@ interface RadarCalloutsProps {
   palette: ThemeColors;
 }
 
-export const RadarCallouts = memo(function RadarCallouts({ improvements, palette }: RadarCalloutsProps) {
+export const RadarCallouts = memo(function RadarCallouts({
+  improvements,
+  palette,
+}: RadarCalloutsProps) {
   if (improvements.length === 0) return null;
 
   return (

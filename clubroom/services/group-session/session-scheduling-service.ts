@@ -13,11 +13,7 @@
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import type {
-  GroupSession,
-  GroupSessionSchedule,
-  RecurringPattern,
-} from '@/constants/types';
+import type { GroupSession, GroupSessionSchedule, RecurringPattern } from '@/constants/types';
 import { loadSessions } from './session-crud-service';
 import { loadRegistrations } from './session-registration-service';
 
@@ -40,10 +36,7 @@ export const sessionSchedulingService = {
       const sessionsCache = await loadSessions();
       return sessionsCache
         .filter(
-          (s) =>
-            s.clubId === clubId &&
-            s.sessionType === 'TRAINING' &&
-            s.status === 'PUBLISHED'
+          (s) => s.clubId === clubId && s.sessionType === 'TRAINING' && s.status === 'PUBLISHED',
         )
         .sort((a, b) => {
           const aDate = a.schedule[0]?.date || '';
@@ -64,10 +57,7 @@ export const sessionSchedulingService = {
       const sessionsCache = await loadSessions();
       return sessionsCache
         .filter(
-          (s) =>
-            s.squadId === squadId &&
-            s.sessionType === 'TRAINING' &&
-            s.status === 'PUBLISHED'
+          (s) => s.squadId === squadId && s.sessionType === 'TRAINING' && s.status === 'PUBLISHED',
         )
         .sort((a, b) => {
           const aDate = a.schedule[0]?.date || '';
@@ -97,7 +87,7 @@ export const sessionSchedulingService = {
           (s) =>
             registeredSessionIds.includes(s.id) &&
             s.sessionType === 'TRAINING' &&
-            s.status === 'PUBLISHED'
+            s.status === 'PUBLISHED',
         )
         .sort((a, b) => {
           const aDate = a.schedule[0]?.date || '';

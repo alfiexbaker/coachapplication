@@ -28,15 +28,12 @@ export function CashPaymentBanner({ amount, coachName, sessionDate }: CashPaymen
         <Ionicons name="cash-outline" size={22} color={palette.warning} />
       </View>
       <View style={styles.content}>
-        <ThemedText style={[styles.title, { color: palette.warning }]}>
-          Cash payment due
-        </ThemedText>
+        <ThemedText style={[styles.title, { color: palette.warning }]}>Cash payment due</ThemedText>
         <ThemedText style={[styles.amount, { color: palette.text }]}>
-          {'\u00A3'}{amount.toFixed(2)} to {coachName}
+          {'\u00A3'}
+          {amount.toFixed(2)} to {coachName}
         </ThemedText>
-        <ThemedText style={[styles.date, { color: palette.muted }]}>
-          On {sessionDate}
-        </ThemedText>
+        <ThemedText style={[styles.date, { color: palette.muted }]}>On {sessionDate}</ThemedText>
         <ThemedText style={[styles.footnote, { color: palette.muted }]}>
           Please bring exact change
         </ThemedText>

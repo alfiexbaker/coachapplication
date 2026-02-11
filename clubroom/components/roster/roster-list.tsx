@@ -71,9 +71,7 @@ const RosterListItem = memo(function RosterListItem({
                 },
               ]}
             >
-              {isSelected && (
-                <Ionicons name="checkmark" size={14} color={colors.onPrimary} />
-              )}
+              {isSelected && <Ionicons name="checkmark" size={14} color={colors.onPrimary} />}
             </View>
           </Clickable>
         )}
@@ -110,10 +108,7 @@ export const RosterList = memo(function RosterList({
     [onToggleSelection],
   );
 
-  const handleRemove = useCallback(
-    (entry: RosterEntry) => () => onRemove(entry),
-    [onRemove],
-  );
+  const handleRemove = useCallback((entry: RosterEntry) => () => onRemove(entry), [onRemove]);
 
   const handleLongPress = useCallback(
     (entry: RosterEntry) => () => onLongPress(entry),

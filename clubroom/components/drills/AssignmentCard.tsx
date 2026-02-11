@@ -3,7 +3,11 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { DifficultyBadge } from './DifficultyBadge';
 import { AssignmentCardCompact } from './assignment-card-compact';
-import { type AssignmentCardProps, getStatusColor, getDueDateText } from './assignment-card-helpers';
+import {
+  type AssignmentCardProps,
+  getStatusColor,
+  getDueDateText,
+} from './assignment-card-helpers';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -19,11 +23,18 @@ export type { AssignmentCardProps };
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function AssignmentCard({ assignment, onPress, onComplete, compact = false }: AssignmentCardProps) {
+export function AssignmentCard({
+  assignment,
+  onPress,
+  onComplete,
+  compact = false,
+}: AssignmentCardProps) {
   const { colors: palette } = useTheme();
 
   if (compact) {
-    return <AssignmentCardCompact assignment={assignment} onPress={onPress} onComplete={onComplete} />;
+    return (
+      <AssignmentCardCompact assignment={assignment} onPress={onPress} onComplete={onComplete} />
+    );
   }
 
   const { drill } = assignment;
@@ -44,13 +55,20 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
           <View style={styles.thumbnailContainer}>
             <Image source={{ uri: drill.thumbnailUrl }} style={styles.thumbnail} />
             {assignment.isCompleted && (
-              <View style={[styles.completedOverlay, { backgroundColor: withAlpha(palette.success, 0.6) }]}>
+              <View
+                style={[
+                  styles.completedOverlay,
+                  { backgroundColor: withAlpha(palette.success, 0.6) },
+                ]}
+              >
                 <Ionicons name="checkmark-circle" size={48} color={palette.onPrimary} />
               </View>
             )}
             {hasVideo && !assignment.isCompleted && (
               <View style={[styles.playOverlay, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
-                <View style={[styles.playButton, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
+                <View
+                  style={[styles.playButton, { backgroundColor: withAlpha(palette.text, 0.6) }]}
+                >
                   <Ionicons name="play" size={20} color={palette.onPrimary} />
                 </View>
               </View>
@@ -62,15 +80,33 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
           {/* Header with category and priority */}
           <Row style={styles.header}>
             {categoryInfo && (
-              <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
-                <Ionicons name={categoryInfo.icon as keyof typeof Ionicons.glyphMap} size={12} color={categoryInfo.color} />
-                <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>{categoryInfo.label}</ThemedText>
+              <Row
+                style={[
+                  styles.categoryBadge,
+                  { backgroundColor: withAlpha(categoryInfo.color, 0.12) },
+                ]}
+              >
+                <Ionicons
+                  name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
+                  size={12}
+                  color={categoryInfo.color}
+                />
+                <ThemedText style={[styles.categoryText, { color: categoryInfo.color }]}>
+                  {categoryInfo.label}
+                </ThemedText>
               </Row>
             )}
             {!assignment.isCompleted && assignment.priority === 1 && (
-              <Row style={[styles.priorityBadgeFull, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+              <Row
+                style={[
+                  styles.priorityBadgeFull,
+                  { backgroundColor: withAlpha(palette.error, 0.09) },
+                ]}
+              >
                 <Ionicons name="alert-circle" size={12} color={palette.error} />
-                <ThemedText style={[styles.priorityText, { color: palette.error }]}>Priority</ThemedText>
+                <ThemedText style={[styles.priorityText, { color: palette.error }]}>
+                  Priority
+                </ThemedText>
               </Row>
             )}
           </Row>
@@ -97,7 +133,11 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
           {/* Footer with due date and actions */}
           <Row style={[styles.footer, { borderTopColor: palette.border }]}>
             <Row style={styles.dueDateContainer}>
-              <Ionicons name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'} size={16} color={statusColor} />
+              <Ionicons
+                name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'}
+                size={16}
+                color={statusColor}
+              />
               <ThemedText style={[styles.dueDateText, { color: statusColor }]}>
                 {getDueDateText(assignment, isOverdue, isDueSoon)}
               </ThemedText>
@@ -117,7 +157,9 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
 
           {/* Repetitions indicator */}
           {assignment.repetitions && assignment.repetitions > 1 && (
-            <Row style={[styles.repetitionsContainer, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row
+              style={[styles.repetitionsContainer, { backgroundColor: palette.surfaceSecondary }]}
+            >
               <Ionicons name="repeat" size={14} color={palette.tint} />
               <ThemedText style={[styles.repetitionsText, { color: palette.tint }]}>
                 {assignment.repetitions} sets
@@ -127,9 +169,14 @@ export function AssignmentCard({ assignment, onPress, onComplete, compact = fals
 
           {/* Complete button */}
           {!assignment.isCompleted && onComplete && (
-            <Clickable onPress={onComplete} style={[styles.completeButton, { backgroundColor: palette.tint }]}>
+            <Clickable
+              onPress={onComplete}
+              style={[styles.completeButton, { backgroundColor: palette.tint }]}
+            >
               <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-              <ThemedText style={[styles.completeButtonText, { color: palette.onPrimary }]}>Mark Complete</ThemedText>
+              <ThemedText style={[styles.completeButtonText, { color: palette.onPrimary }]}>
+                Mark Complete
+              </ThemedText>
             </Clickable>
           )}
         </View>
@@ -146,27 +193,81 @@ const styles = StyleSheet.create({
   cardContent: {},
   thumbnailContainer: { position: 'relative', width: '100%', height: 140 },
   thumbnail: { width: '100%', height: '100%' },
-  completedOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  completedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   playOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  playButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  playButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { padding: Components.card.padding, gap: Spacing.xs },
   header: { alignItems: 'center', gap: Spacing.xs },
-  categoryBadge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  categoryBadge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   categoryText: { fontSize: scaleFont(11), fontWeight: '600' },
-  priorityBadgeFull: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  priorityBadgeFull: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   priorityText: { fontSize: scaleFont(11), fontWeight: '600' },
-  title: { fontSize: scaleFont(17), fontWeight: '700', letterSpacing: -0.3, lineHeight: scaleFont(24) },
+  title: {
+    fontSize: scaleFont(17),
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    lineHeight: scaleFont(24),
+  },
   completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
-  notesContainer: { alignItems: 'flex-start', gap: 8, padding: Spacing.sm, borderRadius: Radii.sm, marginTop: Spacing.xxs },
+  notesContainer: {
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xxs,
+  },
   notesText: { flex: 1, fontSize: scaleFont(13), lineHeight: scaleFont(18), fontStyle: 'italic' },
-  footer: { alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs, paddingTop: Spacing.sm, borderTopWidth: 1 },
+  footer: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
   dueDateContainer: { alignItems: 'center', gap: Spacing.xxs },
   dueDateText: { fontSize: scaleFont(13), fontWeight: '600' },
   footerRight: { alignItems: 'center', gap: Spacing.sm },
   durationBadge: { alignItems: 'center', gap: Spacing.xxs },
   durationText: { fontSize: scaleFont(12) },
-  repetitionsContainer: { alignItems: 'center', gap: Spacing.xxs, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, marginTop: Spacing.xxs },
+  repetitionsContainer: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xxs,
+  },
   repetitionsText: { fontSize: scaleFont(13), fontWeight: '600' },
-  completeButton: { alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, marginTop: Spacing.sm },
+  completeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: Spacing.xs + Spacing.xxs,
+    borderRadius: Radii.md,
+    marginTop: Spacing.sm,
+  },
   completeButtonText: { fontSize: scaleFont(15), fontWeight: '600' },
 });

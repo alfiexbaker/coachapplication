@@ -47,15 +47,17 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
 
   return (
     <SurfaceCard
-      style={[styles.item, !isLast && styles.itemWithBorder, !isLast && { borderBottomColor: palette.border }]}
+      style={[
+        styles.item,
+        !isLast && styles.itemWithBorder,
+        !isLast && { borderBottomColor: palette.border },
+      ]}
       onPress={onPress}
       tactile={Boolean(onPress)}
     >
       <Row align="center" gap="sm">
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-            {initials}
-          </ThemedText>
+          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{initials}</ThemedText>
         </View>
 
         <View style={styles.itemDetails}>
@@ -98,9 +100,7 @@ export const ReferralHistoryItemInner = memo(function ReferralHistoryItemInner({
           </Row>
         </View>
 
-        {onPress && (
-          <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-        )}
+        {onPress && <Ionicons name="chevron-forward" size={18} color={palette.muted} />}
       </Row>
     </SurfaceCard>
   );
@@ -121,7 +121,14 @@ export const ReferralHistorySkeletonInner = memo(function ReferralHistorySkeleto
         <View style={[styles.skeletonTitle, { backgroundColor: palette.border }]} />
       </Row>
       {[1, 2, 3].map((i) => (
-        <View key={i} style={[styles.item, i < 3 && styles.itemWithBorder, i < 3 && { borderBottomColor: palette.border }]}>
+        <View
+          key={i}
+          style={[
+            styles.item,
+            i < 3 && styles.itemWithBorder,
+            i < 3 && { borderBottomColor: palette.border },
+          ]}
+        >
           <Row align="center" gap="sm">
             <View style={[styles.avatar, { backgroundColor: palette.border }]} />
             <View style={styles.itemDetails}>
@@ -149,9 +156,7 @@ export const ReferralEmptyState = memo(function ReferralEmptyState({
       <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
         <Ionicons name="people-outline" size={32} color={palette.muted} />
       </View>
-      <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
-        No referrals yet
-      </ThemedText>
+      <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>No referrals yet</ThemedText>
       <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
         Share your referral code with friends to start earning credits!
       </ThemedText>
@@ -197,8 +202,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   statusText: { fontSize: scaleFont(11), fontWeight: '600', letterSpacing: 0.3 },
-  itemMeta: { /* layout moved to Row */ },
-  metaItem: { /* layout moved to Row */ },
+  itemMeta: {
+    /* layout moved to Row */
+  },
+  metaItem: {
+    /* layout moved to Row */
+  },
   metaText: { fontSize: scaleFont(12) },
   emptyState: {
     alignItems: 'center',

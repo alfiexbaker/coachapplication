@@ -21,14 +21,24 @@ interface InvitePastSessionsTabProps {
 }
 
 export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
-  searchQuery, onSearchChange, filteredUsers, selectedUsers, onToggleUser, onSelectAll,
+  searchQuery,
+  onSearchChange,
+  filteredUsers,
+  selectedUsers,
+  onToggleUser,
+  onSelectAll,
 }: InvitePastSessionsTabProps) {
   const { colors } = useTheme();
 
   return (
     <>
       {/* Search */}
-      <Row style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Row
+        style={[
+          styles.searchContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
         <Ionicons name="search" size={20} color={colors.muted} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -63,7 +73,9 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
         <SurfaceCard style={styles.emptyCard}>
           <Ionicons name="people-outline" size={48} color={colors.muted} />
           <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
-            {searchQuery ? 'No users match your search' : 'No past session users found. Complete some sessions first!'}
+            {searchQuery
+              ? 'No users match your search'
+              : 'No past session users found. Complete some sessions first!'}
           </ThemedText>
         </SurfaceCard>
       ) : (
@@ -75,22 +87,41 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
                 <Clickable
                   style={[
                     styles.userRow,
-                    { borderColor: isSelected ? colors.tint : colors.border, backgroundColor: isSelected ? withAlpha(colors.tint, 0.03) : colors.surface },
+                    {
+                      borderColor: isSelected ? colors.tint : colors.border,
+                      backgroundColor: isSelected ? withAlpha(colors.tint, 0.03) : colors.surface,
+                    },
                   ]}
                   onPress={() => onToggleUser(user.userId)}
                 >
                   <Row style={styles.userLeft}>
-                    <View style={[styles.checkbox, { borderColor: isSelected ? colors.tint : colors.border, backgroundColor: isSelected ? colors.tint : 'transparent' }]}>
-                      {isSelected && <Ionicons name="checkmark" size={14} color={colors.onPrimary} />}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: isSelected ? colors.tint : colors.border,
+                          backgroundColor: isSelected ? colors.tint : 'transparent',
+                        },
+                      ]}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={14} color={colors.onPrimary} />
+                      )}
                     </View>
-                    <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-                      <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>{user.userName.charAt(0)}</ThemedText>
+                    <View
+                      style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}
+                    >
+                      <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
+                        {user.userName.charAt(0)}
+                      </ThemedText>
                     </View>
                     <View style={styles.userInfo}>
                       <ThemedText type="defaultSemiBold">{user.userName}</ThemedText>
                       <Row gap="sm" align="center">
                         {user.isParent && user.childName && (
-                          <ThemedText style={[Typography.caption, { color: colors.muted }]}>Parent of {user.childName}</ThemedText>
+                          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                            Parent of {user.childName}
+                          </ThemedText>
                         )}
                         <ThemedText style={[Typography.caption, { color: colors.muted }]}>
                           {user.sessionCount} session{user.sessionCount !== 1 ? 's' : ''}
@@ -101,7 +132,10 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
                   <Row gap="xxs" align="center">
                     <Ionicons name="calendar-outline" size={14} color={colors.muted} />
                     <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                      {new Date(user.lastSessionDate).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
+                      {new Date(user.lastSessionDate).toLocaleDateString('en-GB', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </ThemedText>
                   </Row>
                 </Clickable>
@@ -115,14 +149,40 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
 });
 
 const styles = StyleSheet.create({
-  searchContainer: { alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  searchContainer: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   searchInput: { flex: 1, ...Typography.body, padding: 0 },
   selectAllRow: { paddingHorizontal: Spacing.xs },
   emptyCard: { alignItems: 'center', gap: Spacing.md, padding: Spacing.xl },
   userList: { gap: Spacing.sm },
-  userRow: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
+  userRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
   userLeft: { alignItems: 'center', gap: Spacing.md, flex: 1 },
-  checkbox: { width: 22, height: 22, borderRadius: Radii.sm, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: Radii.sm,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   userInfo: { flex: 1, gap: Spacing.micro },
 });

@@ -7,7 +7,6 @@ import {
   ScrollView,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
@@ -60,25 +59,28 @@ export function WelcomeFlow({
     {
       key: 'squad',
       title: 'Your Squads',
-      subtitle: squadNames.length > 0
-        ? `You are part of: ${squadNames.join(', ')}`
-        : 'You will be assigned to a squad soon. Your coach will add you.',
+      subtitle:
+        squadNames.length > 0
+          ? `You are part of: ${squadNames.join(', ')}`
+          : 'You will be assigned to a squad soon. Your coach will add you.',
       icon: 'people-outline',
     },
     {
       key: 'upcoming',
       title: 'Upcoming Events',
-      subtitle: upcomingEvents.length > 0
-        ? `Next up: ${upcomingEvents[0].title} on ${upcomingEvents[0].date}`
-        : 'No events scheduled yet. Check back soon for training sessions and matches.',
+      subtitle:
+        upcomingEvents.length > 0
+          ? `Next up: ${upcomingEvents[0].title} on ${upcomingEvents[0].date}`
+          : 'No events scheduled yet. Check back soon for training sessions and matches.',
       icon: 'calendar-outline',
     },
     {
       key: 'coaches',
       title: 'Meet Your Coaches',
-      subtitle: coaches.length > 0
-        ? coaches.map((c) => `${c.name} (${c.role})`).join(', ')
-        : 'Your coaching team will introduce themselves soon.',
+      subtitle:
+        coaches.length > 0
+          ? coaches.map((c) => `${c.name} (${c.role})`).join(', ')
+          : 'Your coaching team will introduce themselves soon.',
       icon: 'shield-outline',
     },
     {

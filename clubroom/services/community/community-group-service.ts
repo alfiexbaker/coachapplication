@@ -12,15 +12,20 @@
  * - Role changes emit typed events via event bus
  */
 
-import {
-  ParentGroup,
-  GroupType,
-  GroupMember,
-  GroupMemberRole,
-} from '@/constants/types';
+import { ParentGroup, GroupType, GroupMember, GroupMemberRole } from '@/constants/types';
 import { apiClient } from '../api-client';
 import { notificationService } from '../notification-service';
-import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, unauthorized, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  conflictError,
+  unauthorized,
+  storageError,
+} from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
@@ -199,7 +204,7 @@ class CommunityGroupService {
       if (!allGroupsResult.success) return allGroupsResult;
 
       const filtered = allGroupsResult.data.filter((group) =>
-        group.members.some((member) => accountIdsMatch(member.parentId, parentId))
+        group.members.some((member) => accountIdsMatch(member.parentId, parentId)),
       );
 
       logger.info('parent_groups_retrieved', { parentId, count: filtered.length });
@@ -399,11 +404,13 @@ class CommunityGroupService {
     const memberRole = group.members[memberIndex].role;
     const isPrivileged = isAdminRole(memberRole) || memberRole === 'OWNER';
     const privilegedCount = group.members.filter(
-      (m) => isAdminRole(m.role) || m.role === 'OWNER'
+      (m) => isAdminRole(m.role) || m.role === 'OWNER',
     ).length;
 
     if (isPrivileged && privilegedCount === 1 && group.members.length > 1) {
-      return err(validationError('Cannot leave group as the only admin. Promote another member first.'));
+      return err(
+        validationError('Cannot leave group as the only admin. Promote another member first.'),
+      );
     }
 
     group.members.splice(memberIndex, 1);
@@ -426,7 +433,7 @@ class CommunityGroupService {
     groupId: string,
     inviterId: string,
     inviteeId: string,
-    inviteeName: string
+    inviteeName: string,
   ): Promise<Result<GroupInvite, ServiceError>> {
     const groupResult = await this.getGroup(groupId);
     if (!groupResult.success) return groupResult;
@@ -595,7 +602,11 @@ class CommunityGroupService {
    * Legacy promote helper - promotes a member to ADMIN.
    * Kept for backward compatibility; prefer `changeMemberRole` for granular control.
    */
-  async promoteMember(groupId: string, requesterId: string, memberId: string): Promise<Result<void, ServiceError>> {
+  async promoteMember(
+    groupId: string,
+    requesterId: string,
+    memberId: string,
+  ): Promise<Result<void, ServiceError>> {
     return this.changeMemberRole({ groupId, requesterId, memberId, newRole: 'ADMIN' });
   }
 
@@ -791,10 +802,7 @@ class CommunityGroupService {
    * Remove a member directly from a group (no permission checks).
    * Used by automated processes (e.g. squad group auto-sync).
    */
-  async removeMemberDirect(
-    groupId: string,
-    parentId: string,
-  ): Promise<Result<void, ServiceError>> {
+  async removeMemberDirect(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
     const allGroupsResult = await this.getAllGroups();
     if (!allGroupsResult.success) return allGroupsResult;
 

@@ -15,7 +15,10 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import type { SessionInvite } from '@/constants/types';
-import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
+import {
+  getSessionInviteAthleteNames,
+  getSessionInviteCoachName,
+} from '@/utils/session-invite-display';
 
 interface DiscoverPendingInvitesProps {
   invites: SessionInvite[];
@@ -44,9 +47,8 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
         const coachName = getSessionInviteCoachName(invite);
         const athleteNames = getSessionInviteAthleteNames(invite);
         const coachFirstName = coachName.split(' ')[0];
-        const athleteDisplay = athleteNames.length === 1
-          ? athleteNames[0]
-          : `${athleteNames.length} athletes`;
+        const athleteDisplay =
+          athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
         const message = invite.clubName
           ? `Coach ${coachFirstName} invited ${athleteDisplay} to ${invite.clubName}`
           : `Coach ${coachFirstName} invited ${athleteDisplay} to ${invite.sessionType.toLowerCase()}`;
@@ -60,13 +62,24 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
             <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
               <SurfaceCard style={[styles.inviteCard, { borderLeftColor: palette.warning }]}>
                 <Row align="center" gap="md">
-                  <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                  <Row
+                    align="center"
+                    justify="center"
+                    style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+                  >
                     <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                      {coachName.split(' ').map((n) => n[0]).join('')}
+                      {coachName
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')}
                     </ThemedText>
                   </Row>
                   <View style={styles.inviteInfo}>
-                    <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.inviteMessage}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      numberOfLines={2}
+                      style={styles.inviteMessage}
+                    >
                       {message}
                     </ThemedText>
                     <Row align="center" gap="md">
@@ -75,14 +88,25 @@ function DiscoverPendingInvitesInner({ invites }: DiscoverPendingInvitesProps) {
                         <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                           {invite.proposedSlots[0]
                             ? new Date(invite.proposedSlots[0].date).toLocaleDateString('en-GB', {
-                                weekday: 'short', day: 'numeric', month: 'short',
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short',
                               })
                             : 'View times'}
                         </ThemedText>
                       </Row>
-                      <Row align="center" gap={4} style={[styles.expiryBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                      <Row
+                        align="center"
+                        gap={4}
+                        style={[
+                          styles.expiryBadge,
+                          { backgroundColor: withAlpha(palette.warning, 0.09) },
+                        ]}
+                      >
                         <Ionicons name="time-outline" size={10} color={palette.warning} />
-                        <ThemedText style={[styles.expiryText, { color: palette.warning }]}>Respond soon</ThemedText>
+                        <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
+                          Respond soon
+                        </ThemedText>
                       </Row>
                     </Row>
                   </View>
@@ -113,7 +137,9 @@ const styles = StyleSheet.create({
   inviteMessage: { ...Typography.bodySmall, lineHeight: 18 },
   metaText: { ...Typography.caption },
   expiryBadge: {
-    paddingHorizontal: Spacing.xs, paddingVertical: Spacing.micro, borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   expiryText: { ...Typography.micro },
 });

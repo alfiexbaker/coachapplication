@@ -9,20 +9,33 @@ import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
 interface ChildSelectorProps {
-  children: User[];
+  childOptions: User[];
   selectedChildId?: string;
   onSelectChild: (childId: string) => void;
   autoSelected?: boolean;
 }
 
-export function ChildSelector({ children, selectedChildId, onSelectChild, autoSelected }: ChildSelectorProps) {
+export function ChildSelector({
+  childOptions,
+  selectedChildId,
+  onSelectChild,
+  autoSelected,
+}: ChildSelectorProps) {
   const { colors: palette } = useTheme();
 
   // If only one child (auto-selected), show simple banner
-  if (autoSelected && children.length === 1) {
-    const child = children[0];
+  if (autoSelected && childOptions.length === 1) {
+    const child = childOptions[0];
     return (
-      <Row style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
+      <Row
+        style={[
+          styles.banner,
+          {
+            backgroundColor: withAlpha(palette.tint, 0.06),
+            borderColor: withAlpha(palette.tint, 0.19),
+          },
+        ]}
+      >
         <Ionicons name="person" size={16} color={palette.tint} />
         <ThemedText style={[styles.bannerText, { color: palette.tint }]}>
           Session for {child.name}
@@ -35,11 +48,9 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
   // Multiple children - show minimal selector
   return (
     <View style={styles.container}>
-      <ThemedText style={[styles.label, { color: palette.muted }]}>
-        ATHLETE
-      </ThemedText>
+      <ThemedText style={[styles.label, { color: palette.muted }]}>ATHLETE</ThemedText>
       <Row style={styles.options}>
-        {children.map((child) => {
+        {childOptions.map((child) => {
           const isSelected = child.id === selectedChildId;
           return (
             <Clickable
@@ -51,7 +62,8 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
                   backgroundColor: isSelected ? palette.tint : palette.surface,
                   borderColor: isSelected ? palette.tint : palette.border,
                 },
-              ]}>
+              ]}
+            >
               <ThemedText
                 style={[
                   styles.optionText,
@@ -59,12 +71,11 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
                     color: isSelected ? palette.onPrimary : palette.text,
                     fontWeight: isSelected ? '700' : '600',
                   },
-                ]}>
+                ]}
+              >
                 {child.name}
               </ThemedText>
-              {isSelected && (
-                <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-              )}
+              {isSelected && <Ionicons name="checkmark" size={18} color={palette.onPrimary} />}
             </Clickable>
           );
         })}
@@ -86,8 +97,7 @@ const styles = StyleSheet.create({
   container: {
     gap: Spacing.xs,
   },
-  label: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.8 },
+  label: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.8 },
   options: {
     gap: Spacing.sm,
     flexWrap: 'wrap',

@@ -47,12 +47,7 @@ export function RetentionCard({
   const churnColor = getChurnColor(metrics.churnRate);
 
   return (
-    <SurfaceCard
-      style={styles.card}
-      loading={loading}
-      onPress={onPress}
-      tactile={!!onPress}
-    >
+    <SurfaceCard style={styles.card} loading={loading} onPress={onPress} tactile={!!onPress}>
       <View style={styles.header}>
         <Row style={styles.titleRow}>
           <Ionicons name="people" size={20} color={palette.tint} />
@@ -63,20 +58,13 @@ export function RetentionCard({
       {/* Main retention rate */}
       <View style={styles.mainMetric}>
         <View style={styles.progressRing}>
-          <View
-            style={[
-              styles.progressBackground,
-              { borderColor: palette.border },
-            ]}
-          >
+          <View style={[styles.progressBackground, { borderColor: palette.border }]}>
             <View
               style={[
                 styles.progressFill,
                 {
                   borderColor: retentionColor,
-                  transform: [
-                    { rotate: `${(metrics.retentionRate / 100) * 360}deg` },
-                  ],
+                  transform: [{ rotate: `${(metrics.retentionRate / 100) * 360}deg` }],
                 },
               ]}
             />
@@ -97,9 +85,7 @@ export function RetentionCard({
         <Row style={styles.clientStat}>
           <View style={[styles.clientDot, { backgroundColor: palette.success }]} />
           <View style={styles.clientInfo}>
-            <ThemedText style={styles.clientValue}>
-              {metrics.returningClients}
-            </ThemedText>
+            <ThemedText style={styles.clientValue}>{metrics.returningClients}</ThemedText>
             <ThemedText style={[styles.clientLabel, { color: palette.muted }]}>
               Returning
             </ThemedText>
@@ -108,23 +94,15 @@ export function RetentionCard({
         <Row style={styles.clientStat}>
           <View style={[styles.clientDot, { backgroundColor: palette.tint }]} />
           <View style={styles.clientInfo}>
-            <ThemedText style={styles.clientValue}>
-              {metrics.newClients}
-            </ThemedText>
-            <ThemedText style={[styles.clientLabel, { color: palette.muted }]}>
-              New
-            </ThemedText>
+            <ThemedText style={styles.clientValue}>{metrics.newClients}</ThemedText>
+            <ThemedText style={[styles.clientLabel, { color: palette.muted }]}>New</ThemedText>
           </View>
         </Row>
         <Row style={styles.clientStat}>
           <View style={[styles.clientDot, { backgroundColor: palette.error }]} />
           <View style={styles.clientInfo}>
-            <ThemedText style={styles.clientValue}>
-              {metrics.clientsLost}
-            </ThemedText>
-            <ThemedText style={[styles.clientLabel, { color: palette.muted }]}>
-              Lost
-            </ThemedText>
+            <ThemedText style={styles.clientValue}>{metrics.clientsLost}</ThemedText>
+            <ThemedText style={[styles.clientLabel, { color: palette.muted }]}>Lost</ThemedText>
           </View>
         </Row>
       </Row>
@@ -132,9 +110,7 @@ export function RetentionCard({
       {/* Additional metrics */}
       <Row style={[styles.metricsRow, { borderTopColor: palette.border }]}>
         <View style={styles.metricItem}>
-          <ThemedText style={styles.metricValue}>
-            {metrics.totalActiveClients}
-          </ThemedText>
+          <ThemedText style={styles.metricValue}>{metrics.totalActiveClients}</ThemedText>
           <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
             Active Clients
           </ThemedText>
@@ -151,9 +127,7 @@ export function RetentionCard({
           <ThemedText style={[styles.metricValue, { color: churnColor }]}>
             {metrics.churnRate.toFixed(1)}%
           </ThemedText>
-          <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
-            Churn Rate
-          </ThemedText>
+          <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Churn Rate</ThemedText>
         </View>
       </Row>
     </SurfaceCard>
@@ -232,6 +206,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   metricValue: { ...Typography.heading },
-  metricLabel: { ...Typography.caption, textAlign: 'center',
-    marginTop: Spacing.micro },
+  metricLabel: { ...Typography.caption, textAlign: 'center', marginTop: Spacing.micro },
 });

@@ -9,7 +9,15 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { TrialOffering } from '@/services/trial-service';
 import { Row } from '@/components/primitives';
 
-export function FieldLabel({ label, hint, palette }: { label: string; hint?: string; palette: ThemeColors }) {
+export function FieldLabel({
+  label,
+  hint,
+  palette,
+}: {
+  label: string;
+  hint?: string;
+  palette: ThemeColors;
+}) {
   return (
     <View style={styles.fieldLabelContainer}>
       <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>{label}</ThemedText>
@@ -38,7 +46,10 @@ export function TrialDiscoveryPreview({
         <Row style={styles.previewHeader}>
           <View style={[styles.previewAvatar, { backgroundColor: palette.tint }]}>
             <ThemedText style={{ ...Typography.subheading, color: palette.onPrimary }}>
-              {coachName.split(' ').map((n) => n[0]).join('')}
+              {coachName
+                .split(' ')
+                .map((n) => n[0])
+                .join('')}
             </ThemedText>
           </View>
           <View style={{ flex: 1 }}>
@@ -52,7 +63,12 @@ export function TrialDiscoveryPreview({
         </Row>
 
         {offering.enabled ? (
-          <Row style={[styles.previewTrialBadge, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+          <Row
+            style={[
+              styles.previewTrialBadge,
+              { backgroundColor: withAlpha(palette.success, 0.07) },
+            ]}
+          >
             <Ionicons name="flash-outline" size={Components.icon.sm} color={palette.success} />
             <ThemedText style={[Typography.bodySemiBold, { color: palette.success }]}>
               Trial Session Available
@@ -64,7 +80,8 @@ export function TrialDiscoveryPreview({
           {offering.enabled ? (
             <>
               <ThemedText style={[Typography.title, { color: palette.tint }]}>
-                {'\u00A3'}{offering.trialPrice ?? 0}
+                {'\u00A3'}
+                {offering.trialPrice ?? 0}
               </ThemedText>
               <ThemedText
                 style={[
@@ -75,17 +92,25 @@ export function TrialDiscoveryPreview({
                   },
                 ]}
               >
-                {'\u00A3'}{offering.normalPrice ?? 0}
+                {'\u00A3'}
+                {offering.normalPrice ?? 0}
               </ThemedText>
-              <View style={[styles.previewSavingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <View
+                style={[
+                  styles.previewSavingBadge,
+                  { backgroundColor: withAlpha(palette.success, 0.09) },
+                ]}
+              >
                 <ThemedText style={[Typography.caption, { color: palette.success }]}>
-                  Save {'\u00A3'}{(offering.normalPrice ?? 0) - (offering.trialPrice ?? 0)}
+                  Save {'\u00A3'}
+                  {(offering.normalPrice ?? 0) - (offering.trialPrice ?? 0)}
                 </ThemedText>
               </View>
             </>
           ) : (
             <ThemedText style={[Typography.title, { color: palette.tint }]}>
-              {'\u00A3'}{offering.normalPrice ?? 0}
+              {'\u00A3'}
+              {offering.normalPrice ?? 0}
             </ThemedText>
           )}
           <ThemedText style={[Typography.small, { color: palette.muted }]}>
@@ -143,4 +168,3 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
 });
-

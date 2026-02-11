@@ -87,8 +87,17 @@ export function getMockSkills(athlete: RosterEntry): SkillSummary[] {
 export function getMockGoals(athlete: RosterEntry): GoalSummary[] {
   if (athlete.totalSessions < 5) return [];
   return [
-    { id: 'g1', title: `Improve ${(athlete.primaryFocus || 'skills').toLowerCase()} accuracy`, progress: 0.65, dueDate: '2026-04-01' },
-    { id: 'g2', title: 'Complete 10 sessions this quarter', progress: athlete.totalSessions > 20 ? 0.8 : 0.4 },
+    {
+      id: 'g1',
+      title: `Improve ${(athlete.primaryFocus || 'skills').toLowerCase()} accuracy`,
+      progress: 0.65,
+      dueDate: '2026-04-01',
+    },
+    {
+      id: 'g2',
+      title: 'Complete 10 sessions this quarter',
+      progress: athlete.totalSessions > 20 ? 0.8 : 0.4,
+    },
   ];
 }
 
@@ -157,7 +166,8 @@ export const GoalCard = memo(function GoalCard({ goal }: { goal: GoalSummary }) 
       </View>
       {goal.dueDate && (
         <ThemedText style={[styles.goalDue, { color: colors.muted }]}>
-          Due {new Date(goal.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+          Due{' '}
+          {new Date(goal.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
         </ThemedText>
       )}
     </View>

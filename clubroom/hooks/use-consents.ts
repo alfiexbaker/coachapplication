@@ -53,14 +53,7 @@ export function useConsents() {
     }
   }, [coachId, filters, searchQuery]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ConsentsLoadData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ConsentsLoadData>({
     load: loadData,
     deps: [coachId, filters, searchQuery],
     isEmpty: (value) => value.consents.length === 0,
@@ -83,11 +76,19 @@ export function useConsents() {
     });
   }, []);
 
-  const toggleFilters = useCallback(() => { setShowFilters((v) => !v); }, []);
-  const clearSearch = useCallback(() => { setSearchQuery(''); }, []);
-  const clearFilters = useCallback(() => { setFilters({}); setSelectedType(null); }, []);
+  const toggleFilters = useCallback(() => {
+    setShowFilters((v) => !v);
+  }, []);
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+  const clearFilters = useCallback(() => {
+    setFilters({});
+    setSelectedType(null);
+  }, []);
 
-  const activeFiltersCount = (filters.type ? 1 : 0) + (filters.status && filters.status !== 'all' ? 1 : 0);
+  const activeFiltersCount =
+    (filters.type ? 1 : 0) + (filters.status && filters.status !== 'all' ? 1 : 0);
   const consentTypes = consentService.getConsentTypes();
 
   return {
@@ -99,8 +100,17 @@ export function useConsents() {
     refreshing,
     searchQuery,
     filters,
-    showFilters, selectedType, activeFiltersCount, consentTypes,
-    setSearchQuery, clearSearch, onRefresh, handleFilterChange,
-    handleStatCardPress, toggleFilters, clearFilters, retry,
+    showFilters,
+    selectedType,
+    activeFiltersCount,
+    consentTypes,
+    setSearchQuery,
+    clearSearch,
+    onRefresh,
+    handleFilterChange,
+    handleStatCardPress,
+    toggleFilters,
+    clearFilters,
+    retry,
   };
 }

@@ -67,7 +67,10 @@ const DEFAULT_SETTINGS = {
  */
 function formatICSDate(dateString) {
     const date = new Date(dateString);
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    return date
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
 }
 /**
  * Escape special characters for ICS format
@@ -195,8 +198,14 @@ function generateCalendarLink(event, provider) {
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
     // Format dates for URL
-    const startStr = start.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    const endStr = end.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const startStr = start
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
+    const endStr = end
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
     const title = encodeURIComponent(event.title);
     const location = encodeURIComponent(event.location || '');
     const description = encodeURIComponent(event.description || '');

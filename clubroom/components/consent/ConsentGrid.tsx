@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Consent, ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
@@ -69,10 +69,7 @@ function ConsentItem({ type, granted, compact, showLabel }: ConsentItemProps) {
       </View>
       {showLabel && (
         <ThemedText
-          style={[
-            styles.label,
-            { color: granted ? palette.text : palette.muted },
-          ]}
+          style={[styles.label, { color: granted ? palette.text : palette.muted }]}
           numberOfLines={1}
         >
           {label}
@@ -82,11 +79,7 @@ function ConsentItem({ type, granted, compact, showLabel }: ConsentItemProps) {
   );
 }
 
-export function ConsentGrid({
-  consents,
-  compact = false,
-  showLabels = false,
-}: ConsentGridProps) {
+export function ConsentGrid({ consents, compact = false, showLabels = false }: ConsentGridProps) {
   const consentTypes = consentService.getConsentTypes();
 
   return (

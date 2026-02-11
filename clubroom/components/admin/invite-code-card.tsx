@@ -65,13 +65,9 @@ export const InviteCodeCard = memo(function InviteCodeCard({
             accessibilityLabel={`Copy code ${item.code}`}
             accessibilityRole="button"
           >
-            <ThemedText style={[styles.codeText, { color: statusColor }]}>
-              {item.code}
-            </ThemedText>
+            <ThemedText style={[styles.codeText, { color: statusColor }]}>{item.code}</ThemedText>
           </Clickable>
-          <Row
-            style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}
-          >
+          <Row style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
               {statusLabel}
             </ThemedText>

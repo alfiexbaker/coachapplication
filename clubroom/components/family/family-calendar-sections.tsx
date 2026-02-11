@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View, ScrollView, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,8 +14,18 @@ import { Row } from '@/components/primitives';
 
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 // ─── ChildFilterRow ─────────────────────────────────────────────────────────
@@ -36,16 +46,29 @@ export const ChildFilterRow = memo(function ChildFilterRow({
   if (members.length <= 1) return null;
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filterRow}
+    >
       <Clickable
         onPress={() => onChildFilterChange?.(null)}
-        style={[
-          styles.filterChip,
-          { borderColor: palette.border },
-          selectedChildId === null ? { backgroundColor: palette.tint, borderColor: palette.tint } : undefined,
-        ].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.filterChip,
+            { borderColor: palette.border },
+            selectedChildId === null
+              ? { backgroundColor: palette.tint, borderColor: palette.tint }
+              : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
-        <ThemedText style={[styles.filterChipText, selectedChildId === null ? { color: palette.onPrimary } : undefined]}>
+        <ThemedText
+          style={[
+            styles.filterChipText,
+            selectedChildId === null ? { color: palette.onPrimary } : undefined,
+          ]}
+        >
           All Children
         </ThemedText>
       </Clickable>
@@ -53,11 +76,13 @@ export const ChildFilterRow = memo(function ChildFilterRow({
         <Clickable
           key={member.id}
           onPress={() => onChildFilterChange?.(member.id)}
-          style={[
-            styles.filterChip,
-            { borderColor: member.colorCode },
-            selectedChildId === member.id ? { backgroundColor: member.colorCode } : undefined,
-          ].filter(Boolean) as ViewStyle[]}
+          style={
+            [
+              styles.filterChip,
+              { borderColor: member.colorCode },
+              selectedChildId === member.id ? { backgroundColor: member.colorCode } : undefined,
+            ].filter(Boolean) as ViewStyle[]
+          }
         >
           <View
             style={[
@@ -66,7 +91,12 @@ export const ChildFilterRow = memo(function ChildFilterRow({
               selectedChildId === member.id ? { backgroundColor: palette.surface } : undefined,
             ]}
           />
-          <ThemedText style={[styles.filterChipText, selectedChildId === member.id ? { color: palette.onPrimary } : undefined]}>
+          <ThemedText
+            style={[
+              styles.filterChipText,
+              selectedChildId === member.id ? { color: palette.onPrimary } : undefined,
+            ]}
+          >
             {member.name.split(' ')[0]}
           </ThemedText>
         </Clickable>
@@ -105,7 +135,12 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
         const today = isToday(item.date);
 
         return (
-          <Clickable key={index} onPress={() => item.date && onDateSelect?.(item.date)} disabled={!item.date} style={styles.dayCell}>
+          <Clickable
+            key={index}
+            onPress={() => item.date && onDateSelect?.(item.date)}
+            disabled={!item.date}
+            style={styles.dayCell}
+          >
             <View
               style={[
                 styles.dayContent,
@@ -115,7 +150,11 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
             >
               {item.date && (
                 <ThemedText
-                  style={[styles.dayText, selected ? { color: palette.onPrimary } : undefined, !item.isCurrentMonth ? { color: palette.muted } : undefined]}
+                  style={[
+                    styles.dayText,
+                    selected ? { color: palette.onPrimary } : undefined,
+                    !item.isCurrentMonth ? { color: palette.muted } : undefined,
+                  ]}
                 >
                   {item.date.getDate()}
                 </ThemedText>
@@ -155,7 +194,11 @@ export const EventListSection = memo(function EventListSection({
   return (
     <View style={styles.eventsSection}>
       <ThemedText type="defaultSemiBold" style={styles.eventsSectionTitle}>
-        {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+        {selectedDate.toLocaleDateString('en-GB', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        })}
       </ThemedText>
       {events.map((event) => (
         <Clickable key={event.id} onPress={() => onEventPress?.(event)}>
@@ -165,24 +208,33 @@ export const EventListSection = memo(function EventListSection({
               <Row style={styles.eventHeader}>
                 <ThemedText type="defaultSemiBold">{event.title}</ThemedText>
                 <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
-                  {new Date(event.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(event.start).toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </ThemedText>
               </Row>
               <Row style={styles.eventMeta}>
                 <Row style={styles.eventMetaItem}>
                   <Ionicons name="person" size={12} color={palette.muted} />
-                  <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.childId}</ThemedText>
+                  <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
+                    {event.childId}
+                  </ThemedText>
                 </Row>
                 {event.coachId && (
                   <Row style={styles.eventMetaItem}>
                     <Ionicons name="school" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.coachId}</ThemedText>
+                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
+                      {event.coachId}
+                    </ThemedText>
                   </Row>
                 )}
                 {event.location && (
                   <Row style={styles.eventMetaItem}>
                     <Ionicons name="location" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>{event.location}</ThemedText>
+                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
+                      {event.location}
+                    </ThemedText>
                   </Row>
                 )}
               </Row>
@@ -198,12 +250,31 @@ export const EventListSection = memo(function EventListSection({
 
 const styles = StyleSheet.create({
   filterRow: { flexDirection: 'row', gap: Spacing.xs, paddingVertical: Spacing.xs },
-  filterChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
+  filterChip: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1.5,
+  },
   filterDot: { width: 8, height: 8, borderRadius: Radii.xs },
   filterChipText: { ...Typography.smallSemiBold },
   grid: { flexWrap: 'wrap' },
-  dayCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.micro },
-  dayContent: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  dayCell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.micro,
+  },
+  dayContent: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dayText: { ...Typography.bodySmallSemiBold },
   eventDots: { gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: 4 },
   eventDot: { width: 4, height: 4, borderRadius: Radii.xs },

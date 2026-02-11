@@ -31,17 +31,35 @@ interface EditLanguagesSectionProps {
 }
 
 export const EditLanguagesSection = memo(function EditLanguagesSection({
-  colors, languages, onOpenModal, onRemove, onQuickAdd, languageOptions, proficiencyOptions,
-  modalVisible, draft, onDraftChange, onSave, onCloseModal,
+  colors,
+  languages,
+  onOpenModal,
+  onRemove,
+  onQuickAdd,
+  languageOptions,
+  proficiencyOptions,
+  modalVisible,
+  draft,
+  onDraftChange,
+  onSave,
+  onCloseModal,
 }: EditLanguagesSectionProps) {
-  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+  const inputStyle = [
+    styles.input,
+    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
+  ];
 
   return (
     <>
       <SurfaceCard style={styles.section}>
         <Row justify="between" align="center">
           <ThemedText type="subtitle">Languages</ThemedText>
-          <Clickable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add language" accessibilityRole="button">
+          <Clickable
+            onPress={() => onOpenModal()}
+            style={styles.inlineAction}
+            accessibilityLabel="Add language"
+            accessibilityRole="button"
+          >
             <Row align="center" gap="xs">
               <Ionicons name="add-circle" size={22} color={colors.tint} />
               <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
@@ -55,17 +73,32 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
         {languages.length > 0 ? (
           <View style={styles.list}>
             {languages.map((lang) => (
-              <Row key={lang.id} align="center" gap="sm" style={[styles.row, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Row
+                key={lang.id}
+                align="center"
+                gap="sm"
+                style={[styles.row, { borderColor: colors.border, backgroundColor: colors.card }]}
+              >
                 <View style={[styles.dot, { backgroundColor: colors.tint }]} />
                 <View style={styles.copy}>
                   <ThemedText style={styles.name}>{lang.name}</ThemedText>
                   <ThemedText style={styles.proficiency}>{lang.proficiency}</ThemedText>
                 </View>
                 <Row gap="xs">
-                  <Clickable onPress={() => onOpenModal(lang)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Edit ${lang.name}`} accessibilityRole="button">
+                  <Clickable
+                    onPress={() => onOpenModal(lang)}
+                    style={[styles.iconButton, { borderColor: colors.border }]}
+                    accessibilityLabel={`Edit ${lang.name}`}
+                    accessibilityRole="button"
+                  >
                     <Ionicons name="pencil" size={16} color={colors.muted} />
                   </Clickable>
-                  <Clickable onPress={() => onRemove(lang.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Remove ${lang.name}`} accessibilityRole="button">
+                  <Clickable
+                    onPress={() => onRemove(lang.id)}
+                    style={[styles.iconButton, { borderColor: colors.border }]}
+                    accessibilityLabel={`Remove ${lang.name}`}
+                    accessibilityRole="button"
+                  >
                     <Ionicons name="close" size={16} color={colors.warning} />
                   </Clickable>
                 </Row>
@@ -91,11 +124,22 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                   key={option}
                   disabled={isAdded}
                   onPress={() => onQuickAdd(option)}
-                  style={[styles.chip, { opacity: isAdded ? 0.35 : 1, borderColor: isAdded ? colors.border : colors.tint, backgroundColor: isAdded ? colors.card : withAlpha(colors.tint, 0.09) }]}
+                  style={[
+                    styles.chip,
+                    {
+                      opacity: isAdded ? 0.35 : 1,
+                      borderColor: isAdded ? colors.border : colors.tint,
+                      backgroundColor: isAdded ? colors.card : withAlpha(colors.tint, 0.09),
+                    },
+                  ]}
                   accessibilityLabel={`Quick add ${option}`}
                   accessibilityRole="button"
                 >
-                  <ThemedText style={styles.chipText} lightColor={isAdded ? undefined : colors.tint} darkColor={isAdded ? undefined : colors.tint}>
+                  <ThemedText
+                    style={styles.chipText}
+                    lightColor={isAdded ? undefined : colors.tint}
+                    darkColor={isAdded ? undefined : colors.tint}
+                  >
                     {option}
                   </ThemedText>
                 </Clickable>
@@ -110,14 +154,25 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
           <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Row justify="between" align="center">
               <ThemedText type="subtitle">Language</ThemedText>
-              <Clickable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
+              <Clickable
+                onPress={onCloseModal}
+                accessibilityLabel="Close"
+                accessibilityRole="button"
+              >
                 <Ionicons name="close" size={22} color={colors.foreground} />
               </Clickable>
             </Row>
             <View style={styles.modalContent}>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Language</ThemedText>
-                <TextInput value={draft.name} onChangeText={(t) => onDraftChange((p) => ({ ...p, name: t }))} placeholder="e.g., English" placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Language name" />
+                <TextInput
+                  value={draft.name}
+                  onChangeText={(t) => onDraftChange((p) => ({ ...p, name: t }))}
+                  placeholder="e.g., English"
+                  placeholderTextColor={colors.muted}
+                  style={inputStyle}
+                  accessibilityLabel="Language name"
+                />
               </View>
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Proficiency</ThemedText>
@@ -125,15 +180,40 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
                   {proficiencyOptions.map((level) => {
                     const isActive = draft.proficiency === level;
                     return (
-                      <Clickable key={level} onPress={() => onDraftChange((p) => ({ ...p, proficiency: level }))} style={[styles.chip, { borderColor: isActive ? colors.tint : colors.border, backgroundColor: isActive ? withAlpha(colors.tint, 0.09) : colors.card }]} accessibilityLabel={level} accessibilityRole="radio">
-                        <ThemedText style={styles.chipText} lightColor={isActive ? colors.tint : undefined} darkColor={isActive ? colors.tint : undefined}>{level}</ThemedText>
+                      <Clickable
+                        key={level}
+                        onPress={() => onDraftChange((p) => ({ ...p, proficiency: level }))}
+                        style={[
+                          styles.chip,
+                          {
+                            borderColor: isActive ? colors.tint : colors.border,
+                            backgroundColor: isActive ? withAlpha(colors.tint, 0.09) : colors.card,
+                          },
+                        ]}
+                        accessibilityLabel={level}
+                        accessibilityRole="radio"
+                      >
+                        <ThemedText
+                          style={styles.chipText}
+                          lightColor={isActive ? colors.tint : undefined}
+                          darkColor={isActive ? colors.tint : undefined}
+                        >
+                          {level}
+                        </ThemedText>
                       </Clickable>
                     );
                   })}
                 </Row>
               </View>
-              <Clickable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save language" accessibilityRole="button">
-                <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save language</ThemedText>
+              <Clickable
+                onPress={onSave}
+                style={[styles.primaryButton, { backgroundColor: colors.tint }]}
+                accessibilityLabel="Save language"
+                accessibilityRole="button"
+              >
+                <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+                  Save language
+                </ThemedText>
               </Clickable>
             </View>
           </SurfaceCard>
@@ -154,12 +234,37 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: Spacing.micro },
   name: { fontWeight: '700' },
   proficiency: { ...Typography.caption, opacity: 0.7 },
-  iconButton: { width: 36, height: 36, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyCard: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, borderStyle: 'dashed', alignItems: 'center', gap: Spacing.xs },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   emptyText: { textAlign: 'center', opacity: 0.7 },
-  quickAddRow: { marginTop: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, gap: Spacing.xs },
+  quickAddRow: {
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
+  },
   helper: { ...Typography.caption, opacity: 0.6 },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
   chipText: { fontWeight: '600' },
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
@@ -167,7 +272,18 @@ const styles = StyleSheet.create({
   modalContent: { gap: Spacing.md },
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading },
-  primaryButton: { marginTop: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg, alignItems: 'center' },
+  input: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.subheading,
+  },
+  primaryButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+  },
   primaryButtonText: { ...Typography.subheading },
 });

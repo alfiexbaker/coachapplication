@@ -5,11 +5,10 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, TextInput } from 'react-native';
+import { View, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -20,12 +19,7 @@ import { Column } from '@/components/primitives/column';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 
-import {
-  NoteCard,
-  PrimaryFocusSection,
-  NoteSearchBar,
-  styles,
-} from './athlete-notes-tab-sections';
+import { NoteCard, PrimaryFocusSection, NoteSearchBar, styles } from './athlete-notes-tab-sections';
 
 // ============================================================================
 // TYPES
@@ -74,7 +68,7 @@ function AthleteNotesTabInner({
       onUpdateFocus(focus);
       setShowFocusPicker(false);
     },
-    [onUpdateFocus]
+    [onUpdateFocus],
   );
 
   const filteredNotes = useMemo(() => {
@@ -83,9 +77,7 @@ function AthleteNotesTabInner({
       const q = searchQuery.toLowerCase();
       notes = notes.filter((n) => n.content.toLowerCase().includes(q));
     }
-    return notes.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [athlete.notes, searchQuery]);
 
   return (
@@ -105,28 +97,19 @@ function AthleteNotesTabInner({
       <Animated.View entering={FadeInDown.delay(100).springify()}>
         <SurfaceCard style={styles.section}>
           <Row gap="sm" align="center" justify="between">
-            <ThemedText type="defaultSemiBold">
-              Coach Notes ({athlete.notes.length})
-            </ThemedText>
+            <ThemedText type="defaultSemiBold">Coach Notes ({athlete.notes.length})</ThemedText>
             <Clickable
               onPress={() => setShowInput(!showInput)}
               accessibilityLabel={showInput ? 'Close note editor' : 'Add note'}
             >
-              <Ionicons
-                name={showInput ? 'close' : 'add-circle'}
-                size={24}
-                color={colors.tint}
-              />
+              <Ionicons name={showInput ? 'close' : 'add-circle'} size={24} color={colors.tint} />
             </Clickable>
           </Row>
 
           {showInput && (
             <Column gap="sm">
               <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: colors.background, color: colors.text },
-                ]}
+                style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
                 placeholder="Write a note about this athlete..."
                 placeholderTextColor={colors.muted}
                 value={newNote}

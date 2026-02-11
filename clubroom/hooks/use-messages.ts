@@ -55,7 +55,11 @@ export function useMessages(): UseMessagesResult {
     retry,
   } = useScreen<ChatThreadSummary[]>({
     load: () => messagingService.listThreads(),
-    events: [ServiceEvents.MESSAGE_SENT, ServiceEvents.MESSAGE_DELETED, ServiceEvents.MESSAGE_EDITED],
+    events: [
+      ServiceEvents.MESSAGE_SENT,
+      ServiceEvents.MESSAGE_DELETED,
+      ServiceEvents.MESSAGE_EDITED,
+    ],
     refetchOnFocus: true,
   });
   const threadList = threads ?? [];

@@ -7,7 +7,6 @@
 
 import React, { memo } from 'react';
 import { StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -62,7 +61,9 @@ export const InviteActionBar = memo(function InviteActionBar({
           accessibilityLabel="Counter propose alternative times"
           style={[styles.counterButton, { borderColor: colors.tint }]}
         >
-          <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>Counter</ThemedText>
+          <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
+            Counter
+          </ThemedText>
         </Clickable>
         <Clickable
           onPress={onAccept}
@@ -88,11 +89,7 @@ export const InviteActionBar = memo(function InviteActionBar({
   if (!canRespond && status === 'PENDING' && !isOwner) {
     return (
       <Row style={[styles.footer, { borderTopColor: colors.border }]}>
-        <RsvpButtonGroup
-          currentStatus={currentRsvpStatus}
-          onRespond={onRsvp}
-          compact={false}
-        />
+        <RsvpButtonGroup currentStatus={currentRsvpStatus} onRespond={onRsvp} compact={false} />
       </Row>
     );
   }

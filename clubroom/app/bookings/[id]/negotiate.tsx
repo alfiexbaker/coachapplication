@@ -38,7 +38,13 @@ export default function NegotiateScreen() {
   if (n.isLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            headerTitle: 'Negotiation',
+            headerLeft: () => <HeaderBack />,
+          }}
+        />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -47,7 +53,9 @@ export default function NegotiateScreen() {
   if (n.error) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen options={{ headerShown: true, headerTitle: 'Error', headerLeft: () => <HeaderBack /> }} />
+        <Stack.Screen
+          options={{ headerShown: true, headerTitle: 'Error', headerLeft: () => <HeaderBack /> }}
+        />
         <ErrorState title="Unable to load negotiation" message={n.error} onRetry={n.loadData} />
       </SafeAreaView>
     );
@@ -56,7 +64,13 @@ export default function NegotiateScreen() {
   if (!n.negotiation) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            headerTitle: 'Negotiation',
+            headerLeft: () => <HeaderBack />,
+          }}
+        />
         <EmptyState
           icon="swap-horizontal-outline"
           title="No negotiation yet"
@@ -69,11 +83,28 @@ export default function NegotiateScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <Stack.Screen options={{ headerShown: true, headerTitle: 'Negotiation', headerLeft: () => <HeaderBack /> }} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: 'Negotiation',
+          headerLeft: () => <HeaderBack />,
+        }}
+      />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={n.isRefreshing} onRefresh={n.handleRefresh} tintColor={palette.tint} />}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={n.isRefreshing}
+            onRefresh={n.handleRefresh}
+            tintColor={palette.tint}
+          />
+        }
       >
         {/* Booking summary */}
         <View style={[styles.summary, { backgroundColor: palette.surface }]}>
@@ -81,15 +112,26 @@ export default function NegotiateScreen() {
             <Ionicons name="calendar-outline" size={20} color={palette.tint} />
             <View style={styles.summaryInfo}>
               <ThemedText type="defaultSemiBold">Session with {n.negotiation.coachId}</ThemedText>
-              <ThemedText style={{ color: palette.muted }}>For {n.negotiation.athleteId}</ThemedText>
+              <ThemedText style={{ color: palette.muted }}>
+                For {n.negotiation.athleteId}
+              </ThemedText>
             </View>
           </Row>
         </View>
 
         {n.pendingOffer && (
           <View style={styles.section}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Action Required</ThemedText>
-            <CounterOfferCard offer={n.pendingOffer} isActionable onAccept={n.handleAccept} onReject={n.handleRejectPress} onCounterPropose={n.handleNewProposal} isLoading={n.isProcessing} />
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              Action Required
+            </ThemedText>
+            <CounterOfferCard
+              offer={n.pendingOffer}
+              isActionable
+              onAccept={n.handleAccept}
+              onReject={n.handleRejectPress}
+              onCounterPropose={n.handleNewProposal}
+              isLoading={n.isProcessing}
+            />
           </View>
         )}
 
@@ -102,7 +144,9 @@ export default function NegotiateScreen() {
             <Button onPress={n.handleNewProposal}>
               <Row style={styles.proposalRow}>
                 <Ionicons name="swap-horizontal" size={18} color={palette.onPrimary} />
-                <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Propose Different Time</ThemedText>
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>
+                  Propose Different Time
+                </ThemedText>
               </Row>
             </Button>
           </View>
@@ -110,8 +154,11 @@ export default function NegotiateScreen() {
       </ScrollView>
 
       <RejectModal
-        visible={n.showRejectModal} reason={n.rejectReason}
-        onReasonChange={n.setRejectReason} onConfirm={n.handleRejectConfirm} onCancel={n.handleRejectCancel}
+        visible={n.showRejectModal}
+        reason={n.rejectReason}
+        onReasonChange={n.setRejectReason}
+        onConfirm={n.handleRejectConfirm}
+        onCancel={n.handleRejectCancel}
       />
     </SafeAreaView>
   );

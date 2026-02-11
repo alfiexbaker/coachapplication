@@ -6,11 +6,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { eventService } from '@/services/event-service';
 
-import {
-  CheckInUnavailable,
-  CheckedInBadge,
-  CheckInAction,
-} from './check-in-button-sections';
+import { CheckInUnavailable, CheckedInBadge, CheckInAction } from './check-in-button-sections';
 
 const logger = createLogger('CheckInButton');
 
@@ -66,7 +62,7 @@ export function CheckInButton({
         Alert.alert(
           'Location Required',
           'Please enable location access to check in to this event.',
-          [{ text: 'OK' }]
+          [{ text: 'OK' }],
         );
         setLoading(false);
         return;
@@ -99,28 +95,24 @@ export function CheckInButton({
   const handleUndoCheckIn = useCallback(async () => {
     if (!onUndoCheckIn || loading) return;
 
-    Alert.alert(
-      'Undo Check-in',
-      'Are you sure you want to undo your check-in?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Undo',
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await onUndoCheckIn();
-            } catch (error) {
-              logger.error('Undo check-in failed', error);
-              Alert.alert('Failed', 'Please try again.');
-            } finally {
-              setLoading(false);
-            }
-          },
+    Alert.alert('Undo Check-in', 'Are you sure you want to undo your check-in?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Undo',
+        style: 'destructive',
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await onUndoCheckIn();
+          } catch (error) {
+            logger.error('Undo check-in failed', error);
+            Alert.alert('Failed', 'Please try again.');
+          } finally {
+            setLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   }, [onUndoCheckIn, loading]);
 
   // Event not available for check-in

@@ -66,7 +66,10 @@ export const InviteCounterDisplay = memo(function InviteCounterDisplay({
             key={`counter-${slot.date}-${slot.startTime}`}
             onPress={() => handleSlotPress(slot)}
             accessibilityLabel={`Accept counter proposal: ${slot.date} at ${slot.startTime}`}
-            style={[styles.slotSelectable, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[
+              styles.slotSelectable,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
           >
             <Column gap="xxs" style={styles.slotDetails}>
               <ThemedText type="defaultSemiBold">
@@ -81,7 +84,9 @@ export const InviteCounterDisplay = memo(function InviteCounterDisplay({
               </ThemedText>
             </Column>
             <Row style={[styles.acceptButton, { backgroundColor: colors.tint }]}>
-              <ThemedText style={{ color: colors.onPrimary, ...Typography.caption }}>Accept</ThemedText>
+              <ThemedText style={{ color: colors.onPrimary, ...Typography.caption }}>
+                Accept
+              </ThemedText>
             </Row>
           </Clickable>
         ))}

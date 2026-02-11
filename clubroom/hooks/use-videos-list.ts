@@ -18,7 +18,10 @@ export function useVideosList() {
 
   const loadVideos = useCallback(async () => {
     if (!currentUser?.id) {
-      return ok<{ videos: SessionVideo[]; stats: { totalVideos: number; totalViews: number; sharedCount: number } }>({
+      return ok<{
+        videos: SessionVideo[];
+        stats: { totalVideos: number; totalViews: number; sharedCount: number };
+      }>({
         videos: [],
         stats: { totalVideos: 0, totalViews: 0, sharedCount: 0 },
       });
@@ -26,7 +29,10 @@ export function useVideosList() {
     try {
       const videos = await videoService.getCoachVideos(currentUser.id);
       const stats = await videoService.getCoachVideoStats(currentUser.id);
-      return ok<{ videos: SessionVideo[]; stats: { totalVideos: number; totalViews: number; sharedCount: number } }>({
+      return ok<{
+        videos: SessionVideo[];
+        stats: { totalVideos: number; totalViews: number; sharedCount: number };
+      }>({
         videos,
         stats,
       });
@@ -36,14 +42,10 @@ export function useVideosList() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ videos: SessionVideo[]; stats: { totalVideos: number; totalViews: number; sharedCount: number } }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
+    videos: SessionVideo[];
+    stats: { totalVideos: number; totalViews: number; sharedCount: number };
+  }>({
     load: loadVideos,
     deps: [currentUser?.id],
     isEmpty: (value) => value.videos.length === 0,

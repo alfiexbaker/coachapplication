@@ -93,9 +93,13 @@ export function useCoachDevelopment() {
       try {
         setLoading(true);
         const storedSessions = await apiClient.get<Session[]>('coach_sessions', []);
-        const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
+        const coachSessions = storedSessions.filter(
+          (session) => session.coachId === currentUser.id,
+        );
 
-        const athleteIds = [...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean))];
+        const athleteIds = [
+          ...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean)),
+        ];
         const athleteResult = await userService.getUsersByIds(athleteIds);
         const nextAthleteDirectory: Record<string, User> = {};
 
@@ -153,7 +157,9 @@ export function useCoachDevelopment() {
 
     const athletes: AthleteWithSessions[] = [];
     athleteMap.forEach((athleteSessions, athleteId) => {
-      const sortedSessions = [...athleteSessions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+      const sortedSessions = [...athleteSessions].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+      );
       const latestSession = sortedSessions[0];
       const fallbackAthleteName = latestSession ? getSessionAthleteName(latestSession) : 'Athlete';
       const storedAthlete = athleteDirectory[athleteId];
@@ -169,7 +175,9 @@ export function useCoachDevelopment() {
             avatar: formatAthleteName(fallbackAthleteName).charAt(0),
           };
 
-      const avgRating = athleteSessions.reduce((sum, session) => sum + session.performanceRating, 0) / athleteSessions.length;
+      const avgRating =
+        athleteSessions.reduce((sum, session) => sum + session.performanceRating, 0) /
+        athleteSessions.length;
       athletes.push({
         athlete,
         sessionCount: athleteSessions.length,
@@ -178,7 +186,9 @@ export function useCoachDevelopment() {
       });
     });
 
-    return athletes.sort((a, b) => new Date(b.lastSession).getTime() - new Date(a.lastSession).getTime());
+    return athletes.sort(
+      (a, b) => new Date(b.lastSession).getTime() - new Date(a.lastSession).getTime(),
+    );
   }, [currentUser, allSessions, athleteDirectory]);
 
   const rosterEntries: AthleteRosterEntry[] = useMemo(() => {
@@ -186,15 +196,23 @@ export function useCoachDevelopment() {
     return athletesWithSessions.map((entry) => {
       const athleteSessions = allSessions.filter((s) => s.athleteId === entry.athlete.id);
       const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
-      const daysSinceLast = Math.max(0, Math.round((now - new Date(entry.lastSession).getTime()) / (1000 * 60 * 60 * 24)));
+      const daysSinceLast = Math.max(
+        0,
+        Math.round((now - new Date(entry.lastSession).getTime()) / (1000 * 60 * 60 * 24)),
+      );
       return { ...entry, needsNotes, daysSinceLast };
     });
   }, [allSessions, athletesWithSessions]);
 
-  const attentionAthletes = rosterEntries.filter((e) => e.needsNotes || e.averageRating < 4 || e.daysSinceLast >= 10);
+  const attentionAthletes = rosterEntries.filter(
+    (e) => e.needsNotes || e.averageRating < 4 || e.daysSinceLast >= 10,
+  );
 
   const recentSessions = useMemo(
-    () => [...allSessions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).slice(0, 5),
+    () =>
+      [...allSessions]
+        .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+        .slice(0, 5),
     [allSessions],
   );
 

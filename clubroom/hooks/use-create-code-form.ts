@@ -15,7 +15,12 @@ interface UseCreateCodeFormProps {
   onError?: (error: string) => void;
 }
 
-export function useCreateCodeForm({ adminUserId, adminUserName, onSuccess, onError }: UseCreateCodeFormProps) {
+export function useCreateCodeForm({
+  adminUserId,
+  adminUserName,
+  onSuccess,
+  onError,
+}: UseCreateCodeFormProps) {
   const [code, setCode] = useState('');
   const [creditAmount, setCreditAmount] = useState('10');
   const [maxUses, setMaxUses] = useState('100');
@@ -29,7 +34,10 @@ export function useCreateCodeForm({ adminUserId, adminUserName, onSuccess, onErr
   const [codeError, setCodeError] = useState<string | null>(null);
 
   const handleCodeChange = useCallback((text: string) => {
-    const normalized = text.toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9]/g, '');
+    const normalized = text
+      .toUpperCase()
+      .replace(/\s+/g, '')
+      .replace(/[^A-Z0-9]/g, '');
     setCode(normalized);
     setCodeError(null);
     if (normalized && !promoService.isValidCodeFormat(normalized)) {
@@ -37,8 +45,14 @@ export function useCreateCodeForm({ adminUserId, adminUserName, onSuccess, onErr
     }
   }, []);
 
-  const handleAmountChange = useCallback((text: string) => setCreditAmount(text.replace(/[^0-9.]/g, '')), []);
-  const handleMaxUsesChange = useCallback((text: string) => setMaxUses(text.replace(/[^0-9]/g, '')), []);
+  const handleAmountChange = useCallback(
+    (text: string) => setCreditAmount(text.replace(/[^0-9.]/g, '')),
+    [],
+  );
+  const handleMaxUsesChange = useCallback(
+    (text: string) => setMaxUses(text.replace(/[^0-9]/g, '')),
+    [],
+  );
 
   const handleDateChange = useCallback((_event: unknown, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -54,14 +68,32 @@ export function useCreateCodeForm({ adminUserId, adminUserName, onSuccess, onErr
   }, []);
 
   const validateForm = useCallback((): boolean => {
-    if (!code.trim()) { setError('Please enter a promo code'); return false; }
-    if (!promoService.isValidCodeFormat(code)) { setError('Code must be 3-20 alphanumeric characters'); return false; }
+    if (!code.trim()) {
+      setError('Please enter a promo code');
+      return false;
+    }
+    if (!promoService.isValidCodeFormat(code)) {
+      setError('Code must be 3-20 alphanumeric characters');
+      return false;
+    }
     const amount = parseFloat(creditAmount);
-    if (isNaN(amount) || amount <= 0) { setError('Credit amount must be greater than 0'); return false; }
-    if (amount > 1000) { setError('Credit amount cannot exceed 1000'); return false; }
+    if (isNaN(amount) || amount <= 0) {
+      setError('Credit amount must be greater than 0');
+      return false;
+    }
+    if (amount > 1000) {
+      setError('Credit amount cannot exceed 1000');
+      return false;
+    }
     const uses = parseInt(maxUses, 10);
-    if (isNaN(uses) || uses <= 0) { setError('Max uses must be greater than 0'); return false; }
-    if (hasExpiry && expiryDate <= new Date()) { setError('Expiry date must be in the future'); return false; }
+    if (isNaN(uses) || uses <= 0) {
+      setError('Max uses must be greater than 0');
+      return false;
+    }
+    if (hasExpiry && expiryDate <= new Date()) {
+      setError('Expiry date must be in the future');
+      return false;
+    }
     setError(null);
     return true;
   }, [code, creditAmount, maxUses, hasExpiry, expiryDate]);
@@ -72,13 +104,21 @@ export function useCreateCodeForm({ adminUserId, adminUserName, onSuccess, onErr
     setError(null);
     try {
       const params: CreatePromoCodeParams = {
-        code: code.trim(), creditAmount: parseFloat(creditAmount), maxUses: parseInt(maxUses, 10),
-        description: description.trim() || undefined, onePerUser,
+        code: code.trim(),
+        creditAmount: parseFloat(creditAmount),
+        maxUses: parseInt(maxUses, 10),
+        description: description.trim() || undefined,
+        onePerUser,
         expiresAt: hasExpiry ? expiryDate.toISOString() : undefined,
-        createdBy: adminUserId, createdByName: adminUserName,
+        createdBy: adminUserId,
+        createdByName: adminUserName,
       };
       const result = await promoService.createPromoCode(params);
-      if (!result.success) { setError(result.error.message); onError?.(result.error.message); return; }
+      if (!result.success) {
+        setError(result.error.message);
+        onError?.(result.error.message);
+        return;
+      }
       onSuccess(result.data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create promo code';
@@ -87,13 +127,44 @@ export function useCreateCodeForm({ adminUserId, adminUserName, onSuccess, onErr
     } finally {
       setSubmitting(false);
     }
-  }, [validateForm, code, creditAmount, maxUses, description, onePerUser, hasExpiry, expiryDate, adminUserId, adminUserName, onSuccess, onError]);
+  }, [
+    validateForm,
+    code,
+    creditAmount,
+    maxUses,
+    description,
+    onePerUser,
+    hasExpiry,
+    expiryDate,
+    adminUserId,
+    adminUserName,
+    onSuccess,
+    onError,
+  ]);
 
   return {
-    code, creditAmount, maxUses, description, onePerUser, hasExpiry, expiryDate, showDatePicker,
-    submitting, error, codeError,
-    handleCodeChange, handleAmountChange, handleMaxUsesChange, handleDateChange,
-    generateRandomCode, handleSubmit,
-    setDescription, setOnePerUser, setHasExpiry, setShowDatePicker, setCreditAmount, setMaxUses,
+    code,
+    creditAmount,
+    maxUses,
+    description,
+    onePerUser,
+    hasExpiry,
+    expiryDate,
+    showDatePicker,
+    submitting,
+    error,
+    codeError,
+    handleCodeChange,
+    handleAmountChange,
+    handleMaxUsesChange,
+    handleDateChange,
+    generateRandomCode,
+    handleSubmit,
+    setDescription,
+    setOnePerUser,
+    setHasExpiry,
+    setShowDatePicker,
+    setCreditAmount,
+    setMaxUses,
   };
 }

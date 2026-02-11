@@ -23,11 +23,16 @@ type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
 export function getStatusColor(status: BookingSummary['status'], palette: ThemeColors): string {
   switch (status) {
-    case 'Confirmed': return palette.success;
-    case 'Pending': return palette.warning;
-    case 'Completed': return palette.muted;
-    case 'Cancelled': return palette.error;
-    default: return palette.muted;
+    case 'Confirmed':
+      return palette.success;
+    case 'Pending':
+      return palette.warning;
+    case 'Completed':
+      return palette.muted;
+    case 'Cancelled':
+      return palette.error;
+    default:
+      return palette.muted;
   }
 }
 
@@ -64,17 +69,16 @@ export const SeriesWeekRow = memo(function SeriesWeekRow({
   return (
     <Clickable
       onPress={() => onPress?.(booking)}
-      style={[styles.weekRow, { borderBottomColor: index < total - 1 ? palette.border : 'transparent' }]}
+      style={[
+        styles.weekRow,
+        { borderBottomColor: index < total - 1 ? palette.border : 'transparent' },
+      ]}
     >
       <View style={styles.weekRowLeft}>
-        <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
-          {day}
-        </ThemedText>
+        <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>{day}</ThemedText>
         <Row style={styles.weekMeta}>
           <Ionicons name="time-outline" size={12} color={palette.muted} />
-          <ThemedText style={[Typography.small, { color: palette.muted }]}>
-            {time}
-          </ThemedText>
+          <ThemedText style={[Typography.small, { color: palette.muted }]}>{time}</ThemedText>
         </Row>
         {booking.locationLabel ? (
           <Row style={styles.weekMeta}>

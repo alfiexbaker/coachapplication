@@ -164,7 +164,7 @@ class WalletCrudService {
    */
   async updateWallet(
     userId: string,
-    updates: Partial<Wallet>
+    updates: Partial<Wallet>,
   ): Promise<Result<Wallet, ServiceError>> {
     const walletsResult = await this.getAllWallets();
     if (!walletsResult.success) {

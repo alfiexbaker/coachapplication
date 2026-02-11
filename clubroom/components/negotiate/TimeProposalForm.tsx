@@ -15,7 +15,8 @@ import {
   DatePickerSection,
   TimeGridSection,
   DurationSection,
-  ProposalSummary } from './time-proposal-sections';
+  ProposalSummary,
+} from './time-proposal-sections';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,8 @@ export function TimeProposalForm({
   onSubmit,
   onCancel,
   isLoading = false,
-  submitLabel = 'Send Proposal' }: TimeProposalFormProps) {
+  submitLabel = 'Send Proposal',
+}: TimeProposalFormProps) {
   const { colors: palette } = useTheme();
 
   const [selectedDate, setSelectedDate] = useState<string>(originalTime.date);
@@ -50,7 +52,8 @@ export function TimeProposalForm({
       date: selectedDate,
       startTime: selectedTime,
       endTime: addMinutesToTime(selectedTime, duration),
-      location: location || originalTime.location };
+      location: location || originalTime.location,
+    };
     onSubmit(proposedTime, message.trim() || undefined);
   };
 
@@ -76,7 +79,8 @@ export function TimeProposalForm({
             {
               borderColor: palette.border,
               color: palette.text,
-              backgroundColor: palette.surface },
+              backgroundColor: palette.surface,
+            },
           ]}
           placeholder="Same location or enter new"
           placeholderTextColor={palette.muted}
@@ -96,7 +100,8 @@ export function TimeProposalForm({
             {
               borderColor: palette.border,
               color: palette.text,
-              backgroundColor: palette.surface },
+              backgroundColor: palette.surface,
+            },
           ]}
           placeholder="Explain why you need to change the time..."
           placeholderTextColor={palette.muted}
@@ -127,11 +132,15 @@ export function TimeProposalForm({
         <Button onPress={handleSubmit} disabled={isLoading} style={styles.submitButton}>
           <Row align="center" gap="xs">
             {isLoading ? (
-              <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>Sending...</ThemedText>
+              <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>
+                Sending...
+              </ThemedText>
             ) : (
               <>
                 <Ionicons name="send" size={16} color={palette.onPrimary} />
-                <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>{submitLabel}</ThemedText>
+                <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>
+                  {submitLabel}
+                </ThemedText>
               </>
             )}
           </Row>
@@ -145,35 +154,46 @@ export function TimeProposalForm({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 },
+    flex: 1,
+  },
   contentContainer: {
     padding: Spacing.lg,
-    gap: Spacing.md },
+    gap: Spacing.md,
+  },
   section: {
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   sectionTitle: {
-    marginBottom: Spacing.xxs },
+    marginBottom: Spacing.xxs,
+  },
   textInput: {
     ...Typography.body,
     borderWidth: 1.5,
     borderRadius: Radii.md,
-    padding: Spacing.md },
+    padding: Spacing.md,
+  },
   textArea: {
     ...Typography.body,
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    minHeight: 80 },
+    minHeight: 80,
+  },
   buttonRow: {
-    marginTop: Spacing.sm },
+    marginTop: Spacing.sm,
+  },
   cancelButton: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1.5 },
+    borderWidth: 1.5,
+  },
   submitButton: {
-    flex: 2 },
+    flex: 2,
+  },
   submitButtonContent: {},
   submitButtonText: {
-    ...Typography.bodySemiBold } });
+    ...Typography.bodySemiBold,
+  },
+});

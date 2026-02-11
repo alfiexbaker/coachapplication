@@ -30,28 +30,46 @@ export default function InviteMembersScreen() {
   const { colors } = useTheme();
   const {
     loading,
-    activeTab, setActiveTab, searchQuery, setSearchQuery,
-    selectedUsers, selectedRole, setSelectedRole,
-    manualEmail, setManualEmail, isInviting,
-    filteredUsers, toggleUserSelection, handleSelectAll,
-    handleSendInvites, handleManualInvite,
+    activeTab,
+    setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    selectedUsers,
+    selectedRole,
+    setSelectedRole,
+    manualEmail,
+    setManualEmail,
+    isInviting,
+    filteredUsers,
+    toggleUserSelection,
+    handleSelectAll,
+    handleSendInvites,
+    handleManualInvite,
   } = useClubInvite();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={colors.text} />
         </Clickable>
-        <ThemedText type="title" style={Typography.heading}>Invite Members</ThemedText>
+        <ThemedText type="title" style={Typography.heading}>
+          Invite Members
+        </ThemedText>
         <View style={{ width: 24 }} />
       </Row>
 
@@ -60,12 +78,25 @@ export default function InviteMembersScreen() {
         {TABS.map((tab) => (
           <Clickable
             key={tab.key}
-            style={[styles.tab, activeTab === tab.key && { backgroundColor: colors.tint }].filter(Boolean) as ViewStyle[]}
+            style={
+              [styles.tab, activeTab === tab.key && { backgroundColor: colors.tint }].filter(
+                Boolean,
+              ) as ViewStyle[]
+            }
             onPress={() => setActiveTab(tab.key)}
           >
             <Row align="center" justify="center" gap="xs">
-              <Ionicons name={tab.icon} size={18} color={activeTab === tab.key ? colors.onPrimary : colors.text} />
-              <ThemedText style={[styles.tabText, { color: activeTab === tab.key ? colors.onPrimary : colors.text }]}>
+              <Ionicons
+                name={tab.icon}
+                size={18}
+                color={activeTab === tab.key ? colors.onPrimary : colors.text}
+              />
+              <ThemedText
+                style={[
+                  styles.tabText,
+                  { color: activeTab === tab.key ? colors.onPrimary : colors.text },
+                ]}
+              >
                 {tab.label}
               </ThemedText>
             </Row>
@@ -85,19 +116,31 @@ export default function InviteMembersScreen() {
             />
           ) : (
             <InvitePastSessionsTab
-              searchQuery={searchQuery} onSearchChange={setSearchQuery}
-              filteredUsers={filteredUsers} selectedUsers={selectedUsers}
-              onToggleUser={toggleUserSelection} onSelectAll={handleSelectAll}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filteredUsers={filteredUsers}
+              selectedUsers={selectedUsers}
+              onToggleUser={toggleUserSelection}
+              onSelectAll={handleSelectAll}
             />
           )
         ) : (
-          <InviteManualTab email={manualEmail} onEmailChange={setManualEmail} onSend={handleManualInvite} />
+          <InviteManualTab
+            email={manualEmail}
+            onEmailChange={setManualEmail}
+            onSend={handleManualInvite}
+          />
         )}
       </ScrollView>
 
       {/* Footer */}
       {activeTab === 'past-sessions' && selectedUsers.size > 0 && (
-        <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.footer,
+            { borderTopColor: colors.border, backgroundColor: colors.background },
+          ]}
+        >
           <Clickable
             style={[styles.inviteButton, { backgroundColor: colors.tint }]}
             onPress={handleSendInvites}
@@ -105,7 +148,9 @@ export default function InviteMembersScreen() {
           >
             <Row align="center" justify="center" gap="sm">
               {isInviting ? (
-                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Sending...</ThemedText>
+                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                  Sending...
+                </ThemedText>
               ) : (
                 <>
                   <Ionicons name="paper-plane" size={18} color={colors.onPrimary} />
@@ -129,6 +174,13 @@ const styles = StyleSheet.create({
   tab: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   tabText: { fontWeight: '600' },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md, paddingBottom: 120 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.lg, borderTopWidth: 1 },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+  },
   inviteButton: { paddingVertical: Spacing.md, borderRadius: Radii.lg },
 });

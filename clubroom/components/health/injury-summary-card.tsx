@@ -18,7 +18,11 @@ interface InjurySummaryCardProps {
   delay?: number;
 }
 
-export const InjurySummaryCard = memo(function InjurySummaryCard({ injury, colors, delay = 100 }: InjurySummaryCardProps) {
+export const InjurySummaryCard = memo(function InjurySummaryCard({
+  injury,
+  colors,
+  delay = 100,
+}: InjurySummaryCardProps) {
   const severityInfo = injuryService.getSeverityInfo(injury.severity);
   const bodyPartLabel = injuryService.getBodyPartLabel(injury.bodyPart);
 
@@ -27,7 +31,9 @@ export const InjurySummaryCard = memo(function InjurySummaryCard({ injury, color
       <SurfaceCard style={styles.card}>
         <Row justify="space-between" align="flex-start" style={styles.header}>
           <ThemedText type="title">{bodyPartLabel}</ThemedText>
-          <View style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}>
+          <View
+            style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}
+          >
             <ThemedText style={[styles.severityText, { color: severityInfo.color }]}>
               {severityInfo.label}
             </ThemedText>
@@ -62,6 +68,11 @@ const styles = StyleSheet.create({
   header: { marginBottom: Spacing.sm },
   severityBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   severityText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  description: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22), marginBottom: Spacing.md },
+  description: {
+    ...Typography.body,
+    fontSize: scaleFont(Typography.body.fontSize),
+    lineHeight: scaleFont(22),
+    marginBottom: Spacing.md,
+  },
   metaText: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
 });

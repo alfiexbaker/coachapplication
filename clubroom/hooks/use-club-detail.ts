@@ -8,7 +8,15 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
-import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite, ClubEvent } from '@/constants/types';
+import type {
+  Club,
+  ClubFeedPost,
+  ClubMembership,
+  ClubSquad,
+  SessionOffering,
+  ClubInvite,
+  ClubEvent,
+} from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason } from '@/services/club-service';
 import { eventService } from '@/services/event-service';
 import { squadService } from '@/services/squad-service';
@@ -39,14 +47,16 @@ const canPostAsClub = (role: ClubMembership['role']) =>
 
 function buildClubInvites(club: Club | undefined): ClubInvite[] {
   if (!club) return [];
-  return [{
-    code: club.inviteCode,
-    clubId: club.id,
-    createdBy: club.ownerId,
-    role: 'MEMBER',
-    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-    remainingUses: 999,
-  }];
+  return [
+    {
+      code: club.inviteCode,
+      clubId: club.id,
+      createdBy: club.ownerId,
+      role: 'MEMBER',
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      remainingUses: 999,
+    },
+  ];
 }
 
 export function useClubDetail(clubId: string | undefined) {
@@ -88,7 +98,8 @@ export function useClubDetail(clubId: string | undefined) {
   const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
-  const canManagePosts = membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
+  const canManagePosts =
+    membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
   const canCreatePosts = !!membership;
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
 
@@ -165,7 +176,9 @@ export function useClubDetail(clubId: string | undefined) {
     }
   }, [clubId]);
 
-  useEffect(() => { void loadClubData(); }, [loadClubData]);
+  useEffect(() => {
+    void loadClubData();
+  }, [loadClubData]);
   useEffect(() => {
     loadFeed();
     void loadMembers();
@@ -187,11 +200,14 @@ export function useClubDetail(clubId: string | undefined) {
     setRefreshing(false);
   }, [loadClubData, loadFeed, loadMembers, loadEvents]);
 
-  const handlePinToggle = useCallback((postId: string) => {
-    if (!currentUser) return;
-    socialFeedService.togglePin(postId, currentUser.id);
-    loadFeed();
-  }, [currentUser, loadFeed]);
+  const handlePinToggle = useCallback(
+    (postId: string) => {
+      if (!currentUser) return;
+      socialFeedService.togglePin(postId, currentUser.id);
+      loadFeed();
+    },
+    [currentUser, loadFeed],
+  );
 
   const handleRemoveMember = useCallback((member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
@@ -202,48 +218,51 @@ export function useClubDetail(clubId: string | undefined) {
     setShowMemberRemovalModal(true);
   }, []);
 
-  const handleConfirmMemberRemoval = useCallback(async (reason: MemberRemovalReason, customReason?: string) => {
-    if (!selectedMemberForRemoval || !clubId || !currentUser) return;
-    setIsRemovingMember(true);
-    try {
-      const result = await clubService.removeMember(
-        clubId,
-        selectedMemberForRemoval.userId,
-        reason,
-        { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Coach' },
-        { customReason }
-      );
-      if (!result.success) {
-        logger.error('Failed to remove member', result.error);
-        showToast('Failed to remove member', 'error');
-        return;
-      }
-      const removalRecord = result.data;
-      setShowMemberRemovalModal(false);
-      setSelectedMemberForRemoval(null);
-      await loadMembers();
-      showUndoToast(`${removalRecord.userName} removed from club`, async () => {
-        try {
-          const undoResult = await clubService.undoRemoval(clubId, removalRecord.id);
-          if (!undoResult.success) {
-            logger.error('Failed to undo removal', undoResult.error);
-            showToast('Failed to restore member', 'error');
-            return;
-          }
-          await loadMembers();
-          showToast('Member restored', 'success');
-        } catch (error) {
-          logger.error('Failed to undo removal', error);
-          showToast('Failed to restore member', 'error');
+  const handleConfirmMemberRemoval = useCallback(
+    async (reason: MemberRemovalReason, customReason?: string) => {
+      if (!selectedMemberForRemoval || !clubId || !currentUser) return;
+      setIsRemovingMember(true);
+      try {
+        const result = await clubService.removeMember(
+          clubId,
+          selectedMemberForRemoval.userId,
+          reason,
+          { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Coach' },
+          { customReason },
+        );
+        if (!result.success) {
+          logger.error('Failed to remove member', result.error);
+          showToast('Failed to remove member', 'error');
+          return;
         }
-      });
-    } catch (error) {
-      logger.error('Failed to remove member', error);
-      showToast('Failed to remove member', 'error');
-    } finally {
-      setIsRemovingMember(false);
-    }
-  }, [selectedMemberForRemoval, clubId, currentUser, loadMembers, showUndoToast, showToast]);
+        const removalRecord = result.data;
+        setShowMemberRemovalModal(false);
+        setSelectedMemberForRemoval(null);
+        await loadMembers();
+        showUndoToast(`${removalRecord.userName} removed from club`, async () => {
+          try {
+            const undoResult = await clubService.undoRemoval(clubId, removalRecord.id);
+            if (!undoResult.success) {
+              logger.error('Failed to undo removal', undoResult.error);
+              showToast('Failed to restore member', 'error');
+              return;
+            }
+            await loadMembers();
+            showToast('Member restored', 'success');
+          } catch (error) {
+            logger.error('Failed to undo removal', error);
+            showToast('Failed to restore member', 'error');
+          }
+        });
+      } catch (error) {
+        logger.error('Failed to remove member', error);
+        showToast('Failed to remove member', 'error');
+      } finally {
+        setIsRemovingMember(false);
+      }
+    },
+    [selectedMemberForRemoval, clubId, currentUser, loadMembers, showUndoToast, showToast],
+  );
 
   const handleLeaveClub = useCallback(() => {
     Alert.alert('Leave club', 'Are you sure you want to leave this club?', [
@@ -269,7 +288,7 @@ export function useClubDetail(clubId: string | undefined) {
   }, [canRemoveMembers]);
 
   const handleUpdatePhotos = useCallback((updates: Partial<Club>) => {
-    setClub((prev) => prev ? { ...prev, ...updates } : prev);
+    setClub((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
 
   const filterCounts = useMemo(() => {

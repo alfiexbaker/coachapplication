@@ -29,11 +29,7 @@ interface CompareBarProps {
   bottomOffset?: number;
 }
 
-export function CompareBar({
-  visible = true,
-  onCountChange,
-  bottomOffset = 100,
-}: CompareBarProps) {
+export function CompareBar({ visible = true, onCountChange, bottomOffset = 100 }: CompareBarProps) {
   const { colors: palette, scheme } = useTheme();
   const shadows = Shadows[scheme];
 
@@ -75,22 +71,16 @@ export function CompareBar({
     onCountChange?.(0);
   }, [onCountChange]);
 
-  if (count === 0) {
-    return null;
-  }
-
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
+  if (count === 0) {
+    return null;
+  }
+
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        { bottom: bottomOffset },
-        containerStyle,
-      ]}
-    >
+    <Animated.View style={[styles.container, { bottom: bottomOffset }, containerStyle]}>
       <View
         style={[
           styles.bar,
@@ -103,7 +93,9 @@ export function CompareBar({
         {/* Info section */}
         <Row style={styles.info}>
           <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.onPrimary, 0.2) }]}>
-            <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
+            <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>
+              {count}
+            </ThemedText>
           </View>
           <View style={styles.textContainer}>
             <ThemedText style={[styles.title, { color: palette.onPrimary }]}>
@@ -121,10 +113,7 @@ export function CompareBar({
             accessibilityRole="button"
             accessibilityLabel="Clear comparison"
             onPress={handleClear}
-            style={({ pressed }) => [
-              styles.clearButton,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
+            style={({ pressed }) => [styles.clearButton, { opacity: pressed ? 0.7 : 1 }]}
           >
             <Ionicons name="close-circle" size={20} color={withAlpha(palette.onPrimary, 0.8)} />
           </Clickable>
@@ -182,8 +171,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: { ...Typography.bodySemiBold },
-  subtitle: { ...Typography.caption,
-    marginTop: 1 },
+  subtitle: { ...Typography.caption, marginTop: 1 },
   actions: {
     alignItems: 'center',
     gap: Spacing.sm,

@@ -36,7 +36,10 @@ export function SessionNotesView({
       <NoteBlock label="Summary" value={formatValue(summary)} />
       <NoteBlock label="Focus areas" value={formatList(focus)} />
       <NoteBlock label="Improvements" value={formatValue(improvements, 'Waiting to be logged')} />
-      <NoteBlock label="Homework" value={formatValue(homework, 'Share quick reminders for parents')} />
+      <NoteBlock
+        label="Homework"
+        value={formatValue(homework, 'Share quick reminders for parents')}
+      />
       <NoteBlock label="Effort" value={`${effort || '—'}/5`} />
       <NoteBlock label="Attendance" value={formatValue(attendance, 'Not captured yet')} />
       {updatedAt ? (
@@ -44,7 +47,13 @@ export function SessionNotesView({
           Updated {new Date(updatedAt).toLocaleString()}
         </ThemedText>
       ) : null}
-      <View style={{ padding: Spacing.sm, backgroundColor: withAlpha(palette.premium, 0.07), borderRadius: Radii.md }}>
+      <View
+        style={{
+          padding: Spacing.sm,
+          backgroundColor: withAlpha(palette.premium, 0.07),
+          borderRadius: Radii.md,
+        }}
+      >
         <ThemedText type="defaultSemiBold">Parent view</ThemedText>
         <ThemedText style={{ color: palette.muted }}>
           Parents will see this inside booking details along with progression charts.

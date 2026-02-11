@@ -143,7 +143,9 @@ export const MedicalTagListForm = React.memo(function MedicalTagListForm({
         palette={palette}
         onInputChange={onConditionInputChange}
         onAdd={onAddCondition}
-        onRemove={(index) => onMedicalConditionsChange(medicalConditions.filter((_, i) => i !== index))}
+        onRemove={(index) =>
+          onMedicalConditionsChange(medicalConditions.filter((_, i) => i !== index))
+        }
       />
 
       <TagInputSection

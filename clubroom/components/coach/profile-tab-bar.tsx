@@ -2,7 +2,7 @@
  * ProfileTabBar — Tab switcher for coach profile.
  */
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -33,10 +33,21 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabsProps) {
         <Clickable
           key={tab.key}
           onPress={() => onTabChange(tab.key)}
-          style={[styles.tabButton, activeTab === tab.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 }].filter(Boolean) as ViewStyle[]}
+          style={
+            [
+              styles.tabButton,
+              activeTab === tab.key && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
+            ].filter(Boolean) as ViewStyle[]
+          }
         >
           <ThemedText
-            style={[styles.tabText, { color: palette.muted }, activeTab === tab.key && { ...Typography.bodySmallSemiBold, color: palette.tint }].filter(Boolean) as TextStyle[]}
+            style={
+              [
+                styles.tabText,
+                { color: palette.muted },
+                activeTab === tab.key && { ...Typography.bodySmallSemiBold, color: palette.tint },
+              ].filter(Boolean) as TextStyle[]
+            }
           >
             {tab.label}
           </ThemedText>

@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
 import { Row } from '@/components/primitives/row';
@@ -38,7 +38,9 @@ function CommentPreviewInner({ postId, commentCount, onPress }: CommentPreviewPr
     if (commentCount > 0) {
       loadLatest();
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [postId, commentCount]);
 
   const handlePress = useCallback(() => {

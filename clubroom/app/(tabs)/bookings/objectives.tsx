@@ -57,22 +57,19 @@ export default function ObjectivesScreen() {
     ({ item }: { item: AthleteObjective }) => (
       <ObjectiveCard item={item} onEdit={openEditModal} onDelete={deleteObjective} />
     ),
-    [openEditModal, deleteObjective]
+    [openEditModal, deleteObjective],
   );
 
   const keyExtractor = useCallback((item: AthleteObjective) => item.id, []);
 
-  const ItemSeparator = useCallback(
-    () => <View style={{ height: ITEM_SEPARATOR_HEIGHT }} />,
-    []
-  );
+  const ItemSeparator = useCallback(() => <View style={{ height: ITEM_SEPARATOR_HEIGHT }} />, []);
 
   const ListHeader = useCallback(
     () => (
       <Column gap="md" paddingH="lg" style={styles.header}>
         {isParent && children.length > 0 && (
           <ChildSelector
-            children={children}
+            childOptions={children}
             selectedChildId={selectedChildId}
             onSelectChild={setSelectedChildId}
           />
@@ -82,7 +79,7 @@ export default function ObjectivesScreen() {
         </ThemedText>
       </Column>
     ),
-    [isParent, children, selectedChildId, setSelectedChildId]
+    [isParent, children, selectedChildId, setSelectedChildId],
   );
 
   const ListEmpty = useCallback(
@@ -95,12 +92,15 @@ export default function ObjectivesScreen() {
         onPressAction={openAddModal}
       />
     ),
-    [openAddModal]
+    [openAddModal],
   );
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['bottom']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -108,17 +108,20 @@ export default function ObjectivesScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
-        <ErrorState
-          message={error?.message ?? 'Failed to load objectives.'}
-          onRetry={retry}
-        />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['bottom']}
+      >
+        <ErrorState message={error?.message ?? 'Failed to load objectives.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['bottom']}
+    >
       <FlatList
         data={filteredObjectives}
         keyExtractor={keyExtractor}
@@ -133,7 +136,12 @@ export default function ObjectivesScreen() {
       />
 
       {/* Footer Add Button */}
-      <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: palette.background, borderTopColor: palette.border },
+        ]}
+      >
         <Clickable
           onPress={openAddModal}
           accessibilityLabel="Add goal"

@@ -49,14 +49,13 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
           <ThemedText style={styles.formLabel}>Cover Photo (optional)</ThemedText>
           {coverImageUri ? (
             <View style={styles.coverImagePreview}>
-              <Image
-                source={{ uri: coverImageUri }}
-                style={styles.coverImage}
-                contentFit="cover"
-              />
+              <Image source={{ uri: coverImageUri }} style={styles.coverImage} contentFit="cover" />
               <Clickable
                 onPress={onRemoveCoverImage}
-                style={[styles.removeCoverButton, { backgroundColor: withAlpha(colors.error, 0.9) }]}
+                style={[
+                  styles.removeCoverButton,
+                  { backgroundColor: withAlpha(colors.error, 0.9) },
+                ]}
                 accessibilityLabel="Remove cover photo"
               >
                 <Ionicons name="close" size={16} color={colors.onError} />
@@ -65,7 +64,10 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
           ) : (
             <Clickable
               onPress={onPickCoverImage}
-              style={[styles.coverImagePicker, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              style={[
+                styles.coverImagePicker,
+                { borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
               accessibilityLabel="Add cover photo"
             >
               <Ionicons name="image-outline" size={32} color={colors.muted} />

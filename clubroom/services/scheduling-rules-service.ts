@@ -24,7 +24,14 @@ import type {
   RefundTier,
 } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, validationError, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  validationError,
+  storageError,
+} from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -69,7 +76,10 @@ const DEFAULT_TIERS: RefundTier[] = [
 /**
  * Pre-configured cancellation policy templates coaches can choose from
  */
-export const POLICY_TEMPLATES: Record<string, Omit<CancellationPolicy, 'id' | 'coachId' | 'createdAt' | 'updatedAt'>> = {
+export const POLICY_TEMPLATES: Record<
+  string,
+  Omit<CancellationPolicy, 'id' | 'coachId' | 'createdAt' | 'updatedAt'>
+> = {
   standard: {
     name: 'Standard',
     description: 'Balanced policy with full refund 24+ hours ahead',
@@ -226,7 +236,7 @@ class SchedulingRulesService {
     await apiClient.set(STORAGE_KEYS.SCHEDULING_RULES, rules);
     // Update cache
     this.rulesCache.clear();
-    rules.forEach(r => this.rulesCache.set(r.coachId, r));
+    rules.forEach((r) => this.rulesCache.set(r.coachId, r));
   }
 
   /**
@@ -239,7 +249,7 @@ class SchedulingRulesService {
     }
 
     const allRules = await this.loadAllRules();
-    const coachRules = allRules.find(r => r.coachId === coachId);
+    const coachRules = allRules.find((r) => r.coachId === coachId);
 
     if (coachRules) {
       this.rulesCache.set(coachId, coachRules);
@@ -280,19 +290,22 @@ class SchedulingRulesService {
    */
   async updateCoachRules(
     coachId: string,
-    updates: Partial<CoachSchedulingRules>
+    updates: Partial<CoachSchedulingRules>,
   ): Promise<Result<CoachSchedulingRules, ServiceError>> {
     try {
       const allRules = await this.loadAllRules();
-      const existingIndex = allRules.findIndex(r => r.coachId === coachId);
+      const existingIndex = allRules.findIndex((r) => r.coachId === coachId);
 
       const now = new Date().toISOString();
-      const existingRules = existingIndex >= 0 ? allRules[existingIndex] : this.getDefaultRules(coachId);
+      const existingRules =
+        existingIndex >= 0 ? allRules[existingIndex] : this.getDefaultRules(coachId);
 
       const updatedRules: CoachSchedulingRules = {
         ...existingRules,
         ...updates,
-        id: existingRules.id.startsWith('rules_default_') ? `rules_${Date.now()}` : existingRules.id,
+        id: existingRules.id.startsWith('rules_default_')
+          ? `rules_${Date.now()}`
+          : existingRules.id,
         coachId,
         updatedAt: now,
       };
@@ -318,7 +331,7 @@ class SchedulingRulesService {
    */
   async applyPreset(
     coachId: string,
-    presetKey: keyof typeof SCHEDULING_PRESETS
+    presetKey: keyof typeof SCHEDULING_PRESETS,
   ): Promise<Result<CoachSchedulingRules, ServiceError>> {
     const preset = SCHEDULING_PRESETS[presetKey];
     if (!preset) {
@@ -333,7 +346,7 @@ class SchedulingRulesService {
    */
   async validateBookingTime(
     coachId: string,
-    proposedTime: Date
+    proposedTime: Date,
   ): Promise<Result<BookingValidation, ServiceError>> {
     try {
       const rules = await this.getCoachRulesValue(coachId);
@@ -348,9 +361,10 @@ class SchedulingRulesService {
         const minHours = rules.minimumAdvanceBookingHours;
         return ok({
           isValid: false,
-          errorMessage: minHours >= 24
-            ? `Bookings must be made at least ${Math.floor(minHours / 24)} day${Math.floor(minHours / 24) > 1 ? 's' : ''} in advance`
-            : `Bookings must be made at least ${minHours} hours in advance`,
+          errorMessage:
+            minHours >= 24
+              ? `Bookings must be made at least ${Math.floor(minHours / 24)} day${Math.floor(minHours / 24) > 1 ? 's' : ''} in advance`
+              : `Bookings must be made at least ${minHours} hours in advance`,
         });
       }
 
@@ -392,7 +406,7 @@ class SchedulingRulesService {
   async validateReschedule(
     coachId: string,
     originalTime: Date,
-    newTime: Date
+    newTime: Date,
   ): Promise<Result<BookingValidation, ServiceError>> {
     try {
       const rules = await this.getCoachRulesValue(coachId);
@@ -481,7 +495,10 @@ class SchedulingRulesService {
     if (this.policiesCache) return this.policiesCache;
 
     try {
-      this.policiesCache = await apiClient.get<CancellationPolicy[]>(STORAGE_KEYS.CANCELLATION_POLICIES, []);
+      this.policiesCache = await apiClient.get<CancellationPolicy[]>(
+        STORAGE_KEYS.CANCELLATION_POLICIES,
+        [],
+      );
       return this.policiesCache || [];
     } catch (error) {
       logger.error('Failed to load cancellation policies', error);
@@ -512,10 +529,12 @@ class SchedulingRulesService {
   /**
    * Get a coach's cancellation policy
    */
-  async getCancellationPolicy(coachId: string): Promise<Result<CancellationPolicy | null, ServiceError>> {
+  async getCancellationPolicy(
+    coachId: string,
+  ): Promise<Result<CancellationPolicy | null, ServiceError>> {
     try {
       const policies = await this.loadPoliciesValue();
-      return ok(policies.find(p => p.coachId === coachId) || null);
+      return ok(policies.find((p) => p.coachId === coachId) || null);
     } catch (error) {
       logger.error('Failed to get cancellation policy', { coachId, error });
       return err(storageError('Failed to load cancellation policy'));
@@ -541,11 +560,11 @@ class SchedulingRulesService {
   async setCancellationPolicy(
     coachId: string,
     templateKey: keyof typeof POLICY_TEMPLATES | 'custom',
-    customTiers?: RefundTier[]
+    customTiers?: RefundTier[],
   ): Promise<Result<CancellationPolicy, ServiceError>> {
     try {
       const policies = await this.loadPoliciesValue();
-      const existingIndex = policies.findIndex(p => p.coachId === coachId);
+      const existingIndex = policies.findIndex((p) => p.coachId === coachId);
 
       const now = new Date().toISOString();
       let template = POLICY_TEMPLATES[templateKey] || POLICY_TEMPLATES.standard;
@@ -589,12 +608,12 @@ class SchedulingRulesService {
   calculateRefund(
     bookingAmount: number,
     sessionStartTime: Date,
-    policy?: CancellationPolicy | null
+    policy?: CancellationPolicy | null,
   ): RefundCalculation {
     const now = new Date();
     const hoursUntilSession = Math.max(
       0,
-      (sessionStartTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+      (sessionStartTime.getTime() - now.getTime()) / (1000 * 60 * 60),
     );
 
     // Use default policy if none provided
@@ -632,7 +651,7 @@ class SchedulingRulesService {
 
     // Find applicable tier (tiers should be sorted highest hours first)
     const sortedTiers = [...effectivePolicy.tiers].sort(
-      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
     );
 
     let appliedTier: RefundTier | null = null;
@@ -649,8 +668,8 @@ class SchedulingRulesService {
     }
 
     const refundPercentage = appliedTier?.refundPercentage ?? 0;
-    const refundAmount = Math.round((bookingAmount * refundPercentage) / 100 * 100) / 100;
-    const platformFee = Math.round((refundAmount * PLATFORM_FEE_PERCENT) / 100 * 100) / 100;
+    const refundAmount = Math.round(((bookingAmount * refundPercentage) / 100) * 100) / 100;
+    const platformFee = Math.round(((refundAmount * PLATFORM_FEE_PERCENT) / 100) * 100) / 100;
     const netRefundAmount = Math.round((refundAmount - platformFee) * 100) / 100;
 
     // Build explanation
@@ -679,10 +698,7 @@ class SchedulingRulesService {
   /**
    * Check if a booking can be cancelled based on policy
    */
-  canCancel(
-    sessionStartTime: Date,
-    policy?: CancellationPolicy | null
-  ): boolean {
+  canCancel(sessionStartTime: Date, policy?: CancellationPolicy | null): boolean {
     const effectivePolicy = policy || this.getDefaultCancellationPolicy();
 
     if (!effectivePolicy.allowCancellations) {
@@ -692,7 +708,7 @@ class SchedulingRulesService {
     const now = new Date();
     const hoursUntilSession = Math.max(
       0,
-      (sessionStartTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+      (sessionStartTime.getTime() - now.getTime()) / (1000 * 60 * 60),
     );
 
     return hoursUntilSession >= effectivePolicy.minimumNoticeHours;
@@ -702,7 +718,7 @@ class SchedulingRulesService {
    * Format cancellation policy tiers for display
    */
   formatPolicyForDisplay(policy: CancellationPolicy): string[] {
-    return policy.tiers.map(tier => {
+    return policy.tiers.map((tier) => {
       if (tier.hoursBeforeSession === 0) {
         return `• ${tier.refundPercentage}% refund: Less than ${policy.tiers[policy.tiers.length - 2]?.hoursBeforeSession || 0} hours before`;
       }
@@ -717,7 +733,7 @@ class SchedulingRulesService {
     if (!policy) return 'Standard cancellation policy';
     if (!policy.allowCancellations) return 'No cancellations allowed';
 
-    const fullRefundTier = policy.tiers.find(t => t.refundPercentage === 100);
+    const fullRefundTier = policy.tiers.find((t) => t.refundPercentage === 100);
     if (fullRefundTier) {
       return `Full refund ${fullRefundTier.hoursBeforeSession}h+ before`;
     }

@@ -13,11 +13,31 @@ export interface FAQItem {
 }
 
 export const FAQ_ITEMS: FAQItem[] = [
-  { question: 'How do I book a session?', answer: 'Navigate to the Discover tab, find a coach you like, and tap "Book Session". Follow the steps to select a date, time, and session type.' },
-  { question: 'How do I cancel a booking?', answer: 'Go to your Bookings tab, find the session you want to cancel, and tap on it. Then select "Cancel Booking". Note that cancellation policies may apply.' },
-  { question: 'How do I become a coach?', answer: 'To become a coach, sign up with a coach account and complete the verification process. This includes providing credentials and background check information.' },
-  { question: 'How do payments work?', answer: 'Payments are processed securely through our platform. Parents pay when booking, and coaches receive payouts weekly to their connected bank account.' },
-  { question: 'How do I update my availability?', answer: 'Coaches can update their availability by going to Settings > Availability. Set your weekly schedule and any one-off time blocks.' },
+  {
+    question: 'How do I book a session?',
+    answer:
+      'Navigate to the Discover tab, find a coach you like, and tap "Book Session". Follow the steps to select a date, time, and session type.',
+  },
+  {
+    question: 'How do I cancel a booking?',
+    answer:
+      'Go to your Bookings tab, find the session you want to cancel, and tap on it. Then select "Cancel Booking". Note that cancellation policies may apply.',
+  },
+  {
+    question: 'How do I become a coach?',
+    answer:
+      'To become a coach, sign up with a coach account and complete the verification process. This includes providing credentials and background check information.',
+  },
+  {
+    question: 'How do payments work?',
+    answer:
+      'Payments are processed securely through our platform. Parents pay when booking, and coaches receive payouts weekly to their connected bank account.',
+  },
+  {
+    question: 'How do I update my availability?',
+    answer:
+      'Coaches can update their availability by going to Settings > Availability. Set your weekly schedule and any one-off time blocks.',
+  },
 ];
 
 export function useHelpScreen() {
@@ -32,7 +52,10 @@ export function useHelpScreen() {
     logger.press('ContactSupport');
     Alert.alert('Contact Support', 'How would you like to reach us?', [
       { text: 'Email', onPress: () => Linking.openURL('mailto:support@clubroom.app') },
-      { text: 'Live Chat', onPress: () => Alert.alert('Coming Soon', 'Live chat support coming soon!') },
+      {
+        text: 'Live Chat',
+        onPress: () => Alert.alert('Coming Soon', 'Live chat support coming soon!'),
+      },
       { text: 'Cancel', style: 'cancel' },
     ]);
   }, []);
@@ -44,11 +67,21 @@ export function useHelpScreen() {
 
   const handleSendFeedback = useCallback(() => {
     logger.press('SendFeedback');
-    Alert.alert('Send Feedback', 'Your feedback helps us improve Clubroom. What would you like to share?', [
-      { text: 'Feature Request', onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=Feature%20Request') },
-      { text: 'General Feedback', onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=General%20Feedback') },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    Alert.alert(
+      'Send Feedback',
+      'Your feedback helps us improve Clubroom. What would you like to share?',
+      [
+        {
+          text: 'Feature Request',
+          onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=Feature%20Request'),
+        },
+        {
+          text: 'General Feedback',
+          onPress: () => Linking.openURL('mailto:feedback@clubroom.app?subject=General%20Feedback'),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
   }, []);
 
   const handleRateApp = useCallback(() => {
@@ -80,9 +113,16 @@ export function useHelpScreen() {
   }, []);
 
   return {
-    currentUser, expandedFAQ, toggleFAQ,
-    handleContactSupport, handleReportProblem, handleSendFeedback,
-    handleRateApp, handleHelpCenter, handleVideoTutorials,
-    handleCommunityForum, handleShareApp,
+    currentUser,
+    expandedFAQ,
+    toggleFAQ,
+    handleContactSupport,
+    handleReportProblem,
+    handleSendFeedback,
+    handleRateApp,
+    handleHelpCenter,
+    handleVideoTutorials,
+    handleCommunityForum,
+    handleShareApp,
   };
 }

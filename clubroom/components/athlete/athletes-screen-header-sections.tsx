@@ -40,7 +40,11 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
 }: HeaderProps) {
   const filterChips = [
     { id: 'all' as FilterType, label: 'All', count: roster.length },
-    { id: 'active' as FilterType, label: 'Active', count: roster.filter((a) => a.status === 'ACTIVE').length },
+    {
+      id: 'active' as FilterType,
+      label: 'Active',
+      count: roster.filter((a) => a.status === 'ACTIVE').length,
+    },
     { id: 'needs_attention' as FilterType, label: 'Needs Attention', count: needsAttentionCount },
   ];
 
@@ -49,7 +53,12 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
       <AthletesStatsBar roster={roster} upcomingSessions={upcomingSessions} />
       <NeedsAttentionSection roster={roster} />
 
-      <Row style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+      <Row
+        style={[
+          styles.searchContainer,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
         <Ionicons name="search" size={18} color={colors.muted} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -83,7 +92,9 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
               accessibilityLabel={`Filter: ${chip.label}`}
             >
               <Row align="center" gap="xxs">
-                <ThemedText style={[styles.filterText, { color: selected ? colors.onPrimary : colors.text }]}>
+                <ThemedText
+                  style={[styles.filterText, { color: selected ? colors.onPrimary : colors.text }]}
+                >
                   {chip.label}
                 </ThemedText>
                 {chip.count > 0 && (
@@ -120,12 +131,16 @@ type EmptyProps = {
   colors: ThemeColors;
 };
 
-export const AthletesSearchEmptyState = React.memo(function AthletesSearchEmptyState({ colors }: EmptyProps) {
+export const AthletesSearchEmptyState = React.memo(function AthletesSearchEmptyState({
+  colors,
+}: EmptyProps) {
   return (
     <View style={styles.emptySearch}>
       <Ionicons name="search-outline" size={40} color={colors.muted} />
       <ThemedText style={[styles.emptyTitle, { color: colors.text }]}>No athletes found</ThemedText>
-      <ThemedText style={[styles.emptySubtitle, { color: colors.muted }]}>Try a different search or filter</ThemedText>
+      <ThemedText style={[styles.emptySubtitle, { color: colors.muted }]}>
+        Try a different search or filter
+      </ThemedText>
     </View>
   );
 });

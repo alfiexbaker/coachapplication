@@ -8,14 +8,18 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text } from 'react-native';
-import { useSharedValue, withSequence, withTiming, withDelay, runOnJS } from 'react-native-reanimated';
+import {
+  useSharedValue,
+  withSequence,
+  withTiming,
+  withDelay,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createCardStyles, LayoutStyles } from '@/constants/styles';
 
 import {
-  MIN_RADIUS,
-  MAX_RADIUS,
   MILES_TO_KM,
   DEBOUNCE_MS,
   UnitToggle,
@@ -39,11 +43,7 @@ type DistanceUnit = 'miles' | 'km';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function TravelRadiusPicker({
-  value,
-  onChange,
-  postcode,
-}: TravelRadiusPickerProps) {
+export default function TravelRadiusPicker({ value, onChange, postcode }: TravelRadiusPickerProps) {
   const { colors, scheme } = useTheme();
   const CardStyles = createCardStyles(colors);
   const [unit, setUnit] = useState<DistanceUnit>('miles');
@@ -67,9 +67,12 @@ export default function TravelRadiusPicker({
     setSaved(true);
     toastOpacity.value = withSequence(
       withTiming(1, { duration: 200 }),
-      withDelay(1200, withTiming(0, { duration: 300 }, (finished) => {
-        if (finished) runOnJS(setSaved)(false);
-      })),
+      withDelay(
+        1200,
+        withTiming(0, { duration: 300 }, (finished) => {
+          if (finished) runOnJS(setSaved)(false);
+        }),
+      ),
     );
   }, [toastOpacity]);
 
@@ -105,8 +108,7 @@ export default function TravelRadiusPicker({
   const handleSetMiles = useCallback(() => setUnit('miles'), []);
   const handleSetKm = useCallback(() => setUnit('km'), []);
 
-  const displayValue =
-    unit === 'miles' ? localValue : Math.round(localValue * MILES_TO_KM);
+  const displayValue = unit === 'miles' ? localValue : Math.round(localValue * MILES_TO_KM);
   const unitLabel = unit === 'miles' ? (localValue === 1 ? 'mile' : 'miles') : 'km';
   const locationLabel = postcode
     ? `Within ${displayValue} ${unitLabel} of ${postcode}`
@@ -116,7 +118,12 @@ export default function TravelRadiusPicker({
     <View style={[CardStyles.base, Shadows[scheme].card, styles.container]}>
       <View style={LayoutStyles.rowBetween}>
         <Text style={[styles.title, { color: colors.text }]}>Travel Radius</Text>
-        <UnitToggle unit={unit} onSetMiles={handleSetMiles} onSetKm={handleSetKm} palette={colors} />
+        <UnitToggle
+          unit={unit}
+          onSetMiles={handleSetMiles}
+          onSetKm={handleSetKm}
+          palette={colors}
+        />
       </View>
 
       <RadiusDisplay

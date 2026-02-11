@@ -62,7 +62,8 @@ export const bookingService = {
   cancel: bookingCrudService.cancel.bind(bookingCrudService),
   validateBooking: bookingCrudService.validateBooking.bind(bookingCrudService),
   createBooking: bookingCrudService.createBooking.bind(bookingCrudService),
-  createBookingNotifications: bookingCrudService.createBookingNotifications.bind(bookingCrudService),
+  createBookingNotifications:
+    bookingCrudService.createBookingNotifications.bind(bookingCrudService),
   createFromDraft: bookingCrudService.createFromDraft.bind(bookingCrudService),
   saveBookingDirect: bookingCrudService.saveBookingDirect.bind(bookingCrudService),
 
@@ -71,8 +72,10 @@ export const bookingService = {
   // ==========================================================================
 
   confirmBooking: bookingStatusService.confirmBooking.bind(bookingStatusService),
-  checkAndTransitionStatus: bookingStatusService.checkAndTransitionStatus.bind(bookingStatusService),
-  scheduleSessionReminders: bookingStatusService.scheduleSessionReminders.bind(bookingStatusService),
+  checkAndTransitionStatus:
+    bookingStatusService.checkAndTransitionStatus.bind(bookingStatusService),
+  scheduleSessionReminders:
+    bookingStatusService.scheduleSessionReminders.bind(bookingStatusService),
 
   // ==========================================================================
   // SEARCH METHODS (from bookingSearchService)

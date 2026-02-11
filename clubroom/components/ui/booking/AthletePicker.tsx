@@ -52,13 +52,7 @@ export function AthletePicker({
     const isSelected = selectedIds.includes(id);
 
     return (
-      <SurfaceCard
-        key={id}
-        style={styles.row}
-        onPress={() => toggleSelection(id)}
-        haptics
-        tactile
-      >
+      <SurfaceCard key={id} style={styles.row} onPress={() => toggleSelection(id)} haptics tactile>
         <Row align="center" gap="sm">
           <Ionicons
             name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
@@ -81,9 +75,7 @@ export function AthletePicker({
   return (
     <View style={styles.container}>
       {includeSelf && selfId && renderRow(selfId, selfName, null)}
-      {athletes.map((athlete) =>
-        renderRow(athlete.id, athlete.name, buildSubtitle(athlete))
-      )}
+      {athletes.map((athlete) => renderRow(athlete.id, athlete.name, buildSubtitle(athlete)))}
     </View>
   );
 }

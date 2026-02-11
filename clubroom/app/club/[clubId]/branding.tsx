@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -38,17 +38,13 @@ export default function BrandingScreen() {
       return ok(data);
     } catch (loadError) {
       logger.error('Failed to load branding', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load club branding. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load club branding. Pull down to refresh.', loadError),
+      );
     }
   }, [clubId]);
 
-  const {
-    data,
-    status,
-    error,
-    onRefresh,
-    retry,
-  } = useScreen<ClubBranding | null>({
+  const { data, status, error, onRefresh, retry } = useScreen<ClubBranding | null>({
     load: loadBranding,
     deps: [clubId],
     isEmpty: (value) => value === null,
@@ -143,11 +139,7 @@ export default function BrandingScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
-          title="Club Branding"
-          showBack
-          subtitle="Customise your club's look and feel"
-        />
+        <PageHeader title="Club Branding" showBack subtitle="Customise your club's look and feel" />
       }
     >
       <BrandingEditor branding={draft} onChange={handleChange} />

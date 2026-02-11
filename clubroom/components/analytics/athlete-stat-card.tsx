@@ -19,7 +19,12 @@ interface AthleteStatCardProps {
 }
 
 export const AthleteStatCard = memo(function AthleteStatCard({
-  icon, label, value, suffix, color, index,
+  icon,
+  label,
+  value,
+  suffix,
+  color,
+  index,
 }: AthleteStatCardProps) {
   const { colors } = useTheme();
 
@@ -48,8 +53,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    width: 36, height: 36, borderRadius: Radii.xl,
-    alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs,
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
   },
   value: { ...Typography.display },
   suffix: { ...Typography.bodySmall },

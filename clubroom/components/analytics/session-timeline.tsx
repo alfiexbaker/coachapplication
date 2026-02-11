@@ -36,17 +36,20 @@ export function SessionTimeline({
   }
 
   // Group events by month
-  const groupedEvents = displayEvents.reduce((acc, event) => {
-    const monthKey = new Date(event.date).toLocaleDateString('en-GB', {
-      month: 'long',
-      year: 'numeric',
-    });
-    if (!acc[monthKey]) {
-      acc[monthKey] = [];
-    }
-    acc[monthKey].push(event);
-    return acc;
-  }, {} as Record<string, SessionEvent[]>);
+  const groupedEvents = displayEvents.reduce(
+    (acc, event) => {
+      const monthKey = new Date(event.date).toLocaleDateString('en-GB', {
+        month: 'long',
+        year: 'numeric',
+      });
+      if (!acc[monthKey]) {
+        acc[monthKey] = [];
+      }
+      acc[monthKey].push(event);
+      return acc;
+    },
+    {} as Record<string, SessionEvent[]>,
+  );
 
   return (
     <View style={styles.container}>
@@ -58,9 +61,7 @@ export function SessionTimeline({
 
       {Object.entries(groupedEvents).map(([month, monthEvents]) => (
         <View key={month} style={styles.monthGroup}>
-          <ThemedText style={[styles.monthLabel, { color: palette.muted }]}>
-            {month}
-          </ThemedText>
+          <ThemedText style={[styles.monthLabel, { color: palette.muted }]}>{month}</ThemedText>
 
           <View style={styles.eventsContainer}>
             {monthEvents.map((event, index) => (

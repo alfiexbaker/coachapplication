@@ -18,8 +18,12 @@ interface MatchCoachActionsProps {
 }
 
 export const MatchCoachActions = memo(function MatchCoachActions({
-  isComplete, isUpcoming, isCancelled, hasResult,
-  onRecordResult, onCancelMatch,
+  isComplete,
+  isUpcoming,
+  isCancelled,
+  hasResult,
+  onRecordResult,
+  onCancelMatch,
 }: MatchCoachActionsProps) {
   const { colors } = useTheme();
 
@@ -34,7 +38,9 @@ export const MatchCoachActions = memo(function MatchCoachActions({
         <Clickable style={[styles.button, { borderColor: colors.tint }]} onPress={onRecordResult}>
           <Row align="center" justify="center" gap="sm">
             <Ionicons name="trophy" size={18} color={colors.tint} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Record Result</ThemedText>
+            <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>
+              Record Result
+            </ThemedText>
           </Row>
         </Clickable>
       )}
@@ -42,7 +48,9 @@ export const MatchCoachActions = memo(function MatchCoachActions({
         <Clickable style={[styles.button, { borderColor: colors.error }]} onPress={onCancelMatch}>
           <Row align="center" justify="center" gap="sm">
             <Ionicons name="close-circle" size={18} color={colors.error} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.error }]}>Cancel Match</ThemedText>
+            <ThemedText style={[Typography.bodySemiBold, { color: colors.error }]}>
+              Cancel Match
+            </ThemedText>
           </Row>
         </Clickable>
       )}

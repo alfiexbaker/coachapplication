@@ -46,14 +46,22 @@ export const WaitlistHeader = memo(function WaitlistHeader({
             {summary.sessionTitle}
           </ThemedText>
           <Row gap="xs">
-            <Row align="center" gap="xxs" style={[styles.statBadge, { backgroundColor: withAlpha(palette.warning, 0.1) }]}>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.statBadge, { backgroundColor: withAlpha(palette.warning, 0.1) }]}
+            >
               <Ionicons name="people" size={12} color={palette.warning} />
               <ThemedText style={[styles.statText, { color: palette.warning }]}>
                 {summary.totalWaiting} waiting
               </ThemedText>
             </Row>
             {hasAutoBookers && (
-              <Row align="center" gap="xxs" style={[styles.statBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+              <Row
+                align="center"
+                gap="xxs"
+                style={[styles.statBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}
+              >
                 <Ionicons name="flash" size={12} color={palette.success} />
                 <ThemedText style={[styles.statText, { color: palette.success }]}>
                   {summary.autoBookCount} auto
@@ -64,9 +72,7 @@ export const WaitlistHeader = memo(function WaitlistHeader({
         </View>
 
         <Row align="center" gap="sm">
-          {summary.nextInLine && (
-            <WaitlistPosition position={1} size="small" compact />
-          )}
+          {summary.nextInLine && <WaitlistPosition position={1} size="small" compact />}
           <Ionicons
             name={isExpanded ? 'chevron-up' : 'chevron-down'}
             size={20}
@@ -157,7 +163,9 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
       ]}
     >
       <Row align="center" gap="sm" flex>
-        <View style={[styles.positionCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+        <View
+          style={[styles.positionCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+        >
           <ThemedText style={[styles.positionNumber, { color: palette.warning }]}>
             {entry.position}
           </ThemedText>
@@ -176,7 +184,14 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
                 {waitlistService.formatTimeAgo(entry.joinedAt)}
               </ThemedText>
               {entry.autoBook && (
-                <Row align="center" gap="micro" style={[styles.autoBookBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                <Row
+                  align="center"
+                  gap="micro"
+                  style={[
+                    styles.autoBookBadge,
+                    { backgroundColor: withAlpha(palette.success, 0.09) },
+                  ]}
+                >
                   <Ionicons name="flash" size={10} color={palette.success} />
                   <ThemedText style={[styles.autoBookText, { color: palette.success }]}>
                     Auto
@@ -184,7 +199,11 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({
                 </Row>
               )}
               {entry.status === 'NOTIFIED' && (
-                <Row align="center" gap="micro" style={[styles.notifiedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                <Row
+                  align="center"
+                  gap="micro"
+                  style={[styles.notifiedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+                >
                   <Ionicons name="notifications" size={10} color={palette.tint} />
                   <ThemedText style={[styles.notifiedText, { color: palette.tint }]}>
                     Notified

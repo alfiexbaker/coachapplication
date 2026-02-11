@@ -7,7 +7,7 @@ import { Routes } from '@/navigation/routes';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -79,7 +79,7 @@ export function PurchaseButton({
       const result = await packageService.purchasePackage(
         currentUser.id,
         currentUser.fullName || currentUser.name || 'User',
-        pkg.id
+        pkg.id,
       );
 
       if (result.success) {
@@ -101,7 +101,16 @@ export function PurchaseButton({
 
   if (loading) {
     return (
-      <Row align="center" justify="center" gap="xs" style={[styles.button, styles.buttonLoading, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Row
+        align="center"
+        justify="center"
+        gap="xs"
+        style={[
+          styles.button,
+          styles.buttonLoading,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
+      >
         <ActivityIndicator size="small" color={palette.tint} />
         <ThemedText style={[styles.buttonText, { color: palette.muted }]}>
           Checking balance...
@@ -114,7 +123,11 @@ export function PurchaseButton({
     return (
       <View style={styles.container}>
         {/* Insufficient Balance Warning */}
-        <Row align="center" gap="sm" style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+        <Row
+          align="center"
+          gap="sm"
+          style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+        >
           <Ionicons name="wallet-outline" size={16} color={palette.warning} />
           <View style={styles.warningTextContainer}>
             <ThemedText style={[styles.warningText, { color: palette.warning }]}>
@@ -157,7 +170,7 @@ export function PurchaseButton({
         style={[
           styles.button,
           { backgroundColor: palette.tint },
-          (disabled || purchasing) ? styles.buttonDisabled : undefined,
+          disabled || purchasing ? styles.buttonDisabled : undefined,
         ]}
         onPress={handlePurchase}
         disabled={disabled || purchasing}
@@ -168,7 +181,9 @@ export function PurchaseButton({
         {purchasing ? (
           <>
             <ActivityIndicator size="small" color={palette.onPrimary} />
-            <ThemedText style={[styles.buttonTextWhite, { color: palette.onPrimary }]}>Processing...</ThemedText>
+            <ThemedText style={[styles.buttonTextWhite, { color: palette.onPrimary }]}>
+              Processing...
+            </ThemedText>
           </>
         ) : (
           <>

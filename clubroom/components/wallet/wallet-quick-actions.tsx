@@ -32,24 +32,16 @@ export const WalletQuickActions = memo(function WalletQuickActions({
     <Animated.View entering={FadeInDown.delay(100).springify()}>
       <Row gap="sm">
         <Clickable
-          style={[
-            styles.button,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
+          style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={handleTopUp}
           accessibilityLabel="Top up wallet"
           accessibilityRole="button"
         >
           <Ionicons name="add-circle-outline" size={24} color={colors.tint} />
-          <ThemedText style={[styles.label, { color: colors.text }]}>
-            Top Up
-          </ThemedText>
+          <ThemedText style={[styles.label, { color: colors.text }]}>Top Up</ThemedText>
         </Clickable>
         <Clickable
-          style={[
-            styles.button,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
+          style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={onHistory ?? (() => {})}
           disabled={!onHistory}
           accessibilityState={{ disabled: !onHistory }}
@@ -57,9 +49,7 @@ export const WalletQuickActions = memo(function WalletQuickActions({
           accessibilityRole="button"
         >
           <Ionicons name="receipt-outline" size={24} color={colors.tint} />
-          <ThemedText style={[styles.label, { color: colors.text }]}>
-            History
-          </ThemedText>
+          <ThemedText style={[styles.label, { color: colors.text }]}>History</ThemedText>
         </Clickable>
       </Row>
     </Animated.View>

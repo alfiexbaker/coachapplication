@@ -8,7 +8,13 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { Spacing } from '@/constants/theme';
 
 import { useCoachDevelopment } from '@/hooks/use-coach-development';
-import { QuickActions, CompletionCard, AttentionSection, RecentSessionsSection, BadgesShortcut } from './development-sections';
+import {
+  QuickActions,
+  CompletionCard,
+  AttentionSection,
+  RecentSessionsSection,
+  BadgesShortcut,
+} from './development-sections';
 
 export function CoachDevelopmentScreen() {
   const {
@@ -39,7 +45,11 @@ export function CoachDevelopmentScreen() {
       <QuickActions />
       <CompletionCard bookings={awaitingCompletion} />
       <AttentionSection athletes={attentionAthletes} logger={logger} />
-      <RecentSessionsSection sessions={recentSessions} athleteDirectory={athleteDirectory} logger={logger} />
+      <RecentSessionsSection
+        sessions={recentSessions}
+        athleteDirectory={athleteDirectory}
+        logger={logger}
+      />
       <BadgesShortcut logger={logger} />
     </PageContainer>
   );

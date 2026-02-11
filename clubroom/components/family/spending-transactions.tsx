@@ -22,7 +22,9 @@ interface SpendingTransactionsProps {
   transactions: Transaction[];
 }
 
-export const SpendingTransactions = memo(function SpendingTransactions({ transactions }: SpendingTransactionsProps) {
+export const SpendingTransactions = memo(function SpendingTransactions({
+  transactions,
+}: SpendingTransactionsProps) {
   const { colors } = useTheme();
 
   const handleViewAll = useCallback(() => {
@@ -32,22 +34,36 @@ export const SpendingTransactions = memo(function SpendingTransactions({ transac
   return (
     <SurfaceCard style={styles.card}>
       <Row align="center" justify="space-between">
-        <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>Recent Sessions</ThemedText>
+        <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
+          Recent Sessions
+        </ThemedText>
         <Clickable onPress={handleViewAll}>
-          <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>View All</ThemedText>
+          <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+            View All
+          </ThemedText>
         </Clickable>
       </Row>
       <View style={{ gap: Spacing.sm }}>
         {transactions.map((item, index) => (
-          <Row key={`${item.childName}-${item.month}-${index}`} align="center" justify="space-between" style={styles.item}>
+          <Row
+            key={`${item.childName}-${item.month}-${index}`}
+            align="center"
+            justify="space-between"
+            style={styles.item}
+          >
             <Row gap="sm" align="center">
               <View style={[styles.dot, { backgroundColor: item.colorCode }]} />
               <View style={{ gap: Spacing.micro }}>
                 <ThemedText style={Typography.bodySmall}>{item.childName}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>{item.sessionCount} sessions</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                  {item.sessionCount} sessions
+                </ThemedText>
               </View>
             </Row>
-            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>{'\u00A3'}{item.amount.toFixed(2)}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
+              {'\u00A3'}
+              {item.amount.toFixed(2)}
+            </ThemedText>
           </Row>
         ))}
       </View>

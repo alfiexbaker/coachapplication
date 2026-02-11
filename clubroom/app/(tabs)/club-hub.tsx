@@ -32,6 +32,7 @@ const HEADER_PROPS = { title: 'Club Hub', subtitle: 'Your clubs and communities'
 
 export default function ClubHubScreen() {
   const hub = useClubHub();
+  const { showMembersSection, setShowMembersSection, handleConfirmMemberRemoval } = hub;
 
   const feedKeyExtractor = useCallback((item: ClubFeedPost) => item.id, []);
 
@@ -47,14 +48,14 @@ export default function ClubHubScreen() {
   const handleCreatePost = useCallback(() => router.push(Routes.MODAL_CREATE_CLUB_POST), []);
 
   const toggleMembers = useCallback(() => {
-    hub.setShowMembersSection(!hub.showMembersSection);
-  }, [hub.showMembersSection, hub.setShowMembersSection]);
+    setShowMembersSection(!showMembersSection);
+  }, [showMembersSection, setShowMembersSection]);
 
   const handleConfirmRemoval = useCallback(
     (reason: string, customReason?: string) => {
-      hub.handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason);
+      handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason);
     },
-    [hub.handleConfirmMemberRemoval],
+    [handleConfirmMemberRemoval],
   );
 
   // ─── No membership ────────────────────────────────────────────
@@ -150,7 +151,9 @@ const FeedEmptyState = memo(function FeedEmptyState({
     <View style={styles.emptyFeed}>
       <Ionicons name="newspaper-outline" size={48} color={colors.muted} />
       <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
-        {feedFilter === 'all' ? 'No posts yet. Be the first to share!' : `No ${feedFilter} posts yet.`}
+        {feedFilter === 'all'
+          ? 'No posts yet. Be the first to share!'
+          : `No ${feedFilter} posts yet.`}
       </ThemedText>
       {canCreatePosts && feedFilter === 'all' && (
         <Clickable
@@ -160,7 +163,9 @@ const FeedEmptyState = memo(function FeedEmptyState({
         >
           <Row align="center" gap="xs">
             <Ionicons name="add" size={18} color={colors.onPrimary} />
-            <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>Create Post</ThemedText>
+            <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>
+              Create Post
+            </ThemedText>
           </Row>
         </Clickable>
       )}

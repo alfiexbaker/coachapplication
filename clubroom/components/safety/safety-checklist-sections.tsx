@@ -34,7 +34,8 @@ export interface ChecklistItem {
 export function SafetyStatusIndicator({
   hasEmergencyContact,
   hasEmergencyConsent,
-  onPress }: {
+  onPress,
+}: {
   hasEmergencyContact: boolean;
   hasEmergencyConsent: boolean;
   onPress?: () => void;
@@ -52,7 +53,8 @@ export function SafetyStatusIndicator({
         {
           backgroundColor: isComplete
             ? withAlpha(palette.success, 0.06)
-            : withAlpha(palette.warning, 0.06) },
+            : withAlpha(palette.warning, 0.06),
+        },
       ]}
     >
       <Ionicons
@@ -61,10 +63,7 @@ export function SafetyStatusIndicator({
         color={isComplete ? palette.success : palette.warning}
       />
       <ThemedText
-        style={[
-          styles.statusText,
-          { color: isComplete ? palette.success : palette.warning },
-        ]}
+        style={[styles.statusText, { color: isComplete ? palette.success : palette.warning }]}
       >
         {isComplete ? 'Safety OK' : 'Incomplete'}
       </ThemedText>
@@ -87,7 +86,8 @@ export function SessionSafetySummary({
   totalAthletes,
   athletesWithAlerts,
   missingInfoCount,
-  onPress }: {
+  onPress,
+}: {
   totalAthletes: number;
   athletesWithAlerts: number;
   missingInfoCount: number;
@@ -114,10 +114,7 @@ export function SessionSafetySummary({
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
         <View style={styles.summaryStat}>
           <ThemedText
-            style={[
-              styles.summaryStatValue,
-              athletesWithAlerts > 0 && { color: palette.warning },
-            ]}
+            style={[styles.summaryStatValue, athletesWithAlerts > 0 && { color: palette.warning }]}
           >
             {athletesWithAlerts}
           </ThemedText>
@@ -127,12 +124,7 @@ export function SessionSafetySummary({
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
         <View style={styles.summaryStat}>
-          <ThemedText
-            style={[
-              styles.summaryStatValue,
-              hasMissingInfo && { color: palette.error },
-            ]}
-          >
+          <ThemedText style={[styles.summaryStatValue, hasMissingInfo && { color: palette.error }]}>
             {missingInfoCount}
           </ThemedText>
           <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
@@ -142,7 +134,11 @@ export function SessionSafetySummary({
       </Row>
 
       {hasMissingInfo && (
-        <Row align="center" gap="xs" style={[styles.summaryWarning, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
+        <Row
+          align="center"
+          gap="xs"
+          style={[styles.summaryWarning, { backgroundColor: withAlpha(palette.error, 0.03) }]}
+        >
           <Ionicons name="warning" size={14} color={palette.error} />
           <ThemedText style={[styles.summaryWarningText, { color: palette.error }]}>
             {missingInfoCount} athlete{missingInfoCount !== 1 ? 's' : ''} missing emergency contact
@@ -165,20 +161,25 @@ const styles = StyleSheet.create({
   statusIndicator: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill },
+    borderRadius: Radii.pill,
+  },
   statusText: { ...Typography.caption },
   summaryCard: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    gap: Spacing.md },
+    gap: Spacing.md,
+  },
   summaryStat: {
     flex: 1,
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   summaryStatValue: { ...Typography.title },
   summaryStatLabel: { ...Typography.caption, marginTop: Spacing.micro },
   summaryDivider: { width: 1, height: 32 },
   summaryWarning: {
     padding: Spacing.sm,
-    borderRadius: Radii.sm },
-  summaryWarningText: { ...Typography.caption } });
+    borderRadius: Radii.sm,
+  },
+  summaryWarningText: { ...Typography.caption },
+});

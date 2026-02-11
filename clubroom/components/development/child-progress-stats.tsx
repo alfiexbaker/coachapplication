@@ -13,12 +13,18 @@ interface ChildProgressStatsProps {
 }
 
 export const ChildProgressStats = memo(function ChildProgressStats({
-  totalSessions, averagePerformance, badgeCount,
+  totalSessions,
+  averagePerformance,
+  badgeCount,
 }: ChildProgressStatsProps) {
   const { colors } = useTheme();
 
   return (
-    <Row align="center" justify="space-around" style={[styles.footer, { borderTopColor: colors.border }]}>
+    <Row
+      align="center"
+      justify="space-around"
+      style={[styles.footer, { borderTopColor: colors.border }]}
+    >
       <StatItem value={String(totalSessions)} label="Sessions" />
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <StatItem value={averagePerformance.toFixed(1)} label="Avg Rating" />
@@ -32,8 +38,17 @@ function StatItem({ value, label }: { value: string; label: string }) {
   const { colors } = useTheme();
   return (
     <View style={styles.statItem}>
-      <ThemedText type="heading" style={Typography.title}>{value}</ThemedText>
-      <ThemedText style={[Typography.caption, { color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.3 }]}>{label}</ThemedText>
+      <ThemedText type="heading" style={Typography.title}>
+        {value}
+      </ThemedText>
+      <ThemedText
+        style={[
+          Typography.caption,
+          { color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.3 },
+        ]}
+      >
+        {label}
+      </ThemedText>
     </View>
   );
 }

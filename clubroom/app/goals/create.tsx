@@ -96,7 +96,7 @@ export default function CreateGoalScreen() {
             userId,
             createData,
             getCreatorType(),
-            currentUser?.id ?? userId
+            currentUser?.id ?? userId,
           );
 
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -108,13 +108,15 @@ export default function CreateGoalScreen() {
         logger.error('Failed to save goal', error);
         Alert.alert(
           'Error',
-          isEditing ? 'Failed to update goal. Please try again.' : 'Failed to create goal. Please try again.'
+          isEditing
+            ? 'Failed to update goal. Please try again.'
+            : 'Failed to create goal. Please try again.',
         );
       } finally {
         setLoading(false);
       }
     },
-    [isEditing, editId, userId, currentUser, getCreatorType]
+    [isEditing, editId, userId, currentUser, getCreatorType],
   );
 
   // Handle cancel
@@ -126,7 +128,10 @@ export default function CreateGoalScreen() {
   // Loading state for edit mode
   if (initialLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Header title="Edit Goal" onBack={handleCancel} palette={palette} />
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -134,7 +139,10 @@ export default function CreateGoalScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Header
         title={isEditing ? 'Edit Goal' : 'Create Goal'}
         onBack={handleCancel}
@@ -184,6 +192,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
+    ...Typography.heading,
+    fontSize: scaleFont(Typography.heading.fontSize),
   },
 });

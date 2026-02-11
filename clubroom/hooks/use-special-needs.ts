@@ -45,14 +45,7 @@ export function useSpecialNeeds() {
     }
   }, [athleteId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<SpecialNeedsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<SpecialNeedsData>({
     load: loadData,
     deps: [athleteId],
     isEmpty: (value) => !value.athlete,
@@ -68,13 +61,18 @@ export function useSpecialNeeds() {
   const totalCount = disabilityCount + specialNeedsCount;
 
   return {
-    athlete, childProfile, loading: status === 'loading',
+    athlete,
+    childProfile,
+    loading: status === 'loading',
     status,
     error: status === 'error' ? (error as ServiceError | null) : null,
     refreshing,
     onRefresh,
     retry,
-    disabilityCount, specialNeedsCount, allergyCount, totalCount,
+    disabilityCount,
+    specialNeedsCount,
+    allergyCount,
+    totalCount,
   } satisfies {
     athlete: User | null;
     childProfile: ChildProfile | null;

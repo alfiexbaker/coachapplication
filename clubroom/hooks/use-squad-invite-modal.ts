@@ -64,8 +64,18 @@ interface UseSquadInviteModalParams {
 }
 
 export function useSquadInviteModal({
-  visible, onClose, onSuccess, clubId, inviteType, targetId, targetTitle,
-  sessionProps, matchProps, eventProps, preSelectedSquadIds = [], multiSelect = true,
+  visible,
+  onClose,
+  onSuccess,
+  clubId,
+  inviteType,
+  targetId,
+  targetTitle,
+  sessionProps,
+  matchProps,
+  eventProps,
+  preSelectedSquadIds = [],
+  multiSelect = true,
 }: UseSquadInviteModalParams) {
   const [step, setStep] = useState<SquadInviteStep>('squads');
   const [squads, setSquads] = useState<ClubSquad[]>([]);
@@ -101,7 +111,9 @@ export function useSquadInviteModal({
     setLoading(true);
     try {
       const previews = await Promise.all(
-        selectedSquadIds.map((id) => bulkInviteService.getSquadInvitePreview(id, excludedMemberIds)),
+        selectedSquadIds.map((id) =>
+          bulkInviteService.getSquadInvitePreview(id, excludedMemberIds),
+        ),
       );
       setPreview(previews);
     } catch (error) {
@@ -111,29 +123,42 @@ export function useSquadInviteModal({
     }
   }, [selectedSquadIds, excludedMemberIds]);
 
-  const toggleSquad = useCallback((squadId: string) => {
-    if (multiSelect) {
-      setSelectedSquadIds((prev) => prev.includes(squadId) ? prev.filter((id) => id !== squadId) : [...prev, squadId]);
-    } else {
-      setSelectedSquadIds([squadId]);
-    }
-  }, [multiSelect]);
+  const toggleSquad = useCallback(
+    (squadId: string) => {
+      if (multiSelect) {
+        setSelectedSquadIds((prev) =>
+          prev.includes(squadId) ? prev.filter((id) => id !== squadId) : [...prev, squadId],
+        );
+      } else {
+        setSelectedSquadIds([squadId]);
+      }
+    },
+    [multiSelect],
+  );
 
   const toggleMemberExclusion = useCallback((athleteId: string) => {
-    setExcludedMemberIds((prev) => prev.includes(athleteId) ? prev.filter((id) => id !== athleteId) : [...prev, athleteId]);
+    setExcludedMemberIds((prev) =>
+      prev.includes(athleteId) ? prev.filter((id) => id !== athleteId) : [...prev, athleteId],
+    );
   }, []);
 
   const totalMembers = useMemo(() => preview.reduce((sum, p) => sum + p.memberCount, 0), [preview]);
 
   const totalParents = useMemo(() => {
     const allParentIds = new Set<string>();
-    preview.forEach((p) => { p.members.forEach((m) => allParentIds.add(m.parentId)); });
+    preview.forEach((p) => {
+      p.members.forEach((m) => allParentIds.add(m.parentId));
+    });
     return allParentIds.size;
   }, [preview]);
 
   const handleNextStep = useCallback(async () => {
-    if (step === 'squads') { await loadPreview(); setStep('preview'); }
-    else if (step === 'preview') { setStep('confirm'); }
+    if (step === 'squads') {
+      await loadPreview();
+      setStep('preview');
+    } else if (step === 'preview') {
+      setStep('confirm');
+    }
   }, [step, loadPreview]);
 
   const handlePrevStep = useCallback(() => {
@@ -150,52 +175,99 @@ export function useSquadInviteModal({
       if (inviteType === 'SESSION' && sessionProps) {
         if (selectedSquadIds.length === 1) {
           result = await bulkInviteService.inviteSquadToSession({
-            sessionId: targetId, sessionTitle: targetTitle, squadId: selectedSquadIds[0],
-            coachId: sessionProps.coachId, coachName: sessionProps.coachName, coachPhotoUrl: sessionProps.coachPhotoUrl,
-            clubName: sessionProps.clubName, proposedSlots: sessionProps.proposedSlots, sessionType: sessionProps.sessionType,
-            focus: sessionProps.focus, notes: sessionProps.notes, priceUsd: sessionProps.priceUsd, excludeMemberIds: excludedMemberIds,
+            sessionId: targetId,
+            sessionTitle: targetTitle,
+            squadId: selectedSquadIds[0],
+            coachId: sessionProps.coachId,
+            coachName: sessionProps.coachName,
+            coachPhotoUrl: sessionProps.coachPhotoUrl,
+            clubName: sessionProps.clubName,
+            proposedSlots: sessionProps.proposedSlots,
+            sessionType: sessionProps.sessionType,
+            focus: sessionProps.focus,
+            notes: sessionProps.notes,
+            priceUsd: sessionProps.priceUsd,
+            excludeMemberIds: excludedMemberIds,
           });
         } else {
-          let totalSuccess = 0, totalFailed = 0, lastId = '';
+          let totalSuccess = 0,
+            totalFailed = 0,
+            lastId = '';
           for (const squadId of selectedSquadIds) {
             const squadResult = await bulkInviteService.inviteSquadToSession({
-              sessionId: targetId, sessionTitle: targetTitle, squadId,
-              coachId: sessionProps.coachId, coachName: sessionProps.coachName, coachPhotoUrl: sessionProps.coachPhotoUrl,
-              clubName: sessionProps.clubName, proposedSlots: sessionProps.proposedSlots, sessionType: sessionProps.sessionType,
-              focus: sessionProps.focus, notes: sessionProps.notes, priceUsd: sessionProps.priceUsd, excludeMemberIds: excludedMemberIds,
+              sessionId: targetId,
+              sessionTitle: targetTitle,
+              squadId,
+              coachId: sessionProps.coachId,
+              coachName: sessionProps.coachName,
+              coachPhotoUrl: sessionProps.coachPhotoUrl,
+              clubName: sessionProps.clubName,
+              proposedSlots: sessionProps.proposedSlots,
+              sessionType: sessionProps.sessionType,
+              focus: sessionProps.focus,
+              notes: sessionProps.notes,
+              priceUsd: sessionProps.priceUsd,
+              excludeMemberIds: excludedMemberIds,
             });
             totalSuccess += squadResult.sent;
             totalFailed += squadResult.failed;
             lastId = squadResult.groupId || '';
           }
-          result = { sent: totalSuccess, failed: totalFailed, skipped: 0, totalAttempted: totalSuccess + totalFailed, errors: [], groupId: lastId };
+          result = {
+            sent: totalSuccess,
+            failed: totalFailed,
+            skipped: 0,
+            totalAttempted: totalSuccess + totalFailed,
+            errors: [],
+            groupId: lastId,
+          };
         }
       } else if (inviteType === 'MATCH' && matchProps) {
         const squad = squads.find((s) => s.id === selectedSquadIds[0]);
         const matchResult = await bulkInviteService.inviteSquadToMatch({
-          squadId: selectedSquadIds[0], squadName: squad?.name || 'Squad',
+          squadId: selectedSquadIds[0],
+          squadName: squad?.name || 'Squad',
           matchTitle: `${squad?.name || 'Team'} vs ${matchProps.opponent}`,
-          opponent: matchProps.opponent, isHome: matchProps.homeAway === 'HOME',
-          date: matchProps.scheduledAt.split('T')[0], kickoffTime: matchProps.scheduledAt.split('T')[1]?.substring(0, 5) || '10:00',
-          venue: matchProps.location, clubId, clubName: 'Lions FC Academy',
-          coachId: matchProps.coachId, coachName: matchProps.coachName, notes: matchProps.notes, excludeMemberIds: excludedMemberIds,
+          opponent: matchProps.opponent,
+          isHome: matchProps.homeAway === 'HOME',
+          date: matchProps.scheduledAt.split('T')[0],
+          kickoffTime: matchProps.scheduledAt.split('T')[1]?.substring(0, 5) || '10:00',
+          venue: matchProps.location,
+          clubId,
+          clubName: 'Lions FC Academy',
+          coachId: matchProps.coachId,
+          coachName: matchProps.coachName,
+          notes: matchProps.notes,
+          excludeMemberIds: excludedMemberIds,
         });
         result = matchResult.inviteResult;
       } else if (inviteType === 'EVENT' && eventProps) {
         const eventResult = await bulkInviteService.inviteSquadsToEvent({
-          clubId, clubName: 'Lions FC Academy', title: targetTitle,
-          description: eventProps.description, eventType: eventProps.eventType,
-          date: eventProps.startDate.split('T')[0], startTime: eventProps.startDate.split('T')[1]?.substring(0, 5) || '10:00',
+          clubId,
+          clubName: 'Lions FC Academy',
+          title: targetTitle,
+          description: eventProps.description,
+          eventType: eventProps.eventType,
+          date: eventProps.startDate.split('T')[0],
+          startTime: eventProps.startDate.split('T')[1]?.substring(0, 5) || '10:00',
           endTime: eventProps.endDate?.split('T')[1]?.substring(0, 5),
-          venue: eventProps.location, squadIds: selectedSquadIds,
-          createdBy: eventProps.createdBy, createdByName: eventProps.createdByName,
-          price: eventProps.priceUsd, maxAttendees: eventProps.maxParticipants, excludeMemberIds: excludedMemberIds,
+          venue: eventProps.location,
+          squadIds: selectedSquadIds,
+          createdBy: eventProps.createdBy,
+          createdByName: eventProps.createdByName,
+          price: eventProps.priceUsd,
+          maxAttendees: eventProps.maxParticipants,
+          excludeMemberIds: excludedMemberIds,
         });
         result = eventResult.inviteResult;
       }
 
       if (result) {
-        onSuccess({ squadInviteId: result.groupId || '', successful: result.sent, failed: result.failed });
+        onSuccess({
+          squadInviteId: result.groupId || '',
+          successful: result.sent,
+          failed: result.failed,
+        });
         onClose();
       }
     } catch (error) {
@@ -204,7 +276,20 @@ export function useSquadInviteModal({
     } finally {
       setSending(false);
     }
-  }, [inviteType, sessionProps, matchProps, eventProps, selectedSquadIds, excludedMemberIds, targetId, targetTitle, clubId, squads, onSuccess, onClose]);
+  }, [
+    inviteType,
+    sessionProps,
+    matchProps,
+    eventProps,
+    selectedSquadIds,
+    excludedMemberIds,
+    targetId,
+    targetTitle,
+    clubId,
+    squads,
+    onSuccess,
+    onClose,
+  ]);
 
   const canProceed = useCallback(() => {
     if (step === 'squads') return selectedSquadIds.length > 0;
@@ -213,9 +298,20 @@ export function useSquadInviteModal({
   }, [step, selectedSquadIds, totalMembers]);
 
   return {
-    step, squads, selectedSquadIds, preview, excludedMemberIds,
-    loading, sending, totalMembers, totalParents,
-    toggleSquad, toggleMemberExclusion, handleNextStep, handlePrevStep,
-    handleSendInvites, canProceed,
+    step,
+    squads,
+    selectedSquadIds,
+    preview,
+    excludedMemberIds,
+    loading,
+    sending,
+    totalMembers,
+    totalParents,
+    toggleSquad,
+    toggleMemberExclusion,
+    handleNextStep,
+    handlePrevStep,
+    handleSendInvites,
+    canProceed,
   };
 }

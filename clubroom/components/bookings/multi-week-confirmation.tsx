@@ -65,7 +65,8 @@ const WeekSummaryRow = memo(function WeekSummaryRow({
         </ThemedText>
       </View>
       <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
-        {currency}{week.price}
+        {currency}
+        {week.price}
       </ThemedText>
     </Row>
   );
@@ -117,12 +118,7 @@ export function MultiWeekConfirmation({
       {/* Week list */}
       <View style={styles.weekList}>
         {selectedWeeks.map((week) => (
-          <WeekSummaryRow
-            key={week.weekDate}
-            week={week}
-            currency={currency}
-            palette={palette}
-          />
+          <WeekSummaryRow key={week.weekDate} week={week} currency={currency} palette={palette} />
         ))}
       </View>
 
@@ -132,17 +128,14 @@ export function MultiWeekConfirmation({
           Total
         </ThemedText>
         <ThemedText type="defaultSemiBold" style={{ color: palette.text }}>
-          {currency}{totalCost.toFixed(0)}
+          {currency}
+          {totalCost.toFixed(0)}
         </ThemedText>
       </Row>
 
       {/* Actions */}
       <Row style={styles.actions}>
-        <Button
-          variant="outline"
-          onPress={onCancel}
-          style={styles.cancelButton}
-        >
+        <Button variant="outline" onPress={onCancel} style={styles.cancelButton}>
           Back
         </Button>
         <Button
@@ -151,7 +144,9 @@ export function MultiWeekConfirmation({
           disabled={loading || selectedWeeks.length === 0}
           style={styles.confirmButton}
         >
-          {loading ? 'Booking...' : `Confirm ${selectedWeeks.length} Week${selectedWeeks.length !== 1 ? 's' : ''}`}
+          {loading
+            ? 'Booking...'
+            : `Confirm ${selectedWeeks.length} Week${selectedWeeks.length !== 1 ? 's' : ''}`}
         </Button>
       </Row>
     </SurfaceCard>

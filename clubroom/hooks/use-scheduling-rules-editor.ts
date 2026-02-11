@@ -3,7 +3,12 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import { useSharedValue, useAnimatedStyle, withTiming, withSequence } from 'react-native-reanimated';
+import {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+} from 'react-native-reanimated';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -11,7 +16,10 @@ import type { StepperConfig } from '@/components/coach/scheduling-rules-editor-c
 
 const logger = createLogger('SchedulingRulesEditor');
 
-export function useSchedulingRulesEditor(coachId: string, onSaved?: (rules: CoachSchedulingRules) => void) {
+export function useSchedulingRulesEditor(
+  coachId: string,
+  onSaved?: (rules: CoachSchedulingRules) => void,
+) {
   const [loading, setLoading] = useState(true);
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
@@ -40,11 +48,18 @@ export function useSchedulingRulesEditor(coachId: string, onSaved?: (rules: Coac
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [coachId]);
 
   // Cleanup
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
 
   const showSavedToast = useCallback(() => {
     setToastVisible(true);
@@ -56,44 +71,59 @@ export function useSchedulingRulesEditor(coachId: string, onSaved?: (rules: Coac
     setTimeout(() => setToastVisible(false), 1800);
   }, [toastOpacity]);
 
-  const scheduleAutoSave = useCallback((updates: Partial<CoachSchedulingRules>) => {
-    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      const toSave = { ...pendingUpdatesRef.current };
-      pendingUpdatesRef.current = {};
-      try {
-        const updatedResult = await schedulingRulesService.updateCoachRules(coachId, toSave);
-        if (!updatedResult.success) {
-          logger.error('Failed to auto-save scheduling rules', updatedResult.error);
-          return;
+  const scheduleAutoSave = useCallback(
+    (updates: Partial<CoachSchedulingRules>) => {
+      pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        const toSave = { ...pendingUpdatesRef.current };
+        pendingUpdatesRef.current = {};
+        try {
+          const updatedResult = await schedulingRulesService.updateCoachRules(coachId, toSave);
+          if (!updatedResult.success) {
+            logger.error('Failed to auto-save scheduling rules', updatedResult.error);
+            return;
+          }
+          setRules(updatedResult.data);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showSavedToast();
+          onSaved?.(updatedResult.data);
+          logger.debug('Auto-saved scheduling rules', toSave);
+        } catch (err) {
+          logger.error('Failed to auto-save scheduling rules', err);
         }
-        setRules(updatedResult.data);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSavedToast();
-        onSaved?.(updatedResult.data);
-        logger.debug('Auto-saved scheduling rules', toSave);
-      } catch (err) { logger.error('Failed to auto-save scheduling rules', err); }
-    }, 500);
-  }, [coachId, onSaved, showSavedToast]);
+      }, 500);
+    },
+    [coachId, onSaved, showSavedToast],
+  );
 
-  const handleStepperChange = useCallback((key: StepperConfig['key'], value: number) => {
-    if (!rules) return;
-    setRules({ ...rules, [key]: value });
-    scheduleAutoSave({ [key]: value });
-  }, [rules, scheduleAutoSave]);
+  const handleStepperChange = useCallback(
+    (key: StepperConfig['key'], value: number) => {
+      if (!rules) return;
+      setRules({ ...rules, [key]: value });
+      scheduleAutoSave({ [key]: value });
+    },
+    [rules, scheduleAutoSave],
+  );
 
-  const handleToggle = useCallback((key: 'allowSameDayBookings' | 'allowRescheduling', value: boolean) => {
-    if (!rules) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRules({ ...rules, [key]: value });
-    scheduleAutoSave({ [key]: value });
-  }, [rules, scheduleAutoSave]);
+  const handleToggle = useCallback(
+    (key: 'allowSameDayBookings' | 'allowRescheduling', value: boolean) => {
+      if (!rules) return;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setRules({ ...rules, [key]: value });
+      scheduleAutoSave({ [key]: value });
+    },
+    [rules, scheduleAutoSave],
+  );
 
   const toastAnimatedStyle = useAnimatedStyle(() => ({ opacity: toastOpacity.value }));
 
   return {
-    loading, rules, toastVisible, toastAnimatedStyle,
-    handleStepperChange, handleToggle,
+    loading,
+    rules,
+    toastVisible,
+    toastAnimatedStyle,
+    handleStepperChange,
+    handleToggle,
   };
 }

@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Typography } from '@/constants/theme';
@@ -28,9 +27,7 @@ export function ClusterMarker({ count, onPress }: ClusterMarkerProps) {
         },
       ]}
     >
-      <ThemedText style={[styles.clusterText, { color: palette.onPrimary }]}>
-        {count}
-      </ThemedText>
+      <ThemedText style={[styles.clusterText, { color: palette.onPrimary }]}>{count}</ThemedText>
     </Clickable>
   );
 }

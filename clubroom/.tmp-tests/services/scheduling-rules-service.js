@@ -210,7 +210,7 @@ class SchedulingRulesService {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SCHEDULING_RULES, rules);
         // Update cache
         this.rulesCache.clear();
-        rules.forEach(r => this.rulesCache.set(r.coachId, r));
+        rules.forEach((r) => this.rulesCache.set(r.coachId, r));
     }
     /**
      * Get scheduling rules for a coach
@@ -221,7 +221,7 @@ class SchedulingRulesService {
             return this.rulesCache.get(coachId);
         }
         const allRules = await this.loadAllRules();
-        const coachRules = allRules.find(r => r.coachId === coachId);
+        const coachRules = allRules.find((r) => r.coachId === coachId);
         if (coachRules) {
             this.rulesCache.set(coachId, coachRules);
             return coachRules;
@@ -259,13 +259,15 @@ class SchedulingRulesService {
     async updateCoachRules(coachId, updates) {
         try {
             const allRules = await this.loadAllRules();
-            const existingIndex = allRules.findIndex(r => r.coachId === coachId);
+            const existingIndex = allRules.findIndex((r) => r.coachId === coachId);
             const now = new Date().toISOString();
             const existingRules = existingIndex >= 0 ? allRules[existingIndex] : this.getDefaultRules(coachId);
             const updatedRules = {
                 ...existingRules,
                 ...updates,
-                id: existingRules.id.startsWith('rules_default_') ? `rules_${Date.now()}` : existingRules.id,
+                id: existingRules.id.startsWith('rules_default_')
+                    ? `rules_${Date.now()}`
+                    : existingRules.id,
                 coachId,
                 updatedAt: now,
             };
@@ -457,7 +459,7 @@ class SchedulingRulesService {
     async getCancellationPolicy(coachId) {
         try {
             const policies = await this.loadPoliciesValue();
-            return (0, result_1.ok)(policies.find(p => p.coachId === coachId) || null);
+            return (0, result_1.ok)(policies.find((p) => p.coachId === coachId) || null);
         }
         catch (error) {
             logger.error('Failed to get cancellation policy', { coachId, error });
@@ -482,7 +484,7 @@ class SchedulingRulesService {
     async setCancellationPolicy(coachId, templateKey, customTiers) {
         try {
             const policies = await this.loadPoliciesValue();
-            const existingIndex = policies.findIndex(p => p.coachId === coachId);
+            const existingIndex = policies.findIndex((p) => p.coachId === coachId);
             const now = new Date().toISOString();
             let template = exports.POLICY_TEMPLATES[templateKey] || exports.POLICY_TEMPLATES.standard;
             if (templateKey === 'custom' && customTiers) {
@@ -565,8 +567,8 @@ class SchedulingRulesService {
             appliedTier = sortedTiers[sortedTiers.length - 1];
         }
         const refundPercentage = appliedTier?.refundPercentage ?? 0;
-        const refundAmount = Math.round((bookingAmount * refundPercentage) / 100 * 100) / 100;
-        const platformFee = Math.round((refundAmount * PLATFORM_FEE_PERCENT) / 100 * 100) / 100;
+        const refundAmount = Math.round(((bookingAmount * refundPercentage) / 100) * 100) / 100;
+        const platformFee = Math.round(((refundAmount * PLATFORM_FEE_PERCENT) / 100) * 100) / 100;
         const netRefundAmount = Math.round((refundAmount - platformFee) * 100) / 100;
         // Build explanation
         let explanation;
@@ -607,7 +609,7 @@ class SchedulingRulesService {
      * Format cancellation policy tiers for display
      */
     formatPolicyForDisplay(policy) {
-        return policy.tiers.map(tier => {
+        return policy.tiers.map((tier) => {
             if (tier.hoursBeforeSession === 0) {
                 return `• ${tier.refundPercentage}% refund: Less than ${policy.tiers[policy.tiers.length - 2]?.hoursBeforeSession || 0} hours before`;
             }
@@ -622,7 +624,7 @@ class SchedulingRulesService {
             return 'Standard cancellation policy';
         if (!policy.allowCancellations)
             return 'No cancellations allowed';
-        const fullRefundTier = policy.tiers.find(t => t.refundPercentage === 100);
+        const fullRefundTier = policy.tiers.find((t) => t.refundPercentage === 100);
         if (fullRefundTier) {
             return `Full refund ${fullRefundTier.hoursBeforeSession}h+ before`;
         }

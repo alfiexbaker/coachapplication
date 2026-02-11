@@ -4,7 +4,7 @@
  * Pill-shaped toggle with two options. Active state uses tint color.
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -31,10 +31,7 @@ export const MessagesViewToggle = memo(function MessagesViewToggle({
   const { colors: palette } = useTheme();
 
   return (
-    <Row
-      gap="xs"
-      style={[styles.segmentedControl, { borderColor: palette.border }]}
-    >
+    <Row gap="xs" style={[styles.segmentedControl, { borderColor: palette.border }]}>
       {VIEW_OPTIONS.map((option) => {
         const active = viewMode === option.key;
         return (

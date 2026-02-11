@@ -58,7 +58,12 @@ interface UseTimeOffFormParams {
 }
 
 export function useTimeOffForm({
-  visible, coachId, preselectedDate, existingOverride, onClose, onSaved,
+  visible,
+  coachId,
+  preselectedDate,
+  existingOverride,
+  onClose,
+  onSaved,
 }: UseTimeOffFormParams) {
   const [mode, setMode] = useState<'single' | 'range'>('single');
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -78,19 +83,27 @@ export function useTimeOffForm({
     if (visible) {
       if (preselectedDate) {
         const d = new Date(preselectedDate + 'T12:00:00');
-        setStartDate(d); setEndDate(d); setMode('single');
+        setStartDate(d);
+        setEndDate(d);
+        setMode('single');
       } else {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        setStartDate(tomorrow); setEndDate(tomorrow); setMode('single');
+        setStartDate(tomorrow);
+        setEndDate(tomorrow);
+        setMode('single');
       }
       if (existingOverride?.reason) {
-        const match = REASONS.find(r => r.label === existingOverride.reason || r.id === existingOverride.reason);
+        const match = REASONS.find(
+          (r) => r.label === existingOverride.reason || r.id === existingOverride.reason,
+        );
         setReason(match?.id || 'holiday');
       } else {
         setReason('holiday');
       }
-      setStep('form'); setConflicts(null); setRemoving(false);
+      setStep('form');
+      setConflicts(null);
+      setRemoving(false);
     }
   }, [visible, preselectedDate, existingOverride]);
 
@@ -98,30 +111,35 @@ export function useTimeOffForm({
   const dayCount = getDaysBetween(startDate, endDate);
   const isEditing = !!existingOverride;
 
-  const adjustDate = useCallback((target: 'start' | 'end', days: number) => {
-    hapticTap();
-    if (target === 'start') {
-      setStartDate((prev) => {
-        const newDate = new Date(prev);
-        newDate.setDate(newDate.getDate() + days);
-        setEndDate((prevEnd) => (newDate > prevEnd ? newDate : prevEnd));
-        return newDate;
-      });
-    } else {
-      setEndDate((prev) => {
-        const newDate = new Date(prev);
-        newDate.setDate(newDate.getDate() + days);
-        return newDate >= startDate ? newDate : prev;
-      });
-    }
-  }, [hapticTap, startDate]);
+  const adjustDate = useCallback(
+    (target: 'start' | 'end', days: number) => {
+      hapticTap();
+      if (target === 'start') {
+        setStartDate((prev) => {
+          const newDate = new Date(prev);
+          newDate.setDate(newDate.getDate() + days);
+          setEndDate((prevEnd) => (newDate > prevEnd ? newDate : prevEnd));
+          return newDate;
+        });
+      } else {
+        setEndDate((prev) => {
+          const newDate = new Date(prev);
+          newDate.setDate(newDate.getDate() + days);
+          return newDate >= startDate ? newDate : prev;
+        });
+      }
+    },
+    [hapticTap, startDate],
+  );
 
   const handleCheckConflicts = useCallback(async () => {
-    hapticTap(); setChecking(true);
+    hapticTap();
+    setChecking(true);
     try {
       const dates = expandDateRange(startDate, endDate);
       const result = await availabilityService.checkConflicts(coachId, dates);
-      setConflicts(result); setStep('confirm');
+      setConflicts(result);
+      setStep('confirm');
     } catch (error) {
       logger.error('Failed to check conflicts', error);
     } finally {
@@ -133,11 +151,14 @@ export function useTimeOffForm({
     setSaving(true);
     try {
       const dates = expandDateRange(startDate, endDate);
-      const reasonLabel = REASONS.find(r => r.id === reason)?.label || reason;
+      const reasonLabel = REASONS.find((r) => r.id === reason)?.label || reason;
       for (const date of dates) await availabilityService.blockDate(coachId, date, reasonLabel);
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web')
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
-      await Promise.resolve(onSaved()).catch((e: unknown) => logger.warn('Post-save refresh failed', e));
+      await Promise.resolve(onSaved()).catch((e: unknown) =>
+        logger.warn('Post-save refresh failed', e),
+      );
     } catch (error) {
       logger.error('Failed to save time off', error);
     } finally {
@@ -150,28 +171,42 @@ export function useTimeOffForm({
     setRemoving(true);
     try {
       await availabilityService.unblockDate(coachId, existingOverride.date);
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web')
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
-      await Promise.resolve(onSaved()).catch((e: unknown) => logger.warn('Post-removal refresh failed', e));
+      await Promise.resolve(onSaved()).catch((e: unknown) =>
+        logger.warn('Post-removal refresh failed', e),
+      );
     } catch (error) {
       logger.error('Failed to remove time off', error);
-      setRemoving(false); setStep('form');
+      setRemoving(false);
+      setStep('form');
     }
   }, [existingOverride, coachId, onClose, onSaved]);
 
   const handleClose = useCallback(() => {
     if (removing) return;
-    setStep('form'); setConflicts(null); onClose();
+    setStep('form');
+    setConflicts(null);
+    onClose();
   }, [removing, onClose]);
 
-  const selectMode = useCallback((m: 'single' | 'range') => {
-    hapticTap(); setMode(m);
-    if (m === 'single') setEndDate(startDate);
-  }, [hapticTap, startDate]);
+  const selectMode = useCallback(
+    (m: 'single' | 'range') => {
+      hapticTap();
+      setMode(m);
+      if (m === 'single') setEndDate(startDate);
+    },
+    [hapticTap, startDate],
+  );
 
-  const goToStep = useCallback((s: TimeOffStep) => {
-    hapticTap(); setStep(s);
-  }, [hapticTap]);
+  const goToStep = useCallback(
+    (s: TimeOffStep) => {
+      hapticTap();
+      setStep(s);
+    },
+    [hapticTap],
+  );
 
   const quickDates = useMemo(() => {
     const today = new Date();
@@ -185,22 +220,51 @@ export function useTimeOffForm({
     ];
   }, []);
 
-  const selectQuickDate = useCallback((date: Date) => {
-    hapticTap(); setStartDate(date); setEndDate(date);
-  }, [hapticTap]);
+  const selectQuickDate = useCallback(
+    (date: Date) => {
+      hapticTap();
+      setStartDate(date);
+      setEndDate(date);
+    },
+    [hapticTap],
+  );
 
-  const selectReason = useCallback((id: string) => {
-    hapticTap(); setReason(id);
-  }, [hapticTap]);
+  const selectReason = useCallback(
+    (id: string) => {
+      hapticTap();
+      setReason(id);
+    },
+    [hapticTap],
+  );
 
   const removeDate = existingOverride
     ? formatDateDisplay(new Date(existingOverride.date + 'T12:00:00'))
     : '';
 
   return {
-    mode, startDate, endDate, reason, step, conflicts, checking, saving, removing,
-    isSameDay, dayCount, isEditing, quickDates, removeDate, existingOverride,
-    adjustDate, handleCheckConflicts, handleSave, handleRemoveConfirm, handleClose,
-    selectMode, goToStep, selectQuickDate, selectReason,
+    mode,
+    startDate,
+    endDate,
+    reason,
+    step,
+    conflicts,
+    checking,
+    saving,
+    removing,
+    isSameDay,
+    dayCount,
+    isEditing,
+    quickDates,
+    removeDate,
+    existingOverride,
+    adjustDate,
+    handleCheckConflicts,
+    handleSave,
+    handleRemoveConfirm,
+    handleClose,
+    selectMode,
+    goToStep,
+    selectQuickDate,
+    selectReason,
   };
 }

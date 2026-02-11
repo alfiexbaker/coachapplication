@@ -5,7 +5,6 @@ import type { CounterOffer } from '@/constants/types';
 import { AcceptRejectButtons } from './AcceptRejectButtons';
 
 import {
-  getStatusConfig,
   OfferHeader,
   TimeChangeDisplay,
   OfferMessage,
@@ -32,7 +31,6 @@ export function CounterOfferCard({
   isLoading = false,
 }: CounterOfferCardProps) {
   const { colors: palette } = useTheme();
-  const statusConfig = getStatusConfig(offer.status, palette);
   const isPending = offer.status === 'PENDING';
 
   return (
@@ -57,17 +55,13 @@ export function CounterOfferCard({
         palette={palette}
       />
 
-      {offer.message && (
-        <OfferMessage message={offer.message} palette={palette} />
-      )}
+      {offer.message && <OfferMessage message={offer.message} palette={palette} />}
 
       {offer.status === 'REJECTED' && offer.rejectionReason && (
         <RejectionReason reason={offer.rejectionReason} palette={palette} />
       )}
 
-      {isPending && (
-        <ExpiryTimer expiresAt={offer.expiresAt} palette={palette} />
-      )}
+      {isPending && <ExpiryTimer expiresAt={offer.expiresAt} palette={palette} />}
 
       {isActionable && isPending && (
         <AcceptRejectButtons

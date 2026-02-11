@@ -41,8 +41,10 @@ export function SettingsRow({
   const { colors: palette } = useTheme();
 
   const textColor = destructive ? palette.error : palette.text;
-  const iconBgColor = destructive ? withAlpha(palette.error, 0.09) : withAlpha(iconColor || palette.accent, 0.09);
-  const iconTintColor = destructive ? palette.error : (iconColor || palette.accent);
+  const iconBgColor = destructive
+    ? withAlpha(palette.error, 0.09)
+    : withAlpha(iconColor || palette.accent, 0.09);
+  const iconTintColor = destructive ? palette.error : iconColor || palette.accent;
 
   return (
     <Clickable
@@ -50,10 +52,7 @@ export function SettingsRow({
       disabled={disabled || !onPress}
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityRole={onPress ? 'button' : undefined}
-      style={({ pressed }) => [
-        styles.settingRow,
-        { opacity: pressed ? 0.7 : disabled ? 0.5 : 1 },
-      ]}
+      style={({ pressed }) => [styles.settingRow, { opacity: pressed ? 0.7 : disabled ? 0.5 : 1 }]}
     >
       <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={22} color={iconTintColor} />
@@ -69,9 +68,7 @@ export function SettingsRow({
         )}
       </View>
       {value && (
-        <ThemedText style={[styles.valueText, { color: palette.muted }]}>
-          {value}
-        </ThemedText>
+        <ThemedText style={[styles.valueText, { color: palette.muted }]}>{value}</ThemedText>
       )}
       {rightElement}
       {!rightElement && showChevron && onPress && (
@@ -141,11 +138,11 @@ export function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
     <View style={styles.section}>
       {title && (
-        <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>
-          {title}
-        </ThemedText>
+        <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>{title}</ThemedText>
       )}
-      <View style={[styles.sectionCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
+      <View
+        style={[styles.sectionCard, { backgroundColor: palette.card, borderColor: palette.border }]}
+      >
         {children}
       </View>
     </View>
@@ -177,10 +174,13 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.xs,
   },
-  sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase',
+  sectionTitle: {
+    ...Typography.smallSemiBold,
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginLeft: Spacing.sm,
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   sectionCard: {
     borderRadius: Radii.lg,
     borderWidth: 0.75,

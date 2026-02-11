@@ -6,12 +6,16 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { StarRow, BadgeBanner, RecapActions } from './session-recap-card-sections';
-export type { StarRowProps, BadgeBannerProps, RecapActionsProps } from './session-recap-card-sections';
-
 import { StarRow, BadgeBanner, RecapActions } from './session-recap-card-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export { StarRow, BadgeBanner, RecapActions } from './session-recap-card-sections';
+export type {
+  StarRowProps,
+  BadgeBannerProps,
+  RecapActionsProps,
+} from './session-recap-card-sections';
 
 /* ---------- Types ---------- */
 
@@ -34,11 +38,7 @@ export interface SessionRecapCardProps {
 
 /* ---------- Component ---------- */
 
-export function SessionRecapCard({
-  recap,
-  onShareWithFamily,
-  onSave,
-}: SessionRecapCardProps) {
+export function SessionRecapCard({ recap, onShareWithFamily, onSave }: SessionRecapCardProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -60,10 +60,13 @@ export function SessionRecapCard({
 
       {/* Focus area */}
       <View style={styles.section}>
-        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-          FOCUS AREA
-        </ThemedText>
-        <Row style={[styles.focusPill, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}>
+        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>FOCUS AREA</ThemedText>
+        <Row
+          style={[
+            styles.focusPill,
+            { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border },
+          ]}
+        >
           <Ionicons name="flash-outline" size={14} color={palette.tint} />
           <ThemedText type="defaultSemiBold" style={[styles.focusText, { color: palette.tint }]}>
             {recap.focusArea}
@@ -110,23 +113,15 @@ export function SessionRecapCard({
       )}
 
       {/* Badge earned */}
-      {recap.badgeEarned ? (
-        <BadgeBanner badgeName={recap.badgeEarned} palette={palette} />
-      ) : null}
+      {recap.badgeEarned ? <BadgeBanner badgeName={recap.badgeEarned} palette={palette} /> : null}
 
       {/* Action buttons */}
-      <RecapActions
-        onShareWithFamily={onShareWithFamily}
-        onSave={onSave}
-        palette={palette}
-      />
+      <RecapActions onShareWithFamily={onShareWithFamily} onSave={onSave} palette={palette} />
 
       {/* Branding */}
       <Row style={[styles.branding, { borderTopColor: palette.border }]}>
         <Ionicons name="football-outline" size={14} color={palette.muted} />
-        <ThemedText style={[styles.brandText, { color: palette.muted }]}>
-          Clubroom
-        </ThemedText>
+        <ThemedText style={[styles.brandText, { color: palette.muted }]}>Clubroom</ThemedText>
       </Row>
     </SurfaceCard>
   );

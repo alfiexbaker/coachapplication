@@ -18,7 +18,8 @@ import {
   formatSessionDate,
   formatSessionTime,
   getTimeUntilDeadline,
-  ResponseButton } from './rsvp-flow-sections';
+  ResponseButton,
+} from './rsvp-flow-sections';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -47,11 +48,14 @@ export function RSVPFlow({
   childName,
   rsvpId,
   onRespond,
-  responseDeadline }: RSVPFlowProps) {
+  responseDeadline,
+}: RSVPFlowProps) {
   const { colors } = useTheme();
   const CardStyles = createCardStyles(colors);
 
-  const [selectedStatus, setSelectedStatus] = useState<'going' | 'not_going' | 'maybe' | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<'going' | 'not_going' | 'maybe' | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const deadlineLabel = useMemo(() => {
@@ -77,16 +81,22 @@ export function RSVPFlow({
         <ThemedText style={[styles.childLabel, { color: colors.muted }]}>
           RSVP for {childName}
         </ThemedText>
-        <ThemedText style={[styles.sessionTitle, { color: colors.text }]}>{sessionTitle}</ThemedText>
+        <ThemedText style={[styles.sessionTitle, { color: colors.text }]}>
+          {sessionTitle}
+        </ThemedText>
 
         <Row align="center" gap="xs">
           <Ionicons name="calendar-outline" size={18} color={colors.muted} />
-          <ThemedText style={[styles.detailText, { color: colors.muted }]}>{formatSessionDate(sessionDate)}</ThemedText>
+          <ThemedText style={[styles.detailText, { color: colors.muted }]}>
+            {formatSessionDate(sessionDate)}
+          </ThemedText>
         </Row>
 
         <Row align="center" gap="xs">
           <Ionicons name="time-outline" size={18} color={colors.muted} />
-          <ThemedText style={[styles.detailText, { color: colors.muted }]}>{formatSessionTime(sessionDate)}</ThemedText>
+          <ThemedText style={[styles.detailText, { color: colors.muted }]}>
+            {formatSessionTime(sessionDate)}
+          </ThemedText>
         </Row>
 
         <Row align="center" gap="xs">
@@ -95,16 +105,24 @@ export function RSVPFlow({
         </Row>
 
         {deadlineLabel && (
-          <Row align="center" gap="xs" style={[styles.deadlineBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xs"
+            style={[styles.deadlineBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
+          >
             <Ionicons name="hourglass-outline" size={14} color={colors.warning} />
-            <ThemedText style={[styles.deadlineText, { color: colors.warning }]}>{deadlineLabel}</ThemedText>
+            <ThemedText style={[styles.deadlineText, { color: colors.warning }]}>
+              {deadlineLabel}
+            </ThemedText>
           </Row>
         )}
       </View>
 
       {/* Response Buttons */}
       <View style={styles.responseSection}>
-        <ThemedText style={[styles.responseLabel, { color: colors.text }]}>Will {childName} attend?</ThemedText>
+        <ThemedText style={[styles.responseLabel, { color: colors.text }]}>
+          Will {childName} attend?
+        </ThemedText>
 
         <ResponseButton
           status="going"
@@ -152,29 +170,39 @@ export function RSVPFlow({
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.md },
+    gap: Spacing.md,
+  },
   infoCard: {
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   childLabel: {
     ...Typography.micro,
-    letterSpacing: 0.6 },
+    letterSpacing: 0.6,
+  },
   sessionTitle: {
-    ...Typography.title },
+    ...Typography.title,
+  },
   detailRow: {},
   detailText: {
-    ...Typography.body },
+    ...Typography.body,
+  },
   deadlineBanner: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
-    marginTop: Spacing.xs },
+    marginTop: Spacing.xs,
+  },
   deadlineText: {
-    ...Typography.smallSemiBold },
+    ...Typography.smallSemiBold,
+  },
   responseSection: {
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   responseLabel: {
     ...Typography.heading,
     textAlign: 'center',
-    marginBottom: Spacing.xs } });
+    marginBottom: Spacing.xs,
+  },
+});
 
 export default RSVPFlow;

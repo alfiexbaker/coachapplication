@@ -127,7 +127,12 @@ function StepBasicInfoInner({
                 );
               })}
             </Row>
-            <ThemedText style={[styles.strengthLabel, { color: getPasswordStrength(password, palette).color }]}>
+            <ThemedText
+              style={[
+                styles.strengthLabel,
+                { color: getPasswordStrength(password, palette).color },
+              ]}
+            >
               {getPasswordStrength(password, palette).label}
             </ThemedText>
           </Row>

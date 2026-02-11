@@ -43,9 +43,7 @@ export const CompactDrillCard = memo(function CompactDrillCard({
           <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
             {drill.title}
           </ThemedText>
-          {hasVideo && (
-            <Ionicons name="videocam" size={14} color={palette.muted} />
-          )}
+          {hasVideo && <Ionicons name="videocam" size={14} color={palette.muted} />}
         </Row>
         <Row style={styles.compactMeta}>
           <Row style={styles.metaItem}>
@@ -93,7 +91,9 @@ export const FullDrillCardContent = memo(function FullDrillCardContent({
               </View>
             </View>
           )}
-          <View style={[styles.durationOverlay, { backgroundColor: withAlpha(palette.text, 0.75) }]}>
+          <View
+            style={[styles.durationOverlay, { backgroundColor: withAlpha(palette.text, 0.75) }]}
+          >
             <ThemedText style={[styles.durationText, { color: palette.onPrimary }]}>
               {drillService.formatDuration(drill.duration)}
             </ThemedText>
@@ -104,7 +104,9 @@ export const FullDrillCardContent = memo(function FullDrillCardContent({
       <View style={styles.content}>
         {/* Header with category and video indicator */}
         <Row style={styles.header}>
-          <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
+          <Row
+            style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}
+          >
             <Ionicons
               name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
               size={14}
@@ -156,14 +158,16 @@ export const FullDrillCardContent = memo(function FullDrillCardContent({
             )}
           </Row>
           <Row style={styles.footerRight}>
-            {showAssignmentCount && drill.assignmentCount !== undefined && drill.assignmentCount > 0 && (
-              <Row style={styles.assignmentCount}>
-                <Ionicons name="people-outline" size={12} color={palette.muted} />
-                <ThemedText style={[styles.assignmentCountText, { color: palette.muted }]}>
-                  {drill.assignmentCount}
-                </ThemedText>
-              </Row>
-            )}
+            {showAssignmentCount &&
+              drill.assignmentCount !== undefined &&
+              drill.assignmentCount > 0 && (
+                <Row style={styles.assignmentCount}>
+                  <Ionicons name="people-outline" size={12} color={palette.muted} />
+                  <ThemedText style={[styles.assignmentCountText, { color: palette.muted }]}>
+                    {drill.assignmentCount}
+                  </ThemedText>
+                </Row>
+              )}
             <DifficultyBadge difficulty={drill.difficulty} />
           </Row>
         </Row>

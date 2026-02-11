@@ -97,7 +97,9 @@ export function RescheduleRequest({
           <Ionicons name="swap-horizontal" size={20} color={palette.warning} />
         </View>
         <View style={styles.headerText}>
-          <ThemedText type="defaultSemiBold" style={styles.headerTitle}>Reschedule Request</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.headerTitle}>
+            Reschedule Request
+          </ThemedText>
           <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
             {proposal.coachName} wants to move your session
           </ThemedText>
@@ -106,11 +108,15 @@ export function RescheduleRequest({
 
       {/* Session info */}
       <View style={[styles.sessionInfo, { backgroundColor: withAlpha(palette.tint, 0.02) }]}>
-        <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>{proposal.sessionTitle}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>
+          {proposal.sessionTitle}
+        </ThemedText>
         {proposal.venue && (
           <Row style={styles.venueRow}>
             <Ionicons name="location-outline" size={14} color={palette.muted} />
-            <ThemedText style={[styles.venueText, { color: palette.muted }]}>{proposal.venue}</ThemedText>
+            <ThemedText style={[styles.venueText, { color: palette.muted }]}>
+              {proposal.venue}
+            </ThemedText>
           </Row>
         )}
         <ThemedText style={[styles.durationText, { color: palette.muted }]}>
@@ -120,19 +126,44 @@ export function RescheduleRequest({
 
       {/* Time comparison */}
       <View style={styles.timeComparison}>
-        <TimeSlot label="Original" dateTime={proposal.originalDateTime} color={palette.error} icon="close-circle-outline" palette={palette} />
+        <TimeSlot
+          label="Original"
+          dateTime={proposal.originalDateTime}
+          color={palette.error}
+          icon="close-circle-outline"
+          palette={palette}
+        />
         <View style={styles.arrowWrap}>
           <View style={[styles.arrowLine, { backgroundColor: palette.border }]} />
-          <View style={[styles.arrowCircle, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View
+            style={[
+              styles.arrowCircle,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
             <Ionicons name="arrow-down" size={16} color={palette.muted} />
           </View>
           <View style={[styles.arrowLine, { backgroundColor: palette.border }]} />
         </View>
-        <TimeSlot label="Proposed" dateTime={proposal.proposedDateTime} color={palette.success} icon="checkmark-circle-outline" palette={palette} />
+        <TimeSlot
+          label="Proposed"
+          dateTime={proposal.proposedDateTime}
+          color={palette.success}
+          icon="checkmark-circle-outline"
+          palette={palette}
+        />
       </View>
 
       {/* Coach's reason */}
-      <Row style={[styles.reasonBox, { backgroundColor: withAlpha(palette.warning, 0.03), borderColor: withAlpha(palette.warning, 0.12) }]}>
+      <Row
+        style={[
+          styles.reasonBox,
+          {
+            backgroundColor: withAlpha(palette.warning, 0.03),
+            borderColor: withAlpha(palette.warning, 0.12),
+          },
+        ]}
+      >
         <Ionicons name="chatbubble-outline" size={16} color={palette.warning} />
         <ThemedText style={[styles.reasonText, { color: palette.text }]}>
           &ldquo;{proposal.reason}&rdquo;
@@ -163,7 +194,13 @@ export function RescheduleRequest({
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.md },
   header: { alignItems: 'center', gap: Spacing.sm },
-  headerIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerText: { flex: 1 },
   headerTitle: { ...Typography.subheading },
   headerSubtitle: { ...Typography.small, marginTop: Spacing.micro },
@@ -173,15 +210,40 @@ const styles = StyleSheet.create({
   venueText: { ...Typography.small },
   durationText: { ...Typography.caption },
   timeComparison: { gap: 0 },
-  timeSlot: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.sm },
-  timeSlotIcon: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  timeSlot: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.sm,
+  },
+  timeSlotIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   timeSlotText: { flex: 1 },
   timeSlotLabel: { ...Typography.micro },
   timeSlotValue: { ...Typography.body, marginTop: Spacing.micro },
   arrowWrap: { alignItems: 'center', paddingVertical: Spacing.micro },
   arrowLine: { width: 1, height: 8 },
-  arrowCircle: { width: 24, height: 24, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  reasonBox: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
+  arrowCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reasonBox: {
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
   reasonText: { ...Typography.bodySmall, flex: 1, fontStyle: 'italic', lineHeight: 20 },
   disclaimer: { ...Typography.caption, textAlign: 'center', lineHeight: 16 },
 });

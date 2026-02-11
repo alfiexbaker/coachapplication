@@ -54,7 +54,7 @@ class NotificationSenderService {
             body: `📅 New booking from ${params.parentName} for ${params.childName} on ${params.date}`,
             recipientId: params.coachId,
             recipientRole: 'coach',
-            deepLink: `/booking/${params.bookingId}`,
+            deepLink: `/bookings/${params.bookingId}`,
             data: {
                 bookingId: params.bookingId,
                 parentName: params.parentName,
@@ -72,7 +72,7 @@ class NotificationSenderService {
             body: `❌ ${params.parentName} cancelled booking for ${params.date}`,
             recipientId: params.coachId,
             recipientRole: 'coach',
-            deepLink: `/booking/${params.bookingId}`,
+            deepLink: `/bookings/${params.bookingId}`,
             data: { bookingId: params.bookingId, parentName: params.parentName },
             timeLabel: 'Just now',
         });
@@ -150,7 +150,7 @@ class NotificationSenderService {
             body: `⏰ Session with ${params.athleteName} in 1 hour`,
             recipientId: params.coachId,
             recipientRole: 'coach',
-            deepLink: `/booking/${params.bookingId}`,
+            deepLink: `/bookings/${params.bookingId}`,
             data: { bookingId: params.bookingId, athleteName: params.athleteName },
             timeLabel: 'Just now',
         });
@@ -167,7 +167,7 @@ class NotificationSenderService {
             body: `✅ Booking confirmed with Coach ${params.coachName} for ${params.date}`,
             recipientId: params.parentId,
             recipientRole: 'parent',
-            deepLink: `/booking/${params.bookingId}`,
+            deepLink: `/bookings/${params.bookingId}`,
             data: { bookingId: params.bookingId, coachName: params.coachName },
             timeLabel: 'Just now',
         });
@@ -253,7 +253,7 @@ class NotificationSenderService {
             body: `⏰ ${params.childName}'s session with Coach ${params.coachName} in 1 hour`,
             recipientId: params.parentId,
             recipientRole: 'parent',
-            deepLink: `/booking/${params.bookingId}`,
+            deepLink: `/bookings/${params.bookingId}`,
             data: {
                 bookingId: params.bookingId,
                 childName: params.childName,

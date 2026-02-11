@@ -3,7 +3,16 @@ import { StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 import { Fonts, Typography } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
-type TextType = 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'subheading' | 'link' | 'eyebrow' | 'heading' | 'display';
+type TextType =
+  | 'default'
+  | 'title'
+  | 'defaultSemiBold'
+  | 'subtitle'
+  | 'subheading'
+  | 'link'
+  | 'eyebrow'
+  | 'heading'
+  | 'display';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -32,16 +41,7 @@ export function ThemedText({
     display: styles.display,
   };
 
-  return (
-    <Text
-      style={[
-        { color, fontFamily: Fonts?.sans },
-        typeStyles[type],
-        style,
-      ]}
-      {...rest}
-    />
-  );
+  return <Text style={[{ color, fontFamily: Fonts?.sans }, typeStyles[type], style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({

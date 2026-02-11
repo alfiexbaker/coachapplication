@@ -32,15 +32,30 @@ import { useGoalDetail } from '@/hooks/use-goal-detail';
 export default function GoalDetailScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    goal, loading, status, error, refreshing, retry, showCelebration,
-    confettiRef, celebrationStyle, isOwner,
-    handleRefresh, handleToggleMilestone, handleAddMilestone,
-    handleDeleteMilestone, handleStatusChange, handleDelete,
+    goal,
+    loading,
+    status,
+    error,
+    refreshing,
+    retry,
+    showCelebration,
+    confettiRef,
+    celebrationStyle,
+    isOwner,
+    handleRefresh,
+    handleToggleMilestone,
+    handleAddMilestone,
+    handleDeleteMilestone,
+    handleStatusChange,
+    handleDelete,
   } = useGoalDetail();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row gap="md" align="center" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -53,7 +68,10 @@ export default function GoalDetailScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row gap="md" align="center" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -66,19 +84,29 @@ export default function GoalDetailScreen() {
 
   if (status === 'empty' || !goal) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row gap="md" align="center" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
         </Row>
-        <EmptyState icon="flag-outline" title="Goal not found" message="This goal may have been deleted or is unavailable." />
+        <EmptyState
+          icon="flag-outline"
+          title="Goal not found"
+          message="This goal may have been deleted or is unavailable."
+        />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -104,7 +132,9 @@ export default function GoalDetailScreen() {
         <GoalMetaCard goal={goal} />
 
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.section}>
-          <ThemedText type="subtitle" style={{ marginBottom: Spacing.sm }}>Milestones</ThemedText>
+          <ThemedText type="subtitle" style={{ marginBottom: Spacing.sm }}>
+            Milestones
+          </ThemedText>
           <SurfaceCard style={{ padding: Spacing.md }}>
             <MilestoneList
               milestones={goal.milestones}
@@ -122,7 +152,11 @@ export default function GoalDetailScreen() {
         <View style={[styles.createdInfo, { borderTopColor: colors.border }]}>
           <ThemedText style={[styles.createdText, { color: colors.muted }]}>
             Created by {goal.createdBy.toLowerCase()} on{' '}
-            {new Date(goal.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date(goal.createdAt).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
           </ThemedText>
         </View>
       </ScrollView>
@@ -144,5 +178,9 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
   section: { marginBottom: Spacing.md },
   createdInfo: { paddingTop: Spacing.md, borderTopWidth: 1, marginTop: Spacing.md },
-  createdText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), textAlign: 'center' },
+  createdText: {
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+    textAlign: 'center',
+  },
 });

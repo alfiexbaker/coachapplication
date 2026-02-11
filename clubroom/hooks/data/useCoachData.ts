@@ -6,9 +6,16 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { rosterService, type RosterStats, type AthleteRemovalRecord } from '@/services/roster-service';
+import {
+  rosterService,
+  type RosterStats,
+  type AthleteRemovalRecord,
+} from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
-import { groupSessionService, type CreateGroupSessionInput } from '@/services/group-session-service';
+import {
+  groupSessionService,
+  type CreateGroupSessionInput,
+} from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { RosterEntry, GroupSession } from '@/constants/types';
@@ -86,7 +93,7 @@ export function useCoachData(
     includeSessions?: boolean;
     includeBookings?: boolean;
     includeRemovals?: boolean;
-  }
+  },
 ): CoachDataResult {
   const {
     includeRoster = true,
@@ -191,7 +198,7 @@ export function useCoachData(
 
         const sessionsSummary: CoachSessionsSummary = {
           upcomingBookings: bookings.filter(
-            (b) => b.scheduledAt && b.scheduledAt > now && b.status !== 'CANCELLED'
+            (b) => b.scheduledAt && b.scheduledAt > now && b.status !== 'CANCELLED',
           ),
           groupSessions,
           trainingSessions: groupSessions.filter((s) => s.sessionType === 'TRAINING'),
@@ -229,7 +236,7 @@ export function useCoachData(
       error,
       refetch,
     }),
-    [coach, roster, sessions, loading, error, refetch]
+    [coach, roster, sessions, loading, error, refetch],
   );
 }
 
@@ -247,7 +254,7 @@ export function useCoachRoster(
     skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
     tags?: string[];
     search?: string;
-  }
+  },
 ) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -286,13 +293,13 @@ export function useCoachRoster(
   // Helper to get athlete by ID
   const getAthleteById = useCallback(
     (athleteId: string) => athletes.find((a) => a.athleteId === athleteId),
-    [athletes]
+    [athletes],
   );
 
   // Helper to get athletes by status
   const getAthletesByStatus = useCallback(
     (status: RosterEntry['status']) => athletes.filter((a) => a.status === status),
-    [athletes]
+    [athletes],
   );
 
   return useMemo(
@@ -307,7 +314,7 @@ export function useCoachRoster(
       activeAthletes: athletes.filter((a) => a.status === 'ACTIVE'),
       totalRevenue: stats?.totalRevenue ?? 0,
     }),
-    [athletes, stats, loading, error, fetchRoster, getAthleteById, getAthletesByStatus]
+    [athletes, stats, loading, error, fetchRoster, getAthleteById, getAthletesByStatus],
   );
 }
 
@@ -360,9 +367,7 @@ export function useCoachSessions(coachId: string | null | undefined) {
   // Compute upcoming bookings
   const upcomingBookings = useMemo(() => {
     const now = new Date().toISOString();
-    return bookings.filter(
-      (b) => b.scheduledAt && b.scheduledAt > now && b.status !== 'CANCELLED'
-    );
+    return bookings.filter((b) => b.scheduledAt && b.scheduledAt > now && b.status !== 'CANCELLED');
   }, [bookings]);
 
   return useMemo(
@@ -375,7 +380,7 @@ export function useCoachSessions(coachId: string | null | undefined) {
       error,
       refetch: fetchSessions,
     }),
-    [groupSessions, bookings, upcomingSessions, upcomingBookings, loading, error, fetchSessions]
+    [groupSessions, bookings, upcomingSessions, upcomingBookings, loading, error, fetchSessions],
   );
 }
 
@@ -405,7 +410,7 @@ export function useCoachRosterManagement(coachId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [coachId]
+    [coachId],
   );
 
   const updateStatus = useCallback(
@@ -427,7 +432,7 @@ export function useCoachRosterManagement(coachId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [coachId]
+    [coachId],
   );
 
   const updateTags = useCallback(
@@ -449,14 +454,14 @@ export function useCoachRosterManagement(coachId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [coachId]
+    [coachId],
   );
 
   const removeAthlete = useCallback(
     async (
       athleteId: string,
       reason: 'GRADUATED' | 'MOVED' | 'INACTIVE' | 'OTHER',
-      options?: { customReason?: string; archive?: boolean }
+      options?: { customReason?: string; archive?: boolean },
     ) => {
       if (!coachId) {
         throw new Error('Coach ID is required');
@@ -475,7 +480,7 @@ export function useCoachRosterManagement(coachId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [coachId]
+    [coachId],
   );
 
   const undoRemoval = useCallback(
@@ -497,7 +502,7 @@ export function useCoachRosterManagement(coachId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [coachId]
+    [coachId],
   );
 
   return useMemo(
@@ -513,7 +518,7 @@ export function useCoachRosterManagement(coachId: string | null | undefined) {
       getStatusColor: rosterService.getStatusColor,
       formatRevenue: rosterService.formatRevenue,
     }),
-    [addNote, updateStatus, updateTags, removeAthlete, undoRemoval, loading, error]
+    [addNote, updateStatus, updateTags, removeAthlete, undoRemoval, loading, error],
   );
 }
 
@@ -546,62 +551,53 @@ export function useCoachGroupSessionManagement(coachId: string | null | undefine
         setLoading(false);
       }
     },
-    [coachId]
+    [coachId],
   );
 
-  const publishSession = useCallback(
-    async (sessionId: string) => {
-      try {
-        setLoading(true);
-        setError(null);
-        const session = await groupSessionService.publishSession(sessionId);
-        return session;
-      } catch (e) {
-        const errorInstance = e instanceof Error ? e : new Error(String(e));
-        setError(errorInstance);
-        throw errorInstance;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const publishSession = useCallback(async (sessionId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const session = await groupSessionService.publishSession(sessionId);
+      return session;
+    } catch (e) {
+      const errorInstance = e instanceof Error ? e : new Error(String(e));
+      setError(errorInstance);
+      throw errorInstance;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const cancelSession = useCallback(
-    async (sessionId: string) => {
-      try {
-        setLoading(true);
-        setError(null);
-        const session = await groupSessionService.cancelSession(sessionId);
-        return session;
-      } catch (e) {
-        const errorInstance = e instanceof Error ? e : new Error(String(e));
-        setError(errorInstance);
-        throw errorInstance;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const cancelSession = useCallback(async (sessionId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const session = await groupSessionService.cancelSession(sessionId);
+      return session;
+    } catch (e) {
+      const errorInstance = e instanceof Error ? e : new Error(String(e));
+      setError(errorInstance);
+      throw errorInstance;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const getSessionRoster = useCallback(
-    async (sessionId: string) => {
-      try {
-        setLoading(true);
-        setError(null);
-        const roster = await groupSessionService.getSessionRoster(sessionId);
-        return roster;
-      } catch (e) {
-        const errorInstance = e instanceof Error ? e : new Error(String(e));
-        setError(errorInstance);
-        throw errorInstance;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const getSessionRoster = useCallback(async (sessionId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const roster = await groupSessionService.getSessionRoster(sessionId);
+      return roster;
+    } catch (e) {
+      const errorInstance = e instanceof Error ? e : new Error(String(e));
+      setError(errorInstance);
+      throw errorInstance;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const markAttendance = useCallback(
     async (registrationId: string, date: string, attended: boolean) => {
@@ -611,7 +607,7 @@ export function useCoachGroupSessionManagement(coachId: string | null | undefine
         const registration = await groupSessionService.markAttendance(
           registrationId,
           date,
-          attended
+          attended,
         );
         return registration;
       } catch (e) {
@@ -622,7 +618,7 @@ export function useCoachGroupSessionManagement(coachId: string | null | undefine
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   return useMemo(
@@ -637,6 +633,14 @@ export function useCoachGroupSessionManagement(coachId: string | null | undefine
       formatPrice: groupSessionService.formatPrice,
       formatSessionType: groupSessionService.formatSessionType,
     }),
-    [createSession, publishSession, cancelSession, getSessionRoster, markAttendance, loading, error]
+    [
+      createSession,
+      publishSession,
+      cancelSession,
+      getSessionRoster,
+      markAttendance,
+      loading,
+      error,
+    ],
   );
 }

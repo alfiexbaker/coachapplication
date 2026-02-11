@@ -8,15 +8,26 @@ import { useTheme } from '@/hooks/useTheme';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 
-// Re-export extracted components for backward compat
-export { SESSION_TYPE_OPTIONS, SPECIALTIES, AVAILABILITY_OPTIONS, SORT_OPTIONS, FilterSection, PillRow } from './filter-panel-sections';
-export type { PillRowProps } from './filter-panel-sections';
-
 import {
-  SESSION_TYPE_OPTIONS, SPECIALTIES, AVAILABILITY_OPTIONS, SORT_OPTIONS,
-  FilterSection, PillRow,
+  SESSION_TYPE_OPTIONS,
+  SPECIALTIES,
+  AVAILABILITY_OPTIONS,
+  SORT_OPTIONS,
+  FilterSection,
+  PillRow,
 } from './filter-panel-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export {
+  SESSION_TYPE_OPTIONS,
+  SPECIALTIES,
+  AVAILABILITY_OPTIONS,
+  SORT_OPTIONS,
+  FilterSection,
+  PillRow,
+} from './filter-panel-sections';
+export type { PillRowProps } from './filter-panel-sections';
 
 export type CoachFilters = {
   price: number;
@@ -47,13 +58,25 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
     });
   };
 
-  const pills = useMemo(() => ({ sessionTypes: SESSION_TYPE_OPTIONS, specialties: SPECIALTIES }), []);
+  const pills = useMemo(
+    () => ({ sessionTypes: SESSION_TYPE_OPTIONS, specialties: SPECIALTIES }),
+    [],
+  );
   const reset = () => setFilters(initialFilters);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Clickable style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.15) }]} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close filter panel">
-        <Clickable style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]} onPress={() => {}} accessibilityRole="none">
+      <Clickable
+        style={[styles.backdrop, { backgroundColor: withAlpha(palette.text, 0.15) }]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close filter panel"
+      >
+        <Clickable
+          style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          onPress={() => {}}
+          accessibilityRole="none"
+        >
           <Row style={styles.header}>
             <ThemedText type="subtitle">Filters</ThemedText>
             <Clickable onPress={reset}>
@@ -63,39 +86,82 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
 
           <ScrollView contentContainerStyle={styles.content}>
             <FilterSection label="Price per hour">
-              <Slider minimumValue={0} maximumValue={200} step={5} value={filters.price} minimumTrackTintColor={palette.tint} maximumTrackTintColor={palette.border} onValueChange={(value) => setFilters((prev) => ({ ...prev, price: value }))} />
-              <ThemedText style={[styles.helper, { color: palette.muted }]}>Up to £{filters.price}</ThemedText>
+              <Slider
+                minimumValue={0}
+                maximumValue={200}
+                step={5}
+                value={filters.price}
+                minimumTrackTintColor={palette.tint}
+                maximumTrackTintColor={palette.border}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, price: value }))}
+              />
+              <ThemedText style={[styles.helper, { color: palette.muted }]}>
+                Up to £{filters.price}
+              </ThemedText>
             </FilterSection>
 
             <FilterSection label="Distance radius">
-              <Slider minimumValue={5} maximumValue={50} step={5} value={filters.distance} minimumTrackTintColor={palette.tint} maximumTrackTintColor={palette.border} onValueChange={(value) => setFilters((prev) => ({ ...prev, distance: value }))} />
-              <ThemedText style={[styles.helper, { color: palette.muted }]}>{filters.distance} miles</ThemedText>
+              <Slider
+                minimumValue={5}
+                maximumValue={50}
+                step={5}
+                value={filters.distance}
+                minimumTrackTintColor={palette.tint}
+                maximumTrackTintColor={palette.border}
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, distance: value }))}
+              />
+              <ThemedText style={[styles.helper, { color: palette.muted }]}>
+                {filters.distance} miles
+              </ThemedText>
             </FilterSection>
 
             <FilterSection label="Session type">
-              <PillRow options={pills.sessionTypes} selected={filters.sessionTypes} onToggle={(value) => toggleSelection('sessionTypes', value)} />
+              <PillRow
+                options={pills.sessionTypes}
+                selected={filters.sessionTypes}
+                onToggle={(value) => toggleSelection('sessionTypes', value)}
+              />
             </FilterSection>
 
             <FilterSection label="Specialties">
-              <PillRow options={pills.specialties} selected={filters.specialties} onToggle={(value) => toggleSelection('specialties', value)} />
+              <PillRow
+                options={pills.specialties}
+                selected={filters.specialties}
+                onToggle={(value) => toggleSelection('specialties', value)}
+              />
             </FilterSection>
 
             <FilterSection label="Availability">
-              <PillRow options={AVAILABILITY_OPTIONS} selected={[filters.availability]} onToggle={(value) => setFilters((prev) => ({ ...prev, availability: value }))} singleSelect />
+              <PillRow
+                options={AVAILABILITY_OPTIONS}
+                selected={[filters.availability]}
+                onToggle={(value) => setFilters((prev) => ({ ...prev, availability: value }))}
+                singleSelect
+              />
             </FilterSection>
 
             <FilterSection label="Sort">
-              <PillRow options={SORT_OPTIONS} selected={[filters.sort]} onToggle={(value) => setFilters((prev) => ({ ...prev, sort: value }))} singleSelect />
+              <PillRow
+                options={SORT_OPTIONS}
+                selected={[filters.sort]}
+                onToggle={(value) => setFilters((prev) => ({ ...prev, sort: value }))}
+                singleSelect
+              />
             </FilterSection>
           </ScrollView>
 
           <View style={styles.footer}>
             <Clickable
               onPress={() => onApply(filters)}
-              style={({ pressed }) => [styles.apply, { backgroundColor: pressed ? palette.tintPressed : palette.tint }]}
+              style={({ pressed }) => [
+                styles.apply,
+                { backgroundColor: pressed ? palette.tintPressed : palette.tint },
+              ]}
             >
               <Ionicons name="options" color={palette.onPrimary} size={18} />
-              <ThemedText style={[styles.applyLabel, { color: palette.onPrimary }]}>Apply filters</ThemedText>
+              <ThemedText style={[styles.applyLabel, { color: palette.onPrimary }]}>
+                Apply filters
+              </ThemedText>
             </Clickable>
             <Clickable onPress={onClose} style={styles.dismiss}>
               <ThemedText style={{ color: palette.muted }}>Close</ThemedText>
@@ -109,12 +175,24 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '90%', borderTopLeftRadius: Radii['2xl'], borderTopRightRadius: Radii['2xl'], borderWidth: 1, paddingBottom: Spacing.lg },
+  sheet: {
+    maxHeight: '90%',
+    borderTopLeftRadius: Radii['2xl'],
+    borderTopRightRadius: Radii['2xl'],
+    borderWidth: 1,
+    paddingBottom: Spacing.lg,
+  },
   header: { padding: Spacing.md, justifyContent: 'space-between', alignItems: 'center' },
   content: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, gap: Spacing.sm },
   helper: { ...Typography.small, marginTop: Spacing.micro },
   footer: { gap: Spacing.xs, paddingHorizontal: Spacing.md, marginTop: Spacing.xs },
-  apply: { gap: Spacing.xs, justifyContent: 'center', alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.button },
+  apply: {
+    gap: Spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.button,
+  },
   applyLabel: { ...Typography.bodySemiBold },
   dismiss: { alignItems: 'center', paddingVertical: Spacing.sm },
 });

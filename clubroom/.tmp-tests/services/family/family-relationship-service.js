@@ -24,7 +24,14 @@ const USE_MOCK = config_1.api.useMock;
  * Default permissions for each guardian role.
  */
 exports.DEFAULT_ROLE_PERMISSIONS = {
-    PRIMARY: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS', 'MANAGE_PAYMENTS', 'MANAGE_PROFILE', 'ADMIN'],
+    PRIMARY: [
+        'VIEW_SCHEDULE',
+        'VIEW_PROGRESS',
+        'BOOK_SESSIONS',
+        'MANAGE_PAYMENTS',
+        'MANAGE_PROFILE',
+        'ADMIN',
+    ],
     GUARDIAN: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS'],
     VIEWER: ['VIEW_SCHEDULE', 'VIEW_PROGRESS'],
 };
@@ -126,8 +133,7 @@ class FamilyRelationshipService {
     async getFamilyAccount(userId, userName) {
         const accounts = await this.loadAccounts();
         // Find existing account where user is primary or a guardian
-        let account = accounts.find((a) => a.primaryGuardianId === userId ||
-            a.guardians.some((g) => g.userId === userId));
+        let account = accounts.find((a) => a.primaryGuardianId === userId || a.guardians.some((g) => g.userId === userId));
         if (!account) {
             // Create new family account
             account = {

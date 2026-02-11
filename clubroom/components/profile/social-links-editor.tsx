@@ -68,8 +68,14 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
 
           return (
             <Row key={platform} align="start" gap="sm">
-              <View style={[styles.iconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
-                <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
+              <View
+                style={[styles.iconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}
+              >
+                <Ionicons
+                  name={config.icon as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={config.color}
+                />
               </View>
 
               <View style={styles.inputContainer}>
@@ -84,7 +90,8 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                       borderColor: hasValue ? config.color : palette.border,
                       backgroundColor: palette.card,
                     },
-                  ]}>
+                  ]}
+                >
                   <TextInput
                     value={value}
                     onChangeText={(text) => handleChange(platform, text)}
@@ -99,7 +106,8 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
                     <Clickable
                       onPress={() => clearField(platform)}
                       style={styles.clearButton}
-                      hitSlop={8}>
+                      hitSlop={8}
+                    >
                       <Ionicons name="close-circle" size={18} color={palette.muted} />
                     </Clickable>
                   )}
@@ -110,10 +118,21 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
         })}
       </View>
 
-      <Row align="start" gap="xs" style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
+      <Row
+        align="start"
+        gap="xs"
+        style={[
+          styles.infoBox,
+          {
+            backgroundColor: withAlpha(palette.tint, 0.06),
+            borderColor: withAlpha(palette.tint, 0.19),
+          },
+        ]}
+      >
         <Ionicons name="information-circle" size={18} color={palette.tint} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          You can enter either your username/handle or the full URL to your profile. Links will be shown on your public profile.
+          You can enter either your username/handle or the full URL to your profile. Links will be
+          shown on your public profile.
         </ThemedText>
       </Row>
     </View>
@@ -149,8 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
   },
-  input: { ...Typography.body, flex: 1,
-    paddingVertical: Spacing.sm },
+  input: { ...Typography.body, flex: 1, paddingVertical: Spacing.sm },
   clearButton: {
     padding: Spacing.xxs,
   },
@@ -159,6 +177,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  infoText: { ...Typography.small, flex: 1,
-    lineHeight: 18 },
+  infoText: { ...Typography.small, flex: 1, lineHeight: 18 },
 });

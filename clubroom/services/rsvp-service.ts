@@ -70,9 +70,7 @@ export const rsvpService = {
 
     for (const member of members) {
       // Skip if RSVP already exists for this user + session
-      const exists = rsvps.some(
-        (r) => r.sessionId === sessionId && r.userId === member.userId,
-      );
+      const exists = rsvps.some((r) => r.sessionId === sessionId && r.userId === member.userId);
       if (exists) continue;
 
       const rsvp: SessionRsvp = {
@@ -125,14 +123,11 @@ export const rsvpService = {
 
     const rsvp = rsvps[index];
     const displayName = await resolveRsvpDisplayName(rsvp);
-    const statusLabel = status === 'going' ? 'going' : status === 'not_going' ? 'not going' : 'maybe';
+    const statusLabel =
+      status === 'going' ? 'going' : status === 'not_going' ? 'not going' : 'maybe';
 
     // Notify coach of response
-    await notificationTriggers.eventRsvp(
-      displayName,
-      rsvp.sessionId,
-      statusLabel,
-    );
+    await notificationTriggers.eventRsvp(displayName, rsvp.sessionId, statusLabel);
 
     logger.info('RSVP responded', {
       rsvpId,
@@ -176,9 +171,7 @@ export const rsvpService = {
    */
   async sendReminder(sessionId: string): Promise<void> {
     const rsvps = await loadRsvps();
-    const pending = rsvps.filter(
-      (r) => r.sessionId === sessionId && r.status === 'pending',
-    );
+    const pending = rsvps.filter((r) => r.sessionId === sessionId && r.status === 'pending');
 
     if (pending.length === 0) {
       logger.info('No pending RSVPs to remind', { sessionId });

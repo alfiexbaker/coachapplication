@@ -23,7 +23,13 @@ interface InviteSessionFlowProps {
   onComplete?: (result: { sessionId: string; athleteIds: string[]; isNew: boolean }) => void;
 }
 
-export function InviteSessionFlow({ visible, onClose, athletes, coachId, onComplete }: InviteSessionFlowProps) {
+export function InviteSessionFlow({
+  visible,
+  onClose,
+  athletes,
+  coachId,
+  onComplete,
+}: InviteSessionFlowProps) {
   const { colors: palette } = useTheme();
   const flow = useInviteSessionFlow({ visible, coachId, onClose, onComplete });
 
@@ -31,10 +37,15 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
   if (flow.step === 'select-athletes') {
     return (
       <InviteAthleteModal
-        visible={visible} onClose={flow.handleClose}
+        visible={visible}
+        onClose={flow.handleClose}
         onSelect={flow.handleAthletesSelected}
-        athletes={athletes.filter(a => !(flow.selectedSession?.athleteIds || []).includes(a.id))}
-        title={flow.isNewSession ? 'Select Athletes for New Session' : `Add to: ${flow.selectedSession?.title || 'Session'}`}
+        athletes={athletes.filter((a) => !(flow.selectedSession?.athleteIds || []).includes(a.id))}
+        title={
+          flow.isNewSession
+            ? 'Select Athletes for New Session'
+            : `Add to: ${flow.selectedSession?.title || 'Session'}`
+        }
       />
     );
   }
@@ -46,7 +57,11 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
           {/* Header */}
           <Row style={styles.header}>
             {flow.step !== 'choice' && (
-              <Clickable accessibilityLabel="Go back" onPress={flow.handleBack} style={styles.backButton}>
+              <Clickable
+                accessibilityLabel="Go back"
+                onPress={flow.handleBack}
+                style={styles.backButton}
+              >
                 <Ionicons name="arrow-back" size={24} color={palette.text} />
               </Clickable>
             )}
@@ -63,12 +78,19 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
           <ScrollView contentContainerStyle={styles.content}>
             {flow.step === 'choice' && <ChoiceStep onSelect={flow.handleChoiceSelect} />}
             {flow.step === 'select-session' && (
-              <SessionListStep sessions={flow.upcomingSessions} onSelect={flow.handleSessionSelect}
-                onCreateNew={() => flow.handleChoiceSelect('new')} />
+              <SessionListStep
+                sessions={flow.upcomingSessions}
+                onSelect={flow.handleSessionSelect}
+                onCreateNew={() => flow.handleChoiceSelect('new')}
+              />
             )}
             {flow.step === 'confirm' && flow.selectedSession && (
-              <ConfirmStep session={flow.selectedSession} athletes={flow.selectedAthletes}
-                onConfirm={flow.handleConfirm} onChangeAthletes={() => flow.handleBack()} />
+              <ConfirmStep
+                session={flow.selectedSession}
+                athletes={flow.selectedAthletes}
+                onConfirm={flow.handleConfirm}
+                onChangeAthletes={() => flow.handleBack()}
+              />
             )}
           </ScrollView>
         </View>
@@ -79,8 +101,18 @@ export function InviteSessionFlow({ visible, onClose, athletes, coachId, onCompl
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  modal: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, maxHeight: '90%', minHeight: '50%' },
-  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  modal: {
+    borderTopLeftRadius: Radii.xl,
+    borderTopRightRadius: Radii.xl,
+    maxHeight: '90%',
+    minHeight: '50%',
+  },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
   backButton: { marginRight: Spacing.sm },
   headerTitle: { flex: 1, textAlign: 'center' },
   content: { padding: Spacing.lg, paddingTop: 0 },

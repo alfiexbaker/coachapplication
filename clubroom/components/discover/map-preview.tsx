@@ -3,7 +3,7 @@ import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -46,11 +46,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
     <SurfaceCard style={styles.wrapper}>
       <Row style={styles.mapHeader}>
         <ThemedText type="defaultSemiBold">Live map preview</ThemedText>
-        <Clickable
-          style={[
-            styles.searchPill,
-            { backgroundColor: palette.tint },
-          ]}>
+        <Clickable style={[styles.searchPill, { backgroundColor: palette.tint }]}>
           <ThemedText style={[Typography.sm, styles.searchLabel, { color: palette.onPrimary }]}>
             Search this area
           </ThemedText>
@@ -59,7 +55,8 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
       <View style={styles.mapContainer}>
         <View
           style={[styles.map, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-          onLayout={handleLayout}>
+          onLayout={handleLayout}
+        >
           {coaches.map((coach) => {
             if (!size.width || !size.height) {
               return null;
@@ -76,10 +73,13 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
                     left: normalizedLng * size.width,
                     top: normalizedLat * size.height,
                     backgroundColor:
-                      coach.id === selectedCoachId ? palette.tint : withAlpha(palette.surface, 0.95),
+                      coach.id === selectedCoachId
+                        ? palette.tint
+                        : withAlpha(palette.surface, 0.95),
                   },
                 ]}
-                onPress={() => onCoachFocus?.(coach.id)}>
+                onPress={() => onCoachFocus?.(coach.id)}
+              >
                 <Ionicons
                   name={coach.id === selectedCoachId ? 'person' : 'location'}
                   size={coach.id === selectedCoachId ? 16 : 14}
@@ -97,10 +97,12 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
             {
               backgroundColor: withAlpha(palette.surface, scheme === 'dark' ? 0.85 : 0.9),
             },
-          ]}>
+          ]}
+        >
           <ThemedText type="defaultSemiBold">{selectedCoach.fullName}</ThemedText>
           <ThemedText style={styles.detailMeta}>
-            {selectedCoach.city}, {selectedCoach.state} · {formatDistance(selectedCoach.distanceMiles)}
+            {selectedCoach.city}, {selectedCoach.state} ·{' '}
+            {formatDistance(selectedCoach.distanceMiles)}
           </ThemedText>
         </View>
       ) : null}

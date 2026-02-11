@@ -75,9 +75,14 @@ function StepCoachDetailsInner({
             </ThemedText>
           </View>
           <View
-            style={[styles.toggleSwitch, { backgroundColor: isOrganization ? palette.tint : palette.border }]}
+            style={[
+              styles.toggleSwitch,
+              { backgroundColor: isOrganization ? palette.tint : palette.border },
+            ]}
           >
-            <Animated.View style={[styles.toggleKnob, { backgroundColor: palette.surface }, knobStyle]} />
+            <Animated.View
+              style={[styles.toggleKnob, { backgroundColor: palette.surface }, knobStyle]}
+            />
           </View>
         </Clickable>
       </View>

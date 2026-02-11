@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -9,7 +9,11 @@ import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-export function getButtonStyle(status: RSVPStatus, currentRSVP: EventRSVP | null | undefined, palette: ThemeColors) {
+export function getButtonStyle(
+  status: RSVPStatus,
+  currentRSVP: EventRSVP | null | undefined,
+  palette: ThemeColors,
+) {
   const isSelected = currentRSVP?.status === status;
   const color = eventService.getRSVPStatusColor(status);
   if (isSelected) {
@@ -17,18 +21,28 @@ export function getButtonStyle(status: RSVPStatus, currentRSVP: EventRSVP | null
   }
   return { backgroundColor: 'transparent', borderColor: palette.border };
 }
-export function getTextColor(status: RSVPStatus, currentRSVP: EventRSVP | null | undefined, palette: ThemeColors): string {
+export function getTextColor(
+  status: RSVPStatus,
+  currentRSVP: EventRSVP | null | undefined,
+  palette: ThemeColors,
+): string {
   const isSelected = currentRSVP?.status === status;
   return isSelected ? palette.onPrimary : palette.text;
 }
 export function getIcon(status: RSVPStatus): keyof typeof Ionicons.glyphMap {
   switch (status) {
-    case 'GOING': return 'checkmark';
-    case 'MAYBE': return 'help';
-    case 'NOT_GOING': return 'close';
+    case 'GOING':
+      return 'checkmark';
+    case 'MAYBE':
+      return 'help';
+    case 'NOT_GOING':
+      return 'close';
   }
 }
-interface RSVPStatusBannerProps { variant: 'cancelled' | 'closed' | 'full'; palette: ThemeColors }
+interface RSVPStatusBannerProps {
+  variant: 'cancelled' | 'closed' | 'full';
+  palette: ThemeColors;
+}
 export const RSVPStatusBanner = memo(function RSVPStatusBanner({
   variant,
   palette,
@@ -41,9 +55,7 @@ export const RSVPStatusBanner = memo(function RSVPStatusBanner({
   return (
     <Row style={[styles.statusBanner, { backgroundColor: withAlpha(config.color, 0.09) }]}>
       <Ionicons name={config.icon} size={18} color={config.color} />
-      <ThemedText style={[styles.statusText, { color: config.color }]}>
-        {config.label}
-      </ThemedText>
+      <ThemedText style={[styles.statusText, { color: config.color }]}>{config.label}</ThemedText>
     </Row>
   );
 });
@@ -85,10 +97,7 @@ export const CompactRSVPButton = memo(function CompactRSVPButton({
             color={currentRSVP ? color : palette.onPrimary}
           />
           <ThemedText
-            style={[
-              styles.compactButtonText,
-              { color: currentRSVP ? color : palette.onPrimary },
-            ]}
+            style={[styles.compactButtonText, { color: currentRSVP ? color : palette.onPrimary }]}
           >
             {currentRSVP ? eventService.formatRSVPStatus(currentRSVP.status) : 'RSVP'}
           </ThemedText>
@@ -128,11 +137,13 @@ export const FullRSVPButtonRow = memo(function FullRSVPButtonRow({
             key={s.status}
             onPress={() => onPress(s.status)}
             disabled={btnDisabled || loading !== null}
-            style={[
-              styles.rsvpButton,
-              getButtonStyle(s.status, currentRSVP, palette),
-              btnDisabled ? styles.disabledButton : undefined,
-            ].filter(Boolean) as import('react-native').ViewStyle[]}
+            style={
+              [
+                styles.rsvpButton,
+                getButtonStyle(s.status, currentRSVP, palette),
+                btnDisabled ? styles.disabledButton : undefined,
+              ].filter(Boolean) as import('react-native').ViewStyle[]
+            }
           >
             {loading === s.status ? (
               <ActivityIndicator size="small" color={textColor} />
@@ -165,7 +176,9 @@ export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
       </ThemedText>
       <Row style={styles.currentStatusBadge}>
         <Ionicons
-          name={eventService.getRSVPStatusIcon(currentRSVP.status) as keyof typeof Ionicons.glyphMap}
+          name={
+            eventService.getRSVPStatusIcon(currentRSVP.status) as keyof typeof Ionicons.glyphMap
+          }
           size={14}
           color={eventService.getRSVPStatusColor(currentRSVP.status)}
         />

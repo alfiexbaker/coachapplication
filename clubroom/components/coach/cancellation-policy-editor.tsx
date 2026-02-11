@@ -32,7 +32,11 @@ export default function CancellationPolicyEditor({ onSave }: CancellationPolicyE
   const [selectedPreset, setSelectedPreset] = useState<PresetKey>('standard');
   const [customTiers, setCustomTiers] = useState<RefundTier[]>([
     { hoursBeforeSession: 24, refundPercentage: 100, description: 'Full refund 24+ hours before' },
-    { hoursBeforeSession: 0, refundPercentage: 0, description: 'No refund less than 24 hours before' },
+    {
+      hoursBeforeSession: 0,
+      refundPercentage: 0,
+      description: 'No refund less than 24 hours before',
+    },
   ]);
 
   useEffect(() => {
@@ -44,21 +48,45 @@ export default function CancellationPolicyEditor({ onSave }: CancellationPolicyE
         }
         const existing = existingResult.data;
         if (existing) {
-          const matched = (['flexible', 'standard', 'strict'] as const).find(k => POLICY_TEMPLATES[k].name === existing.name);
+          const matched = (['flexible', 'standard', 'strict'] as const).find(
+            (k) => POLICY_TEMPLATES[k].name === existing.name,
+          );
           setSelectedPreset(matched ?? 'custom');
           if (!matched) setCustomTiers(existing.tiers);
         }
-      } catch { /* defaults fine */ } finally { setLoading(false); }
+      } catch {
+        /* defaults fine */
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [coachId]);
 
-  const displayTiers: RefundTier[] = selectedPreset === 'custom' ? customTiers : (POLICY_TEMPLATES[selectedPreset]?.tiers ?? []);
+  const displayTiers: RefundTier[] =
+    selectedPreset === 'custom' ? customTiers : (POLICY_TEMPLATES[selectedPreset]?.tiers ?? []);
 
-  const updateCustomTier = useCallback((index: number, field: keyof RefundTier, value: string | number) => {
-    setCustomTiers(prev => { const next = [...prev]; next[index] = { ...next[index], [field]: value }; return next; });
-  }, []);
-  const removeCustomTier = useCallback((index: number) => setCustomTiers(prev => prev.filter((_, i) => i !== index)), []);
-  const addCustomTier = useCallback(() => setCustomTiers(prev => [...prev, { hoursBeforeSession: 0, refundPercentage: 0, description: '' }]), []);
+  const updateCustomTier = useCallback(
+    (index: number, field: keyof RefundTier, value: string | number) => {
+      setCustomTiers((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], [field]: value };
+        return next;
+      });
+    },
+    [],
+  );
+  const removeCustomTier = useCallback(
+    (index: number) => setCustomTiers((prev) => prev.filter((_, i) => i !== index)),
+    [],
+  );
+  const addCustomTier = useCallback(
+    () =>
+      setCustomTiers((prev) => [
+        ...prev,
+        { hoursBeforeSession: 0, refundPercentage: 0, description: '' },
+      ]),
+    [],
+  );
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -66,31 +94,56 @@ export default function CancellationPolicyEditor({ onSave }: CancellationPolicyE
       const policyResult = await schedulingRulesService.setCancellationPolicy(
         coachId,
         selectedPreset === 'custom' ? 'custom' : selectedPreset,
-        selectedPreset === 'custom' ? customTiers : undefined
+        selectedPreset === 'custom' ? customTiers : undefined,
       );
       if (!policyResult.success) {
-        Alert.alert('Error', policyResult.error.message || 'Failed to save cancellation policy. Please try again.');
+        Alert.alert(
+          'Error',
+          policyResult.error.message || 'Failed to save cancellation policy. Please try again.',
+        );
         return;
       }
       onSave?.(policyResult.data);
       Alert.alert('Policy saved', 'Your cancellation policy has been updated.');
-    } catch { Alert.alert('Error', 'Failed to save cancellation policy. Please try again.'); }
-    finally { setSaving(false); }
+    } catch {
+      Alert.alert('Error', 'Failed to save cancellation policy. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }, [coachId, selectedPreset, customTiers, onSave]);
 
   if (loading) {
-    return <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}><ActivityIndicator size="large" color={palette.tint} /></View>;
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}>
+        <ActivityIndicator size="large" color={palette.tint} />
+      </View>
+    );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: palette.background }]} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.headerArea}>
-        <ThemedText style={[styles.headerTitle, { color: palette.text }]}>Cancellation Policy</ThemedText>
-        <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>Choose a preset or create a custom policy. Parents will see this before booking.</ThemedText>
+        <ThemedText style={[styles.headerTitle, { color: palette.text }]}>
+          Cancellation Policy
+        </ThemedText>
+        <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
+          Choose a preset or create a custom policy. Parents will see this before booking.
+        </ThemedText>
       </View>
 
       <View style={styles.presetsContainer}>
-        {PRESETS.map(preset => <PresetCard key={preset.key} preset={preset} selected={selectedPreset === preset.key} onPress={() => setSelectedPreset(preset.key)} />)}
+        {PRESETS.map((preset) => (
+          <PresetCard
+            key={preset.key}
+            preset={preset}
+            selected={selectedPreset === preset.key}
+            onPress={() => setSelectedPreset(preset.key)}
+          />
+        ))}
       </View>
 
       <View style={styles.sectionHeader}>
@@ -101,16 +154,44 @@ export default function CancellationPolicyEditor({ onSave }: CancellationPolicyE
         <TierTable tiers={displayTiers} />
       ) : (
         <View style={styles.customTiersContainer}>
-          {customTiers.map((tier, idx) => <EditableTierRow key={idx} tier={tier} index={idx} onUpdate={updateCustomTier} onRemove={removeCustomTier} canRemove={customTiers.length > 1} />)}
-          <Clickable style={[styles.addTierButton, { borderColor: palette.border }]} onPress={addCustomTier}>
+          {customTiers.map((tier, idx) => (
+            <EditableTierRow
+              key={idx}
+              tier={tier}
+              index={idx}
+              onUpdate={updateCustomTier}
+              onRemove={removeCustomTier}
+              canRemove={customTiers.length > 1}
+            />
+          ))}
+          <Clickable
+            style={[styles.addTierButton, { borderColor: palette.border }]}
+            onPress={addCustomTier}
+          >
             <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
             <ThemedText style={[styles.addTierText, { color: palette.tint }]}>Add tier</ThemedText>
           </Clickable>
         </View>
       )}
 
-      <Clickable style={[styles.saveButton, { backgroundColor: palette.tint }, saving ? styles.saveButtonDisabled : undefined].filter(Boolean) as ViewStyle[]} onPress={handleSave} disabled={saving}>
-        {saving ? <ActivityIndicator size="small" color={palette.surface} /> : <ThemedText style={[styles.saveButtonText, { color: palette.surface }]}>Save policy</ThemedText>}
+      <Clickable
+        style={
+          [
+            styles.saveButton,
+            { backgroundColor: palette.tint },
+            saving ? styles.saveButtonDisabled : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
+        onPress={handleSave}
+        disabled={saving}
+      >
+        {saving ? (
+          <ActivityIndicator size="small" color={palette.surface} />
+        ) : (
+          <ThemedText style={[styles.saveButtonText, { color: palette.surface }]}>
+            Save policy
+          </ThemedText>
+        )}
       </Clickable>
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -128,9 +209,23 @@ const styles = StyleSheet.create({
   sectionHeader: { paddingHorizontal: Spacing.xs, marginBottom: Spacing.xs },
   sectionTitle: { ...Typography.heading },
   customTiersContainer: { gap: Spacing.sm, marginBottom: Spacing.md },
-  addTierButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderWidth: 1, borderStyle: 'dashed', borderRadius: Radii.card },
+  addTierButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: Radii.card,
+  },
   addTierText: { ...Typography.bodySemiBold },
-  saveButton: { height: Components.button.height, borderRadius: Components.button.borderRadius, alignItems: 'center' as const, justifyContent: 'center' as const, marginTop: Spacing.sm },
+  saveButton: {
+    height: Components.button.height,
+    borderRadius: Components.button.borderRadius,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginTop: Spacing.sm,
+  },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { ...Typography.bodySemiBold },
   bottomSpacer: { height: Spacing.lg },

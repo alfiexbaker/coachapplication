@@ -10,7 +10,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { GroupSession, AvailabilitySlot, SessionTemplate, SessionInviteType } from '@/constants/types';
+import type {
+  GroupSession,
+  AvailabilitySlot,
+  SessionTemplate,
+  SessionInviteType,
+} from '@/constants/types';
 
 // ============================================================================
 // SUMMARY ROW
@@ -40,7 +45,10 @@ interface ExistingSummaryProps {
   colors: ThemeColors;
 }
 
-export const ExistingSummary = memo(function ExistingSummary({ session, colors }: ExistingSummaryProps) {
+export const ExistingSummary = memo(function ExistingSummary({
+  session,
+  colors,
+}: ExistingSummaryProps) {
   return (
     <>
       <SummaryRow icon="football-outline" color={colors.muted}>
@@ -50,7 +58,9 @@ export const ExistingSummary = memo(function ExistingSummary({ session, colors }
         <SummaryRow icon="calendar-outline" color={colors.muted}>
           <ThemedText>
             {new Date(session.schedule[0].date).toLocaleDateString('en-GB', {
-              weekday: 'short', day: 'numeric', month: 'short',
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
             })}{' '}
             {session.schedule[0].startTime}-{session.schedule[0].endTime}
           </ThemedText>
@@ -93,17 +103,19 @@ export const NewSessionSummary = memo(function NewSessionSummary({
   price,
   colors,
 }: NewSessionSummaryProps) {
-  const inviteTypeLabel = sessionInviteType === 'OPEN'
-    ? 'Open session'
-    : sessionInviteType === 'CLOSED'
-    ? 'Invite only (Closed)'
-    : 'Squad members only';
+  const inviteTypeLabel =
+    sessionInviteType === 'OPEN'
+      ? 'Open session'
+      : sessionInviteType === 'CLOSED'
+        ? 'Invite only (Closed)'
+        : 'Squad members only';
 
-  const inviteTypeIcon: keyof typeof Ionicons.glyphMap = sessionInviteType === 'OPEN'
-    ? 'globe-outline'
-    : sessionInviteType === 'CLOSED'
-    ? 'lock-closed-outline'
-    : 'people-outline';
+  const inviteTypeIcon: keyof typeof Ionicons.glyphMap =
+    sessionInviteType === 'OPEN'
+      ? 'globe-outline'
+      : sessionInviteType === 'CLOSED'
+        ? 'lock-closed-outline'
+        : 'people-outline';
 
   return (
     <>
@@ -122,10 +134,16 @@ export const NewSessionSummary = memo(function NewSessionSummary({
       </SummaryRow>
       {selectedAvailabilitySlots.length > 0 ? (
         selectedAvailabilitySlots.map((slot) => (
-          <SummaryRow key={`${slot.date}_${slot.startTime}`} icon="calendar-outline" color={colors.muted}>
+          <SummaryRow
+            key={`${slot.date}_${slot.startTime}`}
+            icon="calendar-outline"
+            color={colors.muted}
+          >
             <ThemedText>
               {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
-                weekday: 'short', day: 'numeric', month: 'short',
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
               })}{' '}
               {slot.startTime} – {slot.endTime}
               {slot.location && ` · ${slot.location}`}
@@ -139,7 +157,8 @@ export const NewSessionSummary = memo(function NewSessionSummary({
       )}
       <SummaryRow icon="pricetag-outline" color={colors.muted}>
         <ThemedText>
-          {'\u00A3'}{price || selectedTemplate?.defaultPrice || '0'}/session
+          {'\u00A3'}
+          {price || selectedTemplate?.defaultPrice || '0'}/session
         </ThemedText>
       </SummaryRow>
     </>

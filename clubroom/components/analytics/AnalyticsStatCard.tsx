@@ -102,35 +102,29 @@ export function AnalyticsStatCard({
   const changeText = formatChange();
 
   return (
-    <SurfaceCard
-      style={styles.card}
-      loading={loading}
-      onPress={onPress}
-      tactile={!!onPress}
-    >
+    <SurfaceCard style={styles.card} loading={loading} onPress={onPress} tactile={!!onPress}>
       <Row style={styles.header}>
         {icon && (
-          <View style={[styles.iconContainer, { backgroundColor: withAlpha(iconColor || palette.tint, 0.09) }]}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: withAlpha(iconColor || palette.tint, 0.09) },
+            ]}
+          >
             <Ionicons name={icon} size={20} color={iconColor || palette.tint} />
           </View>
         )}
       </Row>
 
-      <ThemedText style={styles.value}>
-        {formatValue(value)}
-      </ThemedText>
+      <ThemedText style={styles.value}>{formatValue(value)}</ThemedText>
 
-      <ThemedText style={[styles.label, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
+      <ThemedText style={[styles.label, { color: palette.muted }]}>{label}</ThemedText>
 
       {(trend || change !== undefined || changePercent !== undefined) && (
         <Row style={[styles.trendContainer, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
           <Ionicons name={trendIcon} size={14} color={trendColor} />
           {changeText && (
-            <ThemedText style={[styles.trendText, { color: trendColor }]}>
-              {changeText}
-            </ThemedText>
+            <ThemedText style={[styles.trendText, { color: trendColor }]}>{changeText}</ThemedText>
           )}
         </Row>
       )}
@@ -157,8 +151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   value: { ...Typography.display, letterSpacing: -0.5 },
-  label: { ...Typography.smallSemiBold, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+  label: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5 },
   trendContainer: {
     alignItems: 'center',
     alignSelf: 'flex-start',

@@ -14,21 +14,40 @@ import { useBadgeAward } from '@/hooks/use-badge-award';
 import type { BadgeAward } from '@/constants/types';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 import { BADGE_REASONS } from './badge-award-helpers';
-import { AthleteHeader, BadgeSelector, ReasonSelector, NoteInput, PreviewSection, ErrorBanner } from './badge-award-sections';
+import {
+  AthleteHeader,
+  BadgeSelector,
+  ReasonSelector,
+  NoteInput,
+  PreviewSection,
+  ErrorBanner,
+} from './badge-award-sections';
 
 export { BADGE_REASONS };
 
 interface BadgeAwardModalProps {
   visible: boolean;
-  athleteId: string; athleteName: string; athletePhotoUrl?: string;
-  coachId: string; coachName?: string;
-  sessionId?: string; sessionLabel?: string;
-  initialReason?: string; initialNote?: string;
+  athleteId: string;
+  athleteName: string;
+  athletePhotoUrl?: string;
+  coachId: string;
+  coachName?: string;
+  sessionId?: string;
+  sessionLabel?: string;
+  initialReason?: string;
+  initialNote?: string;
   onClose: () => void;
   onAwarded?: (award: BadgeAward) => void;
 }
 
-export function BadgeAwardModal({ visible, onClose, athletePhotoUrl, sessionLabel, coachName, ...rest }: BadgeAwardModalProps) {
+export function BadgeAwardModal({
+  visible,
+  onClose,
+  athletePhotoUrl,
+  sessionLabel,
+  coachName,
+  ...rest
+}: BadgeAwardModalProps) {
   const { colors: palette } = useTheme();
   const insets = useSafeAreaInsets();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
@@ -51,21 +70,60 @@ export function BadgeAwardModal({ visible, onClose, athletePhotoUrl, sessionLabe
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: palette.overlay }]}>
-        <Animated.View entering={FadeInDown.duration(300)} style={[styles.sheet, { backgroundColor: palette.background, paddingBottom: insets.bottom + Spacing.md }]}>
-          <View style={styles.handleContainer}><View style={[styles.handle, { backgroundColor: palette.border }]} /></View>
+        <Animated.View
+          entering={FadeInDown.duration(300)}
+          style={[
+            styles.sheet,
+            { backgroundColor: palette.background, paddingBottom: insets.bottom + Spacing.md },
+          ]}
+        >
+          <View style={styles.handleContainer}>
+            <View style={[styles.handle, { backgroundColor: palette.border }]} />
+          </View>
 
-          <AthleteHeader athleteName={award.resolvedAthleteName} athletePhotoUrl={athletePhotoUrl} sessionLabel={sessionLabel} onClose={onClose} />
+          <AthleteHeader
+            athleteName={award.resolvedAthleteName}
+            athletePhotoUrl={athletePhotoUrl}
+            sessionLabel={sessionLabel}
+            onClose={onClose}
+          />
 
-          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-            <BadgeSelector definitions={award.definitions} selectedBadgeId={award.selectedBadgeId} onSelect={award.handleBadgeSelect} />
-            <ReasonSelector selectedReason={award.selectedReason} onSelect={award.handleReasonSelect} />
-            <NoteInput note={award.note} onNoteChange={award.setNote} onQuickNote={award.handleQuickNote} />
-            {award.selectedBadge && <PreviewSection selectedBadge={award.selectedBadge} selectedReason={award.selectedReason} note={award.note} coachName={coachName} />}
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <BadgeSelector
+              definitions={award.definitions}
+              selectedBadgeId={award.selectedBadgeId}
+              onSelect={award.handleBadgeSelect}
+            />
+            <ReasonSelector
+              selectedReason={award.selectedReason}
+              onSelect={award.handleReasonSelect}
+            />
+            <NoteInput
+              note={award.note}
+              onNoteChange={award.setNote}
+              onQuickNote={award.handleQuickNote}
+            />
+            {award.selectedBadge && (
+              <PreviewSection
+                selectedBadge={award.selectedBadge}
+                selectedReason={award.selectedReason}
+                note={award.note}
+                coachName={coachName}
+              />
+            )}
             {award.error && <ErrorBanner error={award.error} />}
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: palette.border }]}>
-            <Button onPress={handleSubmit} disabled={award.isSubmitting || !award.selectedBadgeId} style={styles.submitButton}>
+            <Button
+              onPress={handleSubmit}
+              disabled={award.isSubmitting || !award.selectedBadgeId}
+              style={styles.submitButton}
+            >
               {award.isSubmitting ? 'Sending...' : 'Award Badge'}
             </Button>
           </View>

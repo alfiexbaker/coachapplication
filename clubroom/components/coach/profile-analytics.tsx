@@ -58,12 +58,12 @@ function StatTile({ icon, iconColor, value, label, palette }: StatTileProps) {
       <View style={[styles.tileIconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
         <Ionicons name={icon} size={Components.icon.md} color={iconColor} />
       </View>
-      <ThemedText style={[Typography.title, { color: palette.text, fontVariant: ['tabular-nums'] }]}>
+      <ThemedText
+        style={[Typography.title, { color: palette.text, fontVariant: ['tabular-nums'] }]}
+      >
         {value}
       </ThemedText>
-      <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
+      <ThemedText style={[Typography.caption, { color: palette.muted }]}>{label}</ThemedText>
     </View>
   );
 }
@@ -134,9 +134,7 @@ export function ProfileAnalytics({
             View to Booking
           </ThemedText>
         </Row>
-        <ThemedText style={[Typography.heading, { color: palette.success }]}>
-          {rate}
-        </ThemedText>
+        <ThemedText style={[Typography.heading, { color: palette.success }]}>{rate}</ThemedText>
       </Row>
     </SurfaceCard>
   );

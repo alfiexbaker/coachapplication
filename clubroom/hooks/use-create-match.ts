@@ -53,7 +53,7 @@ export function useCreateMatch() {
     const loadSquads = async () => {
       try {
         const data = await squadService.getSquads(DEFAULT_CLUB_ID);
-        setSquads(data.filter(s => !s.name.toLowerCase().includes('staff')));
+        setSquads(data.filter((s) => !s.name.toLowerCase().includes('staff')));
       } catch (error) {
         logger.error('Failed to load squads:', error);
       }
@@ -81,15 +81,30 @@ export function useCreateMatch() {
   const validateStep = useCallback((): boolean => {
     switch (step) {
       case 'details':
-        if (!opponent.trim()) { Alert.alert('Missing Information', 'Please enter the opponent name.'); return false; }
-        if (!venue.trim()) { Alert.alert('Missing Information', 'Please enter the venue.'); return false; }
+        if (!opponent.trim()) {
+          Alert.alert('Missing Information', 'Please enter the opponent name.');
+          return false;
+        }
+        if (!venue.trim()) {
+          Alert.alert('Missing Information', 'Please enter the venue.');
+          return false;
+        }
         return true;
       case 'schedule':
-        if (!date.trim()) { Alert.alert('Missing Information', 'Please enter the match date.'); return false; }
-        if (!kickoffTime.trim()) { Alert.alert('Missing Information', 'Please enter the kickoff time.'); return false; }
+        if (!date.trim()) {
+          Alert.alert('Missing Information', 'Please enter the match date.');
+          return false;
+        }
+        if (!kickoffTime.trim()) {
+          Alert.alert('Missing Information', 'Please enter the kickoff time.');
+          return false;
+        }
         return true;
       case 'squad':
-        if (!selectedSquadId) { Alert.alert('Missing Information', 'Please select a squad.'); return false; }
+        if (!selectedSquadId) {
+          Alert.alert('Missing Information', 'Please select a squad.');
+          return false;
+        }
         return true;
       default:
         return true;
@@ -114,32 +129,53 @@ export function useCreateMatch() {
       const title = `${selectedSquad?.name || 'Team'} vs ${opponent}`;
       if (autoInvite && selectedSquadId) {
         const result = await bulkInviteService.inviteSquadToMatch({
-          squadId: selectedSquadId, squadName: selectedSquad?.name || 'Team',
-          matchTitle: title, opponent, isHome, date, kickoffTime, venue,
-          clubId: DEFAULT_CLUB_ID, clubName: 'Lions FC Academy',
+          squadId: selectedSquadId,
+          squadName: selectedSquad?.name || 'Team',
+          matchTitle: title,
+          opponent,
+          isHome,
+          date,
+          kickoffTime,
+          venue,
+          clubId: DEFAULT_CLUB_ID,
+          clubName: 'Lions FC Academy',
           coachId: currentUser?.id || 'coach_1',
           coachName: currentUser?.fullName || currentUser?.username || 'Coach',
-          matchType, notes: notes || undefined,
+          matchType,
+          notes: notes || undefined,
         });
-        Alert.alert('Match Created!',
+        Alert.alert(
+          'Match Created!',
           `${title} created and ${result.inviteResult.successful} availability request${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
-          [{ text: 'View Match', onPress: () => router.replace(Routes.match(result.match.id)) },
-           { text: 'Done', onPress: () => router.back() }],
+          [
+            { text: 'View Match', onPress: () => router.replace(Routes.match(result.match.id)) },
+            { text: 'Done', onPress: () => router.back() },
+          ],
         );
       } else {
         const match = await matchService.createMatch({
-          clubId: DEFAULT_CLUB_ID, clubName: 'Lions FC Academy',
-          squadId: selectedSquadId || undefined, squadName: selectedSquad?.name,
+          clubId: DEFAULT_CLUB_ID,
+          clubName: 'Lions FC Academy',
+          squadId: selectedSquadId || undefined,
+          squadName: selectedSquad?.name,
           coachId: currentUser?.id || 'coach_1',
           coachName: currentUser?.fullName || currentUser?.username || 'Coach',
-          title, matchType, opponent, isHome, date, kickoffTime,
-          meetTime: meetTime || undefined, venue, address: address || undefined,
-          maxPlayers: parseInt(maxPlayers, 10) || 14, notes: notes || undefined,
+          title,
+          matchType,
+          opponent,
+          isHome,
+          date,
+          kickoffTime,
+          meetTime: meetTime || undefined,
+          venue,
+          address: address || undefined,
+          maxPlayers: parseInt(maxPlayers, 10) || 14,
+          notes: notes || undefined,
         });
-        Alert.alert('Match Created!', `${title} has been created.`,
-          [{ text: 'View Match', onPress: () => router.replace(Routes.match(match.id)) },
-           { text: 'Done', onPress: () => router.back() }],
-        );
+        Alert.alert('Match Created!', `${title} has been created.`, [
+          { text: 'View Match', onPress: () => router.replace(Routes.match(match.id)) },
+          { text: 'Done', onPress: () => router.back() },
+        ]);
       }
     } catch (error) {
       logger.error('Failed to create match:', error);
@@ -147,16 +183,57 @@ export function useCreateMatch() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedSquad, opponent, autoInvite, selectedSquadId, isHome, date, kickoffTime, venue, currentUser, matchType, notes, meetTime, address, maxPlayers]);
+  }, [
+    selectedSquad,
+    opponent,
+    autoInvite,
+    selectedSquadId,
+    isHome,
+    date,
+    kickoffTime,
+    venue,
+    currentUser,
+    matchType,
+    notes,
+    meetTime,
+    address,
+    maxPlayers,
+  ]);
 
   return {
-    step, currentStepIndex, totalSteps: STEPS.length, isSubmitting,
-    matchType, setMatchType, opponent, setOpponent, isHome, setIsHome,
-    venue, setVenue, address, setAddress, date, setDate,
-    kickoffTime, setKickoffTime, meetTime, setMeetTime,
-    maxPlayers, setMaxPlayers, notes, setNotes,
-    selectedSquadId, setSelectedSquadId, selectedSquad,
-    squads, squadMemberCount, autoInvite, setAutoInvite,
-    handleNext, handleBack, handleSubmit,
+    step,
+    currentStepIndex,
+    totalSteps: STEPS.length,
+    isSubmitting,
+    matchType,
+    setMatchType,
+    opponent,
+    setOpponent,
+    isHome,
+    setIsHome,
+    venue,
+    setVenue,
+    address,
+    setAddress,
+    date,
+    setDate,
+    kickoffTime,
+    setKickoffTime,
+    meetTime,
+    setMeetTime,
+    maxPlayers,
+    setMaxPlayers,
+    notes,
+    setNotes,
+    selectedSquadId,
+    setSelectedSquadId,
+    selectedSquad,
+    squads,
+    squadMemberCount,
+    autoInvite,
+    setAutoInvite,
+    handleNext,
+    handleBack,
+    handleSubmit,
   };
 }

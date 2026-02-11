@@ -16,15 +16,19 @@ interface Child {
 }
 
 interface DevChildSelectorProps {
-  children: Child[];
+  childOptions: Child[];
   selectedChildId: string | undefined;
   onSelectChild: (childId: string) => void;
 }
 
-function DevChildSelectorInner({ children, selectedChildId, onSelectChild }: DevChildSelectorProps) {
+function DevChildSelectorInner({
+  childOptions,
+  selectedChildId,
+  onSelectChild,
+}: DevChildSelectorProps) {
   const { colors: palette } = useTheme();
 
-  if (children.length <= 1) return null;
+  if (childOptions.length <= 1) return null;
 
   return (
     <View style={[styles.container, { backgroundColor: palette.surface }]}>
@@ -33,7 +37,7 @@ function DevChildSelectorInner({ children, selectedChildId, onSelectChild }: Dev
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {children.map((child) => {
+        {childOptions.map((child) => {
           const isSelected = child.id === selectedChildId;
           return (
             <Clickable
@@ -48,22 +52,34 @@ function DevChildSelectorInner({ children, selectedChildId, onSelectChild }: Dev
               accessibilityState={{ selected: isSelected }}
             >
               <Row align="center" gap="sm">
-                <Row align="center" justify="center" style={[
-                  styles.avatar,
-                  { backgroundColor: isSelected ? withAlpha(palette.onPrimary, 0.2) : palette.border }
-                ]}>
-                  <ThemedText style={[
-                    styles.avatarText,
-                    { color: isSelected ? palette.onPrimary : palette.tint }
-                  ]}>
+                <Row
+                  align="center"
+                  justify="center"
+                  style={[
+                    styles.avatar,
+                    {
+                      backgroundColor: isSelected
+                        ? withAlpha(palette.onPrimary, 0.2)
+                        : palette.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.avatarText,
+                      { color: isSelected ? palette.onPrimary : palette.tint },
+                    ]}
+                  >
                     {child.name.charAt(0)}
                   </ThemedText>
                 </Row>
-                <ThemedText style={[
-                  styles.name,
-                  { color: isSelected ? palette.onPrimary : palette.text },
-                  isSelected && styles.nameActive,
-                ]}>
+                <ThemedText
+                  style={[
+                    styles.name,
+                    { color: isSelected ? palette.onPrimary : palette.text },
+                    isSelected && styles.nameActive,
+                  ]}
+                >
                   {child.name}
                 </ThemedText>
               </Row>

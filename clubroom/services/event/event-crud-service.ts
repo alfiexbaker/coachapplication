@@ -18,11 +18,7 @@ import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
-import type {
-  ClubEvent,
-  ClubEventType,
-  EventTargetAudience,
-} from '@/constants/types';
+import type { ClubEvent, ClubEventType, EventTargetAudience } from '@/constants/types';
 
 const USE_MOCK = api.useMock;
 const logger = createLogger('EventCrudService');
@@ -351,9 +347,7 @@ export const eventCrudService = {
       eventsCache = await loadEvents();
       const now = toDateStr(new Date());
       return eventsCache
-        .filter(
-          (e) => e.clubId === clubId && e.status === 'PUBLISHED' && e.date >= now
-        )
+        .filter((e) => e.clubId === clubId && e.status === 'PUBLISHED' && e.date >= now)
         .sort((a, b) => a.date.localeCompare(b.date));
     }
 

@@ -33,9 +33,7 @@ export function FilterSection({
 
   return (
     <View style={styles.container}>
-      <ThemedText style={[styles.title, { color: palette.text }]}>
-        {title}
-      </ThemedText>
+      <ThemedText style={[styles.title, { color: palette.text }]}>{title}</ThemedText>
 
       {description && (
         <ThemedText style={[styles.description, { color: palette.muted }]}>

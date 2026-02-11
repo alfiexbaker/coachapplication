@@ -22,7 +22,12 @@ export interface AccountTypeOption {
 
 export const ACCOUNT_TYPE_OPTIONS: AccountTypeOption[] = [
   { type: 'player', title: 'Player', subtitle: 'I play football', icon: 'football-outline' },
-  { type: 'parent', title: 'Parent/Guardian', subtitle: "I manage my children's training", icon: 'people-outline' },
+  {
+    type: 'parent',
+    title: 'Parent/Guardian',
+    subtitle: "I manage my children's training",
+    icon: 'people-outline',
+  },
   { type: 'coach', title: 'Coach', subtitle: 'I coach players', icon: 'fitness-outline' },
 ];
 
@@ -59,7 +64,9 @@ export const AccountTypeCard = memo(function AccountTypeCard({
         style={[
           styles.iconContainer,
           {
-            backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : withAlpha(palette.tint, 0.03),
+            backgroundColor: isSelected
+              ? withAlpha(palette.tint, 0.09)
+              : withAlpha(palette.tint, 0.03),
           },
         ]}
       >
@@ -76,7 +83,9 @@ export const AccountTypeCard = memo(function AccountTypeCard({
           {option.subtitle}
         </ThemedText>
       </View>
-      <View style={[styles.radioOuter, { borderColor: isSelected ? palette.tint : palette.border }]}>
+      <View
+        style={[styles.radioOuter, { borderColor: isSelected ? palette.tint : palette.border }]}
+      >
         {isSelected && <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />}
       </View>
     </Clickable>

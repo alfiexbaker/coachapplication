@@ -16,7 +16,8 @@ const ATTENDANCE = ['Present', 'Late', 'No-show'];
 export function SessionNotesForm({
   onSubmit,
   initialValues,
-  submitting }: {
+  submitting,
+}: {
   onSubmit: (payload: SessionNoteFields) => void;
   initialValues?: Partial<SessionNoteFields>;
   submitting?: boolean;
@@ -69,10 +70,13 @@ export function SessionNotesForm({
                   styles.chip,
                   {
                     backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
-                    borderColor: active ? palette.tint : palette.border },
+                    borderColor: active ? palette.tint : palette.border,
+                  },
                 ]}
               >
-                <ThemedText style={{ color: active ? palette.tint : palette.text }}>{item}</ThemedText>
+                <ThemedText style={{ color: active ? palette.tint : palette.text }}>
+                  {item}
+                </ThemedText>
               </Clickable>
             );
           })}
@@ -121,10 +125,13 @@ export function SessionNotesForm({
                   styles.chip,
                   {
                     backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
-                    borderColor: active ? palette.tint : palette.border },
+                    borderColor: active ? palette.tint : palette.border,
+                  },
                 ]}
               >
-                <ThemedText style={{ color: active ? palette.tint : palette.text }}>{item}</ThemedText>
+                <ThemedText style={{ color: active ? palette.tint : palette.text }}>
+                  {item}
+                </ThemedText>
               </Clickable>
             );
           })}
@@ -142,7 +149,9 @@ export function SessionNotesForm({
           ) : (
             <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
           )}
-          <ThemedText style={{ color: submitting ? palette.text : palette.onPrimary, fontWeight: '700' }}>
+          <ThemedText
+            style={{ color: submitting ? palette.text : palette.onPrimary, fontWeight: '700' }}
+          >
             {submitting ? 'Saving...' : 'Submit Notes'}
           </ThemedText>
         </Row>
@@ -154,19 +163,24 @@ export function SessionNotesForm({
 const styles = StyleSheet.create({
   content: {
     padding: Spacing.md,
-    gap: Spacing.md },
+    gap: Spacing.md,
+  },
   textArea: {
     minHeight: 80,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     padding: Spacing.sm,
     lineHeight: 20,
-    textAlignVertical: 'top' },
+    textAlignVertical: 'top',
+  },
   chip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    borderWidth: 1.5 },
+    borderWidth: 1.5,
+  },
   submit: {
     padding: Spacing.sm,
-    borderRadius: Radii.button } });
+    borderRadius: Radii.button,
+  },
+});

@@ -61,9 +61,11 @@ export function useChildrenHub() {
         const childSessions = sessions.filter((session) => session.athleteId === child.id);
         const awards = await badgeService.listAwardsForAthlete(child.id);
         const unseenCount = await badgeService.getUnseenBadgeCount(child.id);
-        const avgRating = childSessions.length > 0
-          ? childSessions.reduce((sum, session) => sum + session.performanceRating, 0) / childSessions.length
-          : 0;
+        const avgRating =
+          childSessions.length > 0
+            ? childSessions.reduce((sum, session) => sum + session.performanceRating, 0) /
+              childSessions.length
+            : 0;
 
         const visibleAwards = awards.filter((award) => award.visibility !== 'coach_only');
         stats[child.id] = {
@@ -86,7 +88,10 @@ export function useChildrenHub() {
 
       const totalSessions = Object.values(stats).reduce((sum, value) => sum + value.sessions, 0);
       const totalBadges = Object.values(stats).reduce((sum, value) => sum + value.badges, 0);
-      const totalUnseenBadges = Object.values(stats).reduce((sum, value) => sum + value.unseenBadges, 0);
+      const totalUnseenBadges = Object.values(stats).reduce(
+        (sum, value) => sum + value.unseenBadges,
+        0,
+      );
 
       return ok<ChildrenHubData>({
         children: childrenData,
@@ -101,14 +106,7 @@ export function useChildrenHub() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ChildrenHubData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildrenHubData>({
     load: loadData,
     deps: [loadData],
     isEmpty: (value) => value.children.length === 0,
@@ -124,12 +122,15 @@ export function useChildrenHub() {
     totalUnseenBadges: 0,
   };
 
-  const handleViewBadge = useCallback(async (badge: BadgeAward) => {
-    if (!badge.seenByParent) {
-      await badgeService.markSeenByParent(badge.id);
-      onRefresh();
-    }
-  }, [onRefresh]);
+  const handleViewBadge = useCallback(
+    async (badge: BadgeAward) => {
+      if (!badge.seenByParent) {
+        await badgeService.markSeenByParent(badge.id);
+        onRefresh();
+      }
+    },
+    [onRefresh],
+  );
 
   return {
     currentUser,

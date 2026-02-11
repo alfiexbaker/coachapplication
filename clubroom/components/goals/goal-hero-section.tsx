@@ -22,9 +22,13 @@ export const GoalHeroSection = memo(function GoalHeroSection({ goal }: GoalHeroS
     <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.hero}>
       <View style={styles.content}>
         <CategoryBadge category={goal.category} />
-        <ThemedText type="title" style={styles.title}>{goal.title}</ThemedText>
+        <ThemedText type="title" style={styles.title}>
+          {goal.title}
+        </ThemedText>
         {goal.description && (
-          <ThemedText style={[styles.description, { color: colors.muted }]}>{goal.description}</ThemedText>
+          <ThemedText style={[styles.description, { color: colors.muted }]}>
+            {goal.description}
+          </ThemedText>
         )}
       </View>
       <ProgressRing
@@ -38,8 +42,21 @@ export const GoalHeroSection = memo(function GoalHeroSection({ goal }: GoalHeroS
 });
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md, gap: Spacing.md },
+  hero: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
   content: { flex: 1, gap: Spacing.xs },
-  title: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize), marginTop: Spacing.xs },
-  description: { ...Typography.body, fontSize: scaleFont(Typography.body.fontSize), lineHeight: scaleFont(22) },
+  title: {
+    ...Typography.display,
+    fontSize: scaleFont(Typography.display.fontSize),
+    marginTop: Spacing.xs,
+  },
+  description: {
+    ...Typography.body,
+    fontSize: scaleFont(Typography.body.fontSize),
+    lineHeight: scaleFont(22),
+  },
 });

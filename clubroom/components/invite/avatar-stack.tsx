@@ -60,13 +60,15 @@ function AvatarStackComponent({
             ]}
           >
             {attendee.photoUrl ? (
-              <Image
-                source={{ uri: attendee.photoUrl }}
-                style={styles.avatar}
-                contentFit="cover"
-              />
+              <Image source={{ uri: attendee.photoUrl }} style={styles.avatar} contentFit="cover" />
             ) : (
-              <View style={[styles.avatar, styles.initialsAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+              <View
+                style={[
+                  styles.avatar,
+                  styles.initialsAvatar,
+                  { backgroundColor: withAlpha(palette.tint, 0.12) },
+                ]}
+              >
                 <ThemedText style={[styles.initialsText, { color: palette.tint }]}>
                   {attendee.name.charAt(0).toUpperCase()}
                 </ThemedText>
@@ -100,7 +102,11 @@ function AvatarStackComponent({
 
   if (onPress) {
     return (
-      <Clickable onPress={onPress} hitSlop={8} accessibilityLabel={`${goingCount} going, tap to see attendees`}>
+      <Clickable
+        onPress={onPress}
+        hitSlop={8}
+        accessibilityLabel={`${goingCount} going, tap to see attendees`}
+      >
         {content}
       </Clickable>
     );

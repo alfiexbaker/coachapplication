@@ -69,13 +69,29 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
   }, [name, description, type, isPublic, validate, onSubmit]);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Group Name */}
         <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.label}>Group Name *</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Group Name *
+          </ThemedText>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.surface, borderColor: errors.name ? palette.error : palette.border, color: palette.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: palette.surface,
+                borderColor: errors.name ? palette.error : palette.border,
+                color: palette.text,
+              },
+            ]}
             placeholder="Enter group name"
             placeholderTextColor={palette.muted}
             value={name}
@@ -83,15 +99,30 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
             maxLength={50}
             editable={!loading}
           />
-          {errors.name && <ThemedText style={[styles.errorText, { color: palette.error }]}>{errors.name}</ThemedText>}
-          <ThemedText style={[styles.charCount, { color: palette.muted }]}>{name.length}/50</ThemedText>
+          {errors.name && (
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>
+              {errors.name}
+            </ThemedText>
+          )}
+          <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+            {name.length}/50
+          </ThemedText>
         </View>
 
         {/* Description */}
         <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.label}>Description</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Description
+          </ThemedText>
           <TextInput
-            style={[styles.textArea, { backgroundColor: palette.surface, borderColor: errors.description ? palette.error : palette.border, color: palette.text }]}
+            style={[
+              styles.textArea,
+              {
+                backgroundColor: palette.surface,
+                borderColor: errors.description ? palette.error : palette.border,
+                color: palette.text,
+              },
+            ]}
             placeholder="What's this group about?"
             placeholderTextColor={palette.muted}
             value={description}
@@ -102,27 +133,53 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
             textAlignVertical="top"
             editable={!loading}
           />
-          {errors.description && <ThemedText style={[styles.errorText, { color: palette.error }]}>{errors.description}</ThemedText>}
-          <ThemedText style={[styles.charCount, { color: palette.muted }]}>{description.length}/200</ThemedText>
+          {errors.description && (
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>
+              {errors.description}
+            </ThemedText>
+          )}
+          <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+            {description.length}/200
+          </ThemedText>
         </View>
 
         {/* Group Type */}
         <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.label}>Group Type</ThemedText>
-          <GroupTypeSelector selected={type} onSelect={setType} disabled={loading} palette={palette} />
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Group Type
+          </ThemedText>
+          <GroupTypeSelector
+            selected={type}
+            onSelect={setType}
+            disabled={loading}
+            palette={palette}
+          />
         </View>
 
         {/* Privacy */}
         <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.label}>Privacy</ThemedText>
-          <PrivacySelector isPublic={isPublic} onToggle={setIsPublic} disabled={loading} palette={palette} />
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Privacy
+          </ThemedText>
+          <PrivacySelector
+            isPublic={isPublic}
+            onToggle={setIsPublic}
+            disabled={loading}
+            palette={palette}
+          />
         </View>
       </ScrollView>
 
       {/* Action Buttons */}
       <Row style={[styles.actions, { borderTopColor: palette.border }]}>
-        <Button variant="outline" onPress={onCancel} style={styles.actionButton} disabled={loading}>Cancel</Button>
-        <Button onPress={handleSubmit} style={styles.actionButton} disabled={loading || !name.trim()}>
+        <Button variant="outline" onPress={onCancel} style={styles.actionButton} disabled={loading}>
+          Cancel
+        </Button>
+        <Button
+          onPress={handleSubmit}
+          style={styles.actionButton}
+          disabled={loading || !name.trim()}
+        >
           {loading ? 'Creating...' : 'Create Group'}
         </Button>
       </Row>
@@ -138,8 +195,21 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   section: { gap: Spacing.xs },
   label: { fontSize: scaleFont(15), marginBottom: Spacing.xxs },
-  input: { height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, fontSize: scaleFont(16) },
-  textArea: { minHeight: 100, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: scaleFont(16) },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: scaleFont(16),
+  },
+  textArea: {
+    minHeight: 100,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: scaleFont(16),
+  },
   errorText: { fontSize: scaleFont(12), marginTop: Spacing.xxs },
   charCount: { fontSize: scaleFont(11), textAlign: 'right' },
   actions: { padding: Spacing.lg, gap: Spacing.sm, borderTopWidth: 1 },

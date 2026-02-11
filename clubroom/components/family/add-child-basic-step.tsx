@@ -59,11 +59,7 @@ function AddChildBasicStepInner({
 
   return (
     <View style={styles.stepContent}>
-      <PhotoUploadSection
-        photoUri={photoUri}
-        onPickImage={onPickImage}
-        palette={palette}
-      />
+      <PhotoUploadSection photoUri={photoUri} onPickImage={onPickImage} palette={palette} />
 
       <NameFieldsRow
         firstName={firstName}

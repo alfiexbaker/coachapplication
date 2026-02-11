@@ -73,12 +73,21 @@ export function useParentDevelopment() {
   }, [firstChildId, selectedChildId]);
 
   const sessions = useMemo(() => {
-    return selectedChild ? allSessions.filter((session) => session.athleteId === selectedChild.id) : [];
+    return selectedChild
+      ? allSessions.filter((session) => session.athleteId === selectedChild.id)
+      : [];
   }, [allSessions, selectedChild]);
 
   const skills: SkillProgress[] = useMemo(() => {
     if (sessions.length === 0) return [];
-    const skillNames = ['Dribbling', 'Passing', 'Shooting', 'Defending', 'Positioning', 'First Touch'];
+    const skillNames = [
+      'Dribbling',
+      'Passing',
+      'Shooting',
+      'Defending',
+      'Positioning',
+      'First Touch',
+    ];
     const categories = ['Technical', 'Technical', 'Technical', 'Physical', 'Tactical', 'Technical'];
     return skillNames.map((name, index) => ({
       skillName: name,
@@ -106,9 +115,27 @@ export function useParentDevelopment() {
         targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         progress: 65,
         milestones: [
-          { id: 'm1', goalId: 'goal-1', order: 0, title: 'Complete 10 dribbling drills', isCompleted: true },
-          { id: 'm2', goalId: 'goal-1', order: 1, title: 'Beat defender in 5 sessions', isCompleted: true },
-          { id: 'm3', goalId: 'goal-1', order: 2, title: 'Use both feet consistently', isCompleted: false },
+          {
+            id: 'm1',
+            goalId: 'goal-1',
+            order: 0,
+            title: 'Complete 10 dribbling drills',
+            isCompleted: true,
+          },
+          {
+            id: 'm2',
+            goalId: 'goal-1',
+            order: 1,
+            title: 'Beat defender in 5 sessions',
+            isCompleted: true,
+          },
+          {
+            id: 'm3',
+            goalId: 'goal-1',
+            order: 2,
+            title: 'Use both feet consistently',
+            isCompleted: false,
+          },
         ],
         status: 'ACTIVE',
         createdBy: 'COACH',
@@ -124,8 +151,20 @@ export function useParentDevelopment() {
         category: 'TECHNIQUE',
         progress: 40,
         milestones: [
-          { id: 'm4', goalId: 'goal-2', order: 0, title: 'Complete passing course', isCompleted: true },
-          { id: 'm5', goalId: 'goal-2', order: 1, title: 'Achieve 80% accuracy', isCompleted: false },
+          {
+            id: 'm4',
+            goalId: 'goal-2',
+            order: 0,
+            title: 'Complete passing course',
+            isCompleted: true,
+          },
+          {
+            id: 'm5',
+            goalId: 'goal-2',
+            order: 1,
+            title: 'Achieve 80% accuracy',
+            isCompleted: false,
+          },
         ],
         status: 'ACTIVE',
         createdBy: 'ATHLETE',
@@ -138,41 +177,47 @@ export function useParentDevelopment() {
 
   useEffect(() => {
     if (!selectedChildId) return;
-    badgeService
-      .listAwardsForAthlete(selectedChildId)
-      .then((childAwards) => {
-        const supporterVisible = childAwards.filter((award) => award.visibility !== 'coach_only');
-        setAwards(supporterVisible);
-        setCoachOnlyCount(childAwards.length - supporterVisible.length);
-      });
+    badgeService.listAwardsForAthlete(selectedChildId).then((childAwards) => {
+      const supporterVisible = childAwards.filter((award) => award.visibility !== 'coach_only');
+      setAwards(supporterVisible);
+      setCoachOnlyCount(childAwards.length - supporterVisible.length);
+    });
   }, [selectedChildId]);
 
   const sharedBadges = useMemo(() => awards.filter((award) => award.shared), [awards]);
 
-  const sortedSessions = useMemo(() =>
-    [...sessions].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-    ), [sessions]);
+  const sortedSessions = useMemo(
+    () =>
+      [...sessions].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+      ),
+    [sessions],
+  );
 
-  const avgRating = sessions.length > 0
-    ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
-    : '0.0';
+  const avgRating =
+    sessions.length > 0
+      ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
+      : '0.0';
 
   const trend = useMemo(() => {
     if (sessions.length < 2) return 'steady' as const;
     const sorted = [...sessions].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
     );
-    const recentAvg = sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) / Math.min(3, sorted.length);
-    const previousAvg = sorted.slice(3, 6).reduce((sum, s) => sum + s.performanceRating, 0) / Math.min(3, sorted.slice(3, 6).length);
+    const recentAvg =
+      sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) /
+      Math.min(3, sorted.length);
+    const previousAvg =
+      sorted.slice(3, 6).reduce((sum, s) => sum + s.performanceRating, 0) /
+      Math.min(3, sorted.slice(3, 6).length);
     if (sorted.length < 4) return 'steady' as const;
     if (recentAvg > previousAvg + 0.3) return 'improving' as const;
     if (recentAvg < previousAvg - 0.3) return 'declining' as const;
     return 'steady' as const;
   }, [sessions]);
 
-  const activeGoals = goals.filter(g => g.status === 'ACTIVE');
-  const completedGoals = goals.filter(g => g.status === 'COMPLETED');
+  const activeGoals = goals.filter((g) => g.status === 'ACTIVE');
+  const completedGoals = goals.filter((g) => g.status === 'COMPLETED');
 
   const handleSelectChild = useCallback((childId: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

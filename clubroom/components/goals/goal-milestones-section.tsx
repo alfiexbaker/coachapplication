@@ -33,16 +33,17 @@ export function GoalMilestonesSection({
     onNewMilestoneChange('');
   }, [newMilestone, milestones, onMilestonesChange, onNewMilestoneChange]);
 
-  const handleRemove = useCallback((index: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onMilestonesChange(milestones.filter((_, i) => i !== index));
-  }, [milestones, onMilestonesChange]);
+  const handleRemove = useCallback(
+    (index: number) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onMilestonesChange(milestones.filter((_, i) => i !== index));
+    },
+    [milestones, onMilestonesChange],
+  );
 
   return (
     <View style={styles.section}>
-      <ThemedText style={styles.label}>
-        Milestones (Optional)
-      </ThemedText>
+      <ThemedText style={styles.label}>Milestones (Optional)</ThemedText>
       <ThemedText style={[styles.hint, { color: palette.muted, marginBottom: Spacing.sm }]}>
         Break your goal into smaller steps
       </ThemedText>
@@ -55,7 +56,11 @@ export function GoalMilestonesSection({
               {ms}
             </ThemedText>
           </Row>
-          <Clickable accessibilityLabel="Remove milestone" onPress={() => handleRemove(index)} hitSlop={8}>
+          <Clickable
+            accessibilityLabel="Remove milestone"
+            onPress={() => handleRemove(index)}
+            hitSlop={8}
+          >
             <Ionicons name="close-circle" size={20} color={palette.error} />
           </Clickable>
         </SurfaceCard>
@@ -85,9 +90,7 @@ export function GoalMilestonesSection({
           style={[
             styles.addButton,
             {
-              backgroundColor: newMilestone.trim()
-                ? palette.tint
-                : palette.border,
+              backgroundColor: newMilestone.trim() ? palette.tint : palette.border,
             },
           ]}
         >

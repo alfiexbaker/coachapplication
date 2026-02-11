@@ -67,9 +67,7 @@ export const DayColumnHeaders = memo(function DayColumnHeaders({
             >
               {day}
             </ThemedText>
-            {isToday && (
-              <View style={[styles.todayDot, { backgroundColor: palette.tint }]} />
-            )}
+            {isToday && <View style={[styles.todayDot, { backgroundColor: palette.tint }]} />}
           </View>
         );
       })}

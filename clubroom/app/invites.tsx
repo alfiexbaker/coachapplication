@@ -28,9 +28,18 @@ export default function InvitesScreen() {
   const { colors: palette } = useTheme();
   const inv = useInvites();
 
-  const renderInvite = useCallback(({ item }: { item: SessionInvite }) => (
-    <InviteCard invite={item} respondingTo={inv.respondingTo} onAccept={inv.showSlotPicker} onDecline={inv.handleDeclineInvite} onRsvp={inv.handleRsvp} />
-  ), [inv.respondingTo, inv.showSlotPicker, inv.handleDeclineInvite, inv.handleRsvp]);
+  const renderInvite = useCallback(
+    ({ item }: { item: SessionInvite }) => (
+      <InviteCard
+        invite={item}
+        respondingTo={inv.respondingTo}
+        onAccept={inv.showSlotPicker}
+        onDecline={inv.handleDeclineInvite}
+        onRsvp={inv.handleRsvp}
+      />
+    ),
+    [inv.respondingTo, inv.showSlotPicker, inv.handleDeclineInvite, inv.handleRsvp],
+  );
 
   const tabs: { key: TabFilter; label: string; count?: number }[] = [
     { key: 'pending', label: 'Pending', count: inv.pendingCount },
@@ -40,8 +49,16 @@ export default function InvitesScreen() {
 
   if (inv.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <PageHeader title="Session Invites" subtitle="Loading invites" showBack onBackPress={() => router.back()} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <PageHeader
+          title="Session Invites"
+          subtitle="Loading invites"
+          showBack
+          onBackPress={() => router.back()}
+        />
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -49,8 +66,16 @@ export default function InvitesScreen() {
 
   if (inv.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <PageHeader title="Session Invites" subtitle="Unable to load invites" showBack onBackPress={() => router.back()} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <PageHeader
+          title="Session Invites"
+          subtitle="Unable to load invites"
+          showBack
+          onBackPress={() => router.back()}
+        />
         <ErrorState message={inv.error?.message || 'Failed to load invites.'} onRetry={inv.retry} />
       </SafeAreaView>
     );
@@ -58,8 +83,16 @@ export default function InvitesScreen() {
 
   if (inv.status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <PageHeader title="Session Invites" subtitle="From your coaches" showBack onBackPress={() => router.back()} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <PageHeader
+          title="Session Invites"
+          subtitle="From your coaches"
+          showBack
+          onBackPress={() => router.back()}
+        />
         <EmptyState
           icon="mail-outline"
           title="No pending invites"
@@ -70,15 +103,44 @@ export default function InvitesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <PageHeader title="Session Invites" subtitle={inv.pendingCount > 0 ? `${inv.pendingCount} pending invite${inv.pendingCount !== 1 ? 's' : ''}` : 'From your coaches'} showBack onBackPress={() => router.back()} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <PageHeader
+        title="Session Invites"
+        subtitle={
+          inv.pendingCount > 0
+            ? `${inv.pendingCount} pending invite${inv.pendingCount !== 1 ? 's' : ''}`
+            : 'From your coaches'
+        }
+        showBack
+        onBackPress={() => router.back()}
+      />
 
       {/* Tab Filter */}
       <Row gap="xs" style={styles.tabRow}>
         {tabs.map((tab) => (
-          <Clickable key={tab.key} style={[styles.tab, { borderColor: inv.tabFilter === tab.key ? palette.tint : palette.border, backgroundColor: inv.tabFilter === tab.key ? withAlpha(palette.tint, 0.06) : 'transparent' }]} onPress={() => inv.setTabFilter(tab.key)}>
-            <ThemedText style={[styles.tabText, { color: inv.tabFilter === tab.key ? palette.tint : palette.muted }]}>
-              {tab.label}{tab.count && tab.count > 0 ? ` (${tab.count})` : ''}
+          <Clickable
+            key={tab.key}
+            style={[
+              styles.tab,
+              {
+                borderColor: inv.tabFilter === tab.key ? palette.tint : palette.border,
+                backgroundColor:
+                  inv.tabFilter === tab.key ? withAlpha(palette.tint, 0.06) : 'transparent',
+              },
+            ]}
+            onPress={() => inv.setTabFilter(tab.key)}
+          >
+            <ThemedText
+              style={[
+                styles.tabText,
+                { color: inv.tabFilter === tab.key ? palette.tint : palette.muted },
+              ]}
+            >
+              {tab.label}
+              {tab.count && tab.count > 0 ? ` (${tab.count})` : ''}
             </ThemedText>
           </Clickable>
         ))}
@@ -90,17 +152,37 @@ export default function InvitesScreen() {
         renderItem={renderInvite}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={inv.refreshing} onRefresh={inv.handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={inv.refreshing} onRefresh={inv.handleRefresh} />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
-              <Ionicons name={inv.tabFilter === 'pending' ? 'mail-outline' : inv.tabFilter === 'maybe' ? 'help-circle-outline' : 'time-outline'} size={40} color={palette.muted} />
+              <Ionicons
+                name={
+                  inv.tabFilter === 'pending'
+                    ? 'mail-outline'
+                    : inv.tabFilter === 'maybe'
+                      ? 'help-circle-outline'
+                      : 'time-outline'
+                }
+                size={40}
+                color={palette.muted}
+              />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              {inv.tabFilter === 'pending' ? 'No pending invites' : inv.tabFilter === 'maybe' ? 'No maybe invites' : 'No invite history'}
+              {inv.tabFilter === 'pending'
+                ? 'No pending invites'
+                : inv.tabFilter === 'maybe'
+                  ? 'No maybe invites'
+                  : 'No invite history'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              {inv.tabFilter === 'pending' ? 'When coaches invite you to sessions, they will appear here' : inv.tabFilter === 'maybe' ? 'Invites you marked as "maybe" will appear here' : 'Your responded invites will show here'}
+              {inv.tabFilter === 'pending'
+                ? 'When coaches invite you to sessions, they will appear here'
+                : inv.tabFilter === 'maybe'
+                  ? 'Invites you marked as "maybe" will appear here'
+                  : 'Your responded invites will show here'}
             </ThemedText>
           </View>
         }
@@ -113,12 +195,30 @@ export default function InvitesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   tabRow: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
-  tab: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
+  tab: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1.5,
+  },
   tabText: { ...Typography.bodySmallSemiBold },
   list: { padding: Spacing.md },
   separator: { height: Spacing.sm },
-  empty: { alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm, marginTop: Spacing.xl },
-  emptyIcon: { width: 72, height: 72, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.sm,
+    marginTop: Spacing.xl,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
   emptyTitle: { ...Typography.heading },
   emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
 });

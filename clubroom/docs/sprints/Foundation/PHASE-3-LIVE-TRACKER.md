@@ -3,6 +3,7 @@
 > **Date Opened:** 2026-02-11
 > **Scope:** Phase 3 screen infrastructure migration (`useScreen`, 4-state screens, refresh, loading-state standardization)
 > **Last Updated:** 2026-02-11 08:20:26 GMT
+> **Historical Snapshot:** Closed tracker. For current repo metrics use `docs/AI_CONTEXT.md`.
 
 ---
 
@@ -49,7 +50,7 @@
 ## Sprint Links
 
 - Phase doc: `docs/sprints/Foundation/PHASE-3-SCREEN-INFRASTRUCTURE.md`
-- Sprint kickoff: `docs/sprints/Foundation/SPRINT-43-PHASE-3-WAVE-1.md`
+- Sprint kickoff: `docs/sprints/CompletedSprints/SPRINT-43-PHASE-3-WAVE-1.md`
 - Execution memory: `memory/Sprints/P3-COMPONENTS-A.md`
 
 ## Exact Screen Checklist (189 Files)

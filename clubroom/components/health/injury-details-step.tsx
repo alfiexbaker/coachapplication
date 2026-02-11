@@ -56,9 +56,7 @@ export function InjuryDetailsStep({
       <InjurySummaryCard bodyPart={bodyPart} severity={severity} />
 
       <View style={styles.inputSection}>
-        <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>
-          Description *
-        </ThemedText>
+        <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Description *</ThemedText>
         <TextInput
           style={[
             styles.textInput,
@@ -85,7 +83,12 @@ export function InjuryDetailsStep({
             When did it occur?
           </ThemedText>
           <Clickable onPress={() => onShowOccurredPicker(true)}>
-            <Row style={[styles.dateButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row
+              style={[
+                styles.dateButton,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            >
               <Ionicons name="calendar-outline" size={18} color={palette.muted} />
               <ThemedText style={styles.dateButtonText}>
                 {occurredAt.toLocaleDateString('en-GB', {
@@ -112,7 +115,12 @@ export function InjuryDetailsStep({
               onShowRecoveryPicker(true);
             }}
           >
-            <Row style={[styles.dateButton, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row
+              style={[
+                styles.dateButton,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            >
               <Ionicons name="calendar-outline" size={18} color={palette.muted} />
               <ThemedText style={styles.dateButtonText}>
                 {expectedRecovery
@@ -140,10 +148,7 @@ export function InjuryDetailsStep({
         </View>
       </View>
 
-      <ShareWithCoachToggle
-        sharedWithCoach={sharedWithCoach}
-        onToggle={onSharedWithCoachChange}
-      />
+      <ShareWithCoachToggle sharedWithCoach={sharedWithCoach} onToggle={onSharedWithCoachChange} />
 
       {showOccurredPicker && (
         <DateTimePicker

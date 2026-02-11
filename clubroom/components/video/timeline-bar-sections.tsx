@@ -143,10 +143,7 @@ export const CompactTimelineInner = memo(function CompactTimelineInner({
     <View style={styles.compactContainer}>
       <View style={[styles.compactTrack, { backgroundColor: withAlpha(palette.muted, 0.19) }]}>
         <View
-          style={[
-            styles.compactProgress,
-            { backgroundColor: palette.tint, width: `${progress}%` },
-          ]}
+          style={[styles.compactProgress, { backgroundColor: palette.tint, width: `${progress}%` }]}
         />
         {annotations.map((ann) => (
           <View

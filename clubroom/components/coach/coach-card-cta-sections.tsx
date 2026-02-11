@@ -36,11 +36,7 @@ export function InlineFavouriteIcon({
   const { colors: palette } = useTheme();
 
   return (
-    <Clickable
-      onPress={onPress}
-      accessibilityLabel="Remove from favourites"
-      disabled={loading}
-    >
+    <Clickable onPress={onPress} accessibilityLabel="Remove from favourites" disabled={loading}>
       <Ionicons
         name={isFavourite ? 'heart' : 'heart-outline'}
         size={size}
@@ -73,11 +69,7 @@ export function ActionRow({
     <Row style={styles.actionRow}>
       {nextAvailable ? (
         <Row style={styles.availabilityContainer}>
-          <Ionicons
-            name="calendar-outline"
-            size={Components.icon.sm}
-            color={palette.success}
-          />
+          <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.success} />
           <ThemedText style={[styles.availabilityText, { color: palette.success }]}>
             {nextAvailable}
           </ThemedText>
@@ -87,11 +79,7 @@ export function ActionRow({
       )}
 
       {showBookButton && onBookNow && (
-        <BookButton
-          coachName={coachName}
-          onPress={onBookNow}
-          variant="compact"
-        />
+        <BookButton coachName={coachName} onPress={onBookNow} variant="compact" />
       )}
     </Row>
   );

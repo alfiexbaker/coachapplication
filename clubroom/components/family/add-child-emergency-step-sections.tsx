@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -70,8 +70,7 @@ function AddChildConsentsStepInner(props: AddChildConsentsStepProps) {
       <SurfaceCard style={styles.infoCard}>
         <Ionicons name="shield-checkmark-outline" size={24} color={palette.success} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          These permissions help us provide the best experience while keeping your
-          child safe.
+          These permissions help us provide the best experience while keeping your child safe.
         </ThemedText>
       </SurfaceCard>
 
@@ -96,7 +95,10 @@ function AddChildConsentsStepInner(props: AddChildConsentsStepProps) {
             <View
               style={[
                 styles.toggleKnob,
-                { backgroundColor: palette.onPrimary, transform: [{ translateX: item.value ? 18 : 2 }] },
+                {
+                  backgroundColor: palette.onPrimary,
+                  transform: [{ translateX: item.value ? 18 : 2 }],
+                },
               ]}
             />
           </View>

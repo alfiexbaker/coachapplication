@@ -124,7 +124,11 @@ export const pushNotificationService = {
 
     try {
       const trigger: import('expo-notifications').NotificationTriggerInput = params.triggerSeconds
-        ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: params.triggerSeconds, repeats: false }
+        ? {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: params.triggerSeconds,
+            repeats: false,
+          }
         : null;
 
       const id = await Notifications.scheduleNotificationAsync({

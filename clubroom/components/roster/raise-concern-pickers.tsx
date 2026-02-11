@@ -51,7 +51,9 @@ export const ConcernTypePicker = React.memo(function ConcernTypePicker({
               style={[
                 styles.typeOption,
                 {
-                  backgroundColor: isSelected ? withAlpha(colors.tint, 0.09) : colors.surfaceSecondary,
+                  backgroundColor: isSelected
+                    ? withAlpha(colors.tint, 0.09)
+                    : colors.surfaceSecondary,
                   borderColor: isSelected ? colors.tint : 'transparent',
                 },
               ]}
@@ -74,10 +76,14 @@ export const ConcernTypePicker = React.memo(function ConcernTypePicker({
                     color={isSelected ? colors.tint : colors.muted}
                   />
                 </View>
-                <ThemedText style={[styles.typeLabel, { color: isSelected ? colors.tint : colors.text }]}>
+                <ThemedText
+                  style={[styles.typeLabel, { color: isSelected ? colors.tint : colors.text }]}
+                >
                   {CONCERN_TYPE_LABELS[type]}
                 </ThemedText>
-                {isSelected ? <Ionicons name="checkmark-circle" size={20} color={colors.tint} /> : null}
+                {isSelected ? (
+                  <Ionicons name="checkmark-circle" size={20} color={colors.tint} />
+                ) : null}
               </Row>
             </Clickable>
           );
@@ -120,7 +126,9 @@ export const SeverityPicker = React.memo(function SeverityPicker({
             >
               <Row align="center" justify="center" gap="xxs">
                 <View style={[styles.severityDot, { backgroundColor: color }]} />
-                <ThemedText style={[styles.severityText, { color: isSelected ? color : colors.muted }]}>
+                <ThemedText
+                  style={[styles.severityText, { color: isSelected ? color : colors.muted }]}
+                >
                   {CONCERN_SEVERITY_LABELS[severity]}
                 </ThemedText>
               </Row>

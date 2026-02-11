@@ -5,7 +5,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -106,9 +106,7 @@ export const CommentActions = memo(function CommentActions({
           accessibilityLabel="Reply to comment"
         >
           <Ionicons name="chatbubble-outline" size={14} color={palette.muted} />
-          <ThemedText style={[styles.actionText, { color: palette.muted }]}>
-            Reply
-          </ThemedText>
+          <ThemedText style={[styles.actionText, { color: palette.muted }]}>Reply</ThemedText>
         </Clickable>
       )}
     </Row>

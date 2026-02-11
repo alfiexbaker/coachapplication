@@ -8,12 +8,19 @@
  * - Carpool data is persisted via apiClient (AsyncStorage in dev, API in prod)
  */
 
-import {
-  CarpoolOffer,
-  CarpoolRequest,
-} from '@/constants/types';
+import { CarpoolOffer, CarpoolRequest } from '@/constants/types';
 import { apiClient } from '../api-client';
-import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, unauthorized, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  conflictError,
+  unauthorized,
+  storageError,
+} from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { accountIdsMatch } from '@/utils/account-id';
@@ -116,7 +123,7 @@ class CommunityCarpoolService {
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
       const filtered = allOffers.filter(
-        (offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE'
+        (offer) => offer.sessionId === sessionId && offer.status === 'ACTIVE',
       );
 
       logger.info('carpool_offers_retrieved', { sessionId, count: filtered.length });
@@ -148,7 +155,9 @@ class CommunityCarpoolService {
   /**
    * Get all available carpool offers (excluding user's own offers)
    */
-  async getAvailableCarpoolOffers(excludeParentId: string): Promise<Result<CarpoolOffer[], ServiceError>> {
+  async getAvailableCarpoolOffers(
+    excludeParentId: string,
+  ): Promise<Result<CarpoolOffer[], ServiceError>> {
     try {
       const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
       const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
@@ -157,10 +166,13 @@ class CommunityCarpoolService {
         (offer) =>
           !accountIdsMatch(offer.parentId, excludeParentId) &&
           offer.status === 'ACTIVE' &&
-          offer.seatsAvailable > offer.seatsTaken
+          offer.seatsAvailable > offer.seatsTaken,
       );
 
-      logger.info('available_carpool_offers_retrieved', { excludeParentId, count: filtered.length });
+      logger.info('available_carpool_offers_retrieved', {
+        excludeParentId,
+        count: filtered.length,
+      });
       return ok(filtered);
     } catch (error) {
       logger.error('Failed to get available carpool offers', error);
@@ -193,7 +205,9 @@ class CommunityCarpoolService {
   /**
    * Create a new carpool offer
    */
-  async createCarpoolOffer(params: CreateCarpoolOfferParams): Promise<Result<CarpoolOffer, ServiceError>> {
+  async createCarpoolOffer(
+    params: CreateCarpoolOfferParams,
+  ): Promise<Result<CarpoolOffer, ServiceError>> {
     try {
       // Validation
       if (!params.parentId) {
@@ -241,7 +255,9 @@ class CommunityCarpoolService {
   /**
    * Request a seat on a carpool offer
    */
-  async requestCarpoolSeat(params: RequestCarpoolSeatParams): Promise<Result<CarpoolRequest, ServiceError>> {
+  async requestCarpoolSeat(
+    params: RequestCarpoolSeatParams,
+  ): Promise<Result<CarpoolRequest, ServiceError>> {
     const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
@@ -258,7 +274,11 @@ class CommunityCarpoolService {
     }
 
     // Check if already requested
-    if (offer.requests.some((r) => accountIdsMatch(r.parentId, params.parentId) && r.status === 'PENDING')) {
+    if (
+      offer.requests.some(
+        (r) => accountIdsMatch(r.parentId, params.parentId) && r.status === 'PENDING',
+      )
+    ) {
       return err(conflictError('You already have a pending request for this carpool'));
     }
 
@@ -284,7 +304,10 @@ class CommunityCarpoolService {
   /**
    * Accept a carpool seat request
    */
-  async acceptCarpoolRequest(offerId: string, requestId: string): Promise<Result<void, ServiceError>> {
+  async acceptCarpoolRequest(
+    offerId: string,
+    requestId: string,
+  ): Promise<Result<void, ServiceError>> {
     const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
@@ -327,7 +350,10 @@ class CommunityCarpoolService {
   /**
    * Decline a carpool seat request
    */
-  async declineCarpoolRequest(offerId: string, requestId: string): Promise<Result<void, ServiceError>> {
+  async declineCarpoolRequest(
+    offerId: string,
+    requestId: string,
+  ): Promise<Result<void, ServiceError>> {
     const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 
@@ -389,7 +415,11 @@ class CommunityCarpoolService {
   /**
    * Cancel a carpool seat request
    */
-  async cancelCarpoolRequest(offerId: string, requestId: string, parentId: string): Promise<Result<void, ServiceError>> {
+  async cancelCarpoolRequest(
+    offerId: string,
+    requestId: string,
+    parentId: string,
+  ): Promise<Result<void, ServiceError>> {
     const persisted = await apiClient.get<CarpoolOffer[]>(STORAGE_KEYS.CARPOOL_OFFERS, []);
     const allOffers = persisted.length > 0 ? persisted : this.inMemoryCarpools;
 

@@ -43,7 +43,9 @@ export const AttendeeStatsCard = memo(function AttendeeStatsCard({
   const totalGoing = rsvpCounts.going + stats.expectedGuests;
 
   return (
-    <View style={[styles.statsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <View
+      style={[styles.statsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+    >
       <Row style={styles.statsRow}>
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
@@ -132,10 +134,7 @@ export const AttendeeFilterChip = memo(function AttendeeFilterChip({
       ]}
     >
       <ThemedText
-        style={[
-          styles.filterChipText,
-          { color: isActive ? palette.onPrimary : palette.text },
-        ]}
+        style={[styles.filterChipText, { color: isActive ? palette.onPrimary : palette.text }]}
       >
         {item.label}
       </ThemedText>
@@ -172,9 +171,7 @@ export const AttendeeEmptyState = memo(function AttendeeEmptyState({
   return (
     <View style={styles.emptyState}>
       <Ionicons name="people-outline" size={48} color={palette.muted} />
-      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-        {message}
-      </ThemedText>
+      <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{message}</ThemedText>
     </View>
   );
 });

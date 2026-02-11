@@ -21,7 +21,10 @@ export const bookingSearchService = {
    * Get all bookings for a specific user (coach, parent, or athlete).
    * Reads through bookingCrudService.list() so the in-memory cache is used.
    */
-  async getBookingsForUser(userId: string, role: 'coach' | 'parent' | 'athlete'): Promise<Booking[]> {
+  async getBookingsForUser(
+    userId: string,
+    role: 'coach' | 'parent' | 'athlete',
+  ): Promise<Booking[]> {
     try {
       const bookings = await bookingCrudService.list();
 

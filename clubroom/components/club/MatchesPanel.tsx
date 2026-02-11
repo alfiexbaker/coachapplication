@@ -49,10 +49,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           <Ionicons name="trophy" size={20} color={palette.tint} />
           <ThemedText type="defaultSemiBold">Upcoming Matches</ThemedText>
         </Row>
-        <Clickable
-          style={styles.viewAllButton}
-          onPress={handleViewAll}
-        >
+        <Clickable style={styles.viewAllButton} onPress={handleViewAll}>
           <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
           <Ionicons name="chevron-forward" size={16} color={palette.tint} />
         </Clickable>
@@ -75,12 +72,18 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
               onPress={() => router.push(Routes.match(match.id))}
             >
               <View style={styles.matchItemLeft}>
-                <View style={[styles.matchTypeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
+                <View
+                  style={[styles.matchTypeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}
+                >
                   <ThemedText style={[styles.matchTypeText, { color: typeColor }]}>
                     {matchService.formatMatchType(match.matchType)}
                   </ThemedText>
                 </View>
-                <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }} numberOfLines={1}>
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={{ ...Typography.bodySmall }}
+                  numberOfLines={1}
+                >
                   vs {match.opponent}
                 </ThemedText>
                 <ThemedText style={[styles.matchMeta, { color: palette.muted }]}>

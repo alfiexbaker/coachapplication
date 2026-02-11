@@ -44,7 +44,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
 
   const handleCodeTextChange = useCallback(
     (text: string) => onChangeCodeText(text.toUpperCase()),
-    [onChangeCodeText]
+    [onChangeCodeText],
   );
 
   return (
@@ -85,8 +85,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
                 style={[
                   styles.schoolOption,
                   {
-                    backgroundColor:
-                      selectedSchool?.id === school.id ? palette.tint : palette.card,
+                    backgroundColor: selectedSchool?.id === school.id ? palette.tint : palette.card,
                     borderColor: palette.border,
                   },
                 ]}
@@ -109,9 +108,10 @@ export const CreateCodeModal = memo(function CreateCodeModal({
                   style={[
                     styles.schoolOptionSubtext,
                     {
-                      color: selectedSchool?.id === school.id
-                        ? withAlpha(palette.onPrimary, 0.8)
-                        : palette.muted,
+                      color:
+                        selectedSchool?.id === school.id
+                          ? withAlpha(palette.onPrimary, 0.8)
+                          : palette.muted,
                     },
                   ]}
                 >

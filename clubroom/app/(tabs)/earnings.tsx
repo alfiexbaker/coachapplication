@@ -12,7 +12,10 @@ export default function TabEarningsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -20,7 +23,10 @@ export default function TabEarningsScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error} onRetry={() => {}} />
       </SafeAreaView>
     );
@@ -28,7 +34,10 @@ export default function TabEarningsScreen() {
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="person-outline"
           title="Sign in required"

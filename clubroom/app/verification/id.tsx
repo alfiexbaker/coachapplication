@@ -16,14 +16,30 @@ import { useIdVerification, ID_TYPES } from '@/hooks/use-id-verification';
 export default function IdUploadScreen() {
   const { colors } = useTheme();
   const {
-    status, screenStatus, error, refreshing, onRefresh, retry, submitting, selectedType, uploaded,
-    isVerified, isPending,
-    setSelectedType, setUploaded, handleUpload, handleSubmit, handleMockApprove,
+    status,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    submitting,
+    selectedType,
+    uploaded,
+    isVerified,
+    isPending,
+    setSelectedType,
+    setUploaded,
+    handleUpload,
+    handleSubmit,
+    handleMockApprove,
   } = useIdVerification();
 
   if (screenStatus === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -31,15 +47,24 @@ export default function IdUploadScreen() {
 
   if (screenStatus === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-        <ErrorState message={error?.message || 'Failed to load ID verification status.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message || 'Failed to load ID verification status.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (screenStatus === 'empty' || !status) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="card-outline"
           title="Verification unavailable"
@@ -65,29 +90,69 @@ export default function IdUploadScreen() {
         </Row>
 
         {isVerified ? (
-          <StatusCard icon="checkmark-circle" iconColor={colors.success} title="ID Verified" subtitle={`Your identity has been verified on ${status?.identity.verifiedAt ? new Date(status.identity.verifiedAt).toLocaleDateString() : 'N/A'}`} colors={colors} />
+          <StatusCard
+            icon="checkmark-circle"
+            iconColor={colors.success}
+            title="ID Verified"
+            subtitle={`Your identity has been verified on ${status?.identity.verifiedAt ? new Date(status.identity.verifiedAt).toLocaleDateString() : 'N/A'}`}
+            colors={colors}
+          />
         ) : isPending ? (
           <SurfaceCard style={styles.statusCard}>
             <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
               <Ionicons name="time" size={48} color={colors.warning} />
             </View>
-            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>Under Review</ThemedText>
-            <ThemedText style={[styles.statusText, { color: colors.muted }]}>Your ID document is being reviewed. This usually takes 1-2 business days.</ThemedText>
-            <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
-              <ThemedText style={{ color: colors.success, fontWeight: '600' }}>Mock: Approve Now</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+              Under Review
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
+              Your ID document is being reviewed. This usually takes 1-2 business days.
+            </ThemedText>
+            <Clickable
+              onPress={handleMockApprove}
+              style={[styles.mockButton, { borderColor: colors.success }]}
+            >
+              <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
+                Mock: Approve Now
+              </ThemedText>
             </Clickable>
           </SurfaceCard>
         ) : (
           <>
-            <ThemedText style={{ color: colors.muted }}>Upload a clear photo of a government-issued ID to verify your identity.</ThemedText>
+            <ThemedText style={{ color: colors.muted }}>
+              Upload a clear photo of a government-issued ID to verify your identity.
+            </ThemedText>
 
             <View style={styles.section}>
               <ThemedText type="defaultSemiBold">Select ID Type</ThemedText>
               <Row gap="sm">
                 {ID_TYPES.map((type) => (
-                  <Clickable key={type.id} onPress={() => setSelectedType(type.id)} style={[styles.typeCard, { borderColor: selectedType === type.id ? colors.tint : colors.border, backgroundColor: selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card }]}>
-                    <Ionicons name={type.icon as keyof typeof Ionicons.glyphMap} size={28} color={selectedType === type.id ? colors.tint : colors.muted} />
-                    <ThemedText style={{ ...Typography.small, color: selectedType === type.id ? colors.tint : colors.text, fontWeight: selectedType === type.id ? '600' : '400' }}>{type.label}</ThemedText>
+                  <Clickable
+                    key={type.id}
+                    onPress={() => setSelectedType(type.id)}
+                    style={[
+                      styles.typeCard,
+                      {
+                        borderColor: selectedType === type.id ? colors.tint : colors.border,
+                        backgroundColor:
+                          selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={type.icon as keyof typeof Ionicons.glyphMap}
+                      size={28}
+                      color={selectedType === type.id ? colors.tint : colors.muted}
+                    />
+                    <ThemedText
+                      style={{
+                        ...Typography.small,
+                        color: selectedType === type.id ? colors.tint : colors.text,
+                        fontWeight: selectedType === type.id ? '600' : '400',
+                      }}
+                    >
+                      {type.label}
+                    </ThemedText>
                   </Clickable>
                 ))}
               </Row>
@@ -102,16 +167,28 @@ export default function IdUploadScreen() {
                       <Ionicons name="document" size={32} color={colors.success} />
                       <View style={{ flex: 1 }}>
                         <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                        <ThemedText style={{ color: colors.muted, ...Typography.small }}>{ID_TYPES.find((t) => t.id === selectedType)?.label}</ThemedText>
+                        <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+                          {ID_TYPES.find((t) => t.id === selectedType)?.label}
+                        </ThemedText>
                       </View>
-                      <Clickable accessibilityLabel="Remove uploaded ID" onPress={() => setUploaded(false)}><Ionicons name="close-circle" size={24} color={colors.muted} /></Clickable>
+                      <Clickable
+                        accessibilityLabel="Remove uploaded ID"
+                        onPress={() => setUploaded(false)}
+                      >
+                        <Ionicons name="close-circle" size={24} color={colors.muted} />
+                      </Clickable>
                     </Row>
                   </SurfaceCard>
                 ) : (
-                  <Clickable onPress={handleUpload} style={[styles.uploadArea, { borderColor: colors.border }]}>
+                  <Clickable
+                    onPress={handleUpload}
+                    style={[styles.uploadArea, { borderColor: colors.border }]}
+                  >
                     <Ionicons name="cloud-upload" size={40} color={colors.muted} />
                     <ThemedText type="defaultSemiBold">Tap to upload</ThemedText>
-                    <ThemedText style={{ color: colors.muted, ...Typography.small }}>Take a photo or choose from gallery</ThemedText>
+                    <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+                      Take a photo or choose from gallery
+                    </ThemedText>
                   </Clickable>
                 )}
               </View>
@@ -119,15 +196,24 @@ export default function IdUploadScreen() {
 
             <View style={styles.requirements}>
               <ThemedText type="defaultSemiBold">Requirements</ThemedText>
-              {['Document must be valid and not expired', 'All text must be clearly readable', 'Photo must show the full document', 'No glare or shadows obscuring information'].map((req, i) => (
+              {[
+                'Document must be valid and not expired',
+                'All text must be clearly readable',
+                'Photo must show the full document',
+                'No glare or shadows obscuring information',
+              ].map((req, i) => (
                 <Row key={i} align="flex-start" gap="sm">
                   <Ionicons name="checkmark" size={16} color={colors.success} />
-                  <ThemedText style={{ color: colors.muted, ...Typography.small, flex: 1 }}>{req}</ThemedText>
+                  <ThemedText style={{ color: colors.muted, ...Typography.small, flex: 1 }}>
+                    {req}
+                  </ThemedText>
                 </Row>
               ))}
             </View>
 
-            <Button onPress={handleSubmit} disabled={!selectedType || !uploaded || submitting}>{submitting ? 'Submitting...' : 'Submit for Verification'}</Button>
+            <Button onPress={handleSubmit} disabled={!selectedType || !uploaded || submitting}>
+              {submitting ? 'Submitting...' : 'Submit for Verification'}
+            </Button>
           </>
         )}
       </ScrollView>
@@ -135,13 +221,27 @@ export default function IdUploadScreen() {
   );
 }
 
-function StatusCard({ icon, iconColor, title, subtitle, colors }: { icon: string; iconColor: string; title: string; subtitle: string; colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'] }) {
+function StatusCard({
+  icon,
+  iconColor,
+  title,
+  subtitle,
+  colors,
+}: {
+  icon: string;
+  iconColor: string;
+  title: string;
+  subtitle: string;
+  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
+}) {
   return (
     <SurfaceCard style={styles.statusCard}>
       <View style={[styles.statusIcon, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={48} color={iconColor} />
       </View>
-      <ThemedText type="defaultSemiBold" style={styles.statusTitle}>{title}</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+        {title}
+      </ThemedText>
       <ThemedText style={[styles.statusText, { color: colors.muted }]}>{subtitle}</ThemedText>
     </SurfaceCard>
   );
@@ -154,13 +254,39 @@ const styles = StyleSheet.create({
   header: {},
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
-  statusIcon: { width: 80, height: 80, borderRadius: Radii['3xl'], justifyContent: 'center', alignItems: 'center' },
+  statusIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii['3xl'],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   statusTitle: { ...Typography.heading },
   statusText: { textAlign: 'center', ...Typography.bodySmall },
-  mockButton: { marginTop: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.button, borderWidth: 1.5 },
+  mockButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.button,
+    borderWidth: 1.5,
+  },
   section: { gap: Spacing.sm },
-  typeCard: { flex: 1, alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
-  uploadArea: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.xl, borderRadius: Radii.md, borderWidth: 2, borderStyle: 'dashed' },
+  typeCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  uploadArea: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.xl,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
   uploadedCard: {},
   requirements: { gap: Spacing.sm },
 });

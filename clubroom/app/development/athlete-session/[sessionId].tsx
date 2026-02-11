@@ -46,7 +46,10 @@ export default function AthleteSessionDetailScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load session details.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -54,21 +57,33 @@ export default function AthleteSessionDetailScreen() {
 
   if (status === 'empty' || !session) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <EmptyState icon="document-text-outline" title="Session not found" message="This session record no longer exists or is unavailable." />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <EmptyState
+          icon="document-text-outline"
+          title="Session not found"
+          message="This session record no longer exists or is unavailable."
+        />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <Row align="center" justify="space-between" style={styles.header}>
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={palette.foreground} />
           </Clickable>
-          <ThemedText type="title" style={Typography.title}>Session Details</ThemedText>
+          <ThemedText type="title" style={Typography.title}>
+            Session Details
+          </ThemedText>
           <View style={{ width: 24 }} />
         </Row>
 
@@ -88,26 +103,42 @@ export default function AthleteSessionDetailScreen() {
 
         {/* Performance Rating */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={Typography.heading}>Performance Rating</ThemedText>
+          <ThemedText type="subtitle" style={Typography.heading}>
+            Performance Rating
+          </ThemedText>
           <SurfaceCard style={styles.ratingCard}>
             <Row gap="sm" justify="center">
               {[1, 2, 3, 4, 5].map((star) => (
-                <Ionicons key={star} name={star <= session.performanceRating ? 'star' : 'star-outline'} size={40} color={star <= session.performanceRating ? palette.rating : palette.muted} />
+                <Ionicons
+                  key={star}
+                  name={star <= session.performanceRating ? 'star' : 'star-outline'}
+                  size={40}
+                  color={star <= session.performanceRating ? palette.rating : palette.muted}
+                />
               ))}
             </Row>
-            <ThemedText style={[Typography.bodySemiBold, { color: palette.muted }]}>{ratingLabel}</ThemedText>
+            <ThemedText style={[Typography.bodySemiBold, { color: palette.muted }]}>
+              {ratingLabel}
+            </ThemedText>
           </SurfaceCard>
         </View>
 
         {/* Skills Worked On */}
         {hasSkills && (
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={Typography.heading}>Skills Worked On</ThemedText>
+            <ThemedText type="subtitle" style={Typography.heading}>
+              Skills Worked On
+            </ThemedText>
             <SurfaceCard style={styles.cardPadded}>
               <Row wrap gap="sm" style={styles.skillsGrid}>
                 {session.skillsWorkedOn.map((skill, index) => (
-                  <View key={index} style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                    <ThemedText style={[Typography.bodySmallSemiBold, { color: palette.tint }]}>{skill}</ThemedText>
+                  <View
+                    key={index}
+                    style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
+                  >
+                    <ThemedText style={[Typography.bodySmallSemiBold, { color: palette.tint }]}>
+                      {skill}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -117,7 +148,9 @@ export default function AthleteSessionDetailScreen() {
 
         {/* Coach Notes */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={Typography.heading}>Coach&apos;s Notes</ThemedText>
+          <ThemedText type="subtitle" style={Typography.heading}>
+            Coach&apos;s Notes
+          </ThemedText>
           {hasNotes ? (
             <SurfaceCard style={styles.cardPadded}>
               <ThemedText style={Typography.body}>{session.notes}</ThemedText>
@@ -125,7 +158,9 @@ export default function AthleteSessionDetailScreen() {
           ) : (
             <SurfaceCard style={styles.emptyNotes}>
               <Ionicons name="document-text-outline" size={32} color={palette.muted} />
-              <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>No notes added yet</ThemedText>
+              <ThemedText style={[Typography.bodySmall, { color: palette.muted }]}>
+                No notes added yet
+              </ThemedText>
             </SurfaceCard>
           )}
         </View>
@@ -133,7 +168,9 @@ export default function AthleteSessionDetailScreen() {
         {/* Next Focus Areas */}
         {hasNextFocus && (
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={Typography.heading}>Next Session Focus</ThemedText>
+            <ThemedText type="subtitle" style={Typography.heading}>
+              Next Session Focus
+            </ThemedText>
             <SurfaceCard style={styles.cardPadded}>
               <View style={{ gap: Spacing.md }}>
                 {session.nextFocusAreas!.map((area, index) => (
@@ -150,14 +187,18 @@ export default function AthleteSessionDetailScreen() {
         {/* Videos */}
         {hasVideos && (
           <View style={styles.section}>
-            <ThemedText type="subtitle" style={Typography.heading}>Session Videos</ThemedText>
+            <ThemedText type="subtitle" style={Typography.heading}>
+              Session Videos
+            </ThemedText>
             <View style={{ gap: Spacing.sm }}>
               {session.videoUrls!.map((_, index) => (
                 <SurfaceCard key={index} style={styles.videoCard}>
                   <Row align="center" justify="space-between">
                     <Row gap="sm" align="center" style={{ flex: 1 }}>
                       <Ionicons name="videocam" size={20} color={palette.tint} />
-                      <ThemedText style={[Typography.bodySmall, { flex: 1 }]}>Video {index + 1}</ThemedText>
+                      <ThemedText style={[Typography.bodySmall, { flex: 1 }]}>
+                        Video {index + 1}
+                      </ThemedText>
                     </Row>
                     <Ionicons name="play-circle-outline" size={24} color={palette.tint} />
                   </Row>
@@ -173,7 +214,12 @@ export default function AthleteSessionDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.lg },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.lg,
+  },
   header: { paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   backButton: { padding: Spacing.xs },
   infoCard: { padding: Spacing.lg },

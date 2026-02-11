@@ -121,7 +121,7 @@ class VerificationService {
     try {
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
-        MOCK_VERIFICATION_STATUSES
+        MOCK_VERIFICATION_STATUSES,
       );
       return ok(allStatuses[coachId] ?? createDefaultVerificationStatus(coachId));
     } catch (error) {
@@ -136,12 +136,12 @@ class VerificationService {
   async updateVerificationItem(
     coachId: string,
     field: 'email' | 'phone' | 'identity' | 'backgroundCheck' | 'insurance',
-    update: Partial<VerificationItem>
+    update: Partial<VerificationItem>,
   ): Promise<Result<VerificationStatus, ServiceError>> {
     try {
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
-        MOCK_VERIFICATION_STATUSES
+        MOCK_VERIFICATION_STATUSES,
       );
 
       const currentStatus = allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
@@ -179,12 +179,12 @@ class VerificationService {
    */
   async addCredential(
     coachId: string,
-    credential: VerificationItem
+    credential: VerificationItem,
   ): Promise<Result<VerificationStatus, ServiceError>> {
     try {
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
-        MOCK_VERIFICATION_STATUSES
+        MOCK_VERIFICATION_STATUSES,
       );
 
       const currentStatus = allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
@@ -243,7 +243,7 @@ class VerificationService {
   async submitCredential(
     coachId: string,
     documentUrl: string,
-    notes: string
+    notes: string,
   ): Promise<Result<VerificationStatus, ServiceError>> {
     return this.addCredential(coachId, {
       status: 'PENDING',
@@ -257,7 +257,7 @@ class VerificationService {
    */
   async mockApproveVerification(
     coachId: string,
-    field: 'identity' | 'backgroundCheck' | 'insurance'
+    field: 'identity' | 'backgroundCheck' | 'insurance',
   ): Promise<Result<VerificationStatus, ServiceError>> {
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 3);
@@ -277,7 +277,7 @@ class VerificationService {
     const phoneVerified = status.phone.status === 'VERIFIED';
     const identityVerified = status.identity.status === 'VERIFIED';
     const backgroundVerified = status.backgroundCheck.status === 'VERIFIED';
-    const hasVerifiedCredentials = status.credentials.some(c => c.status === 'VERIFIED');
+    const hasVerifiedCredentials = status.credentials.some((c) => c.status === 'VERIFIED');
     const insuranceVerified = status.insurance.status === 'VERIFIED';
 
     // PREMIUM: All verified
@@ -316,7 +316,7 @@ class VerificationService {
     if (status.phone.status === 'VERIFIED') completed++;
     if (status.identity.status === 'VERIFIED') completed++;
     if (status.backgroundCheck.status === 'VERIFIED') completed++;
-    if (status.credentials.some(c => c.status === 'VERIFIED')) completed++;
+    if (status.credentials.some((c) => c.status === 'VERIFIED')) completed++;
     if (status.insurance.status === 'VERIFIED') completed++;
 
     return Math.round((completed / total) * 100);

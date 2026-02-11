@@ -164,7 +164,9 @@ async function _apiFetchUnsafe(path, options) {
         try {
             parsed = JSON.parse(errorBody);
         }
-        catch { /* raw text */ }
+        catch {
+            /* raw text */
+        }
         throw new error_types_1.ApiError(response.status, parsed.code || 'API_ERROR', parsed.message || errorBody || `HTTP ${response.status}`, parsed.details);
     }
     if (response.status === 204)

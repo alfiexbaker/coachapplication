@@ -1,27 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import {
-  type ButtonSize,
-  type ButtonVariant,
-  SIZE_MAP,
-  getVariantColors,
-} from './button-config';
+import { type ButtonSize, type ButtonVariant, SIZE_MAP, getVariantColors } from './button-config';
 import { styles } from './button-styles';
 export type { ButtonSize, ButtonVariant } from './button-config';
 
@@ -60,7 +45,10 @@ function ButtonInner({
   const { colors } = useTheme();
   const isDisabled = disabled || loading;
   const sizeConfig = SIZE_MAP[size];
-  const variantColors = useMemo(() => getVariantColors(variant, isDisabled, colors), [variant, isDisabled, colors]);
+  const variantColors = useMemo(
+    () => getVariantColors(variant, isDisabled, colors),
+    [variant, isDisabled, colors],
+  );
   const scale = useSharedValue(1);
 
   const handlePressIn = useCallback(() => {
@@ -75,9 +63,10 @@ function ButtonInner({
     transform: [{ scale: scale.value }],
   }));
 
-  const iconElement = icon && !loading ? (
-    <Ionicons name={icon} size={sizeConfig.iconSize} color={variantColors.text} />
-  ) : null;
+  const iconElement =
+    icon && !loading ? (
+      <Ionicons name={icon} size={sizeConfig.iconSize} color={variantColors.text} />
+    ) : null;
 
   return (
     <AnimatedPressable

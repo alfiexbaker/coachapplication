@@ -26,21 +26,41 @@ interface PromoUsageModalProps {
 }
 
 export const PromoUsageModal = memo(function PromoUsageModal({
-  visible, selectedCode, usageData, usageLoading, onClose,
+  visible,
+  selectedCode,
+  usageData,
+  usageLoading,
+  onClose,
 }: PromoUsageModalProps) {
   const { colors: palette } = useTheme();
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="flex-start" justify="space-between" style={styles.header}>
           <View>
-            <ThemedText type="title" style={styles.title}>Usage History</ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              Usage History
+            </ThemedText>
             {selectedCode && (
-              <ThemedText style={[styles.subtitle, { color: palette.tint }]}>{selectedCode.code}</ThemedText>
+              <ThemedText style={[styles.subtitle, { color: palette.tint }]}>
+                {selectedCode.code}
+              </ThemedText>
             )}
           </View>
-          <Clickable accessibilityLabel="Close" style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]} onPress={onClose}>
+          <Clickable
+            accessibilityLabel="Close"
+            style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
+            onPress={onClose}
+          >
             <Ionicons name="close" size={24} color={palette.text} />
           </Clickable>
         </Row>
@@ -54,8 +74,15 @@ export const PromoUsageModal = memo(function PromoUsageModal({
             />
           )}
           <View style={styles.listContainer}>
-            <ThemedText type="defaultSemiBold" style={styles.listTitle}>Recent Redemptions</ThemedText>
-            <CodeUsageList usage={usageData} loading={usageLoading} emptyMessage="No redemptions yet for this code" showUser={true} />
+            <ThemedText type="defaultSemiBold" style={styles.listTitle}>
+              Recent Redemptions
+            </ThemedText>
+            <CodeUsageList
+              usage={usageData}
+              loading={usageLoading}
+              emptyMessage="No redemptions yet for this code"
+              showUser={true}
+            />
           </View>
         </View>
       </SafeAreaView>
@@ -68,7 +95,13 @@ const styles = StyleSheet.create({
   header: { padding: Spacing.md, paddingTop: Spacing.lg },
   title: { ...Typography.title },
   subtitle: { ...Typography.bodySmallSemiBold, marginTop: Spacing.micro },
-  closeButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { flex: 1, padding: Spacing.md, gap: Spacing.lg },
   listContainer: { flex: 1, gap: Spacing.md },
   listTitle: { ...Typography.subheading },

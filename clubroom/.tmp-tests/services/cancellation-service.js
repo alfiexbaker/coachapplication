@@ -208,19 +208,39 @@ exports.cancellationService = {
                 return [
                     { minHoursBefore: 0, maxHoursBefore: 2, refundPercent: 50, label: 'Less than 2 hours' },
                     { minHoursBefore: 2, maxHoursBefore: 12, refundPercent: 75, label: '2-12 hours before' },
-                    { minHoursBefore: 12, maxHoursBefore: null, refundPercent: 100, label: '12+ hours before' },
+                    {
+                        minHoursBefore: 12,
+                        maxHoursBefore: null,
+                        refundPercent: 100,
+                        label: '12+ hours before',
+                    },
                 ];
             case 'standard':
                 return [
                     { minHoursBefore: 0, maxHoursBefore: 4, refundPercent: 0, label: 'Less than 4 hours' },
                     { minHoursBefore: 4, maxHoursBefore: 24, refundPercent: 50, label: '4-24 hours before' },
-                    { minHoursBefore: 24, maxHoursBefore: null, refundPercent: 100, label: '24+ hours before' },
+                    {
+                        minHoursBefore: 24,
+                        maxHoursBefore: null,
+                        refundPercent: 100,
+                        label: '24+ hours before',
+                    },
                 ];
             case 'strict':
                 return [
                     { minHoursBefore: 0, maxHoursBefore: 24, refundPercent: 0, label: 'Less than 24 hours' },
-                    { minHoursBefore: 24, maxHoursBefore: 48, refundPercent: 50, label: '24-48 hours before' },
-                    { minHoursBefore: 48, maxHoursBefore: null, refundPercent: 100, label: '48+ hours before' },
+                    {
+                        minHoursBefore: 24,
+                        maxHoursBefore: 48,
+                        refundPercent: 50,
+                        label: '24-48 hours before',
+                    },
+                    {
+                        minHoursBefore: 48,
+                        maxHoursBefore: null,
+                        refundPercent: 100,
+                        label: '48+ hours before',
+                    },
                 ];
             default:
                 return this.getDefaultPolicy('standard');

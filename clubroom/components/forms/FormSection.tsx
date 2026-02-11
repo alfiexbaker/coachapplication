@@ -34,11 +34,7 @@ export function FormSection({
 
   return (
     <View style={[styles.container, style]}>
-      {title && (
-        <ThemedText style={[styles.title, { color: palette.text }]}>
-          {title}
-        </ThemedText>
-      )}
+      {title && <ThemedText style={[styles.title, { color: palette.text }]}>{title}</ThemedText>}
       {description && (
         <ThemedText style={[styles.description, { color: palette.muted }]}>
           {description}

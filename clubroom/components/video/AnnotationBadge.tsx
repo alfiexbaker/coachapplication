@@ -52,14 +52,20 @@ export function AnnotationBadge({
       iconSize: 10,
       gap: Spacing.micro,
     },
-    medium: { ...Typography.caption, paddingHorizontal: 8,
+    medium: {
+      ...Typography.caption,
+      paddingHorizontal: 8,
       paddingVertical: Spacing.xxs,
       iconSize: 12,
-      gap: Spacing.xxs },
-    large: { ...Typography.small, paddingHorizontal: Spacing.xs + Spacing.xxs,
+      gap: Spacing.xxs,
+    },
+    large: {
+      ...Typography.small,
+      paddingHorizontal: Spacing.xs + Spacing.xxs,
       paddingVertical: Spacing.xxs,
       iconSize: 14,
-      gap: Spacing.xxs },
+      gap: Spacing.xxs,
+    },
   };
 
   const currentSize = sizeStyles[size];

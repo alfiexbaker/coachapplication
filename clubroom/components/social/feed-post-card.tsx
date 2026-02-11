@@ -14,11 +14,20 @@ import { OriginBadge } from './feed-post-origin-badge';
 import { FeedPostActions } from './feed-post-actions';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { formatDate, PostHeader, EventDetailsCard, AttachmentChips } from './feed-post-card-sections';
-export type { PostHeaderProps, EventDetailsCardProps, AttachmentChipsProps } from './feed-post-card-sections';
-
 import { PostHeader, EventDetailsCard, AttachmentChips } from './feed-post-card-sections';
+
+// Re-export extracted components for backward compat
+export {
+  formatDate,
+  PostHeader,
+  EventDetailsCard,
+  AttachmentChips,
+} from './feed-post-card-sections';
+export type {
+  PostHeaderProps,
+  EventDetailsCardProps,
+  AttachmentChipsProps,
+} from './feed-post-card-sections';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -68,9 +77,7 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
         <ThemedText type="defaultSemiBold" style={styles.postTitle}>
           {post.title}
         </ThemedText>
-        <ThemedText style={[styles.postBody, { color: palette.text }]}>
-          {post.body}
-        </ThemedText>
+        <ThemedText style={[styles.postBody, { color: palette.text }]}>{post.body}</ThemedText>
       </View>
 
       {/* Image */}

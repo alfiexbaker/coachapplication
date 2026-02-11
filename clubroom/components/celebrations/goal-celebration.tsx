@@ -1,6 +1,12 @@
 import { useEffect } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -57,13 +63,7 @@ export function GoalCelebration({
       <View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.6) }]}>
         <Confetti active={visible} />
 
-        <Animated.View
-          style={[
-            styles.card,
-            { backgroundColor: palette.surface },
-            cardAnimStyle,
-          ]}
-        >
+        <Animated.View style={[styles.card, { backgroundColor: palette.surface }, cardAnimStyle]}>
           {/* Target icon */}
           <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="flag" size={48} color={palette.success} />
@@ -92,9 +92,7 @@ export function GoalCelebration({
                 ]}
               />
             </View>
-            <ThemedText style={[Typography.caption, { color: palette.success }]}>
-              100%
-            </ThemedText>
+            <ThemedText style={[Typography.caption, { color: palette.success }]}>100%</ThemedText>
           </Row>
 
           {/* Buttons */}
@@ -104,7 +102,11 @@ export function GoalCelebration({
                 onPress={onShare}
                 style={[styles.primaryButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="share-outline" size={Components.icon.md} color={palette.onPrimary} />
+                <Ionicons
+                  name="share-outline"
+                  size={Components.icon.md}
+                  color={palette.onPrimary}
+                />
                 <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
                   Share
                 </ThemedText>

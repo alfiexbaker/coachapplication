@@ -40,12 +40,19 @@ export const AthleteStatusModal = memo(function AthleteStatusModal({
             <Clickable
               key={s}
               onPress={() => onSelect(s)}
-              style={currentStatus === s
-                ? [styles.optionRow, { backgroundColor: withAlpha(rosterService.getStatusColor(s), 0.09) }]
-                : styles.optionRow}
+              style={
+                currentStatus === s
+                  ? [
+                      styles.optionRow,
+                      { backgroundColor: withAlpha(rosterService.getStatusColor(s), 0.09) },
+                    ]
+                  : styles.optionRow
+              }
             >
               <Row align="center" gap="md">
-                <View style={[styles.statusDot, { backgroundColor: rosterService.getStatusColor(s) }]} />
+                <View
+                  style={[styles.statusDot, { backgroundColor: rosterService.getStatusColor(s) }]}
+                />
                 <ThemedText style={styles.flex1}>{rosterService.formatStatus(s)}</ThemedText>
                 {currentStatus === s && (
                   <Ionicons name="checkmark" size={20} color={rosterService.getStatusColor(s)} />

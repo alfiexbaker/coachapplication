@@ -160,9 +160,7 @@ class ConsentService {
           }),
         );
 
-        athleteConsents = athleteConsents.filter(
-          (ac) => matchingAthleteIds.has(ac.athleteId),
-        );
+        athleteConsents = athleteConsents.filter((ac) => matchingAthleteIds.has(ac.athleteId));
       }
 
       if (filters?.type && filters?.status && filters.status !== 'all') {
@@ -288,10 +286,7 @@ class ConsentService {
   /**
    * Get the consent status for an athlete for a specific type
    */
-  getConsentStatus(
-    athleteConsent: AthleteConsent,
-    type: ConsentType
-  ): Consent | undefined {
+  getConsentStatus(athleteConsent: AthleteConsent, type: ConsentType): Consent | undefined {
     return athleteConsent.consents.find((c) => c.type === type);
   }
 

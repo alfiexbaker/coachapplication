@@ -36,9 +36,7 @@ export const WalletBalanceCard = memo(function WalletBalanceCard({
     <Animated.View entering={FadeInDown.delay(50).springify()}>
       <SurfaceCard style={styles.card}>
         <Column align="center" gap="sm">
-          <ThemedText style={[styles.label, { color: colors.muted }]}>
-            Available Balance
-          </ThemedText>
+          <ThemedText style={[styles.label, { color: colors.muted }]}>Available Balance</ThemedText>
           <ThemedText style={styles.amount}>
             {wallet ? walletService.formatAmount(wallet.balance) : '\u00A30.00'}
           </ThemedText>
@@ -57,9 +55,7 @@ export const WalletBalanceCard = memo(function WalletBalanceCard({
             accessibilityRole="button"
           >
             <Ionicons name="add" size={20} color={colors.onPrimary} />
-            <ThemedText style={[styles.topUpText, { color: colors.onPrimary }]}>
-              Top Up
-            </ThemedText>
+            <ThemedText style={[styles.topUpText, { color: colors.onPrimary }]}>Top Up</ThemedText>
           </Clickable>
         </Column>
       </SurfaceCard>

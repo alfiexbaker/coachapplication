@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
@@ -22,7 +22,10 @@ interface ToastOptions {
 }
 
 type ToastContextValue = {
-  showToast: (message: string, options?: ToastOptions | 'default' | 'success' | 'error' | 'warning') => void;
+  showToast: (
+    message: string,
+    options?: ToastOptions | 'default' | 'success' | 'error' | 'warning',
+  ) => void;
   showUndoToast: (message: string, onUndo: () => void) => void;
   hideToast: () => void;
 };
@@ -45,41 +48,46 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToast(null);
   }, []);
 
-  const showToast = useCallback((
-    message: string,
-    options?: ToastOptions | 'default' | 'success' | 'error' | 'warning'
-  ) => {
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+  const showToast = useCallback(
+    (message: string, options?: ToastOptions | 'default' | 'success' | 'error' | 'warning') => {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-    // Handle legacy string-only tone parameter
-    const resolvedOptions: ToastOptions = typeof options === 'string'
-      ? { tone: options }
-      : options || {};
+      // Handle legacy string-only tone parameter
+      const resolvedOptions: ToastOptions =
+        typeof options === 'string' ? { tone: options } : options || {};
 
-    const { tone = 'default', action, duration = 2500 } = resolvedOptions;
+      const { tone = 'default', action, duration = 2500 } = resolvedOptions;
 
-    setToast({ message, tone, action });
-    timeoutRef.current = setTimeout(() => setToast(null), duration);
-  }, []);
+      setToast({ message, tone, action });
+      timeoutRef.current = setTimeout(() => setToast(null), duration);
+    },
+    [],
+  );
 
-  const showUndoToast = useCallback((message: string, onUndo: () => void) => {
-    showToast(message, {
-      tone: 'success',
-      action: {
-        label: 'Undo',
-        onPress: () => {
-          onUndo();
-          hideToast();
+  const showUndoToast = useCallback(
+    (message: string, onUndo: () => void) => {
+      showToast(message, {
+        tone: 'success',
+        action: {
+          label: 'Undo',
+          onPress: () => {
+            onUndo();
+            hideToast();
+          },
         },
-      },
-      duration: UNDO_DURATION,
-    });
-  }, [showToast, hideToast]);
+        duration: UNDO_DURATION,
+      });
+    },
+    [showToast, hideToast],
+  );
 
-  const value = useMemo(() => ({ showToast, showUndoToast, hideToast }), [showToast, showUndoToast, hideToast]);
+  const value = useMemo(
+    () => ({ showToast, showUndoToast, hideToast }),
+    [showToast, showUndoToast, hideToast],
+  );
 
   return (
     <ToastContext.Provider value={value}>
@@ -117,7 +125,14 @@ function Toast({
 }) {
   const { colors: palette, scheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const toneColor = tone === 'success' ? palette.success : tone === 'error' ? palette.error : tone === 'warning' ? palette.warning : palette.text;
+  const toneColor =
+    tone === 'success'
+      ? palette.success
+      : tone === 'error'
+        ? palette.error
+        : tone === 'warning'
+          ? palette.warning
+          : palette.text;
 
   // Calculate bottom position accounting for tab bar and safe area
   const bottomPosition = TAB_BAR_HEIGHT + Math.max(insets.bottom, Spacing.sm);
@@ -136,7 +151,11 @@ function Toast({
         gap="md"
         style={[
           styles.toast,
-          { backgroundColor: scheme === 'dark' ? palette.surface : palette.onPrimary, borderColor: withAlpha(toneColor, 0.33), ...Shadows[scheme].card },
+          {
+            backgroundColor: scheme === 'dark' ? palette.surface : palette.onPrimary,
+            borderColor: withAlpha(toneColor, 0.33),
+            ...Shadows[scheme].card,
+          },
         ]}
       >
         <Text style={[styles.message, { color: toneColor }]}>{message}</Text>

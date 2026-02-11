@@ -16,12 +16,12 @@ import { DateTimeField } from '@/components/ui/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
+import { LocationPicker } from './adjust-day-modal-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { LOCATION_OPTIONS, LocationPicker } from './adjust-day-modal-sections';
 export type { LocationPickerProps } from './adjust-day-modal-sections';
-
-import { LocationPicker } from './adjust-day-modal-sections';
-import { Row } from '@/components/primitives';
 
 interface AdjustDayModalProps {
   visible: boolean;
@@ -63,7 +63,8 @@ export function AdjustDayModal({
 
   const handleSave = () => {
     if (!isValid) return;
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSave({ startTime, endTime, location: location || undefined });
   };
 
@@ -129,13 +130,12 @@ export function AdjustDayModal({
 
           <Clickable
             onPress={handleSave}
-            style={[
-              styles.saveBtn,
-              { backgroundColor: isValid ? palette.tint : palette.border },
-            ]}
+            style={[styles.saveBtn, { backgroundColor: isValid ? palette.tint : palette.border }]}
           >
             <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
-            <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>Save Override</ThemedText>
+            <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>
+              Save Override
+            </ThemedText>
           </Clickable>
         </View>
       </KeyboardAvoidingView>

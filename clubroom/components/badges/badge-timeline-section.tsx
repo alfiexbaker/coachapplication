@@ -41,10 +41,14 @@ function formatDate(date: Date | string): string {
 
 function getTierColor(tier: 1 | 2 | 3 | undefined, fallback: string): string {
   switch (tier) {
-    case 3: return BADGE_TIER_COLORS.gold;
-    case 2: return BADGE_TIER_COLORS.silver;
-    case 1: return BADGE_TIER_COLORS.bronze;
-    default: return fallback;
+    case 3:
+      return BADGE_TIER_COLORS.gold;
+    case 2:
+      return BADGE_TIER_COLORS.silver;
+    case 1:
+      return BADGE_TIER_COLORS.bronze;
+    default:
+      return fallback;
   }
 }
 
@@ -52,11 +56,7 @@ interface BadgeTimelineSectionProps {
   awards: BadgeAward[];
 }
 
-const TimelineItem = memo(function TimelineItem({
-  award,
-}: {
-  award: BadgeAward;
-}) {
+const TimelineItem = memo(function TimelineItem({ award }: { award: BadgeAward }) {
   const { colors: palette } = useTheme();
   const tierColor = getTierColor(award.badgeTier, palette.tint);
 
@@ -89,7 +89,9 @@ const TimelineItem = memo(function TimelineItem({
               <Row gap="xs" align="center" wrap>
                 <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
                 {award.badgeTier && (
-                  <View style={[styles.tierPillSmall, { backgroundColor: withAlpha(tierColor, 0.12) }]}>
+                  <View
+                    style={[styles.tierPillSmall, { backgroundColor: withAlpha(tierColor, 0.12) }]}
+                  >
                     <ThemedText style={[styles.tierTextSmall, { color: tierColor }]}>
                       {TierNames[award.badgeTier]}
                     </ThemedText>
@@ -121,14 +123,22 @@ const TimelineItem = memo(function TimelineItem({
         ) : null}
 
         <Row gap="xs" align="center" wrap>
-          <Row gap="xxs" align="center" style={[styles.metaPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+          <Row
+            gap="xxs"
+            align="center"
+            style={[styles.metaPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}
+          >
             <Ionicons name="person" size={12} color={palette.tint} />
             <ThemedText style={[styles.metaText, { color: palette.tint }]}>
               {award.coachId || 'Coach'}
             </ThemedText>
           </Row>
           {award.sessionId ? (
-            <Row gap="xxs" align="center" style={[styles.metaPill, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+            <Row
+              gap="xxs"
+              align="center"
+              style={[styles.metaPill, { backgroundColor: withAlpha(palette.success, 0.07) }]}
+            >
               <Ionicons name="link" size={12} color={palette.success} />
               <ThemedText style={[styles.metaText, { color: palette.success }]}>
                 View session
@@ -137,7 +147,11 @@ const TimelineItem = memo(function TimelineItem({
             </Row>
           ) : null}
           {award.shared ? (
-            <Row gap="xxs" align="center" style={[styles.metaPill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}>
+            <Row
+              gap="xxs"
+              align="center"
+              style={[styles.metaPill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}
+            >
               <Ionicons name="send" size={12} color={palette.icon} />
               <ThemedText style={[styles.metaText, { color: palette.icon }]}>Shared</ThemedText>
             </Row>

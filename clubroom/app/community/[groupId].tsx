@@ -58,7 +58,9 @@ export default function GroupChatScreen() {
       return ok<GroupChatData>({ group: groupResult.data, messages: messagesResult.data });
     } catch (loadError) {
       logger.error('Failed to load group data:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load group data. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load group data. Pull down to refresh.', loadError),
+      );
     }
   }, [groupId, parentId]);
 
@@ -80,7 +82,12 @@ export default function GroupChatScreen() {
     setInputValue('');
     setSending(true);
     try {
-      const sendResult = await communityService.sendGroupMessage(groupId, parentId, parentName, messageText);
+      const sendResult = await communityService.sendGroupMessage(
+        groupId,
+        parentId,
+        parentName,
+        messageText,
+      );
       if (!sendResult.success) {
         Alert.alert('Send Failed', sendResult.error.message);
         setInputValue(messageText);
@@ -125,11 +132,14 @@ export default function GroupChatScreen() {
   const assignableRoles = communityGroupService.getAssignableRoles(currentRole);
   const roleBreakdown = group ? communityGroupService.getRoleBreakdown(group.members) : null;
 
-  const handleMemberManage = useCallback((member: GroupMember) => {
-    if (member.parentId === parentId) return;
-    setSelectedMember(member);
-    setShowRolePickerModal(true);
-  }, [parentId]);
+  const handleMemberManage = useCallback(
+    (member: GroupMember) => {
+      if (member.parentId === parentId) return;
+      setSelectedMember(member);
+      setShowRolePickerModal(true);
+    },
+    [parentId],
+  );
 
   const handleRoleChange = useCallback(
     async (newRole: GroupMemberRole) => {
@@ -152,7 +162,7 @@ export default function GroupChatScreen() {
         Alert.alert('Error', String(changeError));
       }
     },
-    [selectedMember, groupId, parentId, onRefresh]
+    [selectedMember, groupId, parentId, onRefresh],
   );
 
   if (status === 'loading') {
@@ -186,7 +196,10 @@ export default function GroupChatScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <GroupChatHeader
         colors={palette}
         group={group}

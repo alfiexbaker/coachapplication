@@ -107,8 +107,10 @@ export function MapView({
 
       if (nearby.length > 0) {
         const clusterCoaches = [coach, ...nearby.map((n) => n.coach)];
-        const avgLat = clusterCoaches.reduce((sum, c) => sum + c.location.lat, 0) / clusterCoaches.length;
-        const avgLng = clusterCoaches.reduce((sum, c) => sum + c.location.lng, 0) / clusterCoaches.length;
+        const avgLat =
+          clusterCoaches.reduce((sum, c) => sum + c.location.lat, 0) / clusterCoaches.length;
+        const avgLng =
+          clusterCoaches.reduce((sum, c) => sum + c.location.lng, 0) / clusterCoaches.length;
         clusterList.push({ coaches: clusterCoaches, lat: avgLat, lng: avgLng });
         clusterCoaches.forEach((c) => processed.add(c.id));
       } else {
@@ -142,10 +144,22 @@ export function MapView({
       >
         {/* Grid lines */}
         {[0.25, 0.5, 0.75].map((pos) => (
-          <View key={`h-${pos}`} style={[styles.gridLineH, { top: `${pos * 100}%`, backgroundColor: withAlpha(palette.border, 0.25) }]} />
+          <View
+            key={`h-${pos}`}
+            style={[
+              styles.gridLineH,
+              { top: `${pos * 100}%`, backgroundColor: withAlpha(palette.border, 0.25) },
+            ]}
+          />
         ))}
         {[0.25, 0.5, 0.75].map((pos) => (
-          <View key={`v-${pos}`} style={[styles.gridLineV, { left: `${pos * 100}%`, backgroundColor: withAlpha(palette.border, 0.25) }]} />
+          <View
+            key={`v-${pos}`}
+            style={[
+              styles.gridLineV,
+              { left: `${pos * 100}%`, backgroundColor: withAlpha(palette.border, 0.25) },
+            ]}
+          />
         ))}
 
         {/* User Location */}
@@ -170,31 +184,59 @@ export function MapView({
             const position = coordToPosition(cluster.lat, cluster.lng);
             if (cluster.coaches.length > 1) {
               return (
-                <View key={`cluster-${index}`} style={[styles.markerContainer, { left: position.x - 22, top: position.y - 22 }]}>
-                  <ClusterMarker count={cluster.coaches.length} onPress={() => handleClusterPress(cluster)} />
+                <View
+                  key={`cluster-${index}`}
+                  style={[styles.markerContainer, { left: position.x - 22, top: position.y - 22 }]}
+                >
+                  <ClusterMarker
+                    count={cluster.coaches.length}
+                    onPress={() => handleClusterPress(cluster)}
+                  />
                 </View>
               );
             }
             const coach = cluster.coaches[0];
             return (
-              <View key={coach.id} style={[styles.markerContainer, { left: position.x - 22, top: position.y - 30 }]}>
-                <CoachMarker coach={coach} isSelected={coach.id === selectedCoachId} onPress={() => onCoachSelect?.(coach.id)} size="medium" showRating />
+              <View
+                key={coach.id}
+                style={[styles.markerContainer, { left: position.x - 22, top: position.y - 30 }]}
+              >
+                <CoachMarker
+                  coach={coach}
+                  isSelected={coach.id === selectedCoachId}
+                  onPress={() => onCoachSelect?.(coach.id)}
+                  size="medium"
+                  showRating
+                />
               </View>
             );
           })}
 
         {/* Search This Area */}
-        <Clickable style={[styles.searchAreaButton, { backgroundColor: palette.tint, shadowColor: palette.text }]}>
-          <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>Search this area</ThemedText>
+        <Clickable
+          style={[
+            styles.searchAreaButton,
+            { backgroundColor: palette.tint, shadowColor: palette.text },
+          ]}
+        >
+          <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>
+            Search this area
+          </ThemedText>
         </Clickable>
 
         {/* Zoom Controls */}
         <View style={[styles.zoomControls, { shadowColor: palette.text }]}>
-          <Clickable accessibilityLabel="Zoom in" style={[styles.zoomButton, { backgroundColor: palette.surface }]}>
+          <Clickable
+            accessibilityLabel="Zoom in"
+            style={[styles.zoomButton, { backgroundColor: palette.surface }]}
+          >
             <Ionicons name="add" size={20} color={palette.text} />
           </Clickable>
           <View style={[styles.zoomDivider, { backgroundColor: palette.border }]} />
-          <Clickable accessibilityLabel="Zoom out" style={[styles.zoomButton, { backgroundColor: palette.surface }]}>
+          <Clickable
+            accessibilityLabel="Zoom out"
+            style={[styles.zoomButton, { backgroundColor: palette.surface }]}
+          >
             <Ionicons name="remove" size={20} color={palette.text} />
           </Clickable>
         </View>
@@ -203,7 +245,12 @@ export function MapView({
       {/* Selected Coach Card */}
       {selectedCoach && (
         <View style={styles.selectedCardContainer}>
-          <CoachCard coach={toCoachCardData(selectedCoach)} variant="compact" active onPress={() => onCoachPress?.(selectedCoach)} />
+          <CoachCard
+            coach={toCoachCardData(selectedCoach)}
+            variant="compact"
+            active
+            onPress={() => onCoachPress?.(selectedCoach)}
+          />
         </View>
       )}
 
@@ -228,12 +275,45 @@ const styles = StyleSheet.create({
   gridLineH: { position: 'absolute', left: 0, right: 0, height: 1 },
   gridLineV: { position: 'absolute', top: 0, bottom: 0, width: 1 },
   markerContainer: { position: 'absolute' },
-  userMarker: { position: 'absolute', width: 16, height: 16, borderRadius: Radii.sm, alignItems: 'center', justifyContent: 'center' },
+  userMarker: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   userMarkerInner: { width: 8, height: 8, borderRadius: Radii.xs },
-  searchAreaButton: { position: 'absolute', top: Spacing.md, alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.pill, shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  searchAreaButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
   searchAreaText: { ...Typography.small, fontWeight: '600' },
-  zoomControls: { position: 'absolute', right: Spacing.md, bottom: Spacing.md, borderRadius: Radii.md, overflow: 'hidden', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  zoomControls: {
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.md,
+    borderRadius: Radii.md,
+    overflow: 'hidden',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
   zoomButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   zoomDivider: { height: 1 },
-  selectedCardContainer: { position: 'absolute', bottom: Spacing.md, left: Spacing.md, right: Spacing.md },
+  selectedCardContainer: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    left: Spacing.md,
+    right: Spacing.md,
+  },
 });

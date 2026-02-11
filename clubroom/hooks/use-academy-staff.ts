@@ -26,11 +26,30 @@ export const ROLE_COLORS = {
 
 function getPermissionsForRole(role: AcademyMembership['role']): AcademyPermission[] {
   switch (role) {
-    case 'OWNER': return ['MANAGE_STAFF', 'MANAGE_SETTINGS', 'CREATE_SESSIONS', 'VIEW_ANALYTICS', 'MANAGE_BILLING', 'POST_AS_ACADEMY', 'INVITE_MEMBERS'];
-    case 'ADMIN': return ['MANAGE_STAFF', 'CREATE_SESSIONS', 'VIEW_ANALYTICS', 'POST_AS_ACADEMY', 'INVITE_MEMBERS'];
-    case 'HEAD_COACH': return ['CREATE_SESSIONS', 'VIEW_ANALYTICS', 'POST_AS_ACADEMY'];
-    case 'COACH': return ['CREATE_SESSIONS', 'POST_AS_ACADEMY'];
-    default: return [];
+    case 'OWNER':
+      return [
+        'MANAGE_STAFF',
+        'MANAGE_SETTINGS',
+        'CREATE_SESSIONS',
+        'VIEW_ANALYTICS',
+        'MANAGE_BILLING',
+        'POST_AS_ACADEMY',
+        'INVITE_MEMBERS',
+      ];
+    case 'ADMIN':
+      return [
+        'MANAGE_STAFF',
+        'CREATE_SESSIONS',
+        'VIEW_ANALYTICS',
+        'POST_AS_ACADEMY',
+        'INVITE_MEMBERS',
+      ];
+    case 'HEAD_COACH':
+      return ['CREATE_SESSIONS', 'VIEW_ANALYTICS', 'POST_AS_ACADEMY'];
+    case 'COACH':
+      return ['CREATE_SESSIONS', 'POST_AS_ACADEMY'];
+    default:
+      return [];
   }
 }
 
@@ -85,7 +104,9 @@ export function useAcademyStaff(id: string | undefined) {
     }
   }, [id, currentUser?.id]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const isOwner = userMembership?.role === 'OWNER';
   const canManageStaff = isOwner || !!userMembership?.permissions.includes('MANAGE_STAFF');
@@ -100,7 +121,16 @@ export function useAcademyStaff(id: string | undefined) {
     setCreatingInvite(true);
     try {
       const permissions = getPermissionsForRole(inviteRole);
-      const result = await academyService.createInvite(academy.id, academy.name, inviteRole, permissions, currentUser.id, currentUser.name || 'Admin', 30, 10);
+      const result = await academyService.createInvite(
+        academy.id,
+        academy.name,
+        inviteRole,
+        permissions,
+        currentUser.id,
+        currentUser.name || 'Admin',
+        30,
+        10,
+      );
       if (!result.success) {
         Alert.alert('Error', result.error.message);
         return;
@@ -137,34 +167,55 @@ export function useAcademyStaff(id: string | undefined) {
     }
   }, [editingMember, editRole, loadData]);
 
-  const handleRemoveMember = useCallback((member: AcademyMembership) => {
-    Alert.alert('Remove Member', `Are you sure you want to remove ${member.userId} from this academy?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove', style: 'destructive',
-        onPress: async () => {
-          try {
-            const result = await academyService.removeMember(member.id);
-            if (!result.success) {
-              Alert.alert('Error', result.error.message);
-              return;
-            }
-            await loadData();
-          } catch (error) {
-            logger.error('Failed to remove member:', error);
-            Alert.alert('Error', 'Failed to remove member');
-          }
-        },
-      },
-    ]);
-  }, [loadData]);
+  const handleRemoveMember = useCallback(
+    (member: AcademyMembership) => {
+      Alert.alert(
+        'Remove Member',
+        `Are you sure you want to remove ${member.userId} from this academy?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const result = await academyService.removeMember(member.id);
+                if (!result.success) {
+                  Alert.alert('Error', result.error.message);
+                  return;
+                }
+                await loadData();
+              } catch (error) {
+                logger.error('Failed to remove member:', error);
+                Alert.alert('Error', 'Failed to remove member');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [loadData],
+  );
 
   return {
-    academy, staff, loading, canManageStaff,
-    showInviteModal, inviteRole, creatingInvite, inviteCode,
-    editingMember, editRole,
-    setShowInviteModal, setInviteRole, setEditRole, setEditingMember,
-    openInviteModal, handleCreateInvite,
-    openEditMember, handleUpdateRole, handleRemoveMember,
+    academy,
+    staff,
+    loading,
+    canManageStaff,
+    showInviteModal,
+    inviteRole,
+    creatingInvite,
+    inviteCode,
+    editingMember,
+    editRole,
+    setShowInviteModal,
+    setInviteRole,
+    setEditRole,
+    setEditingMember,
+    openInviteModal,
+    handleCreateInvite,
+    openEditMember,
+    handleUpdateRole,
+    handleRemoveMember,
   };
 }

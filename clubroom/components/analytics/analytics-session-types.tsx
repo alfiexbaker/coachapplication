@@ -22,7 +22,9 @@ interface AnalyticsSessionTypesProps {
 }
 
 export const AnalyticsSessionTypes = memo(function AnalyticsSessionTypes({
-  colors, sessionTypes, formatCurrency,
+  colors,
+  sessionTypes,
+  formatCurrency,
 }: AnalyticsSessionTypesProps) {
   return (
     <SurfaceCard style={styles.card}>
@@ -35,14 +37,23 @@ export const AnalyticsSessionTypes = memo(function AnalyticsSessionTypes({
           <View key={sessionType.type} style={styles.row}>
             <Row justify="space-between" align="center">
               <ThemedText style={styles.name}>{sessionType.type}</ThemedText>
-              <ThemedText style={[styles.percent, { color: colors.muted }]}>{sessionType.percentage}%</ThemedText>
+              <ThemedText style={[styles.percent, { color: colors.muted }]}>
+                {sessionType.percentage}%
+              </ThemedText>
             </Row>
             <View style={[styles.barBg, { backgroundColor: colors.background }]}>
-              <View style={[styles.barFill, { width: `${sessionType.percentage}%`, backgroundColor: colors.tint }]} />
+              <View
+                style={[
+                  styles.barFill,
+                  { width: `${sessionType.percentage}%`, backgroundColor: colors.tint },
+                ]}
+              />
             </View>
             <Row justify="space-between" style={{ marginTop: Spacing.xxs }}>
               <ThemedText style={styles.count}>{sessionType.count}</ThemedText>
-              <ThemedText style={[styles.revenue, { color: colors.success }]}>{formatCurrency(sessionType.revenue)}</ThemedText>
+              <ThemedText style={[styles.revenue, { color: colors.success }]}>
+                {formatCurrency(sessionType.revenue)}
+              </ThemedText>
             </Row>
           </View>
         ))}

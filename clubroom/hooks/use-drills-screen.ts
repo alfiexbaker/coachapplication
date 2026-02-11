@@ -49,14 +49,7 @@ export function useDrillsScreen() {
     }
   }, [userId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<DrillsDashboardData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<DrillsDashboardData>({
     load: loadData,
     deps: [userId],
     isEmpty: (value) => value.assignments.length === 0,
@@ -77,19 +70,22 @@ export function useDrillsScreen() {
     router.push(Routes.drill(assignment.id));
   }, []);
 
-  const handleComplete = useCallback(async (assignment: AssignedDrill) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      if (assignment.isCompleted) {
-        await drillService.uncompleteDrill(assignment.id);
-      } else {
-        await drillService.completeDrill(assignment.id);
+  const handleComplete = useCallback(
+    async (assignment: AssignedDrill) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      try {
+        if (assignment.isCompleted) {
+          await drillService.uncompleteDrill(assignment.id);
+        } else {
+          await drillService.completeDrill(assignment.id);
+        }
+        retry();
+      } catch (error) {
+        logger.error('Failed to toggle completion:', error);
       }
-      retry();
-    } catch (error) {
-      logger.error('Failed to toggle completion:', error);
-    }
-  }, [retry]);
+    },
+    [retry],
+  );
 
   const handleTabChange = useCallback((tab: TabFilter) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

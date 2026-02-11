@@ -23,7 +23,18 @@ import { useChildBadges } from '@/hooks/use-child-badges';
 
 export default function ChildBadgesScreen() {
   const { colors } = useTheme();
-  const { child, awards, progressionData, status, error, refreshing, onRefresh, retry, highlightBadge, loadData } = useChildBadges();
+  const {
+    child,
+    awards,
+    progressionData,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    highlightBadge,
+    loadData,
+  } = useChildBadges();
 
   if (status === 'loading') {
     return (
@@ -87,7 +98,11 @@ export default function ChildBadgesScreen() {
       <View style={{ gap: Spacing.sm }}>
         {awards.map((award, index) => (
           <Animated.View key={award.id} entering={FadeInDown.delay(100 + index * 30).springify()}>
-            <ChildBadgeCard award={award} highlighted={highlightBadge === award.id} onRefresh={loadData} />
+            <ChildBadgeCard
+              award={award}
+              highlighted={highlightBadge === award.id}
+              onRefresh={loadData}
+            />
           </Animated.View>
         ))}
       </View>

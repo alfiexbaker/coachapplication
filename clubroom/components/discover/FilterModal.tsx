@@ -60,16 +60,19 @@ export function FilterModal({
     <K extends keyof CoachSearchFilters>(key: K, value: CoachSearchFilters[K]) => {
       setDraftFilters((prev) => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
-  const handlePriceChange = useCallback((min: number, max: number) => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      priceMin: min === filterOptions.priceRange.min ? undefined : min,
-      priceMax: max === filterOptions.priceRange.max ? undefined : max,
-    }));
-  }, [filterOptions.priceRange]);
+  const handlePriceChange = useCallback(
+    (min: number, max: number) => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        priceMin: min === filterOptions.priceRange.min ? undefined : min,
+        priceMax: max === filterOptions.priceRange.max ? undefined : max,
+      }));
+    },
+    [filterOptions.priceRange],
+  );
 
   const toggleArrayFilter = useCallback(
     <T extends string>(key: keyof CoachSearchFilters, value: T) => {
@@ -80,7 +83,7 @@ export function FilterModal({
         return { ...prev, [key]: next.length > 0 ? next : undefined };
       });
     },
-    []
+    [],
   );
 
   const handleClearAll = useCallback(() => setDraftFilters({}), []);
@@ -91,12 +94,20 @@ export function FilterModal({
   }, [draftFilters, onApply, onClose]);
 
   const hasActiveFilters = Object.values(draftFilters).some(
-    (v) => v !== undefined && (!Array.isArray(v) || v.length > 0)
+    (v) => v !== undefined && (!Array.isArray(v) || v.length > 0),
   );
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <FilterModalHeader
           onClose={onClose}
           onClear={handleClearAll}
@@ -104,7 +115,11 @@ export function FilterModal({
           palette={palette}
         />
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Price Range */}
           <View style={styles.section}>
             <PriceRangeSlider
@@ -134,7 +149,11 @@ export function FilterModal({
           {/* Distance */}
           <ChipGridSection title="Maximum Distance" palette={palette}>
             {DISTANCE_OPTIONS.map((option) => (
-              <Chip key={option.label} active={draftFilters.distance === option.value} onPress={() => updateFilter('distance', option.value)}>
+              <Chip
+                key={option.label}
+                active={draftFilters.distance === option.value}
+                onPress={() => updateFilter('distance', option.value)}
+              >
                 {option.label}
               </Chip>
             ))}
@@ -175,7 +194,11 @@ export function FilterModal({
           {/* Languages */}
           <ChipGridSection title="Languages" palette={palette}>
             {filterOptions.languages.map((lang) => (
-              <Chip key={lang.value} active={draftFilters.languages?.includes(lang.value)} onPress={() => toggleArrayFilter('languages', lang.value)}>
+              <Chip
+                key={lang.value}
+                active={draftFilters.languages?.includes(lang.value)}
+                onPress={() => toggleArrayFilter('languages', lang.value)}
+              >
                 {lang.label} ({lang.count})
               </Chip>
             ))}
@@ -188,8 +211,13 @@ export function FilterModal({
             {GENDER_OPTIONS.map((option) => (
               <Chip
                 key={option.value}
-                active={draftFilters.gender === option.value || (option.value === 'Any' && !draftFilters.gender)}
-                onPress={() => updateFilter('gender', option.value === 'Any' ? undefined : option.value)}
+                active={
+                  draftFilters.gender === option.value ||
+                  (option.value === 'Any' && !draftFilters.gender)
+                }
+                onPress={() =>
+                  updateFilter('gender', option.value === 'Any' ? undefined : option.value)
+                }
               >
                 {option.label}
               </Chip>

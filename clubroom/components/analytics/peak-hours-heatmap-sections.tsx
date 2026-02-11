@@ -88,10 +88,7 @@ export const HeatmapLegend = memo(function HeatmapLegend({ palette }: HeatmapLeg
         {[0, 0.25, 0.5, 0.75, 1].map((intensity) => (
           <View
             key={intensity}
-            style={[
-              styles.legendCell,
-              { backgroundColor: getIntensityColor(intensity, palette) },
-            ]}
+            style={[styles.legendCell, { backgroundColor: getIntensityColor(intensity, palette) }]}
           />
         ))}
       </Row>

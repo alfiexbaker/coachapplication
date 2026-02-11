@@ -51,7 +51,7 @@ async function updateSkillLevel(
   athleteId: string,
   skill: string,
   newLevel: number,
-  coachId: string
+  coachId: string,
 ): Promise<SkillLevel> {
   const allLevels = await getAllSkillLevels();
   const athleteData = allLevels[athleteId] ?? {
@@ -77,7 +77,7 @@ async function updateSkillLevel(
   // Calculate trend based on last 3 entries
   let trend: 'improving' | 'steady' | 'declining' = 'steady';
   if (trimmedHistory.length >= 2) {
-    const recentLevels = trimmedHistory.slice(-3).map(h => h.level);
+    const recentLevels = trimmedHistory.slice(-3).map((h) => h.level);
     const avgRecent = recentLevels.reduce((a, b) => a + b, 0) / recentLevels.length;
     const firstLevel = recentLevels[0];
     if (avgRecent > firstLevel + 0.3) trend = 'improving';
@@ -114,7 +114,7 @@ async function updateSkillLevel(
 async function updateMultipleSkillLevels(
   athleteId: string,
   skillUpdates: { skill: string; level: number }[],
-  coachId: string
+  coachId: string,
 ): Promise<SkillLevel[]> {
   const results: SkillLevel[] = [];
   for (const update of skillUpdates) {

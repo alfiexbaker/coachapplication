@@ -3,6 +3,7 @@
 > **Date Opened:** 2026-02-11
 > **Scope:** Test coverage hardening (`strict:true`, critical service coverage, deterministic test IDs, full-suite gates)
 > **Last Updated:** 2026-02-11 17:42:19 GMT
+> **Historical Snapshot:** Closed tracker. For current repo metrics use `docs/AI_CONTEXT.md`.
 
 ---
 
@@ -113,7 +114,7 @@ Phase 5 is complete when all are true:
 ## Sprint Links
 
 - Phase doc: `docs/sprints/Foundation/PHASE-5-TEST-COVERAGE.md`
-- Sprint kickoff: `docs/sprints/Foundation/SPRINT-45-PHASE-5-WAVE-1.md`
-- Sprint 46: `docs/sprints/Foundation/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
+- Sprint kickoff: `docs/sprints/CompletedSprints/SPRINT-45-PHASE-5-WAVE-1.md`
+- Sprint 46: `docs/sprints/CompletedSprints/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
 - POC contract: `docs/sprints/Foundation/POC-MOCK-SERVICE-CONTRACT.md`
 - Execution memory: `memory/Sprints/P5-TEST-COVERAGE.md`

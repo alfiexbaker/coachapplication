@@ -13,7 +13,11 @@ interface ChildSelectionGridProps {
   onToggle: (id: string) => void;
 }
 
-export function ChildSelectionGrid({ childrenOptions, selectedChildIds, onToggle }: ChildSelectionGridProps) {
+export function ChildSelectionGrid({
+  childrenOptions,
+  selectedChildIds,
+  onToggle,
+}: ChildSelectionGridProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -21,7 +25,9 @@ export function ChildSelectionGrid({ childrenOptions, selectedChildIds, onToggle
       <ThemedText type="defaultSemiBold" style={styles.title}>
         Who is this session for?
       </ThemedText>
-      <ThemedText style={[styles.helper, { color: palette.muted }]}>Select one or more children</ThemedText>
+      <ThemedText style={[styles.helper, { color: palette.muted }]}>
+        Select one or more children
+      </ThemedText>
       <View style={styles.grid}>
         {childrenOptions.map((child) => {
           const selected = selectedChildIds.includes(child.id);

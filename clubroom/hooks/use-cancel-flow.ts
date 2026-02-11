@@ -11,7 +11,13 @@ import type { Booking } from '@/constants/app-types';
 import type { RefundCalculation } from '@/constants/types';
 import { getBookingAthleteName } from '@/utils/booking-display';
 
-export type CancellationReason = 'child_ill' | 'schedule_change' | 'weather' | 'venue' | 'emergency' | 'other';
+export type CancellationReason =
+  | 'child_ill'
+  | 'schedule_change'
+  | 'weather'
+  | 'venue'
+  | 'emergency'
+  | 'other';
 
 export interface ReasonOption {
   key: CancellationReason;
@@ -38,7 +44,13 @@ export const COACH_REASONS: ReasonOption[] = [
 
 export function formatSessionDate(isoString: string): string {
   const d = new Date(isoString);
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 interface UseCancelFlowParams {
@@ -49,7 +61,13 @@ interface UseCancelFlowParams {
   onCancelled: () => void;
 }
 
-export function useCancelFlow({ visible, bookingId, booking, userRole, onCancelled }: UseCancelFlowParams) {
+export function useCancelFlow({
+  visible,
+  bookingId,
+  booking,
+  userRole,
+  onCancelled,
+}: UseCancelFlowParams) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [reason, setReason] = useState<CancellationReason | null>(null);
@@ -58,7 +76,10 @@ export function useCancelFlow({ visible, bookingId, booking, userRole, onCancell
 
   const reasons = userRole === 'coach' ? COACH_REASONS : PARENT_REASONS;
   const isCoachCancelling = userRole === 'coach';
-  const sessionStartTime = useMemo(() => new Date(booking.scheduledAt || booking.start || Date.now()), [booking.scheduledAt, booking.start]);
+  const sessionStartTime = useMemo(
+    () => new Date(booking.scheduledAt || booking.start || Date.now()),
+    [booking.scheduledAt, booking.start],
+  );
   const bookingAmount = 35;
 
   useEffect(() => {
@@ -70,14 +91,30 @@ export function useCancelFlow({ visible, bookingId, booking, userRole, onCancell
         if (!policyResult.success) {
           throw new Error(policyResult.error.message);
         }
-        setRefundCalc(schedulingRulesService.calculateRefund(bookingAmount, sessionStartTime, policyResult.data));
+        setRefundCalc(
+          schedulingRulesService.calculateRefund(
+            bookingAmount,
+            sessionStartTime,
+            policyResult.data,
+          ),
+        );
       } catch {
-        setRefundCalc(schedulingRulesService.calculateRefund(bookingAmount, sessionStartTime, null));
-      } finally { setLoading(false); }
+        setRefundCalc(
+          schedulingRulesService.calculateRefund(bookingAmount, sessionStartTime, null),
+        );
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [visible, booking.coachId, bookingAmount, sessionStartTime]);
 
-  useEffect(() => { if (!visible) { setReason(null); setNote(''); setSubmitting(false); } }, [visible]);
+  useEffect(() => {
+    if (!visible) {
+      setReason(null);
+      setNote('');
+      setSubmitting(false);
+    }
+  }, [visible]);
 
   const handleConfirm = useCallback(async () => {
     if (!reason) return;
@@ -97,38 +134,80 @@ export function useCancelFlow({ visible, bookingId, booking, userRole, onCancell
         const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
         const idx = bookings.findIndex((b) => b.id === bookingId);
         if (idx !== -1) {
-          bookings[idx].status = 'CANCELLED'; bookings[idx].cancelledBy = userRole;
-          bookings[idx].cancelledAt = new Date().toISOString(); bookings[idx].cancelReason = reason;
+          bookings[idx].status = 'CANCELLED';
+          bookings[idx].cancelledBy = userRole;
+          bookings[idx].cancelledAt = new Date().toISOString();
+          bookings[idx].cancelReason = reason;
           await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
         }
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
       try {
-        const notifications = await apiClient.get<Record<string, unknown>[]>(STORAGE_KEYS.NOTIFICATIONS, []);
-        const recipientId = isCoachCancelling ? (booking.bookedById || '') : booking.coachId;
-        const senderName = isCoachCancelling ? (booking.coachName || 'Coach') : getBookingAthleteName(booking);
+        const notifications = await apiClient.get<Record<string, unknown>[]>(
+          STORAGE_KEYS.NOTIFICATIONS,
+          [],
+        );
+        const recipientId = isCoachCancelling ? booking.bookedById || '' : booking.coachId;
+        const senderName = isCoachCancelling
+          ? booking.coachName || 'Coach'
+          : getBookingAthleteName(booking);
         notifications.push({
-          id: `notif_cancel_${Date.now()}`, userId: recipientId, type: 'booking_cancelled',
-          title: 'Session cancelled', body: `${senderName} has cancelled the ${booking.service || 'session'} on ${formatSessionDate(booking.scheduledAt || booking.start || '')}.`,
-          read: false, createdAt: new Date().toISOString(), data: { bookingId, reason },
+          id: `notif_cancel_${Date.now()}`,
+          userId: recipientId,
+          type: 'booking_cancelled',
+          title: 'Session cancelled',
+          body: `${senderName} has cancelled the ${booking.service || 'session'} on ${formatSessionDate(booking.scheduledAt || booking.start || '')}.`,
+          read: false,
+          createdAt: new Date().toISOString(),
+          data: { bookingId, reason },
         });
         await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, notifications);
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
       try {
-        const overrides = await apiClient.get<{ coachId: string; date: string; type: string; bookingId?: string }[]>(STORAGE_KEYS.AVAILABILITY_OVERRIDES, []);
+        const overrides = await apiClient.get<
+          { coachId: string; date: string; type: string; bookingId?: string }[]
+        >(STORAGE_KEYS.AVAILABILITY_OVERRIDES, []);
         const bookingDate = (booking.scheduledAt || booking.start || '').split('T')[0];
-        const updatedOverrides = overrides.filter((o) => !(o.coachId === booking.coachId && o.date === bookingDate && o.type === 'booked' && o.bookingId === bookingId));
-        if (updatedOverrides.length !== overrides.length) await apiClient.set(STORAGE_KEYS.AVAILABILITY_OVERRIDES, updatedOverrides);
-      } catch { /* non-critical */ }
+        const updatedOverrides = overrides.filter(
+          (o) =>
+            !(
+              o.coachId === booking.coachId &&
+              o.date === bookingDate &&
+              o.type === 'booked' &&
+              o.bookingId === bookingId
+            ),
+        );
+        if (updatedOverrides.length !== overrides.length)
+          await apiClient.set(STORAGE_KEYS.AVAILABILITY_OVERRIDES, updatedOverrides);
+      } catch {
+        /* non-critical */
+      }
       onCancelled();
-    } catch { onCancelled(); }
-    finally { setSubmitting(false); }
+    } catch {
+      onCancelled();
+    } finally {
+      setSubmitting(false);
+    }
   }, [bookingId, userRole, reason, note, refundCalc, booking, isCoachCancelling, onCancelled]);
 
   const hoursUntil = Math.max(0, (sessionStartTime.getTime() - Date.now()) / (1000 * 60 * 60));
   const canConfirm = !!reason;
 
   return {
-    loading, submitting, reason, setReason, note, setNote, refundCalc,
-    reasons, isCoachCancelling, hoursUntil, canConfirm, handleConfirm,
+    loading,
+    submitting,
+    reason,
+    setReason,
+    note,
+    setNote,
+    refundCalc,
+    reasons,
+    isCoachCancelling,
+    hoursUntil,
+    canConfirm,
+    handleConfirm,
   };
 }

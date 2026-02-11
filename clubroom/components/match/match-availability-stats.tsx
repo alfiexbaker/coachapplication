@@ -17,7 +17,10 @@ interface MatchAvailabilityStatsProps {
   onSetLineup: () => void;
 }
 
-export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({ match, onSetLineup }: MatchAvailabilityStatsProps) {
+export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({
+  match,
+  onSetLineup,
+}: MatchAvailabilityStatsProps) {
   const { colors } = useTheme();
   const availability = matchService.getAvailabilitySummary(match);
 
@@ -25,17 +28,23 @@ export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({ mat
     { label: 'Available', value: availability.available, color: colors.success },
     { label: 'Unavailable', value: availability.unavailable, color: colors.error },
     { label: 'Pending', value: availability.pending, color: colors.warning },
-    ...(match.status === 'LINEUP_SET' ? [{ label: 'Selected', value: availability.selected, color: SELECTED_STATUS_COLOR }] : []),
+    ...(match.status === 'LINEUP_SET'
+      ? [{ label: 'Selected', value: availability.selected, color: SELECTED_STATUS_COLOR }]
+      : []),
   ];
 
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="defaultSemiBold" style={styles.title}>Squad Availability</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.title}>
+        Squad Availability
+      </ThemedText>
       <Row justify="around">
         {stats.map((s) => (
           <View key={s.label} style={styles.statItem}>
             <View style={[styles.dot, { backgroundColor: s.color }]} />
-            <ThemedText type="title" style={{ color: s.color }}>{s.value}</ThemedText>
+            <ThemedText type="title" style={{ color: s.color }}>
+              {s.value}
+            </ThemedText>
             <ThemedText style={[styles.label, { color: colors.muted }]}>{s.label}</ThemedText>
           </View>
         ))}
@@ -44,7 +53,9 @@ export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({ mat
         <Clickable style={[styles.button, { backgroundColor: colors.tint }]} onPress={onSetLineup}>
           <Row align="center" justify="center" gap="sm">
             <Ionicons name="people" size={20} color={colors.onPrimary} />
-            <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>Set Lineup</ThemedText>
+            <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>
+              Set Lineup
+            </ThemedText>
           </Row>
         </Clickable>
       )}

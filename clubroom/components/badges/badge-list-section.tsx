@@ -28,14 +28,21 @@ function formatDate(date: Date | string): string {
 }
 
 export const BadgeListSection = memo(function BadgeListSection({
-  activeTab, visibleBadges, selectedSession, linkedAthlete, onAward,
+  activeTab,
+  visibleBadges,
+  selectedSession,
+  linkedAthlete,
+  onAward,
 }: BadgeListSectionProps) {
   const { colors } = useTheme();
 
   const tabConfig = BADGE_TABS.find((t) => t.key === activeTab);
-  const subtitle = activeTab === 'toAward' ? 'Queue awards and attach a session'
-    : activeTab === 'recent' ? 'Latest recognition'
-    : 'Badges you have already shared';
+  const subtitle =
+    activeTab === 'toAward'
+      ? 'Queue awards and attach a session'
+      : activeTab === 'recent'
+        ? 'Latest recognition'
+        : 'Badges you have already shared';
 
   return (
     <SurfaceCard style={styles.card}>
@@ -48,7 +55,9 @@ export const BadgeListSection = memo(function BadgeListSection({
         <View style={styles.emptyState}>
           <Ionicons name="ribbon-outline" size={28} color={colors.icon} />
           <ThemedText type="defaultSemiBold">Nothing here yet</ThemedText>
-          <ThemedText style={[Typography.caption, { color: colors.muted }]}>Create a badge or log a session</ThemedText>
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+            Create a badge or log a session
+          </ThemedText>
         </View>
       ) : (
         <View style={{ gap: Spacing.xs }}>
@@ -63,16 +72,22 @@ export const BadgeListSection = memo(function BadgeListSection({
                   <ThemedText style={{ color: colors.muted }}>{badge.athlete}</ThemedText>
                 </View>
                 {badge.awardedAt && (
-                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>{formatDate(badge.awardedAt)}</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                    {formatDate(badge.awardedAt)}
+                  </ThemedText>
                 )}
               </Row>
 
-              <ThemedText style={{ lineHeight: 20, color: colors.foreground }}>{badge.detail}</ThemedText>
+              <ThemedText style={{ lineHeight: 20, color: colors.foreground }}>
+                {badge.detail}
+              </ThemedText>
 
               {badge.sharedWith && (
                 <Row style={[styles.infoPill, { backgroundColor: withAlpha(colors.icon, 0.06) }]}>
                   <Ionicons name="share-social" size={14} color={colors.icon} />
-                  <ThemedText style={[Typography.caption, { color: colors.icon }]}>{badge.sharedWith}</ThemedText>
+                  <ThemedText style={[Typography.caption, { color: colors.icon }]}>
+                    {badge.sharedWith}
+                  </ThemedText>
                 </Row>
               )}
 
@@ -81,11 +96,18 @@ export const BadgeListSection = memo(function BadgeListSection({
                   <Row gap="xs" align="center" style={{ flex: 1 }}>
                     <Ionicons name="link" size={14} color={colors.icon} />
                     <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                      {selectedSession ? `Will link to ${linkedAthlete} · ${formatDate(selectedSession.completedAt)}` : 'No session linked'}
+                      {selectedSession
+                        ? `Will link to ${linkedAthlete} · ${formatDate(selectedSession.completedAt)}`
+                        : 'No session linked'}
                     </ThemedText>
                   </Row>
-                  <Clickable style={[styles.awardButton, { backgroundColor: colors.tint }]} onPress={() => onAward(badge)}>
-                    <ThemedText style={{ color: colors.onPrimary, fontWeight: '700' }}>Award badge</ThemedText>
+                  <Clickable
+                    style={[styles.awardButton, { backgroundColor: colors.tint }]}
+                    onPress={() => onAward(badge)}
+                  >
+                    <ThemedText style={{ color: colors.onPrimary, fontWeight: '700' }}>
+                      Award badge
+                    </ThemedText>
                   </Clickable>
                 </Row>
               )}
@@ -102,8 +124,21 @@ const styles = StyleSheet.create({
   sectionHeader: { alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   emptyState: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.lg },
   badgeCard: { gap: Spacing.sm, padding: Spacing.sm },
-  badgeIcon: { width: Components.avatar.sm, height: Components.avatar.sm, borderRadius: Components.avatar.sm / 2, alignItems: 'center', justifyContent: 'center' },
+  badgeIcon: {
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   badgeTitleGroup: { flex: 1, gap: Spacing.micro },
-  infoPill: { alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  infoPill: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   awardButton: { paddingHorizontal: Spacing.md, paddingVertical: 10, borderRadius: Radii.pill },
 });

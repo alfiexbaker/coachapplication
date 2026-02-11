@@ -31,7 +31,8 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
     proposerName: 'Original booking',
     proposerRole: 'PARENT',
     isCurrentUser: false,
-    time: negotiation.originalTime });
+    time: negotiation.originalTime,
+  });
 
   negotiation.offers.forEach((offer) => {
     let type: TimelineEvent['type'] = 'offer';
@@ -49,7 +50,8 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
       time: offer.proposedTime,
       message: offer.message,
       rejectionReason: offer.rejectionReason,
-      status: offer.status });
+      status: offer.status,
+    });
   });
 
   events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -63,37 +65,62 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
       <Row justify="between" align="center">
         <ThemedText type="defaultSemiBold">Negotiation History</ThemedText>
         {isResolved && (
-          <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.statusBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+          >
             <Ionicons name="checkmark-circle" size={14} color={palette.success} />
-            <ThemedText style={[styles.statusText, { color: palette.success }]}>Resolved</ThemedText>
+            <ThemedText style={[styles.statusText, { color: palette.success }]}>
+              Resolved
+            </ThemedText>
           </Row>
         )}
         {isCancelled && (
-          <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}
+          >
             <Ionicons name="close-circle" size={14} color={palette.error} />
             <ThemedText style={[styles.statusText, { color: palette.error }]}>Cancelled</ThemedText>
           </Row>
         )}
         {!isResolved && !isCancelled && (
-          <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+          >
             <Ionicons name="time" size={14} color={palette.warning} />
-            <ThemedText style={[styles.statusText, { color: palette.warning }]}>In Progress</ThemedText>
+            <ThemedText style={[styles.statusText, { color: palette.warning }]}>
+              In Progress
+            </ThemedText>
           </Row>
         )}
       </Row>
 
       {/* Participants */}
-      <Row align="center" justify="center" gap="sm" style={[styles.participantsRow, { backgroundColor: palette.background }]}>
+      <Row
+        align="center"
+        justify="center"
+        gap="sm"
+        style={[styles.participantsRow, { backgroundColor: palette.background }]}
+      >
         <Row align="center" gap="xxs">
           <Ionicons name="person" size={14} color={palette.muted} />
-          <ThemedText style={[styles.participantText, { color: palette.muted }]}>{negotiation.parentId}</ThemedText>
+          <ThemedText style={[styles.participantText, { color: palette.muted }]}>
+            {negotiation.parentId}
+          </ThemedText>
         </Row>
         <View style={styles.participantDivider}>
           <Ionicons name="swap-horizontal" size={14} color={palette.border} />
         </View>
         <Row align="center" gap="xxs">
           <Ionicons name="school" size={14} color={palette.muted} />
-          <ThemedText style={[styles.participantText, { color: palette.muted }]}>{negotiation.coachId}</ThemedText>
+          <ThemedText style={[styles.participantText, { color: palette.muted }]}>
+            {negotiation.coachId}
+          </ThemedText>
         </Row>
       </Row>
 
@@ -106,10 +133,22 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
 
       {/* Final time (if resolved) */}
       {isResolved && negotiation.finalTime && (
-        <Row align="center" gap="sm" style={[styles.finalTimeCard, { backgroundColor: withAlpha(palette.success, 0.06), borderColor: withAlpha(palette.success, 0.19) }]}>
+        <Row
+          align="center"
+          gap="sm"
+          style={[
+            styles.finalTimeCard,
+            {
+              backgroundColor: withAlpha(palette.success, 0.06),
+              borderColor: withAlpha(palette.success, 0.19),
+            },
+          ]}
+        >
           <Ionicons name="checkmark-circle" size={20} color={palette.success} />
           <View style={styles.finalTimeContent}>
-            <ThemedText style={[styles.finalTimeLabel, { color: palette.success }]}>Final agreed time</ThemedText>
+            <ThemedText style={[styles.finalTimeLabel, { color: palette.success }]}>
+              Final agreed time
+            </ThemedText>
             <ThemedText type="defaultSemiBold">{formatTimeSlot(negotiation.finalTime)}</ThemedText>
           </View>
         </Row>
@@ -123,13 +162,23 @@ export function NegotiationTimeline({ negotiation, currentUserId }: NegotiationT
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
   header: {},
-  statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   statusText: { ...Typography.sm, fontWeight: '600' },
   participantsRow: { padding: Spacing.sm, borderRadius: Radii.md },
   participant: {},
   participantText: { ...Typography.sm },
   participantDivider: { paddingHorizontal: Spacing.xs },
   timeline: { marginTop: Spacing.sm },
-  finalTimeCard: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.sm },
+  finalTimeCard: {
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginTop: Spacing.sm,
+  },
   finalTimeContent: { flex: 1 },
-  finalTimeLabel: { ...Typography.sm, fontWeight: '600' } });
+  finalTimeLabel: { ...Typography.sm, fontWeight: '600' },
+});

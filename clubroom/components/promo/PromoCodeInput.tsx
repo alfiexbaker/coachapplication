@@ -1,25 +1,23 @@
 import { useState, useCallback } from 'react';
-import {
-  View,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { View, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
-import { ThemedText } from '@/components/themed-text';
+
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCodeValidationResult } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { ValidationMessage, RedeemButton, LoadingStateMessage } from './promo-code-input-sections';
+
 // Re-export extracted components for backward compat
 export { ValidationMessage, RedeemButton, LoadingStateMessage } from './promo-code-input-sections';
-export type { ValidationMessageProps, RedeemButtonProps, LoadingStateMessageProps } from './promo-code-input-sections';
-
-import { ValidationMessage, RedeemButton, LoadingStateMessage } from './promo-code-input-sections';
+export type {
+  ValidationMessageProps,
+  RedeemButtonProps,
+  LoadingStateMessageProps,
+} from './promo-code-input-sections';
 
 interface PromoCodeInputProps {
   userId: string;
@@ -48,15 +46,18 @@ export function PromoCodeInput({
     creditAmount: number;
   } | null>(null);
 
-  const handleCodeChange = useCallback((text: string) => {
-    const normalized = text.toUpperCase().replace(/\s+/g, '');
-    setCode(normalized);
-    if (validationState !== 'idle' && validationState !== 'validating') {
-      setValidationState('idle');
-      setErrorMessage(null);
-      setValidatedCode(null);
-    }
-  }, [validationState]);
+  const handleCodeChange = useCallback(
+    (text: string) => {
+      const normalized = text.toUpperCase().replace(/\s+/g, '');
+      setCode(normalized);
+      if (validationState !== 'idle' && validationState !== 'validating') {
+        setValidationState('idle');
+        setErrorMessage(null);
+        setValidatedCode(null);
+      }
+    },
+    [validationState],
+  );
 
   const handleValidate = useCallback(async () => {
     if (!code.trim() || validationState === 'validating' || disabled) return;
@@ -67,7 +68,10 @@ export function PromoCodeInput({
       onValidate?.(result);
       if (result.valid && result.promoCode) {
         setValidationState('valid');
-        setValidatedCode({ code: result.promoCode.code, creditAmount: result.promoCode.creditAmount });
+        setValidatedCode({
+          code: result.promoCode.code,
+          creditAmount: result.promoCode.creditAmount,
+        });
       } else {
         setValidationState('invalid');
         setErrorMessage(result.error ?? 'Invalid promo code');
@@ -84,7 +88,11 @@ export function PromoCodeInput({
     try {
       const result = await promoService.redeemCode(userId, code);
       if (result.success && result.usage && result.newBalance !== undefined) {
-        onRedeem({ code: validatedCode.code, creditAmount: validatedCode.creditAmount, newBalance: result.newBalance });
+        onRedeem({
+          code: validatedCode.code,
+          creditAmount: validatedCode.creditAmount,
+          newBalance: result.newBalance,
+        });
         setCode('');
         setValidationState('idle');
         setValidatedCode(null);
@@ -112,7 +120,10 @@ export function PromoCodeInput({
     <View style={styles.container}>
       <Row
         align="center"
-        style={[styles.inputContainer, { backgroundColor: palette.surface, borderColor: getBorderColor() }]}
+        style={[
+          styles.inputContainer,
+          { backgroundColor: palette.surface, borderColor: getBorderColor() },
+        ]}
       >
         <Ionicons
           name="pricetag-outline"
@@ -134,7 +145,12 @@ export function PromoCodeInput({
         />
         {code.length > 0 && !isLoading && (
           <Pressable
-            onPress={() => { setCode(''); setValidationState('idle'); setErrorMessage(null); setValidatedCode(null); }}
+            onPress={() => {
+              setCode('');
+              setValidationState('idle');
+              setErrorMessage(null);
+              setValidatedCode(null);
+            }}
             style={styles.clearButton}
           >
             <Ionicons name="close-circle" size={18} color={palette.muted} />
@@ -162,7 +178,13 @@ export function PromoCodeInput({
       />
 
       <LoadingStateMessage
-        state={validationState === 'validating' ? 'validating' : validationState === 'redeeming' ? 'redeeming' : null}
+        state={
+          validationState === 'validating'
+            ? 'validating'
+            : validationState === 'redeeming'
+              ? 'redeeming'
+              : null
+        }
         palette={palette}
       />
     </View>

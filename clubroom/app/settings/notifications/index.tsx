@@ -50,7 +50,10 @@ export default function NotificationSettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -62,10 +65,7 @@ export default function NotificationSettingsScreen() {
         <View style={{ width: 24 }} />
       </Row>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Push Notifications */}
         <SettingsSection title="Push Notifications">
           <SettingsToggleRow
@@ -186,7 +186,8 @@ export default function NotificationSettingsScreen() {
         {/* Info text */}
         <View style={styles.infoContainer}>
           <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            You can change these settings at any time. Some notifications may still be sent for important account and security updates.
+            You can change these settings at any time. Some notifications may still be sent for
+            important account and security updates.
           </ThemedText>
         </View>
       </ScrollView>

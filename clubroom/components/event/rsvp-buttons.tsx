@@ -76,10 +76,34 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
   if (rsvpClosed) return <ClosedBanner palette={palette} />;
 
   const currentStatus = currentRSVP?.status;
-  const buttons: { status: RSVPStatus; icon: keyof typeof Ionicons.glyphMap; label: string; loadingLabel: string; canAlwaysChange: boolean }[] = [
-    { status: 'GOING', icon: 'checkmark', label: 'Going', loadingLabel: 'Saving...', canAlwaysChange: false },
-    { status: 'MAYBE', icon: 'help', label: 'Maybe', loadingLabel: 'Saving...', canAlwaysChange: false },
-    { status: 'NOT_GOING', icon: 'close', label: "Can't Go", loadingLabel: 'Saving...', canAlwaysChange: true },
+  const buttons: {
+    status: RSVPStatus;
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    loadingLabel: string;
+    canAlwaysChange: boolean;
+  }[] = [
+    {
+      status: 'GOING',
+      icon: 'checkmark',
+      label: 'Going',
+      loadingLabel: 'Saving...',
+      canAlwaysChange: false,
+    },
+    {
+      status: 'MAYBE',
+      icon: 'help',
+      label: 'Maybe',
+      loadingLabel: 'Saving...',
+      canAlwaysChange: false,
+    },
+    {
+      status: 'NOT_GOING',
+      icon: 'close',
+      label: "Can't Go",
+      loadingLabel: 'Saving...',
+      canAlwaysChange: true,
+    },
   ];
 
   return (
@@ -90,16 +114,33 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
       {/* RSVP buttons */}
       <Row style={styles.buttonRow}>
         {buttons.map(({ status, icon, label, loadingLabel, canAlwaysChange }) => {
-          const btnDisabled = canAlwaysChange ? (disabled || loading !== null) : (isDisabled || loading !== null);
+          const btnDisabled = canAlwaysChange
+            ? disabled || loading !== null
+            : isDisabled || loading !== null;
           return (
             <Clickable
               key={status}
               onPress={() => handleRSVP(status)}
               disabled={btnDisabled}
-              style={[styles.rsvpButton, getButtonStyle(status, currentStatus, palette), btnDisabled ? styles.disabledButton : undefined].filter(Boolean) as ViewStyle[]}
+              style={
+                [
+                  styles.rsvpButton,
+                  getButtonStyle(status, currentStatus, palette),
+                  btnDisabled ? styles.disabledButton : undefined,
+                ].filter(Boolean) as ViewStyle[]
+              }
             >
-              <Ionicons name={icon} size={18} color={getTextColor(status, currentStatus, palette)} />
-              <ThemedText style={[styles.rsvpButtonText, { color: getTextColor(status, currentStatus, palette) }]}>
+              <Ionicons
+                name={icon}
+                size={18}
+                color={getTextColor(status, currentStatus, palette)}
+              />
+              <ThemedText
+                style={[
+                  styles.rsvpButtonText,
+                  { color: getTextColor(status, currentStatus, palette) },
+                ]}
+              >
                 {loading === status ? loadingLabel : label}
               </ThemedText>
             </Clickable>
@@ -124,7 +165,15 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
   buttonRow: { gap: Spacing.xs },
-  rsvpButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xs + Spacing.xxs, borderRadius: Radii.md, borderWidth: 1.5 },
+  rsvpButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs + Spacing.xxs,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
   rsvpButtonText: { fontSize: scaleFont(14), fontWeight: '600' },
   disabledButton: { opacity: 0.5 },
 });

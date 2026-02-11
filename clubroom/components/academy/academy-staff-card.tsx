@@ -50,7 +50,10 @@ export const AcademyStaffCard = memo(function AcademyStaffCard({
           <View style={styles.staffInfo}>
             <ThemedText type="defaultSemiBold">{member.userId}</ThemedText>
             <View
-              style={[styles.roleBadge, { backgroundColor: withAlpha(roleColors[member.role], 0.09) }]}
+              style={[
+                styles.roleBadge,
+                { backgroundColor: withAlpha(roleColors[member.role], 0.09) },
+              ]}
             >
               <ThemedText style={[styles.roleText, { color: roleColors[member.role] }]}>
                 {academyService.formatRole(member.role)}

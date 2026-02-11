@@ -56,7 +56,7 @@ export function RecurringSessionActions({
             onSkip();
           },
         },
-      ]
+      ],
     );
   };
 

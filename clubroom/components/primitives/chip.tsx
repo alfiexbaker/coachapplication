@@ -1,5 +1,12 @@
 import { PropsWithChildren } from 'react';
-import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -12,7 +19,15 @@ export interface ChipProps extends PressableProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export function Chip({ active, selected, dense, label, children, style, ...props }: PropsWithChildren<ChipProps>) {
+export function Chip({
+  active,
+  selected,
+  dense,
+  label,
+  children,
+  style,
+  ...props
+}: PropsWithChildren<ChipProps>) {
   // Support both 'active' and 'selected' props
   const isActive = active ?? selected ?? false;
   const { colors: baseColor } = useTheme();
@@ -30,7 +45,8 @@ export function Chip({ active, selected, dense, label, children, style, ...props
         },
         style,
       ]}
-      {...props}>
+      {...props}
+    >
       <Text
         style={[
           dense ? Typography.xs : Typography.sm,
@@ -38,7 +54,8 @@ export function Chip({ active, selected, dense, label, children, style, ...props
             color: isActive ? baseColor.tint : baseColor.muted,
             fontWeight: isActive ? '600' : '500',
           },
-        ]}>
+        ]}
+      >
         {label ?? children}
       </Text>
     </Pressable>

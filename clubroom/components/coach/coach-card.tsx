@@ -15,10 +15,22 @@
 import { CompactCard } from './coach-card-compact';
 import { DiscoveryCard } from './coach-card-discovery';
 import { FavouriteCard } from './coach-card-favourite';
-import type { CoachCardProps, CompactVariantProps, DiscoveryVariantProps, FavouriteVariantProps } from './coach-card-shared';
+import type {
+  CoachCardProps,
+  CompactVariantProps,
+  DiscoveryVariantProps,
+  FavouriteVariantProps,
+} from './coach-card-shared';
 
 // Re-export types for consumers
-export type { CoachCardData, CoachCardVariant, CoachCardProps, CompactVariantProps, DiscoveryVariantProps, FavouriteVariantProps } from './coach-card-shared';
+export type {
+  CoachCardData,
+  CoachCardVariant,
+  CoachCardProps,
+  CompactVariantProps,
+  DiscoveryVariantProps,
+  FavouriteVariantProps,
+} from './coach-card-shared';
 
 export function CoachCard(props: CoachCardProps) {
   const variant = props.variant || 'compact';

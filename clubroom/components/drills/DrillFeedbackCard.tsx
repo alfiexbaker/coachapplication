@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -39,9 +39,7 @@ function DrillFeedbackCardInner({ feedback }: DrillFeedbackCardProps) {
           Your Feedback
         </ThemedText>
       </Row>
-      <ThemedText style={[styles.feedbackText, { color: palette.text }]}>
-        {feedback}
-      </ThemedText>
+      <ThemedText style={[styles.feedbackText, { color: palette.text }]}>{feedback}</ThemedText>
     </SurfaceCard>
   );
 }

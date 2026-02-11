@@ -14,21 +14,17 @@
  * compatibility, re-exporting all functionality from the split services.
  */
 
-// Re-export individual services for direct use
-export { eventCrudService } from './event-crud-service';
-export { eventRsvpService } from './event-rsvp-service';
-export { eventAttendanceService } from './event-attendance-service';
-export { eventDisplayService } from './event-display-service';
-
-// Re-export types
-export type { CreateEventInput } from './event-crud-service';
-
-// Import services for the unified facade
 import { eventCrudService } from './event-crud-service';
 import { eventRsvpService } from './event-rsvp-service';
 import { eventAttendanceService } from './event-attendance-service';
 import { eventDisplayService } from './event-display-service';
 import { createLogger } from '@/utils/logger';
+
+// Re-export individual services for direct use
+export { eventCrudService, eventRsvpService, eventAttendanceService, eventDisplayService };
+
+// Re-export types
+export type { CreateEventInput } from './event-crud-service';
 
 const logger = createLogger('EventFacade');
 void logger;
@@ -73,6 +69,7 @@ export const eventService = {
   getEventRSVPs: eventRsvpService.getEventRSVPs.bind(eventRsvpService),
   getUserRSVPs: eventRsvpService.getUserRSVPs.bind(eventRsvpService),
   getUserEventRSVP: eventRsvpService.getUserEventRSVP.bind(eventRsvpService),
+  sendReminderToMaybes: eventRsvpService.sendReminderToMaybes.bind(eventRsvpService),
   getEventsForCalendar: eventRsvpService.getEventsForCalendar.bind(eventRsvpService),
   getUpcomingUserEvents: eventRsvpService.getUpcomingUserEvents.bind(eventRsvpService),
 

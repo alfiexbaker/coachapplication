@@ -1,10 +1,6 @@
 import { useCallback } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import {
-  clubService,
-  type DashboardStats,
-  type MatchResult,
-} from '@/services/club-service';
+import { clubService, type DashboardStats, type MatchResult } from '@/services/club-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { err, ok, serviceError, validationError, type ServiceError } from '@/types/result';
@@ -48,18 +44,13 @@ export function useClubDashboard(): UseClubDashboardResult {
       return ok<ClubDashboardData>({ stats, results });
     } catch (loadError) {
       logger.error('Failed to load club dashboard', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load club dashboard. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load club dashboard. Pull down to refresh.', loadError),
+      );
     }
   }, [resolvedClubId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ClubDashboardData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubDashboardData>({
     load: loadDashboard,
     deps: [resolvedClubId],
     events: [
@@ -81,7 +72,7 @@ export function useClubDashboard(): UseClubDashboardResult {
     (path: string) => {
       router.push(path as Href);
     },
-    [router]
+    [router],
   );
 
   return {

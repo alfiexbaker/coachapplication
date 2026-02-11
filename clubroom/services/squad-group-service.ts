@@ -89,12 +89,8 @@ export const squadGroupService = {
     try {
       const parents = await squadService.getSquadParents(squadId);
       // Exclude creator from the memberIds list (they become OWNER automatically)
-      parentIds = parents
-        .filter((p) => p.parentId !== creatorId)
-        .map((p) => p.parentId);
-      parentNames = parents
-        .filter((p) => p.parentId !== creatorId)
-        .map((p) => p.parentName);
+      parentIds = parents.filter((p) => p.parentId !== creatorId).map((p) => p.parentId);
+      parentNames = parents.filter((p) => p.parentId !== creatorId).map((p) => p.parentName);
     } catch (error) {
       logger.warn('Failed to load squad parents for group seeding', error);
     }
@@ -168,11 +164,7 @@ export const squadGroupService = {
       return ok(undefined);
     }
 
-    const result = await communityGroupService.addMemberDirect(
-      groupId,
-      parentId,
-      parentName,
-    );
+    const result = await communityGroupService.addMemberDirect(groupId, parentId, parentName);
 
     if (!result.success) {
       logger.error('Failed to sync member to squad group', {

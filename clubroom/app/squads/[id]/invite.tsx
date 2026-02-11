@@ -30,7 +30,10 @@ export default function SquadInviteScreen() {
 
   if (s.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -38,15 +41,24 @@ export default function SquadInviteScreen() {
 
   if (s.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={s.error?.message || 'Failed to load squad invite data.'} onRetry={s.retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={s.error?.message || 'Failed to load squad invite data.'}
+          onRetry={s.retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (s.status === 'empty' || !s.squad) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="people-outline"
           title="Squad not found"
@@ -60,7 +72,10 @@ export default function SquadInviteScreen() {
 
   if (s.viewMode === 'result' && s.inviteResult) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
           <View style={{ width: 24 }} />
           <ThemedText type="title">Invites Sent</ThemedText>
@@ -70,9 +85,13 @@ export default function SquadInviteScreen() {
         </Row>
         <ScrollView contentContainerStyle={styles.content}>
           <InviteResultCard
-            result={s.inviteResult.result} invitedMembers={s.inviteResult.squadInvite.invitedMembers}
-            squadName={s.squad.name} sessionTitle={s.sessionTitle}
-            onViewInvites={s.handleViewInvites} onDone={s.handleDone} showDetails
+            result={s.inviteResult.result}
+            invitedMembers={s.inviteResult.squadInvite.invitedMembers}
+            squadName={s.squad.name}
+            sessionTitle={s.sessionTitle}
+            onViewInvites={s.handleViewInvites}
+            onDone={s.handleDone}
+            showDetails
           />
         </ScrollView>
       </SafeAreaView>
@@ -80,7 +99,10 @@ export default function SquadInviteScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -90,7 +112,11 @@ export default function SquadInviteScreen() {
       </Row>
 
       {/* Squad Banner */}
-      <Row align="center" gap="md" style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+      <Row
+        align="center"
+        gap="md"
+        style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+      >
         <View style={[styles.bannerIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="people" size={20} color={palette.tint} />
         </View>
@@ -110,27 +136,47 @@ export default function SquadInviteScreen() {
         <SquadInviteHistory history={s.inviteHistory} />
 
         <SquadInviteSessionForm
-          sessionTitle={s.sessionTitle} sessionType={s.sessionType} focus={s.focus}
-          slotDate={s.slotDate} slotStartTime={s.slotStartTime} slotEndTime={s.slotEndTime} slotLocation={s.slotLocation}
-          proposedSlots={s.proposedSlots} onTitleChange={s.setSessionTitle} onTypeChange={s.setSessionType}
-          onFocusChange={s.setFocus} onSlotDateChange={s.setSlotDate} onSlotStartChange={s.setSlotStartTime}
-          onSlotEndChange={s.setSlotEndTime} onSlotLocationChange={s.setSlotLocation}
-          onAddSlot={s.addTimeSlot} onRemoveSlot={s.removeTimeSlot}
+          sessionTitle={s.sessionTitle}
+          sessionType={s.sessionType}
+          focus={s.focus}
+          slotDate={s.slotDate}
+          slotStartTime={s.slotStartTime}
+          slotEndTime={s.slotEndTime}
+          slotLocation={s.slotLocation}
+          proposedSlots={s.proposedSlots}
+          onTitleChange={s.setSessionTitle}
+          onTypeChange={s.setSessionType}
+          onFocusChange={s.setFocus}
+          onSlotDateChange={s.setSlotDate}
+          onSlotStartChange={s.setSlotStartTime}
+          onSlotEndChange={s.setSlotEndTime}
+          onSlotLocationChange={s.setSlotLocation}
+          onAddSlot={s.addTimeSlot}
+          onRemoveSlot={s.removeTimeSlot}
         />
 
         <Animated.View entering={FadeInDown.delay(400)} style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Select Athletes</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Select Athletes
+          </ThemedText>
           <SquadMemberSelect
-            squadId={s.squadId} selectedMemberIds={s.selectedMemberIds}
-            onSelectionChange={s.setSelectedMemberIds} showSelectAll showNotificationCount maxHeight={300}
+            squadId={s.squadId}
+            selectedMemberIds={s.selectedMemberIds}
+            onSelectionChange={s.setSelectedMemberIds}
+            showSelectAll
+            showNotificationCount
+            maxHeight={300}
           />
         </Animated.View>
       </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <BulkInviteButton
-          selectedCount={s.selectedMemberIds.length} notificationCount={s.uniqueParentCount}
-          onPress={s.sendBulkInvites} loading={s.sendingInvites} disabled={!s.canSend}
+          selectedCount={s.selectedMemberIds.length}
+          notificationCount={s.uniqueParentCount}
+          onPress={s.sendBulkInvites}
+          loading={s.sendingInvites}
+          disabled={!s.canSend}
         />
       </View>
     </SafeAreaView>
@@ -140,10 +186,27 @@ export default function SquadInviteScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
-  backButton: { marginTop: Spacing.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  backButton: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  banner: { marginHorizontal: Spacing.lg, padding: Spacing.md, borderRadius: Radii.md, marginBottom: Spacing.md },
-  bannerIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  banner: {
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    marginBottom: Spacing.md,
+  },
+  bannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bannerInfo: { flex: 1, gap: Spacing.micro },
   bannerMeta: { ...Typography.caption },
   content: { padding: Spacing.lg, paddingTop: 0, paddingBottom: Spacing.xl },

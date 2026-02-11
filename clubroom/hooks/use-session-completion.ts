@@ -19,7 +19,12 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationTriggers } from '@/services/notification-trigger';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
-import type { SessionOffering, AttendanceRecord, SessionAttendance, SessionRegistration } from '@/constants/session-types';
+import type {
+  SessionOffering,
+  AttendanceRecord,
+  SessionAttendance,
+  SessionRegistration,
+} from '@/constants/session-types';
 import type { BadgeDefinition } from '@/constants/types';
 import type { AttendanceStatus as StepAttendanceStatus } from '@/components/session/attendance-step';
 
@@ -61,7 +66,10 @@ function mapAttendanceStatus(status: StepAttendanceStatus): 'ATTENDED' | 'NO_SHO
 
 export function useSessionCompletion(sessionId: string | undefined) {
   const { currentUser } = useAuth();
-  const getRegistrationName = useCallback((registration: SessionRegistration) => registration.userId || 'Athlete', []);
+  const getRegistrationName = useCallback(
+    (registration: SessionRegistration) => registration.userId || 'Athlete',
+    [],
+  );
 
   // Data state
   const [session, setSession] = useState<SessionOffering | null>(null);
@@ -100,15 +108,15 @@ export function useSessionCompletion(sessionId: string | undefined) {
     try {
       const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
       if (offerings.length > 0) {
-        const found = offerings.find(o => o.id === sessionId);
+        const found = offerings.find((o) => o.id === sessionId);
         if (found) {
           setSession(found);
           setSourceType('offering');
 
           const initialAttendance: Record<string, AthleteAttendance> = {};
           found.registrations
-            .filter(r => r.status === 'confirmed')
-            .forEach(reg => {
+            .filter((r) => r.status === 'confirmed')
+            .forEach((reg) => {
               initialAttendance[reg.id] = {
                 registration: reg,
                 status: 'present',
@@ -143,12 +151,14 @@ export function useSessionCompletion(sessionId: string | undefined) {
           isRecurring: false,
           recurrenceType: 'none' as const,
           status: 'active' as const,
-          registrations: [{
-            id: `reg-${booking.id}`,
-            userId: booking.athleteId || booking.athleteIds?.[0] || '',
-            bookedAt: booking.scheduledAt,
-            status: 'confirmed' as const,
-          }],
+          registrations: [
+            {
+              id: `reg-${booking.id}`,
+              userId: booking.athleteId || booking.athleteIds?.[0] || '',
+              bookedAt: booking.scheduledAt,
+              status: 'confirmed' as const,
+            },
+          ],
           createdAt: booking.scheduledAt,
         } satisfies SessionOffering;
         setSession(syntheticSession);
@@ -195,7 +205,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
   const updateAttendanceStatus = useCallback((regId: string, status: StepAttendanceStatus) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setAttendance(prev => ({
+    setAttendance((prev) => ({
       ...prev,
       [regId]: { ...prev[regId], status },
     }));
@@ -203,7 +213,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
   const toggleBadge = useCallback((regId: string, badgeId: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setAttendance(prev => {
+    setAttendance((prev) => {
       const current = prev[regId];
       const hasBadge = current.badges.includes(badgeId);
       return {
@@ -211,7 +221,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
         [regId]: {
           ...current,
           badges: hasBadge
-            ? current.badges.filter(b => b !== badgeId)
+            ? current.badges.filter((b) => b !== badgeId)
             : [...current.badges, badgeId],
         },
       };
@@ -247,8 +257,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
     try {
       const attendanceValues = Object.values(attendance);
-      const present = attendanceValues.filter(a => a.status === 'present').length;
-      const absent = attendanceValues.filter(a => a.status === 'absent').length;
+      const present = attendanceValues.filter((a) => a.status === 'present').length;
+      const absent = attendanceValues.filter((a) => a.status === 'absent').length;
 
       // 1. Save session notes
       await progressService.saveSessionNote(session.id, {
@@ -264,7 +274,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       for (const athleteData of attendanceValues) {
         if (athleteData.badges.length > 0 && athleteData.status === 'present') {
           for (const badgeId of athleteData.badges) {
-            const badge = availableBadges.find(b => b.id === badgeId);
+            const badge = availableBadges.find((b) => b.id === badgeId);
             if (badge) {
               await badgeService.awardBadge({
                 athleteId: athleteData.registration.userId,
@@ -288,7 +298,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       });
 
       // 4. Create and persist attendance records
-      const attendanceRecords: AttendanceRecord[] = attendanceValues.map(ad => ({
+      const attendanceRecords: AttendanceRecord[] = attendanceValues.map((ad) => ({
         athleteId: ad.registration.userId,
         status: mapAttendanceStatus(ad.status),
         notes: ad.note || undefined,
@@ -303,18 +313,23 @@ export function useSessionCompletion(sessionId: string | undefined) {
         completedBy: currentUser.id,
       };
 
-      await apiClient.set(`${STORAGE_KEYS.SESSION_ATTENDANCE}_${session.id}`, sessionAttendanceData);
+      await apiClient.set(
+        `${STORAGE_KEYS.SESSION_ATTENDANCE}_${session.id}`,
+        sessionAttendanceData,
+      );
 
       // 5. Update session/booking status to completed
       if (sourceType === 'booking') {
-        const updateResult = await bookingService.updateBooking(session.id, { status: 'COMPLETED' as const });
+        const updateResult = await bookingService.updateBooking(session.id, {
+          status: 'COMPLETED' as const,
+        });
         if (!updateResult.success) {
           logger.error('Failed to update booking status', updateResult.error.message);
         }
       } else {
         const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
         if (offerings.length > 0) {
-          const updated = offerings.map(o => {
+          const updated = offerings.map((o) => {
             if (o.id === session.id && !o.isRecurring) {
               return { ...o, status: 'completed' as const };
             }
@@ -326,12 +341,12 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
       // 6. Emit SESSION_COMPLETED event
       const athleteIds = attendanceValues
-        .filter(a => a.status === 'present')
-        .map(a => a.registration.userId);
+        .filter((a) => a.status === 'present')
+        .map((a) => a.registration.userId);
 
       const athleteNamesList = attendanceValues
-        .filter(a => a.status === 'present')
-        .map(a => getRegistrationName(a.registration));
+        .filter((a) => a.status === 'present')
+        .map((a) => getRegistrationName(a.registration));
 
       emitTyped(ServiceEvents.SESSION_COMPLETED, {
         sessionId: session.id,
@@ -361,7 +376,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
         attendanceRecords: attendanceRecords.length,
       });
 
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web')
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       Alert.alert(
         'Session Completed',
@@ -375,9 +391,17 @@ export function useSessionCompletion(sessionId: string | undefined) {
       setSubmitting(false);
     }
   }, [
-    session, currentUser, attendance, sessionSummary, skillsFocused,
-    overallEffort, homework, availableBadges, shareNotesWithParents,
-    shareAttendance, sourceType,
+    session,
+    currentUser,
+    attendance,
+    sessionSummary,
+    skillsFocused,
+    overallEffort,
+    homework,
+    availableBadges,
+    shareNotesWithParents,
+    shareAttendance,
+    sourceType,
   ]);
 
   // ============================================================================
@@ -387,33 +411,35 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const attendanceList = useMemo(() => Object.values(attendance), [attendance]);
 
   const attendanceStepData = useMemo(
-    () => attendanceList.map(a => ({
-      registrationId: a.registration.id,
-      userName: getRegistrationName(a.registration),
-      status: a.status,
-      badges: a.badges,
-    })),
-    [attendanceList, getRegistrationName],
-  );
-
-  const presentAthletes = useMemo(
-    () => attendanceList
-      .filter(a => a.status === 'present')
-      .map(a => ({
+    () =>
+      attendanceList.map((a) => ({
         registrationId: a.registration.id,
         userName: getRegistrationName(a.registration),
+        status: a.status,
         badges: a.badges,
       })),
     [attendanceList, getRegistrationName],
   );
 
+  const presentAthletes = useMemo(
+    () =>
+      attendanceList
+        .filter((a) => a.status === 'present')
+        .map((a) => ({
+          registrationId: a.registration.id,
+          userName: getRegistrationName(a.registration),
+          badges: a.badges,
+        })),
+    [attendanceList, getRegistrationName],
+  );
+
   const presentCount = useMemo(
-    () => attendanceList.filter(a => a.status === 'present').length,
+    () => attendanceList.filter((a) => a.status === 'present').length,
     [attendanceList],
   );
 
   const absentCount = useMemo(
-    () => attendanceList.filter(a => a.status === 'absent').length,
+    () => attendanceList.filter((a) => a.status === 'absent').length,
     [attendanceList],
   );
 

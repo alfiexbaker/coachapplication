@@ -92,7 +92,7 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
       </Row>
 
       <Row gap="xs">
-        {ATTENDANCE_STATUSES.map(s => {
+        {ATTENDANCE_STATUSES.map((s) => {
           const btnIcon = getAttendanceIcon(s, colors);
           const isSelected = athlete.status === s;
           return (
@@ -141,7 +141,7 @@ export const AttendanceStep = memo(function AttendanceStep({
           No registered athletes for this session
         </ThemedText>
       ) : (
-        athletes.map(athlete => (
+        athletes.map((athlete) => (
           <AthleteRow
             key={athlete.registrationId}
             athlete={athlete}

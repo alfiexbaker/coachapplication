@@ -383,12 +383,8 @@ async function assignDrill(drillId, athleteId, athleteName, assignedBy, assigned
     });
     // Notify parent that a drill has been assigned to their athlete
     const [coachDisplayName, athleteDisplayName] = await Promise.all([
-        assignedByName?.trim()
-            ? Promise.resolve(assignedByName)
-            : resolveUserName(assignedBy, 'Coach'),
-        athleteName?.trim()
-            ? Promise.resolve(athleteName)
-            : resolveUserName(athleteId, 'Athlete'),
+        assignedByName?.trim() ? Promise.resolve(assignedByName) : resolveUserName(assignedBy, 'Coach'),
+        athleteName?.trim() ? Promise.resolve(athleteName) : resolveUserName(athleteId, 'Athlete'),
     ]);
     await notification_trigger_1.notificationTriggers.drillAssigned(coachDisplayName, drill.title, athleteDisplayName);
     return (0, result_1.ok)(newAssignment);

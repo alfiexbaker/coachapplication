@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,11 +22,19 @@ interface BrandingColorPickerProps {
 }
 
 export const BrandingColorPicker = memo(function BrandingColorPicker({
-  colors, scheme, primaryColor, secondaryColor, canEdit, onPrimaryChange, onSecondaryChange,
+  colors,
+  scheme,
+  primaryColor,
+  secondaryColor,
+  canEdit,
+  onPrimaryChange,
+  onSecondaryChange,
 }: BrandingColorPickerProps) {
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="defaultSemiBold" style={styles.title}>Brand Colors</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.title}>
+        Brand Colors
+      </ThemedText>
       <Column gap="md">
         <ColorRow
           label="Primary Color"
@@ -58,7 +66,14 @@ interface ColorRowProps {
   scheme: 'light' | 'dark';
 }
 
-const ColorRow = memo(function ColorRow({ label, selected, canEdit, onSelect, colors, scheme }: ColorRowProps) {
+const ColorRow = memo(function ColorRow({
+  label,
+  selected,
+  canEdit,
+  onSelect,
+  colors,
+  scheme,
+}: ColorRowProps) {
   return (
     <View style={styles.colorSection}>
       <ThemedText style={styles.colorLabel}>{label}</ThemedText>
@@ -67,12 +82,14 @@ const ColorRow = memo(function ColorRow({ label, selected, canEdit, onSelect, co
           <Clickable
             key={color}
             onPress={() => canEdit && onSelect(color)}
-            style={[
-              styles.colorOption,
-              { backgroundColor: color },
-              selected === color && styles.colorSelected,
-              selected === color && { borderColor: colors.onPrimary, ...Shadows[scheme].card },
-            ].filter(Boolean) as ViewStyle[]}
+            style={
+              [
+                styles.colorOption,
+                { backgroundColor: color },
+                selected === color && styles.colorSelected,
+                selected === color && { borderColor: colors.onPrimary, ...Shadows[scheme].card },
+              ].filter(Boolean) as ViewStyle[]
+            }
           >
             {selected === color && <Ionicons name="checkmark" size={18} color={colors.onPrimary} />}
           </Clickable>
@@ -88,6 +105,12 @@ const styles = StyleSheet.create({
   colorSection: { gap: Spacing.xs },
   colorLabel: { ...Typography.smallSemiBold },
   colorGrid: { flexWrap: 'wrap', gap: Spacing.xs },
-  colorOption: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  colorOption: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   colorSelected: { borderWidth: 3 },
 });

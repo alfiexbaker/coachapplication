@@ -29,8 +29,16 @@ interface Props {
 }
 
 function SubscribeScheduleSectionInner({
-  dayOfWeek, onDayChange, time, showTimePicker, onShowTimePicker,
-  timeDate, onTimeChange, frequency, onFrequencyChange, pricePerSession,
+  dayOfWeek,
+  onDayChange,
+  time,
+  showTimePicker,
+  onShowTimePicker,
+  timeDate,
+  onTimeChange,
+  frequency,
+  onFrequencyChange,
+  pricePerSession,
 }: Props) {
   const { colors: palette } = useTheme();
 
@@ -38,7 +46,9 @@ function SubscribeScheduleSectionInner({
     <>
       {/* Day Selector */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Day of Week</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Day of Week
+        </ThemedText>
         <Row gap="xs">
           {DAYS.map((day) => {
             const isSelected = dayOfWeek === day.value;
@@ -46,9 +56,22 @@ function SubscribeScheduleSectionInner({
               <Clickable
                 key={day.value}
                 onPress={() => onDayChange(day.value)}
-                style={[styles.dayOption, { backgroundColor: isSelected ? palette.tint : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}
+                style={[
+                  styles.dayOption,
+                  {
+                    backgroundColor: isSelected ? palette.tint : palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
               >
-                <ThemedText style={[styles.dayLabel, { color: isSelected ? palette.onPrimary : palette.foreground }]}>{day.shortLabel}</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.dayLabel,
+                    { color: isSelected ? palette.onPrimary : palette.foreground },
+                  ]}
+                >
+                  {day.shortLabel}
+                </ThemedText>
               </Clickable>
             );
           })}
@@ -57,21 +80,41 @@ function SubscribeScheduleSectionInner({
 
       {/* Time Selector */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Time</ThemedText>
-        <Clickable onPress={() => onShowTimePicker(true)} style={[styles.timeSelector, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Time
+        </ThemedText>
+        <Clickable
+          onPress={() => onShowTimePicker(true)}
+          style={[
+            styles.timeSelector,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
+        >
           <Ionicons name="time-outline" size={20} color={palette.icon} />
           <ThemedText style={styles.timeText}>{formatTime(time)}</ThemedText>
           <Ionicons name="chevron-down" size={16} color={palette.muted} />
         </Clickable>
         {showTimePicker && (
-          <DateTimePicker value={timeDate} mode="time" is24Hour={false} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onTimeChange} />
+          <DateTimePicker
+            value={timeDate}
+            mode="time"
+            is24Hour={false}
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onTimeChange}
+          />
         )}
       </View>
 
       {/* Frequency Selector */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Frequency</ThemedText>
-        <FrequencyPicker value={frequency} onChange={onFrequencyChange} pricePerSession={pricePerSession} />
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Frequency
+        </ThemedText>
+        <FrequencyPicker
+          value={frequency}
+          onChange={onFrequencyChange}
+          pricePerSession={pricePerSession}
+        />
       </View>
     </>
   );
@@ -82,8 +125,21 @@ export const SubscribeScheduleSection = memo(SubscribeScheduleSectionInner);
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xxs },
-  dayOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
+  dayOption: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
   dayLabel: { ...Typography.smallSemiBold },
-  timeSelector: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  timeSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   timeText: { flex: 1, ...Typography.body },
 });

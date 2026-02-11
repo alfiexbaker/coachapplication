@@ -2,7 +2,7 @@
 
 > Date: 2026-02-11
 > Phase: Foundation Phase 5 (Test Coverage)
-> Sprint Anchor: `docs/sprints/Foundation/SPRINT-45-PHASE-5-WAVE-1.md`
+> Sprint Anchor: `docs/sprints/CompletedSprints/SPRINT-45-PHASE-5-WAVE-1.md`
 > Live Tracker: `docs/sprints/Foundation/PHASE-5-LIVE-TRACKER.md`
 > Source of truth: `docs/SOURCE_OF_TRUTH.md`, `docs/sprints/Foundation/PHASE-5-TEST-COVERAGE.md`
 > Status: DONE
@@ -19,7 +19,7 @@
 - Phase 4 status: complete and closed.
 - Phase 5 tracker/sprint docs:
   - `docs/sprints/Foundation/PHASE-5-LIVE-TRACKER.md` created.
-  - `docs/sprints/Foundation/SPRINT-45-PHASE-5-WAVE-1.md` created.
+  - `docs/sprints/CompletedSprints/SPRINT-45-PHASE-5-WAVE-1.md` created.
 - Current Metrics:
   - Service files: `100`
   - Direct service test-file matches: `100`
@@ -142,7 +142,7 @@
   - `NODE_OPTIONS=--max-old-space-size=8192 npx tsc -p .tmp-tsconfig.test.full.json --pretty false` PASS
   - Core-flow runtime smoke (bookings/invites/family/community + contracts) PASS (`138 tests`, `0 fail`)
   - Full runtime PASS (`2535 tests`, `0 fail`)
-  - Added closeout doc: `docs/sprints/Foundation/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
+  - Added closeout doc: `docs/sprints/CompletedSprints/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
 - `2026-02-11 17:41:21 GMT` - Re-ran compile gate after tracker updates: `npm run test:compile` PASS.
 - `2026-02-11 17:41:54 GMT` - Re-ran full-include strict compile gate after compile reset: `NODE_OPTIONS=--max-old-space-size=8192 npx tsc -p .tmp-tsconfig.test.full.json --pretty false` PASS.
 - `2026-02-11 17:42:19 GMT` - Revalidated Sprint 46 alias suites after final sync:

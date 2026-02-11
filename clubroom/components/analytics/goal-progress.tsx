@@ -33,11 +33,7 @@ export function GoalProgress({
   const isCompleted = goal.status === 'COMPLETED';
   const isAbandoned = goal.status === 'ABANDONED';
 
-  const statusColor = isCompleted
-    ? palette.success
-    : isAbandoned
-    ? palette.muted
-    : palette.tint;
+  const statusColor = isCompleted ? palette.success : isAbandoned ? palette.muted : palette.tint;
 
   const daysRemaining = goal.targetDate
     ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -49,12 +45,13 @@ export function GoalProgress({
       <Row style={styles.header}>
         <View style={styles.headerContent}>
           <Row style={styles.titleRow}>
-            {isCompleted && (
-              <Ionicons name="checkmark-circle" size={18} color={palette.success} />
-            )}
+            {isCompleted && <Ionicons name="checkmark-circle" size={18} color={palette.success} />}
             <ThemedText
               type="defaultSemiBold"
-              style={[styles.title, isAbandoned ? { textDecorationLine: 'line-through' } : undefined]}
+              style={[
+                styles.title,
+                isAbandoned ? { textDecorationLine: 'line-through' } : undefined,
+              ]}
             >
               {goal.title}
             </ThemedText>
@@ -77,8 +74,8 @@ export function GoalProgress({
                       daysRemaining < 7
                         ? withAlpha(palette.error, 0.09)
                         : daysRemaining < 14
-                        ? withAlpha(palette.warning, 0.09)
-                        : withAlpha(palette.muted, 0.09),
+                          ? withAlpha(palette.warning, 0.09)
+                          : withAlpha(palette.muted, 0.09),
                   },
                 ]}
               >
@@ -90,8 +87,8 @@ export function GoalProgress({
                         daysRemaining < 7
                           ? palette.error
                           : daysRemaining < 14
-                          ? palette.warning
-                          : palette.muted,
+                            ? palette.warning
+                            : palette.muted,
                     },
                   ]}
                 >
@@ -136,10 +133,7 @@ export function GoalProgress({
       {expanded && goal.milestones.length > 0 && (
         <View style={styles.milestonesList}>
           {goal.milestones.map((milestone, index) => (
-            <Animated.View
-              key={milestone.id}
-              entering={FadeInRight.delay(index * 50).springify()}
-            >
+            <Animated.View key={milestone.id} entering={FadeInRight.delay(index * 50).springify()}>
               <MilestoneItem
                 milestone={milestone}
                 onComplete={() => onCompleteMilestone?.(milestone.id)}

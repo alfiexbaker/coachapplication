@@ -47,7 +47,8 @@ const MOCK_SESSIONS: GroupSession[] = [
     id: 'gs_1',
     coachId: 'coach1',
     title: 'Half-Term Football Camp',
-    description: 'Intensive 3-day camp focusing on technical skills and game play. Includes lunch and snacks.',
+    description:
+      'Intensive 3-day camp focusing on technical skills and game play. Includes lunch and snacks.',
     sessionType: 'CAMP',
     schedule: [
       { date: '2026-02-16', startTime: '09:00', endTime: '15:00' },
@@ -76,11 +77,10 @@ const MOCK_SESSIONS: GroupSession[] = [
     coachId: 'coach1',
     clubId: 'club_lions',
     title: 'Striker Masterclass',
-    description: 'Advanced finishing clinic for aspiring strikers. Learn professional techniques and movement.',
+    description:
+      'Advanced finishing clinic for aspiring strikers. Learn professional techniques and movement.',
     sessionType: 'CLINIC',
-    schedule: [
-      { date: '2026-01-25', startTime: '10:00', endTime: '12:00' },
-    ],
+    schedule: [{ date: '2026-01-25', startTime: '10:00', endTime: '12:00' }],
     maxParticipants: 10,
     currentParticipants: 8,
     waitlistEnabled: true,
@@ -102,11 +102,10 @@ const MOCK_SESSIONS: GroupSession[] = [
     id: 'gs_3',
     coachId: 'coach2',
     title: 'Goalkeeper Training Session',
-    description: 'Specialized goalkeeper training covering shot stopping, positioning, and distribution.',
+    description:
+      'Specialized goalkeeper training covering shot stopping, positioning, and distribution.',
     sessionType: 'OPEN_SESSION',
-    schedule: [
-      { date: '2026-01-20', startTime: '14:00', endTime: '16:00' },
-    ],
+    schedule: [{ date: '2026-01-20', startTime: '14:00', endTime: '16:00' }],
     maxParticipants: 6,
     currentParticipants: 4,
     waitlistEnabled: false,
@@ -114,7 +113,7 @@ const MOCK_SESSIONS: GroupSession[] = [
     pricePerParticipant: 35,
     currency: 'GBP',
     skillLevel: 'ALL',
-    location: 'Regent\'s Park, London',
+    location: "Regent's Park, London",
     isVirtual: false,
     status: 'PUBLISHED',
     createdAt: '2026-01-10T09:00:00Z',
@@ -126,11 +125,10 @@ const MOCK_SESSIONS: GroupSession[] = [
     id: 'gs_4',
     coachId: 'coach1',
     title: 'Free Trial Session',
-    description: 'Come try a session with no commitment. See if we\'re the right fit for your child.',
+    description:
+      "Come try a session with no commitment. See if we're the right fit for your child.",
     sessionType: 'TRIAL',
-    schedule: [
-      { date: '2026-01-22', startTime: '17:00', endTime: '18:00' },
-    ],
+    schedule: [{ date: '2026-01-22', startTime: '17:00', endTime: '18:00' }],
     maxParticipants: 8,
     currentParticipants: 5,
     waitlistEnabled: false,
@@ -154,7 +152,8 @@ const MOCK_SESSIONS: GroupSession[] = [
     clubId: 'club_lions',
     squadId: 'squad_juniors',
     title: "Under 11's Training",
-    description: 'Weekly training session for U11 squad. Focus on technical development, team tactics, and match preparation.',
+    description:
+      'Weekly training session for U11 squad. Focus on technical development, team tactics, and match preparation.',
     sessionType: 'TRAINING',
     schedule: [
       { date: '2026-01-14', startTime: '17:00', endTime: '18:30' },
@@ -191,8 +190,9 @@ const MOCK_SESSIONS: GroupSession[] = [
     coachId: 'coach2',
     clubId: 'club_lions',
     squadId: 'squad_juniors',
-    title: "Junior Skills Development",
-    description: 'Saturday morning development sessions for our youngest squad members. Fun-focused with skill building.',
+    title: 'Junior Skills Development',
+    description:
+      'Saturday morning development sessions for our youngest squad members. Fun-focused with skill building.',
     sessionType: 'TRAINING',
     schedule: [
       { date: '2026-01-18', startTime: '10:00', endTime: '11:30' },
@@ -229,8 +229,9 @@ const MOCK_SESSIONS: GroupSession[] = [
     coachId: 'coach1',
     clubId: 'club_lions',
     squadId: 'squad_u15',
-    title: "U15 Performance Training",
-    description: 'Advanced training for our U15 performance squad. Focus on tactical understanding and match intensity.',
+    title: 'U15 Performance Training',
+    description:
+      'Advanced training for our U15 performance squad. Focus on tactical understanding and match intensity.',
     sessionType: 'TRAINING',
     schedule: [
       { date: '2026-01-15', startTime: '18:00', endTime: '19:30' },
@@ -407,7 +408,9 @@ export const sessionCrudService = {
         filtered = filtered.filter((s) => s.sessionType === filters.sessionType);
       }
       if (filters?.skillLevel) {
-        filtered = filtered.filter((s) => s.skillLevel === filters.skillLevel || s.skillLevel === 'ALL');
+        filtered = filtered.filter(
+          (s) => s.skillLevel === filters.skillLevel || s.skillLevel === 'ALL',
+        );
       }
 
       return filtered.sort((a, b) => {
@@ -483,7 +486,7 @@ export const sessionCrudService = {
       isRecurring: input.isRecurring,
       recurringPattern: input.recurringPattern,
       squadId: input.squadId,
-      isFree: input.isFree ?? (input.pricePerParticipant === 0),
+      isFree: input.isFree ?? input.pricePerParticipant === 0,
       inviteType: input.inviteType,
     };
 

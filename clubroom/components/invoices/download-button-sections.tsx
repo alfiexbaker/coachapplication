@@ -31,17 +31,23 @@ export function getButtonSize(size: 'small' | 'medium' | 'large') {
 
 export function getIconSize(size: 'small' | 'medium' | 'large') {
   switch (size) {
-    case 'small': return 16;
-    case 'large': return 24;
-    default: return 20;
+    case 'small':
+      return 16;
+    case 'large':
+      return 24;
+    default:
+      return 20;
   }
 }
 
 export function getFontSize(size: 'small' | 'medium' | 'large') {
   switch (size) {
-    case 'small': return 13;
-    case 'large': return 17;
-    default: return 15;
+    case 'small':
+      return 13;
+    case 'large':
+      return 17;
+    default:
+      return 15;
   }
 }
 

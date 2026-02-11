@@ -20,7 +20,9 @@ export const FAQCard = memo(function FAQCard({ item, expanded, onToggle, colors 
   return (
     <SurfaceCard style={styles.card} onPress={onToggle}>
       <Row justify="space-between" align="center" gap="sm">
-        <ThemedText type="defaultSemiBold" style={styles.question}>{item.question}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.question}>
+          {item.question}
+        </ThemedText>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.muted} />
       </Row>
       {expanded && (
@@ -32,7 +34,9 @@ export const FAQCard = memo(function FAQCard({ item, expanded, onToggle, colors 
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  header: { /* layout moved to Row */ },
+  header: {
+    /* layout moved to Row */
+  },
   question: { flex: 1, ...Typography.body },
   answer: { ...Typography.bodySmall },
 });

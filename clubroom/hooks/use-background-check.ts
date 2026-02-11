@@ -11,8 +11,16 @@ const logger = createLogger('useBackgroundCheck');
 const COACH_ID = 'coach1';
 
 export const BG_CHECK_STEPS = [
-  { id: 1, title: 'Provide Details', description: 'Enter your personal information for the background check' },
-  { id: 2, title: 'Consent & ID Verification', description: 'Confirm your identity and provide consent for the check' },
+  {
+    id: 1,
+    title: 'Provide Details',
+    description: 'Enter your personal information for the background check',
+  },
+  {
+    id: 2,
+    title: 'Consent & ID Verification',
+    description: 'Confirm your identity and provide consent for the check',
+  },
   { id: 3, title: 'Review & Submit', description: 'The check is processed by our trusted partner' },
   { id: 4, title: 'Receive Results', description: 'Certificate issued upon successful completion' },
 ];

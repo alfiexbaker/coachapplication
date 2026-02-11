@@ -28,15 +28,30 @@ export function StatsRow({ stats }: StatsRowProps) {
     <SurfaceCard style={styles.statsRowCard}>
       <Row style={styles.statsRow}>
         {stats.map((stat, index) => {
-          const trendColor = stat.trend ? (stat.trend > 0 ? palette.success : stat.trend < 0 ? palette.error : palette.muted) : null;
+          const trendColor = stat.trend
+            ? stat.trend > 0
+              ? palette.success
+              : stat.trend < 0
+                ? palette.error
+                : palette.muted
+            : null;
           return (
             <Animated.View
               key={stat.label}
               entering={FadeInDown.delay(index * 100).springify()}
-              style={[styles.statsRowItem, index !== stats.length - 1 && styles.statsRowItemBorder, index !== stats.length - 1 && { borderRightColor: palette.border }]}
+              style={[
+                styles.statsRowItem,
+                index !== stats.length - 1 && styles.statsRowItemBorder,
+                index !== stats.length - 1 && { borderRightColor: palette.border },
+              ]}
             >
               {stat.icon && (
-                <View style={[styles.statsRowIcon, { backgroundColor: withAlpha(stat.iconColor || palette.tint, 0.07) }]}>
+                <View
+                  style={[
+                    styles.statsRowIcon,
+                    { backgroundColor: withAlpha(stat.iconColor || palette.tint, 0.07) },
+                  ]}
+                >
                   <Ionicons name={stat.icon} size={18} color={stat.iconColor || palette.tint} />
                 </View>
               )}
@@ -44,10 +59,16 @@ export function StatsRow({ stats }: StatsRowProps) {
                 <Row style={styles.statsRowValueRow}>
                   <ThemedText style={styles.statsRowValue}>{stat.value}</ThemedText>
                   {stat.trend !== undefined && (
-                    <Ionicons name={stat.trend > 0 ? 'caret-up' : stat.trend < 0 ? 'caret-down' : 'remove'} size={12} color={trendColor || palette.muted} />
+                    <Ionicons
+                      name={stat.trend > 0 ? 'caret-up' : stat.trend < 0 ? 'caret-down' : 'remove'}
+                      size={12}
+                      color={trendColor || palette.muted}
+                    />
                   )}
                 </Row>
-                <ThemedText style={[styles.statsRowLabel, { color: palette.muted }]}>{stat.label}</ThemedText>
+                <ThemedText style={[styles.statsRowLabel, { color: palette.muted }]}>
+                  {stat.label}
+                </ThemedText>
               </View>
             </Animated.View>
           );
@@ -59,10 +80,16 @@ export function StatsRow({ stats }: StatsRowProps) {
 
 const styles = StyleSheet.create({
   statsRowCard: { padding: Spacing.md },
-  statsRow: {  },
+  statsRow: {},
   statsRowItem: { flex: 1, alignItems: 'center', gap: Spacing.xs },
   statsRowItemBorder: { borderRightWidth: 1 },
-  statsRowIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  statsRowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statsRowValueContainer: { alignItems: 'center', gap: Spacing.micro },
   statsRowValueRow: { alignItems: 'center', gap: Spacing.micro },
   statsRowValue: { ...Typography.heading, letterSpacing: -0.3 },

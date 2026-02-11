@@ -13,7 +13,9 @@ interface SpecialNeedsAccommodationsProps {
   specialNeeds: ChildProfile['specialNeeds'];
 }
 
-export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodations({ specialNeeds }: SpecialNeedsAccommodationsProps) {
+export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodations({
+  specialNeeds,
+}: SpecialNeedsAccommodationsProps) {
   const { colors } = useTheme();
 
   if (specialNeeds.length === 0) return null;
@@ -38,23 +40,33 @@ export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodatio
         return (
           <SurfaceCard key={need.id} style={styles.card}>
             <Row align="center" justify="space-between">
-              <ThemedText type="defaultSemiBold" style={[Typography.body, { flex: 1 }]}>{need.name}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={[Typography.body, { flex: 1 }]}>
+                {need.name}
+              </ThemedText>
               {need.severity && (
                 <View style={[styles.badge, { backgroundColor: withAlpha(severityColor, 0.09) }]}>
-                  <ThemedText style={[Typography.micro, { color: severityColor }]}>{need.severity}</ThemedText>
+                  <ThemedText style={[Typography.micro, { color: severityColor }]}>
+                    {need.severity}
+                  </ThemedText>
                 </View>
               )}
             </Row>
 
             {need.description && (
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>{need.description}</ThemedText>
+              <ThemedText style={[Typography.small, { color: colors.muted }]}>
+                {need.description}
+              </ThemedText>
             )}
 
             {need.accommodationsNeeded && need.accommodationsNeeded.length > 0 && (
               <View style={styles.list}>
                 {need.accommodationsNeeded.map((accommodation, idx) => (
                   <Row key={idx} gap="xs" align="flex-start">
-                    <Ionicons name="checkmark-circle" size={Components.icon.sm} color={colors.success} />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={Components.icon.sm}
+                      color={colors.success}
+                    />
                     <ThemedText style={[Typography.small, { flex: 1 }]}>{accommodation}</ThemedText>
                   </Row>
                 ))}
@@ -62,9 +74,19 @@ export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodatio
             )}
 
             {need.coachNotes && (
-              <Row style={[styles.coachNote, { backgroundColor: withAlpha(colors.warning, 0.03), borderColor: withAlpha(colors.warning, 0.19) }]}>
+              <Row
+                style={[
+                  styles.coachNote,
+                  {
+                    backgroundColor: withAlpha(colors.warning, 0.03),
+                    borderColor: withAlpha(colors.warning, 0.19),
+                  },
+                ]}
+              >
                 <Ionicons name="bulb" size={Components.icon.sm} color={colors.warning} />
-                <ThemedText style={[Typography.small, { flex: 1, fontStyle: 'italic' }]}>{need.coachNotes}</ThemedText>
+                <ThemedText style={[Typography.small, { flex: 1, fontStyle: 'italic' }]}>
+                  {need.coachNotes}
+                </ThemedText>
               </Row>
             )}
           </SurfaceCard>
@@ -76,9 +98,25 @@ export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodatio
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
-  sectionIcon: { width: Components.avatar.sm, height: Components.avatar.sm, borderRadius: Components.avatar.sm / 2, alignItems: 'center', justifyContent: 'center' },
+  sectionIcon: {
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: { padding: Spacing.sm, gap: Spacing.sm },
-  badge: { paddingHorizontal: Spacing.xs, paddingVertical: Components.pill.paddingVertical, borderRadius: Radii.sm },
+  badge: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Components.pill.paddingVertical,
+    borderRadius: Radii.sm,
+  },
   list: { gap: Spacing.xs },
-  coachNote: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  coachNote: {
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
 });

@@ -9,11 +9,11 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThreadedComment } from '@/constants/comment-types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { formatTimeAgo, CommentActions } from './comment-card-sections';
+
 // Re-export extracted components for backward compat
 export { formatTimeAgo, CommentActions } from './comment-card-sections';
 export type { CommentActionsProps } from './comment-card-sections';
-
-import { formatTimeAgo, CommentActions } from './comment-card-sections';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -68,7 +68,9 @@ function CommentCardInner({
         style={[
           styles.avatar,
           {
-            backgroundColor: isDeleted ? withAlpha(palette.muted, 0.1) : withAlpha(palette.tint, 0.06),
+            backgroundColor: isDeleted
+              ? withAlpha(palette.muted, 0.1)
+              : withAlpha(palette.tint, 0.06),
             borderColor: palette.border,
           },
         ]}
@@ -88,7 +90,9 @@ function CommentCardInner({
           </ThemedText>
         </Row>
 
-        <ThemedText style={[styles.content, isDeleted && { color: palette.muted, fontStyle: 'italic' }]}>
+        <ThemedText
+          style={[styles.content, isDeleted && { color: palette.muted, fontStyle: 'italic' }]}
+        >
           {isDeleted ? 'This comment was deleted.' : comment.content}
         </ThemedText>
 
@@ -112,7 +116,14 @@ function CommentCardInner({
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', gap: Spacing.xs, paddingVertical: Spacing.xs },
   replyContainer: { paddingLeft: Spacing.xl },
-  avatar: { width: 32, height: 32, borderRadius: Radii.full, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   avatarText: { ...Typography.smallSemiBold },
   body: { flex: 1, gap: Spacing.micro },
   // headerRow replaced by Row primitive

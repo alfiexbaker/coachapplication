@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -36,23 +36,25 @@ function BookingCoachViewInner({
       <View style={styles.actions}>
         <Clickable
           onPress={() => {
-            router.push(Routes.sessionFeedback({
-              bookingId: booking.id,
-              athleteId: booking.clientId,
-              athleteName: getBookingSummaryClientName(booking),
-              athleteObjectives: JSON.stringify(objectives),
-            }));
+            router.push(
+              Routes.sessionFeedback({
+                bookingId: booking.id,
+                athleteId: booking.clientId,
+                athleteName: getBookingSummaryClientName(booking),
+                athleteObjectives: JSON.stringify(objectives),
+              }),
+            );
           }}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            { backgroundColor: palette.tint },
-            pressed && { opacity: 0.8 },
-          ].filter(Boolean) as ViewStyle[]}
+          style={({ pressed }) =>
+            [
+              styles.primaryButton,
+              { backgroundColor: palette.tint },
+              pressed && { opacity: 0.8 },
+            ].filter(Boolean) as ViewStyle[]
+          }
         >
           <Ionicons name="create" size={20} color={palette.onPrimary} />
-          <ThemedText
-            style={[styles.primaryButtonText, { color: palette.onPrimary }]}
-          >
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
             Add Session Feedback
           </ThemedText>
         </Clickable>
@@ -64,16 +66,16 @@ function BookingCoachViewInner({
     <View style={styles.actions}>
       <Clickable
         onPress={onMessageClient}
-        style={({ pressed }) => [
-          styles.primaryButton,
-          { backgroundColor: palette.tint },
-          pressed && { opacity: 0.8 },
-        ].filter(Boolean) as ViewStyle[]}
+        style={({ pressed }) =>
+          [
+            styles.primaryButton,
+            { backgroundColor: palette.tint },
+            pressed && { opacity: 0.8 },
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
-        <ThemedText
-          style={[styles.primaryButtonText, { color: palette.onPrimary }]}
-        >
+        <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
           Message Client
         </ThemedText>
       </Clickable>
@@ -81,11 +83,13 @@ function BookingCoachViewInner({
       <Row style={styles.buttonRow}>
         <Clickable
           onPress={onReschedule}
-          style={({ pressed }) => [
-            styles.halfButton,
-            { borderColor: palette.border },
-            pressed && { backgroundColor: palette.border, opacity: 0.7 },
-          ].filter(Boolean) as ViewStyle[]}
+          style={({ pressed }) =>
+            [
+              styles.halfButton,
+              { borderColor: palette.border },
+              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+            ].filter(Boolean) as ViewStyle[]
+          }
         >
           <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
           <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
@@ -93,11 +97,13 @@ function BookingCoachViewInner({
 
         <Clickable
           onPress={onRefund}
-          style={({ pressed }) => [
-            styles.halfButton,
-            { borderColor: palette.border },
-            pressed && { backgroundColor: palette.border, opacity: 0.7 },
-          ].filter(Boolean) as ViewStyle[]}
+          style={({ pressed }) =>
+            [
+              styles.halfButton,
+              { borderColor: palette.border },
+              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+            ].filter(Boolean) as ViewStyle[]
+          }
         >
           <Ionicons name="cash-outline" size={18} color={palette.foreground} />
           <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
@@ -106,11 +112,13 @@ function BookingCoachViewInner({
 
       <Clickable
         onPress={onCancelBooking}
-        style={({ pressed }) => [
-          styles.secondaryButton,
-          { borderColor: palette.error },
-          pressed && { backgroundColor: withAlpha(palette.error, 0.09), opacity: 0.7 },
-        ].filter(Boolean) as ViewStyle[]}
+        style={({ pressed }) =>
+          [
+            styles.secondaryButton,
+            { borderColor: palette.error },
+            pressed && { backgroundColor: withAlpha(palette.error, 0.09), opacity: 0.7 },
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Ionicons name="close-circle-outline" size={20} color={palette.error} />
         <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>

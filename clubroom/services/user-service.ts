@@ -1,13 +1,6 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { User } from '@/constants/types';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  notFound,
-  storageError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { accountIdsMatch, normalizeAccountId } from '@/utils/account-id';
 
@@ -16,7 +9,9 @@ import { ServiceEvents, emitTyped } from './event-bus';
 
 const logger = createLogger('UserService');
 
-type UserChanges = Partial<Pick<User, 'name' | 'avatar' | 'postcode' | 'dateOfBirth' | 'email' | 'role'>>;
+type UserChanges = Partial<
+  Pick<User, 'name' | 'avatar' | 'postcode' | 'dateOfBirth' | 'email' | 'role'>
+>;
 
 interface AuthUserRecord {
   id?: unknown;
@@ -41,7 +36,12 @@ function normalizeUserRole(rawRole: unknown, rawAccountType: unknown): User['rol
         : 'USER'
   ).toUpperCase();
 
-  if (candidate === 'COACH' || candidate === 'PARENT' || candidate === 'ADMIN' || candidate === 'USER') {
+  if (
+    candidate === 'COACH' ||
+    candidate === 'PARENT' ||
+    candidate === 'ADMIN' ||
+    candidate === 'USER'
+  ) {
     return candidate;
   }
 
@@ -67,11 +67,12 @@ function mapAuthUserToUser(authUser: AuthUserRecord): User | null {
     id: authUser.id,
     name: explicitName || joinedName || 'Unknown User',
     email: typeof authUser.email === 'string' ? authUser.email : '',
-    avatar: typeof authUser.avatar === 'string'
-      ? authUser.avatar
-      : typeof authUser.photoUrl === 'string'
-        ? authUser.photoUrl
-        : undefined,
+    avatar:
+      typeof authUser.avatar === 'string'
+        ? authUser.avatar
+        : typeof authUser.photoUrl === 'string'
+          ? authUser.photoUrl
+          : undefined,
     postcode: typeof authUser.postcode === 'string' ? authUser.postcode : '',
     dateOfBirth: typeof authUser.dateOfBirth === 'string' ? authUser.dateOfBirth : '',
     role: normalizeUserRole(authUser.role, authUser.accountType),
@@ -115,7 +116,7 @@ class UserService {
 
       const users = await this.loadUsers();
       const usersByNormalizedId = new Map(
-        users.map((user) => [normalizeAccountId(user.id), user] as const)
+        users.map((user) => [normalizeAccountId(user.id), user] as const),
       );
       const result = uniqueIds
         .map((id) => usersByNormalizedId.get(normalizeAccountId(id)))
@@ -184,7 +185,10 @@ class UserService {
     }
   }
 
-  async updateUserProfile(userId: string, changes: UserChanges): Promise<Result<User, ServiceError>> {
+  async updateUserProfile(
+    userId: string,
+    changes: UserChanges,
+  ): Promise<Result<User, ServiceError>> {
     try {
       const users = await this.loadUsers();
       const userIndex = users.findIndex((user) => accountIdsMatch(user.id, userId));

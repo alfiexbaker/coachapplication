@@ -23,7 +23,10 @@ export function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function getMarkerColor(type: VideoAnnotation['type'], palette: { success: string; warning: string; tint: string; muted: string }) {
+export function getMarkerColor(
+  type: VideoAnnotation['type'],
+  palette: { success: string; warning: string; tint: string; muted: string },
+) {
   switch (type) {
     case 'HIGHLIGHT':
       return palette.success;

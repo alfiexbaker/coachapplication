@@ -8,7 +8,10 @@ import {
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { notificationStore, type ExtendedNotificationItem } from './notification/notification-store';
+import {
+  notificationStore,
+  type ExtendedNotificationItem,
+} from './notification/notification-store';
 import { notificationPreferencesService } from './notification/notification-preferences';
 import { notificationSenderService } from './notification/notification-sender';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
@@ -26,7 +29,9 @@ class NotificationService {
     return notificationStore.list();
   }
 
-  async create(notification: ExtendedNotificationItem): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+  async create(
+    notification: ExtendedNotificationItem,
+  ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     return notificationStore.create(notification);
   }
 
@@ -38,7 +43,9 @@ class NotificationService {
     return notificationStore.markAllAsRead();
   }
 
-  async markHandled(id: string): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
+  async markHandled(
+    id: string,
+  ): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
     return notificationStore.markHandled(id);
   }
 
@@ -50,11 +57,15 @@ class NotificationService {
     return notificationStore.getUnreadCount(recipientId);
   }
 
-  async getByRecipient(recipientId: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+  async getByRecipient(
+    recipientId: string,
+  ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     return notificationStore.getByRecipient(recipientId);
   }
 
-  async getByType(type: NotificationItem['type']): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+  async getByType(
+    type: NotificationItem['type'],
+  ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     return notificationStore.getByType(type);
   }
 
@@ -198,13 +209,15 @@ class NotificationService {
   // NOTIFICATION PREFERENCES MANAGEMENT
   // ============================================================================
 
-  async getPreferences(userId: string): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
+  async getPreferences(
+    userId: string,
+  ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.getPreferences(userId);
   }
 
   async updatePreferences(
     userId: string,
-    updates: Partial<Omit<EnhancedNotificationPreferences, 'userId' | 'createdAt' | 'updatedAt'>>
+    updates: Partial<Omit<EnhancedNotificationPreferences, 'userId' | 'createdAt' | 'updatedAt'>>,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.updatePreferences(userId, updates);
   }
@@ -213,14 +226,14 @@ class NotificationService {
     userId: string,
     startTime: string,
     endTime: string,
-    enabled = true
+    enabled = true,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.setQuietHours(userId, startTime, endTime, enabled);
   }
 
   async toggleQuietHours(
     userId: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.toggleQuietHours(userId, enabled);
   }
@@ -228,7 +241,7 @@ class NotificationService {
   async toggleChannel(
     userId: string,
     channel: NotificationChannel,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.toggleChannel(userId, channel, enabled);
   }
@@ -236,7 +249,7 @@ class NotificationService {
   async toggleNotificationType(
     userId: string,
     type: NotificationType,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.toggleNotificationType(userId, type, enabled);
   }
@@ -244,7 +257,7 @@ class NotificationService {
   async setNotificationTypeChannels(
     userId: string,
     type: NotificationType,
-    channels: NotificationChannel[]
+    channels: NotificationChannel[],
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.setNotificationTypeChannels(userId, type, channels);
   }
@@ -254,12 +267,21 @@ class NotificationService {
     coachId: string,
     coachName: string,
     coachAvatar?: string,
-    reason?: string
+    reason?: string,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
-    return notificationPreferencesService.muteCoach(userId, coachId, coachName, coachAvatar, reason);
+    return notificationPreferencesService.muteCoach(
+      userId,
+      coachId,
+      coachName,
+      coachAvatar,
+      reason,
+    );
   }
 
-  async unmuteCoach(userId: string, coachId: string): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
+  async unmuteCoach(
+    userId: string,
+    coachId: string,
+  ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.unmuteCoach(userId, coachId);
   }
 
@@ -279,12 +301,14 @@ class NotificationService {
     userId: string,
     type: NotificationType,
     channel: NotificationChannel,
-    coachId?: string
+    coachId?: string,
   ): Promise<Result<boolean, ServiceError>> {
     return notificationPreferencesService.shouldSendNotification(userId, type, channel, coachId);
   }
 
-  async resetPreferences(userId: string): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
+  async resetPreferences(
+    userId: string,
+  ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     return notificationPreferencesService.resetPreferences(userId);
   }
 
@@ -302,7 +326,7 @@ class NotificationService {
         body: 'New booking from Sarah Baker for Tom on Jan 15',
         recipientId: 'coach1',
         recipientRole: 'coach',
-        deepLink: '/booking/b1',
+        deepLink: '/bookings/b1',
         timeLabel: '5 min ago',
         read: false,
       },

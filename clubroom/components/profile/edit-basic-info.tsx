@@ -20,9 +20,17 @@ interface EditBasicInfoProps {
 }
 
 export const EditBasicInfo = memo(function EditBasicInfo({
-  colors, userIsCoach, fullName, onChangeName, bio, onChangeBio,
+  colors,
+  userIsCoach,
+  fullName,
+  onChangeName,
+  bio,
+  onChangeBio,
 }: EditBasicInfoProps) {
-  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+  const inputStyle = [
+    styles.input,
+    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
+  ];
 
   return (
     <SurfaceCard style={styles.section}>
@@ -45,7 +53,11 @@ export const EditBasicInfo = memo(function EditBasicInfo({
         <TextInput
           value={bio}
           onChangeText={onChangeBio}
-          placeholder={userIsCoach ? 'Tell parents about your coaching philosophy...' : 'A bit about yourself...'}
+          placeholder={
+            userIsCoach
+              ? 'Tell parents about your coaching philosophy...'
+              : 'A bit about yourself...'
+          }
           placeholderTextColor={colors.muted}
           multiline
           numberOfLines={4}
@@ -66,8 +78,10 @@ const styles = StyleSheet.create({
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
   input: {
-    borderWidth: 1, borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
   textArea: { minHeight: 100, paddingTop: Spacing.sm },

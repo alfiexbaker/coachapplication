@@ -57,7 +57,7 @@ export default function FavouritesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadFavourites();
-    }, [loadFavourites])
+    }, [loadFavourites]),
   );
 
   const handleRefresh = useCallback(() => {
@@ -84,7 +84,7 @@ export default function FavouritesScreen() {
         setTogglingId(null);
       }
     },
-    [userId]
+    [userId],
   );
 
   const handleBook = useCallback((coachId: string) => {
@@ -98,7 +98,10 @@ export default function FavouritesScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -111,7 +114,10 @@ export default function FavouritesScreen() {
         {favourites.length > 0 && (
           <Clickable
             onPress={handleDiscoverCoaches}
-            style={[styles.discoverButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            style={[
+              styles.discoverButton,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
           >
             <Row align="center" gap="xxs">
               <Ionicons name="search" size={18} color={palette.text} />
@@ -137,7 +143,14 @@ export default function FavouritesScreen() {
       >
         {favourites.length > 0 && (
           <Animated.View entering={FadeInDown.delay(50).springify()}>
-            <Row align="center" justify="center" style={[styles.statsRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Row
+              align="center"
+              justify="center"
+              style={[
+                styles.statsRow,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            >
               <Row align="center" gap="xs" style={styles.statItem}>
                 <Ionicons name="heart" size={20} color={palette.error} />
                 <ThemedText type="defaultSemiBold" style={styles.statValue}>
@@ -194,7 +207,8 @@ const styles = StyleSheet.create({
   },
   headerLeft: {},
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
+    ...Typography.display,
+    fontSize: scaleFont(Typography.display.fontSize),
   },
   discoverButton: {
     paddingHorizontal: Spacing.sm,
@@ -203,7 +217,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   discoverText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
+    ...Typography.bodySmallSemiBold,
+    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   scrollContent: {
     paddingHorizontal: Spacing.md,
@@ -218,10 +233,12 @@ const styles = StyleSheet.create({
   },
   statItem: {},
   statValue: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
+    ...Typography.heading,
+    fontSize: scaleFont(Typography.heading.fontSize),
   },
   statLabel: {
-    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
+    ...Typography.bodySmall,
+    fontSize: scaleFont(Typography.bodySmall.fontSize),
   },
   emptyContainer: {
     flex: 1,

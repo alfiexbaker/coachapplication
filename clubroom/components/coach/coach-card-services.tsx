@@ -9,7 +9,15 @@ import { StyleSheet, View } from 'react-native';
 
 import { Spacing, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
+
+import {
+  formatPrice,
+  SpecialtyTags,
+  FocusBadge,
+  InlinePrice,
+} from './coach-card-services-sections';
+import { Row } from '@/components/primitives';
 
 // Re-export extracted components for backward compat
 export {
@@ -23,13 +31,6 @@ export type {
   FocusBadgeProps,
   InlinePriceProps,
 } from './coach-card-services-sections';
-
-import {
-  formatPrice,
-  SpecialtyTags,
-  FocusBadge,
-} from './coach-card-services-sections';
-import { Row } from '@/components/primitives';
 
 // ============================================================================
 // Types
@@ -53,8 +54,6 @@ export interface PriceDisplayProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-type Palette = ThemeColors;
-
 // ============================================================================
 // PriceDisplay
 // ============================================================================
@@ -75,11 +74,8 @@ export function PriceDisplay({
     return null;
   }
 
-  const priceStyle = size === 'lg'
-    ? styles.priceLarge
-    : size === 'sm'
-    ? styles.priceSmall
-    : styles.priceMedium;
+  const priceStyle =
+    size === 'lg' ? styles.priceLarge : size === 'sm' ? styles.priceSmall : styles.priceMedium;
 
   return (
     <View style={styles.priceColumn}>
@@ -87,9 +83,7 @@ export function PriceDisplay({
         {priceStr}
       </ThemedText>
       {showLabel && (
-        <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
-          {labelText}
-        </ThemedText>
+        <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>{labelText}</ThemedText>
       )}
     </View>
   );
@@ -114,25 +108,16 @@ export function CoachCardServices({
     return (
       <Row style={styles.compactContainer}>
         <FocusBadge focus={primaryFocus} />
-        <PriceDisplay
-          pricePerHour={pricePerHour}
-          priceMin={priceMin}
-          priceMax={priceMax}
-        />
+        <PriceDisplay pricePerHour={pricePerHour} priceMin={priceMin} priceMax={priceMax} />
       </Row>
     );
   }
 
   if (variant === 'inline') {
-    const { InlinePrice } = require('./coach-card-services-sections');
     return (
       <Row style={styles.inlineContainer}>
         {primaryFocus && <FocusBadge focus={primaryFocus} />}
-        <InlinePrice
-          pricePerHour={pricePerHour}
-          priceMin={priceMin}
-          priceMax={priceMax}
-        />
+        <InlinePrice pricePerHour={pricePerHour} priceMin={priceMin} priceMax={priceMax} />
       </Row>
     );
   }
@@ -141,11 +126,7 @@ export function CoachCardServices({
   return (
     <View style={styles.fullContainer}>
       {tags.length > 0 && <SpecialtyTags specialties={tags} />}
-      <PriceDisplay
-        pricePerHour={pricePerHour}
-        priceMin={priceMin}
-        priceMax={priceMax}
-      />
+      <PriceDisplay pricePerHour={pricePerHour} priceMin={priceMin} priceMax={priceMax} />
     </View>
   );
 }

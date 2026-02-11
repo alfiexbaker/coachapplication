@@ -297,7 +297,7 @@ export const payoutService = {
    */
   async addPayoutMethod(
     coachId: string,
-    method: Omit<PayoutMethod, 'id' | 'coachId' | 'createdAt' | 'isVerified'>
+    method: Omit<PayoutMethod, 'id' | 'coachId' | 'createdAt' | 'isVerified'>,
   ): Promise<Result<PayoutMethod, ServiceError>> {
     logger.debug('Adding payout method', { coachId, type: method.type });
 
@@ -316,14 +316,12 @@ export const payoutService = {
         // If this is the first method or marked as default, update other methods
         if (newMethod.isDefault) {
           payoutMethodsCache = payoutMethodsCache.map((pm) =>
-            pm.coachId === coachId ? { ...pm, isDefault: false } : pm
+            pm.coachId === coachId ? { ...pm, isDefault: false } : pm,
           );
         }
 
         // If no default exists for this coach, make this one default
-        const hasDefault = payoutMethodsCache.some(
-          (pm) => pm.coachId === coachId && pm.isDefault
-        );
+        const hasDefault = payoutMethodsCache.some((pm) => pm.coachId === coachId && pm.isDefault);
         if (!hasDefault) {
           newMethod.isDefault = true;
         }
@@ -371,7 +369,7 @@ export const payoutService = {
    */
   async removePayoutMethod(
     coachId: string,
-    methodId: string
+    methodId: string,
   ): Promise<Result<boolean, ServiceError>> {
     logger.debug('Removing payout method', { coachId, methodId });
 
@@ -379,7 +377,7 @@ export const payoutService = {
       if (USE_MOCK) {
         payoutMethodsCache = await loadPayoutMethods();
         const method = payoutMethodsCache.find(
-          (pm) => pm.id === methodId && pm.coachId === coachId
+          (pm) => pm.id === methodId && pm.coachId === coachId,
         );
 
         if (!method) {
@@ -390,7 +388,9 @@ export const payoutService = {
         if (method.isDefault) {
           logger.warn('Cannot remove default payout method', { methodId });
           return err(
-            validationError('Cannot remove default payout method. Set another method as default first.')
+            validationError(
+              'Cannot remove default payout method. Set another method as default first.',
+            ),
           );
         }
 
@@ -422,7 +422,7 @@ export const payoutService = {
    */
   async setDefaultPayoutMethod(
     coachId: string,
-    methodId: string
+    methodId: string,
   ): Promise<Result<PayoutMethod, ServiceError>> {
     logger.debug('Setting default payout method', { coachId, methodId });
 
@@ -430,7 +430,7 @@ export const payoutService = {
       if (USE_MOCK) {
         payoutMethodsCache = await loadPayoutMethods();
         const method = payoutMethodsCache.find(
-          (pm) => pm.id === methodId && pm.coachId === coachId
+          (pm) => pm.id === methodId && pm.coachId === coachId,
         );
 
         if (!method) {
@@ -445,7 +445,7 @@ export const payoutService = {
 
         // Update all methods for this coach
         payoutMethodsCache = payoutMethodsCache.map((pm) =>
-          pm.coachId === coachId ? { ...pm, isDefault: pm.id === methodId } : pm
+          pm.coachId === coachId ? { ...pm, isDefault: pm.id === methodId } : pm,
         );
 
         await savePayoutMethods(payoutMethodsCache);
@@ -516,7 +516,7 @@ export const payoutService = {
   async requestWithdrawal(
     coachId: string,
     amount: number,
-    payoutMethodId: string
+    payoutMethodId: string,
   ): Promise<Result<Withdrawal, ServiceError>> {
     logger.debug('Requesting withdrawal', { coachId, amount, payoutMethodId });
 
@@ -547,7 +547,7 @@ export const payoutService = {
         }
 
         const payoutMethod = payoutMethodsCache.find(
-          (pm) => pm.id === payoutMethodId && pm.coachId === coachId
+          (pm) => pm.id === payoutMethodId && pm.coachId === coachId,
         );
 
         if (!payoutMethod) {
@@ -603,7 +603,9 @@ export const payoutService = {
             updatedWithdrawals[index].status = 'PROCESSING';
             updatedWithdrawals[index].processedAt = new Date().toISOString();
             await saveWithdrawals(updatedWithdrawals);
-            logger.debug('Withdrawal status updated to processing', { withdrawalId: withdrawal.id });
+            logger.debug('Withdrawal status updated to processing', {
+              withdrawalId: withdrawal.id,
+            });
           }
         }, 3000);
 
@@ -670,7 +672,7 @@ export const payoutService = {
 
         // Update the transaction status
         const txnIndex = transactionsCache.findIndex(
-          (t) => t.type === 'WITHDRAWAL' && t.createdAt >= withdrawal.requestedAt
+          (t) => t.type === 'WITHDRAWAL' && t.createdAt >= withdrawal.requestedAt,
         );
         if (txnIndex !== -1) {
           transactionsCache[txnIndex].status = 'CANCELLED';
@@ -709,9 +711,7 @@ export const payoutService = {
         withdrawalsCache = await loadWithdrawals();
         const history = withdrawalsCache
           .filter((w) => w.coachId === coachId)
-          .sort(
-            (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-          );
+          .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
         return ok(history);
       }
 
@@ -739,7 +739,7 @@ export const payoutService = {
       if (USE_MOCK) {
         withdrawalsCache = await loadWithdrawals();
         const pending = withdrawalsCache.filter(
-          (w) => w.coachId === coachId && (w.status === 'PENDING' || w.status === 'PROCESSING')
+          (w) => w.coachId === coachId && (w.status === 'PENDING' || w.status === 'PROCESSING'),
         );
         return ok(pending);
       }

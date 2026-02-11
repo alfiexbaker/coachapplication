@@ -46,9 +46,7 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
           item.isComplete && { backgroundColor: palette.success, borderColor: palette.success },
         ]}
       >
-        {item.isComplete && (
-          <Ionicons name="checkmark" size={14} color={palette.surface} />
-        )}
+        {item.isComplete && <Ionicons name="checkmark" size={14} color={palette.surface} />}
       </View>
       <ThemedText
         style={[
@@ -60,9 +58,7 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
       >
         {item.label}
       </ThemedText>
-      {!item.isComplete && (
-        <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-      )}
+      {!item.isComplete && <Ionicons name="chevron-forward" size={16} color={palette.muted} />}
     </Clickable>
   );
 });

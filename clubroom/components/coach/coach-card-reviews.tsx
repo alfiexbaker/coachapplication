@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
 // -----------------------------------------------------------------------------
@@ -38,17 +38,11 @@ export interface RatingDisplayProps {
   showCount?: boolean;
 }
 
-type Palette = ThemeColors;
-
 // -----------------------------------------------------------------------------
 // RatingDisplay Component
 // -----------------------------------------------------------------------------
 
-export function RatingDisplay({
-  rating,
-  reviewCount,
-  showCount = true,
-}: RatingDisplayProps) {
+export function RatingDisplay({ rating, reviewCount, showCount = true }: RatingDisplayProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -103,16 +97,11 @@ export function ReviewQuote({ quote, author }: ReviewQuoteProps) {
     <Row style={[styles.quoteContainer, { backgroundColor: palette.surfaceSecondary }]}>
       <Ionicons name="chatbubble-outline" size={Components.icon.sm} color={palette.muted} />
       <View style={styles.quoteTextContainer}>
-        <ThemedText
-          style={[styles.quoteText, { color: palette.text }]}
-          numberOfLines={2}
-        >
+        <ThemedText style={[styles.quoteText, { color: palette.text }]} numberOfLines={2}>
           &ldquo;{quote}&rdquo;
         </ThemedText>
         {author && (
-          <ThemedText style={[styles.quoteAuthor, { color: palette.muted }]}>
-            — {author}
-          </ThemedText>
+          <ThemedText style={[styles.quoteAuthor, { color: palette.muted }]}>— {author}</ThemedText>
         )}
       </View>
     </Row>
@@ -131,32 +120,18 @@ export function CoachCardReviews({
   reviewAuthor,
   variant = 'inline',
 }: CoachCardReviewsProps) {
-  const { colors: palette } = useTheme();
-
   if (rating === undefined) {
     return null;
   }
 
   if (variant === 'inline') {
-    return (
-      <RatingDisplay
-        rating={rating}
-        reviewCount={reviewCount}
-        showCount={showCount}
-      />
-    );
+    return <RatingDisplay rating={rating} reviewCount={reviewCount} showCount={showCount} />;
   }
 
   return (
     <View style={styles.fullContainer}>
-      <RatingDisplay
-        rating={rating}
-        reviewCount={reviewCount}
-        showCount={showCount}
-      />
-      {reviewQuote && (
-        <ReviewQuote quote={reviewQuote} author={reviewAuthor} />
-      )}
+      <RatingDisplay rating={rating} reviewCount={reviewCount} showCount={showCount} />
+      {reviewQuote && <ReviewQuote quote={reviewQuote} author={reviewAuthor} />}
     </View>
   );
 }

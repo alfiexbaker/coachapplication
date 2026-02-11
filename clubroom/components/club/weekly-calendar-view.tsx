@@ -15,11 +15,13 @@ interface WeeklyCalendarViewProps {
   sessions: GroupSession[];
 }
 
-export const WeeklyCalendarView = memo(function WeeklyCalendarView({ sessions }: WeeklyCalendarViewProps) {
+export const WeeklyCalendarView = memo(function WeeklyCalendarView({
+  sessions,
+}: WeeklyCalendarViewProps) {
   const { colors } = useTheme();
 
   const sessionsByDay = DAYS.map((_, dayIndex) =>
-    sessions.filter((s) => s.recurringPattern?.dayOfWeek === dayIndex)
+    sessions.filter((s) => s.recurringPattern?.dayOfWeek === dayIndex),
   );
 
   return (
@@ -29,7 +31,9 @@ export const WeeklyCalendarView = memo(function WeeklyCalendarView({ sessions }:
         return (
           <View key={day} style={[styles.day, { borderColor: colors.border }]}>
             <View style={[styles.dayHeader, { backgroundColor: colors.surface }]}>
-              <ThemedText type="defaultSemiBold" style={Typography.small}>{day}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={Typography.small}>
+                {day}
+              </ThemedText>
             </View>
             <View style={styles.dayContent}>
               {daySessions.length > 0 ? (
@@ -39,7 +43,10 @@ export const WeeklyCalendarView = memo(function WeeklyCalendarView({ sessions }:
                     style={[styles.session, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
                     onPress={() => router.push(Routes.groupSession(session.id))}
                   >
-                    <ThemedText style={[Typography.caption, { color: colors.tint }]} numberOfLines={1}>
+                    <ThemedText
+                      style={[Typography.caption, { color: colors.tint }]}
+                      numberOfLines={1}
+                    >
                       {session.title}
                     </ThemedText>
                     <ThemedText style={[Typography.micro, { color: colors.muted }]}>
@@ -48,7 +55,11 @@ export const WeeklyCalendarView = memo(function WeeklyCalendarView({ sessions }:
                   </Clickable>
                 ))
               ) : (
-                <ThemedText style={[Typography.micro, { color: colors.muted, textAlign: 'center' }]}>-</ThemedText>
+                <ThemedText
+                  style={[Typography.micro, { color: colors.muted, textAlign: 'center' }]}
+                >
+                  -
+                </ThemedText>
               )}
             </View>
           </View>

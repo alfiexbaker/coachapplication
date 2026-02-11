@@ -26,7 +26,10 @@ export default function ConfirmBookingScreen() {
   const b = useConfirmBooking();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <Row style={styles.header}>
@@ -38,28 +41,60 @@ export default function ConfirmBookingScreen() {
         </Row>
 
         <ConfirmBookingSummary
-          coachName={b.coachName} athletesInfo={b.athletesInfo} slotTitle={b.slotTitle}
-          slotFocus={b.slotFocus} formattedDate={b.formattedDate} formattedTime={b.formattedTime}
-          slotDuration={b.slotDuration} objectives={b.objectives} isGroupSession={b.isGroupSession}
-          groupParticipantCount={b.groupParticipants.length} price={b.price} totalPrice={b.totalPrice}
+          coachName={b.coachName}
+          athletesInfo={b.athletesInfo}
+          slotTitle={b.slotTitle}
+          slotFocus={b.slotFocus}
+          formattedDate={b.formattedDate}
+          formattedTime={b.formattedTime}
+          slotDuration={b.slotDuration}
+          objectives={b.objectives}
+          isGroupSession={b.isGroupSession}
+          groupParticipantCount={b.groupParticipants.length}
+          price={b.price}
+          totalPrice={b.totalPrice}
         />
 
         <ConfirmBookingPayment
-          cardNumber={b.cardNumber} expiryDate={b.expiryDate} cvv={b.cvv} isProcessing={b.isProcessing}
-          onCardChange={b.handleCardNumberChange} onExpiryChange={b.handleExpiryChange} onCvvChange={b.handleCvvChange}
+          cardNumber={b.cardNumber}
+          expiryDate={b.expiryDate}
+          cvv={b.cvv}
+          isProcessing={b.isProcessing}
+          onCardChange={b.handleCardNumberChange}
+          onExpiryChange={b.handleExpiryChange}
+          onCvvChange={b.handleCvvChange}
         />
       </ScrollView>
 
       {/* Confirm Footer */}
-      <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: palette.background, borderTopColor: palette.border },
+        ]}
+      >
         <Clickable
-          onPress={b.handleConfirmBooking} disabled={b.isProcessing}
-          style={({ pressed }) => [styles.confirmButton, { backgroundColor: b.isProcessing ? palette.border : palette.tint, opacity: pressed ? 0.8 : 1 }]}
+          onPress={b.handleConfirmBooking}
+          disabled={b.isProcessing}
+          style={({ pressed }) => [
+            styles.confirmButton,
+            {
+              backgroundColor: b.isProcessing ? palette.border : palette.tint,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
         >
           {b.isProcessing ? (
-            <Row style={styles.processingRow}><ActivityIndicator color={palette.onPrimary} /><ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Processing...</ThemedText></Row>
+            <Row style={styles.processingRow}>
+              <ActivityIndicator color={palette.onPrimary} />
+              <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>
+                Processing...
+              </ThemedText>
+            </Row>
           ) : (
-            <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Confirm & Pay {formatGBP(b.totalPrice)}</ThemedText>
+            <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>
+              Confirm & Pay {formatGBP(b.totalPrice)}
+            </ThemedText>
           )}
         </Clickable>
       </View>
@@ -70,7 +105,12 @@ export default function ConfirmBookingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flexGrow: 1, paddingBottom: Spacing['2xl'] },
-  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
   footer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1 },
   confirmButton: { paddingVertical: Spacing.md + 4, borderRadius: Radii.md, alignItems: 'center' },
   confirmText: { ...Typography.subheading },

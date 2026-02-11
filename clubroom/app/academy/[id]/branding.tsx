@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useScreen } from '@/hooks/use-screen';
+import { useAuth } from '@/hooks/use-auth';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { ok, err, notFound, serviceError } from '@/types/result';
 import { Clickable } from '@/components/primitives/clickable';
@@ -20,8 +21,18 @@ import type { Academy } from '@/constants/types';
 
 export default function AcademyBrandingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { currentUser } = useAuth();
 
-  const { data: academy, status, error: loadError, refreshing, onRefresh, retry, colors, scheme } = useScreen<Academy>({
+  const {
+    data: academy,
+    status,
+    error: loadError,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+    scheme,
+  } = useScreen<Academy>({
     load: async () => {
       if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
       try {
@@ -45,6 +56,7 @@ export default function AcademyBrandingScreen() {
   const [phone, setPhone] = useState(academy?.phone ?? '');
   const [website, setWebsite] = useState(academy?.website ?? '');
   const [address, setAddress] = useState(academy?.address ?? '');
+  const [canEdit, setCanEdit] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,15 +69,40 @@ export default function AcademyBrandingScreen() {
     setPhone(academy.phone ?? '');
     setWebsite(academy.website ?? '');
     setAddress(academy.address ?? '');
-  }, [academy?.id]);
+  }, [academy]);
 
-  const canEdit = true; // TODO: check permissions
+  useEffect(() => {
+    if (!id || !currentUser?.id) {
+      setCanEdit(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    void academyService.hasPermission(id, currentUser.id, 'MANAGE_SETTINGS').then((result) => {
+      if (!isMounted) return;
+      setCanEdit(result.success ? result.data : false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, currentUser?.id]);
 
   const handleSave = async () => {
-    if (!id) return;
+    if (!id || !canEdit) return;
     setSaving(true);
     try {
-      const result = await academyService.updateBranding(id, { logoUrl, bannerUrl, primaryColor, secondaryColor, email, phone, website, address });
+      const result = await academyService.updateBranding(id, {
+        logoUrl,
+        bannerUrl,
+        primaryColor,
+        secondaryColor,
+        email,
+        phone,
+        website,
+        address,
+      });
       if (!result.success) {
         Alert.alert('Error', result.error.message);
       }
@@ -76,18 +113,34 @@ export default function AcademyBrandingScreen() {
 
   if (status === 'loading') return <LoadingState variant="detail" />;
   if (status === 'error') return <ErrorState message={loadError!.message} onRetry={retry} />;
-  if (status === 'empty') return <EmptyState icon="business-outline" title="Academy not found" message="This academy may have been removed" />;
+  if (status === 'empty')
+    return (
+      <EmptyState
+        icon="business-outline"
+        title="Academy not found"
+        message="This academy may have been removed"
+      />
+    );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <ThemedText type="title" style={{ flex: 1 }}>Branding</ThemedText>
+        <ThemedText type="title" style={{ flex: 1 }}>
+          Branding
+        </ThemedText>
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <BrandingPreview
           colors={colors}
           academyName={academy!.name}
@@ -140,8 +193,20 @@ export default function AcademyBrandingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
   content: { padding: Spacing.lg, gap: Spacing.md },
   bottomSpacer: { height: 100 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: Spacing.lg, borderTopWidth: 1 },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+  },
 });

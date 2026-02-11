@@ -105,9 +105,7 @@ export function SyncSettingsCard({
                 >
                   {option.label}
                 </ThemedText>
-                {isSelected && (
-                  <Ionicons name="checkmark" size={20} color={palette.accent} />
-                )}
+                {isSelected && <Ionicons name="checkmark" size={20} color={palette.accent} />}
               </Clickable>
             );
           })}

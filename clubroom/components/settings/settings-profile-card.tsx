@@ -29,9 +29,8 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
   const profileName = currentUser?.name ?? 'Your profile';
   const profileEmail = currentUser?.email ?? 'No email available';
   const profilePhone = undefined;
-  const profilePhotoUrl = currentUser?.avatar && currentUser.avatar.startsWith('http')
-    ? currentUser.avatar
-    : undefined;
+  const profilePhotoUrl =
+    currentUser?.avatar && currentUser.avatar.startsWith('http') ? currentUser.avatar : undefined;
 
   const handleEditProfile = useCallback(() => {
     logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-profile' });
@@ -52,7 +51,11 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
             accessibilityLabel="Profile photo"
           />
         ) : (
-          <Row align="center" justify="center" style={[styles.profilePhoto, { backgroundColor: palette.border }]}>
+          <Row
+            align="center"
+            justify="center"
+            style={[styles.profilePhoto, { backgroundColor: palette.border }]}
+          >
             <Ionicons name="person" size={40} color={palette.muted} />
           </Row>
         )}
@@ -114,7 +117,9 @@ export const SettingsProfileCard = memo(function SettingsProfileCard({
             accessibilityRole="button"
           >
             <Ionicons name="people" size={20} color={palette.tint} />
-            <ThemedText style={[styles.editButtonLabel, { color: palette.tint }]}>My Athletes</ThemedText>
+            <ThemedText style={[styles.editButtonLabel, { color: palette.tint }]}>
+              My Athletes
+            </ThemedText>
           </Clickable>
         )}
       </Row>

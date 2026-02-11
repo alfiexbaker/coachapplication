@@ -29,7 +29,9 @@ export const EarningsBalanceCard = memo(function EarningsBalanceCard({
           <Ionicons name="wallet" size={24} color={palette.success} />
         </View>
         <View style={styles.info}>
-          <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available Balance</ThemedText>
+          <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+            Available Balance
+          </ThemedText>
           <ThemedText type="title" style={styles.amount}>
             {formatCurrency(earnings?.availableBalance || 0).replace(/^[+-]/, '')}
           </ThemedText>
@@ -42,21 +44,31 @@ export const EarningsBalanceCard = memo(function EarningsBalanceCard({
             <Ionicons name="time-outline" size={16} color={palette.warning} />
             <ThemedText style={{ color: palette.muted, ...Typography.small }}>Pending</ThemedText>
           </Row>
-          <ThemedText type="defaultSemiBold">{formatCurrency(earnings?.pendingBalance || 0).replace(/^[+-]/, '')}</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {formatCurrency(earnings?.pendingBalance || 0).replace(/^[+-]/, '')}
+          </ThemedText>
         </Row>
         <Row style={styles.row}>
           <Row style={styles.item}>
             <Ionicons name="trending-up" size={16} color={palette.success} />
-            <ThemedText style={{ color: palette.muted, ...Typography.small }}>Total Earned</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+              Total Earned
+            </ThemedText>
           </Row>
-          <ThemedText type="defaultSemiBold">{formatCurrency(earnings?.totalEarned || 0).replace(/^[+-]/, '')}</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {formatCurrency(earnings?.totalEarned || 0).replace(/^[+-]/, '')}
+          </ThemedText>
         </Row>
         <Row style={styles.row}>
           <Row style={styles.item}>
             <Ionicons name="arrow-down-circle-outline" size={16} color={palette.tint} />
-            <ThemedText style={{ color: palette.muted, ...Typography.small }}>Total Withdrawn</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+              Total Withdrawn
+            </ThemedText>
           </Row>
-          <ThemedText type="defaultSemiBold">{formatCurrency(earnings?.totalWithdrawn || 0).replace(/^[+-]/, '')}</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {formatCurrency(earnings?.totalWithdrawn || 0).replace(/^[+-]/, '')}
+          </ThemedText>
         </Row>
       </View>
       <Clickable onPress={onWithdraw}>
@@ -72,12 +84,25 @@ export const EarningsBalanceCard = memo(function EarningsBalanceCard({
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
   header: { alignItems: 'center', gap: Spacing.md },
-  icon: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  icon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1, gap: Spacing.micro },
   amount: { ...Typography.display, letterSpacing: -0.5 },
   divider: { height: 1, marginVertical: Spacing.xs },
   details: { gap: Spacing.sm },
   row: { justifyContent: 'space-between', alignItems: 'center' },
   item: { alignItems: 'center', gap: Spacing.xs },
-  withdrawBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, marginTop: Spacing.xs },
+  withdrawBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs,
+  },
 });

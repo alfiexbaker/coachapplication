@@ -64,8 +64,13 @@ export function CoachAnalyticsScreen() {
         sessionsCount: data.sessions.totalSessions,
         activeClients: data.retention.totalActiveClients,
         avgRating: data.avgRating,
-        topSkills: data.topSkills.slice(0, 5).map((skill) => [skill.skill, skill.sessionCount] as [string, number]),
-        busiestDay: data.busiestDay.sessionCount > 0 ? `${data.busiestDay.dayName} (${data.busiestDay.sessionCount})` : 'N/A',
+        topSkills: data.topSkills
+          .slice(0, 5)
+          .map((skill) => [skill.skill, skill.sessionCount] as [string, number]),
+        busiestDay:
+          data.busiestDay.sessionCount > 0
+            ? `${data.busiestDay.dayName} (${data.busiestDay.sessionCount})`
+            : 'N/A',
         revenue: data.totalRevenue,
         sessionRate: data.avgRevenuePerSession,
       });
@@ -83,7 +88,10 @@ export function CoachAnalyticsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>

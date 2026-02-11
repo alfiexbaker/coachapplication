@@ -23,7 +23,16 @@ interface UseBadgeAwardOptions {
 }
 
 export function useBadgeAward(opts: UseBadgeAwardOptions) {
-  const { visible, athleteId, coachId, coachName, sessionId, initialReason, initialNote, onAwarded } = opts;
+  const {
+    visible,
+    athleteId,
+    coachId,
+    coachName,
+    sessionId,
+    initialReason,
+    initialNote,
+    onAwarded,
+  } = opts;
   const resolvedAthleteName = opts.athleteName || 'Athlete';
 
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
@@ -47,35 +56,75 @@ export function useBadgeAward(opts: UseBadgeAwardOptions) {
     logger.info('badge_award_opened', { athleteId, sessionId, coachId });
   }, [visible, athleteId, coachId, sessionId, initialNote, initialReason, selectedBadgeId]);
 
-  const handleBadgeSelect = (badgeId: string) => { Haptics.selectionAsync(); setSelectedBadgeId(badgeId); };
-  const handleReasonSelect = (reason: string) => { Haptics.selectionAsync(); setSelectedReason(reason); };
-  const handleQuickNote = (quickNote: string) => { Haptics.selectionAsync(); setNote((prev) => prev ? `${prev} ${quickNote}` : quickNote); };
+  const handleBadgeSelect = (badgeId: string) => {
+    Haptics.selectionAsync();
+    setSelectedBadgeId(badgeId);
+  };
+  const handleReasonSelect = (reason: string) => {
+    Haptics.selectionAsync();
+    setSelectedReason(reason);
+  };
+  const handleQuickNote = (quickNote: string) => {
+    Haptics.selectionAsync();
+    setNote((prev) => (prev ? `${prev} ${quickNote}` : quickNote));
+  };
 
   const handleSubmit = async () => {
-    if (!selectedBadgeId) { setError('Please select a badge'); return; }
+    if (!selectedBadgeId) {
+      setError('Please select a badge');
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
       const result = await badgeService.awardBadge({
-        badgeId: selectedBadgeId, athleteId, athleteName: resolvedAthleteName,
-        coachId, coachName, sessionId, reason: selectedReason, note: note.trim(),
-        visibility: 'supporters', context: sessionId ? 'session' : 'athlete_profile',
+        badgeId: selectedBadgeId,
+        athleteId,
+        athleteName: resolvedAthleteName,
+        coachId,
+        coachName,
+        sessionId,
+        reason: selectedReason,
+        note: note.trim(),
+        visibility: 'supporters',
+        context: sessionId ? 'session' : 'athlete_profile',
       });
-      if (!result.success) { setError(result.error.message); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); return; }
+      if (!result.success) {
+        setError(result.error.message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onAwarded?.(result.data);
-      logger.info('badge_award_submitted', { athleteId, sessionId, badgeId: selectedBadgeId, reason: selectedReason });
+      logger.info('badge_award_submitted', {
+        athleteId,
+        sessionId,
+        badgeId: selectedBadgeId,
+        reason: selectedReason,
+      });
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to award badge');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return undefined;
-    } finally { setIsSubmitting(false); }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return {
-    definitions, selectedBadgeId, selectedBadge, selectedReason, note, setNote,
-    isSubmitting, error, resolvedAthleteName,
-    handleBadgeSelect, handleReasonSelect, handleQuickNote, handleSubmit,
+    definitions,
+    selectedBadgeId,
+    selectedBadge,
+    selectedReason,
+    note,
+    setNote,
+    isSubmitting,
+    error,
+    resolvedAthleteName,
+    handleBadgeSelect,
+    handleReasonSelect,
+    handleQuickNote,
+    handleSubmit,
   };
 }

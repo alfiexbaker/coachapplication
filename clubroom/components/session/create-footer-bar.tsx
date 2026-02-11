@@ -48,11 +48,7 @@ export const CreateFooterBar = memo(function CreateFooterBar({
           {loading ? 'Creating...' : 'Create Session'}
         </Button>
       ) : (
-        <Button
-          onPress={onNext}
-          disabled={!canProceed}
-          accessibilityLabel="Continue to next step"
-        >
+        <Button onPress={onNext} disabled={!canProceed} accessibilityLabel="Continue to next step">
           Continue
         </Button>
       )}

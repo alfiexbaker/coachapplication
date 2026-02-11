@@ -37,17 +37,22 @@ export const DevAthleteHero = memo(function DevAthleteHero({
   onLogSession,
   onAwardBadge,
 }: DevAthleteHeroProps) {
-  const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
-  const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
-  const trendColor = trend === 'improving' ? colors.success : trend === 'declining' ? colors.error : colors.muted;
+  const trendIcon =
+    trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
+  const trendText =
+    trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
+  const trendColor =
+    trend === 'improving' ? colors.success : trend === 'declining' ? colors.error : colors.muted;
 
-  const avgRating = sessions.length > 0
-    ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
-    : '-';
+  const avgRating =
+    sessions.length > 0
+      ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
+      : '-';
 
-  const lastSessionDate = sessions.length > 0
-    ? formatShortDateWithYear(sortedSessions[0].completedAt).split(' ')[0]
-    : '-';
+  const lastSessionDate =
+    sessions.length > 0
+      ? formatShortDateWithYear(sortedSessions[0].completedAt).split(' ')[0]
+      : '-';
 
   return (
     <SurfaceCard style={styles.heroCard}>
@@ -78,7 +83,9 @@ export const DevAthleteHero = memo(function DevAthleteHero({
           <View style={[styles.badge, { backgroundColor: withAlpha(level.color, 0.09) }]}>
             <Row gap="xs" align="center">
               <Ionicons name={level.icon} size={14} color={level.color} />
-              <ThemedText style={[styles.badgeText, { color: level.color }]}>{level.name}</ThemedText>
+              <ThemedText style={[styles.badgeText, { color: level.color }]}>
+                {level.name}
+              </ThemedText>
             </Row>
           </View>
         </Row>
@@ -89,16 +96,23 @@ export const DevAthleteHero = memo(function DevAthleteHero({
             accessibilityRole="button"
             accessibilityLabel="Log session"
           >
-            <ThemedText style={[Typography.small, { color: colors.onPrimary }]}>Log Session</ThemedText>
+            <ThemedText style={[Typography.small, { color: colors.onPrimary }]}>
+              Log Session
+            </ThemedText>
           </Clickable>
           <Clickable
-            style={[styles.awardButton, { borderColor: colors.warning, backgroundColor: withAlpha(colors.warning, 0.09) }]}
+            style={[
+              styles.awardButton,
+              { borderColor: colors.warning, backgroundColor: withAlpha(colors.warning, 0.09) },
+            ]}
             onPress={onAwardBadge}
             accessibilityRole="button"
             accessibilityLabel="Award badge"
           >
             <Ionicons name="ribbon" size={14} color={colors.warning} />
-            <ThemedText style={[Typography.caption, { color: colors.warning }]}>Award Badge</ThemedText>
+            <ThemedText style={[Typography.caption, { color: colors.warning }]}>
+              Award Badge
+            </ThemedText>
           </Clickable>
         </Row>
       </Row>

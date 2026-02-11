@@ -23,8 +23,14 @@ interface StaffInviteModalProps {
 }
 
 export const StaffInviteModal = memo(function StaffInviteModal({
-  visible, colors, inviteRole, creatingInvite, inviteCode,
-  onRoleChange, onCreateInvite, onClose,
+  visible,
+  colors,
+  inviteRole,
+  creatingInvite,
+  inviteCode,
+  onRoleChange,
+  onCreateInvite,
+  onClose,
 }: StaffInviteModalProps) {
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -43,7 +49,9 @@ export const StaffInviteModal = memo(function StaffInviteModal({
                 Share this code with your staff:
               </ThemedText>
               <View style={[styles.codeBox, { backgroundColor: colors.background }]}>
-                <ThemedText type="heading" style={styles.codeText}>{inviteCode}</ThemedText>
+                <ThemedText type="heading" style={styles.codeText}>
+                  {inviteCode}
+                </ThemedText>
               </View>
               <ThemedText style={[styles.codeHint, { color: colors.muted }]}>
                 Valid for 30 days, up to 10 uses
@@ -67,7 +75,13 @@ export const StaffInviteModal = memo(function StaffInviteModal({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  content: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    borderTopLeftRadius: Radii.xl,
+    borderTopRightRadius: Radii.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   header: { alignItems: 'center', justifyContent: 'space-between' },
   label: { ...Typography.smallSemiBold, marginTop: Spacing.sm },
   codeSection: { alignItems: 'center', gap: Spacing.md },

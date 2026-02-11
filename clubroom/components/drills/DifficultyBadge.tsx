@@ -8,7 +8,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing} from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import type { DrillDifficulty } from '@/constants/types';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
@@ -30,19 +30,9 @@ export function DifficultyBadge({ difficulty, size = 'medium' }: DifficultyBadge
 
   return (
     <View
-      style={[
-        styles.badge,
-        { backgroundColor: bgColor },
-        isSmall ? styles.badgeSmall : undefined,
-      ]}
+      style={[styles.badge, { backgroundColor: bgColor }, isSmall ? styles.badgeSmall : undefined]}
     >
-      <ThemedText
-        style={[
-          styles.text,
-          { color },
-          isSmall ? styles.textSmall : undefined,
-        ]}
-      >
+      <ThemedText style={[styles.text, { color }, isSmall ? styles.textSmall : undefined]}>
         {label}
       </ThemedText>
     </View>

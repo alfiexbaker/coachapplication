@@ -27,7 +27,8 @@ export function SafetyChecklist({
   hasEmergencyContact,
   hasEmergencyConsent,
   hasMedicalInfo,
-  onPressIncomplete }: SafetyChecklistProps) {
+  onPressIncomplete,
+}: SafetyChecklistProps) {
   const { colors: palette } = useTheme();
 
   const items: ChecklistItem[] = [
@@ -36,22 +37,25 @@ export function SafetyChecklist({
       label: 'Emergency Contact',
       description: 'At least one emergency contact on file',
       isComplete: hasEmergencyContact,
-      icon: 'call' },
+      icon: 'call',
+    },
     {
       key: 'consent',
       label: 'Emergency Treatment Consent',
       description: 'Parent has granted emergency treatment consent',
       isComplete: hasEmergencyConsent,
-      icon: 'shield-checkmark' },
+      icon: 'shield-checkmark',
+    },
     {
       key: 'medical',
       label: 'Medical Information',
       description: 'Allergies, conditions, or medications documented',
       isComplete: hasMedicalInfo,
-      icon: 'medical' },
+      icon: 'medical',
+    },
   ];
 
-  const completedCount = items.filter(i => i.isComplete).length;
+  const completedCount = items.filter((i) => i.isComplete).length;
   const isAllComplete = completedCount === items.length;
 
   return (
@@ -63,7 +67,8 @@ export function SafetyChecklist({
             {
               backgroundColor: isAllComplete
                 ? withAlpha(palette.success, 0.09)
-                : withAlpha(palette.warning, 0.09) },
+                : withAlpha(palette.warning, 0.09),
+            },
           ]}
         >
           <Ionicons
@@ -86,7 +91,8 @@ export function SafetyChecklist({
             {
               backgroundColor: isAllComplete
                 ? withAlpha(palette.success, 0.09)
-                : withAlpha(palette.warning, 0.09) },
+                : withAlpha(palette.warning, 0.09),
+            },
           ]}
         >
           <ThemedText
@@ -117,7 +123,8 @@ export function SafetyChecklist({
                 {
                   backgroundColor: item.isComplete
                     ? withAlpha(palette.success, 0.06)
-                    : withAlpha(palette.muted, 0.06) },
+                    : withAlpha(palette.muted, 0.06),
+                },
               ]}
             >
               <Ionicons
@@ -127,12 +134,7 @@ export function SafetyChecklist({
               />
             </View>
             <View style={styles.itemContent}>
-              <ThemedText
-                style={[
-                  styles.itemLabel,
-                  !item.isComplete && { color: palette.muted },
-                ]}
-              >
+              <ThemedText style={[styles.itemLabel, !item.isComplete && { color: palette.muted }]}>
                 {item.label}
               </ThemedText>
               <ThemedText style={[styles.itemDescription, { color: palette.muted }]}>
@@ -172,24 +174,28 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   headerSubtext: { ...Typography.caption, marginTop: Spacing.micro },
   progressBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill },
+    borderRadius: Radii.pill,
+  },
   progressText: { ...Typography.caption },
   itemsList: { gap: 0 },
   item: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent' },
+    borderBottomColor: 'transparent',
+  },
   itemIcon: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   itemContent: { flex: 1 },
   itemLabel: { ...Typography.bodySmallSemiBold },
   itemDescription: { ...Typography.caption, marginTop: 1 },
@@ -197,5 +203,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderWidth: 1.5,
     borderRadius: Radii.md,
-    marginTop: Spacing.xs },
-  actionText: { ...Typography.bodySmallSemiBold } });
+    marginTop: Spacing.xs,
+  },
+  actionText: { ...Typography.bodySmallSemiBold },
+});

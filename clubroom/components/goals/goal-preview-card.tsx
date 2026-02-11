@@ -34,9 +34,7 @@ export function GoalPreviewCard({
       <SurfaceCard style={styles.preview}>
         <Row style={styles.header}>
           <CategoryBadge category={category} />
-          <ThemedText style={[styles.progress, { color: palette.muted }]}>
-            0%
-          </ThemedText>
+          <ThemedText style={[styles.progress, { color: palette.muted }]}>0%</ThemedText>
         </Row>
         <ThemedText type="defaultSemiBold" style={styles.title}>
           {title || 'Your goal title'}

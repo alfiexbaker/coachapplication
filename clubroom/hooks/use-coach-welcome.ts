@@ -44,10 +44,20 @@ export function useCoachWelcome(onComplete: () => void) {
   const isLastPage = currentPage === TOTAL_SCREENS - 1;
 
   return {
-    scrollRef, currentPage, isLastPage,
-    headline, setHeadline, bio, setBio, rate, setRate,
-    selectedSpecialties, toggleSpecialty,
-    availability, toggleAvailability,
-    handleScroll, handleNext,
+    scrollRef,
+    currentPage,
+    isLastPage,
+    headline,
+    setHeadline,
+    bio,
+    setBio,
+    rate,
+    setRate,
+    selectedSpecialties,
+    toggleSpecialty,
+    availability,
+    toggleAvailability,
+    handleScroll,
+    handleNext,
   };
 }

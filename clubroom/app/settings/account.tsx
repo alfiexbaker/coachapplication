@@ -16,19 +16,34 @@ import { useAccountSettings } from '@/hooks/use-account-settings';
 export default function AccountSettingsScreen() {
   const { colors } = useTheme();
   const {
-    currentUser, editingEmail, editingPhone, email, phone,
-    setEditingEmail, setEditingPhone, setEmail, setPhone,
-    handleSaveEmail, handleSavePhone, handleChangePassword,
-    handleDeleteAccount, handleDeactivateAccount,
+    currentUser,
+    editingEmail,
+    editingPhone,
+    email,
+    phone,
+    setEditingEmail,
+    setEditingPhone,
+    setEmail,
+    setPhone,
+    handleSaveEmail,
+    handleSavePhone,
+    handleChangePassword,
+    handleDeleteAccount,
+    handleDeactivateAccount,
   } = useAccountSettings();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row justify="space-between" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>Account</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Account
+        </ThemedText>
         <View style={{ width: 24 }} />
       </Row>
 
@@ -37,7 +52,18 @@ export default function AccountSettingsScreen() {
           <SurfaceCard style={styles.inputCard}>
             {editingEmail ? (
               <View style={styles.editContainer}>
-                <TextInput style={[styles.input, { backgroundColor: colors.surfaceSecondary, color: colors.text }]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoFocus accessibilityLabel="Email address" />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.surfaceSecondary, color: colors.text },
+                  ]}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoFocus
+                  accessibilityLabel="Email address"
+                />
                 <Row justify="flex-end" align="center" gap="md">
                   <Clickable onPress={() => setEditingEmail(false)}>
                     <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
@@ -46,7 +72,12 @@ export default function AccountSettingsScreen() {
                 </Row>
               </View>
             ) : (
-              <SettingsRow icon="mail" title="Email" value={email} onPress={() => setEditingEmail(true)} />
+              <SettingsRow
+                icon="mail"
+                title="Email"
+                value={email}
+                onPress={() => setEditingEmail(true)}
+              />
             )}
           </SurfaceCard>
         </SettingsSection>
@@ -55,7 +86,18 @@ export default function AccountSettingsScreen() {
           <SurfaceCard style={styles.inputCard}>
             {editingPhone ? (
               <View style={styles.editContainer}>
-                <TextInput style={[styles.input, { backgroundColor: colors.surfaceSecondary, color: colors.text }]} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoFocus placeholder="+44 7XXX XXXXXX" placeholderTextColor={colors.muted} />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.surfaceSecondary, color: colors.text },
+                  ]}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoFocus
+                  placeholder="+44 7XXX XXXXXX"
+                  placeholderTextColor={colors.muted}
+                />
                 <Row justify="flex-end" align="center" gap="md">
                   <Clickable onPress={() => setEditingPhone(false)}>
                     <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
@@ -64,23 +106,48 @@ export default function AccountSettingsScreen() {
                 </Row>
               </View>
             ) : (
-              <SettingsRow icon="call" title="Phone" value={phone || 'Not set'} onPress={() => setEditingPhone(true)} />
+              <SettingsRow
+                icon="call"
+                title="Phone"
+                value={phone || 'Not set'}
+                onPress={() => setEditingPhone(true)}
+              />
             )}
           </SurfaceCard>
         </SettingsSection>
 
         <SettingsSection title="Password">
-          <SettingsRow icon="key" title="Change Password" subtitle="Update your account password" onPress={handleChangePassword} />
+          <SettingsRow
+            icon="key"
+            title="Change Password"
+            subtitle="Update your account password"
+            onPress={handleChangePassword}
+          />
         </SettingsSection>
 
         <SettingsSection title="Connected Accounts">
-          <SettingsRow icon="logo-google" title="Google" value="Not connected" onPress={() => Alert.alert('Coming Soon', 'Google sign-in coming soon')} />
-          <SettingsRow icon="logo-apple" title="Apple" value="Not connected" onPress={() => Alert.alert('Coming Soon', 'Apple sign-in coming soon')} />
+          <SettingsRow
+            icon="logo-google"
+            title="Google"
+            value="Not connected"
+            onPress={() => Alert.alert('Coming Soon', 'Google sign-in coming soon')}
+          />
+          <SettingsRow
+            icon="logo-apple"
+            title="Apple"
+            value="Not connected"
+            onPress={() => Alert.alert('Coming Soon', 'Apple sign-in coming soon')}
+          />
         </SettingsSection>
 
         <SettingsSection title="Account Information">
           <View style={styles.infoCard}>
-            <InfoRow label="Account Type" value={currentUser?.role || 'USER'} colors={colors} bold />
+            <InfoRow
+              label="Account Type"
+              value={currentUser?.role || 'USER'}
+              colors={colors}
+              bold
+            />
             <InfoRow label="User ID" value={currentUser?.id || 'N/A'} colors={colors} mono />
             <InfoRow label="Member Since" value="January 2024" colors={colors} />
           </View>
@@ -88,9 +155,21 @@ export default function AccountSettingsScreen() {
 
         <SettingsSection title="Danger Zone">
           <SurfaceCard style={[styles.dangerCard, { borderColor: colors.error }]}>
-            <SettingsRow icon="pause-circle" title="Deactivate Account" subtitle="Temporarily hide your account" onPress={handleDeactivateAccount} iconColor={colors.warning} />
+            <SettingsRow
+              icon="pause-circle"
+              title="Deactivate Account"
+              subtitle="Temporarily hide your account"
+              onPress={handleDeactivateAccount}
+              iconColor={colors.warning}
+            />
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <SettingsRow icon="trash" title="Delete Account" subtitle="Permanently delete all your data" onPress={handleDeleteAccount} destructive />
+            <SettingsRow
+              icon="trash"
+              title="Delete Account"
+              subtitle="Permanently delete all your data"
+              onPress={handleDeleteAccount}
+              destructive
+            />
           </SurfaceCard>
         </SettingsSection>
 
@@ -105,11 +184,28 @@ export default function AccountSettingsScreen() {
   );
 }
 
-function InfoRow({ label, value, colors, bold, mono }: { label: string; value: string; colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors']; bold?: boolean; mono?: boolean }) {
+function InfoRow({
+  label,
+  value,
+  colors,
+  bold,
+  mono,
+}: {
+  label: string;
+  value: string;
+  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
+  bold?: boolean;
+  mono?: boolean;
+}) {
   return (
     <Row justify="space-between" align="center">
       <ThemedText style={[styles.infoLabel, { color: colors.muted }]}>{label}</ThemedText>
-      <ThemedText type={bold ? 'defaultSemiBold' : undefined} style={mono ? { fontFamily: 'monospace' } : undefined}>{value}</ThemedText>
+      <ThemedText
+        type={bold ? 'defaultSemiBold' : undefined}
+        style={mono ? { fontFamily: 'monospace' } : undefined}
+      >
+        {value}
+      </ThemedText>
     </Row>
   );
 }

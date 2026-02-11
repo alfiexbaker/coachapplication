@@ -28,9 +28,10 @@ export default function RecurringBookingsScreen() {
     }
 
     try {
-      const bookingsResult = currentUser.role === 'COACH'
-        ? await recurringBookingService.getCoachRecurringBookings(currentUser.id)
-        : await recurringBookingService.getUserRecurringBookings(currentUser.id);
+      const bookingsResult =
+        currentUser.role === 'COACH'
+          ? await recurringBookingService.getCoachRecurringBookings(currentUser.id)
+          : await recurringBookingService.getUserRecurringBookings(currentUser.id);
 
       if (!bookingsResult.success) {
         return err(bookingsResult.error);
@@ -42,9 +43,10 @@ export default function RecurringBookingsScreen() {
         if (allBookingsResult.success && allBookingsResult.data.length === 0) {
           const seedResult = await recurringBookingService.seedDemoData();
           if (seedResult.success) {
-            const seededBookingsResult = currentUser.role === 'COACH'
-              ? await recurringBookingService.getCoachRecurringBookings(currentUser.id)
-              : await recurringBookingService.getUserRecurringBookings(currentUser.id);
+            const seededBookingsResult =
+              currentUser.role === 'COACH'
+                ? await recurringBookingService.getCoachRecurringBookings(currentUser.id)
+                : await recurringBookingService.getUserRecurringBookings(currentUser.id);
             if (seededBookingsResult.success) {
               userBookings = seededBookingsResult.data;
             }
@@ -58,7 +60,9 @@ export default function RecurringBookingsScreen() {
       return ok(userBookings);
     } catch (error) {
       logger.error('Failed to load recurring bookings', error);
-      return err(serviceError('UNKNOWN', 'Failed to load recurring bookings. Please try again.', error));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load recurring bookings. Please try again.', error),
+      );
     }
   }, [currentUser?.id, currentUser?.role]);
 
@@ -73,73 +77,95 @@ export default function RecurringBookingsScreen() {
   } = useScreen<RecurringBooking[]>({
     load: loadBookings,
     deps: [currentUser?.id, currentUser?.role],
-    events: [ServiceEvents.RECURRING_CREATED, ServiceEvents.RECURRING_CANCELLED, ServiceEvents.BOOKING_CREATED],
+    events: [
+      ServiceEvents.RECURRING_CREATED,
+      ServiceEvents.RECURRING_CANCELLED,
+      ServiceEvents.BOOKING_CREATED,
+    ],
     isEmpty: (data) => data.length === 0,
     refetchOnFocus: true,
   });
   const bookings = recurringData ?? [];
 
-  const handlePause = useCallback(async (id: string, reason?: string) => {
-    const result = await recurringBookingService.pauseRecurring(id, reason);
+  const handlePause = useCallback(
+    async (id: string, reason?: string) => {
+      const result = await recurringBookingService.pauseRecurring(id, reason);
 
-    if (result.success) {
-      Alert.alert('Subscription Paused', 'Your recurring booking has been paused. You can resume it anytime.');
-      onRefresh();
-    } else {
-      Alert.alert('Error', result.error?.message || 'Failed to pause subscription.');
-    }
-  }, [onRefresh]);
+      if (result.success) {
+        Alert.alert(
+          'Subscription Paused',
+          'Your recurring booking has been paused. You can resume it anytime.',
+        );
+        onRefresh();
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to pause subscription.');
+      }
+    },
+    [onRefresh],
+  );
 
-  const handleResume = useCallback(async (id: string) => {
-    const result = await recurringBookingService.resumeRecurring(id);
+  const handleResume = useCallback(
+    async (id: string) => {
+      const result = await recurringBookingService.resumeRecurring(id);
 
-    if (result.success) {
-      Alert.alert('Subscription Resumed', 'Your recurring booking has been resumed.');
-      onRefresh();
-    } else {
-      Alert.alert('Error', result.error?.message || 'Failed to resume subscription.');
-    }
-  }, [onRefresh]);
+      if (result.success) {
+        Alert.alert('Subscription Resumed', 'Your recurring booking has been resumed.');
+        onRefresh();
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to resume subscription.');
+      }
+    },
+    [onRefresh],
+  );
 
-  const handleCancel = useCallback(async (id: string, reason?: string) => {
-    const result = await recurringBookingService.cancelRecurring(id, reason);
+  const handleCancel = useCallback(
+    async (id: string, reason?: string) => {
+      const result = await recurringBookingService.cancelRecurring(id, reason);
 
-    if (result.success) {
-      Alert.alert('Subscription Cancelled', 'Your recurring booking has been cancelled.');
-      onRefresh();
-    } else {
-      Alert.alert('Error', result.error?.message || 'Failed to cancel subscription.');
-    }
-  }, [onRefresh]);
+      if (result.success) {
+        Alert.alert('Subscription Cancelled', 'Your recurring booking has been cancelled.');
+        onRefresh();
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to cancel subscription.');
+      }
+    },
+    [onRefresh],
+  );
 
-  const handleCardPress = useCallback((recurring: RecurringBooking) => {
-    if (recurring.status !== 'ACTIVE') {
-      return;
-    }
+  const handleCardPress = useCallback(
+    (recurring: RecurringBooking) => {
+      if (recurring.status !== 'ACTIVE') {
+        return;
+      }
 
-    Alert.alert(
-      'Generate Bookings',
-      'Would you like to generate the next 4 upcoming session bookings from this subscription?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Generate',
-          onPress: async () => {
-            const result = await recurringBookingService.generateUpcomingBookings(recurring.id, 4);
-            if (result.success && result.data) {
-              Alert.alert(
-                'Bookings Generated',
-                `${result.data.length} upcoming sessions have been added to your bookings.`
+      Alert.alert(
+        'Generate Bookings',
+        'Would you like to generate the next 4 upcoming session bookings from this subscription?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Generate',
+            onPress: async () => {
+              const result = await recurringBookingService.generateUpcomingBookings(
+                recurring.id,
+                4,
               );
-              onRefresh();
-            } else {
-              Alert.alert('Error', result.error?.message || 'Failed to generate bookings.');
-            }
+              if (result.success && result.data) {
+                Alert.alert(
+                  'Bookings Generated',
+                  `${result.data.length} upcoming sessions have been added to your bookings.`,
+                );
+                onRefresh();
+              } else {
+                Alert.alert('Error', result.error?.message || 'Failed to generate bookings.');
+              }
+            },
           },
-        },
-      ]
-    );
-  }, [onRefresh]);
+        ],
+      );
+    },
+    [onRefresh],
+  );
 
   const handleCreatePress = useCallback(() => {
     router.push(Routes.BOOKINGS_SUBSCRIBE);
@@ -149,7 +175,11 @@ export default function RecurringBookingsScreen() {
   const createScreenOptions = {
     ...baseScreenOptions,
     headerRight: () => (
-      <Clickable accessibilityLabel="Create recurring booking" onPress={handleCreatePress} style={styles.headerButton}>
+      <Clickable
+        accessibilityLabel="Create recurring booking"
+        onPress={handleCreatePress}
+        style={styles.headerButton}
+      >
         <Ionicons name="add-circle" size={28} color={palette.tint} />
       </Clickable>
     ),
@@ -157,10 +187,11 @@ export default function RecurringBookingsScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <Stack.Screen
-          options={baseScreenOptions}
-        />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <Stack.Screen options={baseScreenOptions} />
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -168,24 +199,31 @@ export default function RecurringBookingsScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <Stack.Screen
-          options={baseScreenOptions}
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <Stack.Screen options={baseScreenOptions} />
+        <ErrorState
+          message={error?.message ?? 'Failed to load recurring bookings.'}
+          onRetry={retry}
         />
-        <ErrorState message={error?.message ?? 'Failed to load recurring bookings.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <Stack.Screen
-          options={createScreenOptions}
-        />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <Stack.Screen options={createScreenOptions} />
         <EmptyState
           icon="repeat-outline"
-          title={currentUser?.role === 'COACH' ? 'No recurring subscriptions' : 'No recurring bookings'}
+          title={
+            currentUser?.role === 'COACH' ? 'No recurring subscriptions' : 'No recurring bookings'
+          }
           message={
             currentUser?.role === 'COACH'
               ? 'No athletes have subscribed to recurring sessions with you yet.'
@@ -199,10 +237,11 @@ export default function RecurringBookingsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <Stack.Screen
-        options={createScreenOptions}
-      />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <Stack.Screen options={createScreenOptions} />
       <ThemedView style={styles.header}>
         <ThemedText type="subtitle">
           {currentUser?.role === 'COACH' ? 'Subscriptions from Athletes' : 'My Subscriptions'}
@@ -224,8 +263,14 @@ export default function RecurringBookingsScreen() {
         onCancel={currentUser?.role !== 'COACH' ? handleCancel : undefined}
         onCardPress={handleCardPress}
         onCreatePress={currentUser?.role !== 'COACH' ? handleCreatePress : undefined}
-        emptyTitle={currentUser?.role === 'COACH' ? 'No Recurring Subscriptions' : 'No Recurring Bookings'}
-        emptyMessage={currentUser?.role === 'COACH' ? 'No athletes have subscribed to recurring sessions with you yet.' : 'Subscribe to a weekly or monthly session slot with your favorite coach.'}
+        emptyTitle={
+          currentUser?.role === 'COACH' ? 'No Recurring Subscriptions' : 'No Recurring Bookings'
+        }
+        emptyMessage={
+          currentUser?.role === 'COACH'
+            ? 'No athletes have subscribed to recurring sessions with you yet.'
+            : 'Subscribe to a weekly or monthly session slot with your favorite coach.'
+        }
       />
     </SafeAreaView>
   );

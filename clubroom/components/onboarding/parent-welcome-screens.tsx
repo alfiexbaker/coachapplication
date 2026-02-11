@@ -42,7 +42,10 @@ export const WelcomePage = memo(function WelcomePage({ childName }: WelcomePageP
           Let&apos;s set up for {childName}
         </ThemedText>
         <ThemedText
-          style={[Typography.body, { color: palette.muted, textAlign: 'center', marginTop: Spacing.sm }]}
+          style={[
+            Typography.body,
+            { color: palette.muted, textAlign: 'center', marginTop: Spacing.sm },
+          ]}
         >
           We&apos;ll help you find the perfect coach based on your child&apos;s needs and goals.
         </ThemedText>
@@ -96,7 +99,9 @@ export const ChildDetailsPage = memo(function ChildDetailsPage({
         </View>
 
         <View style={styles.sectionBlock}>
-          <ThemedText style={[Typography.caption, { color: palette.muted }]}>SKILL LEVEL</ThemedText>
+          <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+            SKILL LEVEL
+          </ThemedText>
           <SkillLevelRow
             levels={[...SKILL_LEVELS]}
             selectedLevel={selectedLevel}
@@ -106,7 +111,9 @@ export const ChildDetailsPage = memo(function ChildDetailsPage({
         </View>
 
         <View style={styles.sectionBlock}>
-          <ThemedText style={[Typography.caption, { color: palette.muted }]}>WHAT TO IMPROVE</ThemedText>
+          <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+            WHAT TO IMPROVE
+          </ThemedText>
           <ImprovementAreaGrid
             areas={IMPROVEMENT_AREAS}
             selectedAreas={selectedAreas}

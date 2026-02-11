@@ -71,7 +71,11 @@ function DrillCompletionSectionInner({
           <TextInput
             style={[
               styles.feedbackInput,
-              { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text },
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+                color: palette.text,
+              },
             ]}
             placeholder="How did it go? Any notes for your coach..."
             placeholderTextColor={palette.muted}
@@ -91,11 +95,7 @@ function DrillCompletionSectionInner({
         </Clickable>
       )}
 
-      <Button
-        onPress={onComplete}
-        disabled={completing}
-        style={styles.completeButton}
-      >
+      <Button onPress={onComplete} disabled={completing} style={styles.completeButton}>
         {completing ? 'Marking Complete...' : 'Mark as Complete'}
       </Button>
     </View>

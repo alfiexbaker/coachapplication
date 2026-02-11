@@ -35,7 +35,10 @@ interface ChildBadgesData {
 }
 
 export function useChildBadges() {
-  const { childId, highlightBadge } = useLocalSearchParams<{ childId: string; highlightBadge?: string }>();
+  const { childId, highlightBadge } = useLocalSearchParams<{
+    childId: string;
+    highlightBadge?: string;
+  }>();
 
   const loadData = useCallback(async () => {
     if (!childId) {
@@ -63,7 +66,7 @@ export function useChildBadges() {
         badgeService.getProgressionSummary(childId),
       ]);
 
-      const visibleAwards = awardsData.filter(a => a.visibility !== 'coach_only');
+      const visibleAwards = awardsData.filter((a) => a.visibility !== 'coach_only');
       await badgeService.markAllSeenByParent(childId);
       return ok<ChildBadgesData>({
         child,
@@ -76,14 +79,7 @@ export function useChildBadges() {
     }
   }, [childId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ChildBadgesData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildBadgesData>({
     load: loadData,
     deps: [childId],
     isEmpty: (value) => !value.child || value.awards.length === 0,
@@ -107,10 +103,14 @@ export function useChildBadges() {
 
 export function getTierColor(tier?: 1 | 2 | 3): string {
   switch (tier) {
-    case 3: return BADGE_TIER_COLORS.gold;
-    case 2: return BADGE_TIER_COLORS.silver;
-    case 1: return BADGE_TIER_COLORS.bronze;
-    default: return BADGE_TIER_COLORS.default;
+    case 3:
+      return BADGE_TIER_COLORS.gold;
+    case 2:
+      return BADGE_TIER_COLORS.silver;
+    case 1:
+      return BADGE_TIER_COLORS.bronze;
+    default:
+      return BADGE_TIER_COLORS.default;
   }
 }
 

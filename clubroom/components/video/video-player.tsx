@@ -48,20 +48,23 @@ export function VideoPlayer({
 
   const controlsOpacity = useSharedValue(1);
 
-  const handlePlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) {
-      setIsBuffering(true);
-      return;
-    }
+  const handlePlaybackStatusUpdate = useCallback(
+    (status: AVPlaybackStatus) => {
+      if (!status.isLoaded) {
+        setIsBuffering(true);
+        return;
+      }
 
-    setIsBuffering(false);
-    setIsPlaying(status.isPlaying);
-    setCurrentTime(status.positionMillis / 1000);
-    if (status.durationMillis) {
-      setVideoDuration(status.durationMillis / 1000);
-    }
-    onTimeUpdate?.(status.positionMillis / 1000);
-  }, [onTimeUpdate]);
+      setIsBuffering(false);
+      setIsPlaying(status.isPlaying);
+      setCurrentTime(status.positionMillis / 1000);
+      if (status.durationMillis) {
+        setVideoDuration(status.durationMillis / 1000);
+      }
+      onTimeUpdate?.(status.positionMillis / 1000);
+    },
+    [onTimeUpdate],
+  );
 
   const togglePlayPause = async () => {
     if (!videoRef.current) return;
@@ -101,7 +104,12 @@ export function VideoPlayer({
 
   return (
     <View style={[styles.container, { backgroundColor: palette.text }]}>
-      <Clickable onPress={toggleControls} style={styles.videoContainer} accessibilityRole="button" accessibilityLabel="Toggle video controls">
+      <Clickable
+        onPress={toggleControls}
+        style={styles.videoContainer}
+        accessibilityRole="button"
+        accessibilityLabel="Toggle video controls"
+      >
         <Video
           ref={videoRef}
           source={{ uri: videoUrl }}
@@ -115,7 +123,9 @@ export function VideoPlayer({
         />
 
         {isBuffering && (
-          <View style={[styles.bufferingOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
+          <View
+            style={[styles.bufferingOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+          >
             <Ionicons name="hourglass" size={40} color={palette.onPrimary} />
           </View>
         )}
@@ -127,13 +137,22 @@ export function VideoPlayer({
             style={[styles.controlsOverlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
           >
             <Row flex align="center" justify="center" gap="xl">
-              <Clickable onPress={skipBackward} style={[styles.skipButton, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
+              <Clickable
+                onPress={skipBackward}
+                style={[styles.skipButton, { backgroundColor: withAlpha(palette.text, 0.3) }]}
+              >
                 <Ionicons name="play-back" size={28} color={palette.onPrimary} />
               </Clickable>
-              <Clickable onPress={togglePlayPause} style={[styles.playPauseButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
+              <Clickable
+                onPress={togglePlayPause}
+                style={[styles.playPauseButton, { backgroundColor: withAlpha(palette.text, 0.5) }]}
+              >
                 <Ionicons name={isPlaying ? 'pause' : 'play'} size={40} color={palette.onPrimary} />
               </Clickable>
-              <Clickable onPress={skipForward} style={[styles.skipButton, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
+              <Clickable
+                onPress={skipForward}
+                style={[styles.skipButton, { backgroundColor: withAlpha(palette.text, 0.3) }]}
+              >
                 <Ionicons name="play-forward" size={28} color={palette.onPrimary} />
               </Clickable>
             </Row>
@@ -166,16 +185,24 @@ export function VideoPlayer({
                   maximumValue={videoDuration}
                   onSlidingComplete={handleSliderChange}
                   minimumTrackTintColor={palette.tint}
-                  maximumTrackTintColor={withAlpha(palette.onPrimary, 0.30)}
+                  maximumTrackTintColor={withAlpha(palette.onPrimary, 0.3)}
                   thumbTintColor={palette.tint}
                 />
               </View>
 
               <Row justify="between" style={styles.timeRow}>
-                <ThemedText style={styles.timeText} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
+                <ThemedText
+                  style={styles.timeText}
+                  lightColor={palette.onPrimary}
+                  darkColor={palette.onPrimary}
+                >
                   {formatTime(currentTime)}
                 </ThemedText>
-                <ThemedText style={styles.timeText} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
+                <ThemedText
+                  style={styles.timeText}
+                  lightColor={palette.onPrimary}
+                  darkColor={palette.onPrimary}
+                >
                   {formatTime(videoDuration)}
                 </ThemedText>
               </Row>
@@ -191,14 +218,38 @@ const styles = StyleSheet.create({
   container: { width: '100%', aspectRatio: 16 / 9, borderRadius: Radii.lg, overflow: 'hidden' },
   videoContainer: { flex: 1 },
   video: { flex: 1 },
-  bufferingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  bufferingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   controlsOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between' },
-  playPauseButton: { width: 72, height: 72, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center' },
-  skipButton: { width: 48, height: 48, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  playPauseButton: {
+    width: 72,
+    height: 72,
+    borderRadius: Radii['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipButton: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bottomControls: { padding: Spacing.md, gap: Spacing.xs },
   progressContainer: { position: 'relative', height: 30, justifyContent: 'center' },
   slider: { width: '100%', height: 30 },
-  annotationMarker: { position: 'absolute', width: 8, height: 8, borderRadius: Radii.xs, top: 11, marginLeft: -4, zIndex: 10 },
+  annotationMarker: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: Radii.xs,
+    top: 11,
+    marginLeft: -4,
+    zIndex: 10,
+  },
   timeRow: { paddingHorizontal: Spacing.xs },
   timeText: { ...Typography.caption },
 });

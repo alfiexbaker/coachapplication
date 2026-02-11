@@ -29,7 +29,12 @@ export const SharePreview = memo(function SharePreview({
   return (
     <Clickable style={[styles.previewContainer, { backgroundColor: palette.background }]}>
       <Ionicons name="chatbubble-outline" size={16} color={palette.muted} />
-      <Ionicons name="document-text-outline" size={14} color={palette.muted} style={styles.previewIcon} />
+      <Ionicons
+        name="document-text-outline"
+        size={14}
+        color={palette.muted}
+        style={styles.previewIcon}
+      />
       <Ionicons name="link-outline" size={14} color={palette.tint} style={styles.previewIcon} />
     </Clickable>
   );

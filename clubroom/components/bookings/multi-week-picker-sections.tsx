@@ -51,14 +51,14 @@ export const WeekRowItem = memo(function WeekRowItem({
   const bgColor = !week.available
     ? withAlpha(palette.muted, 0.04)
     : isSelected
-    ? withAlpha(palette.tint, 0.06)
-    : palette.surface;
+      ? withAlpha(palette.tint, 0.06)
+      : palette.surface;
 
   const borderColor = !week.available
     ? withAlpha(palette.muted, 0.12)
     : isSelected
-    ? palette.tint
-    : palette.border;
+      ? palette.tint
+      : palette.border;
 
   return (
     <Chip
@@ -99,10 +99,7 @@ export const WeekRowItem = memo(function WeekRowItem({
           <Row style={styles.timeRow}>
             <Ionicons name="time-outline" size={14} color={palette.muted} />
             <ThemedText
-              style={[
-                Typography.small,
-                { color: week.available ? palette.text : palette.muted },
-              ]}
+              style={[Typography.small, { color: week.available ? palette.text : palette.muted }]}
             >
               {formatTimeDisplay(week.startTime)} - {formatTimeDisplay(week.endTime)}
             </ThemedText>
@@ -110,10 +107,7 @@ export const WeekRowItem = memo(function WeekRowItem({
           {week.location ? (
             <Row style={styles.locationRow}>
               <Ionicons name="location-outline" size={14} color={palette.tint} />
-              <ThemedText
-                style={[Typography.small, { color: palette.tint }]}
-                numberOfLines={1}
-              >
+              <ThemedText style={[Typography.small, { color: palette.tint }]} numberOfLines={1}>
                 {week.location}
               </ThemedText>
             </Row>
@@ -133,7 +127,8 @@ export const WeekRowItem = memo(function WeekRowItem({
               { color: week.available ? palette.text : palette.muted },
             ]}
           >
-            {currency}{week.price}
+            {currency}
+            {week.price}
           </ThemedText>
           {week.available && (
             <Ionicons

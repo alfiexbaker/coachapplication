@@ -15,11 +15,11 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { MutedCoach } from '@/constants/types';
 
+import { MutedCoachRow } from './muted-coaches-list-sections';
+
 // Re-export extracted components for backward compat
 export { formatMutedDate, MutedCoachRow } from './muted-coaches-list-sections';
 export type { MutedCoachRowProps } from './muted-coaches-list-sections';
-
-import { MutedCoachRow } from './muted-coaches-list-sections';
 
 export interface MutedCoachesListProps {
   mutedCoaches: MutedCoach[];
@@ -37,7 +37,9 @@ export function MutedCoachesList({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
+    <View
+      style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}
+    >
       {/* Header */}
       <Row align="center" gap="sm" style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
@@ -53,7 +55,9 @@ export function MutedCoachesList({
         </View>
         {mutedCoaches.length > 0 && (
           <View style={[styles.badge, { backgroundColor: palette.muted }]}>
-            <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>{mutedCoaches.length}</ThemedText>
+            <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
+              {mutedCoaches.length}
+            </ThemedText>
           </View>
         )}
       </Row>

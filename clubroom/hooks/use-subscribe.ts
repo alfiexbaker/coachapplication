@@ -106,9 +106,16 @@ export function useSubscribe() {
     try {
       const result = await recurringBookingService.createRecurring(formParams);
       if (result.success) {
-        Alert.alert('Subscription Created', 'Your recurring booking has been set up successfully!', [
-          { text: 'View Subscriptions', onPress: () => router.replace(Routes.BOOKINGS_RECURRING) },
-        ]);
+        Alert.alert(
+          'Subscription Created',
+          'Your recurring booking has been set up successfully!',
+          [
+            {
+              text: 'View Subscriptions',
+              onPress: () => router.replace(Routes.BOOKINGS_RECURRING),
+            },
+          ],
+        );
       } else {
         Alert.alert('Error', result.error?.message || 'Failed to create subscription.');
       }

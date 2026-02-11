@@ -10,7 +10,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
+import {
+  getSessionInviteAthleteNames,
+  getSessionInviteCoachName,
+} from '@/utils/session-invite-display';
 import {
   PaymentProcessingView,
   PaymentSuccessView,
@@ -86,10 +89,19 @@ export function PaymentModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+    >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row
+          align="center"
+          justify="space-between"
+          style={[styles.header, { borderBottomColor: palette.border }]}
+        >
           <Clickable
             onPress={handleClose}
             disabled={processing}

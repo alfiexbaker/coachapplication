@@ -70,25 +70,28 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   });
   const loading = status === 'loading';
 
-  const handleRSVP = useCallback(async (status: RSVPStatus, guestCount: number) => {
-    if (!event || !currentUser) return;
+  const handleRSVP = useCallback(
+    async (status: RSVPStatus, guestCount: number) => {
+      if (!event || !currentUser) return;
 
-    try {
-      await eventService.rsvp(
-        event.id,
-        currentUser.id,
-        currentUser.name || 'Unknown',
-        isCoach ? 'COACH' : 'PARENT',
-        status,
-        guestCount,
-        currentUser.avatar
-      );
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to RSVP:', error);
-      Alert.alert('Error', 'Failed to save your response. Please try again.');
-    }
-  }, [event, currentUser, isCoach, onRefresh]);
+      try {
+        await eventService.rsvp(
+          event.id,
+          currentUser.id,
+          currentUser.name || 'Unknown',
+          isCoach ? 'COACH' : 'PARENT',
+          status,
+          guestCount,
+          currentUser.avatar,
+        );
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to RSVP:', error);
+        Alert.alert('Error', 'Failed to save your response. Please try again.');
+      }
+    },
+    [event, currentUser, isCoach, onRefresh],
+  );
 
   const handlePublish = useCallback(async () => {
     if (!event) return;
@@ -139,8 +142,11 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
 
   const typeColor = event ? eventService.getEventTypeColor(event.eventType) : '';
   const typeIcon = event ? eventService.getEventTypeIcon(event.eventType) : '';
-  const attendeeCounts = event ? eventService.getAttendeeCounts(event.attendees) : { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
-  const currentRSVP = event && currentUser ? eventService.getUserRSVP(event.attendees, currentUser.id) : undefined;
+  const attendeeCounts = event
+    ? eventService.getAttendeeCounts(event.attendees)
+    : { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
+  const currentRSVP =
+    event && currentUser ? eventService.getUserRSVP(event.attendees, currentUser.id) : undefined;
   const isCreator = currentUser?.id === event?.createdBy;
 
   return {

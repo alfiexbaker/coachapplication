@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useTheme, ThemeColors } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
 // -----------------------------------------------------------------------------
@@ -42,16 +42,11 @@ export interface NextAvailableDisplayProps {
   nextAvailable: string;
 }
 
-type Palette = ThemeColors;
-
 // -----------------------------------------------------------------------------
 // DistanceDisplay Component
 // -----------------------------------------------------------------------------
 
-export function DistanceDisplay({
-  distanceMiles,
-  iconSize = 14,
-}: DistanceDisplayProps) {
+export function DistanceDisplay({ distanceMiles, iconSize = 14 }: DistanceDisplayProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -68,18 +63,13 @@ export function DistanceDisplay({
 // LocationDisplay Component
 // -----------------------------------------------------------------------------
 
-export function LocationDisplay({
-  city,
-  iconSize = 14,
-}: LocationDisplayProps) {
+export function LocationDisplay({ city, iconSize = 14 }: LocationDisplayProps) {
   const { colors: palette } = useTheme();
 
   return (
     <Row style={styles.locationContainer}>
       <Ionicons name="location-outline" size={iconSize} color={palette.muted} />
-      <ThemedText style={[styles.locationText, { color: palette.muted }]}>
-        {city}
-      </ThemedText>
+      <ThemedText style={[styles.locationText, { color: palette.muted }]}>{city}</ThemedText>
     </Row>
   );
 }
@@ -111,11 +101,7 @@ export interface MetaRowProps {
   showDivider?: boolean;
 }
 
-export function MetaRow({
-  distanceMiles,
-  pricePerHour,
-  showDivider = true,
-}: MetaRowProps) {
+export function MetaRow({ distanceMiles, pricePerHour, showDivider = true }: MetaRowProps) {
   const { colors: palette } = useTheme();
 
   const hasDistance = distanceMiles !== undefined;
@@ -157,14 +143,10 @@ export function CoachCardAvailability({
   city,
   variant = 'compact',
 }: CoachCardAvailabilityProps) {
-  const { colors: palette } = useTheme();
-
   if (variant === 'compact') {
     return (
       <Row style={styles.compactContainer}>
-        {distanceMiles !== undefined && (
-          <DistanceDisplay distanceMiles={distanceMiles} />
-        )}
+        {distanceMiles !== undefined && <DistanceDisplay distanceMiles={distanceMiles} />}
         {city && <LocationDisplay city={city} />}
       </Row>
     );
@@ -172,13 +154,9 @@ export function CoachCardAvailability({
 
   return (
     <View style={styles.fullContainer}>
-      {distanceMiles !== undefined && (
-        <DistanceDisplay distanceMiles={distanceMiles} />
-      )}
+      {distanceMiles !== undefined && <DistanceDisplay distanceMiles={distanceMiles} />}
       {city && <LocationDisplay city={city} />}
-      {nextAvailable && (
-        <NextAvailableDisplay nextAvailable={nextAvailable} />
-      )}
+      {nextAvailable && <NextAvailableDisplay nextAvailable={nextAvailable} />}
     </View>
   );
 }

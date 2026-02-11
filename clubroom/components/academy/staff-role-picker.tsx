@@ -62,9 +62,7 @@ export function StaffRolePicker({
     MEMBER: palette.tabIconDefault,
   };
 
-  const availableRoles = excludeOwner
-    ? ROLES.filter((r) => r.key !== 'OWNER')
-    : ROLES;
+  const availableRoles = excludeOwner ? ROLES.filter((r) => r.key !== 'OWNER') : ROLES;
 
   return (
     <View style={styles.container}>
@@ -85,7 +83,11 @@ export function StaffRolePicker({
             ]}
           >
             <View style={[styles.iconContainer, { backgroundColor: withAlpha(color, 0.12) }]}>
-              <Ionicons name={role.icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
+              <Ionicons
+                name={role.icon as keyof typeof Ionicons.glyphMap}
+                size={20}
+                color={color}
+              />
             </View>
             <View style={styles.roleInfo}>
               <ThemedText

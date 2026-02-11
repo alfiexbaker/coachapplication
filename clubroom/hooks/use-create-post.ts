@@ -31,14 +31,14 @@ export const POST_TYPES: PostTypeOption[] = [
 export function useCreatePost() {
   const { currentUser } = useAuth();
 
-  const clubs = useMemo(() => (currentUser ? clubFeedService.getUserClubs(currentUser.id) : []), [currentUser]);
+  const clubs = useMemo(
+    () => (currentUser ? clubFeedService.getUserClubs(currentUser.id) : []),
+    [currentUser],
+  );
   const membership = useMemo<ClubMembership | undefined>(() => {
     if (!currentUser || clubs.length === 0) return undefined;
-    const role = currentUser.role === 'ADMIN'
-      ? 'ADMIN'
-      : currentUser.role === 'COACH'
-        ? 'COACH'
-        : 'MEMBER';
+    const role =
+      currentUser.role === 'ADMIN' ? 'ADMIN' : currentUser.role === 'COACH' ? 'COACH' : 'MEMBER';
     return {
       clubId: clubs[0].id,
       userId: currentUser.id,
@@ -103,7 +103,8 @@ export function useCreatePost() {
         clubId: clubs[0]?.id,
       });
       if (result.success) {
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (Platform.OS !== 'web')
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.back();
       }
     } finally {
@@ -114,10 +115,25 @@ export function useCreatePost() {
   const canPost = (body.trim().length > 0 || imageUri !== null) && !isPosting;
 
   return {
-    membership, isCoach,
-    title, setTitle, body, setBody, postType, imageUri,
-    eventDate, setEventDate, eventLocation, setEventLocation,
-    showDatePicker, setShowDatePicker, isPosting, canPost,
-    pickImage, removeImage, handlePostTypeChange, handlePersonalPost,
+    membership,
+    isCoach,
+    title,
+    setTitle,
+    body,
+    setBody,
+    postType,
+    imageUri,
+    eventDate,
+    setEventDate,
+    eventLocation,
+    setEventLocation,
+    showDatePicker,
+    setShowDatePicker,
+    isPosting,
+    canPost,
+    pickImage,
+    removeImage,
+    handlePostTypeChange,
+    handlePersonalPost,
   };
 }

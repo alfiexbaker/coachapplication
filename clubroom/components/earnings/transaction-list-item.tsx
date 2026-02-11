@@ -17,7 +17,7 @@ export function TransactionListItem({
 }) {
   const { colors: palette } = useTheme();
   return (
-    <Row style={[styles.row, { borderBottomColor: palette.border }]}> 
+    <Row style={[styles.row, { borderBottomColor: palette.border }]}>
       <View style={{ flex: 1 }}>
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
         <ThemedText style={{ color: palette.muted }}>{subtitle}</ThemedText>

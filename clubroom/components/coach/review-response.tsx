@@ -7,12 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
+import { ReviewHeader, ExistingReplyCard } from './review-response-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { ReviewHeader, ExistingReplyCard } from './review-response-sections';
 export type { ReviewHeaderProps, ExistingReplyCardProps } from './review-response-sections';
-
-import { ReviewHeader, ExistingReplyCard } from './review-response-sections';
-import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,7 +60,11 @@ export function ReviewResponse({
 
   const formattedDate = (() => {
     try {
-      return new Date(reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      return new Date(reviewDate).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
     } catch {
       return reviewDate;
     }
@@ -68,7 +72,12 @@ export function ReviewResponse({
 
   return (
     <SurfaceCard style={styles.card}>
-      <ReviewHeader reviewerName={reviewerName} rating={rating} formattedDate={formattedDate} palette={palette} />
+      <ReviewHeader
+        reviewerName={reviewerName}
+        rating={rating}
+        formattedDate={formattedDate}
+        palette={palette}
+      />
 
       <ThemedText style={[Typography.body, { color: palette.text }]}>{reviewText}</ThemedText>
 
@@ -77,7 +86,14 @@ export function ReviewResponse({
       ) : (
         <View style={styles.replySection}>
           <TextInput
-            style={[styles.input, { color: palette.text, backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}
+            style={[
+              styles.input,
+              {
+                color: palette.text,
+                backgroundColor: palette.surfaceSecondary,
+                borderColor: palette.border,
+              },
+            ]}
             placeholder="Write a reply..."
             placeholderTextColor={palette.muted}
             value={replyText}
@@ -87,7 +103,12 @@ export function ReviewResponse({
             textAlignVertical="top"
           />
           <Row style={styles.replyFooter}>
-            <ThemedText style={[Typography.small, { color: charCount > maxCharacters ? palette.error : palette.muted }]}>
+            <ThemedText
+              style={[
+                Typography.small,
+                { color: charCount > maxCharacters ? palette.error : palette.muted },
+              ]}
+            >
               {charCount}/{maxCharacters}
             </ThemedText>
             <Clickable
@@ -98,7 +119,12 @@ export function ReviewResponse({
                 { backgroundColor: canSubmit ? palette.tint : palette.border },
               ]}
             >
-              <ThemedText style={[Typography.bodySemiBold, { color: canSubmit ? palette.onPrimary : palette.muted }]}>
+              <ThemedText
+                style={[
+                  Typography.bodySemiBold,
+                  { color: canSubmit ? palette.onPrimary : palette.muted },
+                ]}
+              >
                 Post Reply
               </ThemedText>
             </Clickable>
@@ -123,5 +149,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   replyFooter: { justifyContent: 'space-between', alignItems: 'center' },
-  postButton: { height: Components.button.height, paddingHorizontal: Spacing.md, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
+  postButton: {
+    height: Components.button.height,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

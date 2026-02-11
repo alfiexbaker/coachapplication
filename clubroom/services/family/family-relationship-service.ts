@@ -41,7 +41,14 @@ const USE_MOCK = api.useMock;
  * Default permissions for each guardian role.
  */
 export const DEFAULT_ROLE_PERMISSIONS: Record<GuardianRole, GuardianPermission[]> = {
-  PRIMARY: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS', 'MANAGE_PAYMENTS', 'MANAGE_PROFILE', 'ADMIN'],
+  PRIMARY: [
+    'VIEW_SCHEDULE',
+    'VIEW_PROGRESS',
+    'BOOK_SESSIONS',
+    'MANAGE_PAYMENTS',
+    'MANAGE_PROFILE',
+    'ADMIN',
+  ],
   GUARDIAN: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS'],
   VIEWER: ['VIEW_SCHEDULE', 'VIEW_PROGRESS'],
 };
@@ -61,7 +68,10 @@ export const RELATIONSHIP_OPTIONS = [
 /**
  * Permission descriptions for UI display.
  */
-export const PERMISSION_DESCRIPTIONS: Record<GuardianPermission, { label: string; description: string }> = {
+export const PERMISSION_DESCRIPTIONS: Record<
+  GuardianPermission,
+  { label: string; description: string }
+> = {
   VIEW_SCHEDULE: {
     label: 'View Schedule',
     description: 'See sessions, calendar, and upcoming bookings',
@@ -152,9 +162,7 @@ class FamilyRelationshipService {
 
     // Find existing account where user is primary or a guardian
     let account = accounts.find(
-      (a) =>
-        a.primaryGuardianId === userId ||
-        a.guardians.some((g) => g.userId === userId)
+      (a) => a.primaryGuardianId === userId || a.guardians.some((g) => g.userId === userId),
     );
 
     if (!account) {
@@ -193,7 +201,10 @@ class FamilyRelationshipService {
   /**
    * Get or create a family account with Result type.
    */
-  async getOrCreateAccount(userId: string, userName: string): Promise<Result<FamilyAccount, ServiceError>> {
+  async getOrCreateAccount(
+    userId: string,
+    userName: string,
+  ): Promise<Result<FamilyAccount, ServiceError>> {
     try {
       const account = await this.getFamilyAccount(userId, userName);
       return ok(account);
@@ -230,7 +241,7 @@ class FamilyRelationshipService {
   async removeGuardian(
     familyId: string,
     requesterId: string,
-    guardianId: string
+    guardianId: string,
   ): Promise<Result<void, ServiceError>> {
     const hasAdmin = await familyPermissionService.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
@@ -281,7 +292,7 @@ class FamilyRelationshipService {
     role: GuardianRole,
     relationship: string,
     childAccess: string[],
-    message?: string
+    message?: string,
   ): Promise<Result<GuardianInvite, ServiceError>> {
     // Check if inviter has permission
     const hasAdmin = await familyPermissionService.isAdmin(inviterId, familyId);
@@ -295,7 +306,7 @@ class FamilyRelationshipService {
       (i) =>
         i.familyId === familyId &&
         i.inviteeEmail.toLowerCase() === inviteeEmail.toLowerCase() &&
-        i.status === 'PENDING'
+        i.status === 'PENDING',
     );
 
     if (existingInvite) {
@@ -354,7 +365,7 @@ class FamilyRelationshipService {
       (i) =>
         i.inviteeEmail.toLowerCase() === email.toLowerCase() &&
         i.status === 'PENDING' &&
-        new Date(i.expiresAt) > now
+        new Date(i.expiresAt) > now,
     );
   }
 
@@ -365,7 +376,7 @@ class FamilyRelationshipService {
     inviteId: string,
     userId: string,
     userName: string,
-    userEmail: string
+    userEmail: string,
   ): Promise<Result<FamilyAccount, ServiceError>> {
     const invites = await this.loadInvites();
     const invite = invites.find((i) => i.id === inviteId);
@@ -467,7 +478,7 @@ class FamilyRelationshipService {
   async cancelInvite(
     familyId: string,
     requesterId: string,
-    inviteId: string
+    inviteId: string,
   ): Promise<Result<void, ServiceError>> {
     const hasAdmin = await familyPermissionService.isAdmin(requesterId, familyId);
     if (!hasAdmin) {

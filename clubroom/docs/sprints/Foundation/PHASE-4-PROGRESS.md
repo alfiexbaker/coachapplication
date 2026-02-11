@@ -1,6 +1,7 @@
 # Phase 4B-4G Progress Tracker
 
 > Superseded by `docs/sprints/Foundation/PHASE-4-LIVE-TRACKER.md` for active execution tracking.
+> Historical artifact only. For current repo metrics use `docs/AI_CONTEXT.md`.
 
 ## 4D: Old Animated API → Reanimated (11 files)
 - [ ] components/coach/travel-radius-picker.tsx

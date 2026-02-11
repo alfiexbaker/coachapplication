@@ -4,7 +4,15 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-export function BookingWizardHeader({ title, subtitle, step }: { title: string; subtitle: string; step: number }) {
+export function BookingWizardHeader({
+  title,
+  subtitle,
+  step,
+}: {
+  title: string;
+  subtitle: string;
+  step: number;
+}) {
   const { colors: palette } = useTheme();
   return (
     <View style={{ gap: Spacing.sm }}>
@@ -18,7 +26,10 @@ export function BookingWizardHeader({ title, subtitle, step }: { title: string; 
             key={s}
             style={[
               styles.progressDot,
-              { backgroundColor: s <= step ? palette.tint : palette.border, opacity: s === step ? 1 : 0.45 },
+              {
+                backgroundColor: s <= step ? palette.tint : palette.border,
+                opacity: s === step ? 1 : 0.45,
+              },
             ]}
           />
         ))}

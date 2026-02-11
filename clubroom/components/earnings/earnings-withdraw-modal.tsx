@@ -29,9 +29,21 @@ interface EarningsWithdrawModalProps {
 }
 
 export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
-  visible, earnings, payoutMethods, withdrawAmount, selectedPayoutMethod,
-  withdrawing, withdrawError, feePercent, fee, netAmount,
-  formatCurrency, onChangeAmount, onSelectMethod, onConfirm, onClose,
+  visible,
+  earnings,
+  payoutMethods,
+  withdrawAmount,
+  selectedPayoutMethod,
+  withdrawing,
+  withdrawError,
+  feePercent,
+  fee,
+  netAmount,
+  formatCurrency,
+  onChangeAmount,
+  onSelectMethod,
+  onConfirm,
+  onClose,
 }: EarningsWithdrawModalProps) {
   const { colors: palette } = useTheme();
   const insets = useSafeAreaInsets();
@@ -43,11 +55,17 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
         <SurfaceCard style={[styles.card, { paddingBottom: insets.bottom + Spacing.md }]}>
           <Row style={styles.header}>
             <ThemedText type="subtitle">Withdraw Funds</ThemedText>
-            <Clickable accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={24} color={palette.icon} /></Clickable>
+            <Clickable accessibilityLabel="Close" onPress={onClose}>
+              <Ionicons name="close" size={24} color={palette.icon} />
+            </Clickable>
           </Row>
           <View style={styles.content}>
-            <View style={[styles.availableCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
-              <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available to withdraw</ThemedText>
+            <View
+              style={[styles.availableCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}
+            >
+              <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+                Available to withdraw
+              </ThemedText>
               <ThemedText type="title" style={{ color: palette.success }}>
                 {formatCurrency(earnings?.availableBalance || 0).replace(/^[+-]/, '')}
               </ThemedText>
@@ -72,28 +90,76 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
               <ThemedText type="defaultSemiBold">Payout Method</ThemedText>
               {payoutMethods.length === 0 ? (
                 <View style={[styles.noMethods, { borderColor: palette.border }]}>
-                  <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>Add a payout method to withdraw funds</ThemedText>
+                  <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
+                    Add a payout method to withdraw funds
+                  </ThemedText>
                 </View>
               ) : (
                 <View style={styles.methodOptions}>
-                  {payoutMethods.filter((m) => m.isVerified).map((method) => (
-                    <Clickable key={method.id} onPress={() => onSelectMethod(method.id)}>
-                      <Row style={[styles.methodOption, { borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border, backgroundColor: selectedPayoutMethod === method.id ? withAlpha(palette.tint, 0.06) : 'transparent' }]}>
-                        <Row style={styles.methodContent}>
-                          <Ionicons name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'} size={18} color={selectedPayoutMethod === method.id ? palette.tint : palette.icon} />
-                          <View>
-                            <ThemedText style={{ fontWeight: '500' }}>{method.nickname || method.type}</ThemedText>
-                            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                              {method.type === 'BANK_ACCOUNT' ? `****${method.accountLastFour}` : method.paypalEmail}
-                            </ThemedText>
+                  {payoutMethods
+                    .filter((m) => m.isVerified)
+                    .map((method) => (
+                      <Clickable key={method.id} onPress={() => onSelectMethod(method.id)}>
+                        <Row
+                          style={[
+                            styles.methodOption,
+                            {
+                              borderColor:
+                                selectedPayoutMethod === method.id ? palette.tint : palette.border,
+                              backgroundColor:
+                                selectedPayoutMethod === method.id
+                                  ? withAlpha(palette.tint, 0.06)
+                                  : 'transparent',
+                            },
+                          ]}
+                        >
+                          <Row style={styles.methodContent}>
+                            <Ionicons
+                              name={
+                                method.type === 'BANK_ACCOUNT'
+                                  ? 'business'
+                                  : method.type === 'PAYPAL'
+                                    ? 'logo-paypal'
+                                    : 'card'
+                              }
+                              size={18}
+                              color={
+                                selectedPayoutMethod === method.id ? palette.tint : palette.icon
+                              }
+                            />
+                            <View>
+                              <ThemedText style={{ fontWeight: '500' }}>
+                                {method.nickname || method.type}
+                              </ThemedText>
+                              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+                                {method.type === 'BANK_ACCOUNT'
+                                  ? `****${method.accountLastFour}`
+                                  : method.paypalEmail}
+                              </ThemedText>
+                            </View>
+                          </Row>
+                          <View
+                            style={[
+                              styles.radio,
+                              {
+                                borderColor:
+                                  selectedPayoutMethod === method.id
+                                    ? palette.tint
+                                    : palette.border,
+                                backgroundColor:
+                                  selectedPayoutMethod === method.id ? palette.tint : 'transparent',
+                              },
+                            ]}
+                          >
+                            {selectedPayoutMethod === method.id && (
+                              <View
+                                style={[styles.radioInner, { backgroundColor: palette.background }]}
+                              />
+                            )}
                           </View>
                         </Row>
-                        <View style={[styles.radio, { borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border, backgroundColor: selectedPayoutMethod === method.id ? palette.tint : 'transparent' }]}>
-                          {selectedPayoutMethod === method.id && <View style={[styles.radioInner, { backgroundColor: palette.background }]} />}
-                        </View>
-                      </Row>
-                    </Clickable>
-                  ))}
+                      </Clickable>
+                    ))}
                 </View>
               )}
             </View>
@@ -104,13 +170,19 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                   <ThemedText>{formatCurrency(parsedAmount).replace(/^[+-]/, '')}</ThemedText>
                 </Row>
                 <Row style={styles.feeRow}>
-                  <ThemedText style={{ color: palette.muted }}>Platform fee ({feePercent}%)</ThemedText>
-                  <ThemedText style={{ color: palette.error }}>-{formatCurrency(fee).replace(/^[+-]/, '')}</ThemedText>
+                  <ThemedText style={{ color: palette.muted }}>
+                    Platform fee ({feePercent}%)
+                  </ThemedText>
+                  <ThemedText style={{ color: palette.error }}>
+                    -{formatCurrency(fee).replace(/^[+-]/, '')}
+                  </ThemedText>
                 </Row>
                 <View style={[styles.feeDivider, { backgroundColor: palette.border }]} />
                 <Row style={styles.feeRow}>
                   <ThemedText type="defaultSemiBold">You will receive</ThemedText>
-                  <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>{formatCurrency(netAmount).replace(/^[+-]/, '')}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
+                    {formatCurrency(netAmount).replace(/^[+-]/, '')}
+                  </ThemedText>
                 </Row>
               </View>
             )}
@@ -120,12 +192,29 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
                 <ThemedText style={{ color: palette.error, flex: 1 }}>{withdrawError}</ThemedText>
               </Row>
             )}
-            <Clickable onPress={onConfirm} disabled={withdrawing || !selectedPayoutMethod || !withdrawAmount}>
-              <Row style={[styles.confirmBtn, { backgroundColor: withdrawing || !selectedPayoutMethod || !withdrawAmount ? palette.border : palette.tint }]}>
-                {withdrawing ? <ActivityIndicator size="small" color={palette.background} /> : (
+            <Clickable
+              onPress={onConfirm}
+              disabled={withdrawing || !selectedPayoutMethod || !withdrawAmount}
+            >
+              <Row
+                style={[
+                  styles.confirmBtn,
+                  {
+                    backgroundColor:
+                      withdrawing || !selectedPayoutMethod || !withdrawAmount
+                        ? palette.border
+                        : palette.tint,
+                  },
+                ]}
+              >
+                {withdrawing ? (
+                  <ActivityIndicator size="small" color={palette.background} />
+                ) : (
                   <>
                     <Ionicons name="checkmark-circle" size={18} color={palette.background} />
-                    <ThemedText style={{ color: palette.background, fontWeight: '700' }}>Confirm Withdrawal</ThemedText>
+                    <ThemedText style={{ color: palette.background, fontWeight: '700' }}>
+                      Confirm Withdrawal
+                    </ThemedText>
                   </>
                 )}
               </Row>
@@ -139,23 +228,61 @@ export const EarningsWithdrawModal = memo(function EarningsWithdrawModal({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
-  card: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: Spacing.lg, maxHeight: '90%' },
+  card: {
+    borderTopLeftRadius: Radii.xl,
+    borderTopRightRadius: Radii.xl,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: Spacing.lg,
+    maxHeight: '90%',
+  },
   header: { justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   content: { gap: Spacing.md },
-  availableCard: { padding: Spacing.md, borderRadius: Radii.md, alignItems: 'center', gap: Spacing.xxs },
+  availableCard: {
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
   inputGroup: { gap: Spacing.xs },
-  amountContainer: { alignItems: 'center', borderWidth: 1.5, borderRadius: Radii.md, paddingHorizontal: Spacing.md, height: 52 },
+  amountContainer: {
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    height: 52,
+  },
   currencySymbol: { ...Typography.title, marginRight: Spacing.xs },
   amountInput: { flex: 1, ...Typography.display, height: '100%' },
   noMethods: { padding: Spacing.lg, borderWidth: 1, borderRadius: Radii.md, borderStyle: 'dashed' },
   methodOptions: { gap: Spacing.sm },
-  methodOption: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderWidth: 1.5, borderRadius: Radii.md },
+  methodOption: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+  },
   methodContent: { alignItems: 'center', gap: Spacing.sm },
-  radio: { width: 20, height: 20, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   radioInner: { width: 8, height: 8, borderRadius: Radii.xs },
   feeCard: { padding: Spacing.md, borderWidth: 1, borderRadius: Radii.md, gap: Spacing.sm },
   feeRow: { justifyContent: 'space-between', alignItems: 'center' },
   feeDivider: { height: 1 },
   errorCard: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
-  confirmBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.xs },
+  confirmBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs,
+  },
 });

@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -22,16 +23,46 @@ import { Row } from '@/components/primitives/row';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookingDetail } from '@/hooks/use-booking-detail';
+import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { getBookingSummaryClientName, getBookingSummaryCoachName } from '@/utils/booking-display';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useTheme();
-  const { booking, status, error, refreshing, onRefresh, retry, isCoach, sessionNote, handlers, formatted } = useBookingDetail(id);
+  const {
+    booking,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    isCoach,
+    sessionNote,
+    handlers,
+    formatted,
+  } = useBookingDetail(id);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
+  const [cancellationSummary, setCancellationSummary] = useState('Standard cancellation policy');
 
   const handleGoBack = useCallback(() => router.back(), []);
+
+  useEffect(() => {
+    if (!booking?.coachId) return;
+
+    let isMounted = true;
+
+    void schedulingRulesService.getCancellationPolicy(booking.coachId).then((result) => {
+      if (!isMounted) return;
+      setCancellationSummary(
+        schedulingRulesService.getCancellationPolicySummary(result.success ? result.data : null),
+      );
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [booking?.coachId]);
 
   if (status === 'loading') {
     return (
@@ -43,18 +74,21 @@ export default function SessionDetailScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState
-          message={error?.message ?? 'Failed to load booking details.'}
-          onRetry={retry}
-        />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState message={error?.message ?? 'Failed to load booking details.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty' || !booking || !formatted) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="warning"
           title="Booking not found"
@@ -67,7 +101,10 @@ export default function SessionDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['bottom']}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -78,15 +115,30 @@ export default function SessionDetailScreen() {
         {/* Header */}
         <ThemedView style={styles.headerSection}>
           <Row gap="md" align="center">
-            <ThemedText type="title" style={styles.flex1}>{booking.service}</ThemedText>
+            <ThemedText type="title" style={styles.flex1}>
+              {booking.service}
+            </ThemedText>
             <StatusBadge status={booking.status} />
           </Row>
         </ThemedView>
 
         {/* Info Cards */}
-        <DateTimeCard weekday={formatted.weekday} dateStr={formatted.dateStr} time={formatted.time} />
+        <DateTimeCard
+          weekday={formatted.weekday}
+          dateStr={formatted.dateStr}
+          time={formatted.time}
+        />
         <LocationCard locationLabel={booking.locationLabel} />
         <PaymentCard />
+        <ThemedView style={[styles.policyCard, { borderColor: palette.border }]}>
+          <Row gap="sm" align="center">
+            <Ionicons name="shield-checkmark-outline" size={18} color={palette.muted} />
+            <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
+          </Row>
+          <ThemedText style={[styles.policySummary, { color: palette.muted }]}>
+            {cancellationSummary}
+          </ThemedText>
+        </ThemedView>
         <BookingCoachCard coachName={coachName} coachPhotoUrl={formatted.coachPhotoUrl} />
 
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
@@ -150,4 +202,14 @@ const styles = StyleSheet.create({
   scrollContent: { padding: Spacing.lg, gap: Spacing.md },
   headerSection: { gap: Spacing.sm, marginBottom: Spacing.sm },
   flex1: { flex: 1 },
+  policyCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  policySummary: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
 });

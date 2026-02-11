@@ -14,7 +14,13 @@ interface SparklineProps {
   showDots?: boolean;
 }
 
-export function MiniSparkline({ data, color, width = 60, height = 24, showDots = false }: SparklineProps) {
+export function MiniSparkline({
+  data,
+  color,
+  width = 60,
+  height = 24,
+  showDots = false,
+}: SparklineProps) {
   const { colors: palette } = useTheme();
   const lineColor = color || palette.tint;
 
@@ -32,7 +38,15 @@ export function MiniSparkline({ data, color, width = 60, height = 24, showDots =
         return (
           <View
             key={index}
-            style={[styles.bar, { height: Math.max(barHeight, 3), backgroundColor: lineColor, opacity: 0.25 + (index / data.length) * 0.75, borderRadius: Radii.xs }]}
+            style={[
+              styles.bar,
+              {
+                height: Math.max(barHeight, 3),
+                backgroundColor: lineColor,
+                opacity: 0.25 + (index / data.length) * 0.75,
+                borderRadius: Radii.xs,
+              },
+            ]}
           >
             {showDots && isLast && <View style={[styles.dot, { backgroundColor: lineColor }]} />}
           </View>

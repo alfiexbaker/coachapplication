@@ -68,14 +68,7 @@ export function useRetentionAnalytics() {
     return ok<RetentionAnalyticsData>({ retention, cancellations });
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<RetentionAnalyticsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<RetentionAnalyticsData>({
     load: fetchData,
     deps: [currentUser?.id],
     isEmpty: (value) => value.retention === null,
@@ -87,8 +80,10 @@ export function useRetentionAnalytics() {
 
   const retentionStatus = useMemo(() => {
     if (!retention) return { label: 'Unknown', color: colors.muted, icon: 'help-circle' as const };
-    if (retention.retentionRate >= 90) return { label: 'Excellent', color: colors.success, icon: 'checkmark-circle' as const };
-    if (retention.retentionRate >= 75) return { label: 'Good', color: colors.warning, icon: 'alert-circle' as const };
+    if (retention.retentionRate >= 90)
+      return { label: 'Excellent', color: colors.success, icon: 'checkmark-circle' as const };
+    if (retention.retentionRate >= 75)
+      return { label: 'Good', color: colors.warning, icon: 'alert-circle' as const };
     return { label: 'Needs Improvement', color: colors.error, icon: 'close-circle' as const };
   }, [retention, colors]);
 

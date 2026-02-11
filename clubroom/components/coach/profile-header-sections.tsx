@@ -10,12 +10,7 @@
  */
 
 import React, { memo } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Image, View, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,10 +144,7 @@ export const FollowButton = memo(function FollowButton({
       disabled={followLoading}
     >
       {followLoading ? (
-        <ActivityIndicator
-          size="small"
-          color={isFollowing ? palette.tint : palette.surface}
-        />
+        <ActivityIndicator size="small" color={isFollowing ? palette.tint : palette.surface} />
       ) : (
         <>
           <Ionicons
@@ -179,10 +171,7 @@ interface BadgesRowProps {
   palette: ThemeColors;
 }
 
-export const BadgesRow = memo(function BadgesRow({
-  badges,
-  palette,
-}: BadgesRowProps) {
+export const BadgesRow = memo(function BadgesRow({ badges, palette }: BadgesRowProps) {
   if (badges.length === 0) return null;
 
   return (

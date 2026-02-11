@@ -91,7 +91,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
       }
       return (validator as Validator)(value);
     },
-    [fieldValidators]
+    [fieldValidators],
   );
 
   // Validate all fields
@@ -119,7 +119,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
         setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     },
-    [validateOnChange, validateField, fieldValidators, errors]
+    [validateOnChange, validateField, fieldValidators, errors],
   );
 
   // Handle blur
@@ -132,7 +132,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
         setErrors((prev) => ({ ...prev, [field]: error }));
       }
     },
-    [validateOnBlur, validateField, values, fieldValidators]
+    [validateOnBlur, validateField, values, fieldValidators],
   );
 
   // Handle form submission
@@ -140,7 +140,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
     // Mark all fields as touched
     const allTouched = Object.keys(values).reduce(
       (acc, key) => ({ ...acc, [key]: true }),
-      {} as Record<keyof T, boolean>
+      {} as Record<keyof T, boolean>,
     );
     setTouched(allTouched);
 
@@ -200,7 +200,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
       onBlur: handleBlur(field),
       error: touched[field] ? errors[field] : undefined,
     }),
-    [values, errors, touched, handleChange, handleBlur]
+    [values, errors, touched, handleChange, handleBlur],
   );
 
   // Computed values
@@ -208,7 +208,7 @@ export function useForm<T extends { [K in keyof T]: string }>({
 
   const isDirty = useMemo(() => {
     return Object.keys(values).some(
-      (key) => values[key as keyof T] !== initialValues[key as keyof T]
+      (key) => values[key as keyof T] !== initialValues[key as keyof T],
     );
   }, [values, initialValues]);
 

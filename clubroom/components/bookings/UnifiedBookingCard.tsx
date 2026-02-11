@@ -57,7 +57,9 @@ export function UnifiedBookingCard({
   const isCoach = currentUser?.role === 'COACH';
   const statusColor = getBookingStatusColor(booking.status, palette);
   const { day, time, full } = formatBookingDateTime(booking.start);
-  const coachPhotoUrl = extendedBooking.coach?.photoUrl || `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
+  const coachPhotoUrl =
+    extendedBooking.coach?.photoUrl ||
+    `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
 
@@ -125,7 +127,10 @@ export function UnifiedBookingCard({
             <ThemedText style={styles.standardTitle} numberOfLines={1}>
               {booking.service}
             </ThemedText>
-            <ThemedText style={[styles.standardSubtitle, { color: palette.muted }]} numberOfLines={1}>
+            <ThemedText
+              style={[styles.standardSubtitle, { color: palette.muted }]}
+              numberOfLines={1}
+            >
               with {coachName}
             </ThemedText>
 
@@ -148,7 +153,10 @@ export function UnifiedBookingCard({
             {booking.locationLabel ? (
               <Row style={styles.locationRow}>
                 <Ionicons name="location-outline" size={14} color={palette.tint} />
-                <ThemedText style={[styles.locationText, { color: palette.tint }]} numberOfLines={1}>
+                <ThemedText
+                  style={[styles.locationText, { color: palette.tint }]}
+                  numberOfLines={1}
+                >
                   {booking.locationLabel}
                 </ThemedText>
               </Row>

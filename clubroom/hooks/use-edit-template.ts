@@ -19,9 +19,22 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 const logger = createLogger('useEditTemplate');
 
 export const TIME_OPTIONS = [
-  '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
-  '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
-  '18:00', '19:00', '20:00', '21:00',
+  '06:00',
+  '07:00',
+  '08:00',
+  '09:00',
+  '10:00',
+  '11:00',
+  '12:00',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+  '19:00',
+  '20:00',
+  '21:00',
 ];
 
 export const BUFFER_OPTIONS = [0, 10, 15, 30, 45];
@@ -43,7 +56,7 @@ export function useEditTemplate(id: string | undefined) {
     }
     try {
       const templates = await availabilityService.getTemplates(currentUser.id);
-      const found = templates.find(t => t.id === id);
+      const found = templates.find((t) => t.id === id);
       return ok<AvailabilityTemplate | null>(found ?? null);
     } catch (error) {
       logger.error('Failed to load template', error);
@@ -83,9 +96,14 @@ export function useEditTemplate(id: string | undefined) {
     setSaving(true);
     try {
       await availabilityService.saveTemplate({
-        id: template.id, coachId: template.coachId,
-        dayOfWeek, startTime, endTime, isRecurring: true,
-        maxConcurrent: maxSlots, bufferMinutes,
+        id: template.id,
+        coachId: template.coachId,
+        dayOfWeek,
+        startTime,
+        endTime,
+        isRecurring: true,
+        maxConcurrent: maxSlots,
+        bufferMinutes,
       });
       Alert.alert('Template Updated', 'Your availability has been updated', [
         { text: 'OK', onPress: () => router.back() },
@@ -104,7 +122,8 @@ export function useEditTemplate(id: string | undefined) {
     Alert.alert('Delete Template', 'Are you sure you want to delete this availability slot?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive',
+        text: 'Delete',
+        style: 'destructive',
         onPress: async () => {
           try {
             await availabilityService.deleteTemplate(template.id);
@@ -127,8 +146,17 @@ export function useEditTemplate(id: string | undefined) {
     retry,
     saving,
     template: template ?? null,
-    dayOfWeek, startTime, endTime, maxSlots, bufferMinutes,
-    setDayOfWeek, setStartTime, setEndTime, setMaxSlots, setBufferMinutes,
-    handleSave, handleDelete,
+    dayOfWeek,
+    startTime,
+    endTime,
+    maxSlots,
+    bufferMinutes,
+    setDayOfWeek,
+    setStartTime,
+    setEndTime,
+    setMaxSlots,
+    setBufferMinutes,
+    handleSave,
+    handleDelete,
   };
 }

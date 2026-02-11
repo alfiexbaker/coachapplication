@@ -68,9 +68,8 @@ export function DeclineInvite({
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const athleteDisplay = invite.athleteNames.length === 1
-    ? invite.athleteNames[0]
-    : invite.athleteNames.join(' & ');
+  const athleteDisplay =
+    invite.athleteNames.length === 1 ? invite.athleteNames[0] : invite.athleteNames.join(' & ');
 
   const handleDecline = async () => {
     if (isSubmitting) return;
@@ -150,9 +149,7 @@ export function DeclineInvite({
               textAlignVertical="top"
             />
 
-            {onCounterOffer && (
-              <CounterOfferLink onPress={onCounterOffer} palette={colors} />
-            )}
+            {onCounterOffer && <CounterOfferLink onPress={onCounterOffer} palette={colors} />}
 
             <DeclineActionButtons
               isSubmitting={isSubmitting}

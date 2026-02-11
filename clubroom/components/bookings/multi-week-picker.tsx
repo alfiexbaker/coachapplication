@@ -15,12 +15,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
+import { WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { formatTimeDisplay, WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
 export type { WeekRowItemProps } from './multi-week-picker-sections';
-
-import { WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
-import { Row } from '@/components/primitives';
 
 export interface WeekRow {
   weekDate: string;
@@ -64,7 +64,7 @@ export function MultiWeekPicker({
         palette={palette}
       />
     ),
-    [selectedWeeks, onToggleWeek, currency, palette]
+    [selectedWeeks, onToggleWeek, currency, palette],
   );
 
   const keyExtractor = useCallback((item: WeekRow) => item.weekDate, []);
@@ -80,7 +80,8 @@ export function MultiWeekPicker({
           </ThemedText>
         </Row>
         <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
-          {currency}{totalCost.toFixed(0)}
+          {currency}
+          {totalCost.toFixed(0)}
         </ThemedText>
       </Row>
 

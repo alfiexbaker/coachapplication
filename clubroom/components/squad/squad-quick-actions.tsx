@@ -16,12 +16,18 @@ interface SquadQuickActionsProps {
 }
 
 export const SquadQuickActions = memo(function SquadQuickActions({
-  colors, openingGroupChat, onGroupChat, onInvite,
+  colors,
+  openingGroupChat,
+  onGroupChat,
+  onInvite,
 }: SquadQuickActionsProps) {
   return (
     <View style={styles.container}>
       <Clickable
-        style={[styles.chatBtn, { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border }]}
+        style={[
+          styles.chatBtn,
+          { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border },
+        ]}
         onPress={onGroupChat}
         disabled={openingGroupChat}
       >
@@ -29,12 +35,16 @@ export const SquadQuickActions = memo(function SquadQuickActions({
           {openingGroupChat ? (
             <>
               <ActivityIndicator size="small" color={colors.tint} />
-              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Opening...</ThemedText>
+              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>
+                Opening...
+              </ThemedText>
             </>
           ) : (
             <>
               <Ionicons name="chatbubbles-outline" size={18} color={colors.tint} />
-              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>Group Chat</ThemedText>
+              <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>
+                Group Chat
+              </ThemedText>
             </>
           )}
         </Row>
@@ -42,7 +52,9 @@ export const SquadQuickActions = memo(function SquadQuickActions({
       <Clickable style={[styles.inviteBtn, { backgroundColor: colors.tint }]} onPress={onInvite}>
         <Row align="center" justify="center" gap="sm">
           <Ionicons name="paper-plane-outline" size={18} color={colors.surface} />
-          <ThemedText style={[Typography.bodySemiBold, { color: colors.surface }]}>Send Squad Invite</ThemedText>
+          <ThemedText style={[Typography.bodySemiBold, { color: colors.surface }]}>
+            Send Squad Invite
+          </ThemedText>
         </Row>
       </Clickable>
     </View>

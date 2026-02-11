@@ -40,10 +40,14 @@ export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export function getTierColor(tier: 1 | 2 | 3 | undefined, fallback: string): string {
   switch (tier) {
-    case 3: return '#FFD700'; // Decorative: gold tier
-    case 2: return '#C0C0C0'; // Decorative: silver tier
-    case 1: return '#CD7F32'; // Decorative: bronze tier
-    default: return fallback;
+    case 3:
+      return '#FFD700'; // Decorative: gold tier
+    case 2:
+      return '#C0C0C0'; // Decorative: silver tier
+    case 1:
+      return '#CD7F32'; // Decorative: bronze tier
+    default:
+      return fallback;
   }
 }
 
@@ -87,7 +91,9 @@ export const CompactBadgeCardInner = memo(function CompactBadgeCardInner({
       <View
         style={[
           styles.compactIconContainer,
-          { backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12) },
+          {
+            backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12),
+          },
         ]}
       >
         <Ionicons
@@ -114,7 +120,11 @@ export const CompactBadgeCardInner = memo(function CompactBadgeCardInner({
           <View
             style={[
               styles.tierPillSmall,
-              { backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12) },
+              {
+                backgroundColor: isLocked
+                  ? withAlpha(palette.muted, 0.09)
+                  : withAlpha(tierColor, 0.12),
+              },
             ]}
           >
             <ThemedText

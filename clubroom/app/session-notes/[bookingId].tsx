@@ -21,14 +21,6 @@ export default function SessionNotesScreen() {
   const [mode, setMode] = useState<'view' | 'edit'>(note ? 'view' : 'edit');
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
-  if (!bookingId) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-        <EmptyState icon="document-text-outline" title="Booking not found" message="Missing booking id for session notes." />
-      </SafeAreaView>
-    );
-  }
-
   useEffect(() => {
     setMode(note ? 'view' : 'edit');
   }, [note]);
@@ -42,6 +34,24 @@ export default function SessionNotesScreen() {
       Alert.alert('Save failed', 'Please retry in a moment.');
     }
   };
+
+  const header = useMemo(() => {
+    if (error) {
+      return (
+        <Row align="center" gap="sm" justify="space-between" style={styles.loadingRow}>
+          <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
+          <Clickable
+            onPress={refresh}
+            style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm }}
+          >
+            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Retry</ThemedText>
+          </Clickable>
+        </Row>
+      );
+    }
+
+    return null;
+  }, [error, palette.error, palette.tint, refresh]);
 
   if (loading && !note) {
     return (
@@ -59,20 +69,17 @@ export default function SessionNotesScreen() {
     );
   }
 
-  const header = useMemo(() => {
-    if (error) {
-      return (
-        <Row align="center" gap="sm" justify="space-between" style={styles.loadingRow}>
-          <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
-          <Clickable onPress={refresh} style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm }}>
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Retry</ThemedText>
-          </Clickable>
-        </Row>
-      );
-    }
-
-    return null;
-  }, [error, palette.error, palette.tint, refresh]);
+  if (!bookingId) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
+        <EmptyState
+          icon="document-text-outline"
+          title="Booking not found"
+          message="Missing booking id for session notes."
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
@@ -87,7 +94,12 @@ export default function SessionNotesScreen() {
             <SessionNotesView {...note} />
             <Clickable
               onPress={() => setMode('edit')}
-              style={{ padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, borderColor: palette.border }}
+              style={{
+                padding: Spacing.md,
+                borderRadius: Radii.md,
+                borderWidth: 1,
+                borderColor: palette.border,
+              }}
             >
               <ThemedText style={{ textAlign: 'center', color: palette.tint, fontWeight: '700' }}>
                 Edit notes

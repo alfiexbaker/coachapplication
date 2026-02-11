@@ -66,7 +66,11 @@ export function FavouriteCoachCard({
   }, [onToggleFavourite, favourite]);
 
   return (
-    <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify()}>
+    <Animated.View
+      entering={FadeInDown.duration(300)
+        .delay(index * 50)
+        .springify()}
+    >
       <SurfaceCard
         accessibilityHint="View coach profile"
         accessibilityLabel={`${coachName}, favourited coach`}
@@ -99,11 +103,7 @@ export function FavouriteCoachCard({
             {/* Price and Book Button */}
             <Row style={styles.actionRow}>
               <View />
-              <Button
-                onPress={handleBook}
-                variant="primary"
-                style={styles.bookButton}
-              >
+              <Button onPress={handleBook} variant="primary" style={styles.bookButton}>
                 Book Now
               </Button>
             </Row>
@@ -136,8 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.xs,
   },
-  name: { ...Typography.heading, letterSpacing: -0.2,
-    flex: 1 },
+  name: { ...Typography.heading, letterSpacing: -0.2, flex: 1 },
   metaRow: {
     alignItems: 'center',
     gap: Spacing.sm,

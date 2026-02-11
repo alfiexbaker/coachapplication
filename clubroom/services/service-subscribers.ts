@@ -477,9 +477,11 @@ export function initializeSubscribers(): void {
     try {
       const feedService = getSocialFeedService();
       const statusLabel =
-        data.status === 'going' ? 'is going to' :
-        data.status === 'maybe' ? 'might attend' :
-        "can't make it to";
+        data.status === 'going'
+          ? 'is going to'
+          : data.status === 'maybe'
+            ? 'might attend'
+            : "can't make it to";
       const childDisplay = data.childName ? ` (${data.childName})` : '';
 
       // TODO: Determine feed type from invite/squad context when club features are wired
@@ -496,7 +498,10 @@ export function initializeSubscribers(): void {
         feedType: 'PERSONAL',
       });
       if (!postResult.success) {
-        logger.error('Feed post creation returned error for INVITE_RSVP_RESPONDED', postResult.error);
+        logger.error(
+          'Feed post creation returned error for INVITE_RSVP_RESPONDED',
+          postResult.error,
+        );
       }
     } catch (error) {
       logger.error('Feed post creation failed for INVITE_RSVP_RESPONDED', error);
@@ -641,11 +646,9 @@ export function initializeSubscribers(): void {
     // Delete the associated parent group
     try {
       const squadGroupSvc = getSquadGroupService();
-      squadGroupSvc
-        .deleteSquadGroup(data.squadId)
-        .catch((error: unknown) => {
-          logger.error('Failed to delete squad group', error);
-        });
+      squadGroupSvc.deleteSquadGroup(data.squadId).catch((error: unknown) => {
+        logger.error('Failed to delete squad group', error);
+      });
     } catch (error) {
       logger.error('Squad group service unavailable for SQUAD_DELETED', error);
     }

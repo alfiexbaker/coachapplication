@@ -77,7 +77,10 @@ export default function SessionCompleteScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -86,7 +89,10 @@ export default function SessionCompleteScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
         <ErrorState message={error} onRetry={loadSession} />
       </SafeAreaView>
@@ -95,7 +101,10 @@ export default function SessionCompleteScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Complete Session" showBack onBackPress={() => router.back()} />
         <ErrorState message="Session not found" onRetry={loadSession} />
       </SafeAreaView>
@@ -107,7 +116,10 @@ export default function SessionCompleteScreen() {
   // ==========================================================================
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <PageHeader
         title="Complete Session"
         subtitle={session.title}
@@ -121,7 +133,10 @@ export default function SessionCompleteScreen() {
         colors={colors}
       />
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.contentInner}
@@ -129,7 +144,11 @@ export default function SessionCompleteScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {currentStep === 'attendance' && (
-            <AttendanceStep athletes={attendanceStepData} colors={colors} onUpdateStatus={updateAttendanceStatus} />
+            <AttendanceStep
+              athletes={attendanceStepData}
+              colors={colors}
+              onUpdateStatus={updateAttendanceStatus}
+            />
           )}
           {currentStep === 'notes' && (
             <NotesStep
@@ -145,7 +164,12 @@ export default function SessionCompleteScreen() {
             />
           )}
           {currentStep === 'badges' && (
-            <BadgesStep presentAthletes={presentAthletes} availableBadges={availableBadges} colors={colors} onToggleBadge={toggleBadge} />
+            <BadgesStep
+              presentAthletes={presentAthletes}
+              availableBadges={availableBadges}
+              colors={colors}
+              onToggleBadge={toggleBadge}
+            />
           )}
           {currentStep === 'summary' && (
             <ReviewStep

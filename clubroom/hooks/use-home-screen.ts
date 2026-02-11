@@ -27,11 +27,15 @@ export function useHomeScreen() {
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
   const [streakInfo, setStreakInfo] = useState<{
-    currentStreak: number; nextMilestone: number; daysToNextMilestone: number; streakLabel: string;
+    currentStreak: number;
+    nextMilestone: number;
+    daysToNextMilestone: number;
+    streakLabel: string;
   } | null>(null);
 
   const [selectedChildId, setSelectedChildId] = useState<string | null>(() => {
-    if (hasChildren(currentUser) && currentUser?.children?.[0]) return currentUser.children[0].childId;
+    if (hasChildren(currentUser) && currentUser?.children?.[0])
+      return currentUser.children[0].childId;
     return null;
   });
 
@@ -52,7 +56,11 @@ export function useHomeScreen() {
       const userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
       setClubs(userClubs);
       const progress = await progressService.getAthleteProgress(athleteId, 'athlete');
-      setStats({ sessions: progress.totalSessions, badges: progress.totalBadges, level: progress.currentLevel.level });
+      setStats({
+        sessions: progress.totalSessions,
+        badges: progress.totalBadges,
+        level: progress.currentLevel.level,
+      });
       const streak = await badgeService.getStreakInfo(athleteId);
       setStreakInfo(streak);
 
@@ -70,7 +78,8 @@ export function useHomeScreen() {
             return (
               isFuture &&
               isConfirmed &&
-              (booking.athleteId === selectedChildId || booking.athleteIds?.includes(selectedChildId))
+              (booking.athleteId === selectedChildId ||
+                booking.athleteIds?.includes(selectedChildId))
             );
           })
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
@@ -82,17 +91,33 @@ export function useHomeScreen() {
       logger.error('Failed to load home data', err);
       setError('Failed to load data. Pull down to refresh.');
       setUpcomingBookings([]);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }, [athleteId, currentUser, selectedChildId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true); await loadData(); setRefreshing(false);
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
   }, [loadData]);
 
   return {
-    currentUser, refreshing, loading, error, recentBadges, clubs, stats, streakInfo,
-    selectedChildId, setSelectedChildId, onRefresh, upcomingBookings,
+    currentUser,
+    refreshing,
+    loading,
+    error,
+    recentBadges,
+    clubs,
+    stats,
+    streakInfo,
+    selectedChildId,
+    setSelectedChildId,
+    onRefresh,
+    upcomingBookings,
   };
 }

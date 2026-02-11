@@ -57,7 +57,11 @@ export function useGoalDetail() {
     }
   }, [id]);
 
-  useFocusEffect(useCallback(() => { loadGoal(); }, [loadGoal]));
+  useFocusEffect(
+    useCallback(() => {
+      loadGoal();
+    }, [loadGoal]),
+  );
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -69,7 +73,7 @@ export function useGoalDetail() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     celebrationScale.value = withSequence(
       withSpring(1.2, { damping: 8 }),
-      withSpring(1, { damping: 10 })
+      withSpring(1, { damping: 10 }),
     );
     celebrationOpacity.value = withSpring(1);
     confettiRef.current?.start();
@@ -79,93 +83,107 @@ export function useGoalDetail() {
     }, 3000);
   }, [celebrationScale, celebrationOpacity]);
 
-  const handleToggleMilestone = useCallback(async (milestoneId: string, completed: boolean) => {
-    if (!goal) return;
-    const previousProgress = goal.progress;
-    try {
-      const updatedGoal = completed
-        ? await progressService.completeMilestone(milestoneId)
-        : await progressService.uncompleteMilestone(milestoneId);
-      if (updatedGoal) {
-        setGoal(updatedGoal);
-        if (updatedGoal.status === 'COMPLETED' && previousProgress < 100) {
-          triggerCelebration();
+  const handleToggleMilestone = useCallback(
+    async (milestoneId: string, completed: boolean) => {
+      if (!goal) return;
+      const previousProgress = goal.progress;
+      try {
+        const updatedGoal = completed
+          ? await progressService.completeMilestone(milestoneId)
+          : await progressService.uncompleteMilestone(milestoneId);
+        if (updatedGoal) {
+          setGoal(updatedGoal);
+          if (updatedGoal.status === 'COMPLETED' && previousProgress < 100) {
+            triggerCelebration();
+          }
         }
+      } catch (error) {
+        logger.error('Failed to toggle milestone', error);
+        Alert.alert('Error', 'Failed to update milestone. Please try again.');
       }
-    } catch (error) {
-      logger.error('Failed to toggle milestone', error);
-      Alert.alert('Error', 'Failed to update milestone. Please try again.');
-    }
-  }, [goal, triggerCelebration]);
+    },
+    [goal, triggerCelebration],
+  );
 
-  const handleAddMilestone = useCallback(async (title: string) => {
-    if (!goal) return;
-    try {
-      const updatedGoal = await progressService.addMilestone(goal.id, title);
-      if (updatedGoal) {
-        setGoal(updatedGoal);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handleAddMilestone = useCallback(
+    async (title: string) => {
+      if (!goal) return;
+      try {
+        const updatedGoal = await progressService.addMilestone(goal.id, title);
+        if (updatedGoal) {
+          setGoal(updatedGoal);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } catch (error) {
+        logger.error('Failed to add milestone', error);
+        Alert.alert('Error', 'Failed to add milestone. Please try again.');
       }
-    } catch (error) {
-      logger.error('Failed to add milestone', error);
-      Alert.alert('Error', 'Failed to add milestone. Please try again.');
-    }
-  }, [goal]);
+    },
+    [goal],
+  );
 
-  const handleDeleteMilestone = useCallback(async (milestoneId: string) => {
-    if (!goal) return;
-    try {
-      const updatedGoal = await progressService.deleteMilestone(milestoneId);
-      if (updatedGoal) setGoal(updatedGoal);
-    } catch (error) {
-      logger.error('Failed to delete milestone', error);
-      Alert.alert('Error', 'Failed to delete milestone. Please try again.');
-    }
-  }, [goal]);
-
-  const handleStatusChange = useCallback(async (newStatus: GoalStatus) => {
-    if (!goal) return;
-    try {
-      const updatedGoal = await progressService.updateGoal(goal.id, { status: newStatus });
-      if (updatedGoal) {
-        setGoal(updatedGoal);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        if (newStatus === 'COMPLETED') triggerCelebration();
+  const handleDeleteMilestone = useCallback(
+    async (milestoneId: string) => {
+      if (!goal) return;
+      try {
+        const updatedGoal = await progressService.deleteMilestone(milestoneId);
+        if (updatedGoal) setGoal(updatedGoal);
+      } catch (error) {
+        logger.error('Failed to delete milestone', error);
+        Alert.alert('Error', 'Failed to delete milestone. Please try again.');
       }
-    } catch (error) {
-      logger.error('Failed to update goal status', error);
-      Alert.alert('Error', 'Failed to update goal. Please try again.');
-    }
-  }, [goal, triggerCelebration]);
+    },
+    [goal],
+  );
+
+  const handleStatusChange = useCallback(
+    async (newStatus: GoalStatus) => {
+      if (!goal) return;
+      try {
+        const updatedGoal = await progressService.updateGoal(goal.id, { status: newStatus });
+        if (updatedGoal) {
+          setGoal(updatedGoal);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          if (newStatus === 'COMPLETED') triggerCelebration();
+        }
+      } catch (error) {
+        logger.error('Failed to update goal status', error);
+        Alert.alert('Error', 'Failed to update goal. Please try again.');
+      }
+    },
+    [goal, triggerCelebration],
+  );
 
   const handleDelete = useCallback(() => {
     if (!goal) return;
-    Alert.alert('Delete Goal', `Are you sure you want to delete "${goal.title}"? This action cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          try {
-            await progressService.deleteGoal(goal.id);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.back();
-          } catch (error) {
-            logger.error('Failed to delete goal', error);
-            Alert.alert('Error', 'Failed to delete goal. Please try again.');
-          }
+    Alert.alert(
+      'Delete Goal',
+      `Are you sure you want to delete "${goal.title}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await progressService.deleteGoal(goal.id);
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              router.back();
+            } catch (error) {
+              logger.error('Failed to delete goal', error);
+              Alert.alert('Error', 'Failed to delete goal. Please try again.');
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   }, [goal]);
 
-  const isOwner = goal ? (goal.userId === currentUser?.id || goal.athleteId === currentUser?.id) : false;
-  const status: ScreenStatus = loading && !goal
-    ? 'loading'
-    : error && !goal
-      ? 'error'
-      : !goal
-        ? 'empty'
-        : 'success';
+  const isOwner = goal
+    ? goal.userId === currentUser?.id || goal.athleteId === currentUser?.id
+    : false;
+  const status: ScreenStatus =
+    loading && !goal ? 'loading' : error && !goal ? 'error' : !goal ? 'empty' : 'success';
 
   return {
     goal,
@@ -175,8 +193,14 @@ export function useGoalDetail() {
     refreshing,
     retry: loadGoal,
     showCelebration,
-    confettiRef, celebrationStyle, isOwner,
-    handleRefresh, handleToggleMilestone, handleAddMilestone,
-    handleDeleteMilestone, handleStatusChange, handleDelete,
+    confettiRef,
+    celebrationStyle,
+    isOwner,
+    handleRefresh,
+    handleToggleMilestone,
+    handleAddMilestone,
+    handleDeleteMilestone,
+    handleStatusChange,
+    handleDelete,
   };
 }

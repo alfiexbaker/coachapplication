@@ -2,7 +2,7 @@
  * StepAthleteDetails — Athlete-specific details step of onboarding.
  */
 
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -71,7 +71,10 @@ function StepAthleteDetailsInner({
                   ]}
                 >
                   <ThemedText
-                    style={[styles.chipText, { color: isSelected ? palette.onPrimary : palette.foreground }]}
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? palette.onPrimary : palette.foreground },
+                    ]}
                   >
                     {s}
                   </ThemedText>
@@ -147,9 +150,14 @@ function StepAthleteDetailsInner({
             </ThemedText>
           </View>
           <View
-            style={[styles.toggleSwitch, { backgroundColor: hasChildren ? palette.tint : palette.border }]}
+            style={[
+              styles.toggleSwitch,
+              { backgroundColor: hasChildren ? palette.tint : palette.border },
+            ]}
           >
-            <Animated.View style={[styles.toggleKnob, { backgroundColor: palette.surface }, knobStyle]} />
+            <Animated.View
+              style={[styles.toggleKnob, { backgroundColor: palette.surface }, knobStyle]}
+            />
           </View>
         </Clickable>
       </View>

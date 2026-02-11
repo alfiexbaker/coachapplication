@@ -8,11 +8,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -102,7 +98,9 @@ export function CoachMarker({
           />
         </View>
 
-        <View style={[styles.pointer, { borderTopColor: isSelected ? palette.tint : palette.surface }]} />
+        <View
+          style={[styles.pointer, { borderTopColor: isSelected ? palette.tint : palette.surface }]}
+        />
 
         {showRating && (
           <View
@@ -134,8 +132,15 @@ export function CoachMarker({
         )}
 
         {showPrice && (
-          <View style={[styles.priceBadge, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <ThemedText style={[styles.priceText, { fontSize: dimensions.font, color: palette.text }]}>
+          <View
+            style={[
+              styles.priceBadge,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
+            <ThemedText
+              style={[styles.priceText, { fontSize: dimensions.font, color: palette.text }]}
+            >
               ${coach.priceRange.minUsd}
             </ThemedText>
           </View>

@@ -31,7 +31,9 @@ export const ClubDetailStats = memo(function ClubDetailStats({
   return (
     <Row style={[styles.row, { borderColor: colors.border }]}>
       <Clickable style={styles.item} onPress={onToggleMembers}>
-        <ThemedText type="title" style={Typography.heading}>{memberCount}</ThemedText>
+        <ThemedText type="title" style={Typography.heading}>
+          {memberCount}
+        </ThemedText>
         <Row style={styles.labelRow}>
           <ThemedText style={[Typography.caption, { color: colors.muted }]}>Members</ThemedText>
           {canExpand && (
@@ -45,17 +47,23 @@ export const ClubDetailStats = memo(function ClubDetailStats({
       </Clickable>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.item}>
-        <ThemedText type="title" style={Typography.heading}>{squadCount}</ThemedText>
+        <ThemedText type="title" style={Typography.heading}>
+          {squadCount}
+        </ThemedText>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>Squads</ThemedText>
       </View>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.item}>
-        <ThemedText type="title" style={Typography.heading}>{sessionCount}</ThemedText>
+        <ThemedText type="title" style={Typography.heading}>
+          {sessionCount}
+        </ThemedText>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>Sessions</ThemedText>
       </View>
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.item}>
-        <ThemedText type="title" style={Typography.heading}>{inviteCount}</ThemedText>
+        <ThemedText type="title" style={Typography.heading}>
+          {inviteCount}
+        </ThemedText>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>Invites</ThemedText>
       </View>
     </Row>

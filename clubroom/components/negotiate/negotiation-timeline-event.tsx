@@ -6,7 +6,12 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { type TimelineEvent, formatDateTime, formatTimeSlot, getStatusIcon } from './negotiation-timeline-helpers';
+import {
+  type TimelineEvent,
+  formatDateTime,
+  formatTimeSlot,
+  getStatusIcon,
+} from './negotiation-timeline-helpers';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -17,7 +22,10 @@ interface TimelineEventItemProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast }: TimelineEventItemProps) {
+export const TimelineEventItem = memo(function TimelineEventItem({
+  event,
+  isLast,
+}: TimelineEventItemProps) {
   const { colors: palette } = useTheme();
   const iconConfig = getStatusIcon(event.type, palette);
 
@@ -36,9 +44,7 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
         >
           <Ionicons name={iconConfig.name} size={12} color={palette.onPrimary} />
         </View>
-        {!isLast && (
-          <View style={[styles.timelineLine, { backgroundColor: palette.border }]} />
-        )}
+        {!isLast && <View style={[styles.timelineLine, { backgroundColor: palette.border }]} />}
       </View>
 
       {/* Event content */}
@@ -48,8 +54,8 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
             {event.type === 'original'
               ? 'Original Time'
               : event.isCurrentUser
-              ? 'You proposed'
-              : `${event.proposerName} proposed`}
+                ? 'You proposed'
+                : `${event.proposerName} proposed`}
           </ThemedText>
           <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
             {formatDateTime(event.timestamp)}
@@ -64,14 +70,14 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
                 event.type === 'accepted'
                   ? withAlpha(palette.success, 0.03)
                   : event.type === 'rejected'
-                  ? withAlpha(palette.error, 0.03)
-                  : palette.background,
+                    ? withAlpha(palette.error, 0.03)
+                    : palette.background,
               borderColor:
                 event.type === 'accepted'
                   ? withAlpha(palette.success, 0.12)
                   : event.type === 'rejected'
-                  ? withAlpha(palette.error, 0.12)
-                  : palette.border,
+                    ? withAlpha(palette.error, 0.12)
+                    : palette.border,
             },
           ]}
         >
@@ -83,8 +89,8 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
                 event.type === 'accepted'
                   ? palette.success
                   : event.type === 'rejected'
-                  ? palette.error
-                  : palette.tint
+                    ? palette.error
+                    : palette.tint
               }
             />
             <ThemedText>{formatTimeSlot(event.time)}</ThemedText>
@@ -99,7 +105,11 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
 
         {/* Message */}
         {event.message && (
-          <Row align="start" gap="xxs" style={[styles.messageBox, { backgroundColor: palette.background }]}>
+          <Row
+            align="start"
+            gap="xxs"
+            style={[styles.messageBox, { backgroundColor: palette.background }]}
+          >
             <Ionicons name="chatbubble-outline" size={12} color={palette.muted} />
             <ThemedText style={[styles.messageText, { color: palette.muted }]}>
               &quot;{event.message}&quot;
@@ -109,7 +119,11 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
 
         {/* Rejection reason */}
         {event.rejectionReason && (
-          <Row align="start" gap="xxs" style={[styles.rejectionBox, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+          <Row
+            align="start"
+            gap="xxs"
+            style={[styles.rejectionBox, { backgroundColor: withAlpha(palette.error, 0.06) }]}
+          >
             <Ionicons name="information-circle-outline" size={12} color={palette.error} />
             <ThemedText style={[styles.rejectionText, { color: palette.error }]}>
               {event.rejectionReason}
@@ -152,7 +166,14 @@ export const TimelineEventItem = memo(function TimelineEventItem({ event, isLast
 const styles = StyleSheet.create({
   timelineItem: {},
   timelineLeft: { alignItems: 'center', width: 24 },
-  timelineDot: { width: 24, height: 24, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  timelineDot: {
+    width: 24,
+    height: 24,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
   timelineLine: { flex: 1, width: 2, marginVertical: Spacing.xxs },
   timelineContent: { flex: 1, paddingBottom: Spacing.md, gap: Spacing.xs },
   eventHeader: {},

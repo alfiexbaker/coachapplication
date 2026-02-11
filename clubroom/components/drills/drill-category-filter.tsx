@@ -22,7 +22,12 @@ interface DrillCategoryFilterProps {
 }
 
 export const DrillCategoryFilter = memo(function DrillCategoryFilter({
-  colors, categories, categoryFilter, categoryCounts, onCategoryChange, delay = 150,
+  colors,
+  categories,
+  categoryFilter,
+  categoryCounts,
+  onCategoryChange,
+  delay = 150,
 }: DrillCategoryFilterProps) {
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()} style={styles.container}>
@@ -37,11 +42,40 @@ export const DrillCategoryFilter = memo(function DrillCategoryFilter({
                 <Clickable
                   key="all"
                   onPress={() => onCategoryChange(null)}
-                  style={[styles.chip, { backgroundColor: isSelected ? colors.tint : colors.surface, borderColor: isSelected ? colors.tint : colors.border }]}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelected ? colors.tint : colors.surface,
+                      borderColor: isSelected ? colors.tint : colors.border,
+                    },
+                  ]}
                 >
-                  <ThemedText style={[styles.chipText, { color: isSelected ? colors.onPrimary : colors.text }]}>All</ThemedText>
-                  <View style={[styles.countBadge, { backgroundColor: isSelected ? withAlpha(colors.onPrimary, 0.2) : colors.surfaceSecondary }]}>
-                    <ThemedText style={[styles.countText, { color: isSelected ? colors.onPrimary : colors.muted }]}>{count}</ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? colors.onPrimary : colors.text },
+                    ]}
+                  >
+                    All
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      {
+                        backgroundColor: isSelected
+                          ? withAlpha(colors.onPrimary, 0.2)
+                          : colors.surfaceSecondary,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.countText,
+                        { color: isSelected ? colors.onPrimary : colors.muted },
+                      ]}
+                    >
+                      {count}
+                    </ThemedText>
                   </View>
                 </Clickable>
               );
@@ -53,13 +87,40 @@ export const DrillCategoryFilter = memo(function DrillCategoryFilter({
               <Clickable
                 key={cat}
                 onPress={() => onCategoryChange(cat)}
-                style={[styles.chip, { backgroundColor: isSelected ? withAlpha(info.color, 0.12) : colors.surface, borderColor: isSelected ? info.color : colors.border }]}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? withAlpha(info.color, 0.12) : colors.surface,
+                    borderColor: isSelected ? info.color : colors.border,
+                  },
+                ]}
               >
-                <Ionicons name={info.icon as keyof typeof Ionicons.glyphMap} size={14} color={isSelected ? info.color : colors.muted} />
-                <ThemedText style={[styles.chipText, { color: isSelected ? info.color : colors.text }]}>{info.label}</ThemedText>
+                <Ionicons
+                  name={info.icon as keyof typeof Ionicons.glyphMap}
+                  size={14}
+                  color={isSelected ? info.color : colors.muted}
+                />
+                <ThemedText
+                  style={[styles.chipText, { color: isSelected ? info.color : colors.text }]}
+                >
+                  {info.label}
+                </ThemedText>
                 {count > 0 && (
-                  <View style={[styles.countBadge, { backgroundColor: isSelected ? withAlpha(info.color, 0.19) : colors.surfaceSecondary }]}>
-                    <ThemedText style={[styles.countText, { color: isSelected ? info.color : colors.muted }]}>{count}</ThemedText>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      {
+                        backgroundColor: isSelected
+                          ? withAlpha(info.color, 0.19)
+                          : colors.surfaceSecondary,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[styles.countText, { color: isSelected ? info.color : colors.muted }]}
+                    >
+                      {count}
+                    </ThemedText>
                   </View>
                 )}
               </Clickable>
@@ -75,11 +136,21 @@ const styles = StyleSheet.create({
   container: { marginBottom: Spacing.sm },
   row: { paddingHorizontal: Spacing.lg },
   chip: {
-    alignItems: 'center', gap: Spacing.xxs,
-    paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: 8,
-    borderRadius: Radii.pill, borderWidth: 1,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: 8,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
   },
   chipText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
-  countBadge: { minWidth: 20, height: 18, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxs },
+  countBadge: {
+    minWidth: 20,
+    height: 18,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xxs,
+  },
   countText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
 });

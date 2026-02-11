@@ -6,8 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { LoadingState } from '@/components/ui/screen-states';
-import { EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState } from '@/components/ui/screen-states';
 import { DevSessionInfo } from '@/components/development/dev-session-info';
 import { DevSessionRatings } from '@/components/development/dev-session-ratings';
 import { DevSessionSkills } from '@/components/development/dev-session-skills';
@@ -24,15 +23,41 @@ export default function SessionDetailScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    session, athlete, currentUser, loading, saving,
-    publicNotes, setPublicNotes, privateNotes, setPrivateNotes,
-    rating, setRating, effortRating, setEffortRating,
-    selectedSkills, skillRatings, improvements, setImprovements,
-    homework, setHomework, videoUrls, imageUrls, visibility, setVisibility,
-    showBadgeModal, sessionBadges,
-    handleSave, toggleSkill, updateSkillRating,
-    handleAddImage, handleRemoveImage, handleAddVideo, handleRemoveVideo,
-    handleBadgeAwarded, handleOpenBadgeModal, handleCloseBadgeModal,
+    session,
+    athlete,
+    currentUser,
+    loading,
+    saving,
+    publicNotes,
+    setPublicNotes,
+    privateNotes,
+    setPrivateNotes,
+    rating,
+    setRating,
+    effortRating,
+    setEffortRating,
+    selectedSkills,
+    skillRatings,
+    improvements,
+    setImprovements,
+    homework,
+    setHomework,
+    videoUrls,
+    imageUrls,
+    visibility,
+    setVisibility,
+    showBadgeModal,
+    sessionBadges,
+    handleSave,
+    toggleSkill,
+    updateSkillRating,
+    handleAddImage,
+    handleRemoveImage,
+    handleAddVideo,
+    handleRemoveVideo,
+    handleBadgeAwarded,
+    handleOpenBadgeModal,
+    handleCloseBadgeModal,
     formatDate,
   } = useDevSession(sessionId);
 
@@ -47,16 +72,27 @@ export default function SessionDetailScreen() {
   if (!session || !athlete || !currentUser) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <EmptyState icon="document-text-outline" title="Session not found" message="This session could not be loaded." />
+        <EmptyState
+          icon="document-text-outline"
+          title="Session not found"
+          message="This session could not be loaded."
+        />
       </SafeAreaView>
     );
   }
 
   return (
     <>
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ScrollView contentContainerStyle={styles.content}>
-          <Row align="center" justify="space-between" style={{ paddingTop: Spacing.md, paddingBottom: Spacing.sm }}>
+          <Row
+            align="center"
+            justify="space-between"
+            style={{ paddingTop: Spacing.md, paddingBottom: Spacing.sm }}
+          >
             <Clickable onPress={() => router.back()} style={{ padding: Spacing.xs }}>
               <Ionicons name="arrow-back" size={24} color={colors.foreground} />
             </Clickable>
@@ -120,15 +156,22 @@ export default function SessionDetailScreen() {
           <Clickable
             onPress={handleSave}
             disabled={saving}
-            style={({ pressed }) => [styles.saveBtn, { backgroundColor: saving ? colors.muted : colors.tint, opacity: pressed ? 0.8 : 1 }]}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              { backgroundColor: saving ? colors.muted : colors.tint, opacity: pressed ? 0.8 : 1 },
+            ]}
           >
             <Row align="center" justify="center" gap="xs">
               {saving ? (
-                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Saving...</ThemedText>
+                <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                  Saving...
+                </ThemedText>
               ) : (
                 <>
                   <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Save & Submit</ThemedText>
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                    Save & Submit
+                  </ThemedText>
                 </>
               )}
             </Row>
@@ -153,6 +196,11 @@ export default function SessionDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   saveBtn: { padding: Spacing.md, borderRadius: Radii.lg, marginTop: Spacing.sm },
 });

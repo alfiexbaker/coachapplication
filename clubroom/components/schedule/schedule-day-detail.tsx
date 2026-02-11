@@ -3,7 +3,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -48,9 +48,7 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
           <Column>
             <ThemedText type="subtitle">
               {day.dayName}
-              {day.isToday && (
-                <ThemedText style={{ color: colors.tint }}> (Today)</ThemedText>
-              )}
+              {day.isToday && <ThemedText style={{ color: colors.tint }}> (Today)</ThemedText>}
             </ThemedText>
             <ThemedText style={[styles.sub, { color: colors.muted }]}>
               {day.sessions.length} session{day.sessions.length !== 1 ? 's' : ''} ·{' '}
@@ -118,11 +116,7 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
         ) : (
           <Column gap="sm">
             {day.sessions.map((session) => (
-              <ScheduleSessionItem
-                key={session.id}
-                session={session}
-                onPress={onSessionPress}
-              />
+              <ScheduleSessionItem key={session.id} session={session} onPress={onSessionPress} />
             ))}
           </Column>
         )}

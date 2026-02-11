@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -29,7 +29,8 @@ export function validateTrialForm(values: TrialFormValues): string | null {
   if (isNaN(parsedTrial) || parsedTrial < 0) return 'Please enter a valid trial price.';
   if (isNaN(parsedNormal) || parsedNormal <= 0) return 'Please enter a valid normal price.';
   if (parsedTrial >= parsedNormal) return 'Trial price should be less than the normal price.';
-  if (isNaN(parsedDuration) || parsedDuration < 15) return 'Session duration must be at least 15 minutes.';
+  if (isNaN(parsedDuration) || parsedDuration < 15)
+    return 'Session duration must be at least 15 minutes.';
   if (isNaN(parsedLimit) || parsedLimit < 1) return 'Limit per family must be at least 1.';
   return null;
 }
@@ -51,8 +52,16 @@ export interface TrialFormFieldsProps {
 }
 
 export const TrialFormFields = memo(function TrialFormFields({
-  trialPrice, normalPrice, durationMinutes, limitPerFamily, description,
-  onTrialPriceChange, onNormalPriceChange, onDurationChange, onLimitChange, onDescriptionChange,
+  trialPrice,
+  normalPrice,
+  durationMinutes,
+  limitPerFamily,
+  description,
+  onTrialPriceChange,
+  onNormalPriceChange,
+  onDurationChange,
+  onLimitChange,
+  onDescriptionChange,
   palette,
 }: TrialFormFieldsProps) {
   return (
@@ -60,28 +69,68 @@ export const TrialFormFields = memo(function TrialFormFields({
       <FieldLabel label="Trial Price" hint="What you charge for the trial" palette={palette} />
       <Row style={[styles.inputRow, { borderColor: palette.border }]}>
         <ThemedText style={[Typography.body, { color: palette.muted }]}>{'\u00A3'}</ThemedText>
-        <TextInput style={[styles.input, { color: palette.text }]} value={trialPrice} onChangeText={onTrialPriceChange} keyboardType="decimal-pad" placeholder="15" placeholderTextColor={palette.muted} />
+        <TextInput
+          style={[styles.input, { color: palette.text }]}
+          value={trialPrice}
+          onChangeText={onTrialPriceChange}
+          keyboardType="decimal-pad"
+          placeholder="15"
+          placeholderTextColor={palette.muted}
+        />
       </Row>
 
-      <FieldLabel label="Normal Session Price" hint="Your regular rate for comparison" palette={palette} />
+      <FieldLabel
+        label="Normal Session Price"
+        hint="Your regular rate for comparison"
+        palette={palette}
+      />
       <Row style={[styles.inputRow, { borderColor: palette.border }]}>
         <ThemedText style={[Typography.body, { color: palette.muted }]}>{'\u00A3'}</ThemedText>
-        <TextInput style={[styles.input, { color: palette.text }]} value={normalPrice} onChangeText={onNormalPriceChange} keyboardType="decimal-pad" placeholder="45" placeholderTextColor={palette.muted} />
+        <TextInput
+          style={[styles.input, { color: palette.text }]}
+          value={normalPrice}
+          onChangeText={onNormalPriceChange}
+          keyboardType="decimal-pad"
+          placeholder="45"
+          placeholderTextColor={palette.muted}
+        />
       </Row>
 
       <FieldLabel label="Duration" hint="Length of the trial session" palette={palette} />
       <Row style={[styles.inputRow, { borderColor: palette.border }]}>
-        <TextInput style={[styles.input, { color: palette.text }]} value={durationMinutes} onChangeText={onDurationChange} keyboardType="number-pad" placeholder="60" placeholderTextColor={palette.muted} />
+        <TextInput
+          style={[styles.input, { color: palette.text }]}
+          value={durationMinutes}
+          onChangeText={onDurationChange}
+          keyboardType="number-pad"
+          placeholder="60"
+          placeholderTextColor={palette.muted}
+        />
         <ThemedText style={[Typography.body, { color: palette.muted }]}>minutes</ThemedText>
       </Row>
 
-      <FieldLabel label="Limit per Family" hint="How many trial sessions each family can book" palette={palette} />
+      <FieldLabel
+        label="Limit per Family"
+        hint="How many trial sessions each family can book"
+        palette={palette}
+      />
       <Row style={[styles.inputRow, { borderColor: palette.border }]}>
-        <TextInput style={[styles.input, { color: palette.text }]} value={limitPerFamily} onChangeText={onLimitChange} keyboardType="number-pad" placeholder="1" placeholderTextColor={palette.muted} />
+        <TextInput
+          style={[styles.input, { color: palette.text }]}
+          value={limitPerFamily}
+          onChangeText={onLimitChange}
+          keyboardType="number-pad"
+          placeholder="1"
+          placeholderTextColor={palette.muted}
+        />
         <ThemedText style={[Typography.body, { color: palette.muted }]}>session(s)</ThemedText>
       </Row>
 
-      <FieldLabel label="Description" hint="What parents will see about the trial" palette={palette} />
+      <FieldLabel
+        label="Description"
+        hint="What parents will see about the trial"
+        palette={palette}
+      />
       <TextInput
         style={[styles.descriptionInput, { borderColor: palette.border, color: palette.text }]}
         value={description}

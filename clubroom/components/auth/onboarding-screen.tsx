@@ -3,13 +3,7 @@
  * Steps: Account type -> Basic info -> Location -> Role details -> Complete
  */
 import { useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,15 +30,8 @@ interface OnboardingScreenProps {
 
 export default function OnboardingScreen({ onComplete, onBackToLogin }: OnboardingScreenProps) {
   const { colors: palette } = useTheme();
-  const {
-    state,
-    fadeOpacity,
-    dispatch,
-    handleNext,
-    handleBack,
-    getStepNumber,
-    getTotalSteps,
-  } = useOnboarding(onComplete, onBackToLogin);
+  const { state, fadeOpacity, dispatch, handleNext, handleBack, getStepNumber, getTotalSteps } =
+    useOnboarding(onComplete, onBackToLogin);
 
   const animatedFade = useAnimatedStyle(() => ({ opacity: fadeOpacity.value }));
 
@@ -61,7 +48,9 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         return (
           <StepAccountType
             accountType={state.accountType}
-            onSelectAccountType={(type) => dispatch({ type: 'SET_ACCOUNT_TYPE', accountType: type })}
+            onSelectAccountType={(type) =>
+              dispatch({ type: 'SET_ACCOUNT_TYPE', accountType: type })
+            }
           />
         );
       case 'basic-info':
@@ -125,7 +114,10 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
   const isLastStep = state.step === 'coach-details' || state.step === 'athlete-details';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.wrapper}
@@ -133,17 +125,10 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         {/* Header */}
         {state.step !== 'complete' && (
           <Row style={styles.header}>
-            <Clickable
-              onPress={handleBack}
-              style={styles.backButton}
-              accessibilityLabel="Go back"
-            >
+            <Clickable onPress={handleBack} style={styles.backButton} accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={24} color={palette.foreground} />
             </Clickable>
-            <OnboardingProgressBar
-              stepNumber={getStepNumber()}
-              totalSteps={getTotalSteps()}
-            />
+            <OnboardingProgressBar stepNumber={getStepNumber()} totalSteps={getTotalSteps()} />
           </Row>
         )}
 
@@ -153,15 +138,15 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={animatedFade}>
-            {renderCurrentStep()}
-          </Animated.View>
+          <Animated.View style={animatedFade}>{renderCurrentStep()}</Animated.View>
 
           {/* Error */}
           {state.error && (
             <Row style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
               <Ionicons name="alert-circle" size={20} color={palette.error} />
-              <ThemedText style={[styles.errorText, { color: palette.error }]}>{state.error}</ThemedText>
+              <ThemedText style={[styles.errorText, { color: palette.error }]}>
+                {state.error}
+              </ThemedText>
             </Row>
           )}
         </ScrollView>

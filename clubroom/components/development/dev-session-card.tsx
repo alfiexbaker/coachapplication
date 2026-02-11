@@ -46,10 +46,14 @@ export const DevSessionCard = memo(function DevSessionCard({
     >
       <Row justify="space-between" align="center" style={{ marginBottom: Spacing.xs }}>
         <Row gap="sm" align="center" style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold">{formatShortDateWithYear(session.completedAt)}</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {formatShortDateWithYear(session.completedAt)}
+          </ThemedText>
           {needsNotes && (
             <View style={[styles.needsNotesBadge, { backgroundColor: colors.error }]}>
-              <ThemedText style={[Typography.micro, { color: colors.onPrimary }]}>Needs Notes</ThemedText>
+              <ThemedText style={[Typography.micro, { color: colors.onPrimary }]}>
+                Needs Notes
+              </ThemedText>
             </View>
           )}
         </Row>
@@ -59,7 +63,12 @@ export const DevSessionCard = memo(function DevSessionCard({
             accessibilityLabel="Open badges workspace for this session"
             hitSlop={10}
           >
-            <Row style={[styles.workspaceChip, { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+            <Row
+              style={[
+                styles.workspaceChip,
+                { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.09) },
+              ]}
+            >
               <Ionicons name="ribbon-outline" size={14} color={colors.tint} />
             </Row>
           </Clickable>
@@ -86,7 +95,10 @@ export const DevSessionCard = memo(function DevSessionCard({
       {session.skillsWorkedOn.length > 0 && (
         <Row style={styles.skillsRow}>
           {session.skillsWorkedOn.map((skill, index) => (
-            <View key={index} style={[styles.skillChip, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+            <View
+              key={index}
+              style={[styles.skillChip, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+            >
               <ThemedText style={[styles.skillText, { color: colors.tint }]}>{skill}</ThemedText>
             </View>
           ))}

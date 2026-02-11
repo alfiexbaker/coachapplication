@@ -72,14 +72,18 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
 
       {step === 'body_part' && (
         <View style={styles.stepContent}>
-          <ThemedText type="subtitle" style={styles.stepTitle}>Where is the injury?</ThemedText>
+          <ThemedText type="subtitle" style={styles.stepTitle}>
+            Where is the injury?
+          </ThemedText>
           <BodyPartSelector selectedPart={bodyPart} onSelect={setBodyPart} />
         </View>
       )}
 
       {step === 'severity' && (
         <View style={styles.stepContent}>
-          <ThemedText type="subtitle" style={styles.stepTitle}>How severe is it?</ThemedText>
+          <ThemedText type="subtitle" style={styles.stepTitle}>
+            How severe is it?
+          </ThemedText>
           <SeverityPicker selectedSeverity={severity} onSelect={setSeverity} />
         </View>
       )}
@@ -106,9 +110,13 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
       {/* Navigation buttons */}
       <Row style={styles.buttonRow}>
         {step !== 'body_part' ? (
-          <Button variant="secondary" onPress={handleBack} style={styles.button}>Back</Button>
+          <Button variant="secondary" onPress={handleBack} style={styles.button}>
+            Back
+          </Button>
         ) : onCancel ? (
-          <Button variant="secondary" onPress={onCancel} style={styles.button}>Cancel</Button>
+          <Button variant="secondary" onPress={onCancel} style={styles.button}>
+            Cancel
+          </Button>
         ) : (
           <View style={styles.button} />
         )}

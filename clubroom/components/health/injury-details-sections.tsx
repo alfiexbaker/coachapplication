@@ -36,17 +36,13 @@ export const InjurySummaryCard = React.memo(function InjurySummaryCard({
   return (
     <View style={[styles.summary, { backgroundColor: palette.surface }]}>
       <Row style={styles.summaryRow}>
-        <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-          Body Part
-        </ThemedText>
+        <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Body Part</ThemedText>
         <ThemedText style={styles.summaryValue}>
           {bodyPart ? injuryService.getBodyPartLabel(bodyPart) : '-'}
         </ThemedText>
       </Row>
       <Row style={styles.summaryRow}>
-        <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-          Severity
-        </ThemedText>
+        <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Severity</ThemedText>
         <ThemedText
           style={[
             styles.summaryValue,

@@ -42,7 +42,12 @@ export function useMultiWeek() {
       const today = new Date();
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + WEEKS_TO_SHOW * 7);
-      const slots = await availabilityService.getAvailableSlots(coachId, toDateStr(today), toDateStr(endDate), defaultDuration);
+      const slots = await availabilityService.getAvailableSlots(
+        coachId,
+        toDateStr(today),
+        toDateStr(endDate),
+        defaultDuration,
+      );
 
       const weekMap = new Map<string, WeekRow>();
       for (const slot of slots) {
@@ -56,10 +61,13 @@ export function useMultiWeek() {
         if (!weekMap.has(weekKey) || (!weekMap.get(weekKey)!.available && slot.isAvailable)) {
           const dateObj = new Date(slot.date + 'T00:00:00');
           weekMap.set(weekKey, {
-            weekDate: slot.date, dayName: DAY_NAMES[dateObj.getDay()],
+            weekDate: slot.date,
+            dayName: DAY_NAMES[dateObj.getDay()],
             dateLabel: dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-            startTime: slot.startTime, endTime: slot.endTime,
-            location: slot.location ?? '', price: defaultPrice,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            location: slot.location ?? '',
+            price: defaultPrice,
             available: slot.isAvailable,
             unavailableReason: !slot.isAvailable ? 'Fully booked' : undefined,
           });
@@ -96,12 +104,16 @@ export function useMultiWeek() {
   const handleToggleWeek = useCallback((weekDate: string) => {
     setSelectedWeeks((prev) => {
       const next = new Set(prev);
-      if (next.has(weekDate)) next.delete(weekDate); else next.add(weekDate);
+      if (next.has(weekDate)) next.delete(weekDate);
+      else next.add(weekDate);
       return next;
     });
   }, []);
 
-  const selectedWeekRows = useMemo(() => weeks.filter((w) => selectedWeeks.has(w.weekDate)), [weeks, selectedWeeks]);
+  const selectedWeekRows = useMemo(
+    () => weeks.filter((w) => selectedWeeks.has(w.weekDate)),
+    [weeks, selectedWeeks],
+  );
   const primaryLocation = useMemo(() => selectedWeekRows[0]?.location ?? '', [selectedWeekRows]);
 
   const handleShowConfirmation = useCallback(() => {
@@ -117,18 +129,27 @@ export function useMultiWeek() {
     setSubmitting(true);
     try {
       const result = await multiWeekBookingService.createSeries({
-        createdById: currentUser.id, createdByName: currentUser.name ?? 'Parent',
-        coachId, coachName, athleteIds: [currentUser.id], athleteNames: [currentUser.name ?? 'Athlete'],
-        sessionType, pricePerSession: defaultPrice,
+        createdById: currentUser.id,
+        createdByName: currentUser.name ?? 'Parent',
+        coachId,
+        coachName,
+        athleteIds: [currentUser.id],
+        athleteNames: [currentUser.name ?? 'Athlete'],
+        sessionType,
+        pricePerSession: defaultPrice,
         selectedWeeks: selectedWeekRows.map((w) => w.weekDate),
         startTime: selectedWeekRows[0]?.startTime ?? '10:00',
-        duration: defaultDuration, location: primaryLocation,
+        duration: defaultDuration,
+        location: primaryLocation,
         patternLabel: `${selectedWeekRows.length} weeks`,
       });
       if (result.success) {
         if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        Alert.alert('Booking Confirmed', `${selectedWeekRows.length} sessions booked successfully!`,
-          [{ text: 'OK', onPress: () => router.back() }]);
+        Alert.alert(
+          'Booking Confirmed',
+          `${selectedWeekRows.length} sessions booked successfully!`,
+          [{ text: 'OK', onPress: () => router.back() }],
+        );
       } else {
         Alert.alert('Booking Failed', result.error.message);
       }
@@ -138,7 +159,16 @@ export function useMultiWeek() {
     } finally {
       setSubmitting(false);
     }
-  }, [coachId, currentUser, coachName, sessionType, defaultPrice, selectedWeekRows, defaultDuration, primaryLocation]);
+  }, [
+    coachId,
+    currentUser,
+    coachName,
+    sessionType,
+    defaultPrice,
+    selectedWeekRows,
+    defaultDuration,
+    primaryLocation,
+  ]);
 
   return {
     coachId,

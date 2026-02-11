@@ -76,7 +76,9 @@ export function CalendarProviderSelect({
                 styles.iconContainer,
                 {
                   backgroundColor:
-                    scheme === 'dark' ? withAlpha(provider.color, 0.19) : withAlpha(provider.color, 0.09),
+                    scheme === 'dark'
+                      ? withAlpha(provider.color, 0.19)
+                      : withAlpha(provider.color, 0.09),
                 },
               ]}
             >
@@ -87,10 +89,7 @@ export function CalendarProviderSelect({
               />
             </View>
             <ThemedText
-              style={[
-                styles.providerLabel,
-                { color: isSelected ? palette.accent : palette.text },
-              ]}
+              style={[styles.providerLabel, { color: isSelected ? palette.accent : palette.text }]}
             >
               {provider.label}
             </ThemedText>

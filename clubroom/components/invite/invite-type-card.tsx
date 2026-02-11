@@ -73,14 +73,22 @@ export const InviteTypeCard = memo(function InviteTypeCard({
       <SurfaceCard style={styles.card}>
         <Row gap="md" align="flex-start">
           <View style={[styles.iconWrap, { backgroundColor: cfg.bg }]}>
-            <Ionicons name={cfg.icon as keyof typeof Ionicons.glyphMap} size={18} color={cfg.textColor} />
+            <Ionicons
+              name={cfg.icon as keyof typeof Ionicons.glyphMap}
+              size={18}
+              color={cfg.textColor}
+            />
           </View>
           <Column gap="micro" style={styles.content}>
-            <ThemedText style={{ color: colors.muted, ...Typography.caption }}>Invite Type</ThemedText>
+            <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+              Invite Type
+            </ThemedText>
             <ThemedText type="defaultSemiBold" style={{ color: cfg.textColor }}>
               {cfg.label}
             </ThemedText>
-            <ThemedText style={{ color: colors.muted, ...Typography.small, marginTop: Spacing.micro }}>
+            <ThemedText
+              style={{ color: colors.muted, ...Typography.small, marginTop: Spacing.micro }}
+            >
               {cfg.description}
             </ThemedText>
           </Column>
@@ -105,7 +113,9 @@ export const InviteTypeCard = memo(function InviteTypeCard({
         {/* Squad info for SQUAD_ONLY type */}
         {currentType === 'SQUAD_ONLY' && squadIds && squadIds.length > 0 && (
           <Column style={styles.squadSection}>
-            <ThemedText style={{ color: colors.muted, ...Typography.caption, marginBottom: Spacing.xxs }}>
+            <ThemedText
+              style={{ color: colors.muted, ...Typography.caption, marginBottom: Spacing.xxs }}
+            >
               Squad Access
             </ThemedText>
             {squadIds.map((squadId) => (

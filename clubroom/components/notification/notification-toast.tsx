@@ -1,18 +1,25 @@
 import { useCallback, useRef, useState } from 'react';
 import { StyleSheet, View, Dimensions } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { createLogger } from '@/utils/logger';
 import { ExtendedNotificationItem } from '@/services/notification-service';
 import { useNotificationToast } from '@/hooks/use-notifications';
+import { navigateToDeepLink } from '@/utils/deep-link';
 
 const logger = createLogger('NotificationToast');
 
@@ -48,29 +55,35 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     });
   }, [slideAnim, opacityAnim]);
 
-  const showToast = useCallback((notification: ExtendedNotificationItem) => {
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+  const showToast = useCallback(
+    (notification: ExtendedNotificationItem) => {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-    setToast({ notification, visible: true });
+      setToast({ notification, visible: true });
 
-    // Animate in
-    slideAnim.value = withSpring(0, { stiffness: 80, damping: 12 });
-    opacityAnim.value = withTiming(1, { duration: 200 });
+      // Animate in
+      slideAnim.value = withSpring(0, { stiffness: 80, damping: 12 });
+      opacityAnim.value = withTiming(1, { duration: 200 });
 
-    // Auto-hide after 6 seconds (extended for better user visibility)
-    timeoutRef.current = setTimeout(() => {
-      hideToast();
-    }, 6000);
-  }, [slideAnim, opacityAnim, hideToast]);
+      // Auto-hide after 6 seconds (extended for better user visibility)
+      timeoutRef.current = setTimeout(() => {
+        hideToast();
+      }, 6000);
+    },
+    [slideAnim, opacityAnim, hideToast],
+  );
 
   const handlePress = useCallback(() => {
     hideToast();
     if (toast.notification?.deepLink) {
       try {
-        router.push(toast.notification.deepLink as Href);
+        const navigated = navigateToDeepLink(router, toast.notification.deepLink);
+        if (!navigated) {
+          logger.warn('Invalid toast deep link', { deepLink: toast.notification.deepLink });
+        }
       } catch (error) {
         logger.error('Navigation error', error);
       }
@@ -94,18 +107,29 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
   return (
     <>
       {children}
-      <Animated.View
-        style={[
-          styles.container,
-          { top: insets.top + 10 },
-          containerAnimStyle,
-        ]}
-      >
+      <Animated.View style={[styles.container, { top: insets.top + 10 }, containerAnimStyle]}>
         <Clickable onPress={handlePress}>
-          <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.text }]}>
+          <Row
+            align="center"
+            gap="sm"
+            style={[
+              styles.toast,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+                shadowColor: palette.text,
+              },
+            ]}
+          >
             {/* Icon */}
-            <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
+            <View
+              style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+            >
+              <Ionicons
+                name={icon as keyof typeof Ionicons.glyphMap}
+                size={20}
+                color={palette.tint}
+              />
             </View>
 
             {/* Content */}
@@ -149,7 +173,18 @@ export function NotificationToast({
 
   return (
     <Clickable onPress={onPress}>
-      <Row align="center" gap="sm" style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.text }]}>
+      <Row
+        align="center"
+        gap="sm"
+        style={[
+          styles.toast,
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+            shadowColor: palette.text,
+          },
+        ]}
+      >
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
         </View>

@@ -21,11 +21,11 @@ import { scaleFont } from '@/utils/scale';
 import type { ReferralCode } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { CompactCodeCard, CodeDisplay } from './referral-code-card-sections';
+
 // Re-export extracted components for backward compat
 export { CompactCodeCard, CodeDisplay } from './referral-code-card-sections';
 export type { CompactCodeCardProps, CodeDisplayProps } from './referral-code-card-sections';
-
-import { CompactCodeCard, CodeDisplay } from './referral-code-card-sections';
 
 interface ReferralCodeCardProps {
   referralCode: ReferralCode;

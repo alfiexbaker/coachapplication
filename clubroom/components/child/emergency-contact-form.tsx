@@ -18,7 +18,9 @@ interface EmergencyContactFormProps {
 }
 
 export const EmergencyContactForm = memo(function EmergencyContactForm({
-  contact, onSave, onCancel,
+  contact,
+  onSave,
+  onCancel,
 }: EmergencyContactFormProps) {
   const { colors } = useTheme();
   const [name, setName] = useState(contact?.name ?? '');
@@ -47,7 +49,9 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
   return (
     <SurfaceCard style={styles.card}>
       <Row style={styles.header}>
-        <ThemedText type="defaultSemiBold">{contact ? 'Edit Contact' : 'Add Emergency Contact'}</ThemedText>
+        <ThemedText type="defaultSemiBold">
+          {contact ? 'Edit Contact' : 'Add Emergency Contact'}
+        </ThemedText>
         <Clickable accessibilityLabel="Close" onPress={onCancel}>
           <Ionicons name="close" size={24} color={colors.muted} />
         </Clickable>
@@ -55,28 +59,67 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Full Name *</ThemedText>
-        <TextInput style={inputStyle} placeholder="Contact's full name" placeholderTextColor={colors.muted} value={name} onChangeText={setName} />
+        <TextInput
+          style={inputStyle}
+          placeholder="Contact's full name"
+          placeholderTextColor={colors.muted}
+          value={name}
+          onChangeText={setName}
+        />
       </View>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Relationship *</ThemedText>
-        <TextInput style={inputStyle} placeholder="e.g., Mother, Father, Grandparent" placeholderTextColor={colors.muted} value={relationship} onChangeText={setRelationship} />
+        <TextInput
+          style={inputStyle}
+          placeholder="e.g., Mother, Father, Grandparent"
+          placeholderTextColor={colors.muted}
+          value={relationship}
+          onChangeText={setRelationship}
+        />
       </View>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Phone Number *</ThemedText>
-        <TextInput style={inputStyle} placeholder="+44 7700 900000" placeholderTextColor={colors.muted} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <TextInput
+          style={inputStyle}
+          placeholder="+44 7700 900000"
+          placeholderTextColor={colors.muted}
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+        />
       </View>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Email (optional)</ThemedText>
-        <TextInput style={inputStyle} placeholder="email@example.com" placeholderTextColor={colors.muted} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <TextInput
+          style={inputStyle}
+          placeholder="email@example.com"
+          placeholderTextColor={colors.muted}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
       </View>
 
-      <ToggleRow label="Can Pick Up Child" subtitle="Authorized to collect child after sessions" value={canPickup} onToggle={() => setCanPickup(!canPickup)} colors={colors} />
+      <ToggleRow
+        label="Can Pick Up Child"
+        subtitle="Authorized to collect child after sessions"
+        value={canPickup}
+        onToggle={() => setCanPickup(!canPickup)}
+        colors={colors}
+      />
 
       {!contact && (
-        <ToggleRow label="Set as Primary Contact" subtitle="First contact called in emergencies" value={isPrimary} onToggle={() => setIsPrimary(!isPrimary)} colors={colors} />
+        <ToggleRow
+          label="Set as Primary Contact"
+          subtitle="First contact called in emergencies"
+          value={isPrimary}
+          onToggle={() => setIsPrimary(!isPrimary)}
+          colors={colors}
+        />
       )}
 
       <Button onPress={handleSave} disabled={!isValid}>
@@ -86,8 +129,17 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
   );
 });
 
-function ToggleRow({ label, subtitle, value, onToggle, colors }: {
-  label: string; subtitle: string; value: boolean; onToggle: () => void;
+function ToggleRow({
+  label,
+  subtitle,
+  value,
+  onToggle,
+  colors,
+}: {
+  label: string;
+  subtitle: string;
+  value: boolean;
+  onToggle: () => void;
   colors: { success: string; border: string; muted: string; surface: string };
 }) {
   return (
@@ -98,7 +150,12 @@ function ToggleRow({ label, subtitle, value, onToggle, colors }: {
       </View>
       <Clickable onPress={onToggle}>
         <View style={[styles.toggle, { backgroundColor: value ? colors.success : colors.border }]}>
-          <View style={[styles.toggleKnob, { backgroundColor: colors.surface, transform: [{ translateX: value ? 18 : 2 }] }]} />
+          <View
+            style={[
+              styles.toggleKnob,
+              { backgroundColor: colors.surface, transform: [{ translateX: value ? 18 : 2 }] },
+            ]}
+          />
         </View>
       </Clickable>
     </Row>

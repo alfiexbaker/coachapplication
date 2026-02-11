@@ -27,7 +27,10 @@ export default function RateCoachScreen() {
   if (!c.selectedCoach) {
     if (c.status === 'loading') {
       return (
-        <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: palette.background }]}
+          edges={['top']}
+        >
           <Row align="center" justify="space-between" style={styles.header}>
             <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={palette.foreground} />
@@ -42,7 +45,10 @@ export default function RateCoachScreen() {
 
     if (c.status === 'error') {
       return (
-        <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: palette.background }]}
+          edges={['top']}
+        >
           <Row align="center" justify="space-between" style={styles.header}>
             <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={palette.foreground} />
@@ -60,7 +66,10 @@ export default function RateCoachScreen() {
 
     if (c.status === 'empty') {
       return (
-        <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: palette.background }]}
+          edges={['top']}
+        >
           <Row align="center" justify="space-between" style={styles.header}>
             <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={palette.foreground} />
@@ -80,7 +89,10 @@ export default function RateCoachScreen() {
     }
 
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
           <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={palette.foreground} />
@@ -102,7 +114,10 @@ export default function RateCoachScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ThemedView style={styles.header}>
         <Clickable accessibilityLabel="Go back" onPress={c.goBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={palette.foreground} />
@@ -110,8 +125,15 @@ export default function RateCoachScreen() {
         <ThemedText type="title">Rate {c.selectedCoach.name}</ThemedText>
         <View style={{ width: 24 }} />
       </ThemedView>
-      <RatingForm coach={c.selectedCoach} rating={c.rating} reviewText={c.reviewText}
-        submitting={c.submitting} onRate={c.setRating} onToggleChip={c.toggleChip} onSubmit={c.handleSubmitReview} />
+      <RatingForm
+        coach={c.selectedCoach}
+        rating={c.rating}
+        reviewText={c.reviewText}
+        submitting={c.submitting}
+        onRate={c.setRating}
+        onToggleChip={c.toggleChip}
+        onSubmit={c.handleSubmitReview}
+      />
     </SafeAreaView>
   );
 }

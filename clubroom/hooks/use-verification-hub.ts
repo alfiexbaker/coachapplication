@@ -51,9 +51,9 @@ export function useVerificationHub() {
   const hasCredentials = (status?.credentials.length ?? 0) > 0;
 
   const credentialStatus: VerificationItem = hasCredentials
-    ? status!.credentials.some(c => c.status === 'VERIFIED')
+    ? status!.credentials.some((c) => c.status === 'VERIFIED')
       ? { status: 'VERIFIED' }
-      : status!.credentials.some(c => c.status === 'PENDING')
+      : status!.credentials.some((c) => c.status === 'PENDING')
         ? { status: 'PENDING' }
         : { status: 'NOT_STARTED' }
     : { status: 'NOT_STARTED' };

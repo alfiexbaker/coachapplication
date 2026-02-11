@@ -44,7 +44,14 @@ export default function DrillDetailScreen() {
     }
   }, [id]);
 
-  const { data: assignment, status, error, refreshing, onRefresh, retry } = useScreen<AssignedDrill | null>({
+  const {
+    data: assignment,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<AssignedDrill | null>({
     load: loadData,
     deps: [id],
     isEmpty: (value) => value === null || value.drill === undefined,
@@ -60,14 +67,18 @@ export default function DrillDetailScreen() {
       retry();
       setShowFeedbackInput(false);
       setFeedback('');
-      Alert.alert('Drill Completed!', 'Great work on completing this drill. Keep up the momentum!', [{ text: 'OK' }]);
+      Alert.alert(
+        'Drill Completed!',
+        'Great work on completing this drill. Keep up the momentum!',
+        [{ text: 'OK' }],
+      );
     } catch (error) {
       logger.error('Failed to complete drill:', error);
       Alert.alert('Error', 'Failed to mark drill as complete. Please try again.');
     } finally {
       setCompleting(false);
     }
-  }, [assignment, feedback, loadData]);
+  }, [assignment, feedback, retry]);
 
   const handleUncomplete = useCallback(async () => {
     if (!assignment) return;
@@ -90,7 +101,10 @@ export default function DrillDetailScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -98,15 +112,24 @@ export default function DrillDetailScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={error?.message ?? 'Failed to load drill assignment.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load drill assignment.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty' || !assignment || !assignment.drill) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <View style={styles.notFoundContainer}>
           <EmptyState
             icon="alert-circle-outline"
@@ -134,8 +157,15 @@ export default function DrillDetailScreen() {
         : palette.tint;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <DrillDetailHeader colors={palette} isCompleted={assignment.isCompleted} onBack={() => router.back()} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <DrillDetailHeader
+        colors={palette}
+        isCompleted={assignment.isCompleted}
+        onBack={() => router.back()}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

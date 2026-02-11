@@ -39,7 +39,7 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           <ThemedText style={{ color: palette.muted }}>
             {isCoach
               ? 'Connect with your coaching team'
-              : 'Join your coach\'s club for exclusive content'}
+              : "Join your coach's club for exclusive content"}
           </ThemedText>
         </View>
       </Row>
@@ -51,13 +51,22 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           value={joinCode}
           onChangeText={setJoinCode}
           autoCapitalize="characters"
-          style={[styles.input, { backgroundColor: palette.background, color: palette.text, borderColor: palette.border }]}
+          style={[
+            styles.input,
+            {
+              backgroundColor: palette.background,
+              color: palette.text,
+              borderColor: palette.border,
+            },
+          ]}
         />
         <Clickable
           style={[styles.primaryButton, { backgroundColor: palette.tint }]}
           onPress={() => onJoin(joinCode)}
         >
-          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Join</ThemedText>
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
+            Join
+          </ThemedText>
         </Clickable>
       </Row>
 
@@ -65,14 +74,26 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         <>
           <View style={styles.dividerWrapper}>
             <Divider />
-            <ThemedText style={[styles.dividerText, { backgroundColor: palette.surface, color: palette.muted }]}>or</ThemedText>
+            <ThemedText
+              style={[
+                styles.dividerText,
+                { backgroundColor: palette.surface, color: palette.muted },
+              ]}
+            >
+              or
+            </ThemedText>
           </View>
           <Clickable
-            style={[styles.createButton, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
+            style={[
+              styles.createButton,
+              { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint },
+            ]}
             onPress={handleCreateClub}
           >
             <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Create New Club</ThemedText>
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+              Create New Club
+            </ThemedText>
           </Clickable>
         </>
       )}
@@ -99,11 +120,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     alignItems: 'center',
   },
-  input: { ...Typography.body, flex: 1,
+  input: {
+    ...Typography.body,
+    flex: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderWidth: 1 },
+    borderWidth: 1,
+  },
   primaryButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -136,6 +160,6 @@ const styles = StyleSheet.create({
     top: -8,
     left: '50%',
     transform: [{ translateX: -10 }],
-    paddingHorizontal: Spacing.sm
+    paddingHorizontal: Spacing.sm,
   },
 });

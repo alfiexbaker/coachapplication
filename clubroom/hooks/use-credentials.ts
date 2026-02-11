@@ -87,9 +87,10 @@ export function useCredentials() {
   const handleSubmit = useCallback(async () => {
     if (!selectedType || !uploaded) return;
 
-    const credentialLabel = selectedType === 'other'
-      ? customName || 'Other Qualification'
-      : CREDENTIAL_TYPES.find((t) => t.id === selectedType)?.label || 'Credential';
+    const credentialLabel =
+      selectedType === 'other'
+        ? customName || 'Other Qualification'
+        : CREDENTIAL_TYPES.find((t) => t.id === selectedType)?.label || 'Credential';
 
     setSubmitting(true);
     try {

@@ -49,9 +49,7 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
     async function load() {
       try {
         const allBookings = await bookingService.getBookingsForUser(coachId, 'coach');
-        const athleteSessions = allBookings.filter(
-          (b) => b.athleteId === athlete.athleteId
-        );
+        const athleteSessions = allBookings.filter((b) => b.athleteId === athlete.athleteId);
         setSessions(athleteSessions);
       } catch (error) {
         logger.error('Failed to load sessions for athlete', error);
@@ -85,10 +83,7 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
     return (
       <Column gap="sm" style={styles.container}>
         {[1, 2, 3].map((i) => (
-          <View
-            key={i}
-            style={[styles.skeleton, { backgroundColor: colors.surfaceSecondary }]}
-          />
+          <View key={i} style={[styles.skeleton, { backgroundColor: colors.surfaceSecondary }]} />
         ))}
       </Column>
     );
@@ -101,9 +96,7 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
         title="No sessions yet"
         message={`Book ${athleteName}'s first session to start tracking progress`}
         actionLabel="Book Session"
-        onPressAction={() =>
-          router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))
-        }
+        onPressAction={() => router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))}
       />
     );
   }
@@ -133,7 +126,9 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
                 Past ({past.length})
               </ThemedText>
               {past.some((s) => !s.notes) && (
-                <View style={[styles.countBadge, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+                <View
+                  style={[styles.countBadge, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
+                >
                   <ThemedText style={[styles.countText, { color: colors.warning }]}>
                     {past.filter((s) => !s.notes).length} need notes
                   </ThemedText>

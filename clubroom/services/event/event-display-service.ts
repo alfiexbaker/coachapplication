@@ -8,11 +8,7 @@
  */
 
 import { createLogger } from '@/utils/logger';
-import type {
-  ClubEventType,
-  EventTargetAudience,
-  RSVPStatus,
-} from '@/constants/types';
+import type { ClubEventType, EventTargetAudience, RSVPStatus } from '@/constants/types';
 
 const _logger = createLogger('EventDisplayService');
 

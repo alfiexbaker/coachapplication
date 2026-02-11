@@ -61,11 +61,7 @@ export const FilterModalHeader = memo(function FilterModalHeader({
 }: FilterModalHeaderProps) {
   return (
     <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-      <Clickable
-        accessibilityLabel="Close filters"
-        onPress={onClose}
-        style={styles.headerButton}
-      >
+      <Clickable accessibilityLabel="Close filters" onPress={onClose} style={styles.headerButton}>
         <Ionicons name="close" size={24} color={palette.text} />
       </Clickable>
 
@@ -77,16 +73,10 @@ export const FilterModalHeader = memo(function FilterModalHeader({
         accessibilityLabel="Clear all filters"
         onPress={onClear}
         disabled={!hasActiveFilters}
-        style={[
-          styles.headerButton,
-          !hasActiveFilters && { opacity: 0.4 },
-        ]}
+        style={[styles.headerButton, !hasActiveFilters && { opacity: 0.4 }]}
       >
         <ThemedText
-          style={[
-            styles.clearAllText,
-            { color: hasActiveFilters ? palette.tint : palette.muted },
-          ]}
+          style={[styles.clearAllText, { color: hasActiveFilters ? palette.tint : palette.muted }]}
         >
           Clear
         </ThemedText>
@@ -110,9 +100,7 @@ export const ChipGridSection = memo(function ChipGridSection({
 }: ChipGridSectionProps) {
   return (
     <View style={styles.section}>
-      <ThemedText style={[styles.sectionTitle, { color: palette.text }]}>
-        {title}
-      </ThemedText>
+      <ThemedText style={[styles.sectionTitle, { color: palette.text }]}>{title}</ThemedText>
       <Row style={styles.chipGrid}>{children}</Row>
     </View>
   );
@@ -139,7 +127,8 @@ export function ChipOptionList<T extends string | number>({
           active={selected(item.value)}
           onPress={() => onToggle(item.value)}
         >
-          {item.label}{item.count !== undefined ? ` (${item.count})` : ''}
+          {item.label}
+          {item.count !== undefined ? ` (${item.count})` : ''}
         </Chip>
       ))}
     </>

@@ -290,16 +290,36 @@ function getBodyPartLabel(bodyPart: BodyPart): string {
  */
 function getBodyPartsByCategory(category: BodyPartCategory): BodyPart[] {
   const allParts: BodyPart[] = [
-    'HEAD', 'NECK',
-    'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ARM', 'RIGHT_ARM',
-    'LEFT_ELBOW', 'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST',
-    'LEFT_HAND', 'RIGHT_HAND',
-    'CHEST', 'UPPER_BACK', 'LOWER_BACK', 'ABDOMEN',
-    'LEFT_HIP', 'RIGHT_HIP', 'LEFT_THIGH', 'RIGHT_THIGH',
-    'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_CALF', 'RIGHT_CALF',
-    'LEFT_ANKLE', 'RIGHT_ANKLE', 'LEFT_FOOT', 'RIGHT_FOOT',
+    'HEAD',
+    'NECK',
+    'LEFT_SHOULDER',
+    'RIGHT_SHOULDER',
+    'LEFT_ARM',
+    'RIGHT_ARM',
+    'LEFT_ELBOW',
+    'RIGHT_ELBOW',
+    'LEFT_WRIST',
+    'RIGHT_WRIST',
+    'LEFT_HAND',
+    'RIGHT_HAND',
+    'CHEST',
+    'UPPER_BACK',
+    'LOWER_BACK',
+    'ABDOMEN',
+    'LEFT_HIP',
+    'RIGHT_HIP',
+    'LEFT_THIGH',
+    'RIGHT_THIGH',
+    'LEFT_KNEE',
+    'RIGHT_KNEE',
+    'LEFT_CALF',
+    'RIGHT_CALF',
+    'LEFT_ANKLE',
+    'RIGHT_ANKLE',
+    'LEFT_FOOT',
+    'RIGHT_FOOT',
   ];
-  return allParts.filter(part => getBodyPartCategory(part) === category);
+  return allParts.filter((part) => getBodyPartCategory(part) === category);
 }
 
 /**
@@ -363,7 +383,7 @@ async function saveInjuries(injuries: Injury[]): Promise<void> {
 async function logInjury(
   userId: string,
   params: LogInjuryInput,
-  _userName?: string
+  _userName?: string,
 ): Promise<Injury> {
   const injuries = await getAllInjuries();
   const now = new Date().toISOString();
@@ -405,10 +425,10 @@ async function logInjury(
  */
 async function getUserInjuries(userId: string, includeHealed: boolean = true): Promise<Injury[]> {
   const injuries = await getAllInjuries();
-  let filtered = injuries.filter(i => i.userId === userId);
+  let filtered = injuries.filter((i) => i.userId === userId);
 
   if (!includeHealed) {
-    filtered = filtered.filter(i => i.status !== 'HEALED');
+    filtered = filtered.filter((i) => i.status !== 'HEALED');
   }
 
   // Sort by status (active first, then recovering, then healed) and by date
@@ -428,7 +448,7 @@ async function getUserInjuries(userId: string, includeHealed: boolean = true): P
  */
 async function getInjuryById(id: string): Promise<Injury | null> {
   const injuries = await getAllInjuries();
-  return injuries.find(i => i.id === id) ?? null;
+  return injuries.find((i) => i.id === id) ?? null;
 }
 
 /**
@@ -439,7 +459,7 @@ async function getInjuryById(id: string): Promise<Injury | null> {
  */
 async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Injury | null> {
   const injuries = await getAllInjuries();
-  const injuryIndex = injuries.findIndex(i => i.id === id);
+  const injuryIndex = injuries.findIndex((i) => i.id === id);
 
   if (injuryIndex === -1) {
     logger.warn('injury_not_found', { injuryId: id });
@@ -484,10 +504,10 @@ async function addRecoveryNote(
   note: string,
   createdBy: string,
   _createdByName?: string,
-  recoveryPercent?: number
+  recoveryPercent?: number,
 ): Promise<Injury | null> {
   const injuries = await getAllInjuries();
-  const injuryIndex = injuries.findIndex(i => i.id === injuryId);
+  const injuryIndex = injuries.findIndex((i) => i.id === injuryId);
 
   if (injuryIndex === -1) {
     logger.warn('injury_not_found_for_note', { injuryId });
@@ -554,7 +574,7 @@ async function markAsHealed(id: string): Promise<Injury | null> {
  */
 async function getAthleteInjuries(athleteId: string): Promise<Injury[]> {
   const injuries = await getUserInjuries(athleteId, true);
-  return injuries.filter(i => i.sharedWithCoach);
+  return injuries.filter((i) => i.sharedWithCoach);
 }
 
 /**
@@ -564,7 +584,7 @@ async function getAthleteInjuries(athleteId: string): Promise<Injury[]> {
  */
 async function hasActiveInjury(userId: string): Promise<boolean> {
   const injuries = await getUserInjuries(userId, false);
-  return injuries.some(i => i.status === 'ACTIVE' || i.status === 'RECOVERING');
+  return injuries.some((i) => i.status === 'ACTIVE' || i.status === 'RECOVERING');
 }
 
 /**
@@ -574,7 +594,7 @@ async function hasActiveInjury(userId: string): Promise<boolean> {
  */
 async function getActiveInjuryCount(userId: string): Promise<number> {
   const injuries = await getUserInjuries(userId, false);
-  return injuries.filter(i => i.status === 'ACTIVE' || i.status === 'RECOVERING').length;
+  return injuries.filter((i) => i.status === 'ACTIVE' || i.status === 'RECOVERING').length;
 }
 
 // ============================================================================
@@ -589,13 +609,13 @@ async function getActiveInjuryCount(userId: string): Promise<number> {
 async function getInjuryStats(userId: string): Promise<InjuryStats> {
   const injuries = await getUserInjuries(userId, true);
 
-  const active = injuries.filter(i => i.status === 'ACTIVE').length;
-  const recovering = injuries.filter(i => i.status === 'RECOVERING').length;
-  const healed = injuries.filter(i => i.status === 'HEALED').length;
+  const active = injuries.filter((i) => i.status === 'ACTIVE').length;
+  const recovering = injuries.filter((i) => i.status === 'RECOVERING').length;
+  const healed = injuries.filter((i) => i.status === 'HEALED').length;
 
   // Count body parts
   const bodyPartCounts: Record<string, number> = {};
-  injuries.forEach(i => {
+  injuries.forEach((i) => {
     bodyPartCounts[i.bodyPart] = (bodyPartCounts[i.bodyPart] || 0) + 1;
   });
 
@@ -605,7 +625,7 @@ async function getInjuryStats(userId: string): Promise<InjuryStats> {
     .slice(0, 5);
 
   // Calculate average recovery time for healed injuries
-  const healedInjuries = injuries.filter(i => i.healedAt);
+  const healedInjuries = injuries.filter((i) => i.healedAt);
   let averageRecoveryDays = 0;
   if (healedInjuries.length > 0) {
     const totalDays = healedInjuries.reduce((sum, i) => {

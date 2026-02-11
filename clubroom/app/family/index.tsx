@@ -30,14 +30,25 @@ import { useFamilyDashboard } from '@/hooks/use-family-dashboard';
 export default function FamilyDashboardScreen() {
   const { colors: palette } = useTheme();
   const {
-    status, error, refreshing, onRefresh, retry, members, upcomingSessions, overview,
-    handleMemberPress, handleSessionPress,
-    navigateToCalendar, navigateToSpending,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    members,
+    upcomingSessions,
+    overview,
+    handleMemberPress,
+    handleSessionPress,
+    navigateToCalendar,
+    navigateToSpending,
   } = useFamilyDashboard();
 
   if (status === 'loading') {
     return (
-      <PageContainer header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}>
+      <PageContainer
+        header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
+      >
         <LoadingState variant="detail" />
       </PageContainer>
     );
@@ -45,15 +56,22 @@ export default function FamilyDashboardScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}>
-        <ErrorState message={error?.message || 'Failed to load family dashboard.'} onRetry={retry} />
+      <PageContainer
+        header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
+      >
+        <ErrorState
+          message={error?.message || 'Failed to load family dashboard.'}
+          onRetry={retry}
+        />
       </PageContainer>
     );
   }
 
   if (status === 'empty') {
     return (
-      <PageContainer header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}>
+      <PageContainer
+        header={<PageHeader title="Family Dashboard" subtitle="Manage your children's sessions" />}
+      >
         <EmptyState
           icon="people-outline"
           title="No family data yet"
@@ -78,15 +96,24 @@ export default function FamilyDashboardScreen() {
           <Row gap="sm">
             <SurfaceCard style={styles.statCard}>
               <ThemedText style={Typography.display}>{overview.totalChildren}</ThemedText>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Children</ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                Children
+              </ThemedText>
             </SurfaceCard>
             <SurfaceCard style={styles.statCard}>
               <ThemedText style={Typography.display}>{overview.upcomingSessions}</ThemedText>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Upcoming</ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                Upcoming
+              </ThemedText>
             </SurfaceCard>
             <SurfaceCard style={styles.statCard}>
-              <ThemedText style={Typography.display}>{'\u00A3'}{overview.spendingThisMonth.toFixed(0)}</ThemedText>
-              <ThemedText style={[Typography.caption, { color: palette.muted }]}>This Month</ThemedText>
+              <ThemedText style={Typography.display}>
+                {'\u00A3'}
+                {overview.spendingThisMonth.toFixed(0)}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+                This Month
+              </ThemedText>
             </SurfaceCard>
           </Row>
         </Animated.View>
@@ -94,26 +121,40 @@ export default function FamilyDashboardScreen() {
 
       {/* Quick Actions */}
       <Animated.View entering={FadeInDown.delay(100).springify()}>
-        <FamilyQuickActions onCalendarPress={navigateToCalendar} onSpendingPress={navigateToSpending} />
+        <FamilyQuickActions
+          onCalendarPress={navigateToCalendar}
+          onSpendingPress={navigateToSpending}
+        />
       </Animated.View>
 
       {/* Children Section */}
       <Animated.View entering={FadeInDown.delay(150).springify()}>
         <View style={styles.section}>
           <Row justify="between" align="center">
-            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>Your Children</ThemedText>
-            <ThemedText style={[Typography.small, { color: palette.muted }]}>{members.length} {members.length === 1 ? 'child' : 'children'}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={Typography.bodySmall}>
+              Your Children
+            </ThemedText>
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              {members.length} {members.length === 1 ? 'child' : 'children'}
+            </ThemedText>
           </Row>
           {members.length > 0 ? (
             <View style={styles.membersList}>
               {members.map((member, index) => (
-                <Animated.View key={member.id} entering={FadeInDown.delay(200 + index * 50).springify()}>
+                <Animated.View
+                  key={member.id}
+                  entering={FadeInDown.delay(200 + index * 50).springify()}
+                >
                   <FamilyMemberCard member={member} onPress={handleMemberPress} showStats={true} />
                 </Animated.View>
               ))}
             </View>
           ) : (
-            <EmptyState icon="people-outline" title="No Children Added" message="Add children to your account to track their development" />
+            <EmptyState
+              icon="people-outline"
+              title="No Children Added"
+              message="Add children to your account to track their development"
+            />
           )}
         </View>
       </Animated.View>
@@ -121,7 +162,13 @@ export default function FamilyDashboardScreen() {
       {/* Upcoming Sessions */}
       <Animated.View entering={FadeInDown.delay(250).springify()}>
         <View style={styles.section}>
-          <UpcomingSessionsList sessions={upcomingSessions} onSessionPress={handleSessionPress} onViewAllPress={navigateToCalendar} limit={3} showHeader={true} />
+          <UpcomingSessionsList
+            sessions={upcomingSessions}
+            onSessionPress={handleSessionPress}
+            onViewAllPress={navigateToCalendar}
+            limit={3}
+            showHeader={true}
+          />
         </View>
       </Animated.View>
 
@@ -134,10 +181,15 @@ export default function FamilyDashboardScreen() {
 
       {/* Book Session CTA */}
       <Animated.View entering={FadeInDown.delay(350).springify()}>
-        <Clickable onPress={() => router.push(Routes.MORE)} style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
+        <Clickable
+          onPress={() => router.push(Routes.MORE)}
+          style={[styles.ctaButton, { backgroundColor: palette.tint }]}
+        >
           <Row align="center" justify="center" gap="xs">
             <Ionicons name="add-circle" size={20} color={palette.onPrimary} />
-            <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>Book New Session</ThemedText>
+            <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>
+              Book New Session
+            </ThemedText>
           </Row>
         </Clickable>
       </Animated.View>

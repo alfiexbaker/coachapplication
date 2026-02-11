@@ -71,7 +71,7 @@ export function FavouritesList({
         index={index}
       />
     ),
-    [onBook, onToggleFavourite, togglingFavouriteId]
+    [onBook, onToggleFavourite, togglingFavouriteId],
   );
 
   const keyExtractor = useCallback((item: FavouriteCoach) => item.id, []);

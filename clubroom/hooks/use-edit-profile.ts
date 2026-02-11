@@ -24,8 +24,21 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('EditProfile');
 
-const LANGUAGE_OPTIONS = ['English', 'Spanish', 'French', 'Portuguese', 'German', 'Arabic', 'Italian'];
-const PROFICIENCY_OPTIONS: CoachLanguage['proficiency'][] = ['Native', 'Fluent', 'Conversational', 'Basic'];
+const LANGUAGE_OPTIONS = [
+  'English',
+  'Spanish',
+  'French',
+  'Portuguese',
+  'German',
+  'Arabic',
+  'Italian',
+];
+const PROFICIENCY_OPTIONS: CoachLanguage['proficiency'][] = [
+  'Native',
+  'Fluent',
+  'Conversational',
+  'Basic',
+];
 
 type EditableChildInput = {
   childId?: string;
@@ -108,7 +121,7 @@ const calculateAge = (dateOfBirth?: string): number => {
 
 function buildEditableChildren(
   children: EditableChildInput[] | undefined,
-  directory: DirectoryUser[]
+  directory: DirectoryUser[],
 ): { name: string; age: number }[] {
   if (!children || children.length === 0) return [];
 
@@ -117,16 +130,10 @@ function buildEditableChildren(
   return children.map((child) => {
     const directoryUser = child.childId ? usersById.get(child.childId) : undefined;
     const resolvedName =
-      child.childName ||
-      child.name ||
-      directoryUser?.fullName ||
-      directoryUser?.name ||
-      'Child';
+      child.childName || child.name || directoryUser?.fullName || directoryUser?.name || 'Child';
 
     const resolvedAge =
-      typeof child.age === 'number'
-        ? child.age
-        : calculateAge(directoryUser?.dateOfBirth);
+      typeof child.age === 'number' ? child.age : calculateAge(directoryUser?.dateOfBirth);
 
     return {
       name: resolvedName,
@@ -137,7 +144,7 @@ function buildEditableChildren(
 
 function createEditableUserProfile(
   currentUser: AuthLikeUser,
-  directory: DirectoryUser[]
+  directory: DirectoryUser[],
 ): EditableUserProfile {
   return {
     id: currentUser.id,
@@ -284,7 +291,9 @@ export function useEditProfile() {
   const [isExperienceModalVisible, setExperienceModalVisible] = useState(false);
   const [languageDraft, setLanguageDraft] = useState<CoachLanguage>(createBlankLanguage());
   const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
-  const [certificationDraft, setCertificationDraft] = useState<CoachCertification>(createBlankCertification());
+  const [certificationDraft, setCertificationDraft] = useState<CoachCertification>(
+    createBlankCertification(),
+  );
   const [isCertificationModalVisible, setCertificationModalVisible] = useState(false);
 
   const retryLoad = useCallback(() => {
@@ -437,7 +446,11 @@ export function useEditProfile() {
   const quickAddLanguage = useCallback((name: string) => {
     setLanguages((prev) => [
       ...prev,
-      { id: `lang-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, proficiency: 'Fluent' },
+      {
+        id: `lang-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name,
+        proficiency: 'Fluent',
+      },
     ]);
   }, []);
 
@@ -449,7 +462,10 @@ export function useEditProfile() {
 
   const saveCertification = useCallback(() => {
     if (!certificationDraft.name || !certificationDraft.issuer || !certificationDraft.issueDate) {
-      Alert.alert('Missing Information', 'Please add a certification name, issuer, and issue date.');
+      Alert.alert(
+        'Missing Information',
+        'Please add a certification name, issuer, and issue date.',
+      );
       return;
     }
     setCertifications((prev) => {
@@ -470,13 +486,16 @@ export function useEditProfile() {
     setChildren((prev) => [...prev, { name: '', age: 0 }]);
   }, []);
 
-  const updateChild = useCallback((index: number, field: 'name' | 'age', value: string | number) => {
-    setChildren((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  }, []);
+  const updateChild = useCallback(
+    (index: number, field: 'name' | 'age', value: string | number) => {
+      setChildren((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], [field]: value };
+        return updated;
+      });
+    },
+    [],
+  );
 
   const removeChild = useCallback((index: number) => {
     setChildren((prev) => prev.filter((_, i) => i !== index));
@@ -556,29 +575,72 @@ export function useEditProfile() {
 
   return {
     // Identity
-    userIsCoach, coach, user,
-    initializing, loadError, retryLoad,
+    userIsCoach,
+    coach,
+    user,
+    initializing,
+    loadError,
+    retryLoad,
     // Common
-    fullName, setFullName, bio, setBio, email, setEmail, phone, setPhone,
+    fullName,
+    setFullName,
+    bio,
+    setBio,
+    email,
+    setEmail,
+    phone,
+    setPhone,
     // Parent
-    children, addChild, updateChild, removeChild,
+    children,
+    addChild,
+    updateChild,
+    removeChild,
     // Coach general
-    website, setWebsite, priceMin, setPriceMin, priceMax, setPriceMax,
+    website,
+    setWebsite,
+    priceMin,
+    setPriceMin,
+    priceMax,
+    setPriceMax,
     // Focuses
-    selectedFocuses, toggleFocus, footballObjectives: FOOTBALL_OBJECTIVES,
+    selectedFocuses,
+    toggleFocus,
+    footballObjectives: FOOTBALL_OBJECTIVES,
     // Experience
-    experiences, openExperienceModal, saveExperience, removeExperience,
-    experienceDraft, setExperienceDraft, isExperienceModalVisible, setExperienceModalVisible,
+    experiences,
+    openExperienceModal,
+    saveExperience,
+    removeExperience,
+    experienceDraft,
+    setExperienceDraft,
+    isExperienceModalVisible,
+    setExperienceModalVisible,
     // Languages
-    languages, openLanguageModal, saveLanguage, removeLanguage, quickAddLanguage,
-    languageDraft, setLanguageDraft, isLanguageModalVisible, setLanguageModalVisible,
-    languageOptions: LANGUAGE_OPTIONS, proficiencyOptions: PROFICIENCY_OPTIONS,
+    languages,
+    openLanguageModal,
+    saveLanguage,
+    removeLanguage,
+    quickAddLanguage,
+    languageDraft,
+    setLanguageDraft,
+    isLanguageModalVisible,
+    setLanguageModalVisible,
+    languageOptions: LANGUAGE_OPTIONS,
+    proficiencyOptions: PROFICIENCY_OPTIONS,
     // Certifications
-    certifications, openCertificationModal, saveCertification, removeCertification,
-    certificationDraft, setCertificationDraft, isCertificationModalVisible, setCertificationModalVisible,
+    certifications,
+    openCertificationModal,
+    saveCertification,
+    removeCertification,
+    certificationDraft,
+    setCertificationDraft,
+    isCertificationModalVisible,
+    setCertificationModalVisible,
     // Social
-    socialLinks, setSocialLinks,
+    socialLinks,
+    setSocialLinks,
     // Actions
-    handleSave, pickImage,
+    handleSave,
+    pickImage,
   };
 }

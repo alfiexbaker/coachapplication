@@ -132,7 +132,9 @@ export const RadarRingLabels = memo(function RadarRingLabels({ palette }: RadarR
         const yPos = CENTER - norm * OUTER_RADIUS;
         return (
           <View key={`rlabel-${ringIdx}`} style={[styles.ringLabel, { top: yPos - 8 }]}>
-            <ThemedText style={[styles.ringLabelText, { color: palette.muted }]}>{level}</ThemedText>
+            <ThemedText style={[styles.ringLabelText, { color: palette.muted }]}>
+              {level}
+            </ThemedText>
           </View>
         );
       })}

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
-import type { useTheme, ThemeColors } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -22,8 +22,18 @@ export interface TimelineEntry {
 // ─── Helpers ────────────────────────────────────────────────────
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 export function formatDate(iso: string): string {
@@ -49,25 +59,36 @@ export function groupByMonth(
   return Array.from(groups.entries()).map(([month, items]) => ({ month, items }));
 }
 
-export function getEntryIcon(
-  type: TimelineEntryType,
-): { name: keyof typeof Ionicons.glyphMap; colorKey: 'success' | 'warning' | 'tint' | 'muted' } {
+export function getEntryIcon(type: TimelineEntryType): {
+  name: keyof typeof Ionicons.glyphMap;
+  colorKey: 'success' | 'warning' | 'tint' | 'muted';
+} {
   switch (type) {
-    case 'session': return { name: 'football-outline', colorKey: 'success' };
-    case 'badge': return { name: 'ribbon-outline', colorKey: 'warning' };
-    case 'goal': return { name: 'flag-outline', colorKey: 'tint' };
-    case 'skill_change': return { name: 'trending-up-outline', colorKey: 'success' };
-    default: return { name: 'ellipse', colorKey: 'muted' };
+    case 'session':
+      return { name: 'football-outline', colorKey: 'success' };
+    case 'badge':
+      return { name: 'ribbon-outline', colorKey: 'warning' };
+    case 'goal':
+      return { name: 'flag-outline', colorKey: 'tint' };
+    case 'skill_change':
+      return { name: 'trending-up-outline', colorKey: 'success' };
+    default:
+      return { name: 'ellipse', colorKey: 'muted' };
   }
 }
 
 export function getDotColor(type: TimelineEntryType, palette: ThemeColors): string {
   switch (type) {
-    case 'session': return palette.success;
-    case 'badge': return palette.warning;
-    case 'goal': return palette.tint;
-    case 'skill_change': return palette.success;
-    default: return palette.muted;
+    case 'session':
+      return palette.success;
+    case 'badge':
+      return palette.warning;
+    case 'goal':
+      return palette.tint;
+    case 'skill_change':
+      return palette.success;
+    default:
+      return palette.muted;
   }
 }
 
@@ -93,9 +114,7 @@ export const TimelineEntryRow = memo(function TimelineEntryRow({
         <View style={[styles.dot, { backgroundColor: dotColor }]}>
           <Ionicons name={icon.name} size={12} color={palette.surface} />
         </View>
-        {!isLast && (
-          <View style={[styles.connector, { backgroundColor: palette.border }]} />
-        )}
+        {!isLast && <View style={[styles.connector, { backgroundColor: palette.border }]} />}
       </View>
       <View
         style={[

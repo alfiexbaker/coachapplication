@@ -1,5 +1,12 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 
@@ -72,7 +79,13 @@ export default function ReviewScreen() {
       });
     } catch (loadError) {
       logger.error('Failed to load booking', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load booking for review. Pull down to refresh.', loadError));
+      return err(
+        serviceError(
+          'UNKNOWN',
+          'Failed to load booking for review. Pull down to refresh.',
+          loadError,
+        ),
+      );
     }
   }, [bookingId]);
 
@@ -146,7 +159,10 @@ export default function ReviewScreen() {
   if (status === 'error') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-        <ErrorState message={error?.message || 'Failed to load booking review details.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message || 'Failed to load booking review details.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -169,33 +185,36 @@ export default function ReviewScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <ReviewHeader colors={palette} submitted={submitted} onBack={() => router.back()} />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {booking && (
-          <ReviewSessionCard
-            colors={palette}
-            coachName={booking.coachName}
-            service={booking.service}
-            scheduledAt={booking.scheduledAt}
-            formatDate={formatDate}
-          />
-        )}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          {booking && (
+            <ReviewSessionCard
+              colors={palette}
+              coachName={booking.coachName}
+              service={booking.service}
+              scheduledAt={booking.scheduledAt}
+              formatDate={formatDate}
+            />
+          )}
 
-        {submitted && submittedReview ? (
-          <ReviewSuccessState
-            colors={palette}
-            coachName={booking?.coachName}
-            submittedRating={submittedReview.rating}
-            onDone={() => router.back()}
-          />
-        ) : (
-          <ReviewForm onSubmit={handleSubmitReview} />
-        )}
-      </ScrollView>
+          {submitted && submittedReview ? (
+            <ReviewSuccessState
+              colors={palette}
+              coachName={booking?.coachName}
+              submittedRating={submittedReview.rating}
+              onDone={() => router.back()}
+            />
+          ) : (
+            <ReviewForm onSubmit={handleSubmitReview} />
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

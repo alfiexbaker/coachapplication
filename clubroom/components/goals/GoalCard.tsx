@@ -82,10 +82,7 @@ export function GoalCard({
                 color={isOverdue ? palette.error : palette.muted}
               />
               <ThemedText
-                style={[
-                  styles.footerText,
-                  { color: isOverdue ? palette.error : palette.muted },
-                ]}
+                style={[styles.footerText, { color: isOverdue ? palette.error : palette.muted }]}
               >
                 {progressService.formatTargetDate(goal.targetDate)}
               </ThemedText>
@@ -109,9 +106,7 @@ export function GoalCard({
 
         {isOverdue && goal.status === 'ACTIVE' && (
           <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.12) }]}>
-            <ThemedText style={[styles.statusText, { color: palette.error }]}>
-              Overdue
-            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: palette.error }]}>Overdue</ThemedText>
           </View>
         )}
       </View>

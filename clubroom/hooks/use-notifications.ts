@@ -5,7 +5,14 @@ import { ServiceEvents } from '@/services/event-bus';
 import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
-export type NotificationFilter = 'all' | 'booking' | 'message' | 'review' | 'badge' | 'reminder' | 'community';
+export type NotificationFilter =
+  | 'all'
+  | 'booking'
+  | 'message'
+  | 'review'
+  | 'badge'
+  | 'reminder'
+  | 'community';
 
 interface UseNotificationsOptions {
   filter?: NotificationFilter;
@@ -58,7 +65,9 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       // Filter by type if not 'all'
       let filtered = allNotifications;
       if (currentFilter !== 'all') {
-        filtered = allNotifications.filter((n: ExtendedNotificationItem) => n.type === currentFilter);
+        filtered = allNotifications.filter(
+          (n: ExtendedNotificationItem) => n.type === currentFilter,
+        );
       }
 
       // Calculate unread count from all notifications (not filtered)
@@ -71,10 +80,21 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     }
   }, [currentFilter]);
 
-  const { data, status, error: loadError, refreshing, onRefresh, retry } = useScreen<NotificationScreenData>({
+  const {
+    data,
+    status,
+    error: loadError,
+    refreshing,
+    onRefresh,
+    retry,
+  } = useScreen<NotificationScreenData>({
     load: fetchNotifications,
     deps: [currentFilter],
-    events: [ServiceEvents.NOTIFICATION_CREATED, ServiceEvents.NOTIFICATION_READ, ServiceEvents.NOTIFICATION_DISMISSED],
+    events: [
+      ServiceEvents.NOTIFICATION_CREATED,
+      ServiceEvents.NOTIFICATION_READ,
+      ServiceEvents.NOTIFICATION_DISMISSED,
+    ],
     isEmpty: (value) => value.notifications.length === 0,
     refetchOnFocus: true,
   });
@@ -104,18 +124,21 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     onRefresh();
   }, [onRefresh]);
 
-  const markAsRead = useCallback(async (id: string) => {
-    const result = await notificationService.markAsRead(id);
-    if (!result.success) {
-      const markError = new Error(result.error.message);
-      setActionError(markError);
-      logger.error('Failed to mark notification as read', { id, error: result.error });
-      return;
-    }
+  const markAsRead = useCallback(
+    async (id: string) => {
+      const result = await notificationService.markAsRead(id);
+      if (!result.success) {
+        const markError = new Error(result.error.message);
+        setActionError(markError);
+        logger.error('Failed to mark notification as read', { id, error: result.error });
+        return;
+      }
 
-    setActionError(null);
-    await refresh();
-  }, [refresh]);
+      setActionError(null);
+      await refresh();
+    },
+    [refresh],
+  );
 
   const markAllAsRead = useCallback(async () => {
     const result = await notificationService.markAllAsRead();
@@ -199,7 +222,9 @@ export function useNotificationCount(): number {
 /**
  * Hook for subscribing to new notifications (for toast display)
  */
-export function useNotificationToast(onNotification: (notification: ExtendedNotificationItem) => void): void {
+export function useNotificationToast(
+  onNotification: (notification: ExtendedNotificationItem) => void,
+): void {
   useEffect(() => {
     const unsubscribe = notificationService.subscribe(onNotification);
     return unsubscribe;

@@ -76,9 +76,7 @@ export function useCreateAcademy() {
   }, [currentStepIndex]);
 
   const toggleSpecialty = useCallback((s: FootballObjective) => {
-    setSpecialties((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
-    );
+    setSpecialties((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }, []);
 
   const handleCreate = useCallback(async () => {

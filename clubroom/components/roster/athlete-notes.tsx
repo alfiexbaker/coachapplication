@@ -45,11 +45,7 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
       <Row align="center" justify="between">
         <ThemedText type="defaultSemiBold">Coach Notes</ThemedText>
         <Clickable onPress={() => setShowInput(!showInput)}>
-          <Ionicons
-            name={showInput ? 'close' : 'add-circle'}
-            size={24}
-            color={palette.tint}
-          />
+          <Ionicons name={showInput ? 'close' : 'add-circle'} size={24} color={palette.tint} />
         </Clickable>
       </Row>
 
@@ -57,7 +53,10 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
       {showInput && (
         <View style={styles.inputSection}>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.surfaceSecondary, color: palette.text }]}
+            style={[
+              styles.input,
+              { backgroundColor: palette.surfaceSecondary, color: palette.text },
+            ]}
             placeholder="Write a note about this athlete..."
             placeholderTextColor={palette.muted}
             value={newNote}
@@ -96,12 +95,19 @@ export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesPro
           {notes
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .map((note) => (
-              <View key={note.id} style={[styles.noteCard, { backgroundColor: palette.surfaceSecondary }]}>
+              <View
+                key={note.id}
+                style={[styles.noteCard, { backgroundColor: palette.surfaceSecondary }]}
+              >
                 <Row align="center" justify="between">
                   <ThemedText style={[styles.noteDate, { color: palette.muted }]}>
                     {formatDate(note.createdAt)}
                   </ThemedText>
-                  <Clickable accessibilityLabel="Delete note" onPress={() => onDeleteNote(note.id)} hitSlop={8}>
+                  <Clickable
+                    accessibilityLabel="Delete note"
+                    onPress={() => onDeleteNote(note.id)}
+                    hitSlop={8}
+                  >
                     <Ionicons name="trash-outline" size={16} color={palette.error} />
                   </Clickable>
                 </Row>
@@ -121,10 +127,13 @@ const styles = StyleSheet.create({
   inputSection: {
     gap: Spacing.sm,
   },
-  input: { ...Typography.bodySmall, minHeight: 80,
+  input: {
+    ...Typography.bodySmall,
+    minHeight: 80,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    textAlignVertical: 'top' },
+    textAlignVertical: 'top',
+  },
   cancelButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -136,8 +145,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.sm,
   },
-  emptyText: { ...Typography.small, textAlign: 'center',
-    lineHeight: 18 },
+  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: 18 },
   notesList: {
     gap: Spacing.sm,
   },

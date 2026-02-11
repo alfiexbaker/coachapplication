@@ -13,7 +13,9 @@ interface SpecialNeedsNotesSectionProps {
   childProfile: ChildProfile;
 }
 
-export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({ childProfile }: SpecialNeedsNotesSectionProps) {
+export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
+  childProfile,
+}: SpecialNeedsNotesSectionProps) {
   const { colors } = useTheme();
 
   const hasNotes = childProfile.communicationNotes || childProfile.behavioralNotes;
@@ -27,7 +29,9 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
       {hasNotes && (
         <View style={styles.section}>
           <Row gap="sm" align="center">
-            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
+            <View
+              style={[styles.sectionIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}
+            >
               <Ionicons name="chatbubbles" size={Components.icon.md} color={colors.success} />
             </View>
             <ThemedText type="heading">Coach Notes</ThemedText>
@@ -37,7 +41,9 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
             <SurfaceCard style={styles.noteCard}>
               <Row gap="xs" align="center">
                 <Ionicons name="megaphone" size={Components.icon.sm} color={colors.success} />
-                <ThemedText style={[Typography.caption, { color: colors.success }]}>Communication</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.success }]}>
+                  Communication
+                </ThemedText>
               </Row>
               <ThemedText style={Typography.small}>{childProfile.communicationNotes}</ThemedText>
             </SurfaceCard>
@@ -47,7 +53,9 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
             <SurfaceCard style={styles.noteCard}>
               <Row gap="xs" align="center">
                 <Ionicons name="bulb" size={Components.icon.sm} color={colors.tint} />
-                <ThemedText style={[Typography.caption, { color: colors.tint }]}>Behavioral</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.tint }]}>
+                  Behavioral
+                </ThemedText>
               </Row>
               <ThemedText style={Typography.small}>{childProfile.behavioralNotes}</ThemedText>
             </SurfaceCard>
@@ -66,15 +74,24 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
           </Row>
 
           {childProfile.allergies.length > 0 && (
-            <SurfaceCard style={[styles.medicalCard, { borderColor: withAlpha(colors.error, 0.19) }]}>
+            <SurfaceCard
+              style={[styles.medicalCard, { borderColor: withAlpha(colors.error, 0.19) }]}
+            >
               <Row gap="xs" align="center">
                 <Ionicons name="warning" size={Components.icon.sm} color={colors.error} />
-                <ThemedText style={[Typography.caption, { color: colors.error }]}>Allergies</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                  Allergies
+                </ThemedText>
               </Row>
               <Row style={styles.tagList}>
                 {childProfile.allergies.map((allergy, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.error, 0.09) }]}>
-                    <ThemedText style={[Typography.caption, { color: colors.error }]}>{allergy}</ThemedText>
+                  <View
+                    key={idx}
+                    style={[styles.tag, { backgroundColor: withAlpha(colors.error, 0.09) }]}
+                  >
+                    <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                      {allergy}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -82,15 +99,24 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
           )}
 
           {childProfile.medications.length > 0 && (
-            <SurfaceCard style={[styles.medicalCard, { borderColor: withAlpha(colors.warning, 0.19) }]}>
+            <SurfaceCard
+              style={[styles.medicalCard, { borderColor: withAlpha(colors.warning, 0.19) }]}
+            >
               <Row gap="xs" align="center">
                 <Ionicons name="medical" size={Components.icon.sm} color={colors.warning} />
-                <ThemedText style={[Typography.caption, { color: colors.warning }]}>Medications</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.warning }]}>
+                  Medications
+                </ThemedText>
               </Row>
               <Row style={styles.tagList}>
                 {childProfile.medications.map((med, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
-                    <ThemedText style={[Typography.caption, { color: colors.warning }]}>{med}</ThemedText>
+                  <View
+                    key={idx}
+                    style={[styles.tag, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
+                  >
+                    <ThemedText style={[Typography.caption, { color: colors.warning }]}>
+                      {med}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -104,9 +130,19 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
-  sectionIcon: { width: Components.avatar.sm, height: Components.avatar.sm, borderRadius: Components.avatar.sm / 2, alignItems: 'center', justifyContent: 'center' },
+  sectionIcon: {
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   noteCard: { padding: Spacing.sm, gap: Spacing.xs },
   medicalCard: { padding: Spacing.sm, gap: Spacing.sm, borderWidth: 1 },
   tagList: { flexWrap: 'wrap', gap: Spacing.xs },
-  tag: { paddingHorizontal: Spacing.sm, paddingVertical: Components.pill.paddingVertical, borderRadius: Radii.pill },
+  tag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Components.pill.paddingVertical,
+    borderRadius: Radii.pill,
+  },
 });

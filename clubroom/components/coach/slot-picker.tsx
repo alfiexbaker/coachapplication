@@ -46,8 +46,7 @@ export function SlotPicker({
 
   const week = getWeekRange(weekOffset);
 
-  const slotKey = (slot: { date: string; startTime: string }) =>
-    `${slot.date}_${slot.startTime}`;
+  const slotKey = (slot: { date: string; startTime: string }) => `${slot.date}_${slot.startTime}`;
 
   const loadSlots = useCallback(async () => {
     setLoading(true);
@@ -56,14 +55,14 @@ export function SlotPicker({
         coachId,
         week.start,
         week.end,
-        sessionTemplateId
+        sessionTemplateId,
       );
       const duration = 60;
       const all = await availabilityService.getAvailableSlots(
         coachId,
         week.start,
         week.end,
-        duration
+        duration,
       );
 
       const invitableKeys = new Set(invitable.map(slotKey));
@@ -108,18 +107,15 @@ export function SlotPicker({
       const selected = allSlots.filter((s) => next.has(slotKey(s)));
       onSelectionChange(selected);
     },
-    [selectedKeys, allSlots, onSelectionChange]
+    [selectedKeys, allSlots, onSelectionChange],
   );
 
   const handlePrevWeek = useCallback(
     () => setWeekOffset(Math.max(0, weekOffset - 1)),
-    [weekOffset]
+    [weekOffset],
   );
 
-  const handleNextWeek = useCallback(
-    () => setWeekOffset(weekOffset + 1),
-    [weekOffset]
-  );
+  const handleNextWeek = useCallback(() => setWeekOffset(weekOffset + 1), [weekOffset]);
 
   // Group slots by date
   const slotsByDate = new Map<string, AvailabilitySlot[]>();

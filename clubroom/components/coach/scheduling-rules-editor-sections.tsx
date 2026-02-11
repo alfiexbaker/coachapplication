@@ -7,9 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated from 'react-native-reanimated';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Divider } from '@/components/ui/primitives/Divider';
+
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -46,18 +45,34 @@ export const StepperRow = memo(function StepperRow({ config, value, onChange }: 
           <Ionicons name={config.icon} size={18} color={iconBg} />
         </View>
         <View style={styles.stepperLabels}>
-          <ThemedText type="defaultSemiBold" style={styles.stepperLabel}>{config.label}</ThemedText>
-          <ThemedText style={[styles.stepperHelper, { color: palette.muted }]}>{config.helper}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.stepperLabel}>
+            {config.label}
+          </ThemedText>
+          <ThemedText style={[styles.stepperHelper, { color: palette.muted }]}>
+            {config.helper}
+          </ThemedText>
         </View>
       </Row>
       <Row style={[styles.stepperControls, { borderColor: palette.border }]}>
-        <Clickable onPress={handleDecrement} disabled={atMin} style={[styles.stepperButton, { opacity: atMin ? 0.3 : 1 }]} accessibilityLabel={`Decrease ${config.label}`}>
+        <Clickable
+          onPress={handleDecrement}
+          disabled={atMin}
+          style={[styles.stepperButton, { opacity: atMin ? 0.3 : 1 }]}
+          accessibilityLabel={`Decrease ${config.label}`}
+        >
           <Ionicons name="remove" size={18} color={palette.text} />
         </Clickable>
         <View style={[styles.stepperValue, { borderColor: palette.border }]}>
-          <ThemedText type="defaultSemiBold" style={styles.stepperValueText}>{config.formatValue(value)}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.stepperValueText}>
+            {config.formatValue(value)}
+          </ThemedText>
         </View>
-        <Clickable onPress={handleIncrement} disabled={atMax} style={[styles.stepperButton, { opacity: atMax ? 0.3 : 1 }]} accessibilityLabel={`Increase ${config.label}`}>
+        <Clickable
+          onPress={handleIncrement}
+          disabled={atMax}
+          style={[styles.stepperButton, { opacity: atMax ? 0.3 : 1 }]}
+          accessibilityLabel={`Increase ${config.label}`}
+        >
           <Ionicons name="add" size={18} color={palette.text} />
         </Clickable>
       </Row>
@@ -75,7 +90,15 @@ interface ToggleRowProps {
   onValueChange: (v: boolean) => void;
   trackColor: string;
 }
-export const ToggleRow = memo(function ToggleRow({ icon, iconColor, label, helper, value, onValueChange, trackColor }: ToggleRowProps) {
+export const ToggleRow = memo(function ToggleRow({
+  icon,
+  iconColor,
+  label,
+  helper,
+  value,
+  onValueChange,
+  trackColor,
+}: ToggleRowProps) {
   const { colors: palette } = useTheme();
   return (
     <Row style={styles.toggleRow}>
@@ -84,11 +107,18 @@ export const ToggleRow = memo(function ToggleRow({ icon, iconColor, label, helpe
           <Ionicons name={icon} size={16} color={iconColor} />
         </View>
         <View style={styles.toggleLabels}>
-          <ThemedText type="defaultSemiBold" style={styles.toggleLabel}>{label}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.toggleLabel}>
+            {label}
+          </ThemedText>
           <ThemedText style={[styles.toggleHelper, { color: palette.muted }]}>{helper}</ThemedText>
         </View>
       </Row>
-      <Switch value={value} onValueChange={onValueChange} trackColor={{ false: palette.border, true: trackColor }} thumbColor={palette.surface} />
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: palette.border, true: trackColor }}
+        thumbColor={palette.surface}
+      />
     </Row>
   );
 });
@@ -99,13 +129,18 @@ export const InfoBanner = memo(function InfoBanner() {
   return (
     <Row style={[styles.infoBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
       <Ionicons name="information-circle" size={20} color={palette.tint} />
-      <ThemedText style={[styles.infoText, { color: palette.muted }]}>Changes are saved automatically as you adjust each setting.</ThemedText>
+      <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+        Changes are saved automatically as you adjust each setting.
+      </ThemedText>
     </Row>
   );
 });
 
 /* ─── SavedToast ─── */
-interface SavedToastProps { visible: boolean; animatedStyle: { opacity: number }; }
+interface SavedToastProps {
+  visible: boolean;
+  animatedStyle: { opacity: number };
+}
 export const SavedToast = memo(function SavedToast({ visible, animatedStyle }: SavedToastProps) {
   const { colors: palette } = useTheme();
   if (!visible) return null;
@@ -120,22 +155,63 @@ export const SavedToast = memo(function SavedToast({ visible, animatedStyle }: S
 const styles = StyleSheet.create({
   stepperRow: { paddingVertical: Spacing.sm, gap: Spacing.sm },
   stepperInfo: { alignItems: 'center', gap: Spacing.sm },
-  stepperIcon: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  stepperIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stepperLabels: { flex: 1 },
   stepperLabel: { ...Typography.bodySmall },
   stepperHelper: { ...Typography.caption, lineHeight: 16, marginTop: Spacing.micro },
-  stepperControls: { alignItems: 'center', alignSelf: 'flex-end', borderWidth: 1, borderRadius: Radii.sm, overflow: 'hidden' },
+  stepperControls: {
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    borderWidth: 1,
+    borderRadius: Radii.sm,
+    overflow: 'hidden',
+  },
   stepperButton: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center' },
-  stepperValue: { minWidth: 64, height: 36, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderRightWidth: 1, paddingHorizontal: Spacing.xs },
+  stepperValue: {
+    minWidth: 64,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingHorizontal: Spacing.xs,
+  },
   stepperValueText: { ...Typography.bodySmall, textAlign: 'center' },
   toggleRow: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.xs },
   toggleInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1, marginRight: Spacing.sm },
-  toggleIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  toggleIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   toggleLabels: { flex: 1 },
   toggleLabel: { ...Typography.bodySmall },
   toggleHelper: { ...Typography.caption, lineHeight: 16, marginTop: 1 },
-  infoBanner: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
+  infoBanner: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
   infoText: { ...Typography.small, flex: 1, lineHeight: 18 },
-  toast: { position: 'absolute', top: -44, right: 0, alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, zIndex: 10 },
+  toast: {
+    position: 'absolute',
+    top: -44,
+    right: 0,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    zIndex: 10,
+  },
   toastText: { ...Typography.smallSemiBold },
 });

@@ -39,8 +39,14 @@ export const QuickAnnotationBar = memo(function QuickAnnotationBar({
               { backgroundColor: withAlpha(type.color, 0.09), opacity: disabled ? 0.5 : 1 },
             ]}
           >
-            <Ionicons name={type.icon as keyof typeof Ionicons.glyphMap} size={16} color={type.color} />
-            <ThemedText style={{ color: type.color, ...Typography.caption }}>{type.label}</ThemedText>
+            <Ionicons
+              name={type.icon as keyof typeof Ionicons.glyphMap}
+              size={16}
+              color={type.color}
+            />
+            <ThemedText style={{ color: type.color, ...Typography.caption }}>
+              {type.label}
+            </ThemedText>
           </Clickable>
         ))}
       </Row>
@@ -53,5 +59,12 @@ export const QuickAnnotationBar = memo(function QuickAnnotationBar({
 const styles = StyleSheet.create({
   quickBar: { paddingVertical: Spacing.sm },
   quickBarLabel: { ...Typography.caption },
-  quickButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm },
+  quickButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+  },
 });

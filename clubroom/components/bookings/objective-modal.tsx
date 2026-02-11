@@ -5,7 +5,7 @@
  */
 
 import React, { memo } from 'react';
-import { Modal, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -55,17 +55,11 @@ export const ObjectiveModal = memo(function ObjectiveModal({
           paddingV="md"
           style={{ borderBottomWidth: 1, borderBottomColor: palette.border }}
         >
-          <Clickable
-            onPress={onClose}
-            accessibilityLabel="Close modal"
-          >
+          <Clickable onPress={onClose} accessibilityLabel="Close modal">
             <Ionicons name="close" size={28} color={palette.foreground} />
           </Clickable>
           <ThemedText type="subtitle">{isEditing ? 'Edit Goal' : 'New Goal'}</ThemedText>
-          <Clickable
-            onPress={onSave}
-            accessibilityLabel="Save goal"
-          >
+          <Clickable onPress={onSave} accessibilityLabel="Save goal">
             <ThemedText style={[styles.saveButton, { color: palette.tint }]}>Save</ThemedText>
           </Clickable>
         </Row>
@@ -89,7 +83,10 @@ export const ObjectiveModal = memo(function ObjectiveModal({
                   ]}
                 >
                   <ThemedText
-                    style={[styles.skillText, selectedSkill === skill && { color: palette.onPrimary }]}
+                    style={[
+                      styles.skillText,
+                      selectedSkill === skill && { color: palette.onPrimary },
+                    ]}
                   >
                     {skill}
                   </ThemedText>
@@ -112,7 +109,11 @@ export const ObjectiveModal = memo(function ObjectiveModal({
               style={[
                 styles.textInput,
                 styles.textArea,
-                { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground },
+                {
+                  borderColor: palette.border,
+                  backgroundColor: palette.card,
+                  color: palette.foreground,
+                },
               ]}
             />
           </Column>
@@ -128,7 +129,11 @@ export const ObjectiveModal = memo(function ObjectiveModal({
               placeholderTextColor={palette.muted}
               style={[
                 styles.textInput,
-                { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground },
+                {
+                  borderColor: palette.border,
+                  backgroundColor: palette.card,
+                  color: palette.foreground,
+                },
               ]}
             />
           </Column>

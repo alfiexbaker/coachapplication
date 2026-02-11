@@ -17,12 +17,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
-// Re-export extracted components for backward compat
-export { CompactInjuryRow, InjuryRecoveryBar, InjuryFooterMeta } from './injury-card-sections';
-export type { CompactInjuryRowProps, InjuryRecoveryBarProps, InjuryFooterMetaProps } from './injury-card-sections';
-
 import { CompactInjuryRow, InjuryRecoveryBar, InjuryFooterMeta } from './injury-card-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export { CompactInjuryRow, InjuryRecoveryBar, InjuryFooterMeta } from './injury-card-sections';
+export type {
+  CompactInjuryRowProps,
+  InjuryRecoveryBarProps,
+  InjuryFooterMetaProps,
+} from './injury-card-sections';
 
 interface InjuryCardProps {
   injury: Injury;
@@ -45,7 +49,13 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
   };
 
   if (compact) {
-    return <CompactInjuryRow injury={injury} onPress={onPress ? handlePress : undefined} palette={palette} />;
+    return (
+      <CompactInjuryRow
+        injury={injury}
+        onPress={onPress ? handlePress : undefined}
+        palette={palette}
+      />
+    );
   }
 
   return (
@@ -54,11 +64,21 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
       <Row style={styles.header}>
         <Row style={styles.headerLeft}>
           <Row style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
-            <Ionicons name={statusInfo.icon as keyof typeof Ionicons.glyphMap} size={14} color={statusInfo.color} />
-            <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</ThemedText>
+            <Ionicons
+              name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
+              size={14}
+              color={statusInfo.color}
+            />
+            <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </ThemedText>
           </Row>
-          <View style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}>
-            <ThemedText style={[styles.severityText, { color: severityInfo.color }]}>{severityInfo.label}</ThemedText>
+          <View
+            style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}
+          >
+            <ThemedText style={[styles.severityText, { color: severityInfo.color }]}>
+              {severityInfo.label}
+            </ThemedText>
           </View>
         </Row>
         {injury.sharedWithCoach && (
@@ -70,13 +90,19 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
 
       {/* Body part and description */}
       <View style={styles.content}>
-        <ThemedText type="subtitle" style={styles.bodyPartText}>{bodyPartLabel}</ThemedText>
+        <ThemedText type="subtitle" style={styles.bodyPartText}>
+          {bodyPartLabel}
+        </ThemedText>
         <ThemedText style={[styles.description, { color: palette.muted }]} numberOfLines={2}>
           {injury.description}
         </ThemedText>
       </View>
 
-      <InjuryRecoveryBar recoveryPercent={injury.recoveryPercent} statusColor={statusInfo.color} palette={palette} />
+      <InjuryRecoveryBar
+        recoveryPercent={injury.recoveryPercent}
+        statusColor={statusInfo.color}
+        palette={palette}
+      />
       <InjuryFooterMeta injury={injury} palette={palette} />
     </SurfaceCard>
   );

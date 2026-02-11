@@ -15,7 +15,10 @@ export function isScreenDataEmpty<T>(data: T | null): boolean {
   return false;
 }
 
-export function deriveScreenStatus<T>(data: T, isEmpty?: (value: T) => boolean): 'empty' | 'success' {
+export function deriveScreenStatus<T>(
+  data: T,
+  isEmpty?: (value: T) => boolean,
+): 'empty' | 'success' {
   const empty = isEmpty ? isEmpty(data) : isScreenDataEmpty(data);
   return empty ? 'empty' : 'success';
 }

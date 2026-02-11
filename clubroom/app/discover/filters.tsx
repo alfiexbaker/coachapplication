@@ -68,13 +68,7 @@ export default function FiltersScreen() {
     return ok<FiltersScreenData>({ filterOptions, resultCount });
   }, [filters]);
 
-  const {
-    data,
-    status,
-    error,
-    retry,
-    onRefresh,
-  } = useScreen<FiltersScreenData>({
+  const { data, status, error, retry, onRefresh } = useScreen<FiltersScreenData>({
     load: loadFilterData,
     deps: [filters],
     isEmpty: () => false,
@@ -95,7 +89,7 @@ export default function FiltersScreen() {
         params: { appliedFilters: filtersParam },
       } as Href);
     },
-    [router, params.returnTo]
+    [router, params.returnTo],
   );
 
   const handleClose = useCallback(() => {
@@ -119,10 +113,7 @@ export default function FiltersScreen() {
         style={[styles.container, { backgroundColor: palette.background }]}
         edges={['top']}
       >
-        <ErrorState
-          message={error?.message || 'Failed to load filter options.'}
-          onRetry={retry}
-        />
+        <ErrorState message={error?.message || 'Failed to load filter options.'} onRetry={retry} />
       </SafeAreaView>
     );
   }

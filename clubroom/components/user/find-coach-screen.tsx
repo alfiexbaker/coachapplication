@@ -102,7 +102,10 @@ export function UserFindCoachScreen() {
   const handleClear = useCallback(() => setPostcode(''), []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
@@ -127,7 +130,8 @@ export function UserFindCoachScreen() {
         ) : (
           <View style={styles.coachList}>
             <ThemedText style={styles.resultsText}>
-              {nearbyCoaches.length} {nearbyCoaches.length === 1 ? 'coach' : 'coaches'} near {postcode}
+              {nearbyCoaches.length} {nearbyCoaches.length === 1 ? 'coach' : 'coaches'} near{' '}
+              {postcode}
             </ThemedText>
 
             {nearbyCoaches.map((coach) => (

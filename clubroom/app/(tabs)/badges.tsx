@@ -49,7 +49,12 @@ interface BadgeScreenData {
     pointsToNext: number;
     totalBadges: number;
     categoryBreakdown: CategoryBreakdownItem[];
-    topCategories: { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[];
+    topCategories: {
+      category: BadgeCategory;
+      label: string;
+      badgeCount: number;
+      totalPoints: number;
+    }[];
   };
 }
 
@@ -84,10 +89,7 @@ export default function UserBadgesScreen() {
   });
 
   // Use local awards if user has shared (optimistic update), otherwise use fetched data.
-  const awards = useMemo(
-    () => localAwards ?? data?.awards ?? [],
-    [localAwards, data?.awards],
-  );
+  const awards = useMemo(() => localAwards ?? data?.awards ?? [], [localAwards, data?.awards]);
   const progression = data?.progression ?? null;
 
   const supporterFacingAwards = useMemo(
@@ -110,21 +112,24 @@ export default function UserBadgesScreen() {
     [awards],
   );
 
-  const handleShare = useCallback(async (awardId: string) => {
-    setSharingId(awardId);
-    try {
-      const updated = await badgeService.markShared(awardId);
-      if (updated) {
-        setLocalAwards((prev) => {
-          const source = prev ?? awards;
-          return source.map((a) => (a.id === awardId ? updated : a));
-        });
-        logger.info('badge_shared_by_athlete', { awardId });
+  const handleShare = useCallback(
+    async (awardId: string) => {
+      setSharingId(awardId);
+      try {
+        const updated = await badgeService.markShared(awardId);
+        if (updated) {
+          setLocalAwards((prev) => {
+            const source = prev ?? awards;
+            return source.map((a) => (a.id === awardId ? updated : a));
+          });
+          logger.info('badge_shared_by_athlete', { awardId });
+        }
+      } finally {
+        setSharingId(null);
       }
-    } finally {
-      setSharingId(null);
-    }
-  }, [awards]);
+    },
+    [awards],
+  );
 
   if (!currentUser) return null;
 
@@ -180,18 +185,12 @@ export default function UserBadgesScreen() {
         />
       )}
 
-      {progression && (
-        <BadgeCategoryCarousel categories={progression.categoryBreakdown} />
-      )}
+      {progression && <BadgeCategoryCarousel categories={progression.categoryBreakdown} />}
 
       <BadgeCtaSection />
 
       {supporterFacingAwards.length > 0 && shareable.length > 0 && (
-        <BadgeShareSection
-          shareable={shareable}
-          sharingId={sharingId}
-          onShare={handleShare}
-        />
+        <BadgeShareSection shareable={shareable} sharingId={sharingId} onShare={handleShare} />
       )}
 
       <BadgeTimelineSection awards={awards} />

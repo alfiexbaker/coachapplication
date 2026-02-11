@@ -17,7 +17,10 @@ interface GoalActionsSectionProps {
   onStatusChange: (status: GoalStatus) => void;
 }
 
-export const GoalActionsSection = memo(function GoalActionsSection({ status, onStatusChange }: GoalActionsSectionProps) {
+export const GoalActionsSection = memo(function GoalActionsSection({
+  status,
+  onStatusChange,
+}: GoalActionsSectionProps) {
   const { colors } = useTheme();
 
   return (
@@ -30,10 +33,15 @@ export const GoalActionsSection = memo(function GoalActionsSection({ status, onS
               <ThemedText style={styles.buttonText}>Pause Goal</ThemedText>
             </Row>
           </Button>
-          <Button onPress={() => onStatusChange('COMPLETED')} style={[styles.button, { backgroundColor: colors.success }]}>
+          <Button
+            onPress={() => onStatusChange('COMPLETED')}
+            style={[styles.button, { backgroundColor: colors.success }]}
+          >
             <Row style={styles.buttonContent}>
               <Ionicons name="checkmark-circle-outline" size={18} color={colors.onPrimary} />
-              <ThemedText style={[styles.buttonText, { color: colors.onPrimary }]}>Complete Goal</ThemedText>
+              <ThemedText style={[styles.buttonText, { color: colors.onPrimary }]}>
+                Complete Goal
+              </ThemedText>
             </Row>
           </Button>
         </Row>
@@ -44,10 +52,16 @@ export const GoalActionsSection = memo(function GoalActionsSection({ status, onS
           <Button onPress={() => onStatusChange('ACTIVE')} style={styles.button}>
             <Row style={styles.buttonContent}>
               <Ionicons name="play-outline" size={18} color={colors.onPrimary} />
-              <ThemedText style={[styles.buttonText, { color: colors.onPrimary }]}>Resume Goal</ThemedText>
+              <ThemedText style={[styles.buttonText, { color: colors.onPrimary }]}>
+                Resume Goal
+              </ThemedText>
             </Row>
           </Button>
-          <Button variant="outline" onPress={() => onStatusChange('ABANDONED')} style={styles.button}>
+          <Button
+            variant="outline"
+            onPress={() => onStatusChange('ABANDONED')}
+            style={styles.button}
+          >
             <Row style={styles.buttonContent}>
               <Ionicons name="close-circle-outline" size={18} color={colors.error} />
               <ThemedText style={[styles.buttonText, { color: colors.error }]}>Abandon</ThemedText>
@@ -61,8 +75,12 @@ export const GoalActionsSection = memo(function GoalActionsSection({ status, onS
           <Row style={styles.completedContent}>
             <Ionicons name="trophy" size={32} color={colors.success} />
             <View style={styles.completedText}>
-              <ThemedText type="defaultSemiBold" style={{ color: colors.success }}>Goal Achieved!</ThemedText>
-              <ThemedText style={[styles.subtext, { color: colors.muted }]}>Congratulations on completing this goal!</ThemedText>
+              <ThemedText type="defaultSemiBold" style={{ color: colors.success }}>
+                Goal Achieved!
+              </ThemedText>
+              <ThemedText style={[styles.subtext, { color: colors.muted }]}>
+                Congratulations on completing this goal!
+              </ThemedText>
             </View>
           </Row>
         </SurfaceCard>

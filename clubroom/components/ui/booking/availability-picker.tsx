@@ -33,7 +33,11 @@ export function AvailabilityPicker({
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
         Select Date
       </ThemedText>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateList}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.dateList}
+      >
         {availability.map((day) => {
           const isSelected = day.id === selectedDayId;
           const dateObj = new Date(day.date);
@@ -54,9 +58,24 @@ export function AvailabilityPicker({
                 },
               ]}
             >
-              <ThemedText style={[styles.dayName, { color: isSelected ? palette.onPrimary : palette.text }]}>{dayName}</ThemedText>
-              <ThemedText style={[styles.dayNum, { color: isSelected ? palette.onPrimary : palette.text }]}>{dayNum}</ThemedText>
-              <ThemedText style={[styles.monthText, { color: isSelected ? palette.onPrimary : palette.muted }]}>{month}</ThemedText>
+              <ThemedText
+                style={[styles.dayName, { color: isSelected ? palette.onPrimary : palette.text }]}
+              >
+                {dayName}
+              </ThemedText>
+              <ThemedText
+                style={[styles.dayNum, { color: isSelected ? palette.onPrimary : palette.text }]}
+              >
+                {dayNum}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.monthText,
+                  { color: isSelected ? palette.onPrimary : palette.muted },
+                ]}
+              >
+                {month}
+              </ThemedText>
             </Clickable>
           );
         })}
@@ -87,7 +106,15 @@ export function AvailabilityPicker({
   );
 }
 
-function SlotRow({ slot, selected, onPress }: { slot: SlotInstance; selected: boolean; onPress: () => void }) {
+function SlotRow({
+  slot,
+  selected,
+  onPress,
+}: {
+  slot: SlotInstance;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const { colors: palette } = useTheme();
   const timeString = slot.start.toLocaleTimeString('en-GB', {
     hour: 'numeric',
@@ -130,7 +157,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.subheading,
     marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md
+    paddingHorizontal: Spacing.md,
   },
   dateList: {
     paddingHorizontal: Spacing.md,

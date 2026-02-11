@@ -53,9 +53,7 @@ export const SquadSelectStep = memo(function SquadSelectStep({
         {selectedSquad && (
           <SurfaceCard style={styles.squadPreview}>
             <Row align="center" gap="md">
-              <View
-                style={[styles.squadIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
-              >
+              <View style={[styles.squadIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
                 <Ionicons name="people" size={24} color={colors.tint} />
               </View>
               <Column gap="micro" style={styles.flex1}>

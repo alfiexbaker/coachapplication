@@ -22,11 +22,15 @@ export interface DevSessionVisibilityProps {
 }
 
 export const DevSessionVisibility = memo(function DevSessionVisibility({
-  visibility, onVisibilityChange, colors,
+  visibility,
+  onVisibilityChange,
+  colors,
 }: DevSessionVisibilityProps) {
   return (
     <Column gap="sm">
-      <ThemedText type="subtitle" style={Typography.subheading}>Who Can See This Feedback?</ThemedText>
+      <ThemedText type="subtitle" style={Typography.subheading}>
+        Who Can See This Feedback?
+      </ThemedText>
       <Row gap="xs">
         {OPTIONS.map((option) => (
           <Clickable
@@ -35,13 +39,23 @@ export const DevSessionVisibility = memo(function DevSessionVisibility({
             style={[
               styles.option,
               {
-                backgroundColor: visibility === option.value ? withAlpha(colors.tint, 0.09) : colors.surface,
+                backgroundColor:
+                  visibility === option.value ? withAlpha(colors.tint, 0.09) : colors.surface,
                 borderColor: visibility === option.value ? colors.tint : colors.border,
               },
             ]}
           >
-            <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={18} color={visibility === option.value ? colors.tint : colors.muted} />
-            <ThemedText style={[Typography.caption, { color: visibility === option.value ? colors.tint : colors.foreground }]}>
+            <Ionicons
+              name={option.icon as keyof typeof Ionicons.glyphMap}
+              size={18}
+              color={visibility === option.value ? colors.tint : colors.muted}
+            />
+            <ThemedText
+              style={[
+                Typography.caption,
+                { color: visibility === option.value ? colors.tint : colors.foreground },
+              ]}
+            >
               {option.label}
             </ThemedText>
           </Clickable>
@@ -52,5 +66,13 @@ export const DevSessionVisibility = memo(function DevSessionVisibility({
 });
 
 const styles = StyleSheet.create({
-  option: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  option: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
 });

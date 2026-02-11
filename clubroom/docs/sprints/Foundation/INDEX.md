@@ -2,6 +2,7 @@
 
 > **Purpose:** Get every layer of the codebase to production quality before connecting a real API.
 > **Prerequisite:** Screen Decomposition Sprint COMPLETE (107 files)
+> **Note:** This is a historical foundation execution doc. For current live metrics and quality status, use `../../AI_CONTEXT.md`.
 
 ---
 
@@ -27,7 +28,7 @@ Building features on this foundation means every feature inherits the debt. Fix 
 | **4** | `PHASE-4-UI-CONSISTENCY.md` | ✅ Complete. UI consistency hardening closed with Wave 6 a11y/touch-target gates green. |
 | **5** | `PHASE-5-TEST-COVERAGE.md` | ✅ Complete. 70%+ service coverage gate closed (`70/100`), strict test typing green, full runtime green. |
 
-**Status update (2026-02-11):** Foundation Phases 1-5 are complete. Optional Sprint 46 (POC mock-service stabilization) is now complete with contract guards and green runtime gates (`2535/2535`). POC mock-mode remains active through services with a single switchover flag (`EXPO_PUBLIC_USE_MOCK`), tracked in `POC-MOCK-SERVICE-CONTRACT.md`.
+**Status update (2026-02-11):** Foundation Phases 1-5 are complete. Optional Sprint 46 (POC mock-service stabilization) is complete with contract guards and green runtime gates at closeout. POC mock-mode remains active through services with a single switchover flag (`EXPO_PUBLIC_USE_MOCK`), tracked in `POC-MOCK-SERVICE-CONTRACT.md`. For current gate values, use `../../AI_CONTEXT.md`.
 
 ## Execution Order
 
@@ -57,4 +58,4 @@ After each phase completes:
 
 Current active execution:
 - Foundation block closed. Next work can move to functionality sprints.
-- Optional closeout record: `SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
+- Optional closeout record: `../CompletedSprints/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`

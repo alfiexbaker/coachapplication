@@ -37,17 +37,23 @@ export const CompactCarpoolCard = memo(function CompactCarpoolCard({
             {getCarpoolSessionLabel(offer)}
           </ThemedText>
           <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
-            <ThemedText style={[styles.statusText, { color: statusColor }]}>{getStatusText(offer)}</ThemedText>
+            <ThemedText style={[styles.statusText, { color: statusColor }]}>
+              {getStatusText(offer)}
+            </ThemedText>
           </View>
         </Row>
         <Row style={styles.compactDetails}>
           <Row style={styles.detailItem}>
             <Ionicons name="calendar-outline" size={14} color={palette.muted} />
-            <ThemedText style={[styles.detailText, { color: palette.muted }]}>{formatDate(offer.sessionDate)}</ThemedText>
+            <ThemedText style={[styles.detailText, { color: palette.muted }]}>
+              {formatDate(offer.sessionDate)}
+            </ThemedText>
           </Row>
           <Row style={styles.detailItem}>
             <Ionicons name="time-outline" size={14} color={palette.muted} />
-            <ThemedText style={[styles.detailText, { color: palette.muted }]}>{offer.pickupTime}</ThemedText>
+            <ThemedText style={[styles.detailText, { color: palette.muted }]}>
+              {offer.pickupTime}
+            </ThemedText>
           </Row>
         </Row>
       </View>
@@ -78,12 +84,14 @@ export const CarpoolHeader = memo(function CarpoolHeader({
         <ThemedText type="defaultSemiBold" style={styles.title}>
           {getCarpoolSessionLabel(offer)}
         </ThemedText>
-        <ThemedText style={[styles.driverName, { color: palette.muted }]}> 
+        <ThemedText style={[styles.driverName, { color: palette.muted }]}>
           Offered by {isOwnOffer ? 'you' : getCarpoolOfferParentLabel(offer)}
         </ThemedText>
       </View>
       <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
-        <ThemedText style={[styles.statusBadgeText, { color: statusColor }]}>{getStatusText(offer)}</ThemedText>
+        <ThemedText style={[styles.statusBadgeText, { color: statusColor }]}>
+          {getStatusText(offer)}
+        </ThemedText>
       </View>
     </Row>
   );
@@ -120,7 +128,9 @@ export const CarpoolDetails = memo(function CarpoolDetails({
       {offer.returnOffered && (
         <Row style={styles.detailRow}>
           <Ionicons name="return-up-back-outline" size={18} color={palette.success} />
-          <ThemedText style={[styles.detailLabel, { color: palette.success }]}>Return trip included</ThemedText>
+          <ThemedText style={[styles.detailLabel, { color: palette.success }]}>
+            Return trip included
+          </ThemedText>
         </Row>
       )}
     </View>
@@ -141,7 +151,7 @@ export const CarpoolSeatsInfo = memo(function CarpoolSeatsInfo({
   palette,
 }: CarpoolSeatsInfoProps) {
   return (
-    <Row style={[styles.seatsSection, { borderTopColor: palette.border }]}> 
+    <Row style={[styles.seatsSection, { borderTopColor: palette.border }]}>
       <Row style={styles.seatsInfo}>
         <Ionicons name="people-outline" size={18} color={palette.icon} />
         <ThemedText style={styles.seatsText}>

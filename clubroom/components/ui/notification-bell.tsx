@@ -36,10 +36,9 @@ export function NotificationBell({ size = 24, color }: NotificationBellProps) {
       <View style={styles.container}>
         <Ionicons name="notifications-outline" size={size} color={iconColor} />
         {unreadCount > 0 && (
-          <View style={[
-            styles.badge,
-            { backgroundColor: palette.error, borderColor: palette.surface }
-          ]}>
+          <View
+            style={[styles.badge, { backgroundColor: palette.error, borderColor: palette.surface }]}
+          >
             <ThemedText style={[styles.badgeText, { color: palette.onError }]}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </ThemedText>

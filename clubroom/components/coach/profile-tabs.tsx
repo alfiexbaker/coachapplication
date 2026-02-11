@@ -8,9 +8,14 @@ import { View, Image, StyleSheet } from 'react-native';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
-import { Spacing, Radii } from '@/constants/theme';
-import type { SessionOffering, SocialLinks as SocialLinksType, CoachExperience, CoachCertification, CoachLanguage } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
+import { Spacing } from '@/constants/theme';
+import type {
+  SessionOffering,
+  SocialLinks as SocialLinksType,
+  CoachExperience,
+  CoachCertification,
+  CoachLanguage,
+} from '@/constants/types';
 
 import { ProfileTabPosts } from './profile-tab-posts';
 import { ProfileTabAbout } from './profile-tab-about';
@@ -22,33 +27,76 @@ export { ProfileTabBar, type TabType, type ProfileTabsProps } from './profile-ta
 export interface ProfileTabContentProps {
   activeTab: 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
   coach: {
-    fullName: string; profilePhotoUrl?: string; bio?: string; shortBio?: string;
-    email?: string; phone?: string; website?: string; socialLinks?: SocialLinksType;
-    experiences?: CoachExperience[]; certifications?: CoachCertification[];
-    achievements?: string[]; languages?: CoachLanguage[]; footballFocuses: string[];
-    posts?: Array<{ id: string; content: string; createdAt: string; likes: number; comments: number; mediaUrls?: string[]; mediaType?: string }>;
+    fullName: string;
+    profilePhotoUrl?: string;
+    bio?: string;
+    shortBio?: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    socialLinks?: SocialLinksType;
+    experiences?: CoachExperience[];
+    certifications?: CoachCertification[];
+    achievements?: string[];
+    languages?: CoachLanguage[];
+    footballFocuses: string[];
+    posts?: {
+      id: string;
+      content: string;
+      createdAt: string;
+      likes: number;
+      comments: number;
+      mediaUrls?: string[];
+      mediaType?: string;
+    }[];
     photoGallery?: string[];
   };
   sessionOfferings: SessionOffering[];
   userRole?: string;
-  feedPosts?: Array<{ id: string; content: string; createdAt: string; likes: number; comments: number; mediaUrls?: string[]; mediaType?: string }>;
+  feedPosts?: {
+    id: string;
+    content: string;
+    createdAt: string;
+    likes: number;
+    comments: number;
+    mediaUrls?: string[];
+    mediaType?: string;
+  }[];
   feedLoading?: boolean;
   onComposePress?: () => void;
   onOfferingPress: (offering: SessionOffering) => void;
-  renderPostCard: (post: { id: string; content: string; createdAt: string; likes: number; comments: number; mediaUrls?: string[]; mediaType?: string }) => React.ReactNode;
+  renderPostCard: (post: {
+    id: string;
+    content: string;
+    createdAt: string;
+    likes: number;
+    comments: number;
+    mediaUrls?: string[];
+    mediaType?: string;
+  }) => React.ReactNode;
 }
 
 function ProfileTabContentInner({
-  activeTab, coach, sessionOfferings, userRole, feedPosts, feedLoading, onComposePress, onOfferingPress, renderPostCard,
+  activeTab,
+  coach,
+  sessionOfferings,
+  userRole,
+  feedPosts,
+  feedLoading,
+  onComposePress,
+  onOfferingPress,
+  renderPostCard,
 }: ProfileTabContentProps) {
-  const { colors: palette } = useTheme();
-
   return (
     <View style={styles.tabContent}>
       {activeTab === 'posts' && (
         <ProfileTabPosts
-          coachName={coach.fullName} userRole={userRole} feedPosts={feedPosts ?? coach.posts}
-          feedLoading={feedLoading} onComposePress={onComposePress} renderPostCard={renderPostCard}
+          coachName={coach.fullName}
+          userRole={userRole}
+          feedPosts={feedPosts ?? coach.posts}
+          feedLoading={feedLoading}
+          onComposePress={onComposePress}
+          renderPostCard={renderPostCard}
         />
       )}
 
@@ -57,9 +105,13 @@ function ProfileTabContentInner({
       {activeTab === 'photos' && (
         <Row style={styles.photosGrid}>
           {coach.photoGallery && coach.photoGallery.length > 0 ? (
-            coach.photoGallery.map((url, index) => <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />)
+            coach.photoGallery.map((url, index) => (
+              <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />
+            ))
           ) : (
-            <SurfaceCard style={styles.emptyState}><ThemedText style={styles.emptyStateText}>No photos yet</ThemedText></SurfaceCard>
+            <SurfaceCard style={styles.emptyState}>
+              <ThemedText style={styles.emptyStateText}>No photos yet</ThemedText>
+            </SurfaceCard>
           )}
         </Row>
       )}
@@ -68,16 +120,26 @@ function ProfileTabContentInner({
         <>
           {sessionOfferings.length > 0 ? (
             sessionOfferings.map((offering) => (
-              <SessionOfferingCard key={offering.id} offering={offering} showCoach={false} showCapacity={true} onPress={() => onOfferingPress(offering)} />
+              <SessionOfferingCard
+                key={offering.id}
+                offering={offering}
+                showCoach={false}
+                showCapacity={true}
+                onPress={() => onOfferingPress(offering)}
+              />
             ))
           ) : (
-            <SurfaceCard style={styles.emptyState}><ThemedText style={styles.emptyStateText}>No active sessions available</ThemedText></SurfaceCard>
+            <SurfaceCard style={styles.emptyState}>
+              <ThemedText style={styles.emptyStateText}>No active sessions available</ThemedText>
+            </SurfaceCard>
           )}
         </>
       )}
 
       {activeTab === 'reviews' && (
-        <SurfaceCard style={styles.emptyState}><ThemedText style={styles.emptyStateText}>No reviews yet</ThemedText></SurfaceCard>
+        <SurfaceCard style={styles.emptyState}>
+          <ThemedText style={styles.emptyStateText}>No reviews yet</ThemedText>
+        </SurfaceCard>
       )}
     </View>
   );

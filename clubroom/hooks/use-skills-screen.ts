@@ -52,19 +52,14 @@ export function useSkillsScreen() {
     }
   }, [currentUser]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ trees: TreeSummary[] }>({
-    load: loadTrees,
-    deps: [currentUser?.id],
-    isEmpty: (value) => value.trees.length === 0,
-    refetchOnFocus: true,
-  });
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ trees: TreeSummary[] }>(
+    {
+      load: loadTrees,
+      deps: [currentUser?.id],
+      isEmpty: (value) => value.trees.length === 0,
+      refetchOnFocus: true,
+    },
+  );
 
   const trees = data?.trees ?? [];
 
@@ -97,7 +92,7 @@ export function useSkillsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }, [currentUser, onRefresh]);
 
@@ -118,7 +113,8 @@ export function useSkillsScreen() {
     onRefresh,
     retry,
     overallStats,
-    handleTreePress, handleInitializeMock,
+    handleTreePress,
+    handleInitializeMock,
   } satisfies {
     currentUser: typeof currentUser;
     trees: TreeSummary[];

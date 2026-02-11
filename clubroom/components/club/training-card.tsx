@@ -21,7 +21,11 @@ interface TrainingCardProps {
   userHasChildrenView: boolean;
 }
 
-export const TrainingCard = memo(function TrainingCard({ session, index, userHasChildrenView }: TrainingCardProps) {
+export const TrainingCard = memo(function TrainingCard({
+  session,
+  index,
+  userHasChildrenView,
+}: TrainingCardProps) {
   const { colors } = useTheme();
   const squadLabel = getGroupSessionSquadLabel(session);
   const coachName = getGroupSessionCoachName(session);
@@ -37,10 +41,14 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
         {/* Header: Title + Price */}
         <Row justify="space-between" align="flex-start">
           <View style={styles.titleSection}>
-            <ThemedText type="defaultSemiBold" style={Typography.subheading}>{session.title}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={Typography.subheading}>
+              {session.title}
+            </ThemedText>
             {squadLabel && (
               <View style={[styles.squadBadge, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                <ThemedText style={[Typography.caption, { color: colors.tint }]}>{squadLabel}</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.tint }]}>
+                  {squadLabel}
+                </ThemedText>
               </View>
             )}
           </View>
@@ -64,10 +72,21 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
           )}
           {nextDate && (
             <DetailRow icon="calendar" iconColor={colors.warning} colors={colors}>
-              Next: {new Date(nextDate.date).toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' })} - {nextDate.startTime} to {nextDate.endTime}
+              Next:{' '}
+              {new Date(nextDate.date).toLocaleDateString('en-GB', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })}{' '}
+              - {nextDate.startTime} to {nextDate.endTime}
             </DetailRow>
           )}
-          <DetailRow icon="location" iconColor={colors.muted} colors={colors} textColor={colors.muted}>
+          <DetailRow
+            icon="location"
+            iconColor={colors.muted}
+            colors={colors}
+            textColor={colors.muted}
+          >
             {session.location}
           </DetailRow>
           <Row gap="sm" align="center">
@@ -87,7 +106,12 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
 
         {/* Coach */}
         <Row style={[styles.coachSection, { borderTopColor: colors.border }]}>
-          <View style={[styles.coachPhoto, { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
+          <View
+            style={[
+              styles.coachPhoto,
+              { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+            ]}
+          >
             <Ionicons name="person" size={14} color={colors.muted} />
           </View>
           <ThemedText style={[Typography.small, { color: colors.muted, flex: 1 }]}>
@@ -95,7 +119,9 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
           </ThemedText>
           {userHasChildrenView && (
             <Clickable style={[styles.rsvpButton, { backgroundColor: colors.tint }]}>
-              <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>RSVP</ThemedText>
+              <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
+                RSVP
+              </ThemedText>
             </Clickable>
           )}
         </Row>
@@ -104,15 +130,28 @@ export const TrainingCard = memo(function TrainingCard({ session, index, userHas
   );
 });
 
-function DetailRow({ icon, iconColor, colors, textColor, children }: {
-  icon: string; iconColor: string; colors: { text: string }; textColor?: string; children: React.ReactNode;
+function DetailRow({
+  icon,
+  iconColor,
+  colors,
+  textColor,
+  children,
+}: {
+  icon: string;
+  iconColor: string;
+  colors: { text: string };
+  textColor?: string;
+  children: React.ReactNode;
 }) {
   return (
     <Row gap="sm" align="center">
       <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
         <Ionicons name={icon as any} size={14} color={iconColor} />
       </View>
-      <ThemedText style={{ color: textColor || colors.text }} numberOfLines={icon === 'location' ? 1 : undefined}>
+      <ThemedText
+        style={{ color: textColor || colors.text }}
+        numberOfLines={icon === 'location' ? 1 : undefined}
+      >
         {children}
       </ThemedText>
     </Row>
@@ -122,11 +161,31 @@ function DetailRow({ icon, iconColor, colors, textColor, children }: {
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   titleSection: { flex: 1, gap: Spacing.xs, marginRight: Spacing.md },
-  squadBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  squadBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
   freeBadge: { paddingHorizontal: 8, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   details: { gap: Spacing.sm },
-  iconCircle: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
-  coachSection: { alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1 },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coachSection: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
   coachPhoto: { width: 28, height: 28, borderRadius: Radii.lg },
-  rsvpButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.sm },
+  rsvpButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+  },
 });

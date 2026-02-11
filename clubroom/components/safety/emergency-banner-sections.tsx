@@ -20,7 +20,8 @@ import { useTheme } from '@/hooks/useTheme';
 export function MedicalAlertPill({
   allergiesCount,
   conditionsCount,
-  onPress }: {
+  onPress,
+}: {
   allergiesCount: number;
   conditionsCount: number;
   onPress?: () => void;
@@ -52,12 +53,14 @@ export function MedicalAlertPill({
 const CALL_SIZE_CONFIG = {
   small: { icon: 16, padding: Spacing.xs },
   medium: { icon: 20, padding: Spacing.sm },
-  large: { icon: 24, padding: Spacing.md } } as const;
+  large: { icon: 24, padding: Spacing.md },
+} as const;
 
 export function EmergencyCallButton({
   contact,
   onPress,
-  size = 'medium' }: {
+  size = 'medium',
+}: {
   contact: EmergencyContact;
   onPress?: () => void;
   size?: 'small' | 'medium' | 'large';
@@ -72,7 +75,8 @@ export function EmergencyCallButton({
         styles.callButton,
         {
           backgroundColor: palette.success,
-          padding: config.padding },
+          padding: config.padding,
+        },
       ]}
     >
       <Row align="center" gap="xs">
@@ -93,40 +97,51 @@ export const styles = StyleSheet.create({
   banner: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
-    overflow: 'hidden' },
+    overflow: 'hidden',
+  },
   bannerHeader: {
     padding: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent' },
+    borderBottomColor: 'transparent',
+  },
   iconContainer: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   section: {
     padding: Spacing.sm,
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   alertLabel: {
     ...Typography.caption,
-    marginBottom: Spacing.micro },
+    marginBottom: Spacing.micro,
+  },
   contactSection: {
     padding: Spacing.sm,
-    borderTopWidth: 1 },
+    borderTopWidth: 1,
+  },
   compactBanner: {
     padding: Spacing.xs,
-    borderRadius: Radii.md },
+    borderRadius: Radii.md,
+  },
   compactItem: {
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1 },
+    borderWidth: 1,
+  },
   compactText: { ...Typography.caption },
   alertPill: {
     paddingVertical: Spacing.micro,
     paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill },
+    borderRadius: Radii.pill,
+  },
   alertPillText: { ...Typography.caption },
   callButton: {
-    borderRadius: Radii.pill },
-  callButtonText: { ...Typography.bodySmallSemiBold } });
+    borderRadius: Radii.pill,
+  },
+  callButtonText: { ...Typography.bodySmallSemiBold },
+});

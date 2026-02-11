@@ -68,13 +68,20 @@ export function useAcademySettings(id: string | undefined) {
     }
   }, [id, currentUser?.id]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSave = useCallback(async () => {
     if (!academy) return;
     setSaving(true);
     try {
-      const result = await academyService.updateSettings(academy.id, { name, description, isPublic, requiresApproval });
+      const result = await academyService.updateSettings(academy.id, {
+        name,
+        description,
+        isPublic,
+        requiresApproval,
+      });
       if (!result.success) {
         Alert.alert('Error', result.error.message);
         return;
@@ -102,9 +109,21 @@ export function useAcademySettings(id: string | undefined) {
   }, []);
 
   return {
-    academy, loading, saving, isOwner,
-    name, description, isPublic, requiresApproval,
-    setName, setDescription, setIsPublic, setRequiresApproval,
-    handleSave, navigateToBranding, navigateToStaff, handleDeleteAcademy,
+    academy,
+    loading,
+    saving,
+    isOwner,
+    name,
+    description,
+    isPublic,
+    requiresApproval,
+    setName,
+    setDescription,
+    setIsPublic,
+    setRequiresApproval,
+    handleSave,
+    navigateToBranding,
+    navigateToStaff,
+    handleDeleteAcademy,
   };
 }

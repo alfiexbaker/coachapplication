@@ -157,20 +157,23 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   // --------------------------------------------------------------------------
 
   const getDefaultMaxParticipants = useCallback(() => {
-    const typeConfig = SESSION_TYPES.find(t => t.key === sessionType);
+    const typeConfig = SESSION_TYPES.find((t) => t.key === sessionType);
     return typeConfig?.maxParticipants || 1;
   }, [sessionType]);
 
-  const saveLocation = useCallback(async (loc: string) => {
-    if (!loc || savedLocations.includes(loc)) return;
-    const updated = [loc, ...savedLocations.slice(0, 4)];
-    setSavedLocations(updated);
-    try {
-      await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
-    } catch (error) {
-      logger.error('Failed to save location', error);
-    }
-  }, [savedLocations]);
+  const saveLocation = useCallback(
+    async (loc: string) => {
+      if (!loc || savedLocations.includes(loc)) return;
+      const updated = [loc, ...savedLocations.slice(0, 4)];
+      setSavedLocations(updated);
+      try {
+        await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
+      } catch (error) {
+        logger.error('Failed to save location', error);
+      }
+    },
+    [savedLocations],
+  );
 
   // --------------------------------------------------------------------------
   // NAVIGATION
@@ -209,14 +212,14 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   // --------------------------------------------------------------------------
 
   const toggleFocusArea = useCallback((area: FootballObjective) => {
-    setFocusAreas(prev =>
-      prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
+    setFocusAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
     );
   }, []);
 
   const toggleAthleteSelection = useCallback((athleteId: string) => {
-    setSelectedAthletes(prev =>
-      prev.includes(athleteId) ? prev.filter(id => id !== athleteId) : [...prev, athleteId]
+    setSelectedAthletes((prev) =>
+      prev.includes(athleteId) ? prev.filter((id) => id !== athleteId) : [...prev, athleteId],
     );
   }, []);
 
@@ -266,29 +269,25 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         logger.info('Sending invites to athletes', { athleteIds: selectedAthletes, inviteType });
       }
 
-      Alert.alert(
-        'Session Created!',
-        `"${title}" has been created successfully.`,
-        [
-          {
-            text: 'View Schedule',
-            onPress: () => router.replace(Routes.SCHEDULE),
+      Alert.alert('Session Created!', `"${title}" has been created successfully.`, [
+        {
+          text: 'View Schedule',
+          onPress: () => router.replace(Routes.SCHEDULE),
+        },
+        {
+          text: 'Create Another',
+          onPress: () => {
+            setStep('details');
+            setTitle('');
+            setDescription('');
+            setPrice('');
+            setSelectedDate('');
+            setFocusAreas([]);
+            setInviteType('OPEN');
+            setSelectedAthletes([]);
           },
-          {
-            text: 'Create Another',
-            onPress: () => {
-              setStep('details');
-              setTitle('');
-              setDescription('');
-              setPrice('');
-              setSelectedDate('');
-              setFocusAreas([]);
-              setInviteType('OPEN');
-              setSelectedAthletes([]);
-            },
-          },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
       logger.error('Failed to create session:', error);
       Alert.alert('Error', 'Failed to create session. Please try again.');
@@ -296,9 +295,21 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       setLoading(false);
     }
   }, [
-    currentUser, location, maxParticipants, getDefaultMaxParticipants,
-    selectedDate, selectedTime, title, description, sessionType,
-    inviteType, recurrence, price, focusAreas, selectedAthletes, saveLocation,
+    currentUser,
+    location,
+    maxParticipants,
+    getDefaultMaxParticipants,
+    selectedDate,
+    selectedTime,
+    title,
+    description,
+    sessionType,
+    inviteType,
+    recurrence,
+    price,
+    focusAreas,
+    selectedAthletes,
+    saveLocation,
   ]);
 
   return {

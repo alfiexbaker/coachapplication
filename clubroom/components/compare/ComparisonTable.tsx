@@ -77,7 +77,7 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
       setCoaches((prev) => prev.filter((c) => c.coachId !== coachId));
       onCoachRemoved?.(coachId);
     },
-    [onCoachRemoved]
+    [onCoachRemoved],
   );
 
   const handleBook = useCallback((coachId: string) => {
@@ -150,6 +150,5 @@ const styles = StyleSheet.create({
   },
   loadingText: { ...Typography.bodySmall, marginTop: Spacing.sm },
   errorText: { ...Typography.bodySmall, textAlign: 'center' },
-  emptyHint: { ...Typography.bodySmall, textAlign: 'center',
-    marginTop: Spacing.xs },
+  emptyHint: { ...Typography.bodySmall, textAlign: 'center', marginTop: Spacing.xs },
 });

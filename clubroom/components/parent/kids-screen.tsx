@@ -29,7 +29,9 @@ export function ParentKidsScreen() {
   const { colors: palette } = useTheme();
   const { currentUser, availableUsers } = useAuth();
   const [fallbackChildren, setFallbackChildren] = useState<KidSummary[]>([]);
-  const [nextSessionsByChild, setNextSessionsByChild] = useState<Record<string, Booking | undefined>>({});
+  const [nextSessionsByChild, setNextSessionsByChild] = useState<
+    Record<string, Booking | undefined>
+  >({});
 
   const linkedChildren = useMemo<KidSummary[]>(() => {
     return (currentUser?.children || [])
@@ -37,9 +39,10 @@ export function ParentKidsScreen() {
       .map((child) => {
         const linkedUser = availableUsers.find((user) => user.id === child.childId);
         const skillLevel = formatSkillLevel(linkedUser?.skillLevel);
-        const metadata = linkedUser?.position && skillLevel
-          ? `${linkedUser.position} • ${skillLevel}`
-          : linkedUser?.position || skillLevel;
+        const metadata =
+          linkedUser?.position && skillLevel
+            ? `${linkedUser.position} • ${skillLevel}`
+            : linkedUser?.position || skillLevel;
 
         return {
           id: child.childId,
@@ -142,10 +145,16 @@ export function ParentKidsScreen() {
     return null;
   }
 
-  logger.debug('Parent kids screen rendered', { childrenCount: children.length, parentId: currentUser.id });
+  logger.debug('Parent kids screen rendered', {
+    childrenCount: children.length,
+    parentId: currentUser.id,
+  });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
@@ -184,17 +193,19 @@ export function ParentKidsScreen() {
                     });
                     router.push(Routes.developmentChildProgress(child.id));
                   }}
-                  style={({ pressed }) => [
-                    styles.kidCard,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
+                  style={({ pressed }) => [styles.kidCard, { opacity: pressed ? 0.7 : 1 }]}
                   accessibilityRole="button"
                   accessibilityLabel={`View progress for ${child.name}`}
                 >
                   <SurfaceCard style={styles.cardContent}>
                     <Row align="center" gap="md" flex>
                       <Row align="center" gap="md" flex>
-                        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                        <View
+                          style={[
+                            styles.avatar,
+                            { backgroundColor: withAlpha(palette.tint, 0.12) },
+                          ]}
+                        >
                           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                             {child.avatar || child.name.charAt(0)}
                           </ThemedText>

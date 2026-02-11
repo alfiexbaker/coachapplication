@@ -6,14 +6,7 @@
 import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, type EventPayloads } from './event-bus';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  notFound,
-  storageError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 
 const logger = createLogger('BaseService');
 
@@ -132,9 +125,7 @@ export abstract class BaseService<T extends BaseEntity> {
       // Apply filter
       if (options?.filter) {
         data = data.filter((item) =>
-          Object.entries(options.filter!).every(
-            ([key, value]) => item[key as keyof T] === value
-          )
+          Object.entries(options.filter!).every(([key, value]) => item[key as keyof T] === value),
         );
       }
 
@@ -338,7 +329,7 @@ export abstract class BaseService<T extends BaseEntity> {
    * Bulk create entities.
    */
   async createMany(
-    inputs: Omit<T, 'id' | 'createdAt' | 'updatedAt'>[]
+    inputs: Omit<T, 'id' | 'createdAt' | 'updatedAt'>[],
   ): Promise<Result<T[], ServiceError>> {
     try {
       const data = await this.loadFromStorage();

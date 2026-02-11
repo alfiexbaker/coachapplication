@@ -37,7 +37,13 @@ export default function AddCardScreen() {
   if (status === 'empty') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-        <EmptyState icon="card-outline" title="Card form unavailable" message="Please try again." actionLabel="Retry" onPressAction={retry} />
+        <EmptyState
+          icon="card-outline"
+          title="Card form unavailable"
+          message="Please try again."
+          actionLabel="Retry"
+          onPressAction={retry}
+        />
       </SafeAreaView>
     );
   }

@@ -12,10 +12,14 @@ import { Row } from '@/components/primitives';
 
 function getEventColor(type: CalendarEventType, colors: ThemeColors): string {
   switch (type) {
-    case 'session': return colors.tint;
-    case 'match': return colors.error;
-    case 'event': return colors.success;
-    default: return colors.muted;
+    case 'session':
+      return colors.tint;
+    case 'match':
+      return colors.error;
+    case 'event':
+      return colors.success;
+    default:
+      return colors.muted;
   }
 }
 
@@ -31,7 +35,14 @@ interface CalendarGridProps {
 }
 
 export const CalendarGrid = memo(function CalendarGrid({
-  year, month, selectedDay, weeks, eventsByDate, loading, isToday, onSelectDay,
+  year,
+  month,
+  selectedDay,
+  weeks,
+  eventsByDate,
+  loading,
+  isToday,
+  onSelectDay,
 }: CalendarGridProps) {
   const { colors } = useTheme();
 
@@ -70,20 +81,43 @@ export const CalendarGrid = memo(function CalendarGrid({
                   style={[
                     styles.dayCell,
                     {
-                      backgroundColor: selected ? colors.tint : today ? withAlpha(colors.tint, 0.09) : 'transparent',
+                      backgroundColor: selected
+                        ? colors.tint
+                        : today
+                          ? withAlpha(colors.tint, 0.09)
+                          : 'transparent',
                       borderRadius: Radii.sm,
                     },
                   ]}
                 >
-                  <ThemedText style={[
-                    Typography.body,
-                    { color: selected ? colors.onPrimary : today ? colors.tint : colors.foreground, fontWeight: today || selected ? '600' : '400' },
-                  ]}>
+                  <ThemedText
+                    style={[
+                      Typography.body,
+                      {
+                        color: selected
+                          ? colors.onPrimary
+                          : today
+                            ? colors.tint
+                            : colors.foreground,
+                        fontWeight: today || selected ? '600' : '400',
+                      },
+                    ]}
+                  >
                     {day}
                   </ThemedText>
                   <Row style={styles.dotsRow}>
                     {uniqueTypes.slice(0, 3).map((type) => (
-                      <View key={type} style={[styles.dot, { backgroundColor: selected ? colors.onPrimary : getEventColor(type, colors) }]} />
+                      <View
+                        key={type}
+                        style={[
+                          styles.dot,
+                          {
+                            backgroundColor: selected
+                              ? colors.onPrimary
+                              : getEventColor(type, colors),
+                          },
+                        ]}
+                      />
                     ))}
                   </Row>
                 </Clickable>
@@ -98,10 +132,16 @@ export const CalendarGrid = memo(function CalendarGrid({
 
 const styles = StyleSheet.create({
   card: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs },
-  weekRow: {  },
+  weekRow: {},
   weekdayCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs / 2 },
   loading: { paddingVertical: Spacing.xl, alignItems: 'center' },
-  dayCell: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xs, minHeight: 44 },
+  dayCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs,
+    minHeight: 44,
+  },
   dotsRow: { gap: Spacing.micro, height: 6, alignItems: 'center' },
   dot: { width: 5, height: 5, borderRadius: Radii.xs },
 });

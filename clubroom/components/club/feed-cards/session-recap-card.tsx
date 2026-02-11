@@ -45,9 +45,13 @@ export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRe
       <Row style={styles.headerRow}>
         <Row style={styles.typeRow}>
           <Ionicons name="clipboard-outline" size={Components.icon.sm} color={palette.muted} />
-          <ThemedText style={[styles.typeLabel, { color: palette.muted }]}>Session Recap</ThemedText>
+          <ThemedText style={[styles.typeLabel, { color: palette.muted }]}>
+            Session Recap
+          </ThemedText>
         </Row>
-        <ThemedText style={[styles.dateText, { color: palette.muted }]}>{formatDate(data.date)}</ThemedText>
+        <ThemedText style={[styles.dateText, { color: palette.muted }]}>
+          {formatDate(data.date)}
+        </ThemedText>
       </Row>
 
       {/* Focus area title */}
@@ -75,11 +79,15 @@ export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRe
       <Row style={styles.footer}>
         <Clickable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
-          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
+          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>
+            {data.likeCount}
+          </ThemedText>
         </Clickable>
         <Clickable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
-          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
+          <ThemedText style={[styles.footerCount, { color: palette.muted }]}>
+            {data.commentCount}
+          </ThemedText>
         </Clickable>
       </Row>
     </SurfaceCard>

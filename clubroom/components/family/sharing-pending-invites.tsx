@@ -15,7 +15,10 @@ interface SharingPendingInvitesProps {
   onCancel: (inviteId: string, email: string) => void;
 }
 
-export const SharingPendingInvites = memo(function SharingPendingInvites({ invites, onCancel }: SharingPendingInvitesProps) {
+export const SharingPendingInvites = memo(function SharingPendingInvites({
+  invites,
+  onCancel,
+}: SharingPendingInvitesProps) {
   const { colors } = useTheme();
 
   if (invites.length === 0) return null;
@@ -30,8 +33,12 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({ invit
       {invites.map((invite) => (
         <Row key={invite.id} align="center" style={[styles.card, { borderColor: colors.border }]}>
           <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold">{invite.inviteeName || invite.inviteeEmail}</ThemedText>
-            <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.micro }]}>
+            <ThemedText type="defaultSemiBold">
+              {invite.inviteeName || invite.inviteeEmail}
+            </ThemedText>
+            <ThemedText
+              style={[Typography.caption, { color: colors.muted, marginTop: Spacing.micro }]}
+            >
               {invite.relationship} • Expires {new Date(invite.expiresAt).toLocaleDateString()}
             </ThemedText>
           </View>
@@ -41,7 +48,9 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({ invit
             accessibilityLabel={`Cancel invite for ${invite.inviteeEmail}`}
             accessibilityRole="button"
           >
-            <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>Cancel</ThemedText>
+            <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>
+              Cancel
+            </ThemedText>
           </Clickable>
         </Row>
       ))}
@@ -52,5 +61,10 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({ invit
 const styles = StyleSheet.create({
   section: { padding: Spacing.md, gap: Spacing.md },
   card: { padding: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1 },
-  cancelBtn: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm, borderWidth: 1 },
+  cancelBtn: {
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
 });

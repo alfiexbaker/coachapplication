@@ -1,4 +1,12 @@
-import { Pressable, type AccessibilityRole, type AccessibilityState, type GestureResponderEvent, type Insets, type ViewStyle, type StyleProp } from 'react-native';
+import {
+  Pressable,
+  type AccessibilityRole,
+  type AccessibilityState,
+  type GestureResponderEvent,
+  type Insets,
+  type ViewStyle,
+  type StyleProp,
+} from 'react-native';
 import React from 'react';
 
 /**
@@ -20,51 +28,57 @@ export interface ClickableProps {
   accessibilityState?: AccessibilityState;
 }
 
-export const Clickable = React.forwardRef<React.ComponentRef<typeof Pressable>, ClickableProps>(function Clickable({
-  onPress,
-  onLongPress,
-  onPressIn,
-  onPressOut,
-  delayLongPress,
-  style,
-  children,
-  disabled,
-  hitSlop,
-  accessibilityLabel,
-  accessibilityHint,
-  accessibilityRole,
-  accessibilityState,
-}: ClickableProps, ref) {
-  const handlePress = disabled ? undefined : onPress;
-  const handleLongPress = disabled ? undefined : onLongPress;
-  const handlePressIn = disabled ? undefined : onPressIn;
-  const handlePressOut = disabled ? undefined : onPressOut;
-  const resolveStyle = typeof style === 'function' ? style : () => style;
-  const resolvedRole = accessibilityRole ?? (handlePress || handleLongPress ? 'button' : undefined);
-  const resolvedHitSlop = hitSlop ?? 8;
+export const Clickable = React.forwardRef<React.ComponentRef<typeof Pressable>, ClickableProps>(
+  function Clickable(
+    {
+      onPress,
+      onLongPress,
+      onPressIn,
+      onPressOut,
+      delayLongPress,
+      style,
+      children,
+      disabled,
+      hitSlop,
+      accessibilityLabel,
+      accessibilityHint,
+      accessibilityRole,
+      accessibilityState,
+    }: ClickableProps,
+    ref,
+  ) {
+    const handlePress = disabled ? undefined : onPress;
+    const handleLongPress = disabled ? undefined : onLongPress;
+    const handlePressIn = disabled ? undefined : onPressIn;
+    const handlePressOut = disabled ? undefined : onPressOut;
+    const resolveStyle = typeof style === 'function' ? style : () => style;
+    const resolvedRole =
+      accessibilityRole ?? (handlePress || handleLongPress ? 'button' : undefined);
+    const resolvedHitSlop = hitSlop ?? 8;
 
-  return (
-    <Pressable
-      ref={ref}
-      onPress={handlePress}
-      onLongPress={handleLongPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      delayLongPress={delayLongPress}
-      disabled={disabled || (!onPress && !onLongPress)}
-      hitSlop={resolvedHitSlop}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint={accessibilityHint}
-      accessibilityRole={resolvedRole}
-      accessibilityState={accessibilityState}
-      style={(state) => [
-        resolveStyle({ pressed: state.pressed }) as ViewStyle | ViewStyle[],
-        disabled ? { opacity: 0.5 } : undefined,
-      ]}
-    >
-      {children}
-    </Pressable>
-  );
-});
+    return (
+      <Pressable
+        ref={ref}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        delayLongPress={delayLongPress}
+        disabled={disabled || (!onPress && !onLongPress)}
+        hitSlop={resolvedHitSlop}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityRole={resolvedRole}
+        accessibilityState={accessibilityState}
+        style={(state) => [
+          resolveStyle({ pressed: state.pressed }) as ViewStyle | ViewStyle[],
+          disabled ? { opacity: 0.5 } : undefined,
+        ]}
+      >
+        {children}
+      </Pressable>
+    );
+  },
+);
 
 Clickable.displayName = 'Clickable';

@@ -71,18 +71,13 @@ export function useGroupSession() {
       });
     } catch (loadError) {
       logger.error('Failed to load session:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load group session. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load group session. Pull down to refresh.', loadError),
+      );
     }
   }, [id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<GroupSessionData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionData>({
     load: loadData,
     deps: [id],
     isEmpty: (value) => value.session === null,
@@ -103,13 +98,22 @@ export function useGroupSession() {
 
     setRegistering(true);
     try {
-      const result = await groupSessionService.register(session.id, `athlete_${currentUser.id}`, currentUser.id);
+      const result = await groupSessionService.register(
+        session.id,
+        `athlete_${currentUser.id}`,
+        currentUser.id,
+      );
       if (!result.success) {
         Alert.alert('Error', result.error.message || 'Failed to register. Please try again.');
         return;
       }
       onRefresh();
-      Alert.alert('Success', result.data.status === 'WAITLISTED' ? 'You have been added to the waitlist!' : 'Registration successful!');
+      Alert.alert(
+        'Success',
+        result.data.status === 'WAITLISTED'
+          ? 'You have been added to the waitlist!'
+          : 'Registration successful!',
+      );
     } catch (error) {
       logger.error('Failed to register:', error);
       Alert.alert('Error', 'Failed to register. Please try again.');
@@ -124,7 +128,8 @@ export function useGroupSession() {
     Alert.alert('Cancel Session', 'Are you sure you want to cancel this session?', [
       { text: 'No', style: 'cancel' },
       {
-        text: 'Yes, Cancel', style: 'destructive',
+        text: 'Yes, Cancel',
+        style: 'destructive',
         onPress: async () => {
           try {
             const result = await groupSessionService.cancelSession(session.id);
@@ -143,8 +148,22 @@ export function useGroupSession() {
   }, [session]);
 
   return {
-    id, session, roster, loading, status, error, refreshing, onRefresh, retry, registering,
-    isCoach, userHasChildren, spotsLeft, isFull, isFree,
-    handleRegister, handleCancel,
+    id,
+    session,
+    roster,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    registering,
+    isCoach,
+    userHasChildren,
+    spotsLeft,
+    isFull,
+    isFree,
+    handleRegister,
+    handleCancel,
   } satisfies UseGroupSessionResult;
 }

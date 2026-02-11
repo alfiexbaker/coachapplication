@@ -76,10 +76,16 @@ export function DrillList({
             color={palette.tint}
           />
         </View>
-        <ThemedText type="subtitle" style={styles.emptyTitle}>{emptyMessage}</ThemedText>
-        <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>{emptyDescription}</ThemedText>
+        <ThemedText type="subtitle" style={styles.emptyTitle}>
+          {emptyMessage}
+        </ThemedText>
+        <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
+          {emptyDescription}
+        </ThemedText>
         {onEmptyAction && (
-          <Button onPress={onEmptyAction} style={styles.emptyButton}>{emptyActionLabel}</Button>
+          <Button onPress={onEmptyAction} style={styles.emptyButton}>
+            {emptyActionLabel}
+          </Button>
         )}
       </Animated.View>
     );
@@ -116,9 +122,27 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   loadingContainer: { padding: Spacing.xl, alignItems: 'center', justifyContent: 'center' },
   loadingText: { fontSize: scaleFont(15) },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], paddingHorizontal: Spacing.lg, gap: Spacing.md },
-  emptyIcon: { width: 96, height: 96, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['3xl'],
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  emptyIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: Radii['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
   emptyTitle: { textAlign: 'center' },
-  emptyDescription: { textAlign: 'center', fontSize: scaleFont(15), lineHeight: scaleFont(22), maxWidth: 280 },
+  emptyDescription: {
+    textAlign: 'center',
+    fontSize: scaleFont(15),
+    lineHeight: scaleFont(22),
+    maxWidth: 280,
+  },
   emptyButton: { marginTop: Spacing.sm },
 });

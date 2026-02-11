@@ -90,7 +90,7 @@ export function GoalList({
     return 'Set goals to track your training progress and achievements.';
   };
 
-  const renderEmpty = useCallback(() => {
+  const renderEmpty = () => {
     if (loading) return null;
     return (
       <GoalListEmptyState
@@ -101,16 +101,17 @@ export function GoalList({
         palette={palette}
       />
     );
-  }, [loading, emptyTitle, emptyMessage, statusFilter, onCreateGoal, palette]);
+  };
 
   if (loading && goals.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        {ListHeaderComponent && (
-          typeof ListHeaderComponent === 'function'
-            ? <ListHeaderComponent />
-            : ListHeaderComponent
-        )}
+        {ListHeaderComponent &&
+          (typeof ListHeaderComponent === 'function' ? (
+            <ListHeaderComponent />
+          ) : (
+            ListHeaderComponent
+          ))}
         <GoalListSkeleton count={3} variant={cardVariant} />
       </View>
     );
@@ -128,9 +129,7 @@ export function GoalList({
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        onRefresh ? (
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        ) : undefined
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
       }
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={renderEmpty}

@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { NotificationChannel } from '@/constants/types';
 
@@ -79,7 +79,9 @@ export function ChannelToggle({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
+    <View
+      style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}
+    >
       {CHANNELS.map((channel, index) => {
         const isEnabled = value[channel.configKey];
         const isLast = index === CHANNELS.length - 1;

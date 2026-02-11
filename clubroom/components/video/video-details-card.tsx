@@ -19,11 +19,17 @@ interface VideoDetailsCardProps {
 }
 
 export const VideoDetailsCard = memo(function VideoDetailsCard({
-  colors, coachName, createdAt, fileSize, sessionId,
+  colors,
+  coachName,
+  createdAt,
+  fileSize,
+  sessionId,
 }: VideoDetailsCardProps) {
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="defaultSemiBold" style={styles.title}>Details</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.title}>
+        Details
+      </ThemedText>
       <Column gap="sm">
         <Row justify="space-between" align="center">
           <ThemedText style={{ color: colors.muted }}>Coach</ThemedText>
@@ -32,7 +38,11 @@ export const VideoDetailsCard = memo(function VideoDetailsCard({
         <Row justify="space-between" align="center">
           <ThemedText style={{ color: colors.muted }}>Uploaded</ThemedText>
           <ThemedText>
-            {new Date(createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            {new Date(createdAt).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
           </ThemedText>
         </Row>
         <Row justify="space-between" align="center">

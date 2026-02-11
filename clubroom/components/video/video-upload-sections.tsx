@@ -61,7 +61,10 @@ export const VideoPickerCards = memo(function VideoPickerCards({
     <Row gap="md">
       <Clickable
         onPress={onPickVideo}
-        style={[styles.pickerCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        style={[
+          styles.pickerCard,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
       >
         <View style={[styles.pickerIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="folder-open" size={32} color={palette.tint} />
@@ -72,7 +75,10 @@ export const VideoPickerCards = memo(function VideoPickerCards({
 
       <Clickable
         onPress={onRecordVideo}
-        style={[styles.pickerCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        style={[
+          styles.pickerCard,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
       >
         <View style={[styles.pickerIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
           <Ionicons name="videocam" size={32} color={palette.error} />
@@ -114,7 +120,11 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
         {/* Video Preview */}
         <View style={styles.previewContainer}>
           {video.thumbnailUri && (
-            <Image source={{ uri: video.thumbnailUri }} style={styles.previewImage} resizeMode="cover" />
+            <Image
+              source={{ uri: video.thumbnailUri }}
+              style={styles.previewImage}
+              resizeMode="cover"
+            />
           )}
           <View style={[styles.playOverlay, { backgroundColor: withAlpha(palette.text, 0.3) }]}>
             <Ionicons name="play-circle" size={48} color={palette.onPrimary} />
@@ -156,7 +166,9 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
         {uploading && (
           <View style={styles.progressSection}>
             <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
-              <Animated.View style={[styles.progressFill, { backgroundColor: palette.tint }, progressStyle]} />
+              <Animated.View
+                style={[styles.progressFill, { backgroundColor: palette.tint }, progressStyle]}
+              />
             </View>
             <ThemedText style={[styles.progressText, { color: palette.muted }]}>
               Uploading... {uploadProgress}%
@@ -166,9 +178,14 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
 
         {/* Upload Button */}
         {!uploading && (
-          <Clickable onPress={onUpload} style={[styles.uploadButton, { backgroundColor: palette.tint }]}>
+          <Clickable
+            onPress={onUpload}
+            style={[styles.uploadButton, { backgroundColor: palette.tint }]}
+          >
             <Ionicons name="cloud-upload" size={20} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Upload Video</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
+              Upload Video
+            </ThemedText>
           </Clickable>
         )}
       </SurfaceCard>
@@ -197,12 +214,16 @@ export const RequirementsList = memo(function RequirementsList({
 
   return (
     <View style={styles.requirements}>
-      <ThemedText style={[styles.requirementsTitle, { color: palette.muted }]}>Requirements</ThemedText>
+      <ThemedText style={[styles.requirementsTitle, { color: palette.muted }]}>
+        Requirements
+      </ThemedText>
       <View style={styles.requirementsList}>
         {items.map((text) => (
           <Row key={text} align="center" gap="xs">
             <Ionicons name="checkmark-circle" size={14} color={palette.success} />
-            <ThemedText style={[styles.requirementText, { color: palette.muted }]}>{text}</ThemedText>
+            <ThemedText style={[styles.requirementText, { color: palette.muted }]}>
+              {text}
+            </ThemedText>
           </Row>
         ))}
       </View>

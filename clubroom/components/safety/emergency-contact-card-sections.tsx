@@ -26,7 +26,8 @@ export interface EmergencyContactInlineProps {
 
 export const EmergencyContactInline = memo(function EmergencyContactInline({
   contact,
-  onCall }: EmergencyContactInlineProps) {
+  onCall,
+}: EmergencyContactInlineProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -51,12 +52,15 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
 
 const styles = StyleSheet.create({
   inlineContainer: {
-    paddingVertical: Spacing.xs },
+    paddingVertical: Spacing.xs,
+  },
   inlineIcon: {
     width: 28,
     height: 28,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   inlineName: { ...Typography.smallSemiBold },
-  inlinePhone: { ...Typography.caption } });
+  inlinePhone: { ...Typography.caption },
+});

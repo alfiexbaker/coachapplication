@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Row } from '@/components/primitives/row';
@@ -38,7 +38,13 @@ export interface NotesStepProps {
 // ============================================================================
 
 const SKILL_OPTIONS = [
-  'Dribbling', 'Passing', 'Defending', 'Finishing', 'Goalkeeping', 'Conditioning', 'Tactics',
+  'Dribbling',
+  'Passing',
+  'Defending',
+  'Finishing',
+  'Goalkeeping',
+  'Conditioning',
+  'Tactics',
 ];
 
 // ============================================================================
@@ -54,12 +60,13 @@ export const NotesStep = memo(function NotesStep({
   overallEffort,
   onOverallEffortChange,
   homework,
-  onHomeworkChange }: NotesStepProps) {
+  onHomeworkChange,
+}: NotesStepProps) {
   const handleToggleSkill = useCallback(
     (skill: string) => {
       const isSelected = skillsFocused.includes(skill);
       onSkillsFocusedChange(
-        isSelected ? skillsFocused.filter(s => s !== skill) : [...skillsFocused, skill],
+        isSelected ? skillsFocused.filter((s) => s !== skill) : [...skillsFocused, skill],
       );
     },
     [skillsFocused, onSkillsFocusedChange],
@@ -74,7 +81,10 @@ export const NotesStep = memo(function NotesStep({
           <ThemedText type="subtitle">Session Notes</ThemedText>
         </Row>
         <TextInput
-          style={[styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+          style={[
+            styles.textArea,
+            { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+          ]}
           placeholder="What did you cover in this session? How did it go?"
           placeholderTextColor={colors.muted}
           value={sessionSummary}
@@ -92,7 +102,7 @@ export const NotesStep = memo(function NotesStep({
           <ThemedText type="subtitle">Skills Worked On</ThemedText>
         </Row>
         <Row wrap gap="xs">
-          {SKILL_OPTIONS.map(skill => {
+          {SKILL_OPTIONS.map((skill) => {
             const isSelected = skillsFocused.includes(skill);
             return (
               <Clickable
@@ -101,14 +111,20 @@ export const NotesStep = memo(function NotesStep({
                   styles.skillChip,
                   {
                     backgroundColor: isSelected ? colors.tint : 'transparent',
-                    borderColor: isSelected ? colors.tint : colors.border },
+                    borderColor: isSelected ? colors.tint : colors.border,
+                  },
                 ]}
                 onPress={() => handleToggleSkill(skill)}
                 accessibilityLabel={`${isSelected ? 'Remove' : 'Add'} ${skill} skill`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
               >
-                <ThemedText style={[styles.skillChipText, { color: isSelected ? colors.onPrimary : colors.text }]}>
+                <ThemedText
+                  style={[
+                    styles.skillChipText,
+                    { color: isSelected ? colors.onPrimary : colors.text },
+                  ]}
+                >
                   {skill}
                 </ThemedText>
               </Clickable>
@@ -151,7 +167,10 @@ export const NotesStep = memo(function NotesStep({
           <ThemedText type="subtitle">Homework / Practice Focus</ThemedText>
         </Row>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+          style={[
+            styles.input,
+            { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+          ]}
           placeholder="What should they practice before next session?"
           placeholderTextColor={colors.muted}
           value={homework}
@@ -170,35 +189,45 @@ export const NotesStep = memo(function NotesStep({
 const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.md,
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   sectionHeader: {
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   textArea: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
     minHeight: 100,
-    textAlignVertical: 'top' },
+    textAlignVertical: 'top',
+  },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body },
+    ...Typography.body,
+  },
   skillChip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
     minHeight: 44,
-    justifyContent: 'center' },
+    justifyContent: 'center',
+  },
   skillChipText: {
-    ...Typography.smallSemiBold },
+    ...Typography.smallSemiBold,
+  },
   effortLabel: {
-    ...Typography.caption },
+    ...Typography.caption,
+  },
   slider: {
     flex: 1,
-    height: 40 },
+    height: 40,
+  },
   effortValue: {
     textAlign: 'center',
-    ...Typography.subheading } });
+    ...Typography.subheading,
+  },
+});

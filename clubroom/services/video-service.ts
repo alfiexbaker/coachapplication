@@ -25,7 +25,13 @@
 
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
-import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo, AnnotationExport } from '@/constants/types';
+import type {
+  SessionVideo,
+  VideoAnnotation,
+  VideoAnnotationType,
+  AnnotatedVideo,
+  AnnotationExport,
+} from '@/constants/types';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
@@ -102,14 +108,27 @@ const MOCK_VIDEOS: SessionVideo[] = [
     coachId: 'coach1',
     athleteIds: ['athlete_1'],
     title: 'Finishing Drills - Weak Foot Practice',
-    description: 'Great progress on weak foot finishing. Focus on body position at point of contact.',
+    description:
+      'Great progress on weak foot finishing. Focus on body position at point of contact.',
     videoUrl: 'https://example.com/videos/session_1.mp4',
     thumbnailUrl: 'https://picsum.photos/seed/vid1/400/225',
     duration: 180, // 3 minutes
     fileSize: 45000000, // 45MB
     annotations: [
-      { id: 'ann_1', timestamp: 15, label: 'Good technique', note: 'Notice the planted foot position', type: 'TECHNIQUE' },
-      { id: 'ann_2', timestamp: 45, label: 'Area to improve', note: 'Follow through needs work', type: 'IMPROVEMENT' },
+      {
+        id: 'ann_1',
+        timestamp: 15,
+        label: 'Good technique',
+        note: 'Notice the planted foot position',
+        type: 'TECHNIQUE',
+      },
+      {
+        id: 'ann_2',
+        timestamp: 45,
+        label: 'Area to improve',
+        note: 'Follow through needs work',
+        type: 'IMPROVEMENT',
+      },
       { id: 'ann_3', timestamp: 120, label: 'Great finish!', type: 'HIGHLIGHT' },
     ],
     visibility: 'SHARED',
@@ -240,7 +259,7 @@ export const videoService = {
         .filter(
           (v) =>
             v.athleteIds.includes(athleteId) &&
-            (v.visibility === 'PUBLIC' || v.sharedWith.includes(parentId))
+            (v.visibility === 'PUBLIC' || v.sharedWith.includes(parentId)),
         )
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
@@ -272,7 +291,10 @@ export const videoService = {
   /**
    * Get signed upload URL (mock returns a fake URL)
    */
-  async getUploadUrl(fileName: string, fileType: string): Promise<{ uploadUrl: string; videoUrl: string }> {
+  async getUploadUrl(
+    fileName: string,
+    fileType: string,
+  ): Promise<{ uploadUrl: string; videoUrl: string }> {
     if (USE_MOCK) {
       // In mock mode, return fake URLs
       const videoId = apiClient.generateId('vid');
@@ -293,7 +315,13 @@ export const videoService = {
   /**
    * Create video record after upload
    */
-  async createVideo(input: CreateVideoInput, videoUrl: string, thumbnailUrl: string, duration: number, fileSize: number): Promise<SessionVideo> {
+  async createVideo(
+    input: CreateVideoInput,
+    videoUrl: string,
+    thumbnailUrl: string,
+    duration: number,
+    fileSize: number,
+  ): Promise<SessionVideo> {
     const newVideo: SessionVideo = {
       id: apiClient.generateId('vid'),
       coachId: input.coachId,
@@ -338,7 +366,7 @@ export const videoService = {
     timestamp: number,
     label: string,
     type: VideoAnnotationType,
-    note?: string
+    note?: string,
   ): Promise<VideoAnnotation> {
     const annotation: VideoAnnotation = {
       id: apiClient.generateId('ann'),
@@ -389,7 +417,10 @@ export const videoService = {
   /**
    * Share video with parents
    */
-  async shareVideo(videoId: string, parentIds: string[]): Promise<Result<SessionVideo, ServiceError>> {
+  async shareVideo(
+    videoId: string,
+    parentIds: string[],
+  ): Promise<Result<SessionVideo, ServiceError>> {
     if (USE_MOCK) {
       videosCache = await loadFromStorage();
       const video = videosCache.find((v) => v.id === videoId);
@@ -451,7 +482,10 @@ export const videoService = {
   /**
    * Update video metadata
    */
-  async updateVideo(videoId: string, updates: Partial<Pick<SessionVideo, 'title' | 'description' | 'tags'>>): Promise<Result<SessionVideo, ServiceError>> {
+  async updateVideo(
+    videoId: string,
+    updates: Partial<Pick<SessionVideo, 'title' | 'description' | 'tags'>>,
+  ): Promise<Result<SessionVideo, ServiceError>> {
     if (USE_MOCK) {
       videosCache = await loadFromStorage();
       const video = videosCache.find((v) => v.id === videoId);
@@ -537,14 +571,14 @@ export const videoService = {
     videoId: string,
     input: CreateAnnotationInput,
     createdBy?: string,
-    createdByName?: string
+    createdByName?: string,
   ): Promise<VideoAnnotation> {
     const annotation = await this.addAnnotation(
       videoId,
       input.timestamp,
       input.label,
       input.type,
-      input.note
+      input.note,
     );
 
     // Enhance with creator info if provided
@@ -565,7 +599,7 @@ export const videoService = {
   async updateAnnotation(
     videoId: string,
     annotationId: string,
-    updates: UpdateAnnotationInput
+    updates: UpdateAnnotationInput,
   ): Promise<VideoAnnotation | null> {
     const video = await this.getVideo(videoId);
     if (!video) return null;
@@ -590,7 +624,7 @@ export const videoService = {
         updatedAnnotation.timestamp,
         updatedAnnotation.label,
         updatedAnnotation.type,
-        updatedAnnotation.note
+        updatedAnnotation.note,
       );
 
       // Return the updated annotation with the original ID
@@ -664,7 +698,7 @@ export const videoService = {
    * Get annotations grouped by type
    */
   async getAnnotationsByType(
-    videoId: string
+    videoId: string,
   ): Promise<Record<VideoAnnotationType, VideoAnnotation[]>> {
     const annotations = await this.getVideoAnnotations(videoId);
 
@@ -711,9 +745,7 @@ export const videoService = {
     }
 
     const durationMinutes = video.duration / 60;
-    const averagePerMinute = durationMinutes > 0
-      ? video.annotations.length / durationMinutes
-      : 0;
+    const averagePerMinute = durationMinutes > 0 ? video.annotations.length / durationMinutes : 0;
 
     return {
       total: video.annotations.length,
@@ -728,13 +760,11 @@ export const videoService = {
   async findAnnotationsNearTimestamp(
     videoId: string,
     timestamp: number,
-    thresholdSeconds: number = 5
+    thresholdSeconds: number = 5,
   ): Promise<VideoAnnotation[]> {
     const annotations = await this.getVideoAnnotations(videoId);
 
-    return annotations.filter(
-      (ann) => Math.abs(ann.timestamp - timestamp) <= thresholdSeconds
-    );
+    return annotations.filter((ann) => Math.abs(ann.timestamp - timestamp) <= thresholdSeconds);
   },
 
   /**
@@ -742,7 +772,7 @@ export const videoService = {
    */
   async getNextAnnotation(
     videoId: string,
-    currentTimestamp: number
+    currentTimestamp: number,
   ): Promise<VideoAnnotation | null> {
     const annotations = await this.getVideoAnnotations(videoId);
 
@@ -760,7 +790,7 @@ export const videoService = {
    */
   async getPreviousAnnotation(
     videoId: string,
-    currentTimestamp: number
+    currentTimestamp: number,
   ): Promise<VideoAnnotation | null> {
     const annotations = await this.getVideoAnnotations(videoId);
 
@@ -780,7 +810,7 @@ export const videoService = {
     videoId: string,
     inputs: CreateAnnotationInput[],
     createdBy?: string,
-    createdByName?: string
+    createdByName?: string,
   ): Promise<VideoAnnotation[]> {
     const results: VideoAnnotation[] = [];
 
@@ -831,9 +861,12 @@ export const videoService = {
   /**
    * Get annotation type info
    */
-  getTypeInfo(
-    type: VideoAnnotationType
-  ): { label: string; color: string; icon: string; description: string } {
+  getTypeInfo(type: VideoAnnotationType): {
+    label: string;
+    color: string;
+    icon: string;
+    description: string;
+  } {
     return ANNOTATION_TYPE_CONFIG[type];
   },
 

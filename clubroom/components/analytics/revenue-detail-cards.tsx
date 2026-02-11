@@ -14,10 +14,23 @@ interface RevenueMainCardProps {
   formatCurrency: (amount: number) => string;
 }
 
-export const RevenueMainCard = memo(function RevenueMainCard({ analytics, formatCurrency }: RevenueMainCardProps) {
+export const RevenueMainCard = memo(function RevenueMainCard({
+  analytics,
+  formatCurrency,
+}: RevenueMainCardProps) {
   const { colors: palette } = useTheme();
-  const trendColor = analytics.revenueTrend === 'UP' ? palette.success : analytics.revenueTrend === 'DOWN' ? palette.error : palette.muted;
-  const trendIcon = analytics.revenueTrend === 'UP' ? 'trending-up' : analytics.revenueTrend === 'DOWN' ? 'trending-down' : 'remove';
+  const trendColor =
+    analytics.revenueTrend === 'UP'
+      ? palette.success
+      : analytics.revenueTrend === 'DOWN'
+        ? palette.error
+        : palette.muted;
+  const trendIcon =
+    analytics.revenueTrend === 'UP'
+      ? 'trending-up'
+      : analytics.revenueTrend === 'DOWN'
+        ? 'trending-down'
+        : 'remove';
 
   return (
     <SurfaceCard style={styles.mainCard}>
@@ -26,11 +39,18 @@ export const RevenueMainCard = memo(function RevenueMainCard({ analytics, format
           <Ionicons name="cash" size={32} color={palette.success} />
         </View>
         <ThemedText style={styles.mainCardLabel}>Total Revenue</ThemedText>
-        <ThemedText style={styles.mainCardValue}>{formatCurrency(analytics.totalRevenue)}</ThemedText>
+        <ThemedText style={styles.mainCardValue}>
+          {formatCurrency(analytics.totalRevenue)}
+        </ThemedText>
         <Row style={[styles.mainCardTrend, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
-          <Ionicons name={trendIcon as keyof typeof Ionicons.glyphMap} size={16} color={trendColor} />
+          <Ionicons
+            name={trendIcon as keyof typeof Ionicons.glyphMap}
+            size={16}
+            color={trendColor}
+          />
           <ThemedText style={[styles.mainCardTrendText, { color: trendColor }]}>
-            {analytics.revenueChangePercent >= 0 ? '+' : ''}{analytics.revenueChangePercent.toFixed(1)}% from last period
+            {analytics.revenueChangePercent >= 0 ? '+' : ''}
+            {analytics.revenueChangePercent.toFixed(1)}% from last period
           </ThemedText>
         </Row>
       </View>
@@ -43,7 +63,10 @@ interface BreakdownCardProps {
   formatCurrency: (amount: number) => string;
 }
 
-export const RevenueBreakdownCard = memo(function RevenueBreakdownCard({ analytics, formatCurrency }: BreakdownCardProps) {
+export const RevenueBreakdownCard = memo(function RevenueBreakdownCard({
+  analytics,
+  formatCurrency,
+}: BreakdownCardProps) {
   const { colors: palette } = useTheme();
   if (analytics.sessions.bySessionType.length === 0) return null;
 
@@ -65,9 +88,16 @@ export const RevenueBreakdownCard = memo(function RevenueBreakdownCard({ analyti
                 <ThemedText style={styles.breakdownName}>{sessionType.type}</ThemedText>
               </Row>
               <View style={[styles.breakdownBarContainer, { backgroundColor: palette.background }]}>
-                <View style={[styles.breakdownBar, { width: `${sessionType.percentage}%`, backgroundColor: barColor }]} />
+                <View
+                  style={[
+                    styles.breakdownBar,
+                    { width: `${sessionType.percentage}%`, backgroundColor: barColor },
+                  ]}
+                />
               </View>
-              <ThemedText style={[styles.breakdownRevenue, { color: palette.success }]}>{formatCurrency(sessionType.revenue)}</ThemedText>
+              <ThemedText style={[styles.breakdownRevenue, { color: palette.success }]}>
+                {formatCurrency(sessionType.revenue)}
+              </ThemedText>
             </View>
           );
         })}
@@ -81,7 +111,10 @@ interface InsightsCardProps {
   formatCurrency: (amount: number) => string;
 }
 
-export const RevenueInsightsCard = memo(function RevenueInsightsCard({ analytics, formatCurrency }: InsightsCardProps) {
+export const RevenueInsightsCard = memo(function RevenueInsightsCard({
+  analytics,
+  formatCurrency,
+}: InsightsCardProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -94,20 +127,24 @@ export const RevenueInsightsCard = memo(function RevenueInsightsCard({ analytics
         <Row style={styles.insightItem}>
           <Ionicons name="checkmark-circle" size={18} color={palette.success} />
           <ThemedText style={styles.insightText}>
-            Your best day is <ThemedText style={styles.insightBold}>{analytics.busiestDay.dayName}</ThemedText> with {analytics.busiestDay.sessionCount} sessions
+            Your best day is{' '}
+            <ThemedText style={styles.insightBold}>{analytics.busiestDay.dayName}</ThemedText> with{' '}
+            {analytics.busiestDay.sessionCount} sessions
           </ThemedText>
         </Row>
         <Row style={styles.insightItem}>
           <Ionicons name="time" size={18} color={palette.tint} />
           <ThemedText style={styles.insightText}>
-            Peak booking hour: <ThemedText style={styles.insightBold}>{analytics.busiestHour.hour}:00</ThemedText>
+            Peak booking hour:{' '}
+            <ThemedText style={styles.insightBold}>{analytics.busiestHour.hour}:00</ThemedText>
           </ThemedText>
         </Row>
         {analytics.cancellations.revenueLost > 0 && (
           <Row style={styles.insightItem}>
             <Ionicons name="alert-circle" size={18} color={palette.error} />
             <ThemedText style={styles.insightText}>
-              {formatCurrency(analytics.cancellations.revenueLost)} lost to cancellations ({analytics.cancellations.cancellationRate.toFixed(1)}% rate)
+              {formatCurrency(analytics.cancellations.revenueLost)} lost to cancellations (
+              {analytics.cancellations.cancellationRate.toFixed(1)}% rate)
             </ThemedText>
           </Row>
         )}
@@ -115,7 +152,9 @@ export const RevenueInsightsCard = memo(function RevenueInsightsCard({ analytics
           <Row style={styles.insightItem}>
             <Ionicons name="trophy" size={18} color={palette.warning} />
             <ThemedText style={styles.insightText}>
-              Top skill: <ThemedText style={styles.insightBold}>{analytics.topSkills[0].skill}</ThemedText> ({formatCurrency(analytics.topSkills[0].revenue)})
+              Top skill:{' '}
+              <ThemedText style={styles.insightBold}>{analytics.topSkills[0].skill}</ThemedText> (
+              {formatCurrency(analytics.topSkills[0].revenue)})
             </ThemedText>
           </Row>
         )}
@@ -127,10 +166,23 @@ export const RevenueInsightsCard = memo(function RevenueInsightsCard({ analytics
 const styles = StyleSheet.create({
   mainCard: { padding: Spacing.lg },
   mainCardContent: { alignItems: 'center' },
-  mainCardIcon: { width: 64, height: 64, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },
+  mainCardIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
   mainCardLabel: { ...Typography.bodySmallSemiBold, marginBottom: Spacing.xs },
   mainCardValue: { ...Typography.display, letterSpacing: -1, marginBottom: Spacing.sm },
-  mainCardTrend: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill },
+  mainCardTrend: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+  },
   mainCardTrendText: { ...Typography.smallSemiBold },
   breakdownCard: { padding: Spacing.md },
   breakdownHeader: { alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },

@@ -426,8 +426,7 @@ class FamilyMemberService {
             const upcomingBookings = bookings
                 .filter((booking) => {
                 const bookingDate = new Date(booking.start).getTime();
-                return (bookingDate > now &&
-                    (booking.status === 'CONFIRMED' || booking.status === 'PENDING'));
+                return (bookingDate > now && (booking.status === 'CONFIRMED' || booking.status === 'PENDING'));
             })
                 .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
                 .slice(0, limit);
@@ -468,8 +467,7 @@ class FamilyMemberService {
             const members = await this.loadMembers();
             const bookings = await this.loadBookings();
             const spendingByChild = members.map((member) => {
-                const childBookings = bookings.filter((b) => b.childId === member.id &&
-                    (b.status === 'COMPLETED' || b.status === 'CONFIRMED'));
+                const childBookings = bookings.filter((b) => b.childId === member.id && (b.status === 'COMPLETED' || b.status === 'CONFIRMED'));
                 const totalSpent = childBookings.reduce((sum, b) => sum + (b.price || 0), 0);
                 const sessionCount = childBookings.length;
                 const averagePerSession = sessionCount > 0 ? totalSpent / sessionCount : 0;
@@ -620,8 +618,7 @@ class FamilyMemberService {
             // Calculate upcoming sessions
             const upcomingSessions = bookings.filter((b) => {
                 const bookingDate = new Date(b.start).getTime();
-                return (bookingDate > now.getTime() &&
-                    (b.status === 'CONFIRMED' || b.status === 'PENDING'));
+                return bookingDate > now.getTime() && (b.status === 'CONFIRMED' || b.status === 'PENDING');
             });
             // Calculate sessions this month
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

@@ -68,14 +68,7 @@ export function usePromoCodes() {
     }
   }, []);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<PromoCodesData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<PromoCodesData>({
     load: loadData,
     isEmpty: (value) => value.codes.length === 0,
     refetchOnFocus: true,
@@ -84,15 +77,21 @@ export function usePromoCodes() {
   const codes = data?.codes ?? [];
   const stats = data?.stats ?? null;
 
-  const handleToggleActive = useCallback(async (codeId: string, currentlyActive: boolean) => {
-    try {
-      if (currentlyActive) { await promoService.deactivateCode(codeId); }
-      else { await promoService.reactivateCode(codeId); }
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to toggle code status:', error);
-    }
-  }, [onRefresh]);
+  const handleToggleActive = useCallback(
+    async (codeId: string, currentlyActive: boolean) => {
+      try {
+        if (currentlyActive) {
+          await promoService.deactivateCode(codeId);
+        } else {
+          await promoService.reactivateCode(codeId);
+        }
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to toggle code status:', error);
+      }
+    },
+    [onRefresh],
+  );
 
   const handleViewUsage = useCallback(async (codeId: string) => {
     setSelectedCodeId(codeId);
@@ -113,11 +112,12 @@ export function usePromoCodes() {
     router.push(Routes.ADMIN_PROMO_CODES_CREATE);
   }, [router]);
 
-  const closeUsageModal = useCallback(() => { setUsageModalVisible(false); }, []);
+  const closeUsageModal = useCallback(() => {
+    setUsageModalVisible(false);
+  }, []);
 
-  const filteredCodes = filter === 'all'
-    ? codes
-    : codes.filter((code) => promoService.getCodeStatus(code) === filter);
+  const filteredCodes =
+    filter === 'all' ? codes : codes.filter((code) => promoService.getCodeStatus(code) === filter);
 
   const selectedCode = codes.find((c) => c.id === selectedCodeId) ?? null;
 

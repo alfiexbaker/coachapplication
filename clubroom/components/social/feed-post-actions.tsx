@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

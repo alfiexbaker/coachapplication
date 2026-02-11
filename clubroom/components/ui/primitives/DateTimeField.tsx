@@ -7,17 +7,8 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import DateTimePicker, {
-  type DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
+import { Platform, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Components } from '@/constants/theme';
@@ -125,9 +116,7 @@ function DateTimeFieldInner({
 
   return (
     <View style={[styles.container, style]}>
-      {label ? (
-        <Text style={[styles.label, { color: colors.muted }]}>{label}</Text>
-      ) : null}
+      {label ? <Text style={[styles.label, { color: colors.muted }]}>{label}</Text> : null}
 
       <Pressable
         testID={testID}
@@ -142,19 +131,14 @@ function DateTimeFieldInner({
         <Row align="center" gap="xs" flex>
           <Ionicons name={icon} size={Components.icon.md} color={colors.muted} />
           <Text
-            style={[
-              styles.valueText,
-              displayValue ? themedStyles.text : themedStyles.placeholder,
-            ]}
+            style={[styles.valueText, displayValue ? themedStyles.text : themedStyles.placeholder]}
           >
             {displayValue || placeholder || defaultPlaceholder}
           </Text>
         </Row>
       </Pressable>
 
-      {hasError ? (
-        <Text style={[styles.helperBase, { color: colors.error }]}>{error}</Text>
-      ) : null}
+      {hasError ? <Text style={[styles.helperBase, { color: colors.error }]}>{error}</Text> : null}
 
       {Platform.OS === 'ios' && (
         <IOSPickerModal

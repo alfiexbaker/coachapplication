@@ -123,8 +123,7 @@ export const TutorialProgressDots = memo(function TutorialProgressDots({
           style={[
             styles.dot,
             {
-              backgroundColor:
-                index === currentStep ? palette.tint : palette.border,
+              backgroundColor: index === currentStep ? palette.tint : palette.border,
               width: index === currentStep ? 20 : 8,
             },
           ]}
@@ -154,14 +153,9 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
   return (
     <Row style={styles.buttonRow}>
       {!isFirstStep ? (
-        <Clickable
-          onPress={onBack}
-          style={[styles.backButton, { borderColor: palette.border }]}
-        >
+        <Clickable onPress={onBack} style={[styles.backButton, { borderColor: palette.border }]}>
           <Ionicons name="arrow-back" size={18} color={palette.text} />
-          <ThemedText style={[styles.backButtonText, { color: palette.text }]}>
-            Back
-          </ThemedText>
+          <ThemedText style={[styles.backButtonText, { color: palette.text }]}>Back</ThemedText>
         </Clickable>
       ) : (
         <View style={styles.buttonPlaceholder} />
@@ -169,17 +163,16 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
 
       <Clickable
         onPress={onNext}
-        style={[styles.nextButton, { backgroundColor: palette.tint, maxWidth: SCREEN_WIDTH * 0.45 }]}
+        style={[
+          styles.nextButton,
+          { backgroundColor: palette.tint, maxWidth: SCREEN_WIDTH * 0.45 },
+        ]}
       >
         <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
           {isLastStep ? 'Get Started' : 'Next'}
         </ThemedText>
-        {!isLastStep && (
-          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-        )}
-        {isLastStep && (
-          <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-        )}
+        {!isLastStep && <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />}
+        {isLastStep && <Ionicons name="checkmark" size={18} color={palette.onPrimary} />}
       </Clickable>
     </Row>
   );

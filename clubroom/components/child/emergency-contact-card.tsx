@@ -19,7 +19,10 @@ interface EmergencyContactCardProps {
 }
 
 export const EmergencyContactCard = memo(function EmergencyContactCard({
-  contact, onEdit, onDelete, onSetPrimary,
+  contact,
+  onEdit,
+  onDelete,
+  onSetPrimary,
 }: EmergencyContactCardProps) {
   const { colors } = useTheme();
 
@@ -34,7 +37,9 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
             <ThemedText type="defaultSemiBold">{contact.name}</ThemedText>
             {contact.isPrimary && <Badge label="Primary" tone="success" />}
           </Row>
-          <ThemedText style={{ color: colors.muted, ...Typography.small }}>{contact.relationship}</ThemedText>
+          <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+            {contact.relationship}
+          </ThemedText>
         </View>
       </Row>
 
@@ -55,7 +60,9 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
         <Row style={styles.flags}>
           <Row style={[styles.flagBadge, { backgroundColor: withAlpha(colors.success, 0.06) }]}>
             <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-            <ThemedText style={{ ...Typography.caption, color: colors.success }}>Can pick up</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: colors.success }}>
+              Can pick up
+            </ThemedText>
           </Row>
         </Row>
       )}
@@ -82,10 +89,22 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
-  avatar: { width: 44, height: 44, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   details: { gap: Spacing.xs, marginLeft: 56 },
   flags: { gap: Spacing.xs, marginLeft: 56 },
-  flagBadge: { alignItems: 'center', gap: Spacing.xxs, paddingVertical: Spacing.xxs, paddingHorizontal: Spacing.sm, borderRadius: Radii.pill },
+  flagBadge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.pill,
+  },
   actions: { borderTopWidth: 1, marginTop: Spacing.xs, paddingTop: Spacing.sm },
   actionButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs },
 });

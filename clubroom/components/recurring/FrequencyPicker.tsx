@@ -78,9 +78,7 @@ export function FrequencyPickerCompact({
 
   return (
     <Row align="center" gap="sm">
-      <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
-        Frequency:
-      </ThemedText>
+      <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>Frequency:</ThemedText>
       <Row gap="xxs">
         {FREQUENCY_OPTIONS.map((option) => {
           const isSelected = value === option.value;

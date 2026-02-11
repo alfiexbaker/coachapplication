@@ -39,7 +39,10 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
   const handleAddMilestone = useCallback(() => {
     const trimmed = newMilestone.trim();
     if (!trimmed) return;
-    setMilestones((prev) => [...prev, { id: `ms_${Date.now()}`, title: trimmed, completed: false }]);
+    setMilestones((prev) => [
+      ...prev,
+      { id: `ms_${Date.now()}`, title: trimmed, completed: false },
+    ]);
     setNewMilestone('');
   }, [newMilestone]);
 
@@ -69,7 +72,14 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
       <SurfaceCard style={styles.section}>
         <ThemedText style={[styles.label, { color: palette.foreground }]}>Goal Title</ThemedText>
         <TextInput
-          style={[styles.input, { color: palette.foreground, backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}
+          style={[
+            styles.input,
+            {
+              color: palette.foreground,
+              backgroundColor: palette.surfaceSecondary,
+              borderColor: palette.border,
+            },
+          ]}
           value={title}
           onChangeText={setTitle}
           placeholder="e.g. Improve weak-foot passing"
@@ -78,7 +88,15 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
 
         <ThemedText style={[styles.label, { color: palette.foreground }]}>Description</ThemedText>
         <TextInput
-          style={[styles.input, styles.multilineInput, { color: palette.foreground, backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}
+          style={[
+            styles.input,
+            styles.multilineInput,
+            {
+              color: palette.foreground,
+              backgroundColor: palette.surfaceSecondary,
+              borderColor: palette.border,
+            },
+          ]}
           value={description}
           onChangeText={setDescription}
           placeholder="What does success look like?"
@@ -92,10 +110,33 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
           {SET_BY_OPTIONS.map((opt) => {
             const isActive = setBy === opt.value;
             return (
-              <Clickable key={opt.value} onPress={() => setSetBy(opt.value)} accessibilityLabel={`Set by ${opt.label}`}>
-                <Row style={[styles.roleChip, { backgroundColor: isActive ? palette.tint : palette.surfaceSecondary, borderColor: isActive ? palette.tint : palette.border }]}>
-                  <Ionicons name={opt.icon} size={Components.icon.sm} color={isActive ? palette.surface : palette.muted} />
-                  <ThemedText style={[styles.roleLabel, { color: isActive ? palette.surface : palette.foreground }]}>{opt.label}</ThemedText>
+              <Clickable
+                key={opt.value}
+                onPress={() => setSetBy(opt.value)}
+                accessibilityLabel={`Set by ${opt.label}`}
+              >
+                <Row
+                  style={[
+                    styles.roleChip,
+                    {
+                      backgroundColor: isActive ? palette.tint : palette.surfaceSecondary,
+                      borderColor: isActive ? palette.tint : palette.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={Components.icon.sm}
+                    color={isActive ? palette.surface : palette.muted}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.roleLabel,
+                      { color: isActive ? palette.surface : palette.foreground },
+                    ]}
+                  >
+                    {opt.label}
+                  </ThemedText>
                 </Row>
               </Clickable>
             );
@@ -114,7 +155,11 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
         onRemoveMilestone={handleRemoveMilestone}
       />
 
-      <SuggestionsSection suggestions={suggestions} athleteAge={athleteAge} onPickSuggestion={handlePickSuggestion} />
+      <SuggestionsSection
+        suggestions={suggestions}
+        athleteAge={athleteAge}
+        onPickSuggestion={handlePickSuggestion}
+      />
 
       {/* Save */}
       <Clickable onPress={handleSave} accessibilityLabel="Save goal">
@@ -132,11 +177,29 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
   label: { ...Typography.bodySemiBold },
-  input: { height: Components.input.height, borderRadius: Radii.md, borderWidth: 1, paddingHorizontal: Spacing.sm, ...Typography.body },
+  input: {
+    height: Components.input.height,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    ...Typography.body,
+  },
   multilineInput: { height: 88, paddingVertical: Spacing.sm },
   roleRow: { gap: Spacing.xs },
-  roleChip: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1, gap: Spacing.xs / 2 },
+  roleChip: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    gap: Spacing.xs / 2,
+  },
   roleLabel: { ...Typography.small },
-  saveButton: { height: Components.button.height, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
+  saveButton: {
+    height: Components.button.height,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   saveText: { ...Typography.bodySemiBold },
 });

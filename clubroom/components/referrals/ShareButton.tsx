@@ -67,7 +67,7 @@ export function ShareButton({
         {
           dialogTitle: 'Share your referral code',
           subject: `Join me on Clubroom - Use code ${code}`,
-        }
+        },
       );
 
       if (result.action === Share.sharedAction) {
@@ -88,11 +88,13 @@ export function ShareButton({
       <Clickable
         onPress={handleShare}
         disabled={disabled}
-        style={[
-          styles.iconButton,
-          { backgroundColor: palette.tint },
-          disabled ? styles.disabledButton : undefined,
-        ].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.iconButton,
+            { backgroundColor: palette.tint },
+            disabled ? styles.disabledButton : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Ionicons name="share-social-outline" size={20} color={palette.onPrimary} />
       </Clickable>
@@ -104,14 +106,17 @@ export function ShareButton({
       <Clickable
         onPress={handleShare}
         disabled={disabled}
-        style={[
-          styles.outlineButton,
-          {
-            borderColor: palette.tint,
-            paddingVertical: size === 'small' ? Spacing.xs : size === 'large' ? Spacing.md : Spacing.sm,
-          },
-          disabled ? styles.disabledButton : undefined,
-        ].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.outlineButton,
+            {
+              borderColor: palette.tint,
+              paddingVertical:
+                size === 'small' ? Spacing.xs : size === 'large' ? Spacing.md : Spacing.sm,
+            },
+            disabled ? styles.disabledButton : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Ionicons
           name="share-social-outline"
@@ -132,11 +137,13 @@ export function ShareButton({
     <Button
       onPress={handleShare}
       disabled={disabled}
-      style={[
-        styles.defaultButton,
-        size === 'small' && styles.smallButton,
-        size === 'large' && styles.largeButton,
-      ].filter(Boolean) as ViewStyle[]}
+      style={
+        [
+          styles.defaultButton,
+          size === 'small' && styles.smallButton,
+          size === 'large' && styles.largeButton,
+        ].filter(Boolean) as ViewStyle[]
+      }
     >
       <Ionicons
         name="share-social-outline"

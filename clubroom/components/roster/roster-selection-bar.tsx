@@ -45,9 +45,7 @@ export const RosterSelectionBar = memo(function RosterSelectionBar({
             accessibilityLabel="Select all visible athletes"
             accessibilityRole="button"
           >
-            <ThemedText style={{ color: colors.tint, ...Typography.small }}>
-              Select All
-            </ThemedText>
+            <ThemedText style={{ color: colors.tint, ...Typography.small }}>Select All</ThemedText>
           </Clickable>
           <Clickable
             onPress={onClear}
@@ -55,9 +53,7 @@ export const RosterSelectionBar = memo(function RosterSelectionBar({
             accessibilityLabel="Clear selection"
             accessibilityRole="button"
           >
-            <ThemedText style={{ color: colors.tint, ...Typography.small }}>
-              Clear
-            </ThemedText>
+            <ThemedText style={{ color: colors.tint, ...Typography.small }}>Clear</ThemedText>
           </Clickable>
         </Row>
       </Row>

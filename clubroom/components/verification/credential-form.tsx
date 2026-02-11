@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,10 +26,20 @@ interface CredentialFormProps {
 }
 
 export const CredentialForm = memo(function CredentialForm({
-  colors, selectedType, customName, uploaded, submitting,
-  onSelectType, onCustomNameChange, onUpload, onRemoveUpload, onSubmit, onClose,
+  colors,
+  selectedType,
+  customName,
+  uploaded,
+  submitting,
+  onSelectType,
+  onCustomNameChange,
+  onUpload,
+  onRemoveUpload,
+  onSubmit,
+  onClose,
 }: CredentialFormProps) {
-  const canSubmit = selectedType && uploaded && !submitting && (selectedType !== 'other' || customName);
+  const canSubmit =
+    selectedType && uploaded && !submitting && (selectedType !== 'other' || customName);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -51,7 +61,8 @@ export const CredentialForm = memo(function CredentialForm({
                 styles.typeItem,
                 {
                   borderColor: selectedType === type.id ? colors.tint : colors.border,
-                  backgroundColor: selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
+                  backgroundColor:
+                    selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
                 },
               ]}
             >
@@ -64,7 +75,9 @@ export const CredentialForm = memo(function CredentialForm({
                 >
                   {type.label}
                 </ThemedText>
-                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>{type.category}</ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  {type.category}
+                </ThemedText>
               </View>
               <Ionicons
                 name={selectedType === type.id ? 'radio-button-on' : 'radio-button-off'}
@@ -96,19 +109,27 @@ export const CredentialForm = memo(function CredentialForm({
             <Row
               gap="md"
               align="center"
-              style={[styles.uploadedRow, { borderColor: colors.success, backgroundColor: withAlpha(colors.success, 0.03) }]}
+              style={[
+                styles.uploadedRow,
+                { borderColor: colors.success, backgroundColor: withAlpha(colors.success, 0.03) },
+              ]}
             >
               <Ionicons name="document-text" size={24} color={colors.success} />
               <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>credential.pdf</ThemedText>
+                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                  credential.pdf
+                </ThemedText>
               </View>
               <Clickable accessibilityLabel="Remove uploaded document" onPress={onRemoveUpload}>
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </Clickable>
             </Row>
           ) : (
-            <Clickable onPress={onUpload} style={[styles.uploadArea, { borderColor: colors.border }]}>
+            <Clickable
+              onPress={onUpload}
+              style={[styles.uploadArea, { borderColor: colors.border }]}
+            >
               <Ionicons name="cloud-upload-outline" size={32} color={colors.muted} />
               <ThemedText style={{ color: colors.muted }}>Tap to upload certificate</ThemedText>
             </Clickable>

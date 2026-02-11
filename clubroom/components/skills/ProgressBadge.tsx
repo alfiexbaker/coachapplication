@@ -85,7 +85,7 @@ export function ProgressBadge({
       animatedProgress.value,
       [0, 100],
       [circumference, 0],
-      Extrapolation.CLAMP
+      Extrapolation.CLAMP,
     );
     return {
       strokeDashoffset,
@@ -106,11 +106,7 @@ export function ProgressBadge({
     >
       {/* Progress Ring */}
       <View style={[styles.ringContainer, { width: dimensions.outer, height: dimensions.outer }]}>
-        <Svg
-          width={dimensions.outer}
-          height={dimensions.outer}
-          style={styles.svg}
-        >
+        <Svg width={dimensions.outer} height={dimensions.outer} style={styles.svg}>
           {/* Background circle */}
           <Circle
             cx={dimensions.outer / 2}
@@ -159,7 +155,12 @@ export function ProgressBadge({
 
         {/* Completion check */}
         {isComplete && (
-          <View style={[styles.completeBadge, { backgroundColor: palette.success, borderColor: palette.surface }]}>
+          <View
+            style={[
+              styles.completeBadge,
+              { backgroundColor: palette.success, borderColor: palette.surface },
+            ]}
+          >
             <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
           </View>
         )}
@@ -187,10 +188,7 @@ export function ProgressBadge({
         ]}
       >
         <ThemedText
-          style={[
-            styles.progressText,
-            { color: isComplete ? palette.success : themeColor },
-          ]}
+          style={[styles.progressText, { color: isComplete ? palette.success : themeColor }]}
         >
           {Math.round(progress)}%
         </ThemedText>

@@ -15,8 +15,7 @@ import { rosterService } from '@/services/roster-service';
 import { squadService } from '@/services/squad-service';
 import type { Athlete, Squad } from '@/components/coach/invite-athlete-modal';
 import type { TargetType } from '@/components/invite/group-target-step';
-import type { TimeSlot, RosterEntry } from '@/constants/types';
-import type { SimplifiedUser } from '@/constants/types';
+import type { TimeSlot, RosterEntry , SimplifiedUser } from '@/constants/types';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 
 const logger = createLogger('GroupInviteScreen');

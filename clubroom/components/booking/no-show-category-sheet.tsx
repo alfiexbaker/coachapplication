@@ -61,7 +61,8 @@ export function NoShowCategorySheet({
 
   const handleSubmit = () => {
     if (!selected) return;
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSubmit({
       category: selected,
       note: note.trim() || undefined,
@@ -171,7 +172,9 @@ export function NoShowCategorySheet({
             disabled={!selected}
           >
             <Ionicons name="flag-outline" size={20} color={palette.onPrimary} />
-            <ThemedText style={[styles.submitBtnText, { color: palette.onPrimary }]}>Record No-Show</ThemedText>
+            <ThemedText style={[styles.submitBtnText, { color: palette.onPrimary }]}>
+              Record No-Show
+            </ThemedText>
           </Clickable>
         </View>
       </KeyboardAvoidingView>

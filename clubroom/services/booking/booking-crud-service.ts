@@ -22,7 +22,15 @@ import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  storageError,
+} from '@/types/result';
 
 const logger = createLogger('BookingCrudService');
 
@@ -186,21 +194,35 @@ class BookingCrudService {
   /**
    * Update a booking with partial fields
    */
-  async updateBooking(id: string, updates: Partial<Booking>): Promise<Result<Booking, ServiceError>> {
+  async updateBooking(
+    id: string,
+    updates: Partial<Booking>,
+  ): Promise<Result<Booking, ServiceError>> {
     const bookings = await this.loadFromStorage();
     const index = bookings.findIndex((b) => b.id === id);
     if (index === -1) return err(notFound('Booking', id));
 
     const updated = { ...bookings[index], ...updates };
     bookings[index] = updated;
-    await this.saveToStorage(bookings);
+    const saveResult = await this.saveToStorage(bookings);
+    if (!saveResult.success) {
+      return err(saveResult.error);
+    }
     return ok(updated);
   }
 
   async updateStatus(id: string, status: Booking['status']) {
     const bookings = await this.loadFromStorage();
     const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
-    await this.saveToStorage(updated);
+    const saveResult = await this.saveToStorage(updated);
+    if (!saveResult.success) {
+      logger.error('Failed to update booking status', {
+        bookingId: id,
+        status,
+        error: saveResult.error.message,
+      });
+      return undefined;
+    }
     return updated.find((b) => b.id === id);
   }
 
@@ -208,9 +230,18 @@ class BookingCrudService {
     const bookings = await this.loadFromStorage();
     const booking = bookings.find((b) => b.id === id);
     const updated = bookings.map((b) =>
-      b.id === id ? { ...b, status: 'CANCELLED' as const, cancellationReason: reason } : b
+      b.id === id ? { ...b, status: 'CANCELLED' as const, cancellationReason: reason } : b,
     );
-    await this.saveToStorage(updated);
+    const saveResult = await this.saveToStorage(updated);
+    if (!saveResult.success) {
+      logger.error('Failed to cancel booking', {
+        bookingId: id,
+        reason,
+        cancelledBy,
+        error: saveResult.error.message,
+      });
+      return undefined;
+    }
 
     // Notify the other party about the cancellation
     if (booking) {
@@ -226,7 +257,12 @@ class BookingCrudService {
         await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
       } else {
         // Notify parent when coach cancels
-        await notificationTriggers.bookingCancelled(booking.coachName || 'Coach', date, 'parent', booking.bookedById);
+        await notificationTriggers.bookingCancelled(
+          booking.coachName || 'Coach',
+          date,
+          'parent',
+          booking.bookedById,
+        );
       }
 
       // Emit typed event for cross-service reactions
@@ -250,18 +286,24 @@ class BookingCrudService {
     coachId: string,
     date: string,
     startTime: string,
-    durationMinutes: number = 60
+    durationMinutes: number = 60,
   ): Promise<{ valid: boolean; reason?: string }> {
     try {
-      const slots = await availabilityService.getAvailableSlots(coachId, date, date, durationMinutes);
-
-      // Find matching slot
-      const matchingSlot = slots.find(
-        (slot) => slot.date === date && slot.startTime === startTime
+      const slots = await availabilityService.getAvailableSlots(
+        coachId,
+        date,
+        date,
+        durationMinutes,
       );
 
+      // Find matching slot
+      const matchingSlot = slots.find((slot) => slot.date === date && slot.startTime === startTime);
+
       if (!matchingSlot) {
-        return { valid: false, reason: 'This time slot is not within the coach\'s available hours.' };
+        return {
+          valid: false,
+          reason: "This time slot is not within the coach's available hours.",
+        };
       }
 
       if (!matchingSlot.isAvailable) {
@@ -344,14 +386,22 @@ class BookingCrudService {
     try {
       const bookings = await this.loadFromStorage();
       bookings.push(newBooking as Booking);
-      await this.saveToStorage(bookings);
+      const saveResult = await this.saveToStorage(bookings);
+      if (!saveResult.success) {
+        return err(saveResult.error);
+      }
 
       // Create notifications for coach and parent
-      await this.createBookingNotifications(newBooking as Booking, bookedByName, athleteNames.join(', '));
+      await this.createBookingNotifications(
+        newBooking as Booking,
+        bookedByName,
+        athleteNames.join(', '),
+      );
 
       // Trigger notification for coach
       const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
-        month: 'short', day: 'numeric',
+        month: 'short',
+        day: 'numeric',
       });
       await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
 
@@ -381,7 +431,7 @@ class BookingCrudService {
   async createBookingNotifications(
     booking: Booking,
     bookedByName: string,
-    athleteDisplayName = 'Athlete'
+    athleteDisplayName = 'Athlete',
   ): Promise<void> {
     const scheduledDate = new Date(booking.scheduledAt);
     const formattedDate = scheduledDate.toLocaleDateString('en-GB', {
@@ -485,13 +535,14 @@ class BookingCrudService {
    * Skips per-slot availability validation (caller is responsible).
    * Each booking gets the provided seriesId and its index within the series.
    */
-  async createMultipleBookings(
-    bookings: Booking[]
-  ): Promise<Result<Booking[], ServiceError>> {
+  async createMultipleBookings(bookings: Booking[]): Promise<Result<Booking[], ServiceError>> {
     try {
       const existing = await this.loadFromStorage();
       existing.push(...bookings);
-      await this.saveToStorage(existing);
+      const saveResult = await this.saveToStorage(existing);
+      if (!saveResult.success) {
+        return err(saveResult.error);
+      }
 
       // Emit events for each booking
       for (const booking of bookings) {
@@ -528,7 +579,10 @@ class BookingCrudService {
     try {
       const bookings = await this.loadFromStorage();
       bookings.push(booking);
-      await this.saveToStorage(bookings);
+      const saveResult = await this.saveToStorage(bookings);
+      if (!saveResult.success) {
+        return { success: false, error: saveResult.error.message };
+      }
       return { success: true };
     } catch (error) {
       logger.error('Failed to save booking directly', error);

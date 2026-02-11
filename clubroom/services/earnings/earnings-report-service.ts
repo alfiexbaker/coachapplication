@@ -27,13 +27,7 @@ import type {
   PayoutMethod,
   Withdrawal,
 } from '@/constants/types';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  networkError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, networkError } from '@/types/result';
 
 const logger = createLogger('EarningsReportService');
 
@@ -325,7 +319,10 @@ let transactionsCache: EarningTransaction[] = [...MOCK_TRANSACTIONS];
 
 async function loadEarnings(): Promise<Record<string, CoachEarnings>> {
   try {
-    const stored = await apiClient.get<Record<string, CoachEarnings> | null>(STORAGE_KEYS.EARNINGS, null);
+    const stored = await apiClient.get<Record<string, CoachEarnings> | null>(
+      STORAGE_KEYS.EARNINGS,
+      null,
+    );
     if (stored) {
       return stored;
     }
@@ -369,7 +366,10 @@ async function loadWithdrawals(): Promise<Withdrawal[]> {
 
 async function loadTransactions(): Promise<EarningTransaction[]> {
   try {
-    const stored = await apiClient.get<EarningTransaction[] | null>(STORAGE_KEYS.EARNING_TRANSACTIONS, null);
+    const stored = await apiClient.get<EarningTransaction[] | null>(
+      STORAGE_KEYS.EARNING_TRANSACTIONS,
+      null,
+    );
     if (stored) {
       return stored;
     }
@@ -436,13 +436,10 @@ export const earningsReportService = {
         // Populate related data
         const coachTransactions = transactionsCache
           .filter((t) => t.coachId === coachId)
-          .sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         const pendingWithdrawals = withdrawalsCache.filter(
-          (w) =>
-            w.coachId === coachId && (w.status === 'PENDING' || w.status === 'PROCESSING')
+          (w) => w.coachId === coachId && (w.status === 'PENDING' || w.status === 'PROCESSING'),
         );
 
         const payoutMethods = payoutMethodsCache.filter((p) => p.coachId === coachId);
@@ -482,7 +479,7 @@ export const earningsReportService = {
     coachId: string,
     bookingId: string,
     amount: number,
-    sessionDate?: string
+    sessionDate?: string,
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording session payment', { coachId, bookingId, amount });
 
@@ -517,7 +514,7 @@ export const earningsReportService = {
           earningsCache[coachId].totalEarned += netAmount;
           earningsCache[coachId].totalSessions += 1;
           earningsCache[coachId].averageSessionValue = Math.round(
-            earningsCache[coachId].totalEarned / earningsCache[coachId].totalSessions
+            earningsCache[coachId].totalEarned / earningsCache[coachId].totalSessions,
           );
           earningsCache[coachId].updatedAt = new Date().toISOString();
           await saveEarnings(earningsCache);
@@ -578,7 +575,7 @@ export const earningsReportService = {
     coachId: string,
     bookingId: string,
     amount: number,
-    reason?: string
+    reason?: string,
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording refund', { coachId, bookingId, amount });
 
@@ -645,7 +642,7 @@ export const earningsReportService = {
    */
   async getTransactionHistory(
     coachId: string,
-    limit?: number
+    limit?: number,
   ): Promise<Result<EarningTransaction[], ServiceError>> {
     logger.debug('Getting transaction history', { coachId, limit });
 
@@ -654,9 +651,7 @@ export const earningsReportService = {
         transactionsCache = await loadTransactions();
         const coachTxns = transactionsCache
           .filter((t) => t.coachId === coachId)
-          .sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         return ok(limit ? coachTxns.slice(0, limit) : coachTxns);
       }

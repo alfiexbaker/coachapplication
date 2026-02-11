@@ -12,26 +12,60 @@ interface CalendarSquadFilterProps {
   onSelect: (id: string | null) => void;
 }
 
-export const CalendarSquadFilter = memo(function CalendarSquadFilter({ squads, selected, onSelect }: CalendarSquadFilterProps) {
+export const CalendarSquadFilter = memo(function CalendarSquadFilter({
+  squads,
+  selected,
+  onSelect,
+}: CalendarSquadFilterProps) {
   const { colors } = useTheme();
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.row}
+    >
       <Clickable
         onPress={() => onSelect(null)}
         accessibilityLabel="All squads"
-        style={[styles.chip, { backgroundColor: selected === null ? colors.tint : colors.surface, borderColor: selected === null ? colors.tint : colors.border }]}
+        style={[
+          styles.chip,
+          {
+            backgroundColor: selected === null ? colors.tint : colors.surface,
+            borderColor: selected === null ? colors.tint : colors.border,
+          },
+        ]}
       >
-        <ThemedText style={[Typography.caption, { color: selected === null ? colors.onPrimary : colors.muted }]}>All</ThemedText>
+        <ThemedText
+          style={[
+            Typography.caption,
+            { color: selected === null ? colors.onPrimary : colors.muted },
+          ]}
+        >
+          All
+        </ThemedText>
       </Clickable>
       {squads.map((squad) => (
         <Clickable
           key={squad.id}
           onPress={() => onSelect(squad.id === selected ? null : squad.id)}
           accessibilityLabel={`Filter by ${squad.name}`}
-          style={[styles.chip, { backgroundColor: selected === squad.id ? colors.tint : colors.surface, borderColor: selected === squad.id ? colors.tint : colors.border }]}
+          style={[
+            styles.chip,
+            {
+              backgroundColor: selected === squad.id ? colors.tint : colors.surface,
+              borderColor: selected === squad.id ? colors.tint : colors.border,
+            },
+          ]}
         >
-          <ThemedText style={[Typography.caption, { color: selected === squad.id ? colors.onPrimary : colors.muted }]}>{squad.name}</ThemedText>
+          <ThemedText
+            style={[
+              Typography.caption,
+              { color: selected === squad.id ? colors.onPrimary : colors.muted },
+            ]}
+          >
+            {squad.name}
+          </ThemedText>
         </Clickable>
       ))}
     </ScrollView>
@@ -40,5 +74,10 @@ export const CalendarSquadFilter = memo(function CalendarSquadFilter({ squads, s
 
 const styles = StyleSheet.create({
   row: { gap: Spacing.xs, paddingVertical: Spacing.xs / 2 },
-  chip: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.pill, borderWidth: 1 },
+  chip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
 });

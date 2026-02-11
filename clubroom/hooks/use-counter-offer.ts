@@ -57,61 +57,101 @@ export function useCounterOffer() {
     }
   }, [id]);
 
-  const { data: booking, status, error: loadError, retry } = useScreen<BookingData | null>({
+  const {
+    data: booking,
+    status,
+    error: loadError,
+    retry,
+  } = useScreen<BookingData | null>({
     load: loadBooking,
     deps: [id],
-    events: [ServiceEvents.BOOKING_UPDATED, ServiceEvents.BOOKING_CANCELLED, ServiceEvents.BOOKING_CONFIRMED],
+    events: [
+      ServiceEvents.BOOKING_UPDATED,
+      ServiceEvents.BOOKING_CANCELLED,
+      ServiceEvents.BOOKING_CONFIRMED,
+    ],
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
   });
 
   const getOriginalTime = useCallback((): TimeSlot => {
-    if (!booking) return { date: toDateStr(new Date()), startTime: '10:00', endTime: '11:00', location: 'TBD' };
+    if (!booking)
+      return { date: toDateStr(new Date()), startTime: '10:00', endTime: '11:00', location: 'TBD' };
     const scheduledDate = new Date(booking.scheduledAt);
     const date = toDateStr(scheduledDate);
-    const startTime = scheduledDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const startTime = scheduledDate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
     const endDate = new Date(scheduledDate);
     endDate.setHours(endDate.getHours() + 1);
-    const endTime = endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const endTime = endDate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
     return { date, startTime, endTime, location: booking.location };
   }, [booking]);
 
-  const handleSubmit = useCallback(async (proposedTime: TimeSlot, message?: string) => {
-    if (!booking) return;
-    try {
-      setIsSubmitting(true);
-      const createResult = await counterOfferService.createCounterOffer({
-        bookingId: booking.id, proposedBy: userRole,
-        proposerId: currentUser?.id || '',
-        proposerName: currentUser?.name || currentUser?.fullName || 'User',
-        originalTime: getOriginalTime(), proposedTime, message,
-      });
-      if (!createResult.success) {
-        Alert.alert('Error', createResult.error.message || 'Failed to send your proposal. Please try again.');
-        return;
+  const handleSubmit = useCallback(
+    async (proposedTime: TimeSlot, message?: string) => {
+      if (!booking) return;
+      try {
+        setIsSubmitting(true);
+        const createResult = await counterOfferService.createCounterOffer({
+          bookingId: booking.id,
+          proposedBy: userRole,
+          proposerId: currentUser?.id || '',
+          proposerName: currentUser?.name || currentUser?.fullName || 'User',
+          originalTime: getOriginalTime(),
+          proposedTime,
+          message,
+        });
+        if (!createResult.success) {
+          Alert.alert(
+            'Error',
+            createResult.error.message || 'Failed to send your proposal. Please try again.',
+          );
+          return;
+        }
+        Alert.alert(
+          'Proposal Sent',
+          `Your time change request has been sent to ${booking.coachName}. They will be notified and can accept, decline, or propose an alternative.`,
+          [{ text: 'OK', onPress: () => router.back() }],
+        );
+      } catch (err) {
+        logger.error('Failed to create counter-offer', err);
+        Alert.alert('Error', 'Failed to send your proposal. Please try again.');
+      } finally {
+        setIsSubmitting(false);
       }
-      Alert.alert('Proposal Sent',
-        `Your time change request has been sent to ${booking.coachName}. They will be notified and can accept, decline, or propose an alternative.`,
-        [{ text: 'OK', onPress: () => router.back() }]);
-    } catch (err) {
-      logger.error('Failed to create counter-offer', err);
-      Alert.alert('Error', 'Failed to send your proposal. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [booking, userRole, currentUser, getOriginalTime]);
+    },
+    [booking, userRole, currentUser, getOriginalTime],
+  );
 
   const handleCancel = useCallback(() => {
-    Alert.alert('Discard Changes?', 'Are you sure you want to cancel? Your proposal will not be saved.', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
-    ]);
+    Alert.alert(
+      'Discard Changes?',
+      'Are you sure you want to cancel? Your proposal will not be saved.',
+      [
+        { text: 'Keep Editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+      ],
+    );
   }, []);
 
   const goBack = useCallback(() => router.back(), []);
 
   return {
-    booking, isLoading: status === 'loading', isSubmitting, error: loadError?.message ?? null,
-    getOriginalTime, handleSubmit, handleCancel, goBack, loadBooking: retry,
+    booking,
+    isLoading: status === 'loading',
+    isSubmitting,
+    error: loadError?.message ?? null,
+    getOriginalTime,
+    handleSubmit,
+    handleCancel,
+    goBack,
+    loadBooking: retry,
   };
 }

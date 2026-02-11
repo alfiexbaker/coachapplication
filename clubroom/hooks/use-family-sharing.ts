@@ -8,7 +8,12 @@ import { useScreen } from '@/hooks/use-screen';
 import { familyService } from '@/services/family';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
-import type { FamilyAccount, FamilyGuardian, GuardianRole, GuardianPermission } from '@/constants/types';
+import type {
+  FamilyAccount,
+  FamilyGuardian,
+  GuardianRole,
+  GuardianPermission,
+} from '@/constants/types';
 
 const logger = createLogger('FamilySharing');
 
@@ -46,7 +51,10 @@ export function useFamilySharing() {
     }
 
     try {
-      const account = await familyService.getFamilyAccount(currentUser.id, currentUser.fullName || 'Parent');
+      const account = await familyService.getFamilyAccount(
+        currentUser.id,
+        currentUser.fullName || 'Parent',
+      );
       return ok<FamilyAccount | null>(account);
     } catch (error) {
       logger.error('Failed to load family data', error);
@@ -54,14 +62,7 @@ export function useFamilySharing() {
     }
   }, [currentUser?.id, currentUser?.fullName]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<FamilyAccount | null>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyAccount | null>({
     load: loadFamilyData,
     deps: [currentUser?.id],
     isEmpty: (value) => !value,
@@ -71,22 +72,40 @@ export function useFamilySharing() {
   const family = data ?? null;
 
   const resetInviteForm = useCallback(() => {
-    setInviteEmail(''); setInviteName(''); setInviteRole('GUARDIAN');
-    setInviteRelationship('Co-parent'); setInviteMessage('');
+    setInviteEmail('');
+    setInviteName('');
+    setInviteRole('GUARDIAN');
+    setInviteRelationship('Co-parent');
+    setInviteMessage('');
   }, []);
 
   const handleInvite = useCallback(async () => {
     if (!family || !currentUser) return;
-    if (!inviteEmail.trim()) { Alert.alert('Error', 'Please enter an email address'); return; }
-    if (!inviteEmail.includes('@')) { Alert.alert('Error', 'Please enter a valid email address'); return; }
+    if (!inviteEmail.trim()) {
+      Alert.alert('Error', 'Please enter an email address');
+      return;
+    }
+    if (!inviteEmail.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
     setInviting(true);
     try {
       await familyService.inviteGuardian(
-        family.id, currentUser.id, currentUser.fullName || 'Parent',
-        inviteEmail.trim(), inviteName.trim() || 'Guardian', inviteRole,
-        inviteRelationship, [], inviteMessage.trim() || undefined
+        family.id,
+        currentUser.id,
+        currentUser.fullName || 'Parent',
+        inviteEmail.trim(),
+        inviteName.trim() || 'Guardian',
+        inviteRole,
+        inviteRelationship,
+        [],
+        inviteMessage.trim() || undefined,
       );
-      Alert.alert('Invitation Sent', `An invitation has been sent to ${inviteEmail}. They'll receive instructions to join your family account.`);
+      Alert.alert(
+        'Invitation Sent',
+        `An invitation has been sent to ${inviteEmail}. They'll receive instructions to join your family account.`,
+      );
       setShowInviteModal(false);
       resetInviteForm();
       onRefresh();
@@ -97,36 +116,76 @@ export function useFamilySharing() {
     } finally {
       setInviting(false);
     }
-  }, [family, currentUser, inviteEmail, inviteName, inviteRole, inviteRelationship, inviteMessage, resetInviteForm, loadFamilyData]);
+  }, [
+    family,
+    currentUser,
+    inviteEmail,
+    inviteName,
+    inviteRole,
+    inviteRelationship,
+    inviteMessage,
+    resetInviteForm,
+    loadFamilyData,
+  ]);
 
-  const handleRemoveGuardian = useCallback((guardian: FamilyGuardian) => {
-    if (!family || !currentUser) return;
-    const guardianLabel = guardian.userId || 'Guardian';
-    Alert.alert('Remove Guardian',
-      `Are you sure you want to remove ${guardianLabel} from your family account? They will no longer be able to access your children's information.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: async () => {
-          try {
-            await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
-            Alert.alert('Removed', `${guardianLabel} has been removed from your family account.`);
-            onRefresh();
-          } catch (error: unknown) { Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove guardian'); }
-        }},
-      ]
-    );
-  }, [family, currentUser, onRefresh]);
+  const handleRemoveGuardian = useCallback(
+    (guardian: FamilyGuardian) => {
+      if (!family || !currentUser) return;
+      const guardianLabel = guardian.userId || 'Guardian';
+      Alert.alert(
+        'Remove Guardian',
+        `Are you sure you want to remove ${guardianLabel} from your family account? They will no longer be able to access your children's information.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
+                Alert.alert(
+                  'Removed',
+                  `${guardianLabel} has been removed from your family account.`,
+                );
+                onRefresh();
+              } catch (error: unknown) {
+                Alert.alert(
+                  'Error',
+                  error instanceof Error ? error.message : 'Failed to remove guardian',
+                );
+              }
+            },
+          },
+        ],
+      );
+    },
+    [family, currentUser, onRefresh],
+  );
 
-  const handleCancelInvite = useCallback((inviteId: string, email: string) => {
-    if (!family || !currentUser) return;
-    Alert.alert('Cancel Invitation', `Cancel the invitation to ${email}?`, [
-      { text: 'Keep', style: 'cancel' },
-      { text: 'Cancel Invite', style: 'destructive', onPress: async () => {
-        try { await familyService.cancelInvite(family.id, currentUser.id, inviteId); onRefresh(); }
-        catch (error: unknown) { Alert.alert('Error', error instanceof Error ? error.message : 'Failed to cancel invitation'); }
-      }},
-    ]);
-  }, [family, currentUser, onRefresh]);
+  const handleCancelInvite = useCallback(
+    (inviteId: string, email: string) => {
+      if (!family || !currentUser) return;
+      Alert.alert('Cancel Invitation', `Cancel the invitation to ${email}?`, [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Invite',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await familyService.cancelInvite(family.id, currentUser.id, inviteId);
+              onRefresh();
+            } catch (error: unknown) {
+              Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'Failed to cancel invitation',
+              );
+            }
+          },
+        },
+      ]);
+    },
+    [family, currentUser, onRefresh],
+  );
 
   return {
     status,
@@ -138,9 +197,19 @@ export function useFamilySharing() {
     family,
     showInviteModal,
     setShowInviteModal,
-    inviteEmail, setInviteEmail, inviteName, setInviteName,
-    inviteRole, setInviteRole, inviteRelationship, setInviteRelationship,
-    inviteMessage, setInviteMessage, inviting,
-    handleInvite, handleRemoveGuardian, handleCancelInvite,
+    inviteEmail,
+    setInviteEmail,
+    inviteName,
+    setInviteName,
+    inviteRole,
+    setInviteRole,
+    inviteRelationship,
+    setInviteRelationship,
+    inviteMessage,
+    setInviteMessage,
+    inviting,
+    handleInvite,
+    handleRemoveGuardian,
+    handleCancelInvite,
   };
 }

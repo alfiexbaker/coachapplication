@@ -77,7 +77,11 @@ function DiscoverCoachListInner({
         >
           <SurfaceCard style={styles.cardContent}>
             <Row align="center" gap="md">
-              <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+              <Row
+                align="center"
+                justify="center"
+                style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+              >
                 <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                   {coach.avatar || coach.name.charAt(0)}
                 </ThemedText>
@@ -105,12 +109,18 @@ function DiscoverCoachListInner({
                 <ThemedText style={[styles.price, { color: palette.text }]}>
                   {formatGBP(coach.profile.sessionRate || 120)}
                 </ThemedText>
-                <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>per session</ThemedText>
+                <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
+                  per session
+                </ThemedText>
               </View>
               <Ionicons name="chevron-forward" size={18} color={palette.muted} />
             </Row>
 
-            <Row align="center" gap="xs" style={[styles.nextAvailable, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+            <Row
+              align="center"
+              gap="xs"
+              style={[styles.nextAvailable, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+            >
               <Ionicons name="time-outline" size={14} color={palette.tint} />
               <ThemedText style={[styles.nextAvailableText, { color: palette.tint }]}>
                 {formatNextAvailable(nextAvailableSlots[coach.id])}
@@ -120,8 +130,16 @@ function DiscoverCoachListInner({
             {coach.profile.specialties && coach.profile.specialties.length > 0 && (
               <Row wrap gap="xs">
                 {coach.profile.specialties.slice(0, 3).map((focus: string, idx: number) => (
-                  <View key={idx} style={[styles.focusPill, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                    <ThemedText style={[styles.focusText, { color: palette.secondary }]}>{focus}</ThemedText>
+                  <View
+                    key={idx}
+                    style={[
+                      styles.focusPill,
+                      { backgroundColor: palette.surface, borderColor: palette.border },
+                    ]}
+                  >
+                    <ThemedText style={[styles.focusText, { color: palette.secondary }]}>
+                      {focus}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -149,11 +167,17 @@ const styles = StyleSheet.create({
   price: { ...Typography.heading, letterSpacing: -0.3 },
   priceLabel: { ...Typography.caption },
   nextAvailable: {
-    paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    alignSelf: 'flex-start',
   },
   nextAvailableText: { ...Typography.caption },
   focusPill: {
-    paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.sm, borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
   },
   focusText: { ...Typography.caption },
 });

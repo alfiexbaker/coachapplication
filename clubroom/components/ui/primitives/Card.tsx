@@ -12,20 +12,10 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { Components, Radii, Shadows, Spacing } from '@/constants/theme';
+import { Components, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
@@ -85,10 +75,7 @@ function CardInner({
     transform: [{ scale: scale.value }],
   }));
 
-  const themedBase = useMemo(
-    () => ({ backgroundColor: colors.surface }),
-    [colors],
-  );
+  const themedBase = useMemo(() => ({ backgroundColor: colors.surface }), [colors]);
 
   const variantStyle = useMemo(() => {
     switch (variant) {
@@ -120,9 +107,7 @@ function CardInner({
   }
 
   return (
-    <View style={[styles.base, themedBase, variantStyle, paddingStyle, style]}>
-      {children}
-    </View>
+    <View style={[styles.base, themedBase, variantStyle, paddingStyle, style]}>{children}</View>
   );
 }
 

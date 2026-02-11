@@ -27,7 +27,13 @@ interface RatingFormProps {
 }
 
 export const RatingForm = memo(function RatingForm({
-  coach, rating, reviewText, submitting, onRate, onToggleChip, onSubmit,
+  coach,
+  rating,
+  reviewText,
+  submitting,
+  onRate,
+  onToggleChip,
+  onSubmit,
 }: RatingFormProps) {
   const { colors: palette } = useTheme();
 
@@ -38,7 +44,9 @@ export const RatingForm = memo(function RatingForm({
         <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <Ionicons name="person" size={40} color={palette.tint} />
         </View>
-        <ThemedText type="subtitle" style={styles.coachName}>{coach.name}</ThemedText>
+        <ThemedText type="subtitle" style={styles.coachName}>
+          {coach.name}
+        </ThemedText>
         <ThemedText style={[styles.sessionCount, { color: palette.muted }]}>
           {coach.sessionCount} session{coach.sessionCount !== 1 ? 's' : ''} together
         </ThemedText>
@@ -46,26 +54,47 @@ export const RatingForm = memo(function RatingForm({
 
       {/* Star Rating */}
       <View style={styles.ratingSection}>
-        <ThemedText type="defaultSemiBold" style={styles.ratingLabel}>How was your experience?</ThemedText>
-        <View style={styles.starsContainer}><RatingStars rating={rating} onRate={onRate} /></View>
+        <ThemedText type="defaultSemiBold" style={styles.ratingLabel}>
+          How was your experience?
+        </ThemedText>
+        <View style={styles.starsContainer}>
+          <RatingStars rating={rating} onRate={onRate} />
+        </View>
         {rating > 0 && (
-          <ThemedText style={[styles.ratingHint, { color: palette.muted }]}>{RATING_LABELS[rating]}</ThemedText>
+          <ThemedText style={[styles.ratingHint, { color: palette.muted }]}>
+            {RATING_LABELS[rating]}
+          </ThemedText>
         )}
       </View>
 
       {/* Quick Feedback Chips */}
       <View style={styles.quickFeedback}>
-        <ThemedText type="defaultSemiBold" style={styles.feedbackLabel}>What stood out? (optional)</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.feedbackLabel}>
+          What stood out? (optional)
+        </ThemedText>
         <Row gap="xs" wrap>
           {FEEDBACK_CHIPS.map((label) => {
             const isSelected = reviewText.includes(label);
             return (
-              <Clickable key={label} onPress={() => onToggleChip(label)}
-                style={[styles.chip, {
-                  backgroundColor: isSelected ? palette.tint : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                }]}>
-                <ThemedText style={[styles.chipText, { color: isSelected ? palette.onPrimary : palette.text }]}>{label}</ThemedText>
+              <Clickable
+                key={label}
+                onPress={() => onToggleChip(label)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isSelected ? palette.tint : palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.chipText,
+                    { color: isSelected ? palette.onPrimary : palette.text },
+                  ]}
+                >
+                  {label}
+                </ThemedText>
               </Clickable>
             );
           })}
@@ -73,11 +102,17 @@ export const RatingForm = memo(function RatingForm({
       </View>
 
       {/* Submit Button */}
-      <Clickable onPress={onSubmit} disabled={submitting || rating === 0}
-        style={[styles.submitButton, {
-          backgroundColor: rating > 0 ? palette.tint : palette.muted,
-          opacity: submitting ? 0.6 : 1,
-        }]}>
+      <Clickable
+        onPress={onSubmit}
+        disabled={submitting || rating === 0}
+        style={[
+          styles.submitButton,
+          {
+            backgroundColor: rating > 0 ? palette.tint : palette.muted,
+            opacity: submitting ? 0.6 : 1,
+          },
+        ]}
+      >
         <Row align="center" justify="center" gap="sm">
           <Ionicons name="star" size={20} color={palette.onPrimary} />
           <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
@@ -92,7 +127,13 @@ export const RatingForm = memo(function RatingForm({
 const styles = StyleSheet.create({
   content: { flex: 1, padding: Spacing.lg, gap: Spacing.xl },
   coachHeader: { alignItems: 'center', gap: Spacing.sm },
-  avatarLarge: { width: 80, height: 80, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center' },
+  avatarLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   coachName: { ...Typography.title },
   sessionCount: { ...Typography.bodySmall },
   ratingSection: { alignItems: 'center', gap: Spacing.sm },
@@ -101,7 +142,12 @@ const styles = StyleSheet.create({
   ratingHint: { ...Typography.bodySmall },
   quickFeedback: { gap: Spacing.sm },
   feedbackLabel: { ...Typography.bodySmall },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
   chipText: { ...Typography.smallSemiBold },
   submitButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: 'auto' },
   submitText: { ...Typography.subheading },

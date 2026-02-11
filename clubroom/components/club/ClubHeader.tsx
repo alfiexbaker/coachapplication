@@ -29,17 +29,28 @@ export interface ClubHeaderProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos }: ClubHeaderProps) {
+export function ClubHeader({
+  club,
+  membership,
+  onLeave,
+  onManage,
+  onUpdatePhotos,
+}: ClubHeaderProps) {
   const { colors: palette } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
 
   const roleLabel = useMemo(() => {
     switch (membership.role) {
-      case 'OWNER': return 'Owner';
-      case 'HEAD_COACH': return 'Head Coach';
-      case 'ADMIN': return 'Admin';
-      case 'COACH': return 'Coach';
-      default: return 'Member';
+      case 'OWNER':
+        return 'Owner';
+      case 'HEAD_COACH':
+        return 'Head Coach';
+      case 'ADMIN':
+        return 'Admin';
+      case 'COACH':
+        return 'Coach';
+      default:
+        return 'Member';
     }
   }, [membership.role]);
 
@@ -48,28 +59,37 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
   const isOwner = membership.role === 'OWNER';
   const badgeText = club.name?.slice(0, 2).toUpperCase() || 'CL';
 
-  const pickImage = useCallback(async (type: 'profile' | 'cover') => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission required', 'Please allow access to your photo library to change the club photo.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: type === 'cover' ? [16, 9] : [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
-      onUpdatePhotos?.(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
-    }
-  }, [onUpdatePhotos]);
+  const pickImage = useCallback(
+    async (type: 'profile' | 'cover') => {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permission required',
+          'Please allow access to your photo library to change the club photo.',
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: type === 'cover' ? [16, 9] : [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const uri = result.assets[0].uri;
+        onUpdatePhotos?.(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
+      }
+    },
+    [onUpdatePhotos],
+  );
 
   const handleShareInvite = async () => {
     setShowMenu(false);
     try {
-      await Share.share({ message: `Join ${club.name} on the app! Use invite code: ${club.inviteCode}`, title: `Join ${club.name}` });
+      await Share.share({
+        message: `Join ${club.name} on the app! Use invite code: ${club.inviteCode}`,
+        title: `Join ${club.name}`,
+      });
     } catch {
       Alert.alert('Error', 'Failed to share invite code');
     }
@@ -84,7 +104,11 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
   const handleLeaveClub = () => {
     setShowMenu(false);
     if (isOwner) {
-      Alert.alert('Cannot Leave', 'As the club owner, you cannot leave. Please transfer ownership first or delete the club.', [{ text: 'OK' }]);
+      Alert.alert(
+        'Cannot Leave',
+        'As the club owner, you cannot leave. Please transfer ownership first or delete the club.',
+        [{ text: 'OK' }],
+      );
     } else {
       Alert.alert('Leave Club', `Are you sure you want to leave ${club.name}?`, [
         { text: 'Cancel', style: 'cancel' },
@@ -99,10 +123,42 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
   };
 
   const menuItems: ClubMenuItem[] = [
-    ...(canShareInvite ? [{ icon: 'share-outline' as const, label: 'Share Invite Code', onPress: handleShareInvite, color: palette.tint }] : []),
-    ...(canManage ? [{ icon: 'settings-outline' as const, label: 'Manage Club', onPress: handleManageClub, color: palette.text }] : []),
-    ...(canManage ? [{ icon: 'people-outline' as const, label: 'Create Group', onPress: handleCreateGroup, color: palette.text }] : []),
-    { icon: (isOwner ? 'trash-outline' : 'exit-outline') as keyof typeof Ionicons.glyphMap, label: isOwner ? 'Delete Club' : 'Leave Club', onPress: handleLeaveClub, color: palette.error },
+    ...(canShareInvite
+      ? [
+          {
+            icon: 'share-outline' as const,
+            label: 'Share Invite Code',
+            onPress: handleShareInvite,
+            color: palette.tint,
+          },
+        ]
+      : []),
+    ...(canManage
+      ? [
+          {
+            icon: 'settings-outline' as const,
+            label: 'Manage Club',
+            onPress: handleManageClub,
+            color: palette.text,
+          },
+        ]
+      : []),
+    ...(canManage
+      ? [
+          {
+            icon: 'people-outline' as const,
+            label: 'Create Group',
+            onPress: handleCreateGroup,
+            color: palette.text,
+          },
+        ]
+      : []),
+    {
+      icon: (isOwner ? 'trash-outline' : 'exit-outline') as keyof typeof Ionicons.glyphMap,
+      label: isOwner ? 'Delete Club' : 'Leave Club',
+      onPress: handleLeaveClub,
+      color: palette.error,
+    },
   ];
 
   return (
@@ -114,13 +170,24 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
         style={styles.coverPhotoContainer}
       >
         {club.coverPhotoUrl ? (
-          <Image source={{ uri: club.coverPhotoUrl }} style={styles.coverPhoto} resizeMode="cover" />
+          <Image
+            source={{ uri: club.coverPhotoUrl }}
+            style={styles.coverPhoto}
+            resizeMode="cover"
+          />
         ) : (
-          <View style={[styles.coverPhotoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+          <View
+            style={[
+              styles.coverPhotoPlaceholder,
+              { backgroundColor: withAlpha(palette.tint, 0.06) },
+            ]}
+          >
             {canManage && (
               <Row style={styles.coverPhotoHint}>
                 <Ionicons name="camera-outline" size={20} color={palette.muted} />
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Add cover photo</ThemedText>
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+                  Add cover photo
+                </ThemedText>
               </Row>
             )}
           </View>
@@ -140,9 +207,17 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
           style={styles.profilePhotoTouchable}
         >
           {club.profilePhotoUrl ? (
-            <Image source={{ uri: club.profilePhotoUrl }} style={[styles.clubAvatar, { borderColor: palette.surface }]} />
+            <Image
+              source={{ uri: club.profilePhotoUrl }}
+              style={[styles.clubAvatar, { borderColor: palette.surface }]}
+            />
           ) : (
-            <View style={[styles.clubAvatar, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.surface }]}>
+            <View
+              style={[
+                styles.clubAvatar,
+                { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.surface },
+              ]}
+            >
               <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
             </View>
           )}
@@ -154,10 +229,18 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
         </Clickable>
 
         <View style={{ flex: 1 }}>
-          <ThemedText type="title" style={{ ...Typography.title }}>{club.name}</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>{roleLabel} -- {club.memberCount} members</ThemedText>
+          <ThemedText type="title" style={{ ...Typography.title }}>
+            {club.name}
+          </ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            {roleLabel} -- {club.memberCount} members
+          </ThemedText>
           {club.tagline ? (
-            <ThemedText style={{ ...Typography.small, color: palette.muted, marginTop: Spacing.micro }}>{club.tagline}</ThemedText>
+            <ThemedText
+              style={{ ...Typography.small, color: palette.muted, marginTop: Spacing.micro }}
+            >
+              {club.tagline}
+            </ThemedText>
           ) : null}
         </View>
         <Clickable
@@ -189,13 +272,50 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
 const styles = StyleSheet.create({
   coverPhotoContainer: { width: '100%', marginBottom: -Spacing.lg },
   coverPhoto: { width: '100%', height: 140, borderRadius: Radii.md },
-  coverPhotoPlaceholder: { width: '100%', height: 140, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  coverPhotoPlaceholder: {
+    width: '100%',
+    height: 140,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   coverPhotoHint: { alignItems: 'center', gap: Spacing.xs },
-  coverEditBadge: { position: 'absolute', bottom: Spacing.xs, right: Spacing.xs, width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  coverEditBadge: {
+    position: 'absolute',
+    bottom: Spacing.xs,
+    right: Spacing.xs,
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   profilePhotoTouchable: { position: 'relative' },
-  profileEditBadge: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  profileEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clubHeader: { alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg },
-  clubAvatar: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
+  clubAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+  },
   clubAvatarText: { ...Typography.title },
-  menuButton: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

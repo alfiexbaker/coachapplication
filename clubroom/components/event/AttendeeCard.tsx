@@ -5,10 +5,7 @@ import { Spacing } from '@/constants/theme';
 import type { EventRSVP, EventAttendance } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-import {
-  CompactAttendeeCardInner,
-  AttendeeDetailContent,
-} from './attendee-card-sections';
+import { CompactAttendeeCardInner, AttendeeDetailContent } from './attendee-card-sections';
 
 interface AttendeeCardProps {
   rsvp?: EventRSVP;

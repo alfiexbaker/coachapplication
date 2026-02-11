@@ -28,8 +28,17 @@ interface AddRecoveryNoteProps {
 }
 
 export const AddRecoveryNote = memo(function AddRecoveryNote({
-  colors, showAddNote, noteText, noteProgress, saving, statusColor,
-  onOpenAddNote, onCancelAddNote, onSaveNote, onChangeText, onChangeProgress,
+  colors,
+  showAddNote,
+  noteText,
+  noteProgress,
+  saving,
+  statusColor,
+  onOpenAddNote,
+  onCancelAddNote,
+  onSaveNote,
+  onChangeText,
+  onChangeProgress,
   delay = 200,
 }: AddRecoveryNoteProps) {
   return (
@@ -43,10 +52,19 @@ export const AddRecoveryNote = memo(function AddRecoveryNote({
         </Button>
       ) : (
         <SurfaceCard style={styles.card}>
-          <ThemedText type="subtitle" style={styles.title}>Add Recovery Note</ThemedText>
+          <ThemedText type="subtitle" style={styles.title}>
+            Add Recovery Note
+          </ThemedText>
 
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             value={noteText}
             onChangeText={onChangeText}
             placeholder="How are you feeling? Any improvements?"
@@ -58,8 +76,12 @@ export const AddRecoveryNote = memo(function AddRecoveryNote({
 
           <View style={styles.progressSection}>
             <Row justify="space-between" align="center" style={styles.progressHeader}>
-              <ThemedText style={[styles.progressLabel, { color: colors.muted }]}>Recovery Progress</ThemedText>
-              <ThemedText style={[styles.progressValue, { color: statusColor }]}>{noteProgress}%</ThemedText>
+              <ThemedText style={[styles.progressLabel, { color: colors.muted }]}>
+                Recovery Progress
+              </ThemedText>
+              <ThemedText style={[styles.progressValue, { color: statusColor }]}>
+                {noteProgress}%
+              </ThemedText>
             </Row>
             <Slider
               style={styles.slider}
@@ -75,8 +97,14 @@ export const AddRecoveryNote = memo(function AddRecoveryNote({
           </View>
 
           <Row gap="sm">
-            <Button variant="secondary" onPress={onCancelAddNote} style={styles.button}>Cancel</Button>
-            <Button onPress={onSaveNote} disabled={!noteText.trim() || saving} style={styles.button}>
+            <Button variant="secondary" onPress={onCancelAddNote} style={styles.button}>
+              Cancel
+            </Button>
+            <Button
+              onPress={onSaveNote}
+              disabled={!noteText.trim() || saving}
+              style={styles.button}
+            >
               {saving ? 'Saving...' : 'Save Note'}
             </Button>
           </Row>
@@ -91,9 +119,13 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.md },
   title: { marginBottom: Spacing.md },
   input: {
-    borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md,
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    minHeight: 80, marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    ...Typography.body,
+    fontSize: scaleFont(Typography.body.fontSize),
+    minHeight: 80,
+    marginBottom: Spacing.md,
   },
   progressSection: { marginBottom: Spacing.md },
   progressHeader: { marginBottom: Spacing.xs },

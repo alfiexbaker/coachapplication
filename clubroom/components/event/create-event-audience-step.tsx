@@ -20,9 +20,24 @@ type AudienceKey = EventTargetAudience | 'SQUADS' | 'SPECIFIC_ATHLETES';
 
 const AUDIENCE_OPTIONS: { key: AudienceKey; label: string; description: string; icon: string }[] = [
   { key: 'ALL', label: 'Everyone', description: 'All club members', icon: 'globe-outline' },
-  { key: 'COACHES', label: 'Coaches Only', description: 'Staff and coaches', icon: 'school-outline' },
-  { key: 'SQUADS', label: 'Specific Squads', description: 'Select which squads to invite', icon: 'people-outline' },
-  { key: 'SPECIFIC_ATHLETES', label: 'Specific Athletes', description: 'Select individual athletes', icon: 'football-outline' },
+  {
+    key: 'COACHES',
+    label: 'Coaches Only',
+    description: 'Staff and coaches',
+    icon: 'school-outline',
+  },
+  {
+    key: 'SQUADS',
+    label: 'Specific Squads',
+    description: 'Select which squads to invite',
+    icon: 'people-outline',
+  },
+  {
+    key: 'SPECIFIC_ATHLETES',
+    label: 'Specific Athletes',
+    description: 'Select individual athletes',
+    icon: 'football-outline',
+  },
 ];
 
 interface CreateEventAudienceStepProps {
@@ -74,13 +89,19 @@ function CreateEventAudienceStepInner({
             style={[
               styles.audienceCard,
               {
-                backgroundColor: targetAudience === option.key ? withAlpha(palette.tint, 0.09) : palette.surface,
+                backgroundColor:
+                  targetAudience === option.key ? withAlpha(palette.tint, 0.09) : palette.surface,
                 borderColor: targetAudience === option.key ? palette.tint : palette.border,
               },
             ]}
           >
             <View style={styles.audienceRadio}>
-              <View style={[styles.radioOuter, { borderColor: targetAudience === option.key ? palette.tint : palette.border }]}>
+              <View
+                style={[
+                  styles.radioOuter,
+                  { borderColor: targetAudience === option.key ? palette.tint : palette.border },
+                ]}
+              >
                 {targetAudience === option.key && (
                   <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />
                 )}
@@ -93,7 +114,9 @@ function CreateEventAudienceStepInner({
             />
             <View style={styles.audienceInfo}>
               <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
-              <ThemedText style={[styles.audienceDesc, { color: palette.muted }]}>{option.description}</ThemedText>
+              <ThemedText style={[styles.audienceDesc, { color: palette.muted }]}>
+                {option.description}
+              </ThemedText>
             </View>
           </Clickable>
         ))}
@@ -112,10 +135,13 @@ function CreateEventAudienceStepInner({
             multiSelect
           />
           {selectedSquadIds.length > 0 && (
-            <Row style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+            <Row
+              style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+            >
               <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
               <ThemedText style={{ color: palette.tint, ...Typography.small }}>
-                {selectedSquadIds.length} squad{selectedSquadIds.length !== 1 ? 's' : ''} selected ({totalInviteCount} athletes)
+                {selectedSquadIds.length} squad{selectedSquadIds.length !== 1 ? 's' : ''} selected (
+                {totalInviteCount} athletes)
               </ThemedText>
             </Row>
           )}
@@ -154,13 +180,31 @@ function CreateEventAudienceStepInner({
         />
       </View>
 
-      <Clickable onPress={() => onFieldChange('rsvpRequired', !rsvpRequired)} style={styles.toggleRow}>
+      <Clickable
+        onPress={() => onFieldChange('rsvpRequired', !rsvpRequired)}
+        style={styles.toggleRow}
+      >
         <View style={styles.toggleInfo}>
           <ThemedText type="defaultSemiBold">Require RSVP</ThemedText>
-          <ThemedText style={[styles.toggleDesc, { color: palette.muted }]}>Ask members to confirm attendance</ThemedText>
+          <ThemedText style={[styles.toggleDesc, { color: palette.muted }]}>
+            Ask members to confirm attendance
+          </ThemedText>
         </View>
-        <View style={[styles.toggleSwitch, { backgroundColor: rsvpRequired ? palette.tint : palette.border }]}>
-          <View style={[styles.toggleHandle, { backgroundColor: palette.surface, transform: [{ translateX: rsvpRequired ? 18 : Spacing.micro }] }]} />
+        <View
+          style={[
+            styles.toggleSwitch,
+            { backgroundColor: rsvpRequired ? palette.tint : palette.border },
+          ]}
+        >
+          <View
+            style={[
+              styles.toggleHandle,
+              {
+                backgroundColor: palette.surface,
+                transform: [{ translateX: rsvpRequired ? 18 : Spacing.micro }],
+              },
+            ]}
+          />
         </View>
       </Clickable>
     </Animated.View>
@@ -175,21 +219,56 @@ const styles = StyleSheet.create({
   stepContent: { gap: Spacing.lg },
   stepTitle: { textAlign: 'center' },
   audienceGrid: { gap: Spacing.sm },
-  audienceCard: { alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.md },
+  audienceCard: {
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.md,
+  },
   audienceRadio: { alignItems: 'center', justifyContent: 'center' },
-  radioOuter: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   radioInner: { width: 12, height: 12, borderRadius: Radii.sm },
   audienceInfo: { flex: 1 },
-  audienceDesc: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), marginTop: Spacing.micro },
+  audienceDesc: {
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+    marginTop: Spacing.micro,
+  },
   selectorCard: { gap: Spacing.md },
   selectorHeader: { alignItems: 'center', gap: Spacing.sm },
-  selectionSummary: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
+  selectionSummary: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
   inputGroup: { gap: Spacing.xs },
-  inputLabel: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
-  input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
+  inputLabel: {
+    ...Typography.smallSemiBold,
+    fontSize: scaleFont(Typography.smallSemiBold.fontSize),
+  },
+  input: {
+    height: 48,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    ...Typography.body,
+    fontSize: scaleFont(Typography.body.fontSize),
+  },
   toggleRow: { alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md },
   toggleInfo: { flex: 1 },
-  toggleDesc: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize), marginTop: Spacing.micro },
+  toggleDesc: {
+    ...Typography.caption,
+    fontSize: scaleFont(Typography.caption.fontSize),
+    marginTop: Spacing.micro,
+  },
   toggleSwitch: { width: 48, height: 28, borderRadius: Radii.lg, justifyContent: 'center' },
   toggleHandle: { width: 24, height: 24, borderRadius: Radii.md },
 });

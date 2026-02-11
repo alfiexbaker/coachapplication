@@ -32,21 +32,40 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
             <Ionicons name="ribbon" size={28} color={palette.tint} />
           </View>
           <View style={styles.summaryInfo}>
-            <ThemedText type="heading" style={styles.summaryCount}>{awards.length}</ThemedText>
-            <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Total Badges Earned</ThemedText>
+            <ThemedText type="heading" style={styles.summaryCount}>
+              {awards.length}
+            </ThemedText>
+            <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
+              Total Badges Earned
+            </ThemedText>
           </View>
         </Row>
 
         <Row style={styles.categoryRow}>
           {[
-            { label: 'Leadership', count: awards.filter(a => a.badgeCategory === 'leadership').length, color: palette.premium },
-            { label: 'Technique', count: awards.filter(a => a.badgeCategory === 'technique').length, color: palette.success },
-            { label: 'Mindset', count: awards.filter(a => a.badgeCategory === 'mindset').length, color: palette.warning },
+            {
+              label: 'Leadership',
+              count: awards.filter((a) => a.badgeCategory === 'leadership').length,
+              color: palette.premium,
+            },
+            {
+              label: 'Technique',
+              count: awards.filter((a) => a.badgeCategory === 'technique').length,
+              color: palette.success,
+            },
+            {
+              label: 'Mindset',
+              count: awards.filter((a) => a.badgeCategory === 'mindset').length,
+              color: palette.warning,
+            },
           ].map((cat) => (
             <Row key={cat.label} style={styles.categoryItem}>
               <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
               <ThemedText style={[styles.categoryText, { color: palette.muted }]}>
-                {cat.label}: <ThemedText style={{ fontWeight: '600', color: palette.text }}>{cat.count}</ThemedText>
+                {cat.label}:{' '}
+                <ThemedText style={{ fontWeight: '600', color: palette.text }}>
+                  {cat.count}
+                </ThemedText>
               </ThemedText>
             </Row>
           ))}
@@ -65,25 +84,45 @@ function ProgressBadgesTabInner({ awards }: ProgressBadgesTabProps) {
           {awards.map((award, index) => (
             <Animated.View key={award.id} entering={FadeInRight.delay(index * 50).springify()}>
               <SurfaceCard style={styles.badgeCard}>
-                <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) }]}>
+                <View
+                  style={[
+                    styles.badgeIcon,
+                    { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) },
+                  ]}
+                >
                   <Ionicons
                     name={getBadgeIcon(award.badgeCategory)}
                     size={24}
                     color={getBadgeColor(award.badgeCategory)}
                   />
                   {award.badgeTier && (
-                    <View style={[styles.tierIndicator, { backgroundColor: getTierColor(award.badgeTier) }]}>
-                      <ThemedText style={[styles.tierText, { color: palette.onPrimary }]}>{award.badgeTier}</ThemedText>
+                    <View
+                      style={[
+                        styles.tierIndicator,
+                        { backgroundColor: getTierColor(award.badgeTier) },
+                      ]}
+                    >
+                      <ThemedText style={[styles.tierText, { color: palette.onPrimary }]}>
+                        {award.badgeTier}
+                      </ThemedText>
                     </View>
                   )}
-                    </View>
+                </View>
                 <View style={styles.badgeContent}>
-                  <ThemedText type="defaultSemiBold" style={styles.badgeLabel}>{award.badgeLabel}</ThemedText>
-                  <ThemedText style={[styles.badgeReason, { color: palette.muted }]}>{award.reason}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.badgeLabel}>
+                    {award.badgeLabel}
+                  </ThemedText>
+                  <ThemedText style={[styles.badgeReason, { color: palette.muted }]}>
+                    {award.reason}
+                  </ThemedText>
                   <Row style={styles.badgeMeta}>
-                    <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>{formatShortDateWithYear(award.awardedAt)}</ThemedText>
+                    <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>
+                      {formatShortDateWithYear(award.awardedAt)}
+                    </ThemedText>
                     {award.coachId && (
-                      <ThemedText style={[styles.badgeCoach, { color: palette.muted }]}>from {award.coachId}</ThemedText>
+                      <ThemedText style={[styles.badgeCoach, { color: palette.muted }]}>
+                        from {award.coachId}
+                      </ThemedText>
                     )}
                   </Row>
                 </View>
@@ -102,7 +141,13 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   summaryCard: { padding: Spacing.md, gap: Spacing.md },
   summaryHeader: { alignItems: 'center', gap: Spacing.md },
-  summaryIcon: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
+  summaryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   summaryInfo: { gap: Spacing.micro },
   summaryCount: { ...Typography.display },
   summaryLabel: { ...Typography.caption },
@@ -112,8 +157,24 @@ const styles = StyleSheet.create({
   categoryText: { ...Typography.caption },
   list: { gap: Spacing.sm },
   badgeCard: { padding: Spacing.md, gap: Spacing.md },
-  badgeIcon: { width: 52, height: 52, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  tierIndicator: { position: 'absolute', bottom: -2, right: -2, width: 18, height: 18, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  badgeIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  tierIndicator: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tierText: { ...Typography.micro },
   badgeContent: { flex: 1, gap: Spacing.xxs },
   badgeLabel: { ...Typography.bodySmall },

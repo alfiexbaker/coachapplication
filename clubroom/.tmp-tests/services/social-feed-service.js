@@ -79,23 +79,148 @@ const SEED_CLUBS = [
     },
 ];
 const SEED_MEMBERSHIPS = [
-    { clubId: 'club_lions', userId: 'coach1', role: 'HEAD_COACH', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-CLUB', canPostAsClub: true },
-    { clubId: 'club_lions', userId: 'coach2', role: 'COACH', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-COACH', canPostAsClub: true },
-    { clubId: 'club_lions', userId: 'user1', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
-    { clubId: 'club_lions', userId: 'user2', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
-    { clubId: 'club_lions', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
-    { clubId: 'club_lions', userId: 'user5', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'LIONS-PARENT' },
-    { clubId: 'club_eagles', userId: 'coach2', role: 'OWNER', status: 'active', joinSource: 'created', canPostAsClub: true },
-    { clubId: 'club_eagles', userId: 'coach1', role: 'COACH', status: 'active', joinSource: 'invite', inviteCode: 'EAGLES-COACH', canPostAsClub: true },
-    { clubId: 'club_eagles', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'EAGLES-JOIN' },
-    { clubId: 'club_warriors', userId: 'coach3', role: 'HEAD_COACH', status: 'active', joinSource: 'invite', inviteCode: 'WARRIORS-2026', canPostAsClub: true },
-    { clubId: 'club_warriors', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'WARRIORS-2026' },
-    { clubId: 'club_warriors', userId: 'user5', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'WARRIORS-2026' },
-    { clubId: 'club_phoenix', userId: 'coach2', role: 'COACH', status: 'active', joinSource: 'invite', inviteCode: 'PHOENIX-JOIN', canPostAsClub: true },
-    { clubId: 'club_phoenix', userId: 'user5', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'PHOENIX-JOIN' },
-    { clubId: 'club_united', userId: 'admin', role: 'OWNER', status: 'active', joinSource: 'created', canPostAsClub: true },
-    { clubId: 'club_united', userId: 'coach1', role: 'ADMIN', status: 'active', joinSource: 'invite', inviteCode: 'NLU-FAMILY', canPostAsClub: true },
-    { clubId: 'club_united', userId: 'user4', role: 'MEMBER', status: 'active', joinSource: 'invite', inviteCode: 'NLU-FAMILY' },
+    {
+        clubId: 'club_lions',
+        userId: 'coach1',
+        role: 'HEAD_COACH',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'LIONS-CLUB',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_lions',
+        userId: 'coach2',
+        role: 'COACH',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'LIONS-COACH',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_lions',
+        userId: 'user1',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'LIONS-PARENT',
+    },
+    {
+        clubId: 'club_lions',
+        userId: 'user2',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'LIONS-PARENT',
+    },
+    {
+        clubId: 'club_lions',
+        userId: 'user4',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'LIONS-PARENT',
+    },
+    {
+        clubId: 'club_lions',
+        userId: 'user5',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'LIONS-PARENT',
+    },
+    {
+        clubId: 'club_eagles',
+        userId: 'coach2',
+        role: 'OWNER',
+        status: 'active',
+        joinSource: 'created',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_eagles',
+        userId: 'coach1',
+        role: 'COACH',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'EAGLES-COACH',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_eagles',
+        userId: 'user4',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'EAGLES-JOIN',
+    },
+    {
+        clubId: 'club_warriors',
+        userId: 'coach3',
+        role: 'HEAD_COACH',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'WARRIORS-2026',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_warriors',
+        userId: 'user4',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'WARRIORS-2026',
+    },
+    {
+        clubId: 'club_warriors',
+        userId: 'user5',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'WARRIORS-2026',
+    },
+    {
+        clubId: 'club_phoenix',
+        userId: 'coach2',
+        role: 'COACH',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'PHOENIX-JOIN',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_phoenix',
+        userId: 'user5',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'PHOENIX-JOIN',
+    },
+    {
+        clubId: 'club_united',
+        userId: 'admin',
+        role: 'OWNER',
+        status: 'active',
+        joinSource: 'created',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_united',
+        userId: 'coach1',
+        role: 'ADMIN',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'NLU-FAMILY',
+        canPostAsClub: true,
+    },
+    {
+        clubId: 'club_united',
+        userId: 'user4',
+        role: 'MEMBER',
+        status: 'active',
+        joinSource: 'invite',
+        inviteCode: 'NLU-FAMILY',
+    },
 ];
 const SEED_FEED_POSTS = [
     {
@@ -293,8 +418,7 @@ function getAggregatedFeedInternal(userId, filter) {
     }));
 }
 function getPersonalFeedForCoachInternal(coachId) {
-    return sortByDateDesc(clubFeedStore.filter((post) => post.authorId === coachId &&
-        (post.feedType === 'PERSONAL' || post.feedType === 'BOTH')));
+    return sortByDateDesc(clubFeedStore.filter((post) => post.authorId === coachId && (post.feedType === 'PERSONAL' || post.feedType === 'BOTH')));
 }
 function getCombinedFeedForParentInternal(parentId, filter) {
     const clubPosts = getAggregatedFeedInternal(parentId, filter);
@@ -360,7 +484,7 @@ class ClubFeedService {
             audience: post.audience,
             feedType,
         });
-        const shouldNotify = input.notifyMembers ?? (input.postType === 'announcement');
+        const shouldNotify = input.notifyMembers ?? input.postType === 'announcement';
         if (shouldNotify) {
             void this.notifyClubMembers(input.clubId, input.clubName || 'your club', post.id, input.authorId);
         }

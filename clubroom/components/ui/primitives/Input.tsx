@@ -80,11 +80,7 @@ function InputInner({
   );
 
   const hasError = Boolean(error);
-  const borderColor = hasError
-    ? colors.error
-    : isFocused
-      ? colors.tint
-      : colors.border;
+  const borderColor = hasError ? colors.error : isFocused ? colors.tint : colors.border;
 
   const themedStyles = useMemo(
     () => ({
@@ -105,18 +101,12 @@ function InputInner({
 
   return (
     <View style={[styles.container, style]}>
-      {label ? (
-        <Text style={[styles.label, themedStyles.label]}>{label}</Text>
-      ) : null}
+      {label ? <Text style={[styles.label, themedStyles.label]}>{label}</Text> : null}
 
       <View style={styles.inputWrapper}>
         {leftIcon ? (
           <View style={styles.iconLeft}>
-            <Ionicons
-              name={leftIcon}
-              size={Components.icon.md}
-              color={colors.muted}
-            />
+            <Ionicons name={leftIcon} size={Components.icon.md} color={colors.muted} />
           </View>
         ) : null}
 
@@ -150,11 +140,7 @@ function InputInner({
 
         {rightIcon ? (
           <View style={styles.iconRight}>
-            <Ionicons
-              name={rightIcon}
-              size={Components.icon.md}
-              color={colors.muted}
-            />
+            <Ionicons name={rightIcon} size={Components.icon.md} color={colors.muted} />
           </View>
         ) : null}
       </View>

@@ -49,11 +49,7 @@ export function InviteResultCard({
       <SurfaceCard style={{ gap: Spacing.md }}>
         <InviteStatusHeader config={statusConfig} palette={palette} />
 
-        <InviteContextRow
-          squadName={squadName}
-          sessionTitle={sessionTitle}
-          palette={palette}
-        />
+        <InviteContextRow squadName={squadName} sessionTitle={sessionTitle} palette={palette} />
 
         {showDetails && (
           <InviteStatsBreakdown
@@ -64,9 +60,7 @@ export function InviteResultCard({
           />
         )}
 
-        {showDetails && (
-          <InviteErrorDetails errors={result.errors} palette={palette} />
-        )}
+        {showDetails && <InviteErrorDetails errors={result.errors} palette={palette} />}
 
         <InviteActionRow
           sent={result.sent}
@@ -82,7 +76,13 @@ export function InviteResultCard({
   );
 }
 
-export function CompactInviteResult({ result, onDismiss }: { result: BulkInviteResult; onDismiss?: () => void }) {
+export function CompactInviteResult({
+  result,
+  onDismiss,
+}: {
+  result: BulkInviteResult;
+  onDismiss?: () => void;
+}) {
   const { colors: palette } = useTheme();
   return <CompactInviteResultInner result={result} onDismiss={onDismiss} palette={palette} />;
 }

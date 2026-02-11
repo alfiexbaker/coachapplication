@@ -116,16 +116,30 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, [booking]);
 
   const handleCancelBooking = useCallback(() => {
-    Alert.alert('Cancel Booking', 'Are you sure you want to cancel this booking? This action cannot be undone.', [
-      { text: 'Keep Booking', style: 'cancel' },
-      { text: 'Cancel Booking', style: 'destructive', onPress: () => { Alert.alert('Success', 'Booking cancelled successfully'); router.back(); } },
-    ]);
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking? This action cannot be undone.',
+      [
+        { text: 'Keep Booking', style: 'cancel' },
+        {
+          text: 'Cancel Booking',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Success', 'Booking cancelled successfully');
+            router.back();
+          },
+        },
+      ],
+    );
   }, []);
 
   const handleRefund = useCallback(() => {
     Alert.alert('Issue Refund', 'Process a refund for this booking?', [
       { text: 'Back', style: 'cancel' },
-      { text: 'Process Refund', onPress: () => Alert.alert('Success', 'Refund processed successfully') },
+      {
+        text: 'Process Refund',
+        onPress: () => Alert.alert('Success', 'Refund processed successfully'),
+      },
     ]);
   }, []);
 
@@ -138,15 +152,21 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, []);
 
   // Pre-format date values for rendering
-  const formatted = booking ? (() => {
-    const date = new Date(booking.start);
-    return {
-      weekday: date.toLocaleDateString('en-GB', { weekday: 'long' }),
-      dateStr: date.toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' }),
-      time: date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' }),
-      coachPhotoUrl: booking.coach?.photoUrl || 'https://i.pravatar.cc/100',
-    };
-  })() : null;
+  const formatted = booking
+    ? (() => {
+        const date = new Date(booking.start);
+        return {
+          weekday: date.toLocaleDateString('en-GB', { weekday: 'long' }),
+          dateStr: date.toLocaleDateString('en-GB', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          time: date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' }),
+          coachPhotoUrl: booking.coach?.photoUrl || 'https://i.pravatar.cc/100',
+        };
+      })()
+    : null;
 
   return {
     booking,

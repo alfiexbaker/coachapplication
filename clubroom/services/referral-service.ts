@@ -202,7 +202,7 @@ async function saveReferrals(referrals: Referral[]): Promise<void> {
 async function generateCode(
   userId: string,
   userName: string = 'USER',
-  creditAmount: number = DEFAULT_CREDIT_AMOUNT
+  creditAmount: number = DEFAULT_CREDIT_AMOUNT,
 ): Promise<Result<ReferralCode, ServiceError>> {
   const codes = await getAllCodes();
 
@@ -253,7 +253,10 @@ async function generateCode(
  * @param userName - The user's display name (used if creating new code)
  * @returns The user's referral code
  */
-async function getUserCode(userId: string, userName: string = 'USER'): Promise<Result<ReferralCode, ServiceError>> {
+async function getUserCode(
+  userId: string,
+  userName: string = 'USER',
+): Promise<Result<ReferralCode, ServiceError>> {
   const codes = await getAllCodes();
   const existingCode = codes.find((c) => c.userId === userId && c.isActive);
 
@@ -284,7 +287,7 @@ async function getCodeByString(code: string): Promise<ReferralCode | null> {
  */
 async function validateCode(
   code: string,
-  newUserId: string
+  newUserId: string,
 ): Promise<{ valid: boolean; error?: string; referralCode?: ReferralCode }> {
   const referralCode = await getCodeByString(code);
 
@@ -334,7 +337,7 @@ async function validateCode(
 async function applyReferralCode(
   newUserId: string,
   _newUserName: string,
-  code: string
+  code: string,
 ): Promise<{ success: boolean; referral?: Referral; error?: string }> {
   const validation = await validateCode(code, newUserId);
 
@@ -390,7 +393,7 @@ async function applyReferralCode(
  */
 async function completeReferral(
   referralId: string,
-  bookingId: string
+  bookingId: string,
 ): Promise<{ success: boolean; referral?: Referral; error?: string }> {
   const referrals = await getAllReferrals();
   const referralIndex = referrals.findIndex((r) => r.id === referralId);
@@ -424,7 +427,7 @@ async function completeReferral(
     await walletService.applyPromoCredit(
       referral.referrerId,
       creditAmount,
-      `REFERRAL-${referral.code}`
+      `REFERRAL-${referral.code}`,
     );
 
     logger.info('referral_credit_awarded', {
@@ -468,11 +471,11 @@ async function completeReferral(
  */
 async function completeReferralByReferee(
   refereeId: string,
-  bookingId: string
+  bookingId: string,
 ): Promise<{ success: boolean; referral?: Referral; error?: string }> {
   const referrals = await getAllReferrals();
   const pendingReferral = referrals.find(
-    (r) => r.refereeId === refereeId && r.status === 'PENDING'
+    (r) => r.refereeId === refereeId && r.status === 'PENDING',
   );
 
   if (!pendingReferral) {
@@ -493,17 +496,16 @@ async function completeReferralByReferee(
  * @returns Referral statistics
  */
 async function getReferralStats(userId: string): Promise<Result<ReferralStats, ServiceError>> {
-  const [referrals, codeResult] = await Promise.all([
-    getAllReferrals(),
-    getUserCode(userId),
-  ]);
+  const [referrals, codeResult] = await Promise.all([getAllReferrals(), getUserCode(userId)]);
 
   if (!codeResult.success) return codeResult;
   const code = codeResult.data;
 
   const userReferrals = referrals.filter((r) => r.referrerId === userId);
   const completedReferrals = userReferrals.filter((r) => r.status === 'COMPLETED');
-  const pendingReferrals = userReferrals.filter((r) => r.status === 'PENDING' && !isReferralExpired(r));
+  const pendingReferrals = userReferrals.filter(
+    (r) => r.status === 'PENDING' && !isReferralExpired(r),
+  );
 
   const totalEarned = completedReferrals.reduce((sum, r) => sum + r.creditAwarded, 0);
 
@@ -571,9 +573,11 @@ async function wasUserReferred(userId: string): Promise<boolean> {
  */
 async function getPendingReferralForUser(userId: string): Promise<Referral | null> {
   const referrals = await getAllReferrals();
-  return referrals.find(
-    (r) => r.refereeId === userId && r.status === 'PENDING' && !isReferralExpired(r)
-  ) ?? null;
+  return (
+    referrals.find(
+      (r) => r.refereeId === userId && r.status === 'PENDING' && !isReferralExpired(r),
+    ) ?? null
+  );
 }
 
 // ============================================================================

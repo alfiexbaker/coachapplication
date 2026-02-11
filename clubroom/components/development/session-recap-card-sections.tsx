@@ -39,7 +39,15 @@ export interface BadgeBannerProps {
 
 export const BadgeBanner = memo(function BadgeBanner({ badgeName, palette }: BadgeBannerProps) {
   return (
-    <Row style={[styles.badgeBanner, { backgroundColor: withAlpha(palette.warning, 0.09), borderColor: withAlpha(palette.warning, 0.25) }]}>
+    <Row
+      style={[
+        styles.badgeBanner,
+        {
+          backgroundColor: withAlpha(palette.warning, 0.09),
+          borderColor: withAlpha(palette.warning, 0.25),
+        },
+      ]}
+    >
       <Ionicons name="ribbon" size={20} color={palette.warning} />
       <View style={styles.badgeText}>
         <ThemedText style={[styles.badgeLabel, { color: palette.warning }]}>
@@ -80,13 +88,9 @@ export const RecapActions = memo(function RecapActions({
       )}
       {onSave && (
         <Clickable onPress={onSave} accessibilityLabel="Save">
-          <View
-            style={[styles.button, styles.buttonOutline, { borderColor: palette.border }]}
-          >
+          <View style={[styles.button, styles.buttonOutline, { borderColor: palette.border }]}>
             <Ionicons name="bookmark-outline" size={18} color={palette.tint} />
-            <ThemedText style={[styles.buttonText, { color: palette.tint }]}>
-              Save
-            </ThemedText>
+            <ThemedText style={[styles.buttonText, { color: palette.tint }]}>Save</ThemedText>
           </View>
         </Clickable>
       )}

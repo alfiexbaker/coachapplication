@@ -19,7 +19,14 @@
 import { apiClient } from './api-client';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, validationError, conflictError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  validationError,
+  conflictError,
+} from '@/types/result';
 import type {
   PromoCode,
   PromoCodeUsage,
@@ -233,7 +240,9 @@ async function saveUsage(usage: PromoCodeUsage[]): Promise<void> {
  * @param params - Parameters for the new code
  * @returns The created promo code
  */
-async function createPromoCode(params: CreatePromoCodeParams): Promise<Result<PromoCode, ServiceError>> {
+async function createPromoCode(
+  params: CreatePromoCodeParams,
+): Promise<Result<PromoCode, ServiceError>> {
   const codes = await getAllCodes();
   const normalizedCode = normalizeCode(params.code);
 
@@ -319,10 +328,7 @@ async function getPromoCodeByString(code: string): Promise<PromoCode | null> {
  * @param userId - The user attempting to use the code
  * @returns Validation result with error message if invalid
  */
-async function validateCode(
-  code: string,
-  userId: string
-): Promise<PromoCodeValidationResult> {
+async function validateCode(code: string, userId: string): Promise<PromoCodeValidationResult> {
   const normalizedCode = normalizeCode(code);
 
   if (!normalizedCode) {
@@ -350,9 +356,7 @@ async function validateCode(
   // Check if user has already used this code (if onePerUser is true)
   if (promoCode.onePerUser) {
     const usage = await getAllUsage();
-    const userUsage = usage.find(
-      (u) => u.codeId === promoCode.id && u.userId === userId
-    );
+    const userUsage = usage.find((u) => u.codeId === promoCode.id && u.userId === userId);
     if (userUsage) {
       return { valid: false, error: 'You have already used this promo code' };
     }
@@ -371,7 +375,7 @@ async function validateCode(
 async function redeemCode(
   userId: string,
   code: string,
-  _userName?: string
+  _userName?: string,
 ): Promise<PromoCodeRedemptionResult> {
   // Validate the code first
   const validation = await validateCode(code, userId);
@@ -388,7 +392,7 @@ async function redeemCode(
     const walletResult = await walletService.applyPromoCredit(
       userId,
       promoCode.creditAmount,
-      promoCode.code
+      promoCode.code,
     );
 
     if (!walletResult.success) {
@@ -519,7 +523,9 @@ async function reactivateCode(codeId: string): Promise<PromoCode | null> {
  */
 async function updatePromoCode(
   codeId: string,
-  updates: Partial<Pick<PromoCode, 'maxUses' | 'expiresAt' | 'description' | 'isActive' | 'onePerUser'>>
+  updates: Partial<
+    Pick<PromoCode, 'maxUses' | 'expiresAt' | 'description' | 'isActive' | 'onePerUser'>
+  >,
 ): Promise<PromoCode | null> {
   const codes = await getAllCodes();
   const codeIndex = codes.findIndex((c) => c.id === codeId);
@@ -574,7 +580,7 @@ async function getCodeStats(): Promise<PromoCodeStats> {
   const [codes, usage] = await Promise.all([getAllCodes(), getAllUsage()]);
 
   const activeCodes = codes.filter(
-    (c) => c.isActive && !isCodeExpired(c) && !isCodeExhausted(c)
+    (c) => c.isActive && !isCodeExpired(c) && !isCodeExhausted(c),
   ).length;
   const expiredCodes = codes.filter((c) => isCodeExpired(c)).length;
   const exhaustedCodes = codes.filter((c) => isCodeExhausted(c) && !isCodeExpired(c)).length;

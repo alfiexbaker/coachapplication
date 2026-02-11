@@ -80,9 +80,7 @@ export function PackageList({
             </ThemedText>
           )}
           {subtitle && (
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              {subtitle}
-            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</ThemedText>
           )}
         </View>
       )}

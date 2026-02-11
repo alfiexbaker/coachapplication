@@ -61,18 +61,13 @@ export function useMatchesScreen() {
       return ok<MatchesData>({ matches: data });
     } catch (loadError) {
       logger.error('Failed to load matches:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load matches. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load matches. Pull down to refresh.', loadError),
+      );
     }
   }, [filter]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<MatchesData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<MatchesData>({
     load: loadMatches,
     deps: [filter],
     isEmpty: (value) => value.matches.length === 0,
@@ -87,8 +82,10 @@ export function useMatchesScreen() {
   }, []);
 
   const stats = useMemo(() => {
-    const completed = matches.filter(m => m.status === 'COMPLETED');
-    let wins = 0, draws = 0, losses = 0;
+    const completed = matches.filter((m) => m.status === 'COMPLETED');
+    let wins = 0,
+      draws = 0,
+      losses = 0;
 
     for (const match of completed) {
       if (!match.result) continue;
@@ -112,7 +109,8 @@ export function useMatchesScreen() {
 
     for (const match of matches) {
       const monthYear = new Date(match.date).toLocaleDateString('en-GB', {
-        month: 'long', year: 'numeric',
+        month: 'long',
+        year: 'numeric',
       });
 
       if (!groups[monthYear]) groups[monthYear] = [];
@@ -123,8 +121,18 @@ export function useMatchesScreen() {
   }, [matches]);
 
   return {
-    matches, filter, setFilter, loading, status, error, refreshing, onRefresh, retry, isCoach,
-    stats, groupedMatches,
+    matches,
+    filter,
+    setFilter,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    isCoach,
+    stats,
+    groupedMatches,
     handleCreateMatch,
   } satisfies UseMatchesScreenResult;
 }

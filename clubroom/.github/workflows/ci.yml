@@ -26,7 +26,7 @@ jobs:
         run: npm ci
 
       - name: Type Check
-        run: npx tsc -p tsconfig.typecheck.json --noEmit
+        run: npm run typecheck -- --noEmit
 
       - name: Lint
         run: npx expo lint
@@ -38,4 +38,4 @@ jobs:
         run: npm run test:compile
 
       - name: Run Tests
-        run: node --require ./scripts/test-register.js --test '.tmp-tests/__tests__/**/*.js' '.tmp-tests/services/**/*.test.js'
+        run: node --require ./scripts/test-register.js --test $(find .tmp-tests/__tests__ -type f -name '*.js' | sort) $(find .tmp-tests/services -type f -name '*.test.js' | sort)

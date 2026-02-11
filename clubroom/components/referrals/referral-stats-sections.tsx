@@ -39,9 +39,7 @@ export const StatItem = memo(function StatItem({
       <ThemedText type="title" style={styles.statValue}>
         {value}
       </ThemedText>
-      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
+      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{label}</ThemedText>
     </View>
   );
 });
@@ -61,9 +59,7 @@ export const CompactStatItem = memo(function CompactStatItem({
       <ThemedText type="defaultSemiBold" style={styles.compactValue}>
         {value}
       </ThemedText>
-      <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
+      <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>{label}</ThemedText>
     </Row>
   );
 });
@@ -92,7 +88,13 @@ export const StatCard = memo(function StatCard({
   flex,
 }: StatCardProps) {
   return (
-    <View style={[styles.statCard, { backgroundColor: palette.background }, flex ? styles.flexCard : undefined]}>
+    <View
+      style={[
+        styles.statCard,
+        { backgroundColor: palette.background },
+        flex ? styles.flexCard : undefined,
+      ]}
+    >
       <View style={[styles.statCardIcon, { backgroundColor: iconBgColor }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>

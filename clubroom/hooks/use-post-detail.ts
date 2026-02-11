@@ -95,11 +95,13 @@ export function usePostDetail() {
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
-  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(
+    null,
+  );
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  const normalized = useMemo(() => post ? normalizePost(post) : null, [post]);
+  const normalized = useMemo(() => (post ? normalizePost(post) : null), [post]);
 
   useEffect(() => {
     if (!normalized) return;
@@ -160,47 +162,66 @@ export function usePostDetail() {
     logger.press('LikePost', { postId });
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLiked((previousLiked) => {
-      setLikeCount((previousCount) => previousLiked ? previousCount - 1 : previousCount + 1);
+      setLikeCount((previousCount) => (previousLiked ? previousCount - 1 : previousCount + 1));
       return !previousLiked;
     });
   }, [postId]);
 
-  const handleLikeComment = useCallback(async (commentId: string) => {
-    if (!currentUser) return;
-    const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
-    if (result.success) {
-      setActionError(null);
-      onRefresh();
-      return;
-    }
-    setActionError(result.error.message);
-  }, [currentUser, onRefresh]);
+  const handleLikeComment = useCallback(
+    async (commentId: string) => {
+      if (!currentUser) return;
+      const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
+      if (result.success) {
+        setActionError(null);
+        onRefresh();
+        return;
+      }
+      setActionError(result.error.message);
+    },
+    [currentUser, onRefresh],
+  );
 
-  const handleReply = useCallback((commentId: string, authorName: string) => { setReplyingTo({ commentId, authorName }); }, []);
+  const handleReply = useCallback((commentId: string, authorName: string) => {
+    setReplyingTo({ commentId, authorName });
+  }, []);
   const handleCancelReply = useCallback(() => setReplyingTo(null), []);
 
-  const handleDeleteComment = useCallback(async (commentId: string) => {
-    if (!currentUser) return;
-    Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        const result = await commentService.deleteComment({ commentId, userId: currentUser.id });
-        if (result.success) {
-          setActionError(null);
-          onRefresh();
-          return;
-        }
-        setActionError(result.error.message);
-      }},
-    ]);
-  }, [currentUser, onRefresh]);
+  const handleDeleteComment = useCallback(
+    async (commentId: string) => {
+      if (!currentUser) return;
+      Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await commentService.deleteComment({
+              commentId,
+              userId: currentUser.id,
+            });
+            if (result.success) {
+              setActionError(null);
+              onRefresh();
+              return;
+            }
+            setActionError(result.error.message);
+          },
+        },
+      ]);
+    },
+    [currentUser, onRefresh],
+  );
 
   const handleSubmitComment = useCallback(async () => {
     if (!newComment.trim() || !currentUser) return;
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const result = await commentService.createComment({
-      postId: postId ?? '', authorId: currentUser.id, authorName: currentUser.name,
-      authorAvatar: currentUser.avatar, content: newComment, parentId: replyingTo?.commentId,
+      postId: postId ?? '',
+      authorId: currentUser.id,
+      authorName: currentUser.name,
+      authorAvatar: currentUser.avatar,
+      content: newComment,
+      parentId: replyingTo?.commentId,
     });
     if (result.success) {
       setActionError(null);
@@ -218,21 +239,42 @@ export function usePostDetail() {
   const postTitle = normalized?.title;
   const postCreatedAt = normalized?.createdAt ?? '';
   const initials = postAuthorAvatar?.slice(0, 2) ?? postAuthorName.slice(0, 2).toUpperCase();
-  const error = actionError ?? (status === 'error' ? (loadError as ServiceError | null)?.message ?? 'Failed to load comments.' : null);
+  const error =
+    actionError ??
+    (status === 'error'
+      ? ((loadError as ServiceError | null)?.message ?? 'Failed to load comments.')
+      : null);
 
   return {
-    post, postAuthorName, postAuthorAvatar, postContent, postTitle, postCreatedAt, initials,
-    currentUser, flatItems,
+    post,
+    postAuthorName,
+    postAuthorAvatar,
+    postContent,
+    postTitle,
+    postCreatedAt,
+    initials,
+    currentUser,
+    flatItems,
     loading: status === 'loading',
     status,
     error,
     refreshing,
     onRefresh,
     retry,
-    newComment, setNewComment,
-    replyingTo, liked, likeCount, totalCommentCount,
-    loadComments: retry, handleRefresh: onRefresh, handleLikePost, handleLikeComment,
-    handleReply, handleCancelReply, handleDeleteComment, handleSubmitComment,
+    newComment,
+    setNewComment,
+    replyingTo,
+    liked,
+    likeCount,
+    totalCommentCount,
+    loadComments: retry,
+    handleRefresh: onRefresh,
+    handleLikePost,
+    handleLikeComment,
+    handleReply,
+    handleCancelReply,
+    handleDeleteComment,
+    handleSubmitComment,
   } satisfies {
     post: Post | ClubFeedPost | null;
     postAuthorName: string;

@@ -10,27 +10,43 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Coach } from '@/services/coach-service';
 import { Row } from '@/components/primitives';
 
-interface CoachDetailSessionsProps { coach: Coach; onBook: () => void; }
+interface CoachDetailSessionsProps {
+  coach: Coach;
+  onBook: () => void;
+}
 
-export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, onBook }: CoachDetailSessionsProps) {
+export const CoachDetailSessions = memo(function CoachDetailSessions({
+  coach,
+  onBook,
+}: CoachDetailSessionsProps) {
   const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeIn} style={styles.tabContent}>
       {/* Pricing */}
       <SurfaceCard style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Pricing</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Pricing
+        </ThemedText>
         <Row style={styles.pricingRow}>
           <View style={styles.priceBox}>
             <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>From</ThemedText>
-            <ThemedText type="title" style={{ color: palette.tint }}>£{coach.minPriceUsd}</ThemedText>
-            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>per session</ThemedText>
+            <ThemedText type="title" style={{ color: palette.tint }}>
+              £{coach.minPriceUsd}
+            </ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+              per session
+            </ThemedText>
           </View>
           {coach.maxPriceUsd && coach.maxPriceUsd !== coach.minPriceUsd && (
             <View style={styles.priceBox}>
               <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>Up to</ThemedText>
-              <ThemedText type="title" style={{ color: palette.tint }}>£{coach.maxPriceUsd}</ThemedText>
-              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>per session</ThemedText>
+              <ThemedText type="title" style={{ color: palette.tint }}>
+                £{coach.maxPriceUsd}
+              </ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+                per session
+              </ThemedText>
             </View>
           )}
         </Row>
@@ -38,14 +54,20 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
 
       {/* Availability */}
       <SurfaceCard style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Availability</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Availability
+        </ThemedText>
         {coach.nextAvailable ? (
           <Row style={styles.availabilityRow}>
             <Ionicons name="calendar-outline" size={20} color={palette.success} />
             <ThemedText>
               Next available:{' '}
               <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
-                {new Date(coach.nextAvailable).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {new Date(coach.nextAvailable).toLocaleDateString('en-GB', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                })}
               </ThemedText>
             </ThemedText>
           </Row>
@@ -56,18 +78,28 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
 
       {/* Stats */}
       <SurfaceCard style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Stats</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Stats
+        </ThemedText>
         <Row style={styles.statsGrid}>
           <View style={styles.statItem}>
-            <ThemedText type="title" style={{ color: palette.tint }}>{coach.totalSessions}</ThemedText>
-            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Sessions</ThemedText>
+            <ThemedText type="title" style={{ color: palette.tint }}>
+              {coach.totalSessions}
+            </ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+              Sessions
+            </ThemedText>
           </View>
           <View style={styles.statItem}>
-            <ThemedText type="title" style={{ color: palette.tint }}>{coach.rating.toFixed(1)}</ThemedText>
+            <ThemedText type="title" style={{ color: palette.tint }}>
+              {coach.rating.toFixed(1)}
+            </ThemedText>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Rating</ThemedText>
           </View>
           <View style={styles.statItem}>
-            <ThemedText type="title" style={{ color: palette.tint }}>{new Date().getFullYear() - new Date(coach.joinedAt || Date.now()).getFullYear()}+</ThemedText>
+            <ThemedText type="title" style={{ color: palette.tint }}>
+              {new Date().getFullYear() - new Date(coach.joinedAt || Date.now()).getFullYear()}+
+            </ThemedText>
             <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Years</ThemedText>
           </View>
         </Row>
@@ -75,7 +107,9 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({ coach, on
 
       <Button onPress={onBook} style={styles.bookButton}>
         <Ionicons name="calendar" size={18} color={palette.onPrimary} />
-        <ThemedText style={{ color: palette.onPrimary, fontWeight: '700', marginLeft: 8 }}>Book a Session</ThemedText>
+        <ThemedText style={{ color: palette.onPrimary, fontWeight: '700', marginLeft: 8 }}>
+          Book a Session
+        </ThemedText>
       </Button>
     </Animated.View>
   );

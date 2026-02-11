@@ -31,7 +31,10 @@ export default function BackgroundCheckScreen() {
 
   if (screenStatus === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -39,15 +42,24 @@ export default function BackgroundCheckScreen() {
 
   if (screenStatus === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-        <ErrorState message={error?.message || 'Failed to load background check status.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message || 'Failed to load background check status.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (screenStatus === 'empty' || !status) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="shield-outline"
           title="Verification unavailable"
@@ -77,14 +89,25 @@ export default function BackgroundCheckScreen() {
             <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={48} color={colors.success} />
             </View>
-            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>Background Check Complete</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+              Background Check Complete
+            </ThemedText>
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-              Your enhanced DBS check was completed on {status?.backgroundCheck.verifiedAt ? new Date(status.backgroundCheck.verifiedAt).toLocaleDateString() : 'N/A'}
+              Your enhanced DBS check was completed on{' '}
+              {status?.backgroundCheck.verifiedAt
+                ? new Date(status.backgroundCheck.verifiedAt).toLocaleDateString()
+                : 'N/A'}
             </ThemedText>
             {status?.backgroundCheck.expiresAt && (
-              <Row align="center" gap="xs" style={[styles.expiryBadge, { backgroundColor: withAlpha(colors.success, 0.06) }]}>
+              <Row
+                align="center"
+                gap="xs"
+                style={[styles.expiryBadge, { backgroundColor: withAlpha(colors.success, 0.06) }]}
+              >
                 <Ionicons name="calendar" size={16} color={colors.success} />
-                <ThemedText style={{ color: colors.success, ...Typography.small }}>Valid until {new Date(status.backgroundCheck.expiresAt).toLocaleDateString()}</ThemedText>
+                <ThemedText style={{ color: colors.success, ...Typography.small }}>
+                  Valid until {new Date(status.backgroundCheck.expiresAt).toLocaleDateString()}
+                </ThemedText>
               </Row>
             )}
           </SurfaceCard>
@@ -93,20 +116,47 @@ export default function BackgroundCheckScreen() {
             <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
               <Ionicons name="hourglass" size={48} color={colors.warning} />
             </View>
-            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>Check In Progress</ThemedText>
-            <ThemedText style={[styles.statusText, { color: colors.muted }]}>Your background check is being processed. This typically takes 2-5 business days.</ThemedText>
-            <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
-              <ThemedText style={{ color: colors.success, fontWeight: '600' }}>Mock: Complete Now</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+              Check In Progress
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
+              Your background check is being processed. This typically takes 2-5 business days.
+            </ThemedText>
+            <Clickable
+              onPress={handleMockApprove}
+              style={[styles.mockButton, { borderColor: colors.success }]}
+            >
+              <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
+                Mock: Complete Now
+              </ThemedText>
             </Clickable>
           </SurfaceCard>
         ) : (
           <>
-            <ThemedText style={{ color: colors.muted }}>Complete an enhanced DBS (Disclosure and Barring Service) check to verify your suitability to work with children and young people.</ThemedText>
+            <ThemedText style={{ color: colors.muted }}>
+              Complete an enhanced DBS (Disclosure and Barring Service) check to verify your
+              suitability to work with children and young people.
+            </ThemedText>
 
             <SurfaceCard style={styles.infoCard}>
-              <InfoRow icon="shield" title="Enhanced DBS Check" subtitle="Required for working with children" colors={colors} />
-              <InfoRow icon="time" title="Processing Time" subtitle="2-5 business days on average" colors={colors} />
-              <InfoRow icon="card" title="Cost" subtitle="Free for Clubroom coaches (Mock)" colors={colors} />
+              <InfoRow
+                icon="shield"
+                title="Enhanced DBS Check"
+                subtitle="Required for working with children"
+                colors={colors}
+              />
+              <InfoRow
+                icon="time"
+                title="Processing Time"
+                subtitle="2-5 business days on average"
+                colors={colors}
+              />
+              <InfoRow
+                icon="card"
+                title="Cost"
+                subtitle="Free for Clubroom coaches (Mock)"
+                colors={colors}
+              />
             </SurfaceCard>
 
             <View style={styles.section}>
@@ -116,13 +166,19 @@ export default function BackgroundCheckScreen() {
                   <Row key={step.id} gap="md" style={styles.stepRow}>
                     <View style={styles.stepIndicator}>
                       <View style={[styles.stepNumber, { backgroundColor: colors.tint }]}>
-                        <ThemedText style={[styles.stepNumberText, { color: colors.onPrimary }]}>{step.id}</ThemedText>
+                        <ThemedText style={[styles.stepNumberText, { color: colors.onPrimary }]}>
+                          {step.id}
+                        </ThemedText>
                       </View>
-                      {index < BG_CHECK_STEPS.length - 1 && <View style={[styles.stepLine, { backgroundColor: colors.border }]} />}
+                      {index < BG_CHECK_STEPS.length - 1 && (
+                        <View style={[styles.stepLine, { backgroundColor: colors.border }]} />
+                      )}
                     </View>
                     <View style={styles.stepContent}>
                       <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
-                      <ThemedText style={{ color: colors.muted, ...Typography.small }}>{step.description}</ThemedText>
+                      <ThemedText style={{ color: colors.muted, ...Typography.small }}>
+                        {step.description}
+                      </ThemedText>
                     </View>
                   </Row>
                 ))}
@@ -131,15 +187,24 @@ export default function BackgroundCheckScreen() {
 
             <View style={styles.requirements}>
               <ThemedText type="defaultSemiBold">You will need</ThemedText>
-              {['Valid government-issued ID', 'Proof of address (utility bill, bank statement)', 'National Insurance number', '5 years of address history'].map((req, i) => (
+              {[
+                'Valid government-issued ID',
+                'Proof of address (utility bill, bank statement)',
+                'National Insurance number',
+                '5 years of address history',
+              ].map((req, i) => (
                 <Row key={i} align="center" gap="sm">
                   <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  <ThemedText style={{ color: colors.muted, ...Typography.bodySmall, flex: 1 }}>{req}</ThemedText>
+                  <ThemedText style={{ color: colors.muted, ...Typography.bodySmall, flex: 1 }}>
+                    {req}
+                  </ThemedText>
                 </Row>
               ))}
             </View>
 
-            <Button onPress={handleStartCheck} disabled={submitting}>{submitting ? 'Starting...' : 'Start Background Check'}</Button>
+            <Button onPress={handleStartCheck} disabled={submitting}>
+              {submitting ? 'Starting...' : 'Start Background Check'}
+            </Button>
           </>
         )}
       </ScrollView>
@@ -147,7 +212,17 @@ export default function BackgroundCheckScreen() {
   );
 }
 
-function InfoRow({ icon, title, subtitle, colors }: { icon: string; title: string; subtitle: string; colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'] }) {
+function InfoRow({
+  icon,
+  title,
+  subtitle,
+  colors,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
+}) {
   return (
     <Row align="center" gap="md">
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={colors.tint} />
@@ -165,17 +240,40 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
-  statusIcon: { width: 80, height: 80, borderRadius: Radii['3xl'], justifyContent: 'center', alignItems: 'center' },
+  statusIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii['3xl'],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   statusTitle: { ...Typography.heading },
   statusText: { textAlign: 'center', ...Typography.bodySmall, paddingHorizontal: Spacing.md },
-  expiryBadge: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.md, borderRadius: Radii.pill, marginTop: Spacing.xs },
-  mockButton: { marginTop: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: Radii.button, borderWidth: 1.5 },
+  expiryBadge: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.pill,
+    marginTop: Spacing.xs,
+  },
+  mockButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.button,
+    borderWidth: 1.5,
+  },
   infoCard: { gap: Spacing.md },
   section: { gap: Spacing.sm },
   stepsContainer: { gap: 0 },
   stepRow: {},
   stepIndicator: { alignItems: 'center', width: 32 },
-  stepNumber: { width: 28, height: 28, borderRadius: Radii.lg, justifyContent: 'center', alignItems: 'center' },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   stepNumberText: { ...Typography.bodySmallSemiBold },
   stepLine: { width: 2, flex: 1, minHeight: 24, marginVertical: Spacing.xxs },
   stepContent: { flex: 1, paddingBottom: Spacing.md, gap: Spacing.micro },

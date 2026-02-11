@@ -5,10 +5,7 @@
  * demo data seeding, and data clearing.
  */
 
-import {
-  Wallet,
-  WalletTransaction,
-} from '@/constants/types';
+import { Wallet, WalletTransaction } from '@/constants/types';
 import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -40,16 +37,21 @@ class WalletUtilsService {
   /**
    * Get wallet summary for display
    */
-  async getWalletSummary(userId: string): Promise<Result<{
-    wallet: Wallet;
-    recentTransactions: WalletTransaction[];
-    stats: {
-      totalTopUps: number;
-      totalPayments: number;
-      totalRefunds: number;
-      transactionCount: number;
-    };
-  }, ServiceError>> {
+  async getWalletSummary(userId: string): Promise<
+    Result<
+      {
+        wallet: Wallet;
+        recentTransactions: WalletTransaction[];
+        stats: {
+          totalTopUps: number;
+          totalPayments: number;
+          totalRefunds: number;
+          transactionCount: number;
+        };
+      },
+      ServiceError
+    >
+  > {
     const walletResult = await walletCrudService.getWallet(userId);
     if (!walletResult.success) {
       return walletResult;
@@ -69,7 +71,7 @@ class WalletUtilsService {
       totalPayments: Math.abs(
         transactions
           .filter((t) => t.type === 'BOOKING_PAYMENT' && t.status === 'COMPLETED')
-          .reduce((sum, t) => sum + t.amount, 0)
+          .reduce((sum, t) => sum + t.amount, 0),
       ),
       totalRefunds: transactions
         .filter((t) => t.type === 'BOOKING_REFUND' && t.status === 'COMPLETED')
@@ -94,7 +96,9 @@ class WalletUtilsService {
    * Seed demo wallet data (for testing/demos)
    */
   async seedDemoData(): Promise<Result<void, ServiceError>> {
-    const saveWalletsResult = await walletCrudService.saveWallets(walletCrudService.getMockWallets());
+    const saveWalletsResult = await walletCrudService.saveWallets(
+      walletCrudService.getMockWallets(),
+    );
     if (!saveWalletsResult.success) {
       return saveWalletsResult;
     }

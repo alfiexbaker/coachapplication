@@ -33,11 +33,17 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
       <SurfaceCard style={styles.card}>
         {/* Header */}
         <Row align="center" gap="md">
-          <Row align="center" justify="center" style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <Row
+            align="center"
+            justify="center"
+            style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+          >
             <Ionicons name="shield" size={24} color={palette.tint} />
           </Row>
           <View style={styles.headerInfo}>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>Club Hub</ThemedText>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>
+              Club Hub
+            </ThemedText>
             <ThemedText style={{ ...Typography.small, color: palette.muted }}>
               {userClubs.length > 0
                 ? `${userClubs.length} club${userClubs.length > 1 ? 's' : ''} joined`
@@ -52,10 +58,10 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
               styles.viewButton,
               { backgroundColor: palette.tint, opacity: pressed ? 0.8 : 1 },
             ]}
-            >
-              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
-                {userClubs.length > 0 ? 'View All' : 'Browse'}
-              </ThemedText>
+          >
+            <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
+              {userClubs.length > 0 ? 'View All' : 'Browse'}
+            </ThemedText>
           </Clickable>
         </Row>
 
@@ -78,19 +84,27 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
                 ]}
               >
                 <Row align="center" gap="sm">
-                  <Row align="center" justify="center" style={[styles.clubBadge, { backgroundColor: palette.tint }]}>
+                  <Row
+                    align="center"
+                    justify="center"
+                    style={[styles.clubBadge, { backgroundColor: palette.tint }]}
+                  >
                     <ThemedText style={[styles.clubBadgeText, { color: palette.surface }]}>
                       {club.badge?.slice(0, 2) || club.name.slice(0, 2).toUpperCase()}
                     </ThemedText>
                   </Row>
                   <View style={styles.clubInfo}>
-                  <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }} numberOfLines={1}>
-                    {club.name}
-                  </ThemedText>
-                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-                    {club.memberCount} members
-                  </ThemedText>
-                </View>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={{ ...Typography.bodySmall }}
+                      numberOfLines={1}
+                    >
+                      {club.name}
+                    </ThemedText>
+                    <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+                      {club.memberCount} members
+                    </ThemedText>
+                  </View>
                   <Ionicons name="chevron-forward" size={16} color={palette.muted} />
                 </Row>
               </Clickable>
@@ -101,7 +115,14 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
         {/* Join section */}
         <View style={[styles.joinSection, { borderTopColor: palette.border }]}>
           <Row align="center" gap="sm">
-            <Row align="center" gap="sm" style={[styles.inviteInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            <Row
+              align="center"
+              gap="sm"
+              style={[
+                styles.inviteInput,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+              ]}
+            >
               <Ionicons name="key-outline" size={16} color={palette.muted} />
               <TextInput
                 value={clubInviteCode}
@@ -127,7 +148,11 @@ function DiscoverClubHubInner({ userClubs }: DiscoverClubHubProps) {
                 },
               ]}
             >
-              <Ionicons name="arrow-forward" size={18} color={clubInviteCode.trim() ? palette.surface : palette.muted} />
+              <Ionicons
+                name="arrow-forward"
+                size={18}
+                color={clubInviteCode.trim() ? palette.surface : palette.muted}
+              />
             </Clickable>
           </Row>
         </View>
@@ -143,20 +168,46 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   iconCircle: { width: 48, height: 48, borderRadius: Radii.xl },
   headerInfo: { flex: 1 },
-  viewButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, minHeight: 44 },
+  viewButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    minHeight: 44,
+  },
   clubList: { gap: Spacing.sm },
   clubItem: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
   },
-  clubBadge: { width: 32, height: 32, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  clubBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clubBadgeText: { ...Typography.caption },
   clubInfo: { flex: 1 },
   joinSection: { borderTopWidth: 1, paddingTop: Spacing.md },
   inviteInput: {
     flex: 1,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
   },
   inviteText: { ...Typography.bodySmall, flex: 1 },
-  joinButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  joinButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

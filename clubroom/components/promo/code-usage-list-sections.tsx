@@ -58,9 +58,7 @@ export const UsageItem = memo(function UsageItem({
             </ThemedText>
           )}
           {showCode && (
-            <ThemedText style={[styles.codeLabel, { color: palette.tint }]}>
-              {item.code}
-            </ThemedText>
+            <ThemedText style={[styles.codeLabel, { color: palette.tint }]}>{item.code}</ThemedText>
           )}
           <ThemedText style={[styles.usageTime, { color: palette.muted }]}>
             {formatTimeAgo(item.usedAt)}

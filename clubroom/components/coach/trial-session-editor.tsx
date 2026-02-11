@@ -24,12 +24,12 @@ import { trialService, type TrialOffering } from '@/services/trial-service';
 import { useTheme } from '@/hooks/useTheme';
 import { TrialDiscoveryPreview } from './trial-discovery-preview';
 
+import { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
 export type { TrialFormValues, TrialFormFieldsProps } from './trial-session-editor-sections';
-
-import { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
-import { Row } from '@/components/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,7 +58,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [limitPerFamily, setLimitPerFamily] = useState('1');
   const [description, setDescription] = useState(
-    'Try a session with no commitment. See if we are the right fit for your child.'
+    'Try a session with no commitment. See if we are the right fit for your child.',
   );
 
   useEffect(() => {
@@ -83,8 +83,17 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
   const handleSave = useCallback(async () => {
     if (enabled) {
-      const error = validateTrialForm({ trialPrice, normalPrice, durationMinutes, limitPerFamily, description });
-      if (error) { Alert.alert('Validation Error', error); return; }
+      const error = validateTrialForm({
+        trialPrice,
+        normalPrice,
+        durationMinutes,
+        limitPerFamily,
+        description,
+      });
+      if (error) {
+        Alert.alert('Validation Error', error);
+        return;
+      }
     }
 
     setSaving(true);
@@ -98,13 +107,25 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         description,
       });
       onSave?.(offering);
-      Alert.alert('Saved', enabled ? 'Trial session offering is now live.' : 'Trial sessions have been disabled.');
+      Alert.alert(
+        'Saved',
+        enabled ? 'Trial session offering is now live.' : 'Trial sessions have been disabled.',
+      );
     } catch {
       Alert.alert('Error', 'Failed to save trial settings. Please try again.');
     } finally {
       setSaving(false);
     }
-  }, [enabled, trialPrice, normalPrice, durationMinutes, limitPerFamily, description, coachId, onSave]);
+  }, [
+    enabled,
+    trialPrice,
+    normalPrice,
+    durationMinutes,
+    limitPerFamily,
+    description,
+    coachId,
+    onSave,
+  ]);
 
   if (loading) {
     return (
@@ -131,7 +152,8 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
       <View style={styles.headerArea}>
         <ThemedText style={[Typography.title, { color: palette.text }]}>Trial Sessions</ThemedText>
         <ThemedText style={[Typography.body, { color: palette.muted, marginTop: Spacing.xs / 2 }]}>
-          Offer discounted first sessions to attract new families. Parents can only use a trial once per family.
+          Offer discounted first sessions to attract new families. Parents can only use a trial once
+          per family.
         </ThemedText>
       </View>
 
@@ -156,11 +178,15 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
       {enabled && (
         <TrialFormFields
-          trialPrice={trialPrice} normalPrice={normalPrice}
-          durationMinutes={durationMinutes} limitPerFamily={limitPerFamily}
+          trialPrice={trialPrice}
+          normalPrice={normalPrice}
+          durationMinutes={durationMinutes}
+          limitPerFamily={limitPerFamily}
           description={description}
-          onTrialPriceChange={setTrialPrice} onNormalPriceChange={setNormalPrice}
-          onDurationChange={setDurationMinutes} onLimitChange={setLimitPerFamily}
+          onTrialPriceChange={setTrialPrice}
+          onNormalPriceChange={setNormalPrice}
+          onDurationChange={setDurationMinutes}
+          onLimitChange={setLimitPerFamily}
           onDescriptionChange={setDescription}
           palette={palette}
         />
@@ -169,7 +195,13 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
       <TrialDiscoveryPreview offering={currentOffering} coachName={coachName} palette={palette} />
 
       <Clickable
-        style={[styles.saveButton, { backgroundColor: palette.tint }, saving ? styles.saveButtonDisabled : undefined].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.saveButton,
+            { backgroundColor: palette.tint },
+            saving ? styles.saveButtonDisabled : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
         onPress={handleSave}
         disabled={saving}
       >

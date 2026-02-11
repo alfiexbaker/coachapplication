@@ -29,17 +29,14 @@ export const seenService = {
   async markSeen(
     entityType: string,
     entityId: string,
-    userId: string
+    userId: string,
   ): Promise<Result<void, ServiceError>> {
     try {
       const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
 
       // Check if already marked as seen
       const existing = entries.find(
-        (e) =>
-          e.entityType === entityType &&
-          e.entityId === entityId &&
-          e.seenBy === userId,
+        (e) => e.entityType === entityType && e.entityId === entityId && e.seenBy === userId,
       );
 
       if (!existing) {
@@ -65,13 +62,11 @@ export const seenService = {
    */
   async getSeenStatus(
     entityType: string,
-    entityId: string
+    entityId: string,
   ): Promise<Result<{ seenBy: string; seenAt: string } | null, ServiceError>> {
     try {
       const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
-      const match = entries.find(
-        (e) => e.entityType === entityType && e.entityId === entityId,
-      );
+      const match = entries.find((e) => e.entityType === entityType && e.entityId === entityId);
 
       if (!match) return ok(null);
 
@@ -87,7 +82,7 @@ export const seenService = {
    */
   async getSeenStatuses(
     entityType: string,
-    entityIds: string[]
+    entityIds: string[],
   ): Promise<Result<{ entityId: string; seenBy: string; seenAt: string }[], ServiceError>> {
     try {
       const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);

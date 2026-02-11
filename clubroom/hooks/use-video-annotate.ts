@@ -89,11 +89,9 @@ export function useVideoAnnotate(id: string | undefined) {
     setShowAnnotationForm(true);
   }, []);
 
-  const handleDeleteAnnotation = useCallback((annotation: VideoAnnotation) => {
-    Alert.alert(
-      'Delete Annotation',
-      `Are you sure you want to delete "${annotation.label}"?`,
-      [
+  const handleDeleteAnnotation = useCallback(
+    (annotation: VideoAnnotation) => {
+      Alert.alert('Delete Annotation', `Are you sure you want to delete "${annotation.label}"?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -109,43 +107,45 @@ export function useVideoAnnotate(id: string | undefined) {
             }
           },
         },
-      ]
-    );
-  }, [video, loadVideo]);
+      ]);
+    },
+    [video, loadVideo],
+  );
 
-  const handleSaveAnnotation = useCallback(async (
-    annotation: Omit<VideoAnnotation, 'id'>
-  ) => {
-    if (!video) return;
+  const handleSaveAnnotation = useCallback(
+    async (annotation: Omit<VideoAnnotation, 'id'>) => {
+      if (!video) return;
 
-    try {
-      if (editingAnnotation) {
-        await videoService.updateAnnotation(video.id, editingAnnotation.id, {
-          label: annotation.label,
-          note: annotation.note,
-          type: annotation.type,
-        });
-      } else {
-        await videoService.createAnnotation(
-          video.id,
-          {
-            timestamp: annotation.timestamp,
+      try {
+        if (editingAnnotation) {
+          await videoService.updateAnnotation(video.id, editingAnnotation.id, {
             label: annotation.label,
             note: annotation.note,
             type: annotation.type,
-          },
-          currentUser?.id,
-          currentUser?.name
-        );
-      }
+          });
+        } else {
+          await videoService.createAnnotation(
+            video.id,
+            {
+              timestamp: annotation.timestamp,
+              label: annotation.label,
+              note: annotation.note,
+              type: annotation.type,
+            },
+            currentUser?.id,
+            currentUser?.name,
+          );
+        }
 
-      setShowAnnotationForm(false);
-      setEditingAnnotation(null);
-      await loadVideo();
-    } catch (error) {
-      throw error;
-    }
-  }, [video, editingAnnotation, currentUser, loadVideo]);
+        setShowAnnotationForm(false);
+        setEditingAnnotation(null);
+        await loadVideo();
+      } catch (error) {
+        throw error;
+      }
+    },
+    [video, editingAnnotation, currentUser, loadVideo],
+  );
 
   const handleExport = useCallback(async () => {
     if (!video) return;
@@ -182,7 +182,7 @@ export function useVideoAnnotate(id: string | undefined) {
             }
           },
         },
-      ]
+      ],
     );
   }, [video, loadVideo]);
 
@@ -191,13 +191,8 @@ export function useVideoAnnotate(id: string | undefined) {
     setEditingAnnotation(null);
   }, []);
 
-  const status: ScreenStatus = loading && !video
-    ? 'loading'
-    : error && !video
-      ? 'error'
-      : !video
-        ? 'empty'
-        : 'success';
+  const status: ScreenStatus =
+    loading && !video ? 'loading' : error && !video ? 'error' : !video ? 'empty' : 'success';
 
   return {
     video,

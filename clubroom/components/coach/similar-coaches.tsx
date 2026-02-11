@@ -68,10 +68,7 @@ export function SimilarCoaches({
         )}
 
         {/* Name */}
-        <ThemedText
-          style={[Typography.bodySemiBold, { color: palette.text }]}
-          numberOfLines={1}
-        >
+        <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]} numberOfLines={1}>
           {item.name}
         </ThemedText>
 
@@ -85,22 +82,20 @@ export function SimilarCoaches({
 
         {/* Specialties */}
         {item.specialties.length > 0 ? (
-          <ThemedText
-            style={[Typography.small, { color: palette.muted }]}
-            numberOfLines={1}
-          >
+          <ThemedText style={[Typography.small, { color: palette.muted }]} numberOfLines={1}>
             {item.specialties.join(', ')}
           </ThemedText>
         ) : null}
 
         {/* Price */}
         <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
-          {currencySymbol}{item.pricePerSession}
+          {currencySymbol}
+          {item.pricePerSession}
           <ThemedText style={[Typography.small, { color: palette.muted }]}> /session</ThemedText>
         </ThemedText>
       </SurfaceCard>
     ),
-    [onCoachPress, palette, currencySymbol]
+    [onCoachPress, palette, currencySymbol],
   );
 
   const keyExtractor = useCallback((item: SimilarCoach) => item.id, []);

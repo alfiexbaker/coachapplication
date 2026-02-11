@@ -66,12 +66,25 @@ interface UseSubscribeFormParams {
   }>;
 }
 
-export function useSubscribeForm({ coach, userId, userName, athletes, onSubmit, defaultValues }: UseSubscribeFormParams) {
-  const [dayOfWeek, setDayOfWeek] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(defaultValues?.dayOfWeek ?? 1);
+export function useSubscribeForm({
+  coach,
+  userId,
+  userName,
+  athletes,
+  onSubmit,
+  defaultValues,
+}: UseSubscribeFormParams) {
+  const [dayOfWeek, setDayOfWeek] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(
+    defaultValues?.dayOfWeek ?? 1,
+  );
   const [time, setTime] = useState(defaultValues?.time ?? '10:00');
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [frequency, setFrequency] = useState<RecurrenceFrequency>(defaultValues?.frequency ?? 'WEEKLY');
-  const [sessionType, setSessionType] = useState(defaultValues?.sessionType ?? coach.sessionTypes?.[0] ?? DEFAULT_SESSION_TYPES[0]);
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>(
+    defaultValues?.frequency ?? 'WEEKLY',
+  );
+  const [sessionType, setSessionType] = useState(
+    defaultValues?.sessionType ?? coach.sessionTypes?.[0] ?? DEFAULT_SESSION_TYPES[0],
+  );
   const [duration, setDuration] = useState(defaultValues?.duration ?? 60);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | undefined>(athletes?.[0]?.id);
   const [location, setLocation] = useState(coach.location ?? '');
@@ -119,29 +132,67 @@ export function useSubscribeForm({ coach, userId, userName, athletes, onSubmit, 
       userId,
       coachId: coach.id,
       athleteId: selectedAthleteId,
-      dayOfWeek, time, duration, location, sessionType, frequency,
+      dayOfWeek,
+      time,
+      duration,
+      location,
+      sessionType,
+      frequency,
       startDate: startDate.toISOString(),
       endDate: hasEndDate && endDate ? endDate.toISOString() : undefined,
       pricePerSession: coach.pricePerSession,
       notes: notes.trim() || undefined,
     };
     await onSubmit(params);
-  }, [userId, coach, selectedAthleteId, dayOfWeek, time, duration, location, sessionType, frequency, hasEndDate, endDate, notes, onSubmit]);
+  }, [
+    userId,
+    coach,
+    selectedAthleteId,
+    dayOfWeek,
+    time,
+    duration,
+    location,
+    sessionType,
+    frequency,
+    hasEndDate,
+    endDate,
+    notes,
+    onSubmit,
+  ]);
 
   const toggleEndDate = useCallback(() => setHasEndDate((v) => !v), []);
   const isValid = location.trim().length > 0;
 
   return {
-    dayOfWeek, setDayOfWeek,
-    time, showTimePicker, setShowTimePicker, timeDate, handleTimeChange,
-    frequency, setFrequency,
-    sessionType, setSessionType, sessionTypes,
-    duration, setDuration,
-    selectedAthleteId, setSelectedAthleteId, selectedAthlete,
-    location, setLocation,
-    notes, setNotes,
-    hasEndDate, toggleEndDate, endDate, showEndDatePicker, setShowEndDatePicker, handleEndDateChange,
+    dayOfWeek,
+    setDayOfWeek,
+    time,
+    showTimePicker,
+    setShowTimePicker,
+    timeDate,
+    handleTimeChange,
+    frequency,
+    setFrequency,
+    sessionType,
+    setSessionType,
+    sessionTypes,
+    duration,
+    setDuration,
+    selectedAthleteId,
+    setSelectedAthleteId,
+    selectedAthlete,
+    location,
+    setLocation,
+    notes,
+    setNotes,
+    hasEndDate,
+    toggleEndDate,
+    endDate,
+    showEndDatePicker,
+    setShowEndDatePicker,
+    handleEndDateChange,
     monthlyEstimate,
-    handleSubmit, isValid,
+    handleSubmit,
+    isValid,
   };
 }

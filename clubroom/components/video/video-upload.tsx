@@ -56,7 +56,10 @@ export function VideoUpload({
         const fileSizeBytes = asset.fileSize || 0;
 
         if (durationSecs > maxDurationSeconds) {
-          Alert.alert('Video Too Long', `Maximum video duration is ${Math.floor(maxDurationSeconds / 60)} minutes.`);
+          Alert.alert(
+            'Video Too Long',
+            `Maximum video duration is ${Math.floor(maxDurationSeconds / 60)} minutes.`,
+          );
           return;
         }
 
@@ -161,7 +164,11 @@ export function VideoUpload({
         />
       )}
 
-      <RequirementsList maxDurationSeconds={maxDurationSeconds} maxFileSizeMB={maxFileSizeMB} palette={palette} />
+      <RequirementsList
+        maxDurationSeconds={maxDurationSeconds}
+        maxFileSizeMB={maxFileSizeMB}
+        palette={palette}
+      />
     </View>
   );
 }

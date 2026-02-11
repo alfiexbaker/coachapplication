@@ -26,7 +26,7 @@ const coachesFromImport = importedCoachProfiles.map((coach, index) => ({
         lat: 51.5074 + (Math.random() - 0.5) * 0.1,
         lng: -0.1278 + (Math.random() - 0.5) * 0.2,
     },
-    distanceMiles: coach.distanceMiles ?? (1 + index * 1.5),
+    distanceMiles: coach.distanceMiles ?? 1 + index * 1.5,
 }));
 // Mock extended coach data for discovery
 const MOCK_DISCOVERY_COACHES = [
@@ -481,12 +481,14 @@ class DiscoverService {
                 {
                     value: 'VERIFIED',
                     label: 'Verified',
-                    count: matchingCoaches.filter((c) => c.badges?.some((b) => b.label === 'Verified')).length,
+                    count: matchingCoaches.filter((c) => c.badges?.some((b) => b.label === 'Verified'))
+                        .length,
                 },
                 {
                     value: 'PREMIUM',
                     label: 'Premium',
-                    count: matchingCoaches.filter((c) => c.badges?.some((b) => b.label === 'Premium Coach')).length,
+                    count: matchingCoaches.filter((c) => c.badges?.some((b) => b.label === 'Premium Coach'))
+                        .length,
                 },
             ];
             const ratingDistribution = Array.from(ratingCounts.entries())

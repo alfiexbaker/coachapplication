@@ -19,17 +19,28 @@ type HeaderProps = {
   onCreate: () => void;
 };
 
-export const EventsHeader = React.memo(function EventsHeader({ colors, isCoach, onBack, onCreate }: HeaderProps) {
+export const EventsHeader = React.memo(function EventsHeader({
+  colors,
+  isCoach,
+  onBack,
+  onCreate,
+}: HeaderProps) {
   return (
     <Row align="center" justify="between" style={styles.header}>
       <Row align="center" gap="md" style={styles.headerLeft}>
         <Clickable onPress={onBack} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>Club Events</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Club Events
+        </ThemedText>
       </Row>
       {isCoach ? (
-        <Clickable accessibilityLabel="Create event" onPress={onCreate} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+        <Clickable
+          accessibilityLabel="Create event"
+          onPress={onCreate}
+          style={[styles.addButton, { backgroundColor: colors.tint }]}
+        >
           <Ionicons name="add" size={24} color={colors.onPrimary} />
         </Clickable>
       ) : null}
@@ -43,7 +54,11 @@ type FilterProps = {
   onChange: (value: EventFilter) => void;
 };
 
-export const EventsFilterTabs = React.memo(function EventsFilterTabs({ colors, filter, onChange }: FilterProps) {
+export const EventsFilterTabs = React.memo(function EventsFilterTabs({
+  colors,
+  filter,
+  onChange,
+}: FilterProps) {
   return (
     <Row gap="xs" style={styles.filterRow}>
       {(['upcoming', 'past', 'all'] as EventFilter[]).map((value) => (
@@ -58,7 +73,12 @@ export const EventsFilterTabs = React.memo(function EventsFilterTabs({ colors, f
             },
           ]}
         >
-          <ThemedText style={[styles.filterTabText, { color: filter === value ? colors.onPrimary : colors.text }]}>
+          <ThemedText
+            style={[
+              styles.filterTabText,
+              { color: filter === value ? colors.onPrimary : colors.text },
+            ]}
+          >
             {value === 'upcoming' ? 'Upcoming' : value === 'past' ? 'Past' : 'All'}
           </ThemedText>
         </Clickable>
@@ -85,11 +105,21 @@ export const EventsListEmptyState = React.memo(function EventsListEmptyState({
       <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
         <Ionicons name="calendar-outline" size={48} color={colors.tint} />
       </View>
-      <ThemedText type="subtitle" style={styles.emptyTitle}>No Events Yet</ThemedText>
-      <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
-        {filter === 'upcoming' ? 'No upcoming events scheduled. Check back soon!' : filter === 'past' ? 'No past events to show.' : 'No events have been created yet.'}
+      <ThemedText type="subtitle" style={styles.emptyTitle}>
+        No Events Yet
       </ThemedText>
-      {isCoach ? <Button onPress={onCreate} style={styles.emptyButton}>Create Event</Button> : null}
+      <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
+        {filter === 'upcoming'
+          ? 'No upcoming events scheduled. Check back soon!'
+          : filter === 'past'
+            ? 'No past events to show.'
+            : 'No events have been created yet.'}
+      </ThemedText>
+      {isCoach ? (
+        <Button onPress={onCreate} style={styles.emptyButton}>
+          Create Event
+        </Button>
+      ) : null}
     </View>
   );
 });

@@ -14,10 +14,11 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
+import { notificationService } from '../notification-service';
 import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, serviceError } from '@/types/result';
 import type {
   ClubEvent,
   ClubEventType,
@@ -123,7 +124,7 @@ export const eventRsvpService = {
     userRole: EventAttendee['userRole'],
     status: RSVPStatus,
     guestCount: number = 0,
-    _userPhotoUrl?: string
+    _userPhotoUrl?: string,
   ): Promise<Result<EventAttendee, ServiceError>> {
     const attendee: EventAttendee = {
       userId,
@@ -149,7 +150,7 @@ export const eventRsvpService = {
       await saveEvents(eventsCache);
 
       // Trigger RSVP notification to event creator (coach)
-      const displayName = userName?.trim() || await resolveUserName(userId, 'A parent');
+      const displayName = userName?.trim() || (await resolveUserName(userId, 'A parent'));
       await notificationTriggers.eventRsvp(displayName, event.title, status, event.createdBy);
 
       return ok(attendee);
@@ -252,7 +253,7 @@ export const eventRsvpService = {
     if (USE_MOCK) {
       rsvpsCache = await loadRSVPs();
       const existingIndex = rsvpsCache.findIndex(
-        (r) => r.eventId === input.eventId && r.userId === input.userId
+        (r) => r.eventId === input.eventId && r.userId === input.userId,
       );
 
       if (existingIndex >= 0) {
@@ -301,7 +302,11 @@ export const eventRsvpService = {
   /**
    * Update an existing RSVP
    */
-  async updateRSVP(rsvpId: string, status: RSVPStatus, guestCount?: number): Promise<Result<EventRSVP, ServiceError>> {
+  async updateRSVP(
+    rsvpId: string,
+    status: RSVPStatus,
+    guestCount?: number,
+  ): Promise<Result<EventRSVP, ServiceError>> {
     if (USE_MOCK) {
       rsvpsCache = await loadRSVPs();
       const rsvp = rsvpsCache.find((r) => r.id === rsvpId);
@@ -380,6 +385,63 @@ export const eventRsvpService = {
     return response.json();
   },
 
+  /**
+   * Send reminders to users who responded "Maybe".
+   * Returns the number of queued reminders.
+   */
+  async sendReminderToMaybes(eventId: string): Promise<Result<number, ServiceError>> {
+    if (USE_MOCK) {
+      const [events, rsvps] = await Promise.all([loadEvents(), loadRSVPs()]);
+      const event = events.find((item) => item.id === eventId);
+      if (!event) {
+        return err(notFound('Event', eventId));
+      }
+
+      const maybeRsvps = rsvps.filter((r) => r.eventId === eventId && r.status === 'MAYBE');
+      if (maybeRsvps.length === 0) {
+        return ok(0);
+      }
+
+      let sent = 0;
+      for (const rsvp of maybeRsvps) {
+        const createResult = await notificationService.create({
+          id: apiClient.generateId('notif'),
+          type: 'reminder',
+          notificationType: 'SESSION_REMINDER',
+          title: 'Reminder: Event RSVP',
+          body: `Please confirm attendance for "${event.title}".`,
+          recipientId: rsvp.userId,
+          recipientRole: rsvp.userRole === 'COACH' ? 'coach' : 'parent',
+          deepLink: `/events/${event.id}/rsvp`,
+          data: { eventId: event.id },
+          timeLabel: 'Just now',
+          read: false,
+        });
+
+        if (createResult.success) {
+          sent += 1;
+        } else {
+          logger.warn('Failed to queue RSVP reminder', {
+            eventId,
+            userId: rsvp.userId,
+            error: createResult.error.message,
+          });
+        }
+      }
+
+      logger.info('Event RSVP reminders queued', { eventId, count: sent });
+      return ok(sent);
+    }
+
+    const response = await fetch(`/api/events/${eventId}/rsvps/remind`, { method: 'POST' });
+    if (!response.ok) {
+      return err(serviceError('NETWORK', 'Failed to queue RSVP reminders.'));
+    }
+
+    const payload = (await response.json()) as { sentCount?: number };
+    return ok(payload.sentCount ?? 0);
+  },
+
   // ============================================================================
   // CALENDAR INTEGRATION
   // ============================================================================
@@ -390,18 +452,20 @@ export const eventRsvpService = {
   async getEventsForCalendar(
     userId: string,
     startDate: string,
-    endDate: string
-  ): Promise<{
-    id: string;
-    title: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    location: string;
-    type: 'EVENT';
-    eventType: ClubEventType;
-    status: RSVPStatus | null;
-  }[]> {
+    endDate: string,
+  ): Promise<
+    {
+      id: string;
+      title: string;
+      date: string;
+      startTime: string;
+      endTime: string;
+      location: string;
+      type: 'EVENT';
+      eventType: ClubEventType;
+      status: RSVPStatus | null;
+    }[]
+  > {
     if (USE_MOCK) {
       const eventsCache = await loadEvents();
       rsvpsCache = await loadRSVPs();
@@ -433,7 +497,7 @@ export const eventRsvpService = {
     }
 
     const response = await fetch(
-      `/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`
+      `/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`,
     );
     return response.json();
   },
@@ -454,11 +518,7 @@ export const eventRsvpService = {
       return eventsCache
         .filter((event) => {
           const eventDate = new Date(event.date).getTime();
-          return (
-            eventDate > now &&
-            event.status === 'PUBLISHED' &&
-            userRSVPs.includes(event.id)
-          );
+          return eventDate > now && event.status === 'PUBLISHED' && userRSVPs.includes(event.id);
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(0, limit);

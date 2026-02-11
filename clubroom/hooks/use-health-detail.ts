@@ -51,7 +51,11 @@ export function useHealthDetail(id: string | undefined) {
     }
   }, [id]);
 
-  useFocusEffect(useCallback(() => { loadInjury(); }, [loadInjury]));
+  useFocusEffect(
+    useCallback(() => {
+      loadInjury();
+    }, [loadInjury]),
+  );
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -62,7 +66,13 @@ export function useHealthDetail(id: string | undefined) {
     if (!injury || !noteText.trim()) return;
     setSaving(true);
     try {
-      const updated = await injuryService.addRecoveryNote(injury.id, noteText.trim(), userId, userName, noteProgress);
+      const updated = await injuryService.addRecoveryNote(
+        injury.id,
+        noteText.trim(),
+        userId,
+        userName,
+        noteProgress,
+      );
       if (updated) {
         setInjury(updated);
         setNoteText('');
@@ -112,13 +122,8 @@ export function useHealthDetail(id: string | undefined) {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const status: ScreenStatus = loading && !injury
-    ? 'loading'
-    : error && !injury
-      ? 'error'
-      : !injury
-        ? 'empty'
-        : 'success';
+  const status: ScreenStatus =
+    loading && !injury ? 'loading' : error && !injury ? 'error' : !injury ? 'empty' : 'success';
 
   return {
     injury,
@@ -131,8 +136,12 @@ export function useHealthDetail(id: string | undefined) {
     noteText,
     noteProgress,
     saving,
-    setNoteText, setNoteProgress,
-    handleRefresh, handleAddNote, handleMarkHealed,
-    cancelAddNote, openAddNote,
+    setNoteText,
+    setNoteProgress,
+    handleRefresh,
+    handleAddNote,
+    handleMarkHealed,
+    cancelAddNote,
+    openAddNote,
   };
 }

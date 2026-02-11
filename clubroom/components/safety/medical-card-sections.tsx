@@ -21,7 +21,9 @@ import type { ThemeColors } from '@/hooks/useTheme';
 
 // ─── getSeverityBadge ─────────────────────────────────────────────────────────
 
-export function getSeverityBadge(medical: MedicalInfo): { label: string; tone: 'warning' | 'info' } | null {
+export function getSeverityBadge(
+  medical: MedicalInfo,
+): { label: string; tone: 'warning' | 'info' } | null {
   if (medical.allergies.length >= 2 || medical.conditions.length >= 2) {
     return { label: 'High Alert', tone: 'warning' };
   }
@@ -49,7 +51,8 @@ export const MedicalInfoRow = memo(function MedicalInfoRow({
   iconColor,
   label,
   value,
-  palette }: MedicalInfoRowProps) {
+  palette,
+}: MedicalInfoRowProps) {
   return (
     <Row align="start" gap="sm">
       <View style={[styles.iconBg, { backgroundColor: withAlpha(iconColor, 0.06) }]}>
@@ -74,11 +77,10 @@ interface MedicalSummaryRowInnerProps {
 export const MedicalSummaryRowInner = memo(function MedicalSummaryRowInner({
   medical,
   onPress,
-  palette }: MedicalSummaryRowInnerProps) {
+  palette,
+}: MedicalSummaryRowInnerProps) {
   const hasAlerts =
-    medical.allergies.length > 0 ||
-    medical.conditions.length > 0 ||
-    medical.medications.length > 0;
+    medical.allergies.length > 0 || medical.conditions.length > 0 || medical.medications.length > 0;
 
   if (!hasAlerts) return null;
 
@@ -105,7 +107,8 @@ export const MedicalSummaryRowInner = memo(function MedicalSummaryRowInner({
                   backgroundColor:
                     item.type === 'allergy'
                       ? withAlpha(palette.error, 0.06)
-                      : withAlpha(palette.warning, 0.06) },
+                      : withAlpha(palette.warning, 0.06),
+                },
               ]}
             >
               <ThemedText
@@ -138,7 +141,8 @@ interface MedicalInfoEmptyStateInnerProps {
 
 export const MedicalInfoEmptyStateInner = memo(function MedicalInfoEmptyStateInner({
   onAddPress,
-  palette }: MedicalInfoEmptyStateInnerProps) {
+  palette,
+}: MedicalInfoEmptyStateInnerProps) {
   return (
     <SurfaceCard style={styles.emptyCard}>
       <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
@@ -149,13 +153,12 @@ export const MedicalInfoEmptyStateInner = memo(function MedicalInfoEmptyStateInn
         Add allergies, conditions, or medications for this athlete.
       </ThemedText>
       {onAddPress && (
-        <Clickable
-          onPress={onAddPress}
-          style={[styles.addButton, { borderColor: palette.tint }]}
-        >
+        <Clickable onPress={onAddPress} style={[styles.addButton, { borderColor: palette.tint }]}>
           <Row align="center" gap="xs">
             <Ionicons name="add" size={16} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Medical Info</ThemedText>
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+              Add Medical Info
+            </ThemedText>
           </Row>
         </Clickable>
       )}
@@ -172,32 +175,39 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.micro },
+    marginTop: Spacing.micro,
+  },
   infoLabel: { ...Typography.caption, marginBottom: 1 },
   infoValue: { ...Typography.bodySmall },
   summaryRow: {
-    paddingVertical: Spacing.xxs },
+    paddingVertical: Spacing.xxs,
+  },
   summaryTag: {
     paddingVertical: Spacing.micro,
     paddingHorizontal: Spacing.xs,
-    borderRadius: Radii.sm },
+    borderRadius: Radii.sm,
+  },
   summaryTagText: { ...Typography.caption },
   moreText: { ...Typography.caption },
   emptyCard: {
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.lg },
+    padding: Spacing.lg,
+  },
   emptyIcon: {
     width: 64,
     height: 64,
     borderRadius: Radii['2xl'],
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   emptyText: { ...Typography.bodySmall, textAlign: 'center' },
   addButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.button,
     borderWidth: 1.5,
-    marginTop: Spacing.sm } });
+    marginTop: Spacing.sm,
+  },
+});

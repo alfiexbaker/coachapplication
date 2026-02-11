@@ -17,7 +17,15 @@
 
 import { apiClient } from './api-client';
 import type { ClubRole, ClubMembership } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  storageError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { api } from '@/constants/config';
@@ -104,9 +112,33 @@ const MOCK_BRANDING: Record<string, ClubBranding> = {
 // ============================================================================
 
 const MOCK_MATCH_RESULTS: MatchResult[] = [
-  { id: 'm1', opponent: 'Valley United', date: '2026-02-01', scoreHome: 3, scoreAway: 1, outcome: 'W', squad: 'U15' },
-  { id: 'm2', opponent: 'City Rangers', date: '2026-01-25', scoreHome: 1, scoreAway: 1, outcome: 'D', squad: 'U15' },
-  { id: 'm3', opponent: 'Park Athletic', date: '2026-01-18', scoreHome: 0, scoreAway: 2, outcome: 'L', squad: 'Juniors' },
+  {
+    id: 'm1',
+    opponent: 'Valley United',
+    date: '2026-02-01',
+    scoreHome: 3,
+    scoreAway: 1,
+    outcome: 'W',
+    squad: 'U15',
+  },
+  {
+    id: 'm2',
+    opponent: 'City Rangers',
+    date: '2026-01-25',
+    scoreHome: 1,
+    scoreAway: 1,
+    outcome: 'D',
+    squad: 'U15',
+  },
+  {
+    id: 'm3',
+    opponent: 'Park Athletic',
+    date: '2026-01-18',
+    scoreHome: 0,
+    scoreAway: 2,
+    outcome: 'L',
+    squad: 'Juniors',
+  },
 ];
 
 // ============================================================================
@@ -114,21 +146,165 @@ const MOCK_MATCH_RESULTS: MatchResult[] = [
 // ============================================================================
 
 const MOCK_CALENDAR_EVENTS: CalendarEvent[] = [
-  { id: 'ce1', title: 'U15 Training', date: '2026-02-05', startTime: '17:00', endTime: '18:30', type: 'session', squadId: 'squad_u15', squadName: 'U15', location: 'Main Pitch' },
-  { id: 'ce2', title: 'U15 vs Valley United', date: '2026-02-08', startTime: '10:00', endTime: '12:00', type: 'match', squadId: 'squad_u15', squadName: 'U15', location: 'Away Ground' },
-  { id: 'ce3', title: 'Juniors Training', date: '2026-02-05', startTime: '16:00', endTime: '17:00', type: 'session', squadId: 'squad_juniors', squadName: 'Juniors', location: 'Main Pitch' },
-  { id: 'ce4', title: 'Club Social Evening', date: '2026-02-14', startTime: '18:00', endTime: '21:00', type: 'event', location: 'Clubhouse' },
-  { id: 'ce5', title: 'U15 Training', date: '2026-02-07', startTime: '17:00', endTime: '18:30', type: 'session', squadId: 'squad_u15', squadName: 'U15', location: 'Main Pitch' },
-  { id: 'ce6', title: 'Juniors vs Park Athletic', date: '2026-02-15', startTime: '09:00', endTime: '10:30', type: 'match', squadId: 'squad_juniors', squadName: 'Juniors', location: 'Home Ground' },
-  { id: 'ce7', title: 'U15 Training', date: '2026-02-12', startTime: '17:00', endTime: '18:30', type: 'session', squadId: 'squad_u15', squadName: 'U15', location: 'Main Pitch' },
-  { id: 'ce8', title: 'Juniors Training', date: '2026-02-12', startTime: '16:00', endTime: '17:00', type: 'session', squadId: 'squad_juniors', squadName: 'Juniors', location: 'Main Pitch' },
-  { id: 'ce9', title: 'Coaches Meeting', date: '2026-02-10', startTime: '19:00', endTime: '20:00', type: 'event', location: 'Clubhouse' },
-  { id: 'ce10', title: 'U15 Cup Match', date: '2026-02-22', startTime: '14:00', endTime: '16:00', type: 'match', squadId: 'squad_u15', squadName: 'U15', location: 'Neutral Venue' },
-  { id: 'ce11', title: 'End of Term Awards', date: '2026-02-28', startTime: '17:00', endTime: '19:00', type: 'event', location: 'Clubhouse' },
-  { id: 'ce12', title: 'U15 Training', date: '2026-02-19', startTime: '17:00', endTime: '18:30', type: 'session', squadId: 'squad_u15', squadName: 'U15', location: 'Main Pitch' },
-  { id: 'ce13', title: 'Juniors Training', date: '2026-02-19', startTime: '16:00', endTime: '17:00', type: 'session', squadId: 'squad_juniors', squadName: 'Juniors', location: 'Main Pitch' },
-  { id: 'ce14', title: 'Juniors Training', date: '2026-02-26', startTime: '16:00', endTime: '17:00', type: 'session', squadId: 'squad_juniors', squadName: 'Juniors', location: 'Main Pitch' },
-  { id: 'ce15', title: 'U15 Training', date: '2026-02-26', startTime: '17:00', endTime: '18:30', type: 'session', squadId: 'squad_u15', squadName: 'U15', location: 'Main Pitch' },
+  {
+    id: 'ce1',
+    title: 'U15 Training',
+    date: '2026-02-05',
+    startTime: '17:00',
+    endTime: '18:30',
+    type: 'session',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce2',
+    title: 'U15 vs Valley United',
+    date: '2026-02-08',
+    startTime: '10:00',
+    endTime: '12:00',
+    type: 'match',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Away Ground',
+  },
+  {
+    id: 'ce3',
+    title: 'Juniors Training',
+    date: '2026-02-05',
+    startTime: '16:00',
+    endTime: '17:00',
+    type: 'session',
+    squadId: 'squad_juniors',
+    squadName: 'Juniors',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce4',
+    title: 'Club Social Evening',
+    date: '2026-02-14',
+    startTime: '18:00',
+    endTime: '21:00',
+    type: 'event',
+    location: 'Clubhouse',
+  },
+  {
+    id: 'ce5',
+    title: 'U15 Training',
+    date: '2026-02-07',
+    startTime: '17:00',
+    endTime: '18:30',
+    type: 'session',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce6',
+    title: 'Juniors vs Park Athletic',
+    date: '2026-02-15',
+    startTime: '09:00',
+    endTime: '10:30',
+    type: 'match',
+    squadId: 'squad_juniors',
+    squadName: 'Juniors',
+    location: 'Home Ground',
+  },
+  {
+    id: 'ce7',
+    title: 'U15 Training',
+    date: '2026-02-12',
+    startTime: '17:00',
+    endTime: '18:30',
+    type: 'session',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce8',
+    title: 'Juniors Training',
+    date: '2026-02-12',
+    startTime: '16:00',
+    endTime: '17:00',
+    type: 'session',
+    squadId: 'squad_juniors',
+    squadName: 'Juniors',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce9',
+    title: 'Coaches Meeting',
+    date: '2026-02-10',
+    startTime: '19:00',
+    endTime: '20:00',
+    type: 'event',
+    location: 'Clubhouse',
+  },
+  {
+    id: 'ce10',
+    title: 'U15 Cup Match',
+    date: '2026-02-22',
+    startTime: '14:00',
+    endTime: '16:00',
+    type: 'match',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Neutral Venue',
+  },
+  {
+    id: 'ce11',
+    title: 'End of Term Awards',
+    date: '2026-02-28',
+    startTime: '17:00',
+    endTime: '19:00',
+    type: 'event',
+    location: 'Clubhouse',
+  },
+  {
+    id: 'ce12',
+    title: 'U15 Training',
+    date: '2026-02-19',
+    startTime: '17:00',
+    endTime: '18:30',
+    type: 'session',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce13',
+    title: 'Juniors Training',
+    date: '2026-02-19',
+    startTime: '16:00',
+    endTime: '17:00',
+    type: 'session',
+    squadId: 'squad_juniors',
+    squadName: 'Juniors',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce14',
+    title: 'Juniors Training',
+    date: '2026-02-26',
+    startTime: '16:00',
+    endTime: '17:00',
+    type: 'session',
+    squadId: 'squad_juniors',
+    squadName: 'Juniors',
+    location: 'Main Pitch',
+  },
+  {
+    id: 'ce15',
+    title: 'U15 Training',
+    date: '2026-02-26',
+    startTime: '17:00',
+    endTime: '18:30',
+    type: 'session',
+    squadId: 'squad_u15',
+    squadName: 'U15',
+    location: 'Main Pitch',
+  },
 ];
 
 export type MemberRemovalReason = 'LEFT_CLUB' | 'INACTIVE' | 'CONDUCT' | 'SEASON_END' | 'OTHER';
@@ -207,7 +383,10 @@ let removalHistoryCache: ClubMemberRemovalRecord[] = [];
 
 async function loadMembers(clubId: string): Promise<ClubMember[]> {
   try {
-    const stored = await apiClient.get<ClubMember[] | null>(`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`, null);
+    const stored = await apiClient.get<ClubMember[] | null>(
+      `${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load members', error);
@@ -226,7 +405,10 @@ async function saveMembers(clubId: string, members: ClubMember[]): Promise<void>
 
 async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
   try {
-    const stored = await apiClient.get<ClubMemberRemovalRecord[] | null>(STORAGE_KEYS.CLUB_MEMBER_REMOVALS, null);
+    const stored = await apiClient.get<ClubMemberRemovalRecord[] | null>(
+      STORAGE_KEYS.CLUB_MEMBER_REMOVALS,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load removal history', error);
@@ -269,7 +451,7 @@ export const clubService = {
     removedBy: { id: string; name: string },
     options?: {
       customReason?: string;
-    }
+    },
   ): Promise<Result<ClubMemberRemovalRecord, ServiceError>> {
     if (USE_MOCK) {
       const members = await loadMembers(clubId);
@@ -335,7 +517,7 @@ export const clubService = {
     if (USE_MOCK) {
       removalHistoryCache = await loadRemovalHistory();
       const recordIndex = removalHistoryCache.findIndex(
-        (r) => r.id === removalId && r.clubId === clubId
+        (r) => r.id === removalId && r.clubId === clubId,
       );
 
       if (recordIndex === -1) {
@@ -409,7 +591,7 @@ export const clubService = {
     clubId: string,
     userId: string,
     newRole: ClubRole,
-    changedBy: { id: string; name: string }
+    changedBy: { id: string; name: string },
   ): Promise<Result<ClubMember, ServiceError>> {
     if (USE_MOCK) {
       const members = await loadMembers(clubId);
@@ -445,7 +627,7 @@ export const clubService = {
     clubId: string,
     userId: string,
     reason: string,
-    bannedBy: { id: string; name: string }
+    bannedBy: { id: string; name: string },
   ): Promise<Result<ClubMemberRemovalRecord, ServiceError>> {
     if (USE_MOCK) {
       const members = await loadMembers(clubId);
@@ -516,7 +698,7 @@ export const clubService = {
   async addMemberToSquad(
     clubId: string,
     userId: string,
-    squadId: string
+    squadId: string,
   ): Promise<Result<ClubMember, ServiceError>> {
     if (USE_MOCK) {
       const members = await loadMembers(clubId);
@@ -566,7 +748,7 @@ export const clubService = {
   async removeMemberFromSquad(
     clubId: string,
     userId: string,
-    squadId: string
+    squadId: string,
   ): Promise<Result<ClubMember, ServiceError>> {
     if (USE_MOCK) {
       const members = await loadMembers(clubId);
@@ -687,7 +869,10 @@ export const clubService = {
   async getBranding(clubId: string): Promise<ClubBranding> {
     if (USE_MOCK) {
       try {
-        const stored = await apiClient.get<ClubBranding | null>(`${STORAGE_KEYS.CLUB_BRANDING}_${clubId}`, null);
+        const stored = await apiClient.get<ClubBranding | null>(
+          `${STORAGE_KEYS.CLUB_BRANDING}_${clubId}`,
+          null,
+        );
         if (stored) return stored;
       } catch (error) {
         logger.error('Failed to load branding', error);
@@ -701,7 +886,10 @@ export const clubService = {
   /**
    * Update club branding
    */
-  async updateBranding(clubId: string, branding: Partial<ClubBranding>): Promise<Result<ClubBranding, ServiceError>> {
+  async updateBranding(
+    clubId: string,
+    branding: Partial<ClubBranding>,
+  ): Promise<Result<ClubBranding, ServiceError>> {
     const current = await this.getBranding(clubId);
     const updated: ClubBranding = {
       ...current,
@@ -785,7 +973,7 @@ export const clubService = {
    */
   async getCalendarEvents(
     clubId: string,
-    options?: { year?: number; month?: number; squadId?: string }
+    options?: { year?: number; month?: number; squadId?: string },
   ): Promise<CalendarEvent[]> {
     if (USE_MOCK) {
       let events = [...MOCK_CALENDAR_EVENTS];
@@ -798,9 +986,7 @@ export const clubService = {
       }
 
       if (options?.squadId) {
-        events = events.filter(
-          (e) => e.squadId === options.squadId || !e.squadId
-        );
+        events = events.filter((e) => e.squadId === options.squadId || !e.squadId);
       }
 
       return events.sort((a, b) => {

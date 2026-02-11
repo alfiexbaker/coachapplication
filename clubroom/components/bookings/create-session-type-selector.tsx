@@ -59,16 +59,28 @@ function SessionTypeSelectorInner({
 
   return (
     <View style={styles.container}>
-      <ThemedText type="subtitle" style={styles.sectionTitle}>Session Type</ThemedText>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>
+        Session Type
+      </ThemedText>
       <Row style={styles.row}>
-        {renderToggle('1:1 Session', 'person-outline', sessionType === '1on1', () => onSessionTypeChange('1on1'))}
-        {renderToggle('Group Session', 'people-outline', sessionType === 'group', () => onSessionTypeChange('group'))}
+        {renderToggle('1:1 Session', 'person-outline', sessionType === '1on1', () =>
+          onSessionTypeChange('1on1'),
+        )}
+        {renderToggle('Group Session', 'people-outline', sessionType === 'group', () =>
+          onSessionTypeChange('group'),
+        )}
       </Row>
 
-      <ThemedText type="subtitle" style={styles.sectionTitle}>Schedule Type</ThemedText>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>
+        Schedule Type
+      </ThemedText>
       <Row style={styles.row}>
-        {renderToggle('One-time', 'calendar-outline', recurrenceType === 'none', () => onRecurrenceTypeChange('none'))}
-        {renderToggle('Weekly Recurring', 'repeat-outline', recurrenceType === 'weekly', () => onRecurrenceTypeChange('weekly'))}
+        {renderToggle('One-time', 'calendar-outline', recurrenceType === 'none', () =>
+          onRecurrenceTypeChange('none'),
+        )}
+        {renderToggle('Weekly Recurring', 'repeat-outline', recurrenceType === 'weekly', () =>
+          onRecurrenceTypeChange('weekly'),
+        )}
       </Row>
     </View>
   );

@@ -17,11 +17,16 @@ type IoniconsName = keyof typeof Ionicons.glyphMap;
 
 export function getStatusIcon(status: InvoiceStatus): IoniconsName {
   switch (status) {
-    case 'DRAFT': return 'document-outline';
-    case 'SENT': return 'paper-plane-outline';
-    case 'PAID': return 'checkmark-circle-outline';
-    case 'VOID': return 'close-circle-outline';
-    default: return 'document-outline';
+    case 'DRAFT':
+      return 'document-outline';
+    case 'SENT':
+      return 'paper-plane-outline';
+    case 'PAID':
+      return 'checkmark-circle-outline';
+    case 'VOID':
+      return 'close-circle-outline';
+    default:
+      return 'document-outline';
   }
 }
 
@@ -58,7 +63,10 @@ export const CompactInvoiceRow = memo(function CompactInvoiceRow({
   const statusColor = invoiceService.getStatusColor(invoice.status);
 
   return (
-    <Clickable style={[styles.compactContainer, { borderBottomColor: palette.border }]} onPress={onPress}>
+    <Clickable
+      style={[styles.compactContainer, { borderBottomColor: palette.border }]}
+      onPress={onPress}
+    >
       <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
       <View style={styles.compactContent}>
         <Row justify="space-between" align="center">

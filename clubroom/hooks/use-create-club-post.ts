@@ -21,10 +21,30 @@ export type PostTypeOption = {
 };
 
 export const POST_TYPES: PostTypeOption[] = [
-  { key: 'general', label: 'Update', icon: 'create-outline', description: 'Share a general update' },
-  { key: 'announcement', label: 'Announcement', icon: 'megaphone-outline', description: 'Important club news' },
-  { key: 'photo', label: 'Photo', icon: 'images-outline', description: 'Share photos with the club' },
-  { key: 'event', label: 'Event', icon: 'calendar-outline', description: 'Announce an upcoming event' },
+  {
+    key: 'general',
+    label: 'Update',
+    icon: 'create-outline',
+    description: 'Share a general update',
+  },
+  {
+    key: 'announcement',
+    label: 'Announcement',
+    icon: 'megaphone-outline',
+    description: 'Important club news',
+  },
+  {
+    key: 'photo',
+    label: 'Photo',
+    icon: 'images-outline',
+    description: 'Share photos with the club',
+  },
+  {
+    key: 'event',
+    label: 'Event',
+    icon: 'calendar-outline',
+    description: 'Announce an upcoming event',
+  },
 ];
 
 export function useCreateClubPost(clubId: string | undefined) {
@@ -34,14 +54,14 @@ export function useCreateClubPost(clubId: string | undefined) {
     () => (currentUser?.id ? clubFeedService.getUserClubs(currentUser.id) : []),
     [currentUser?.id],
   );
-  const club = useMemo(() => userClubs.find((candidate) => candidate.id === clubId), [userClubs, clubId]);
+  const club = useMemo(
+    () => userClubs.find((candidate) => candidate.id === clubId),
+    [userClubs, clubId],
+  );
   const membership = useMemo<ClubMembership | undefined>(() => {
     if (!currentUser || !clubId) return undefined;
-    const role = currentUser.role === 'ADMIN'
-      ? 'ADMIN'
-      : currentUser.role === 'COACH'
-        ? 'COACH'
-        : 'MEMBER';
+    const role =
+      currentUser.role === 'ADMIN' ? 'ADMIN' : currentUser.role === 'COACH' ? 'COACH' : 'MEMBER';
     return {
       clubId,
       userId: currentUser.id,
@@ -51,7 +71,8 @@ export function useCreateClubPost(clubId: string | undefined) {
       canPostAsClub: role === 'ADMIN' || role === 'COACH',
     };
   }, [clubId, currentUser]);
-  const canPostAsClub = membership?.canPostAsClub || membership?.role === 'ADMIN' || membership?.role === 'COACH';
+  const canPostAsClub =
+    membership?.canPostAsClub || membership?.role === 'ADMIN' || membership?.role === 'COACH';
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const [title, setTitle] = useState('');
@@ -99,7 +120,8 @@ export function useCreateClubPost(clubId: string | undefined) {
   }, [clubId]);
 
   const selectedSquad = availableSquads.find((s) => s.id === selectedSquadId);
-  const audienceLabel = audienceType === 'club' ? 'Club-wide' : selectedSquad?.name || 'Select a group';
+  const audienceLabel =
+    audienceType === 'club' ? 'Club-wide' : selectedSquad?.name || 'Select a group';
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -110,7 +132,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     });
     if (!result.canceled) {
       setImageUri(result.assets[0].uri);
-      setPostType((prev) => prev !== 'photo' ? 'photo' : prev);
+      setPostType((prev) => (prev !== 'photo' ? 'photo' : prev));
     }
   }, []);
 
@@ -129,52 +151,108 @@ export function useCreateClubPost(clubId: string | undefined) {
           coachName: currentUser.fullName || currentUser.username || 'Unknown',
           title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
           body: body.trim(),
-          postType, feedType,
+          postType,
+          feedType,
           imageUrl: imageUri || undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
-          clubId, clubName: club?.name,
+          clubId,
+          clubName: club?.name,
         });
-        if (result.success && Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (result.success && Platform.OS !== 'web')
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
-        const finalAudienceLabel = audienceType === 'squad' && selectedSquad ? selectedSquad.name : 'Club-wide';
+        const finalAudienceLabel =
+          audienceType === 'squad' && selectedSquad ? selectedSquad.name : 'Club-wide';
         await clubFeedService.createPost({
-          clubId, authorId: currentUser.id,
-          authorName: postAs === 'club' && club ? club.name : (currentUser.fullName || currentUser.username || 'Unknown'),
+          clubId,
+          authorId: currentUser.id,
+          authorName:
+            postAs === 'club' && club
+              ? club.name
+              : currentUser.fullName || currentUser.username || 'Unknown',
           title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
-          body: body.trim(), postType, postAs, feedType,
-          audience, audienceLabel: finalAudienceLabel,
+          body: body.trim(),
+          postType,
+          postAs,
+          feedType,
+          audience,
+          audienceLabel: finalAudienceLabel,
           squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
           imageUrl: imageUri || undefined,
           eventDate: eventDate?.toISOString(),
           eventLocation: eventLocation.trim() || undefined,
         });
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (Platform.OS !== 'web')
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       router.back();
     } finally {
       setIsPosting(false);
     }
-  }, [body, imageUri, currentUser, clubId, isCoach, feedType, title, postType, eventDate, eventLocation, club, audienceType, selectedSquadId, selectedSquad, postAs]);
+  }, [
+    body,
+    imageUri,
+    currentUser,
+    clubId,
+    isCoach,
+    feedType,
+    title,
+    postType,
+    eventDate,
+    eventLocation,
+    club,
+    audienceType,
+    selectedSquadId,
+    selectedSquad,
+    postAs,
+  ]);
 
   const canPost = (body.trim().length > 0 || imageUri !== null) && !!clubId && !isPosting;
 
-  const handleSelectAudienceClub = useCallback(() => { setAudienceType('club'); setSelectedSquadId(null); }, []);
+  const handleSelectAudienceClub = useCallback(() => {
+    setAudienceType('club');
+    setSelectedSquadId(null);
+  }, []);
   const handleSelectAudienceSquad = useCallback(() => setAudienceType('squad'), []);
   const openDatePicker = useCallback(() => setShowDatePicker(true), []);
   const closeDatePicker = useCallback(() => setShowDatePicker(false), []);
 
   return {
-    club, canPostAsClub, isCoach,
-    title, setTitle, body, setBody,
-    postType, setPostType, postAs, setPostAs,
-    imageUri, pickImage, removeImage,
-    eventDate, setEventDate, eventLocation, setEventLocation,
-    showDatePicker, openDatePicker, closeDatePicker,
-    feedType, setFeedType,
-    audienceType, handleSelectAudienceClub, handleSelectAudienceSquad,
-    selectedSquadId, setSelectedSquadId, availableSquads, selectedSquad, audienceLabel,
-    isPosting, canPost, handlePost,
+    club,
+    canPostAsClub,
+    isCoach,
+    title,
+    setTitle,
+    body,
+    setBody,
+    postType,
+    setPostType,
+    postAs,
+    setPostAs,
+    imageUri,
+    pickImage,
+    removeImage,
+    eventDate,
+    setEventDate,
+    eventLocation,
+    setEventLocation,
+    showDatePicker,
+    openDatePicker,
+    closeDatePicker,
+    feedType,
+    setFeedType,
+    audienceType,
+    handleSelectAudienceClub,
+    handleSelectAudienceSquad,
+    selectedSquadId,
+    setSelectedSquadId,
+    availableSquads,
+    selectedSquad,
+    audienceLabel,
+    isPosting,
+    canPost,
+    handlePost,
   };
 }

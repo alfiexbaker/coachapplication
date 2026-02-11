@@ -38,7 +38,15 @@ const logger = createLogger('useCreateInvite');
 // TYPES
 // ============================================================================
 
-export type Step = 'athlete' | 'club' | 'mode' | 'type' | 'slots' | 'details' | 'confirm' | 'existing';
+export type Step =
+  | 'athlete'
+  | 'club'
+  | 'mode'
+  | 'type'
+  | 'slots'
+  | 'details'
+  | 'confirm'
+  | 'existing';
 
 export interface AthleteOption {
   id: string;
@@ -134,7 +142,9 @@ export function useCreateInvite(): UseCreateInviteReturn {
   const [selectedClub, setSelectedClub] = useState<Academy | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<SessionTemplate | null>(null);
   const [selectedExistingSession, setSelectedExistingSession] = useState<GroupSession | null>(null);
-  const [selectedAvailabilitySlots, setSelectedAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [selectedAvailabilitySlots, setSelectedAvailabilitySlots] = useState<AvailabilitySlot[]>(
+    [],
+  );
 
   // Form fields
   const [sessionType, setSessionType] = useState('');
@@ -208,9 +218,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
       const sessions = await groupSessionService.getCoachSessions(currentUser.id);
       const now = new Date();
       const upcoming = sessions.filter(
-        (s) =>
-          s.status === 'PUBLISHED' &&
-          s.schedule.some((sched) => new Date(sched.date) >= now)
+        (s) => s.status === 'PUBLISHED' && s.schedule.some((sched) => new Date(sched.date) >= now),
       );
       setExistingSessions(upcoming);
     } catch (error) {
@@ -226,7 +234,14 @@ export function useCreateInvite(): UseCreateInviteReturn {
       loadExistingSessions();
       loadSessionTemplates();
     }
-  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites, loadExistingSessions, loadSessionTemplates]);
+  }, [
+    currentUser?.id,
+    loadAcademies,
+    loadAthletes,
+    loadSentInvites,
+    loadExistingSessions,
+    loadSessionTemplates,
+  ]);
 
   // ── Handlers ──────────────────────────────────────────────────────────
 
@@ -269,7 +284,14 @@ export function useCreateInvite(): UseCreateInviteReturn {
       default:
         return true;
     }
-  }, [step, selectedAthletes.length, selectedTemplate, focus, selectedAvailabilitySlots.length, selectedExistingSession]);
+  }, [
+    step,
+    selectedAthletes.length,
+    selectedTemplate,
+    focus,
+    selectedAvailabilitySlots.length,
+    selectedExistingSession,
+  ]);
 
   const nextStep = useCallback(() => {
     if (step === 'mode') {
@@ -360,7 +382,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
             priceUsd: session.pricePerParticipant,
             expiresInDays: 7,
             existingSessionId: session.id,
-          }
+          },
         );
       } else {
         const slotsFromPicker: TimeSlot[] = selectedAvailabilitySlots.map((slot) => ({
@@ -391,7 +413,7 @@ export function useCreateInvite(): UseCreateInviteReturn {
             isRecurring: isRecurring || undefined,
             recurrenceWeeks: isRecurring ? recurrenceWeeks : undefined,
             coverImageUrl: coverImageUri || undefined,
-          }
+          },
         );
       }
 
@@ -405,10 +427,21 @@ export function useCreateInvite(): UseCreateInviteReturn {
       setLoading(false);
     }
   }, [
-    currentUser, selectedAthletes, inviteMode, selectedExistingSession,
-    selectedClub, sessionInviteType, notes, selectedAvailabilitySlots,
-    selectedTemplate, sessionType, focus, price, isRecurring,
-    recurrenceWeeks, coverImageUri,
+    currentUser,
+    selectedAthletes,
+    inviteMode,
+    selectedExistingSession,
+    selectedClub,
+    sessionInviteType,
+    notes,
+    selectedAvailabilitySlots,
+    selectedTemplate,
+    sessionType,
+    focus,
+    price,
+    isRecurring,
+    recurrenceWeeks,
+    coverImageUri,
   ]);
 
   // ── Return ────────────────────────────────────────────────────────────

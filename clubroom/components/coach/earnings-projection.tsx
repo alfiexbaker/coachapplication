@@ -64,9 +64,7 @@ export function EarningsProjection({
           <Ionicons name="trending-up" size={Components.icon.md} color={palette.success} />
         </View>
         <View style={styles.headerText}>
-          <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-            This Month
-          </ThemedText>
+          <ThemedText style={[Typography.caption, { color: palette.muted }]}>This Month</ThemedText>
           <ThemedText style={[Typography.title, { color: palette.text }]}>
             {formatCurrency(projectedTotal, currencySymbol)}
           </ThemedText>

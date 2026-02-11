@@ -7,11 +7,7 @@
 
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -81,11 +77,7 @@ export function CoachMarkerPill({
           },
         ]}
       >
-        <ThemedText
-          style={[styles.priceText, { color: pillTextColor }]}
-        >
-          {price}
-        </ThemedText>
+        <ThemedText style={[styles.priceText, { color: pillTextColor }]}>{price}</ThemedText>
 
         {/* Small heart indicator for saved coaches */}
         {saved && (
@@ -95,23 +87,14 @@ export function CoachMarkerPill({
               { backgroundColor: selected ? palette.onPrimary : palette.error },
             ]}
           >
-            <Ionicons
-              name="heart"
-              size={8}
-              color={selected ? palette.error : palette.onPrimary}
-            />
+            <Ionicons name="heart" size={8} color={selected ? palette.error : palette.onPrimary} />
           </View>
         )}
       </Clickable>
 
       {/* Pointer triangle */}
       <View style={styles.pointerContainer}>
-        <View
-          style={[
-            styles.pointer,
-            { borderTopColor: pillBorderColor },
-          ]}
-        />
+        <View style={[styles.pointer, { borderTopColor: pillBorderColor }]} />
       </View>
     </Animated.View>
   );

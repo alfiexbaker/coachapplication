@@ -10,13 +10,29 @@ import type { VideoVisibility } from '@/constants/types';
 
 const logger = createLogger('useVideoUpload');
 
-export const VISIBILITY_OPTIONS: { value: VideoVisibility; label: string; description: string; icon: string }[] = [
+export const VISIBILITY_OPTIONS: {
+  value: VideoVisibility;
+  label: string;
+  description: string;
+  icon: string;
+}[] = [
   { value: 'PRIVATE', label: 'Private', description: 'Only visible to you', icon: 'lock-closed' },
-  { value: 'SHARED', label: 'Shared', description: 'Visible to tagged athletes and parents', icon: 'people' },
+  {
+    value: 'SHARED',
+    label: 'Shared',
+    description: 'Visible to tagged athletes and parents',
+    icon: 'people',
+  },
   { value: 'PUBLIC', label: 'Public', description: 'Visible to all club members', icon: 'globe' },
 ];
 
-export type VideoData = { uri: string; name: string; duration: number; fileSize: number; thumbnailUri?: string } | null;
+export type VideoData = {
+  uri: string;
+  name: string;
+  duration: number;
+  fileSize: number;
+  thumbnailUri?: string;
+} | null;
 
 export function useVideoUpload() {
   const { currentUser } = useAuth();
@@ -31,15 +47,34 @@ export function useVideoUpload() {
   const handleUploadProgress = useCallback((progress: number) => setUploadProgress(progress), []);
 
   const handleSubmit = useCallback(async () => {
-    if (!videoData) { Alert.alert('No Video', 'Please select a video to upload.'); return; }
-    if (!title.trim()) { Alert.alert('Missing Title', 'Please enter a title for your video.'); return; }
-    if (!currentUser) { Alert.alert('Error', 'You must be logged in to upload videos.'); return; }
+    if (!videoData) {
+      Alert.alert('No Video', 'Please select a video to upload.');
+      return;
+    }
+    if (!title.trim()) {
+      Alert.alert('Missing Title', 'Please enter a title for your video.');
+      return;
+    }
+    if (!currentUser) {
+      Alert.alert('Error', 'You must be logged in to upload videos.');
+      return;
+    }
 
     setUploading(true);
     try {
       const newVideo = await videoService.createVideo(
-        { coachId: currentUser.id, coachName: currentUser.name || currentUser.fullName || 'Coach', athleteIds: [], athleteNames: [], title: title.trim(), description: description.trim() },
-        videoData.uri, videoData.thumbnailUri || videoData.uri, videoData.duration, videoData.fileSize,
+        {
+          coachId: currentUser.id,
+          coachName: currentUser.name || currentUser.fullName || 'Coach',
+          athleteIds: [],
+          athleteNames: [],
+          title: title.trim(),
+          description: description.trim(),
+        },
+        videoData.uri,
+        videoData.thumbnailUri || videoData.uri,
+        videoData.duration,
+        videoData.fileSize,
       );
       if (visibility !== 'PRIVATE' && visibility === 'PUBLIC') {
         await videoService.shareVideo(newVideo.id, []);
@@ -47,7 +82,15 @@ export function useVideoUpload() {
       logger.info('Video uploaded successfully', { videoId: newVideo.id });
       Alert.alert('Success', 'Video uploaded successfully!', [
         { text: 'View Video', onPress: () => router.replace(Routes.video(newVideo.id)) },
-        { text: 'Upload Another', onPress: () => { setVideoData(null); setTitle(''); setDescription(''); setUploadProgress(0); } },
+        {
+          text: 'Upload Another',
+          onPress: () => {
+            setVideoData(null);
+            setTitle('');
+            setDescription('');
+            setUploadProgress(0);
+          },
+        },
       ]);
     } catch (error) {
       logger.error('Failed to upload video', error);
@@ -60,8 +103,18 @@ export function useVideoUpload() {
   const canSubmit = !!videoData && !!title.trim() && !uploading;
 
   return {
-    videoData, title, description, visibility, uploading, uploadProgress, canSubmit,
-    setTitle, setDescription, setVisibility,
-    handleVideoSelected, handleUploadProgress, handleSubmit,
+    videoData,
+    title,
+    description,
+    visibility,
+    uploading,
+    uploadProgress,
+    canSubmit,
+    setTitle,
+    setDescription,
+    setVisibility,
+    handleVideoSelected,
+    handleUploadProgress,
+    handleSubmit,
   };
 }

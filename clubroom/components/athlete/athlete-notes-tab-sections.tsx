@@ -27,11 +27,7 @@ interface NoteCardProps {
   palette: ThemeColors;
 }
 
-export const NoteCard = memo(function NoteCard({
-  note,
-  onDelete,
-  palette,
-}: NoteCardProps) {
+export const NoteCard = memo(function NoteCard({ note, onDelete, palette }: NoteCardProps) {
   const handleDelete = useCallback(() => {
     Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
       { text: 'Cancel', style: 'cancel' },
@@ -60,11 +56,7 @@ export const NoteCard = memo(function NoteCard({
             year: 'numeric',
           })}
         </ThemedText>
-        <Clickable
-          onPress={handleDelete}
-          hitSlop={8}
-          accessibilityLabel="Delete note"
-        >
+        <Clickable onPress={handleDelete} hitSlop={8} accessibilityLabel="Delete note">
           <Ionicons name="trash-outline" size={16} color={palette.error} />
         </Clickable>
       </Row>
@@ -112,9 +104,11 @@ export const PrimaryFocusSection = memo(function PrimaryFocusSection({
             <Clickable
               key={focus}
               onPress={() => onSelectFocus(focus)}
-              style={primaryFocus === focus
-                ? [styles.focusOption, { backgroundColor: withAlpha(palette.tint, 0.09) }]
-                : styles.focusOption}
+              style={
+                primaryFocus === focus
+                  ? [styles.focusOption, { backgroundColor: withAlpha(palette.tint, 0.09) }]
+                  : styles.focusOption
+              }
             >
               <ThemedText style={styles.flex1}>{focus}</ThemedText>
               {primaryFocus === focus && (

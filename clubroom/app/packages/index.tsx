@@ -13,7 +13,7 @@ import { Row } from '@/components/primitives/row';
 import { PackageList } from '@/components/packages/PackageList';
 import { MyPackages } from '@/components/packages/MyPackages';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { packageService } from '@/services/package-service';
@@ -57,7 +57,10 @@ export default function PackagesScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -86,7 +89,10 @@ export default function PackagesScreen() {
           <Clickable
             style={[
               styles.tab,
-              activeTab === 'browse' && [styles.tabActive, { borderColor: palette.tint, backgroundColor: palette.surfaceSecondary }],
+              activeTab === 'browse' && [
+                styles.tabActive,
+                { borderColor: palette.tint, backgroundColor: palette.surfaceSecondary },
+              ],
             ]}
             onPress={() => setActiveTab('browse')}
           >
@@ -110,7 +116,10 @@ export default function PackagesScreen() {
           <Clickable
             style={[
               styles.tab,
-              activeTab === 'my-packages' && [styles.tabActive, { borderColor: palette.tint, backgroundColor: palette.surfaceSecondary }],
+              activeTab === 'my-packages' && [
+                styles.tabActive,
+                { borderColor: palette.tint, backgroundColor: palette.surfaceSecondary },
+              ],
             ]}
             onPress={() => setActiveTab('my-packages')}
           >
@@ -144,9 +153,13 @@ export default function PackagesScreen() {
           <>
             {/* Info Banner */}
             <Animated.View entering={FadeInDown.delay(50).springify()}>
-              <SurfaceCard style={[styles.infoBanner, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
+              <SurfaceCard
+                style={[styles.infoBanner, { backgroundColor: withAlpha(palette.success, 0.03) }]}
+              >
                 <Row align="start" gap="md">
-                  <View style={[styles.infoIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                  <View
+                    style={[styles.infoIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+                  >
                     <Ionicons name="gift-outline" size={20} color={palette.success} />
                   </View>
                   <View style={styles.infoContent}>
@@ -154,7 +167,8 @@ export default function PackagesScreen() {
                       Save with Bundles
                     </ThemedText>
                     <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-                      Buy 5 or 10 sessions at a discounted rate. Use them for future bookings with your coach.
+                      Buy 5 or 10 sessions at a discounted rate. Use them for future bookings with
+                      your coach.
                     </ThemedText>
                   </View>
                 </Row>
@@ -201,50 +215,66 @@ export default function PackagesScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 },
+    flex: 1,
+  },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md },
+    paddingVertical: Spacing.md,
+  },
   headerTitle: {
-    flex: 1 },
+    flex: 1,
+  },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro },
+    marginTop: Spacing.micro,
+  },
   manageButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center' },
+    justifyContent: 'center',
+  },
   tabContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md },
+    marginBottom: Spacing.md,
+  },
   tab: {
     flex: 1,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    borderColor: 'transparent' },
+    borderColor: 'transparent',
+  },
   tabActive: {
-    backgroundColor: 'transparent' },
+    backgroundColor: 'transparent',
+  },
   tabText: {
-    ...Typography.bodySmallSemiBold },
+    ...Typography.bodySmallSemiBold,
+  },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
-    gap: Spacing.lg },
+    gap: Spacing.lg,
+  },
   infoBanner: {
-    padding: Spacing.md },
+    padding: Spacing.md,
+  },
   infoIcon: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center' },
+    justifyContent: 'center',
+  },
   infoContent: {
     flex: 1,
-    gap: Spacing.xxs },
+    gap: Spacing.xxs,
+  },
   infoTitle: {
-    ...Typography.body },
+    ...Typography.body,
+  },
   infoText: {
-    ...Typography.small } });
+    ...Typography.small,
+  },
+});

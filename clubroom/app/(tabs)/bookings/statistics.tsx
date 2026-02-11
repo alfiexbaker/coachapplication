@@ -43,7 +43,10 @@ export default function StatisticsScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['bottom']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -51,7 +54,10 @@ export default function StatisticsScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['bottom']}
+      >
         <ErrorState
           message={error?.message ?? 'Failed to load progress statistics.'}
           onRetry={retry}
@@ -63,10 +69,13 @@ export default function StatisticsScreen() {
   // Empty state — no sessions completed yet
   if (status === 'empty' || (recentSessions.length === 0 && topSkills.length === 0)) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['bottom']}
+      >
         {isParent && children.length > 0 && (
           <ChildSelector
-            children={children}
+            childOptions={children}
             selectedChildId={selectedChildId}
             onSelectChild={setSelectedChildId}
           />
@@ -83,16 +92,21 @@ export default function StatisticsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['bottom']}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
       >
         <Column gap="lg">
           {isParent && children.length > 0 && (
             <ChildSelector
-              children={children}
+              childOptions={children}
               selectedChildId={selectedChildId}
               onSelectChild={setSelectedChildId}
             />

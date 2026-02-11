@@ -24,12 +24,22 @@ export type NotifiableAction = {
 };
 
 // Map action types to notification types
-function mapToNotificationType(actionType: string): 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge' {
-  if (actionType.includes('booking') || actionType.includes('session') || actionType.includes('invite') || actionType.includes('rsvp') || actionType.includes('cancel')) return 'booking';
+function mapToNotificationType(
+  actionType: string,
+): 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge' {
+  if (
+    actionType.includes('booking') ||
+    actionType.includes('session') ||
+    actionType.includes('invite') ||
+    actionType.includes('rsvp') ||
+    actionType.includes('cancel')
+  )
+    return 'booking';
   if (actionType.includes('message')) return 'message';
   if (actionType.includes('review')) return 'review';
   if (actionType.includes('payment') || actionType.includes('earning')) return 'payment';
-  if (actionType.includes('badge') || actionType.includes('drill') || actionType.includes('goal')) return 'badge';
+  if (actionType.includes('badge') || actionType.includes('drill') || actionType.includes('goal'))
+    return 'badge';
   return 'reminder';
 }
 
@@ -220,7 +230,12 @@ export const notificationTriggers = {
     });
   },
 
-  bookingCancelled(cancelledByName: string, dateTime: string, recipientRole: 'coach' | 'parent', recipientId?: string) {
+  bookingCancelled(
+    cancelledByName: string,
+    dateTime: string,
+    recipientRole: 'coach' | 'parent',
+    recipientId?: string,
+  ) {
     return triggerNotification({
       type: 'booking_cancelled',
       recipientRole,
@@ -320,7 +335,12 @@ export const notificationTriggers = {
   },
 
   // --- Reschedule ---
-  rescheduleRequested(coachName: string, originalDate: string, newDate: string, recipientId?: string) {
+  rescheduleRequested(
+    coachName: string,
+    originalDate: string,
+    newDate: string,
+    recipientId?: string,
+  ) {
     return triggerNotification({
       type: 'reschedule_request',
       recipientRole: 'parent',

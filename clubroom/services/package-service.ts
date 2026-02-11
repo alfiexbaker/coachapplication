@@ -1,8 +1,4 @@
-import {
-  SessionPackage,
-  PackagePurchase,
-  PackageRedemption,
-} from '@/constants/types';
+import { SessionPackage, PackagePurchase, PackageRedemption } from '@/constants/types';
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { walletService } from './wallet-service';
@@ -214,9 +210,7 @@ class PackageService {
   async getAvailablePackages(coachId: string): Promise<Result<SessionPackage[], ServiceError>> {
     try {
       const packages = await this.getAllPackages();
-      const available = packages.filter(
-        (pkg) => pkg.coachId === coachId && pkg.isActive
-      );
+      const available = packages.filter((pkg) => pkg.coachId === coachId && pkg.isActive);
       logger.info('available_packages_retrieved', { coachId, count: available.length });
       return ok(available);
     } catch (error) {
@@ -353,7 +347,7 @@ class PackageService {
    */
   async updatePackage(
     packageId: string,
-    params: UpdatePackageParams
+    params: UpdatePackageParams,
   ): Promise<Result<SessionPackage | null, ServiceError>> {
     try {
       const packages = await this.getAllPackages();
@@ -458,7 +452,7 @@ class PackageService {
   async purchasePackage(
     userId: string,
     _userName: string,
-    packageId: string
+    packageId: string,
   ): Promise<Result<{ purchase: PackagePurchase; newWalletBalance?: number }, ServiceError>> {
     try {
       const packageResult = await this.getPackageById(packageId);
@@ -481,8 +475,8 @@ class PackageService {
         const balance = await walletService.getBalance(userId);
         return err(
           validationError(
-            `Insufficient balance. You have \u00A3${balance.toFixed(2)} but need \u00A3${pkg.price.toFixed(2)}`
-          )
+            `Insufficient balance. You have \u00A3${balance.toFixed(2)} but need \u00A3${pkg.price.toFixed(2)}`,
+          ),
         );
       }
 
@@ -496,7 +490,7 @@ class PackageService {
           packageId,
           coachId: pkg.coachId,
           sessionCount: pkg.sessionCount,
-        }
+        },
       );
 
       if (!paymentResult.success) {
@@ -591,13 +585,13 @@ class PackageService {
    */
   async getActiveUserPackages(
     userId: string,
-    coachId?: string
+    coachId?: string,
   ): Promise<Result<PackagePurchase[], ServiceError>> {
     const userPackagesResult = await this.getUserPackages(userId);
     if (!userPackagesResult.success) return err(userPackagesResult.error);
 
     let active = userPackagesResult.data.filter(
-      (p) => p.status === 'ACTIVE' && p.sessionsRemaining > 0
+      (p) => p.status === 'ACTIVE' && p.sessionsRemaining > 0,
     );
 
     if (coachId) {
@@ -653,7 +647,7 @@ class PackageService {
   async redeemSession(
     purchaseId: string,
     bookingId: string,
-    userId: string
+    userId: string,
   ): Promise<Result<{ redemption: PackageRedemption; purchase: PackagePurchase }, ServiceError>> {
     try {
       const purchases = await this.getAllPurchases();
@@ -812,12 +806,17 @@ class PackageService {
    * @param coachId - The coach's unique identifier
    * @returns Stats about package sales
    */
-  async getCoachPackageStats(coachId: string): Promise<Result<{
-    totalPackagesSold: number;
-    totalRevenue: number;
-    activePackages: number;
-    sessionsRedeemed: number;
-  }, ServiceError>> {
+  async getCoachPackageStats(coachId: string): Promise<
+    Result<
+      {
+        totalPackagesSold: number;
+        totalRevenue: number;
+        activePackages: number;
+        sessionsRedeemed: number;
+      },
+      ServiceError
+    >
+  > {
     try {
       const purchases = await this.getAllPurchases();
       const coachPurchases = purchases.filter((p) => p.coachId === coachId);

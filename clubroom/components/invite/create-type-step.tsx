@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -18,7 +18,11 @@ import type { SessionTemplate, SessionInviteType } from '@/constants/types';
 
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
 
-const INVITE_TYPE_OPTIONS: { key: SessionInviteType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const INVITE_TYPE_OPTIONS: {
+  key: SessionInviteType;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'OPEN', label: 'Open', icon: 'globe-outline' },
   { key: 'CLOSED', label: 'Closed', icon: 'lock-closed-outline' },
   { key: 'SQUAD_ONLY', label: 'Squad Only', icon: 'people-outline' },
@@ -43,7 +47,12 @@ interface TemplateChipProps {
   colors: ThemeColors;
 }
 
-const TemplateChip = memo(function TemplateChip({ template, isSelected, onSelect, colors }: TemplateChipProps) {
+const TemplateChip = memo(function TemplateChip({
+  template,
+  isSelected,
+  onSelect,
+  colors,
+}: TemplateChipProps) {
   const handlePress = useCallback(() => {
     onSelect(template);
   }, [template, onSelect]);
@@ -68,11 +77,22 @@ const TemplateChip = memo(function TemplateChip({ template, isSelected, onSelect
         {template.name}
       </ThemedText>
       <Row gap="sm" justify="center">
-        <ThemedText style={{ color: isSelected ? withAlpha(colors.onPrimary, 0.8) : colors.muted, ...Typography.micro }}>
+        <ThemedText
+          style={{
+            color: isSelected ? withAlpha(colors.onPrimary, 0.8) : colors.muted,
+            ...Typography.micro,
+          }}
+        >
           {template.duration}m
         </ThemedText>
-        <ThemedText style={{ color: isSelected ? withAlpha(colors.onPrimary, 0.8) : colors.muted, ...Typography.micro }}>
-          {'\u00A3'}{template.defaultPrice}
+        <ThemedText
+          style={{
+            color: isSelected ? withAlpha(colors.onPrimary, 0.8) : colors.muted,
+            ...Typography.micro,
+          }}
+        >
+          {'\u00A3'}
+          {template.defaultPrice}
         </ThemedText>
       </Row>
     </Clickable>
@@ -111,10 +131,15 @@ export const CreateTypeStep = memo(function CreateTypeStep({
             ))}
           </Row>
           {selectedTemplate && (
-            <Row gap="xs" align="center" style={[styles.autoFillBanner, { backgroundColor: withAlpha(colors.success, 0.06) }]}>
+            <Row
+              gap="xs"
+              align="center"
+              style={[styles.autoFillBanner, { backgroundColor: withAlpha(colors.success, 0.06) }]}
+            >
               <Ionicons name="sparkles" size={14} color={colors.success} />
               <ThemedText style={[styles.autoFillText, { color: colors.success }]}>
-                {selectedTemplate.duration}min · {'\u00A3'}{selectedTemplate.defaultPrice}/session · Cap {selectedTemplate.capacity}
+                {selectedTemplate.duration}min · {'\u00A3'}
+                {selectedTemplate.defaultPrice}/session · Cap {selectedTemplate.capacity}
               </ThemedText>
             </Row>
           )}
@@ -181,7 +206,9 @@ const FocusChip = memo(function FocusChip({ label, isSelected, onSelect, colors 
       accessibilityLabel={`Select ${label} focus`}
       accessibilityRole="button"
     >
-      <ThemedText style={{ color: isSelected ? colors.onPrimary : colors.text, ...Typography.small }}>
+      <ThemedText
+        style={{ color: isSelected ? colors.onPrimary : colors.text, ...Typography.small }}
+      >
         {label}
       </ThemedText>
     </Clickable>
@@ -195,7 +222,12 @@ interface InviteTypeChipProps {
   colors: ThemeColors;
 }
 
-const InviteTypeChip = memo(function InviteTypeChip({ option, isSelected, onSelect, colors }: InviteTypeChipProps) {
+const InviteTypeChip = memo(function InviteTypeChip({
+  option,
+  isSelected,
+  onSelect,
+  colors,
+}: InviteTypeChipProps) {
   const handlePress = useCallback(() => {
     onSelect(option.key);
   }, [option.key, onSelect]);
@@ -219,7 +251,9 @@ const InviteTypeChip = memo(function InviteTypeChip({ option, isSelected, onSele
           size={14}
           color={isSelected ? colors.onPrimary : colors.text}
         />
-        <ThemedText style={{ color: isSelected ? colors.onPrimary : colors.text, ...Typography.small }}>
+        <ThemedText
+          style={{ color: isSelected ? colors.onPrimary : colors.text, ...Typography.small }}
+        >
           {option.label}
         </ThemedText>
       </Row>
@@ -230,8 +264,27 @@ const InviteTypeChip = memo(function InviteTypeChip({ option, isSelected, onSele
 const styles = StyleSheet.create({
   stepTitle: { ...Typography.title },
   formLabel: { ...Typography.bodySmallSemiBold, marginBottom: Spacing.xxs },
-  templateChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.micro, minWidth: 100, alignItems: 'center', minHeight: 44 },
-  optionChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, minHeight: 44 },
-  autoFillBanner: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.sm },
+  templateChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.micro,
+    minWidth: 100,
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  optionChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
+  },
+  autoFillBanner: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.sm,
+  },
   autoFillText: { ...Typography.smallSemiBold },
 });

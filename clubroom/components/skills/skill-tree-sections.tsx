@@ -51,19 +51,13 @@ export const TreeHeader = memo(function TreeHeader({
     <Row align="center" justify="space-between">
       <Row align="center" gap="sm" flex>
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(themeColor, 0.09) }]}>
-          <Ionicons
-            name={icon as keyof typeof Ionicons.glyphMap}
-            size={24}
-            color={themeColor}
-          />
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={themeColor} />
         </View>
         <View>
           <ThemedText type="defaultSemiBold" style={styles.treeName}>
             {name}
           </ThemedText>
-          <ThemedText style={[styles.treeDesc, { color: palette.muted }]}>
-            {description}
-          </ThemedText>
+          <ThemedText style={[styles.treeDesc, { color: palette.muted }]}>{description}</ThemedText>
         </View>
       </Row>
       <View style={styles.statsContainer}>
@@ -71,9 +65,7 @@ export const TreeHeader = memo(function TreeHeader({
           <ThemedText style={[styles.statValue, { color: themeColor }]}>
             {unlockedCount}/{totalNodes}
           </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-            Skills
-          </ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Skills</ThemedText>
         </View>
       </View>
     </Row>
@@ -135,11 +127,13 @@ interface ZoomHintProps {
 
 export const ZoomHint = memo(function ZoomHint({ palette }: ZoomHintProps) {
   return (
-    <Row align="center" gap="xxs" style={[styles.zoomHint, { backgroundColor: withAlpha(palette.surface, 0.56) }]}>
+    <Row
+      align="center"
+      gap="xxs"
+      style={[styles.zoomHint, { backgroundColor: withAlpha(palette.surface, 0.56) }]}
+    >
       <Ionicons name="expand-outline" size={14} color={palette.muted} />
-      <ThemedText style={[styles.zoomText, { color: palette.muted }]}>
-        Pinch to zoom
-      </ThemedText>
+      <ThemedText style={[styles.zoomText, { color: palette.muted }]}>Pinch to zoom</ThemedText>
     </Row>
   );
 });
@@ -182,8 +176,12 @@ export const TreeLegend = memo(function TreeLegend({ themeColor, palette }: Tree
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  header: { /* layout moved to Row */ },
-  headerLeft: { /* layout moved to Row */ },
+  header: {
+    /* layout moved to Row */
+  },
+  headerLeft: {
+    /* layout moved to Row */
+  },
   iconContainer: {
     width: 44,
     height: 44,
@@ -231,7 +229,9 @@ const styles = StyleSheet.create({
   legend: {
     paddingTop: Spacing.xs,
   },
-  legendItem: { /* layout moved to Row */ },
+  legendItem: {
+    /* layout moved to Row */
+  },
   legendDot: {
     width: 12,
     height: 12,

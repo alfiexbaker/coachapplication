@@ -31,9 +31,12 @@ const renderRoleBreakdown = (roleBreakdown: RoleBreakdown | null) => {
 
   const parts: string[] = [];
   if (roleBreakdown.OWNER > 0) parts.push(`${roleBreakdown.OWNER} Owner`);
-  if (roleBreakdown.ADMIN > 0) parts.push(`${roleBreakdown.ADMIN} Admin${roleBreakdown.ADMIN > 1 ? 's' : ''}`);
-  if (roleBreakdown.MODERATOR > 0) parts.push(`${roleBreakdown.MODERATOR} Mod${roleBreakdown.MODERATOR > 1 ? 's' : ''}`);
-  if (roleBreakdown.MEMBER > 0) parts.push(`${roleBreakdown.MEMBER} Member${roleBreakdown.MEMBER > 1 ? 's' : ''}`);
+  if (roleBreakdown.ADMIN > 0)
+    parts.push(`${roleBreakdown.ADMIN} Admin${roleBreakdown.ADMIN > 1 ? 's' : ''}`);
+  if (roleBreakdown.MODERATOR > 0)
+    parts.push(`${roleBreakdown.MODERATOR} Mod${roleBreakdown.MODERATOR > 1 ? 's' : ''}`);
+  if (roleBreakdown.MEMBER > 0)
+    parts.push(`${roleBreakdown.MEMBER} Member${roleBreakdown.MEMBER > 1 ? 's' : ''}`);
   return parts.join(' / ');
 };
 
@@ -50,20 +53,33 @@ export const GroupChatHeader = React.memo(function GroupChatHeader({
       <Clickable onPress={onBack} style={styles.backButton} accessibilityLabel="Go back">
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>
-      <Clickable style={styles.headerInfo} onPress={onInfoOrMembersPress} accessibilityLabel="Open group members">
+      <Clickable
+        style={styles.headerInfo}
+        onPress={onInfoOrMembersPress}
+        accessibilityLabel="Open group members"
+      >
         <ThemedText type="subtitle" style={styles.headerName}>
           {group.name}
         </ThemedText>
         <ThemedText style={[styles.headerSubtitle, { color: colors.muted }]}>
-          {group.members.length} members{roleBreakdown ? ` \u00B7 ${renderRoleBreakdown(roleBreakdown)}` : ''}
+          {group.members.length} members
+          {roleBreakdown ? ` \u00B7 ${renderRoleBreakdown(roleBreakdown)}` : ''}
         </ThemedText>
       </Clickable>
       {group.type === 'SQUAD' ? (
-        <Clickable onPress={onInfoOrMembersPress} style={styles.moreButton} accessibilityLabel="Group info">
+        <Clickable
+          onPress={onInfoOrMembersPress}
+          style={styles.moreButton}
+          accessibilityLabel="Group info"
+        >
           <Ionicons name="information-circle-outline" size={22} color={colors.tint} />
         </Clickable>
       ) : (
-        <Clickable onPress={onLeavePress} style={styles.moreButton} accessibilityLabel="Leave group">
+        <Clickable
+          onPress={onLeavePress}
+          style={styles.moreButton}
+          accessibilityLabel="Leave group"
+        >
           <Ionicons name="exit-outline" size={22} color={colors.error} />
         </Clickable>
       )}

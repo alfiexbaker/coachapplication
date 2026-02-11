@@ -63,7 +63,9 @@ export const BlockDateForm = React.memo(function BlockDateForm({
                       styles.dateCard,
                       {
                         borderColor: isSelected ? colors.error : colors.border,
-                        backgroundColor: isSelected ? withAlpha(colors.error, 0.09) : colors.surface,
+                        backgroundColor: isSelected
+                          ? withAlpha(colors.error, 0.09)
+                          : colors.surface,
                       },
                     ]}
                     onPress={() => onSelectDate(date)}
@@ -71,13 +73,18 @@ export const BlockDateForm = React.memo(function BlockDateForm({
                     <ThemedText style={[styles.dateDay, { color: colors.muted }]}>
                       {date.toLocaleDateString('en-GB', { weekday: 'short' })}
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={[styles.dateNum, isSelected ? { color: colors.error } : null]}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={[styles.dateNum, isSelected ? { color: colors.error } : null]}
+                    >
                       {date.getDate()}
                     </ThemedText>
                     <ThemedText style={[styles.dateMonth, { color: colors.muted }]}>
                       {date.toLocaleDateString('en-GB', { month: 'short' })}
                     </ThemedText>
-                    {isToday ? <View style={[styles.todayDot, { backgroundColor: colors.tint }]} /> : null}
+                    {isToday ? (
+                      <View style={[styles.todayDot, { backgroundColor: colors.tint }]} />
+                    ) : null}
                   </Clickable>
                 );
               })}
@@ -102,8 +109,16 @@ export const BlockDateForm = React.memo(function BlockDateForm({
                   ]}
                   onPress={() => onSelectReason(option.key)}
                 >
-                  <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={24} color={isSelected ? colors.tint : colors.muted} />
-                  <ThemedText style={[styles.reasonLabel, isSelected ? { color: colors.tint } : null]}>{option.label}</ThemedText>
+                  <Ionicons
+                    name={option.icon as keyof typeof Ionicons.glyphMap}
+                    size={24}
+                    color={isSelected ? colors.tint : colors.muted}
+                  />
+                  <ThemedText
+                    style={[styles.reasonLabel, isSelected ? { color: colors.tint } : null]}
+                  >
+                    {option.label}
+                  </ThemedText>
                 </Clickable>
               );
             })}
@@ -126,14 +141,24 @@ export const BlockDateForm = React.memo(function BlockDateForm({
             <Ionicons name="close-circle" size={20} color={colors.error} />
             <ThemedText type="defaultSemiBold">Preview</ThemedText>
           </Row>
-          <ThemedText style={{ color: colors.muted }}>{formatDate(selectedDate)} will be blocked</ThemedText>
           <ThemedText style={{ color: colors.muted }}>
-            Reason: {reason === 'other' ? (customReason || 'Not specified') : reasonOptions.find((r) => r.key === reason)?.label}
+            {formatDate(selectedDate)} will be blocked
+          </ThemedText>
+          <ThemedText style={{ color: colors.muted }}>
+            Reason:{' '}
+            {reason === 'other'
+              ? customReason || 'Not specified'
+              : reasonOptions.find((r) => r.key === reason)?.label}
           </ThemedText>
         </SurfaceCard>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}> 
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: colors.background, borderTopColor: colors.border },
+        ]}
+      >
         <Clickable
           style={[styles.saveButton, { backgroundColor: saving ? colors.muted : colors.error }]}
           onPress={onSave}
@@ -144,7 +169,9 @@ export const BlockDateForm = React.memo(function BlockDateForm({
           ) : (
             <Row align="center" justify="center" gap="sm">
               <Ionicons name="close-circle" size={22} color={colors.onPrimary} />
-              <ThemedText style={[styles.saveButtonText, { color: colors.onPrimary }]}>Block This Date</ThemedText>
+              <ThemedText style={[styles.saveButtonText, { color: colors.onPrimary }]}>
+                Block This Date
+              </ThemedText>
             </Row>
           )}
         </Clickable>

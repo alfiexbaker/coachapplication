@@ -58,9 +58,17 @@ export const AcademyBanner = memo(function AcademyBanner({
       {/* Logo & Name */}
       <View style={styles.logoSection}>
         {academy.logoUrl ? (
-          <Image source={{ uri: academy.logoUrl }} style={[styles.logo, { borderColor: colors.onPrimary }]} />
+          <Image
+            source={{ uri: academy.logoUrl }}
+            style={[styles.logo, { borderColor: colors.onPrimary }]}
+          />
         ) : (
-          <View style={[styles.logoPlaceholder, { backgroundColor: primaryColor, borderColor: colors.onPrimary }]}>
+          <View
+            style={[
+              styles.logoPlaceholder,
+              { backgroundColor: primaryColor, borderColor: colors.onPrimary },
+            ]}
+          >
             <ThemedText style={[styles.logoText, { color: colors.onPrimary }]}>
               {academy.name.slice(0, 2).toUpperCase()}
             </ThemedText>
@@ -71,16 +79,12 @@ export const AcademyBanner = memo(function AcademyBanner({
         </ThemedText>
         <Row style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={colors.muted} />
-          <ThemedText style={[styles.location, { color: colors.muted }]}>
-            {academy.city}
-          </ThemedText>
+          <ThemedText style={[styles.location, { color: colors.muted }]}>{academy.city}</ThemedText>
         </Row>
         {academy.rating && (
           <Row style={styles.ratingRow}>
             <Ionicons name="star" size={14} color={colors.warning} />
-            <ThemedText style={styles.ratingText}>
-              {academy.rating.average.toFixed(1)}
-            </ThemedText>
+            <ThemedText style={styles.ratingText}>{academy.rating.average.toFixed(1)}</ThemedText>
             <ThemedText style={[styles.reviewCount, { color: colors.muted }]}>
               ({academy.rating.reviewCount} reviews)
             </ThemedText>
@@ -97,20 +101,34 @@ const styles = StyleSheet.create({
   bannerPlaceholder: { width: '100%', height: '100%' },
   bannerOverlay: { ...StyleSheet.absoluteFillObject },
   backButton: {
-    position: 'absolute', top: Spacing.md, left: Spacing.md,
-    width: 40, height: 40, borderRadius: Radii.xl,
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingsButton: {
-    position: 'absolute', top: Spacing.md, right: Spacing.md,
-    width: 40, height: 40, borderRadius: Radii.xl,
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoSection: { alignItems: 'center', marginTop: -50, paddingHorizontal: Spacing.lg },
   logo: { width: 100, height: 100, borderRadius: Radii.pill, borderWidth: 4 },
   logoPlaceholder: {
-    width: 100, height: 100, borderRadius: Radii.pill, borderWidth: 4,
-    alignItems: 'center', justifyContent: 'center',
+    width: 100,
+    height: 100,
+    borderRadius: Radii.pill,
+    borderWidth: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoText: { ...Typography.display },
   academyName: { marginTop: Spacing.sm, textAlign: 'center' },

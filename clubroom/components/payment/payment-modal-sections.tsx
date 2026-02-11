@@ -83,7 +83,10 @@ export const SessionSummaryCard = memo(function SessionSummaryCard({
   athleteNames,
   palette,
 }: SessionSummaryCardProps) {
-  const initials = coachName.split(' ').map((n) => n[0]).join('');
+  const initials = coachName
+    .split(' ')
+    .map((n) => n[0])
+    .join('');
 
   return (
     <View style={styles.section}>
@@ -124,9 +127,7 @@ export const SessionSummaryCard = memo(function SessionSummaryCard({
           )}
           <Row align="center" gap="sm">
             <Ionicons name="people-outline" size={18} color={palette.muted} />
-            <ThemedText style={styles.detailText}>
-              {athleteNames.join(', ')}
-            </ThemedText>
+            <ThemedText style={styles.detailText}>{athleteNames.join(', ')}</ThemedText>
           </Row>
         </View>
       </SurfaceCard>
@@ -166,7 +167,9 @@ export const PaymentBreakdownCard = memo(function PaymentBreakdownCard({
         </Row>
         <Divider spacing={Spacing.xs} />
         <Row justify="space-between" align="center">
-          <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>Total</ThemedText>
+          <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
+            Total
+          </ThemedText>
           <ThemedText type="defaultSemiBold" style={{ ...Typography.heading, color: palette.tint }}>
             £{total.toFixed(2)}
           </ThemedText>
@@ -193,7 +196,9 @@ export const PaymentMethodCard = memo(function PaymentMethodCard({
           </View>
           <View style={styles.cardInfo}>
             <ThemedText type="defaultSemiBold">•••• •••• •••• 4242</ThemedText>
-            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Expires 12/26</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+              Expires 12/26
+            </ThemedText>
           </View>
           <Clickable style={[styles.changeButton, { borderColor: palette.border }]}>
             <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
@@ -210,7 +215,11 @@ export const PaymentMethodCard = memo(function PaymentMethodCard({
 
 export function SecurityNote({ palette }: { palette: ThemeColors }) {
   return (
-    <Row align="center" gap="sm" style={[styles.securityNote, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
+    <Row
+      align="center"
+      gap="sm"
+      style={[styles.securityNote, { backgroundColor: withAlpha(palette.success, 0.03) }]}
+    >
       <Ionicons name="shield-checkmark" size={18} color={palette.success} />
       <ThemedText style={[styles.securityText, { color: palette.success }]}>
         Your payment is secured with 256-bit encryption

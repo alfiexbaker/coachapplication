@@ -31,7 +31,9 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
         {isCoach && (
           <Clickable
             style={[styles.addButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
-            onPress={() => router.push(clubId ? Routes.clubSquadCreate(clubId) : Routes.CLUB_SQUAD_CREATE)}
+            onPress={() =>
+              router.push(clubId ? Routes.clubSquadCreate(clubId) : Routes.CLUB_SQUAD_CREATE)
+            }
           >
             <Ionicons name="add" size={16} color={palette.tint} />
             <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
@@ -48,10 +50,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
           contentContainerStyle={styles.scrollContent}
         >
           {squads.map((squad) => (
-            <Clickable
-              key={squad.id}
-              onPress={() => router.push(Routes.clubSquad(squad.id))}
-            >
+            <Clickable key={squad.id} onPress={() => router.push(Routes.clubSquad(squad.id))}>
               <SurfaceCard style={styles.teamCard}>
                 <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="people" size={24} color={palette.tint} />
@@ -65,13 +64,21 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
                 {squad.primaryCoach && (
                   <Row style={styles.coachRow}>
                     <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.coachName, { color: palette.muted }]} numberOfLines={1}>
+                    <ThemedText
+                      style={[styles.coachName, { color: palette.muted }]}
+                      numberOfLines={1}
+                    >
                       {squad.primaryCoach}
                     </ThemedText>
                   </Row>
                 )}
                 {squad.nextSession && (
-                  <Row style={[styles.nextSessionBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                  <Row
+                    style={[
+                      styles.nextSessionBadge,
+                      { backgroundColor: withAlpha(palette.success, 0.09) },
+                    ]}
+                  >
                     <Ionicons name="calendar" size={10} color={palette.success} />
                     <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
                       {formatNextSession(squad.nextSession)}
@@ -164,6 +171,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyText: { ...Typography.small, textAlign: 'center',
-    lineHeight: 18 },
+  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: 18 },
 });

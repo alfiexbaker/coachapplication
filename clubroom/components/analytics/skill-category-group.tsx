@@ -23,14 +23,19 @@ interface SkillCategoryGroupProps {
   initialExpanded?: boolean;
 }
 
-function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: SkillCategoryGroupProps) {
+function SkillCategoryGroupInner({
+  category,
+  skills,
+  initialExpanded = true,
+}: SkillCategoryGroupProps) {
   const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(initialExpanded);
 
   const avgLevel = skills.reduce((sum, s) => sum + s.currentLevel, 0) / skills.length;
   const avgChangeValue = skills.reduce((sum, s) => sum + s.changePercent, 0) / skills.length;
   const levelInfo = getSkillLevelInfo(avgLevel);
-  const trendColor = avgChangeValue > 0 ? palette.success : avgChangeValue < 0 ? palette.error : palette.muted;
+  const trendColor =
+    avgChangeValue > 0 ? palette.success : avgChangeValue < 0 ? palette.error : palette.muted;
 
   return (
     <SurfaceCard style={styles.card}>
@@ -46,7 +51,9 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
               <Ionicons name={getCategoryIcon(category)} size={20} color={levelInfo.color} />
             </View>
             <View>
-              <ThemedText type="defaultSemiBold" style={styles.name}>{category}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.name}>
+                {category}
+              </ThemedText>
               <ThemedText style={[styles.count, { color: palette.muted }]}>
                 {skills.length} skill{skills.length !== 1 ? 's' : ''}
               </ThemedText>
@@ -58,15 +65,28 @@ function SkillCategoryGroupInner({ category, skills, initialExpanded = true }: S
               <ThemedText style={[styles.avgLabel, { color: palette.muted }]}>avg</ThemedText>
             </View>
             <View style={[styles.trendDot, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
-              <Ionicons name={avgChangeValue > 0 ? 'arrow-up' : avgChangeValue < 0 ? 'arrow-down' : 'remove'} size={10} color={trendColor} />
+              <Ionicons
+                name={
+                  avgChangeValue > 0 ? 'arrow-up' : avgChangeValue < 0 ? 'arrow-down' : 'remove'
+                }
+                size={10}
+                color={trendColor}
+              />
             </View>
-            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={palette.icon}
+            />
           </Row>
         </Row>
       </Clickable>
 
       {expanded && (
-        <Animated.View entering={FadeIn} style={[styles.skills, { borderTopColor: palette.border }]}>
+        <Animated.View
+          entering={FadeIn}
+          style={[styles.skills, { borderTopColor: palette.border }]}
+        >
           {skills.map((skill, index) => (
             <SkillProgressBar key={skill.skillName} skill={skill} compact delay={index * 50} />
           ))}
@@ -82,12 +102,24 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
   header: { justifyContent: 'space-between', alignItems: 'center' },
   left: { alignItems: 'center', gap: Spacing.sm },
-  icon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: { ...Typography.subheading },
   count: { ...Typography.caption },
   right: { alignItems: 'center', gap: Spacing.sm },
   stats: { alignItems: 'center' },
   avgLabel: { ...Typography.micro },
-  trendDot: { width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  trendDot: {
+    width: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   skills: { gap: Spacing.xs, paddingTop: Spacing.xs, borderTopWidth: 1, marginTop: Spacing.xs },
 });

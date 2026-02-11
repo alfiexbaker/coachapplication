@@ -47,14 +47,7 @@ export function useReferrals() {
     }
   }, [userId, userName]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ReferralsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ReferralsData>({
     load: loadData,
     deps: [userId, userName],
     isEmpty: (value) => !value.referralCode && value.referrals.length === 0,

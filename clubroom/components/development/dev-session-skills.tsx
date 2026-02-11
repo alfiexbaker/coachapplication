@@ -19,12 +19,18 @@ export interface DevSessionSkillsProps {
 }
 
 export const DevSessionSkills = memo(function DevSessionSkills({
-  selectedSkills, skillRatings, onToggleSkill, onUpdateRating, colors,
+  selectedSkills,
+  skillRatings,
+  onToggleSkill,
+  onUpdateRating,
+  colors,
 }: DevSessionSkillsProps) {
   return (
     <Column gap="md">
       <Column gap="sm">
-        <ThemedText type="subtitle" style={Typography.subheading}>Skills Covered</ThemedText>
+        <ThemedText type="subtitle" style={Typography.subheading}>
+          Skills Covered
+        </ThemedText>
         <SurfaceCard style={{ padding: Spacing.md }}>
           <Row style={styles.grid}>
             {AVAILABLE_SKILLS.map((skill) => {
@@ -33,9 +39,17 @@ export const DevSessionSkills = memo(function DevSessionSkills({
                 <Clickable
                   key={skill}
                   onPress={() => onToggleSkill(skill)}
-                  style={[styles.skillBtn, { backgroundColor: isSelected ? colors.tint : colors.surface }]}
+                  style={[
+                    styles.skillBtn,
+                    { backgroundColor: isSelected ? colors.tint : colors.surface },
+                  ]}
                 >
-                  <ThemedText style={[Typography.smallSemiBold, { color: isSelected ? colors.onPrimary : colors.foreground }]}>
+                  <ThemedText
+                    style={[
+                      Typography.smallSemiBold,
+                      { color: isSelected ? colors.onPrimary : colors.foreground },
+                    ]}
+                  >
                     {skill}
                   </ThemedText>
                 </Clickable>
@@ -47,7 +61,9 @@ export const DevSessionSkills = memo(function DevSessionSkills({
 
       {skillRatings.length > 0 && (
         <Column gap="sm">
-          <ThemedText type="subtitle" style={Typography.subheading}>Skill Ratings (1-10)</ThemedText>
+          <ThemedText type="subtitle" style={Typography.subheading}>
+            Skill Ratings (1-10)
+          </ThemedText>
           <SurfaceCard style={{ padding: Spacing.md, gap: Spacing.md }}>
             {skillRatings.map((sr) => (
               <View key={sr.skill} style={{ gap: Spacing.xxs }}>
@@ -57,10 +73,18 @@ export const DevSessionSkills = memo(function DevSessionSkills({
                     <Clickable
                       key={num}
                       onPress={() => onUpdateRating(sr.skill, num)}
-                      style={[styles.dot, { backgroundColor: num <= sr.rating ? colors.tint : withAlpha(colors.muted, 0.19) }]}
+                      style={[
+                        styles.dot,
+                        {
+                          backgroundColor:
+                            num <= sr.rating ? colors.tint : withAlpha(colors.muted, 0.19),
+                        },
+                      ]}
                     >
                       {num === sr.rating && (
-                        <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>{num}</ThemedText>
+                        <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
+                          {num}
+                        </ThemedText>
                       )}
                     </Clickable>
                   ))}
@@ -78,5 +102,11 @@ const styles = StyleSheet.create({
   grid: { flexWrap: 'wrap', gap: Spacing.xs },
   skillBtn: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
   ratingSlider: { justifyContent: 'space-between', alignItems: 'center' },
-  dot: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  dot: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

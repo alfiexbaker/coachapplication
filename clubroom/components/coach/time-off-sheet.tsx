@@ -26,26 +26,56 @@ interface TimeOffSheetProps {
   onSaved: () => void | Promise<void>;
 }
 
-export function TimeOffSheet({ visible, onClose, coachId, preselectedDate, existingOverride, onSaved }: TimeOffSheetProps) {
+export function TimeOffSheet({
+  visible,
+  onClose,
+  coachId,
+  preselectedDate,
+  existingOverride,
+  onSaved,
+}: TimeOffSheetProps) {
   const { colors: palette } = useTheme();
-  const form = useTimeOffForm({ visible, coachId, preselectedDate, existingOverride, onClose, onSaved });
+  const form = useTimeOffForm({
+    visible,
+    coachId,
+    preselectedDate,
+    existingOverride,
+    onClose,
+    onSaved,
+  });
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={form.handleClose}>
-      <KeyboardAvoidingView style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
 
           <Row style={styles.header}>
             <ThemedText type="subtitle">
-              {form.step === 'confirmRemove' ? 'Remove Time Off' : form.isEditing ? 'Time Off' : 'Take Time Off'}
+              {form.step === 'confirmRemove'
+                ? 'Remove Time Off'
+                : form.isEditing
+                  ? 'Time Off'
+                  : 'Take Time Off'}
             </ThemedText>
-            <Clickable onPress={form.handleClose} disabled={form.removing} hitSlop={8} accessibilityLabel="Close">
+            <Clickable
+              onPress={form.handleClose}
+              disabled={form.removing}
+              hitSlop={8}
+              accessibilityLabel="Close"
+            >
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </Row>
 
-          <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {form.step === 'confirmRemove' && form.existingOverride && (
               <TimeOffRemoveStep
                 removeDate={form.removeDate}
@@ -98,7 +128,20 @@ export function TimeOffSheet({ visible, onClose, coachId, preselectedDate, exist
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md, maxHeight: '85%' },
-  handle: { width: 36, height: Spacing.xxs, borderRadius: Spacing.micro, alignSelf: 'center', marginBottom: Spacing.xs },
+  sheet: {
+    borderTopLeftRadius: Radii.xl,
+    borderTopRightRadius: Radii.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+    maxHeight: '85%',
+  },
+  handle: {
+    width: 36,
+    height: Spacing.xxs,
+    borderRadius: Spacing.micro,
+    alignSelf: 'center',
+    marginBottom: Spacing.xs,
+  },
   header: { justifyContent: 'space-between', alignItems: 'center' },
 });

@@ -21,7 +21,11 @@ interface ServiceSelectionListProps {
   onSelect: (id: string) => void;
 }
 
-export function ServiceSelectionList({ services, selectedServiceId, onSelect }: ServiceSelectionListProps) {
+export function ServiceSelectionList({
+  services,
+  selectedServiceId,
+  onSelect,
+}: ServiceSelectionListProps) {
   const { colors: palette } = useTheme();
 
   return (

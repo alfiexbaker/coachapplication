@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 import { Row } from '@/components/primitives';
@@ -85,9 +85,7 @@ export function CompareButton({
         accessibilityRole="button"
         accessibilityLabel={isInComparison ? 'Remove from comparison' : 'Add to comparison'}
         accessibilityHint={
-          isInComparison
-            ? `Remove ${coachName} from comparison`
-            : `Add ${coachName} to comparison`
+          isInComparison ? `Remove ${coachName} from comparison` : `Add ${coachName} to comparison`
         }
         disabled={isDisabled}
         accessibilityState={{ disabled: isDisabled, selected: isInComparison }}
@@ -98,8 +96,8 @@ export function CompareButton({
             backgroundColor: isInComparison
               ? withAlpha(palette.success, 0.09)
               : pressed
-              ? palette.surfaceSecondary
-              : 'transparent',
+                ? palette.surfaceSecondary
+                : 'transparent',
             borderColor: isInComparison ? palette.success : palette.border,
             opacity: isDisabled && !isLoading ? 0.5 : 1,
           },
@@ -132,8 +130,8 @@ export function CompareButton({
             backgroundColor: isInComparison
               ? withAlpha(palette.success, 0.09)
               : pressed
-              ? palette.surfaceSecondary
-              : palette.surface,
+                ? palette.surfaceSecondary
+                : palette.surface,
             borderColor: isInComparison ? palette.success : palette.border,
             opacity: isDisabled && !isLoading ? 0.5 : 1,
           },
@@ -175,8 +173,8 @@ export function CompareButton({
           backgroundColor: isInComparison
             ? withAlpha(palette.success, 0.09)
             : pressed
-            ? palette.surfaceSecondary
-            : palette.surface,
+              ? palette.surfaceSecondary
+              : palette.surface,
           borderColor: isInComparison ? palette.success : palette.border,
           opacity: isDisabled && !isLoading ? 0.5 : 1,
         },
@@ -193,10 +191,7 @@ export function CompareButton({
           />
           <View style={styles.fullTextContainer}>
             <ThemedText
-              style={[
-                styles.fullLabel,
-                { color: isInComparison ? palette.success : palette.text },
-              ]}
+              style={[styles.fullLabel, { color: isInComparison ? palette.success : palette.text }]}
             >
               {isInComparison ? 'In Comparison' : 'Add to Compare'}
             </ThemedText>
@@ -204,8 +199,8 @@ export function CompareButton({
               {isInComparison
                 ? 'Tap to remove from comparison'
                 : canAddMore
-                ? 'Compare with other coaches'
-                : 'Comparison list is full'}
+                  ? 'Compare with other coaches'
+                  : 'Comparison list is full'}
             </ThemedText>
           </View>
         </Row>

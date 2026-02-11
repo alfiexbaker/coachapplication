@@ -5,7 +5,12 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService, CreateGroupSessionInput } from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
-import type { GroupSession, GroupSessionSchedule, FootballObjective, SessionInviteType } from '@/constants/types';
+import type {
+  GroupSession,
+  GroupSessionSchedule,
+  FootballObjective,
+  SessionInviteType,
+} from '@/constants/types';
 
 const logger = createLogger('CreateGroupSessionScreen');
 
@@ -106,17 +111,30 @@ export function useCreateGroupSession() {
 
   const canProceed = useCallback((): boolean => {
     switch (step) {
-      case 'type': return true;
-      case 'details': return form.title.trim().length > 0 && form.location.trim().length > 0;
+      case 'type':
+        return true;
+      case 'details':
+        return form.title.trim().length > 0 && form.location.trim().length > 0;
       case 'schedule':
         if (form.isRecurring) return form.recurringDayOfWeek >= 0 && form.recurringDayOfWeek <= 6;
         return form.scheduleDate.trim().length > 0;
-      case 'pricing': return true;
-      case 'review': return true;
-      case 'invite': return true;
-      default: return false;
+      case 'pricing':
+        return true;
+      case 'review':
+        return true;
+      case 'invite':
+        return true;
+      default:
+        return false;
     }
-  }, [step, form.title, form.location, form.isRecurring, form.recurringDayOfWeek, form.scheduleDate]);
+  }, [
+    step,
+    form.title,
+    form.location,
+    form.isRecurring,
+    form.recurringDayOfWeek,
+    form.scheduleDate,
+  ]);
 
   const goNext = useCallback(() => {
     const next = currentStepIndex + 1;
@@ -135,11 +153,13 @@ export function useCreateGroupSession() {
     try {
       const schedule: GroupSessionSchedule[] = form.isRecurring
         ? []
-        : [{
-            date: form.scheduleDate,
-            startTime: form.scheduleStartTime,
-            endTime: form.scheduleEndTime,
-          }];
+        : [
+            {
+              date: form.scheduleDate,
+              startTime: form.scheduleStartTime,
+              endTime: form.scheduleEndTime,
+            },
+          ];
 
       const input: CreateGroupSessionInput = {
         coachId: currentUser.id,
@@ -161,12 +181,14 @@ export function useCreateGroupSession() {
         waitlistEnabled: form.waitlistEnabled,
         squadId: form.selectedSquadIds.length > 0 ? form.selectedSquadIds[0] : undefined,
         isRecurring: form.isRecurring || undefined,
-        recurringPattern: form.isRecurring ? {
-          dayOfWeek: form.recurringDayOfWeek,
-          startTime: form.scheduleStartTime,
-          endTime: form.scheduleEndTime,
-          until: form.recurringUntil || undefined,
-        } : undefined,
+        recurringPattern: form.isRecurring
+          ? {
+              dayOfWeek: form.recurringDayOfWeek,
+              startTime: form.scheduleStartTime,
+              endTime: form.scheduleEndTime,
+              until: form.recurringUntil || undefined,
+            }
+          : undefined,
       };
 
       const session = await groupSessionService.createSession(input);
@@ -185,14 +207,17 @@ export function useCreateGroupSession() {
     }
   }, [currentUser, form, isSquadSession]);
 
-  const handleSquadInviteSuccess = useCallback((result: { squadInviteId: string; successful: number; failed: number }) => {
-    setSquadInviteSent(true);
-    Alert.alert(
-      'Invites Sent',
-      `Successfully sent ${result.successful} invite${result.successful !== 1 ? 's' : ''} to squad members.`,
-      [{ text: 'OK' }]
-    );
-  }, []);
+  const handleSquadInviteSuccess = useCallback(
+    (result: { squadInviteId: string; successful: number; failed: number }) => {
+      setSquadInviteSent(true);
+      Alert.alert(
+        'Invites Sent',
+        `Successfully sent ${result.successful} invite${result.successful !== 1 ? 's' : ''} to squad members.`,
+        [{ text: 'OK' }],
+      );
+    },
+    [],
+  );
 
   const handleFinish = useCallback(() => {
     if (createdSessionId) {
@@ -206,11 +231,24 @@ export function useCreateGroupSession() {
   const closeSquadInviteModal = useCallback(() => setShowSquadInviteModal(false), []);
 
   return {
-    form, step, steps, currentStepIndex, loading,
-    createdSessionId, showSquadInviteModal, squadInviteSent,
-    isSquadSession, currentUser,
-    setField, canProceed, goNext, goBack,
-    handleCreate, handleSquadInviteSuccess, handleFinish,
-    openSquadInviteModal, closeSquadInviteModal,
+    form,
+    step,
+    steps,
+    currentStepIndex,
+    loading,
+    createdSessionId,
+    showSquadInviteModal,
+    squadInviteSent,
+    isSquadSession,
+    currentUser,
+    setField,
+    canProceed,
+    goNext,
+    goBack,
+    handleCreate,
+    handleSquadInviteSuccess,
+    handleFinish,
+    openSquadInviteModal,
+    closeSquadInviteModal,
   };
 }

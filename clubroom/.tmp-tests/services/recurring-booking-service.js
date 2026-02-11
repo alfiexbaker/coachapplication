@@ -146,7 +146,9 @@ class RecurringBookingService {
                 read: false,
             });
             if (!notifyResult.success) {
-                logger.warn('Failed to create recurring booking notification', { error: notifyResult.error });
+                logger.warn('Failed to create recurring booking notification', {
+                    error: notifyResult.error,
+                });
             }
             return (0, result_1.ok)(newRecurring);
         }
@@ -256,7 +258,9 @@ class RecurringBookingService {
                 read: false,
             });
             if (!notifyResult.success) {
-                logger.warn('Failed to create recurring cancel notification', { error: notifyResult.error });
+                logger.warn('Failed to create recurring cancel notification', {
+                    error: notifyResult.error,
+                });
             }
             return (0, result_1.ok)(updated);
         }
@@ -362,7 +366,9 @@ class RecurringBookingService {
                 read: false,
             });
             if (!notifyResult.success) {
-                logger.warn('Failed to create recurring resume notification', { error: notifyResult.error });
+                logger.warn('Failed to create recurring resume notification', {
+                    error: notifyResult.error,
+                });
             }
             return (0, result_1.ok)(updated);
         }
@@ -607,8 +613,7 @@ class RecurringBookingService {
             case 'BIWEEKLY':
                 return Math.ceil(diffDays / 14);
             case 'MONTHLY':
-                const months = (end.getFullYear() - start.getFullYear()) * 12 +
-                    (end.getMonth() - start.getMonth());
+                const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
                 return Math.max(1, months);
             default:
                 return 0;
@@ -623,9 +628,7 @@ class RecurringBookingService {
             const now = new Date();
             let updated = false;
             const updatedBookings = bookings.map((booking) => {
-                if (booking.status === 'ACTIVE' &&
-                    booking.endDate &&
-                    new Date(booking.endDate) < now) {
+                if (booking.status === 'ACTIVE' && booking.endDate && new Date(booking.endDate) < now) {
                     updated = true;
                     return {
                         ...booking,

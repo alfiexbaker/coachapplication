@@ -60,14 +60,7 @@ export function useAthleteAnalytics() {
     return err(result.error);
   }, [athleteId, period]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<AthleteAnalyticsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteAnalyticsData>({
     load: loadAnalytics,
     deps: [athleteId, period],
     isEmpty: (value) => value.analytics === null,
@@ -76,15 +69,18 @@ export function useAthleteAnalytics() {
 
   const analytics = data?.analytics ?? null;
 
-  const handleCompleteMilestone = useCallback(async (goalId: string, milestoneId: string) => {
-    const result = await analyticsService.completeMilestone(goalId, milestoneId);
-    if (result.success) {
-      onRefresh();
-    } else {
-      logger.error('Failed to complete milestone:', result.error);
-      Alert.alert('Unable to update goal', result.error.message);
-    }
-  }, [onRefresh]);
+  const handleCompleteMilestone = useCallback(
+    async (goalId: string, milestoneId: string) => {
+      const result = await analyticsService.completeMilestone(goalId, milestoneId);
+      if (result.success) {
+        onRefresh();
+      } else {
+        logger.error('Failed to complete milestone:', result.error);
+        Alert.alert('Unable to update goal', result.error.message);
+      }
+    },
+    [onRefresh],
+  );
 
   const handleShare = useCallback(async () => {
     if (!analytics) return;

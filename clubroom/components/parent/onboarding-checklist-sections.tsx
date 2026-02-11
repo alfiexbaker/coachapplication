@@ -41,18 +41,26 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
       disabled={item.isComplete}
     >
       <Row align="center" gap="sm" style={styles.item}>
-        <Row align="center" justify="center" style={[
-          styles.checkCircle,
-          { borderColor: palette.border },
-          item.isComplete ? { backgroundColor: palette.success, borderColor: palette.success } : undefined,
-        ]}>
+        <Row
+          align="center"
+          justify="center"
+          style={[
+            styles.checkCircle,
+            { borderColor: palette.border },
+            item.isComplete
+              ? { backgroundColor: palette.success, borderColor: palette.success }
+              : undefined,
+          ]}
+        >
           {item.isComplete && <Ionicons name="checkmark" size={14} color={palette.surface} />}
         </Row>
         <ThemedText
           style={[
             styles.itemLabel,
             { color: palette.text },
-            item.isComplete ? { color: palette.muted, textDecorationLine: 'line-through' } : undefined,
+            item.isComplete
+              ? { color: palette.muted, textDecorationLine: 'line-through' }
+              : undefined,
           ]}
           numberOfLines={1}
         >

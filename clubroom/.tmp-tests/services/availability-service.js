@@ -452,7 +452,7 @@ exports.availabilityService = {
             }
             if (override?.customSlots) {
                 // Use custom slots for this date
-                const dayTemplate = templates.find(t => t.dayOfWeek === dayOfWeek);
+                const dayTemplate = templates.find((t) => t.dayOfWeek === dayOfWeek);
                 const fallbackLocation = dayTemplate?.location;
                 for (const customSlot of override.customSlots) {
                     const bookedCount = this.countBookingsForSlot(coachBookings, coachOfferings, dateStr, customSlot.startTime);
@@ -523,7 +523,7 @@ exports.availabilityService = {
             const offeringTime = offering.scheduledAt?.split('T')[1]?.substring(0, 5);
             if (offeringDate === date && offeringTime === startTime) {
                 // For session offerings, the slot is occupied
-                count += offering.registrations?.filter(r => r.status === 'confirmed').length || 1;
+                count += offering.registrations?.filter((r) => r.status === 'confirmed').length || 1;
             }
         }
         return count;
@@ -555,10 +555,12 @@ exports.availabilityService = {
             scheduledAt: offering.scheduledAt,
             service: offering.title,
             location: offering.location,
-            status: (offering.status === 'active' ? 'CONFIRMED' : offering.status?.toUpperCase()),
+            status: (offering.status === 'active'
+                ? 'CONFIRMED'
+                : offering.status?.toUpperCase()),
             isGroupSession: offering.sessionType === 'group',
             maxParticipants: offering.maxParticipants,
-            currentParticipants: offering.registrations?.filter(r => r.status === 'confirmed').length || 0,
+            currentParticipants: offering.registrations?.filter((r) => r.status === 'confirmed').length || 0,
             registrations: offering.registrations,
         })));
         return [...coachBookings, ...coachOfferingBookings];
@@ -657,7 +659,7 @@ exports.availabilityService = {
         for (const template of templates) {
             const [startHour, startMin] = template.startTime.split(':').map(Number);
             const [endHour, endMin] = template.endTime.split(':').map(Number);
-            const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+            const duration = endHour * 60 + endMin - (startHour * 60 + startMin);
             weeklyMinutes += duration;
             const dayName = booking_types_1.DAY_NAMES[template.dayOfWeek];
             if (!daysAvailable.includes(dayName)) {
@@ -671,7 +673,7 @@ exports.availabilityService = {
         const slots = await this.getAvailableSlots(coachId, today, (0, format_1.toDateStr)(twoWeeksLater));
         const nextAvailableSlot = slots.find((s) => s.isAvailable);
         return {
-            weeklyHours: Math.round(weeklyMinutes / 60 * 10) / 10,
+            weeklyHours: Math.round((weeklyMinutes / 60) * 10) / 10,
             daysAvailable,
             nextAvailableSlot,
         };

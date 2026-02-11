@@ -30,7 +30,11 @@ void logger;
 
 // Re-export types
 export type { TransactionFilter } from './earnings-report-service';
-export type { EarningsFromBookings, EarningsSummary, EarningsPeriod } from './earnings-calculator-service';
+export type {
+  EarningsFromBookings,
+  EarningsSummary,
+  EarningsPeriod,
+} from './earnings-calculator-service';
 
 // Re-export individual services for direct use
 export { earningsCalculatorService } from './earnings-calculator-service';
@@ -81,7 +85,11 @@ export const earningsService = {
    */
   async getEarningsSummary(coachId: string, period: 'week' | 'month' | 'year') {
     const transactions = await earningsReportService.getAllTransactions();
-    const result = await earningsCalculatorService.getEarningsSummary(coachId, period, transactions);
+    const result = await earningsCalculatorService.getEarningsSummary(
+      coachId,
+      period,
+      transactions,
+    );
     if (!result.success) {
       return {
         period,
@@ -103,8 +111,18 @@ export const earningsService = {
    */
   async addPayoutMethod(
     coachId: string,
-    method: Parameters<typeof payoutService.addPayoutMethod>[1]
-  ): Promise<Result<Awaited<ReturnType<typeof payoutService.addPayoutMethod>> extends Result<infer T, ServiceError> ? T : never, ServiceError>> {
+    method: Parameters<typeof payoutService.addPayoutMethod>[1],
+  ): Promise<
+    Result<
+      Awaited<ReturnType<typeof payoutService.addPayoutMethod>> extends Result<
+        infer T,
+        ServiceError
+      >
+        ? T
+        : never,
+      ServiceError
+    >
+  > {
     return payoutService.addPayoutMethod(coachId, method);
   },
 
@@ -143,8 +161,12 @@ export const earningsService = {
   async requestWithdrawal(
     coachId: string,
     amount: number,
-    payoutMethodId: string
-  ): Promise<{ success: boolean; withdrawal?: import('@/constants/types').Withdrawal; error?: string }> {
+    payoutMethodId: string,
+  ): Promise<{
+    success: boolean;
+    withdrawal?: import('@/constants/types').Withdrawal;
+    error?: string;
+  }> {
     const result = await payoutService.requestWithdrawal(coachId, amount, payoutMethodId);
     if (!result.success) {
       return { success: false, error: result.error.message };
@@ -197,14 +219,9 @@ export const earningsService = {
     bookingId: string,
     amount: number,
     _athleteName: string,
-    sessionDate?: string
+    sessionDate?: string,
   ) {
-    return earningsReportService.recordSessionPayment(
-      coachId,
-      bookingId,
-      amount,
-      sessionDate
-    );
+    return earningsReportService.recordSessionPayment(coachId, bookingId, amount, sessionDate);
   },
 
   /**

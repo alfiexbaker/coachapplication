@@ -14,30 +14,46 @@ interface HealthStatsCardProps {
   stats: InjuryStats;
 }
 
-export const HealthStatsCard = memo(function HealthStatsCard({ colors, stats }: HealthStatsCardProps) {
+export const HealthStatsCard = memo(function HealthStatsCard({
+  colors,
+  stats,
+}: HealthStatsCardProps) {
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="subtitle" style={styles.title}>Injury History</ThemedText>
+      <ThemedText type="subtitle" style={styles.title}>
+        Injury History
+      </ThemedText>
       <Row style={styles.grid}>
         <View style={styles.gridItem}>
-          <ThemedText style={[styles.value, { color: colors.text }]}>{stats.totalInjuries}</ThemedText>
+          <ThemedText style={[styles.value, { color: colors.text }]}>
+            {stats.totalInjuries}
+          </ThemedText>
           <ThemedText style={[styles.label, { color: colors.muted }]}>Total</ThemedText>
         </View>
         <View style={styles.gridItem}>
-          <ThemedText style={[styles.value, { color: colors.success }]}>{stats.healedInjuries}</ThemedText>
+          <ThemedText style={[styles.value, { color: colors.success }]}>
+            {stats.healedInjuries}
+          </ThemedText>
           <ThemedText style={[styles.label, { color: colors.muted }]}>Healed</ThemedText>
         </View>
         <View style={styles.gridItem}>
-          <ThemedText style={[styles.value, { color: colors.text }]}>{stats.averageRecoveryDays}</ThemedText>
+          <ThemedText style={[styles.value, { color: colors.text }]}>
+            {stats.averageRecoveryDays}
+          </ThemedText>
           <ThemedText style={[styles.label, { color: colors.muted }]}>Avg Days</ThemedText>
         </View>
       </Row>
       {stats.commonBodyParts.length > 0 && (
         <View style={[styles.commonParts, { borderTopColor: colors.border }]}>
-          <ThemedText style={[styles.commonLabel, { color: colors.muted }]}>Most common areas:</ThemedText>
+          <ThemedText style={[styles.commonLabel, { color: colors.muted }]}>
+            Most common areas:
+          </ThemedText>
           <Row gap="xs" wrap>
             {stats.commonBodyParts.slice(0, 3).map((item) => (
-              <View key={item.bodyPart} style={[styles.badge, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
+              <View
+                key={item.bodyPart}
+                style={[styles.badge, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+              >
                 <ThemedText style={[styles.badgeText, { color: colors.tint }]}>
                   {injuryService.getBodyPartLabel(item.bodyPart)} ({item.count})
                 </ThemedText>

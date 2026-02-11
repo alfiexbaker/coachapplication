@@ -36,7 +36,12 @@ export default function SchedulingRulesScreen() {
   if (status === 'loading') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-        <PageHeader title="Scheduling Rules" subtitle="Control how athletes can book with you" showBack onBack={handleBack} />
+        <PageHeader
+          title="Scheduling Rules"
+          subtitle="Control how athletes can book with you"
+          showBack
+          onBack={handleBack}
+        />
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -45,8 +50,16 @@ export default function SchedulingRulesScreen() {
   if (status === 'error') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-        <PageHeader title="Scheduling Rules" subtitle="Control how athletes can book with you" showBack onBack={handleBack} />
-        <ErrorState message={error?.message || 'Failed to load scheduling rules.'} onRetry={retry} />
+        <PageHeader
+          title="Scheduling Rules"
+          subtitle="Control how athletes can book with you"
+          showBack
+          onBack={handleBack}
+        />
+        <ErrorState
+          message={error?.message || 'Failed to load scheduling rules.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -54,7 +67,12 @@ export default function SchedulingRulesScreen() {
   if (status === 'empty') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
-        <PageHeader title="Scheduling Rules" subtitle="Control how athletes can book with you" showBack onBack={handleBack} />
+        <PageHeader
+          title="Scheduling Rules"
+          subtitle="Control how athletes can book with you"
+          showBack
+          onBack={handleBack}
+        />
         <EmptyState
           icon="options-outline"
           title="No rules available"

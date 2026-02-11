@@ -11,7 +11,11 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { availabilityService } from '@/services/availability-service';
-import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot } from '@/constants/types';
+import type {
+  AvailabilityTemplate,
+  AvailabilityOverride,
+  AvailabilitySlot,
+} from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -20,8 +24,18 @@ const logger = createLogger('useAvailabilityCalendar');
 
 export const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 export interface CalendarDay {
@@ -92,22 +106,15 @@ export function useAvailabilityCalendar() {
     }
   }, [currentUser?.id, currentMonth]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<AvailabilityCalendarData>({
-    load: loadData,
-    deps: [currentUser?.id, currentMonth.getFullYear(), currentMonth.getMonth()],
-    isEmpty: (value) =>
-      value.templates.length === 0 &&
-      value.overrides.length === 0 &&
-      value.slots.length === 0,
-    refetchOnFocus: true,
-  });
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<AvailabilityCalendarData>(
+    {
+      load: loadData,
+      deps: [currentUser?.id, currentMonth.getFullYear(), currentMonth.getMonth()],
+      isEmpty: (value) =>
+        value.templates.length === 0 && value.overrides.length === 0 && value.slots.length === 0,
+      refetchOnFocus: true,
+    },
+  );
 
   const templates = data?.templates ?? [];
   const overrides = data?.overrides ?? [];
@@ -131,12 +138,12 @@ export function useAvailabilityCalendar() {
       const dateStr = toDateStr(date);
       const dayOfWeek = date.getDay();
 
-      const hasTemplate = templates.some(t => t.dayOfWeek === dayOfWeek);
-      const override = overrides.find(o => o.date === dateStr);
+      const hasTemplate = templates.some((t) => t.dayOfWeek === dayOfWeek);
+      const override = overrides.find((o) => o.date === dateStr);
       const isBlocked = override?.isBlocked ?? false;
 
-      const daySlots = slots.filter(s => s.date === dateStr);
-      const bookedSlots = daySlots.filter(s => !s.isAvailable);
+      const daySlots = slots.filter((s) => s.date === dateStr);
+      const bookedSlots = daySlots.filter((s) => !s.isAvailable);
 
       days.push({
         date: new Date(date),
@@ -157,7 +164,7 @@ export function useAvailabilityCalendar() {
 
   const navigateMonth = useCallback((direction: number) => {
     setSelectedDate(null);
-    setCurrentMonth(prev => {
+    setCurrentMonth((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() + direction);
       return newDate;
@@ -171,9 +178,7 @@ export function useAvailabilityCalendar() {
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   }, []);
 
-  const selectedSlots = selectedDate
-    ? slots.filter(s => s.date === toDateStr(selectedDate))
-    : [];
+  const selectedSlots = selectedDate ? slots.filter((s) => s.date === toDateStr(selectedDate)) : [];
 
   return {
     currentMonth,

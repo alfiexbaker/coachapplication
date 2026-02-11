@@ -762,7 +762,7 @@ export interface EventPayloads {
  */
 export const emitTyped = <E extends keyof EventPayloads>(
   event: E,
-  data: EventPayloads[E]
+  data: EventPayloads[E],
 ): void => {
   eventBus.emit(event, data);
 };
@@ -772,7 +772,7 @@ export const emitTyped = <E extends keyof EventPayloads>(
  */
 export const onTyped = <E extends keyof EventPayloads>(
   event: E,
-  handler: EventHandler<EventPayloads[E]>
+  handler: EventHandler<EventPayloads[E]>,
 ): (() => void) => {
   return eventBus.on(event, handler);
 };

@@ -57,7 +57,10 @@ function CreateSessionDetailsStepInner({
 
   const toggleFocus = (f: FootballObjective) => {
     if (focus.includes(f)) {
-      onFieldChange('focus', focus.filter((x) => x !== f));
+      onFieldChange(
+        'focus',
+        focus.filter((x) => x !== f),
+      );
     } else {
       onFieldChange('focus', [...focus, f]);
     }
@@ -173,7 +176,10 @@ function CreateSessionDetailsStepInner({
               ]}
             >
               <ThemedText
-                style={[styles.chipText, { color: focus.includes(f) ? palette.onPrimary : palette.text }]}
+                style={[
+                  styles.chipText,
+                  { color: focus.includes(f) ? palette.onPrimary : palette.text },
+                ]}
               >
                 {f}
               </ThemedText>
@@ -185,7 +191,9 @@ function CreateSessionDetailsStepInner({
       {isSquadSession && (
         <View style={styles.inputGroup}>
           <ThemedText style={styles.inputLabel}>Link to Squad (Optional)</ThemedText>
-          <ThemedText style={[{ color: palette.muted, ...Typography.caption, marginBottom: Spacing.xs }]}>
+          <ThemedText
+            style={[{ color: palette.muted, ...Typography.caption, marginBottom: Spacing.xs }]}
+          >
             Link this session to a squad for easy invite management
           </ThemedText>
           <InlineSquadSelector

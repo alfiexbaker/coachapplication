@@ -48,17 +48,18 @@ export function TimelineBar({
       if (duration === 0) return 0;
       return (time / duration) * 100;
     },
-    [duration]
+    [duration],
   );
 
   const handleTimelinePress = useCallback(
     (event: GestureResponderEvent) => {
       if (!interactive) return;
       const { locationX } = event.nativeEvent;
-      const time = timelineWidth === 0 || duration === 0 ? 0 : (locationX / timelineWidth) * duration;
+      const time =
+        timelineWidth === 0 || duration === 0 ? 0 : (locationX / timelineWidth) * duration;
       onSeek(Math.max(0, Math.min(duration, time)));
     },
-    [interactive, timelineWidth, duration, onSeek]
+    [interactive, timelineWidth, duration, onSeek],
   );
 
   const handleLayout = useCallback((event: { nativeEvent: { layout: { width: number } } }) => {

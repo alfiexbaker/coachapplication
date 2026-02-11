@@ -39,7 +39,16 @@ export interface AllBadgeWithProgress {
   id: string;
   label: string;
   description: string;
-  category: 'leadership' | 'consistency' | 'technique' | 'mindset' | 'teamwork' | 'resilience' | 'milestone' | 'streak' | 'event';
+  category:
+    | 'leadership'
+    | 'consistency'
+    | 'technique'
+    | 'mindset'
+    | 'teamwork'
+    | 'resilience'
+    | 'milestone'
+    | 'streak'
+    | 'event';
   tier: 1 | 2 | 3;
   pointValue: number;
   earned: boolean;

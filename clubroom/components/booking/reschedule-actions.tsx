@@ -50,7 +50,11 @@ export const RescheduleActions = memo(function RescheduleActions({
             numberOfLines={3}
             style={[
               styles.declineReasonInput,
-              { borderColor: palette.border, color: palette.text, backgroundColor: palette.surface },
+              {
+                borderColor: palette.border,
+                color: palette.text,
+                backgroundColor: palette.surface,
+              },
             ]}
           />
         </View>
@@ -69,7 +73,9 @@ export const RescheduleActions = memo(function RescheduleActions({
           ) : (
             <>
               <Ionicons name="checkmark" size={18} color={palette.surface} />
-              <ThemedText style={[styles.actionButtonText, { color: palette.surface }]}>Accept</ThemedText>
+              <ThemedText style={[styles.actionButtonText, { color: palette.surface }]}>
+                Accept
+              </ThemedText>
             </>
           )}
         </Clickable>

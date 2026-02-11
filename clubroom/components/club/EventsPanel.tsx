@@ -29,10 +29,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
   };
 
   return (
-    <Clickable
-      style={[styles.eventCard, { borderColor: palette.border }]}
-      onPress={onPress}
-    >
+    <Clickable style={[styles.eventCard, { borderColor: palette.border }]} onPress={onPress}>
       <Row style={styles.eventCardHeader}>
         <View style={[styles.eventIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="calendar" size={20} color={palette.tint} />
@@ -87,7 +84,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
   };
 
   // Filter only event-type posts
-  const eventPosts = events.filter(post => post.postType === 'event');
+  const eventPosts = events.filter((post) => post.postType === 'event');
 
   if (eventPosts.length === 0 && !isCoach) {
     return null;
@@ -114,17 +111,10 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
       {eventPosts.length > 0 ? (
         <View style={styles.eventsList}>
           {eventPosts.slice(0, 3).map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onPress={() => router.push(Routes.EVENTS)}
-            />
+            <EventCard key={event.id} event={event} onPress={() => router.push(Routes.EVENTS)} />
           ))}
           {eventPosts.length > 3 && (
-            <Clickable
-              style={styles.viewAllButton}
-              onPress={() => router.push(Routes.EVENTS)}
-            >
+            <Clickable style={styles.viewAllButton} onPress={() => router.push(Routes.EVENTS)}>
               <ThemedText style={{ ...Typography.small, color: palette.tint }}>
                 View all {eventPosts.length} events
               </ThemedText>
@@ -143,7 +133,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
               style={[styles.createEventButton, { borderColor: palette.tint }]}
               onPress={handleCreateEvent}
             >
-              <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
+              <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
                 Create Event
               </ThemedText>
             </Clickable>

@@ -73,9 +73,7 @@ class SkillProgressService {
         });
         // Calculate unlocked count
         const unlockedNodes = nodesWithProgress.filter((n) => n.isUnlocked).length;
-        const progressPercent = tree.totalNodes > 0
-            ? Math.round((unlockedNodes / tree.totalNodes) * 100)
-            : 0;
+        const progressPercent = tree.totalNodes > 0 ? Math.round((unlockedNodes / tree.totalNodes) * 100) : 0;
         return (0, result_1.ok)({
             ...tree,
             nodes: nodesWithProgress,
@@ -112,9 +110,7 @@ class SkillProgressService {
                 return node;
             });
             const unlockedNodes = nodesWithProgress.filter((n) => n.isUnlocked).length;
-            const progressPercent = tree.totalNodes > 0
-                ? Math.round((unlockedNodes / tree.totalNodes) * 100)
-                : 0;
+            const progressPercent = tree.totalNodes > 0 ? Math.round((unlockedNodes / tree.totalNodes) * 100) : 0;
             return {
                 ...tree,
                 nodes: nodesWithProgress,
@@ -201,8 +197,7 @@ class SkillProgressService {
                 justUnlocked = true;
                 // Update tree-level stats
                 currentTreeProgress.nodesUnlocked += 1;
-                currentTreeProgress.percentComplete = Math.round((currentTreeProgress.nodesUnlocked / currentTreeProgress.totalNodes) *
-                    100);
+                currentTreeProgress.percentComplete = Math.round((currentTreeProgress.nodesUnlocked / currentTreeProgress.totalNodes) * 100);
                 logger.info('skill_node_unlocked', {
                     userId,
                     nodeId,

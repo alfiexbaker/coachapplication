@@ -7,12 +7,22 @@ import { Spacing, Typography } from '@/constants/theme';
 import type { CancellationStats } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { REASON_LABELS, REASON_ICONS, ReasonsBreakdown, DayOfWeekBreakdown, NoticeFooter } from './cancellation-chart-sections';
-export type { ReasonsBreakdownProps, DayOfWeekBreakdownProps, NoticeFooterProps } from './cancellation-chart-sections';
-
 import { ReasonsBreakdown, DayOfWeekBreakdown, NoticeFooter } from './cancellation-chart-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export {
+  REASON_LABELS,
+  REASON_ICONS,
+  ReasonsBreakdown,
+  DayOfWeekBreakdown,
+  NoticeFooter,
+} from './cancellation-chart-sections';
+export type {
+  ReasonsBreakdownProps,
+  DayOfWeekBreakdownProps,
+  NoticeFooterProps,
+} from './cancellation-chart-sections';
 
 export interface CancellationChartProps {
   stats: CancellationStats;
@@ -41,12 +51,7 @@ export function CancellationChart({
   const maxReasonCount = Math.max(...stats.byReason.map((r) => r.count), 1);
 
   return (
-    <SurfaceCard
-      style={styles.card}
-      loading={loading}
-      onPress={onPress}
-      tactile={!!onPress}
-    >
+    <SurfaceCard style={styles.card} loading={loading} onPress={onPress} tactile={!!onPress}>
       <View style={styles.header}>
         <Row style={styles.titleRow}>
           <Ionicons name="close-circle" size={20} color={palette.error} />
@@ -65,16 +70,13 @@ export function CancellationChart({
           </ThemedText>
         </View>
         <View style={styles.summaryItem}>
-          <ThemedText style={styles.summaryValue}>
-            {stats.totalCancellations}
-          </ThemedText>
-          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-            Total
-          </ThemedText>
+          <ThemedText style={styles.summaryValue}>{stats.totalCancellations}</ThemedText>
+          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Total</ThemedText>
         </View>
         <View style={styles.summaryItem}>
           <ThemedText style={[styles.summaryValue, { color: palette.error }]}>
-            {currencySymbol}{stats.revenueLost}
+            {currencySymbol}
+            {stats.revenueLost}
           </ThemedText>
           <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
             Lost Revenue
@@ -88,15 +90,9 @@ export function CancellationChart({
         palette={palette}
       />
 
-      <DayOfWeekBreakdown
-        byDayOfWeek={stats.byDayOfWeek}
-        palette={palette}
-      />
+      <DayOfWeekBreakdown byDayOfWeek={stats.byDayOfWeek} palette={palette} />
 
-      <NoticeFooter
-        avgNoticeHours={stats.avgNoticeHours}
-        palette={palette}
-      />
+      <NoticeFooter avgNoticeHours={stats.avgNoticeHours} palette={palette} />
     </SurfaceCard>
   );
 }

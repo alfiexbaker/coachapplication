@@ -12,7 +12,17 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
-import { ok, err, type Result, type ServiceError, validationError, notFound, storageError, unauthorized, conflictError } from '@/types/result';
+import {
+  ok,
+  err,
+  type Result,
+  type ServiceError,
+  validationError,
+  notFound,
+  storageError,
+  unauthorized,
+  conflictError,
+} from '@/types/result';
 import type {
   ThreadedComment,
   CreateCommentInput,
@@ -99,9 +109,7 @@ async function getCommentsForPost(postId: string): Promise<Result<CommentThread[
 async function getCommentCount(postId: string): Promise<Result<number, ServiceError>> {
   try {
     const allComments = await loadAllComments();
-    const count = allComments.filter(
-      (c) => c.postId === postId && !c.isDeleted,
-    ).length;
+    const count = allComments.filter((c) => c.postId === postId && !c.isDeleted).length;
     return ok(count);
   } catch (error) {
     logger.error('Failed to get comment count', error);
@@ -113,7 +121,9 @@ async function getCommentCount(postId: string): Promise<Result<number, ServiceEr
  * Create a new comment (top-level or reply).
  * Replies are limited to 1-level deep -- cannot reply to a reply.
  */
-async function createComment(input: CreateCommentInput): Promise<Result<ThreadedComment, ServiceError>> {
+async function createComment(
+  input: CreateCommentInput,
+): Promise<Result<ThreadedComment, ServiceError>> {
   // Validate
   if (!input.content.trim()) {
     return err(validationError('Comment content cannot be empty'));
@@ -138,7 +148,9 @@ async function createComment(input: CreateCommentInput): Promise<Result<Threaded
         return err(notFound('Parent comment', input.parentId));
       }
       if (parent.parentId) {
-        return err(validationError('Cannot reply to a reply — only 1-level deep threading is supported'));
+        return err(
+          validationError('Cannot reply to a reply — only 1-level deep threading is supported'),
+        );
       }
     }
 
@@ -209,7 +221,9 @@ async function createComment(input: CreateCommentInput): Promise<Result<Threaded
  * Soft-delete a comment. Only the author can delete their own comment.
  * Replaces content with "[deleted]" and marks isDeleted.
  */
-async function deleteComment(input: DeleteCommentInput): Promise<Result<ThreadedComment, ServiceError>> {
+async function deleteComment(
+  input: DeleteCommentInput,
+): Promise<Result<ThreadedComment, ServiceError>> {
   if (!input.commentId) {
     return err(validationError('Comment ID is required'));
   }
@@ -263,7 +277,9 @@ async function deleteComment(input: DeleteCommentInput): Promise<Result<Threaded
 /**
  * Toggle like on a comment. Returns the updated comment.
  */
-async function toggleLike(input: ToggleCommentLikeInput): Promise<Result<ThreadedComment, ServiceError>> {
+async function toggleLike(
+  input: ToggleCommentLikeInput,
+): Promise<Result<ThreadedComment, ServiceError>> {
   if (!input.commentId || !input.userId) {
     return err(validationError('Comment ID and user ID are required'));
   }
@@ -332,7 +348,9 @@ async function getCommentById(commentId: string): Promise<Result<ThreadedComment
 /**
  * Get the most recent non-deleted comment for a post (for preview).
  */
-async function getLatestComment(postId: string): Promise<Result<ThreadedComment | null, ServiceError>> {
+async function getLatestComment(
+  postId: string,
+): Promise<Result<ThreadedComment | null, ServiceError>> {
   try {
     const allComments = await loadAllComments();
     const postComments = allComments

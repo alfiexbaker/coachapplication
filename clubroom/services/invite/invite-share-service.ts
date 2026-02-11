@@ -31,7 +31,7 @@ export const inviteShareService = {
       // Check for existing link
       const storedLinks = await apiClient.get<StoredShareLink[]>(
         STORAGE_KEYS.INVITE_SHARE_LINKS,
-        []
+        [],
       );
       const existing = storedLinks.find((l) => l.inviteId === inviteId);
       if (existing) {
@@ -65,7 +65,7 @@ export const inviteShareService = {
     inviteId: string,
     coachName: string,
     sessionTitle: string,
-    date: string
+    date: string,
   ): Promise<Result<void, ServiceError>> {
     try {
       const linkResult = await this.generateShareLink(inviteId);
@@ -84,7 +84,7 @@ export const inviteShareService = {
           default: {
             message: `${shareMessage}\n${linkResult.data}`,
           },
-        }) as { message: string; url?: string }
+        }) as { message: string; url?: string },
       );
 
       // Emit shared event

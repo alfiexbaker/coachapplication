@@ -26,6 +26,7 @@ interface EventRSVPData {
 export interface UseEventRSVPResult {
   event: ClubEvent | null;
   currentRSVP: EventRSVP | null;
+  isCoach: boolean;
   loading: boolean;
   status: ScreenStatus;
   error: ServiceError | null;
@@ -38,11 +39,13 @@ export interface UseEventRSVPResult {
   note: string;
   isFull: boolean;
   rsvpClosed: boolean;
+  reminderSending: boolean;
   attendeeCounts: { going: number; maybe: number; notGoing: number; totalGuests: number };
   setGuestCount: (value: number) => void;
   setNote: (value: string) => void;
   handleStatusSelect: (status: RSVPStatus) => void;
   handleSubmit: () => Promise<void>;
+  handleSendReminder: () => Promise<void>;
 }
 
 export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
@@ -50,6 +53,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   const isCoach = currentUser?.role === 'COACH';
 
   const [submitting, setSubmitting] = useState(false);
+  const [reminderSending, setReminderSending] = useState(false);
 
   // Form state
   const [selectedStatus, setSelectedStatus] = useState<RSVPStatus | null>(null);
@@ -73,18 +77,13 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       });
     } catch (loadError) {
       logger.error('Failed to load RSVP data:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load RSVP data. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load RSVP data. Pull down to refresh.', loadError),
+      );
     }
   }, [id, currentUser]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<EventRSVPData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<EventRSVPData>({
     load: loadData,
     deps: [id, currentUser?.id],
     isEmpty: (value) => value.event === null,
@@ -132,7 +131,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       Alert.alert(
         'RSVP Submitted',
         `Your response has been saved: ${eventService.formatRSVPStatus(selectedStatus)}`,
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK', onPress: () => router.back() }],
       );
     } catch (error) {
       logger.error('Failed to submit RSVP:', error);
@@ -141,6 +140,32 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
       setSubmitting(false);
     }
   }, [event, currentUser, selectedStatus, guestCount, note, isCoach]);
+
+  const handleSendReminder = useCallback(async () => {
+    if (!event || !isCoach) return;
+
+    setReminderSending(true);
+    try {
+      const result = await eventService.sendReminderToMaybes(event.id);
+      if (!result.success) {
+        Alert.alert('Reminder failed', result.error.message);
+        return;
+      }
+
+      const sentCount = result.data;
+      Alert.alert(
+        sentCount > 0 ? 'Reminders sent' : 'No reminders needed',
+        sentCount > 0
+          ? `Reminder sent to ${sentCount} attendee${sentCount === 1 ? '' : 's'} marked as maybe.`
+          : 'There are no maybe responses to remind right now.',
+      );
+    } catch (sendError) {
+      logger.error('Failed to send RSVP reminders:', sendError);
+      Alert.alert('Reminder failed', 'Could not send reminders. Please try again.');
+    } finally {
+      setReminderSending(false);
+    }
+  }, [event, isCoach]);
 
   const isFull = event ? eventService.isEventFull(event) : false;
   const rsvpClosed = event ? eventService.isRSVPClosed(event) : false;
@@ -151,6 +176,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   return {
     event,
     currentRSVP,
+    isCoach,
     loading,
     status,
     error,
@@ -163,10 +189,12 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     note,
     isFull,
     rsvpClosed,
+    reminderSending,
     attendeeCounts,
     setGuestCount,
     setNote,
     handleStatusSelect,
     handleSubmit,
+    handleSendReminder,
   };
 }

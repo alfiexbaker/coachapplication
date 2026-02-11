@@ -22,19 +22,47 @@ import { useAppearance, type ThemeOption } from '@/hooks/use-appearance';
 const THEME_OPTIONS: { value: ThemeOption; label: string; icon: string; description: string }[] = [
   { value: 'light', label: 'Light', icon: 'sunny', description: 'Clean and bright' },
   { value: 'dark', label: 'Dark', icon: 'moon', description: 'Easy on the eyes' },
-  { value: 'system', label: 'System', icon: 'phone-portrait', description: 'Match device settings' },
+  {
+    value: 'system',
+    label: 'System',
+    icon: 'phone-portrait',
+    description: 'Match device settings',
+  },
 ];
 
-function ThemeCard({ option, selected, onSelect }: { option: typeof THEME_OPTIONS[0]; selected: boolean; onSelect: () => void }) {
+function ThemeCard({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: (typeof THEME_OPTIONS)[0];
+  selected: boolean;
+  onSelect: () => void;
+}) {
   const { colors: palette } = useTheme();
   return (
     <Clickable onPress={onSelect}>
-      <SurfaceCard style={[styles.themeCard, selected ? { borderColor: palette.accent, borderWidth: 2 } : undefined]}>
-        <View style={[styles.themeIconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
-          <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={28} color={palette.accent} />
+      <SurfaceCard
+        style={[
+          styles.themeCard,
+          selected ? { borderColor: palette.accent, borderWidth: 2 } : undefined,
+        ]}
+      >
+        <View
+          style={[styles.themeIconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}
+        >
+          <Ionicons
+            name={option.icon as keyof typeof Ionicons.glyphMap}
+            size={28}
+            color={palette.accent}
+          />
         </View>
-        <ThemedText type="defaultSemiBold" style={styles.themeLabel}>{option.label}</ThemedText>
-        <ThemedText style={[styles.themeDescription, { color: palette.muted }]}>{option.description}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.themeLabel}>
+          {option.label}
+        </ThemedText>
+        <ThemedText style={[styles.themeDescription, { color: palette.muted }]}>
+          {option.description}
+        </ThemedText>
         {selected && (
           <View style={[styles.selectedBadge, { backgroundColor: palette.accent }]}>
             <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
@@ -50,10 +78,17 @@ export default function AppearanceSettingsScreen() {
   const c = useAppearance();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>Appearance</ThemedText>
+        <Clickable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={palette.text} />
+        </Clickable>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Appearance
+        </ThemedText>
         <View style={{ width: 24 }} />
       </Row>
 
@@ -62,23 +97,47 @@ export default function AppearanceSettingsScreen() {
           <ThemedText style={[styles.sectionTitle, { color: palette.muted }]}>THEME</ThemedText>
           <Row gap="sm" style={styles.themeGrid}>
             {THEME_OPTIONS.map((option) => (
-              <ThemeCard key={option.value} option={option} selected={c.selectedTheme === option.value}
-                onSelect={() => c.handleThemeSelect(option.value)} />
+              <ThemeCard
+                key={option.value}
+                option={option}
+                selected={c.selectedTheme === option.value}
+                onSelect={() => c.handleThemeSelect(option.value)}
+              />
             ))}
           </Row>
         </View>
 
         <SettingsSection title="App Icon">
-          <SettingsRow icon="apps" title="App Icon" value="Default" onPress={c.handleAppIconPress} />
+          <SettingsRow
+            icon="apps"
+            title="App Icon"
+            value="Default"
+            onPress={c.handleAppIconPress}
+          />
         </SettingsSection>
 
         <SettingsSection title="Accessibility">
-          <SettingsToggleRow icon="hand-left" title="Reduce Motion" subtitle="Minimize animations throughout the app"
-            value={c.reducedMotion} onValueChange={c.handleReducedMotion} />
-          <SettingsToggleRow icon="text" title="Large Text" subtitle="Use larger text sizes"
-            value={c.largeText} onValueChange={c.handleLargeText} />
-          <SettingsToggleRow icon="contrast" title="High Contrast" subtitle="Increase color contrast"
-            value={c.highContrast} onValueChange={c.handleHighContrast} />
+          <SettingsToggleRow
+            icon="hand-left"
+            title="Reduce Motion"
+            subtitle="Minimize animations throughout the app"
+            value={c.reducedMotion}
+            onValueChange={c.handleReducedMotion}
+          />
+          <SettingsToggleRow
+            icon="text"
+            title="Large Text"
+            subtitle="Use larger text sizes"
+            value={c.largeText}
+            onValueChange={c.handleLargeText}
+          />
+          <SettingsToggleRow
+            icon="contrast"
+            title="High Contrast"
+            subtitle="Increase color contrast"
+            value={c.highContrast}
+            onValueChange={c.handleHighContrast}
+          />
         </SettingsSection>
 
         <View style={styles.previewSection}>
@@ -96,7 +155,9 @@ export default function AppearanceSettingsScreen() {
               </View>
             </Row>
             <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
-              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Sample Button</ThemedText>
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>
+                Sample Button
+              </ThemedText>
             </View>
           </SurfaceCard>
         </View>
@@ -117,17 +178,51 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.heading },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
   section: { gap: Spacing.sm },
-  sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: Spacing.xs, marginBottom: Spacing.xs },
+  sectionTitle: {
+    ...Typography.smallSemiBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginLeft: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
   themeGrid: {},
-  themeCard: { flex: 1, alignItems: 'center', padding: Spacing.md, gap: Spacing.xs, position: 'relative' },
-  themeIconContainer: { width: 56, height: 56, borderRadius: Radii['2xl'], justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.xs },
+  themeCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.xs,
+    position: 'relative',
+  },
+  themeIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
   themeLabel: { ...Typography.bodySmall },
   themeDescription: { ...Typography.caption, textAlign: 'center' },
-  selectedBadge: { position: 'absolute', top: Spacing.xs, right: Spacing.xs, width: 22, height: 22, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
+  selectedBadge: {
+    position: 'absolute',
+    top: Spacing.xs,
+    right: Spacing.xs,
+    width: 22,
+    height: 22,
+    borderRadius: Radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   previewSection: { gap: Spacing.sm },
   previewCard: { gap: Spacing.md },
   previewHeader: {},
-  previewAvatar: { width: 40, height: 40, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  previewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   previewText: { flex: 1, gap: Spacing.xxs },
   previewButton: { paddingVertical: Spacing.sm, borderRadius: Radii.md, alignItems: 'center' },
   infoContainer: { paddingHorizontal: Spacing.sm, marginTop: Spacing.sm },

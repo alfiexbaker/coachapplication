@@ -12,11 +12,11 @@ import { promoService } from '@/services/promo-service';
 import type { PromoCode } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
+import { PromoStatsRow, PromoActionButtons } from './promo-code-card-sections';
+
 // Re-export extracted components for backward compat
 export { formatExpiryDate, PromoStatsRow, PromoActionButtons } from './promo-code-card-sections';
 export type { PromoStatsRowProps, PromoActionButtonsProps } from './promo-code-card-sections';
-
-import { PromoStatsRow, PromoActionButtons } from './promo-code-card-sections';
 
 interface PromoCodeCardProps {
   promoCode: PromoCode;
@@ -54,7 +54,11 @@ export function PromoCodeCard({
       {/* Header with code and status */}
       <Row justify="space-between" align="center">
         <Clickable onPress={handleCopyCode}>
-          <Row align="center" gap="xs" style={[styles.codeBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xs"
+            style={[styles.codeBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}
+          >
             <ThemedText style={[styles.codeText, { color: statusInfo.color }]}>
               {promoCode.code}
             </ThemedText>
@@ -83,13 +87,12 @@ export function PromoCodeCard({
       {/* Usage progress bar */}
       <View style={styles.usageSection}>
         <Row justify="space-between" align="center">
-          <ThemedText style={[styles.usageLabel, { color: palette.muted }]}>
-            Usage
-          </ThemedText>
+          <ThemedText style={[styles.usageLabel, { color: palette.muted }]}>Usage</ThemedText>
           <ThemedText style={styles.usageValue}>
             {promoCode.currentUses} / {promoCode.maxUses}
             <ThemedText style={[styles.usageRemaining, { color: palette.muted }]}>
-              {' '}({remainingUses} left)
+              {' '}
+              ({remainingUses} left)
             </ThemedText>
           </ThemedText>
         </Row>
@@ -98,7 +101,12 @@ export function PromoCodeCard({
             style={[
               styles.progressFill,
               {
-                backgroundColor: usagePercent >= 100 ? palette.error : usagePercent >= 75 ? palette.warning : palette.success,
+                backgroundColor:
+                  usagePercent >= 100
+                    ? palette.error
+                    : usagePercent >= 75
+                      ? palette.warning
+                      : palette.success,
                 width: `${Math.min(usagePercent, 100)}%`,
               },
             ]}

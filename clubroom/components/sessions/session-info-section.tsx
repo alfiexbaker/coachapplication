@@ -27,14 +27,20 @@ interface SessionInfoSectionProps {
 }
 
 function SessionInfoSectionInner({
-  offering, isMyOffering, registeredCount, sessionAwards, formatSchedule,
+  offering,
+  isMyOffering,
+  registeredCount,
+  sessionAwards,
+  formatSchedule,
 }: SessionInfoSectionProps) {
   const { colors: palette } = useTheme();
   const coachName = getSessionOfferingCoachName(offering);
 
   return (
     <SurfaceCard style={styles.card}>
-      <ThemedText type="subtitle" style={styles.title}>{offering.title}</ThemedText>
+      <ThemedText type="subtitle" style={styles.title}>
+        {offering.title}
+      </ThemedText>
 
       {!isMyOffering && (
         <Row align="center" gap={10} style={styles.detailRow}>
@@ -70,16 +76,22 @@ function SessionInfoSectionInner({
         )}
         {offering.ageMin && offering.ageMax && (
           <View style={[styles.badge, { backgroundColor: palette.border }]}>
-            <ThemedText style={styles.badgeText}>Ages {offering.ageMin}-{offering.ageMax}</ThemedText>
+            <ThemedText style={styles.badgeText}>
+              Ages {offering.ageMin}-{offering.ageMax}
+            </ThemedText>
           </View>
         )}
         {offering.footballSkill && (
           <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <ThemedText style={[styles.badgeText, { color: palette.tint }]}>{offering.footballSkill}</ThemedText>
+            <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
+              {offering.footballSkill}
+            </ThemedText>
           </View>
         )}
         {offering.priceUsd !== undefined && offering.priceUsd > 0 && (
-          <ThemedText type="defaultSemiBold" style={styles.price}>£{offering.priceUsd}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.price}>
+            £{offering.priceUsd}
+          </ThemedText>
         )}
       </Row>
 
@@ -91,10 +103,14 @@ function SessionInfoSectionInner({
               <View key={award.id} style={[styles.awardChip, { borderColor: palette.border }]}>
                 <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
                 <ThemedText style={[styles.awardMeta, { color: palette.muted }]}>
-                  Awarded {new Date(award.awardedAt).toLocaleString(undefined, {
-                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                  })}
-                  {' '}by {award.awardedBy || award.coachId || 'Coach'}
+                  Awarded{' '}
+                  {new Date(award.awardedAt).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}{' '}
+                  by {award.awardedBy || award.coachId || 'Coach'}
                 </ThemedText>
               </View>
             ))}
@@ -120,15 +136,30 @@ export const SessionInfoSection = memo(SessionInfoSectionInner);
 
 const styles = StyleSheet.create({
   card: { marginBottom: 16, padding: 20, gap: 14 },
-  title: { fontSize: scaleFont(24), fontWeight: '700', letterSpacing: -0.6, lineHeight: scaleFont(32) },
+  title: {
+    fontSize: scaleFont(24),
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    lineHeight: scaleFont(32),
+  },
   detailRow: { marginTop: Spacing.xxs },
   description: { fontSize: scaleFont(15), opacity: 0.7, lineHeight: scaleFont(22) },
   metaRow: { marginTop: Spacing.xs + Spacing.xxs },
-  badge: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  badge: {
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   badgeText: { fontSize: scaleFont(13), fontWeight: '600', letterSpacing: 0.2 },
   price: { marginLeft: 'auto', fontSize: scaleFont(24), fontWeight: '700', letterSpacing: -0.6 },
   awardsBlock: { gap: 8, marginTop: Spacing.xs + Spacing.xxs },
-  awardChip: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: 10, paddingVertical: Spacing.xxs, gap: Spacing.xxs },
+  awardChip: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: 10,
+    paddingVertical: Spacing.xxs,
+    gap: Spacing.xxs,
+  },
   awardMeta: { ...Typography.caption, lineHeight: 16 },
   manageBadgesLink: { marginTop: 8, alignSelf: 'flex-start' },
 });

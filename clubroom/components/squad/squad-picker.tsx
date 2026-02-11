@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { ClubSquad } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
@@ -78,17 +78,18 @@ export function SquadPicker({
     setSelectedIds(selectedSquadIds);
   }, [selectedSquadIds, visible]);
 
-  const toggleSquad = useCallback((squadId: string) => {
-    if (multiSelect) {
-      setSelectedIds((prev) =>
-        prev.includes(squadId)
-          ? prev.filter((id) => id !== squadId)
-          : [...prev, squadId]
-      );
-    } else {
-      setSelectedIds([squadId]);
-    }
-  }, [multiSelect]);
+  const toggleSquad = useCallback(
+    (squadId: string) => {
+      if (multiSelect) {
+        setSelectedIds((prev) =>
+          prev.includes(squadId) ? prev.filter((id) => id !== squadId) : [...prev, squadId],
+        );
+      } else {
+        setSelectedIds([squadId]);
+      }
+    },
+    [multiSelect],
+  );
 
   const handleConfirm = useCallback(() => {
     const selectedSquads = squads.filter((s) => selectedIds.includes(s.id));
@@ -124,7 +125,11 @@ export function SquadPicker({
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <Row align="center" justify="between" style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row
+          align="center"
+          justify="between"
+          style={[styles.header, { borderBottomColor: palette.border }]}
+        >
           <Clickable onPress={handleClose}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
@@ -161,7 +166,9 @@ export function SquadPicker({
           ) : squads.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={48} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>No squads found</ThemedText>
+              <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>
+                No squads found
+              </ThemedText>
             </View>
           ) : (
             squads.map((squad) => (

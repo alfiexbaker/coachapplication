@@ -3,7 +3,7 @@
 > Date: 2026-02-11
 > Status: ACTIVE
 > Applies to: Foundation Phases 2-6 (POC mode)
-> Stabilized in: `docs/sprints/Foundation/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
+> Stabilized in: `docs/sprints/CompletedSprints/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
 
 ## Objective
 

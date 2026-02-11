@@ -15,7 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import type { ThemeColors } from '@/hooks/useTheme';
+
 import { Row } from '@/components/primitives';
 
 // ─── MilestoneItem ───────────────────────────────────────────────────────────
@@ -34,11 +34,7 @@ export const MilestoneItem = memo(function MilestoneItem({
   const { colors: palette } = useTheme();
 
   return (
-    <Clickable
-      onPress={onComplete}
-      disabled={disabled}
-      style={styles.milestoneItem}
-    >
+    <Clickable onPress={onComplete} disabled={disabled} style={styles.milestoneItem}>
       <View
         style={[
           styles.milestoneCheck,
@@ -55,10 +51,12 @@ export const MilestoneItem = memo(function MilestoneItem({
         <ThemedText
           style={[
             styles.milestoneTitle,
-            milestone.isCompleted ? {
-              textDecorationLine: 'line-through',
-              color: palette.muted,
-            } : undefined,
+            milestone.isCompleted
+              ? {
+                  textDecorationLine: 'line-through',
+                  color: palette.muted,
+                }
+              : undefined,
           ]}
         >
           {milestone.title}
@@ -94,9 +92,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
         <ThemedText type="defaultSemiBold">Goals</ThemedText>
         {onViewAll && (
           <Clickable onPress={onViewAll}>
-            <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
-              View all
-            </ThemedText>
+            <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View all</ThemedText>
           </Clickable>
         )}
       </Row>
@@ -107,9 +103,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
             <Ionicons name="flag" size={20} color={palette.tint} />
           </View>
           <ThemedText type="heading">{activeGoals}</ThemedText>
-          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-            Active
-          </ThemedText>
+          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Active</ThemedText>
         </View>
 
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
@@ -119,9 +113,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
             <Ionicons name="trophy" size={20} color={palette.success} />
           </View>
           <ThemedText type="heading">{completedGoals}</ThemedText>
-          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-            Completed
-          </ThemedText>
+          <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Completed</ThemedText>
         </View>
       </Row>
     </SurfaceCard>

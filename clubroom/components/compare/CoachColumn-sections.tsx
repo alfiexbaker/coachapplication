@@ -59,7 +59,12 @@ export const ValueCell = memo(function ValueCell({
   palette,
 }: ValueCellProps) {
   return (
-    <View style={[styles.cell, isBest ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined]}>
+    <View
+      style={[
+        styles.cell,
+        isBest ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined,
+      ]}
+    >
       <Row style={styles.cellHeader}>
         {icon && <Ionicons name={icon} size={14} color={palette.muted} />}
         <ThemedText style={[styles.cellLabel, { color: palette.muted }]}>{label}</ThemedText>
@@ -71,7 +76,9 @@ export const ValueCell = memo(function ValueCell({
       </Row>
       <ThemedText style={styles.cellValue}>
         {value}
-        {suffix && <ThemedText style={[styles.cellSuffix, { color: palette.muted }]}> {suffix}</ThemedText>}
+        {suffix && (
+          <ThemedText style={[styles.cellSuffix, { color: palette.muted }]}> {suffix}</ThemedText>
+        )}
       </ThemedText>
     </View>
   );
@@ -95,12 +102,13 @@ export const CoachProfileSection = memo(function CoachProfileSection({
   palette,
 }: CoachProfileSectionProps) {
   return (
-    <Clickable onPress={onPress} style={styles.profileSection} accessibilityRole="button" accessibilityLabel={`View ${name} profile`}>
-      <Image
-        source={{ uri: avatar }}
-        style={styles.avatar}
-        contentFit="cover"
-      />
+    <Clickable
+      onPress={onPress}
+      style={styles.profileSection}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${name} profile`}
+    >
+      <Image source={{ uri: avatar }} style={styles.avatar} contentFit="cover" />
       <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
         {name}
       </ThemedText>
@@ -141,10 +149,7 @@ export const TagsCell = memo(function TagsCell({
       </Row>
       <Row style={styles.tags}>
         {displayTags.map((tag) => (
-          <View
-            key={tag}
-            style={[styles.tag, { backgroundColor: palette.surfaceSecondary }]}
-          >
+          <View key={tag} style={[styles.tag, { backgroundColor: palette.surfaceSecondary }]}>
             <ThemedText style={[styles.tagText, { color: palette.text }]}>{tag}</ThemedText>
           </View>
         ))}
@@ -161,11 +166,7 @@ interface BookButtonProps {
   palette: ThemeColors;
 }
 
-export const BookButton = memo(function BookButton({
-  name,
-  onPress,
-  palette,
-}: BookButtonProps) {
+export const BookButton = memo(function BookButton({ name, onPress, palette }: BookButtonProps) {
   return (
     <Clickable
       accessibilityRole="button"
@@ -177,7 +178,9 @@ export const BookButton = memo(function BookButton({
       ]}
     >
       <Ionicons name="calendar" size={18} color={palette.onPrimary} />
-      <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>Book Session</ThemedText>
+      <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>
+        Book Session
+      </ThemedText>
     </Clickable>
   );
 });

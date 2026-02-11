@@ -51,9 +51,7 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
             {parentEmail || 'No email on file'}
           </ThemedText>
           {parentPhone && (
-            <ThemedText style={[styles.detail, { color: colors.muted }]}>
-              {parentPhone}
-            </ThemedText>
+            <ThemedText style={[styles.detail, { color: colors.muted }]}>{parentPhone}</ThemedText>
           )}
         </View>
 

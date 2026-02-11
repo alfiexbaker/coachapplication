@@ -29,7 +29,10 @@ interface UseRecurringTemplateFormParams {
   onSave: (template: Omit<AvailabilityTemplate, 'id' | 'coachId'>) => Promise<void>;
   onDelete?: (templateId: string) => Promise<void>;
   onClose: () => void;
-  onCheckLocationDrift?: (dayOfWeek: number, newLocation: string) => Promise<{
+  onCheckLocationDrift?: (
+    dayOfWeek: number,
+    newLocation: string,
+  ) => Promise<{
     affectedCount: number;
     affectedBookingIds: string[];
     oldLocation: string;
@@ -38,8 +41,15 @@ interface UseRecurringTemplateFormParams {
 }
 
 export function useRecurringTemplateForm({
-  visible, editingTemplate, preselectedDay, preselectedHour,
-  onSave, onDelete, onClose, onCheckLocationDrift, onUpdateBookingLocations,
+  visible,
+  editingTemplate,
+  preselectedDay,
+  preselectedHour,
+  onSave,
+  onDelete,
+  onClose,
+  onCheckLocationDrift,
+  onUpdateBookingLocations,
 }: UseRecurringTemplateFormParams) {
   const [selectedDays, setSelectedDays] = useState<number[]>([1]);
   const [startTime, setStartTime] = useState('09:00');
@@ -64,7 +74,9 @@ export function useRecurringTemplateForm({
       setMaxConcurrent(editingTemplate.maxConcurrent);
       setBufferMinutes(editingTemplate.bufferMinutes);
       setSessionTemplateId(editingTemplate.sessionTemplateId);
-      setShowLocationInput(!!editingTemplate.location && !COMMON_LOCATIONS.includes(editingTemplate.location));
+      setShowLocationInput(
+        !!editingTemplate.location && !COMMON_LOCATIONS.includes(editingTemplate.location),
+      );
     } else {
       if (preselectedDay !== undefined) {
         setSelectedDays([preselectedDay]);
@@ -89,10 +101,10 @@ export function useRecurringTemplateForm({
 
   const toggleDay = useCallback((dayIndex: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedDays(prev => {
+    setSelectedDays((prev) => {
       if (prev.includes(dayIndex)) {
         if (prev.length === 1) return prev;
-        return prev.filter(d => d !== dayIndex);
+        return prev.filter((d) => d !== dayIndex);
       }
       return [...prev, dayIndex].sort((a, b) => a - b);
     });
@@ -106,7 +118,7 @@ export function useRecurringTemplateForm({
   const calculateDuration = useCallback(() => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
-    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
     if (durationMinutes <= 0) return null;
     const hours = Math.floor(durationMinutes / 60);
     const mins = durationMinutes % 60;
@@ -114,19 +126,22 @@ export function useRecurringTemplateForm({
     return `${hours}h ${mins}m`;
   }, [startTime, endTime]);
 
-  const handleStartTimeChange = useCallback((newTime: string) => {
-    setStartTime(newTime);
-    const [newStartH, newStartM] = newTime.split(':').map(Number);
-    const [currentEndH, currentEndM] = endTime.split(':').map(Number);
-    const newStartMins = newStartH * 60 + newStartM;
-    const currentEndMins = currentEndH * 60 + currentEndM;
-    if (currentEndMins <= newStartMins) {
-      const newEndMins = Math.min(newStartMins + 120, 20 * 60);
-      const endH = Math.floor(newEndMins / 60);
-      const endM = newEndMins % 60;
-      setEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
-    }
-  }, [endTime]);
+  const handleStartTimeChange = useCallback(
+    (newTime: string) => {
+      setStartTime(newTime);
+      const [newStartH, newStartM] = newTime.split(':').map(Number);
+      const [currentEndH, currentEndM] = endTime.split(':').map(Number);
+      const newStartMins = newStartH * 60 + newStartM;
+      const currentEndMins = currentEndH * 60 + currentEndM;
+      if (currentEndMins <= newStartMins) {
+        const newEndMins = Math.min(newStartMins + 120, 20 * 60);
+        const endH = Math.floor(newEndMins / 60);
+        const endM = newEndMins % 60;
+        setEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
+      }
+    },
+    [endTime],
+  );
 
   const doSaveAll = useCallback(async () => {
     setSaving(true);
@@ -134,11 +149,17 @@ export function useRecurringTemplateForm({
       for (const dayOfWeek of selectedDays) {
         await onSave({
           dayOfWeek: dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-          startTime, endTime, isRecurring: true, maxConcurrent, bufferMinutes,
-          location: location || undefined, sessionTemplateId,
+          startTime,
+          endTime,
+          isRecurring: true,
+          maxConcurrent,
+          bufferMinutes,
+          location: location || undefined,
+          sessionTemplateId,
         });
       }
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web')
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
       logger.error('Failed to save template:', error);
@@ -146,7 +167,17 @@ export function useRecurringTemplateForm({
     } finally {
       setSaving(false);
     }
-  }, [selectedDays, startTime, endTime, maxConcurrent, bufferMinutes, location, sessionTemplateId, onSave, onClose]);
+  }, [
+    selectedDays,
+    startTime,
+    endTime,
+    maxConcurrent,
+    bufferMinutes,
+    location,
+    sessionTemplateId,
+    onSave,
+    onClose,
+  ]);
 
   const handleSave = useCallback(async () => {
     if (selectedDays.length === 0) {
@@ -161,8 +192,11 @@ export function useRecurringTemplateForm({
     }
 
     const newLocation = location || undefined;
-    const locationChanged = isEditing && editingTemplate &&
-      (editingTemplate.location || '') !== (location || '') && newLocation;
+    const locationChanged =
+      isEditing &&
+      editingTemplate &&
+      (editingTemplate.location || '') !== (location || '') &&
+      newLocation;
 
     if (locationChanged && onCheckLocationDrift) {
       const drift = await onCheckLocationDrift(editingTemplate!.dayOfWeek, newLocation!);
@@ -176,17 +210,28 @@ export function useRecurringTemplateForm({
             {
               text: 'Update All',
               onPress: async () => {
-                if (onUpdateBookingLocations) await onUpdateBookingLocations(drift.affectedBookingIds, newLocation!);
+                if (onUpdateBookingLocations)
+                  await onUpdateBookingLocations(drift.affectedBookingIds, newLocation!);
                 await doSaveAll();
               },
             },
-          ]
+          ],
         );
         return;
       }
     }
     await doSaveAll();
-  }, [selectedDays, startTime, endTime, location, isEditing, editingTemplate, onCheckLocationDrift, onUpdateBookingLocations, doSaveAll]);
+  }, [
+    selectedDays,
+    startTime,
+    endTime,
+    location,
+    isEditing,
+    editingTemplate,
+    onCheckLocationDrift,
+    onUpdateBookingLocations,
+    doSaveAll,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!editingTemplate || !onDelete) return;
@@ -199,7 +244,8 @@ export function useRecurringTemplateForm({
           setSaving(true);
           try {
             await onDelete(editingTemplate.id);
-            if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            if (Platform.OS !== 'web')
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             onClose();
           } catch (error) {
             logger.error('Failed to delete template:', error);
@@ -213,7 +259,7 @@ export function useRecurringTemplateForm({
 
   const selectLocation = useCallback((loc: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLocation(prev => prev === loc ? '' : loc);
+    setLocation((prev) => (prev === loc ? '' : loc));
     setShowLocationInput(false);
   }, []);
 
@@ -238,13 +284,30 @@ export function useRecurringTemplateForm({
   }, []);
 
   return {
-    selectedDays, startTime, endTime, location, setLocation,
-    maxConcurrent, bufferMinutes, sessionTemplateId,
-    saving, showLocationInput, isEditing, isQuickAdd,
+    selectedDays,
+    startTime,
+    endTime,
+    location,
+    setLocation,
+    maxConcurrent,
+    bufferMinutes,
+    sessionTemplateId,
+    saving,
+    showLocationInput,
+    isEditing,
+    isQuickAdd,
     duration: calculateDuration(),
-    toggleDay, applyPreset, handleStartTimeChange, setEndTime,
-    handleSave, handleDelete, selectLocation, openCustomLocation,
-    selectSessionTemplate, selectMaxConcurrent, selectBufferMinutes,
+    toggleDay,
+    applyPreset,
+    handleStartTimeChange,
+    setEndTime,
+    handleSave,
+    handleDelete,
+    selectLocation,
+    openCustomLocation,
+    selectSessionTemplate,
+    selectMaxConcurrent,
+    selectBufferMinutes,
   };
 }
 

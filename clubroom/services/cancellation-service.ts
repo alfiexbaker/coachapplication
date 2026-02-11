@@ -90,7 +90,9 @@ export const cancellationService = {
    * Get the cancellation policy for a coach.
    * Delegates to schedulingRulesService.
    */
-  async getCancellationPolicy(coachId: string): Promise<Result<CancellationPolicy | null, ServiceError>> {
+  async getCancellationPolicy(
+    coachId: string,
+  ): Promise<Result<CancellationPolicy | null, ServiceError>> {
     try {
       return await schedulingRulesService.getCancellationPolicy(coachId);
     } catch (error) {
@@ -186,7 +188,9 @@ export const cancellationService = {
   /**
    * Get all cancellation records, optionally filtered by coachId.
    */
-  async getCancellationRecords(coachId?: string): Promise<Result<CancellationRecord[], ServiceError>> {
+  async getCancellationRecords(
+    coachId?: string,
+  ): Promise<Result<CancellationRecord[], ServiceError>> {
     try {
       const records = await loadRecords();
       if (!coachId) return ok(records);
@@ -267,19 +271,39 @@ export const cancellationService = {
         return [
           { minHoursBefore: 0, maxHoursBefore: 2, refundPercent: 50, label: 'Less than 2 hours' },
           { minHoursBefore: 2, maxHoursBefore: 12, refundPercent: 75, label: '2-12 hours before' },
-          { minHoursBefore: 12, maxHoursBefore: null, refundPercent: 100, label: '12+ hours before' },
+          {
+            minHoursBefore: 12,
+            maxHoursBefore: null,
+            refundPercent: 100,
+            label: '12+ hours before',
+          },
         ];
       case 'standard':
         return [
           { minHoursBefore: 0, maxHoursBefore: 4, refundPercent: 0, label: 'Less than 4 hours' },
           { minHoursBefore: 4, maxHoursBefore: 24, refundPercent: 50, label: '4-24 hours before' },
-          { minHoursBefore: 24, maxHoursBefore: null, refundPercent: 100, label: '24+ hours before' },
+          {
+            minHoursBefore: 24,
+            maxHoursBefore: null,
+            refundPercent: 100,
+            label: '24+ hours before',
+          },
         ];
       case 'strict':
         return [
           { minHoursBefore: 0, maxHoursBefore: 24, refundPercent: 0, label: 'Less than 24 hours' },
-          { minHoursBefore: 24, maxHoursBefore: 48, refundPercent: 50, label: '24-48 hours before' },
-          { minHoursBefore: 48, maxHoursBefore: null, refundPercent: 100, label: '48+ hours before' },
+          {
+            minHoursBefore: 24,
+            maxHoursBefore: 48,
+            refundPercent: 50,
+            label: '24-48 hours before',
+          },
+          {
+            minHoursBefore: 48,
+            maxHoursBefore: null,
+            refundPercent: 100,
+            label: '48+ hours before',
+          },
         ];
       default:
         return this.getDefaultPolicy('standard');
@@ -307,15 +331,18 @@ export const cancellationService = {
   /**
    * Get cancellation stats for a coach (for analytics).
    */
-  async getCancellationStats(
-    coachId: string,
-  ): Promise<Result<{
-    totalCancellations: number;
-    byCoach: number;
-    byParent: number;
-    topReasons: { reason: string; count: number }[];
-    avgHoursBeforeSession: number;
-  }, ServiceError>> {
+  async getCancellationStats(coachId: string): Promise<
+    Result<
+      {
+        totalCancellations: number;
+        byCoach: number;
+        byParent: number;
+        topReasons: { reason: string; count: number }[];
+        avgHoursBeforeSession: number;
+      },
+      ServiceError
+    >
+  > {
     try {
       const records = await loadRecords();
       const coachRecords = records.filter((r) => r.coachId === coachId);
@@ -323,7 +350,7 @@ export const cancellationService = {
       const byCoach = coachRecords.filter((r) => r.cancelledBy === 'coach').length;
       const byParent = coachRecords.filter((r) => r.cancelledBy === 'parent').length;
 
-    // Count reasons
+      // Count reasons
       const reasonCounts: Record<string, number> = {};
       for (const r of coachRecords) {
         reasonCounts[r.reasonCategory] = (reasonCounts[r.reasonCategory] ?? 0) + 1;

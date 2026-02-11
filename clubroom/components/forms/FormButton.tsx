@@ -8,7 +8,6 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
-  View,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
@@ -179,10 +178,7 @@ export function FormButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variantStyles.iconColor}
-        />
+        <ActivityIndicator size="small" color={variantStyles.iconColor} />
       ) : (
         <Row style={styles.content}>
           {leftIcon && (

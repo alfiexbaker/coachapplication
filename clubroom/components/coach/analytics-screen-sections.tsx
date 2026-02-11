@@ -47,16 +47,10 @@ export const AnalyticsStatCard = memo(function AnalyticsStatCard({
       <ThemedText type="title" style={styles.statNumber}>
         {value}
       </ThemedText>
-      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
+      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{label}</ThemedText>
       <Row style={styles.change}>
-        {changeIcon && changeColor && (
-          <Ionicons name={changeIcon} size={14} color={changeColor} />
-        )}
-        <ThemedText style={[styles.changeText, { color: palette.muted }]}>
-          {changeText}
-        </ThemedText>
+        {changeIcon && changeColor && <Ionicons name={changeIcon} size={14} color={changeColor} />}
+        <ThemedText style={[styles.changeText, { color: palette.muted }]}>{changeText}</ThemedText>
       </Row>
     </SurfaceCard>
   );
@@ -93,7 +87,10 @@ export const TopSkillsSection = memo(function TopSkillsSection({
               <ThemedText style={styles.skillName}>{skill}</ThemedText>
             </Row>
             <Row style={styles.skillCount}>
-              <ThemedText type="defaultSemiBold" style={[styles.skillCountText, { color: palette.tint }]}>
+              <ThemedText
+                type="defaultSemiBold"
+                style={[styles.skillCountText, { color: palette.tint }]}
+              >
                 {count}
               </ThemedText>
               <ThemedText style={[styles.skillCountLabel, { color: palette.muted }]}>

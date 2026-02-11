@@ -23,7 +23,13 @@ interface BookingFlowSchedulerProps {
   onSelectSlot: (id: string) => void;
 }
 
-function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId, onSelectDay, onSelectSlot }: BookingFlowSchedulerProps) {
+function BookingFlowSchedulerInner({
+  availability,
+  selectedDayId,
+  selectedSlotId,
+  onSelectDay,
+  onSelectSlot,
+}: BookingFlowSchedulerProps) {
   const { colors: palette } = useTheme();
   const selectedDay = availability.find((d) => d.id === selectedDayId);
 
@@ -41,7 +47,9 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
         </View>
         <Row style={[styles.liveBadge, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}>
           <Ionicons name="time-outline" size={16} color={palette.secondary} />
-          <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>Live sync</ThemedText>
+          <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>
+            Live sync
+          </ThemedText>
         </Row>
       </Row>
 
@@ -55,14 +63,22 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
               key={day.id}
               style={[
                 styles.calendarDay,
-                { borderColor: isSelected ? palette.tint : palette.border, backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface },
+                {
+                  borderColor: isSelected ? palette.tint : palette.border,
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface,
+                },
                 !hasSlots && { borderStyle: 'dashed' as const, opacity: 0.55 },
               ]}
               accessibilityLabel={`Select ${formatFullDate(day.date)}`}
-              onPress={() => handleDayPress(day.id)}>
+              onPress={() => handleDayPress(day.id)}
+            >
               <ThemedText style={styles.calendarWeekday}>{formatWeekday(day.date)}</ThemedText>
-              <ThemedText type="defaultSemiBold" style={styles.calendarDate}>{formatMonthDay(day.date)}</ThemedText>
-              <ThemedText style={styles.calendarMeta}>{hasSlots ? `${day.slots.length} slots` : 'Coach travel'}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.calendarDate}>
+                {formatMonthDay(day.date)}
+              </ThemedText>
+              <ThemedText style={styles.calendarMeta}>
+                {hasSlots ? `${day.slots.length} slots` : 'Coach travel'}
+              </ThemedText>
             </Clickable>
           );
         })}
@@ -71,10 +87,17 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
       {/* Slot list */}
       <View style={styles.slotList}>
         {selectedDay && selectedDay.slots.length === 0 ? (
-          <View style={[styles.emptySlots, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <View
+            style={[
+              styles.emptySlots,
+              { borderColor: palette.border, backgroundColor: palette.surface },
+            ]}
+          >
             <Ionicons name="airplane-outline" size={20} color={palette.icon} />
             <ThemedText type="defaultSemiBold">Coach on the road</ThemedText>
-            <ThemedText style={styles.schedulerSubtitle}>Pick a different day—travel days block scheduling.</ThemedText>
+            <ThemedText style={styles.schedulerSubtitle}>
+              Pick a different day—travel days block scheduling.
+            </ThemedText>
           </View>
         ) : null}
         {selectedDay?.slots.map((slot: SlotInstance) => {
@@ -84,17 +107,25 @@ function BookingFlowSchedulerInner({ availability, selectedDayId, selectedSlotId
               key={slot.id}
               style={[
                 styles.slotCard,
-                { borderColor: isSelected ? palette.tint : palette.border, backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface },
+                {
+                  borderColor: isSelected ? palette.tint : palette.border,
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface,
+                },
               ]}
-              onPress={() => handleSlotPress(slot.id)}>
+              onPress={() => handleSlotPress(slot.id)}
+            >
               <Row style={styles.slotHeader}>
                 <ThemedText type="defaultSemiBold">{slot.title}</ThemedText>
-                <ThemedText style={styles.slotTime}>{formatTimeRange(slot.start, slot.durationMinutes)}</ThemedText>
+                <ThemedText style={styles.slotTime}>
+                  {formatTimeRange(slot.start, slot.durationMinutes)}
+                </ThemedText>
               </Row>
               <ThemedText style={styles.slotFocus}>{slot.focus}</ThemedText>
               <Row style={styles.slotTag}>
                 <Ionicons name="radio-outline" size={14} color={palette.secondary} />
-                <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>{slot.tag}</ThemedText>
+                <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>
+                  {slot.tag}
+                </ThemedText>
               </Row>
             </Clickable>
           );
@@ -110,10 +141,23 @@ const styles = StyleSheet.create({
   schedulerCard: { gap: Spacing.md },
   schedulerHeader: { justifyContent: 'space-between', alignItems: 'flex-start' },
   schedulerSubtitle: { opacity: 0.75, marginTop: Spacing.micro },
-  liveBadge: { alignItems: 'center', gap: Spacing.xs, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs },
+  liveBadge: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+  },
   badgeLabel: { ...Typography.caption, textTransform: 'uppercase' },
   calendarGrid: { flexWrap: 'wrap', gap: Spacing.sm },
-  calendarDay: { flex: 1, minWidth: 90, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.sm, gap: Spacing.micro },
+  calendarDay: {
+    flex: 1,
+    minWidth: 90,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    gap: Spacing.micro,
+  },
   calendarWeekday: { fontWeight: '600', opacity: 0.75 },
   calendarDate: { ...Typography.heading },
   calendarMeta: { opacity: 0.7 },
@@ -123,5 +167,11 @@ const styles = StyleSheet.create({
   slotTime: { opacity: 0.7 },
   slotFocus: { opacity: 0.85 },
   slotTag: { alignItems: 'center', gap: Spacing.xs },
-  emptySlots: { alignItems: 'center', gap: Spacing.xs / 2, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  emptySlots: {
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
 });

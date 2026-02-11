@@ -36,9 +36,7 @@ export const SquadMembersStep = memo(function SquadMembersStep({
         <ThemedText type="subtitle" style={styles.stepTitle}>
           Select Members
         </ThemedText>
-        <ThemedText style={styles.stepDescription}>
-          Choose which squad members to invite
-        </ThemedText>
+        <ThemedText style={styles.stepDescription}>Choose which squad members to invite</ThemedText>
 
         <SquadMemberSelect
           squadId={squadId}

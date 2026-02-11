@@ -42,7 +42,12 @@ interface AthleteRowProps {
   colors: ThemeColors;
 }
 
-const AthleteRow = memo(function AthleteRow({ athlete, isSelected, onToggle, colors }: AthleteRowProps) {
+const AthleteRow = memo(function AthleteRow({
+  athlete,
+  isSelected,
+  onToggle,
+  colors,
+}: AthleteRowProps) {
   const handlePress = useCallback(() => {
     onToggle(athlete);
   }, [athlete, onToggle]);

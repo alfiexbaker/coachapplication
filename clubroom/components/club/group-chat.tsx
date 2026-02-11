@@ -1,10 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 
@@ -65,11 +60,7 @@ export function GroupChat({
 
   const renderMessage = useCallback(
     ({ item }: { item: GroupChatMessage }) => (
-      <ChatMessageBubble
-        message={item}
-        isOwn={item.senderId === currentUserId}
-        palette={palette}
-      />
+      <ChatMessageBubble message={item} isOwn={item.senderId === currentUserId} palette={palette} />
     ),
     [currentUserId, palette],
   );
@@ -83,16 +74,10 @@ export function GroupChat({
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       {pinnedMessage ? (
-        <PinnedBanner
-          pinnedMessage={pinnedMessage}
-          onDismiss={onDismissPinned}
-          palette={palette}
-        />
+        <PinnedBanner pinnedMessage={pinnedMessage} onDismiss={onDismissPinned} palette={palette} />
       ) : null}
 
-      {unreadCount > 0 ? (
-        <UnreadBadge count={unreadCount} palette={palette} />
-      ) : null}
+      {unreadCount > 0 ? <UnreadBadge count={unreadCount} palette={palette} /> : null}
 
       <FlatList
         ref={flatListRef}

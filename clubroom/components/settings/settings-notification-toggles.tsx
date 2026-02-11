@@ -4,7 +4,6 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Column } from '@/components/primitives/column';
 import { SettingsToggleRow } from '@/components/settings/settings-row';
-import { Spacing } from '@/constants/theme';
 
 export const SettingsNotificationToggles = memo(function SettingsNotificationToggles() {
   const [pushNotifications, setPushNotifications] = useState(true);

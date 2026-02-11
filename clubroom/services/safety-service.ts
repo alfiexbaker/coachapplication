@@ -8,13 +8,7 @@ import {
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  storageError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('SafetyService');
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -64,7 +58,6 @@ export interface SessionSafetyInfo {
   allConditions: string[];
   missingEmergencyInfo: string[];
 }
-
 
 // Default empty medical info
 const createDefaultMedicalInfo = (): MedicalInfo => ({
@@ -132,10 +125,25 @@ const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> = {
       notes: 'Carries inhaler in sports bag. Parent to be notified if inhaler used.',
     },
     consents: [
-      { type: 'PHOTO', granted: true, grantedAt: '2024-01-15T10:00:00Z', grantedBy: 'Sarah Henderson' },
-      { type: 'VIDEO', granted: true, grantedAt: '2024-01-15T10:00:00Z', grantedBy: 'Sarah Henderson' },
+      {
+        type: 'PHOTO',
+        granted: true,
+        grantedAt: '2024-01-15T10:00:00Z',
+        grantedBy: 'Sarah Henderson',
+      },
+      {
+        type: 'VIDEO',
+        granted: true,
+        grantedAt: '2024-01-15T10:00:00Z',
+        grantedBy: 'Sarah Henderson',
+      },
       { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
-      { type: 'EMERGENCY_TREATMENT', granted: true, grantedAt: '2024-01-15T10:00:00Z', grantedBy: 'Sarah Henderson' },
+      {
+        type: 'EMERGENCY_TREATMENT',
+        granted: true,
+        grantedAt: '2024-01-15T10:00:00Z',
+        grantedBy: 'Sarah Henderson',
+      },
     ],
     updatedAt: '2024-01-15T10:00:00Z',
   },
@@ -160,10 +168,30 @@ const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> = {
       notes: 'No significant medical history.',
     },
     consents: [
-      { type: 'PHOTO', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
-      { type: 'VIDEO', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
-      { type: 'SOCIAL_MEDIA', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
-      { type: 'EMERGENCY_TREATMENT', granted: true, grantedAt: '2024-02-01T14:30:00Z', grantedBy: 'Michael Smith' },
+      {
+        type: 'PHOTO',
+        granted: true,
+        grantedAt: '2024-02-01T14:30:00Z',
+        grantedBy: 'Michael Smith',
+      },
+      {
+        type: 'VIDEO',
+        granted: true,
+        grantedAt: '2024-02-01T14:30:00Z',
+        grantedBy: 'Michael Smith',
+      },
+      {
+        type: 'SOCIAL_MEDIA',
+        granted: true,
+        grantedAt: '2024-02-01T14:30:00Z',
+        grantedBy: 'Michael Smith',
+      },
+      {
+        type: 'EMERGENCY_TREATMENT',
+        granted: true,
+        grantedAt: '2024-02-01T14:30:00Z',
+        grantedBy: 'Michael Smith',
+      },
     ],
     updatedAt: '2024-02-01T14:30:00Z',
   },
@@ -173,18 +201,18 @@ class SafetyService {
   private async getEmergencyInfoValue(athleteId: string): Promise<EmergencyInfo> {
     const allInfo = await apiClient.get<Record<string, EmergencyInfo>>(
       STORAGE_KEYS.EMERGENCY_INFO,
-      MOCK_EMERGENCY_INFO
+      MOCK_EMERGENCY_INFO,
     );
     return allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
   }
 
   private async updateEmergencyInfoValue(
     athleteId: string,
-    update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>
+    update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>,
   ): Promise<EmergencyInfo> {
     const allInfo = await apiClient.get<Record<string, EmergencyInfo>>(
       STORAGE_KEYS.EMERGENCY_INFO,
-      MOCK_EMERGENCY_INFO
+      MOCK_EMERGENCY_INFO,
     );
 
     const currentInfo = allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
@@ -218,7 +246,7 @@ class SafetyService {
    */
   async updateEmergencyInfo(
     athleteId: string,
-    update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>
+    update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       return ok(await this.updateEmergencyInfoValue(athleteId, update));
@@ -233,7 +261,7 @@ class SafetyService {
    */
   async addContact(
     athleteId: string,
-    contact: Omit<EmergencyContact, 'id'>
+    contact: Omit<EmergencyContact, 'id'>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
@@ -244,7 +272,7 @@ class SafetyService {
 
       // If this is marked as primary, unset other primaries
       if (newContact.isPrimary) {
-        info.contacts = info.contacts.map(c => ({ ...c, isPrimary: false }));
+        info.contacts = info.contacts.map((c) => ({ ...c, isPrimary: false }));
       }
 
       // If this is the first contact, make it primary
@@ -252,9 +280,11 @@ class SafetyService {
         newContact.isPrimary = true;
       }
 
-      return ok(await this.updateEmergencyInfoValue(athleteId, {
-        contacts: [...info.contacts, newContact],
-      }));
+      return ok(
+        await this.updateEmergencyInfoValue(athleteId, {
+          contacts: [...info.contacts, newContact],
+        }),
+      );
     } catch (error) {
       logger.error('Failed to add emergency contact', { athleteId, error });
       return err(storageError('Failed to add emergency contact'));
@@ -267,20 +297,16 @@ class SafetyService {
   async updateContact(
     athleteId: string,
     contactId: string,
-    update: Partial<Omit<EmergencyContact, 'id'>>
+    update: Partial<Omit<EmergencyContact, 'id'>>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
 
-      let contacts = info.contacts.map(c =>
-        c.id === contactId ? { ...c, ...update } : c
-      );
+      let contacts = info.contacts.map((c) => (c.id === contactId ? { ...c, ...update } : c));
 
       // If updating to primary, unset other primaries
       if (update.isPrimary) {
-        contacts = contacts.map(c =>
-          c.id === contactId ? c : { ...c, isPrimary: false }
-        );
+        contacts = contacts.map((c) => (c.id === contactId ? c : { ...c, isPrimary: false }));
       }
 
       return ok(await this.updateEmergencyInfoValue(athleteId, { contacts }));
@@ -295,14 +321,14 @@ class SafetyService {
    */
   async removeContact(
     athleteId: string,
-    contactId: string
+    contactId: string,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
-      const contacts = info.contacts.filter(c => c.id !== contactId);
+      const contacts = info.contacts.filter((c) => c.id !== contactId);
 
       // Ensure there's always a primary if contacts exist
-      if (contacts.length > 0 && !contacts.some(c => c.isPrimary)) {
+      if (contacts.length > 0 && !contacts.some((c) => c.isPrimary)) {
         contacts[0].isPrimary = true;
       }
 
@@ -318,13 +344,15 @@ class SafetyService {
    */
   async updateMedicalInfo(
     athleteId: string,
-    medical: Partial<MedicalInfo>
+    medical: Partial<MedicalInfo>,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
-      return ok(await this.updateEmergencyInfoValue(athleteId, {
-        medical: { ...info.medical, ...medical },
-      }));
+      return ok(
+        await this.updateEmergencyInfoValue(athleteId, {
+          medical: { ...info.medical, ...medical },
+        }),
+      );
     } catch (error) {
       logger.error('Failed to update medical info', { athleteId, error });
       return err(storageError('Failed to update medical info'));
@@ -338,11 +366,11 @@ class SafetyService {
     athleteId: string,
     type: ConsentType,
     granted: boolean,
-    grantedBy: string
+    grantedBy: string,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
-      const consents = info.consents.map(c =>
+      const consents = info.consents.map((c) =>
         c.type === type
           ? {
               ...c,
@@ -350,7 +378,7 @@ class SafetyService {
               grantedBy,
               grantedAt: granted ? new Date().toISOString() : undefined,
             }
-          : c
+          : c,
       );
 
       return ok(await this.updateEmergencyInfoValue(athleteId, { consents }));
@@ -363,10 +391,12 @@ class SafetyService {
   /**
    * Get primary emergency contact
    */
-  async getPrimaryContact(athleteId: string): Promise<Result<EmergencyContact | null, ServiceError>> {
+  async getPrimaryContact(
+    athleteId: string,
+  ): Promise<Result<EmergencyContact | null, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
-      return ok(info.contacts.find(c => c.isPrimary) ?? info.contacts[0] ?? null);
+      return ok(info.contacts.find((c) => c.isPrimary) ?? info.contacts[0] ?? null);
     } catch (error) {
       logger.error('Failed to get primary contact', { athleteId, error });
       return err(storageError('Failed to load primary contact'));
@@ -381,8 +411,8 @@ class SafetyService {
       const info = await this.getEmergencyInfoValue(athleteId);
       return ok(
         info.medical.allergies.length > 0 ||
-        info.medical.conditions.length > 0 ||
-        info.medical.medications.length > 0
+          info.medical.conditions.length > 0 ||
+          info.medical.medications.length > 0,
       );
     } catch (error) {
       logger.error('Failed to compute alerts', { athleteId, error });
@@ -395,11 +425,11 @@ class SafetyService {
    */
   async getConsent(
     athleteId: string,
-    type: ConsentType
+    type: ConsentType,
   ): Promise<Result<Consent | null, ServiceError>> {
     try {
       const info = await this.getEmergencyInfoValue(athleteId);
-      return ok(info.consents.find(c => c.type === type) ?? null);
+      return ok(info.consents.find((c) => c.type === type) ?? null);
     } catch (error) {
       logger.error('Failed to get consent', { athleteId, type, error });
       return err(storageError('Failed to load consent'));
@@ -414,7 +444,7 @@ class SafetyService {
       const info = await this.getEmergencyInfoValue(athleteId);
       const hasContact = info.contacts.length > 0;
       const hasEmergencyConsent = info.consents.find(
-        c => c.type === 'EMERGENCY_TREATMENT'
+        (c) => c.type === 'EMERGENCY_TREATMENT',
       )?.granted;
       return ok(hasContact && Boolean(hasEmergencyConsent));
     } catch (error) {
@@ -433,7 +463,7 @@ class SafetyService {
       const total = 4; // contacts, medical, consents (emergency treatment), doctor info
 
       if (info.contacts.length > 0) completed++;
-      if (info.consents.find(c => c.type === 'EMERGENCY_TREATMENT')?.granted) completed++;
+      if (info.consents.find((c) => c.type === 'EMERGENCY_TREATMENT')?.granted) completed++;
       if (info.medical.doctorName || info.medical.doctorPhone) completed++;
       if (
         info.medical.allergies.length > 0 ||
@@ -499,7 +529,7 @@ class SafetyService {
    */
   async getAthleteEmergency(
     athleteId: string,
-    athleteName?: string
+    athleteName?: string,
   ): Promise<Result<AthleteEmergencyQuickView, ServiceError>> {
     try {
       let isCached = false;
@@ -524,12 +554,11 @@ class SafetyService {
         }
       }
 
-      const primaryContact = info.contacts.find(c => c.isPrimary) ?? info.contacts[0] ?? null;
+      const primaryContact = info.contacts.find((c) => c.isPrimary) ?? info.contacts[0] ?? null;
       const alertLevel = this.getMedicalAlertSeverity(info.medical);
       const hasAlerts = alertLevel !== 'none';
-      const emergencyTreatmentConsent = info.consents.find(
-        c => c.type === 'EMERGENCY_TREATMENT'
-      )?.granted ?? false;
+      const emergencyTreatmentConsent =
+        info.consents.find((c) => c.type === 'EMERGENCY_TREATMENT')?.granted ?? false;
 
       return ok({
         athleteId,
@@ -560,7 +589,7 @@ class SafetyService {
    */
   async getSessionSafetyInfo(
     sessionId: string,
-    attendees: { athleteId: string; athleteName: string }[]
+    attendees: { athleteId: string; athleteName: string }[],
   ): Promise<Result<SessionSafetyInfo, ServiceError>> {
     try {
       const athletes: AthleteEmergencyQuickView[] = [];
@@ -573,7 +602,7 @@ class SafetyService {
       for (const attendee of attendees) {
         const emergencyDataResult = await this.getAthleteEmergency(
           attendee.athleteId,
-          attendee.athleteName
+          attendee.athleteName,
         );
         if (!emergencyDataResult.success) {
           return err(emergencyDataResult.error);
@@ -582,8 +611,8 @@ class SafetyService {
         athletes.push(emergencyData);
 
         // Aggregate allergies and conditions
-        emergencyData.allergies.forEach(a => allAllergies.add(a));
-        emergencyData.conditions.forEach(c => allConditions.add(c));
+        emergencyData.allergies.forEach((a) => allAllergies.add(a));
+        emergencyData.conditions.forEach((c) => allConditions.add(c));
 
         // Count alerts
         if (emergencyData.hasAlerts) {
@@ -648,7 +677,9 @@ class SafetyService {
       parts.push(`${info.conditions.length} condition${info.conditions.length === 1 ? '' : 's'}`);
     }
     if (info.medications.length > 0) {
-      parts.push(`${info.medications.length} medication${info.medications.length === 1 ? '' : 's'}`);
+      parts.push(
+        `${info.medications.length} medication${info.medications.length === 1 ? '' : 's'}`,
+      );
     }
 
     if (parts.length === 0) {
@@ -706,7 +737,7 @@ class SafetyService {
   private async cacheEmergencyInfo(
     athleteId: string,
     info: EmergencyInfo,
-    athleteName?: string
+    athleteName?: string,
   ): Promise<void> {
     const cache = await apiClient.get<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});
     cache[athleteId] = {
@@ -720,9 +751,7 @@ class SafetyService {
   /**
    * Get cached emergency info
    */
-  private async getCachedEmergencyInfo(
-    athleteId: string
-  ): Promise<CachedEmergencyInfo | null> {
+  private async getCachedEmergencyInfo(athleteId: string): Promise<CachedEmergencyInfo | null> {
     const cache = await apiClient.get<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});
     const cached = cache[athleteId];
 
@@ -743,7 +772,7 @@ class SafetyService {
    * Call this before a session starts to ensure offline access
    */
   async preCacheSessionEmergencyInfo(
-    attendees: { athleteId: string; athleteName: string }[]
+    attendees: { athleteId: string; athleteName: string }[],
   ): Promise<Result<void, ServiceError>> {
     try {
       for (const attendee of attendees) {

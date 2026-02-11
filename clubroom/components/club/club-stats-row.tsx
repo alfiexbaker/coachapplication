@@ -35,28 +35,43 @@ export const ClubStatsRow = memo(function ClubStatsRow({
 
   return (
     <Row style={[styles.statsRow, { borderColor: palette.border }]}>
-      <Clickable style={styles.statItem} onPress={() => canManageMembers && onToggleMembersSection()}>
-        <ThemedText type="title" style={{ ...Typography.heading }}>{memberCount}</ThemedText>
+      <Clickable
+        style={styles.statItem}
+        onPress={() => canManageMembers && onToggleMembersSection()}
+      >
+        <ThemedText type="title" style={{ ...Typography.heading }}>
+          {memberCount}
+        </ThemedText>
         <Row style={{ alignItems: 'center', gap: Spacing.micro }}>
           <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Members</ThemedText>
           {canManageMembers && (
-            <Ionicons name={showMembersSection ? 'chevron-up' : 'chevron-down'} size={12} color={palette.muted} />
+            <Ionicons
+              name={showMembersSection ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color={palette.muted}
+            />
           )}
         </Row>
       </Clickable>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
-        <ThemedText type="title" style={{ ...Typography.heading }}>{squadCount}</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>
+          {squadCount}
+        </ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Squads</ThemedText>
       </View>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
-        <ThemedText type="title" style={{ ...Typography.heading }}>{sessionCount}</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>
+          {sessionCount}
+        </ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Sessions</ThemedText>
       </View>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
-        <ThemedText type="title" style={{ ...Typography.heading }}>{inviteCount}</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>
+          {inviteCount}
+        </ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Invites</ThemedText>
       </View>
     </Row>
@@ -66,7 +81,12 @@ export const ClubStatsRow = memo(function ClubStatsRow({
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  statsRow: { paddingVertical: Spacing.md, marginHorizontal: Spacing.md, borderTopWidth: 1, borderBottomWidth: 1 },
+  statsRow: {
+    paddingVertical: Spacing.md,
+    marginHorizontal: Spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, height: '100%' },
 });

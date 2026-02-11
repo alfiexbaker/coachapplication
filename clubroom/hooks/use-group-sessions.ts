@@ -57,18 +57,13 @@ export function useGroupSessions() {
       return ok<GroupSessionsData>({ sessions: data });
     } catch (loadError) {
       logger.error('Failed to load sessions:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load group sessions. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load group sessions. Pull down to refresh.', loadError),
+      );
     }
   }, []);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<GroupSessionsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionsData>({
     load: loadSessions,
     isEmpty: (value) => value.sessions.length === 0,
     refetchOnFocus: true,
@@ -79,7 +74,7 @@ export function useGroupSessions() {
 
   const filteredSessions = useMemo(
     () => (filter === 'ALL' ? sessions : sessions.filter((s) => s.sessionType === filter)),
-    [sessions, filter]
+    [sessions, filter],
   );
 
   return {

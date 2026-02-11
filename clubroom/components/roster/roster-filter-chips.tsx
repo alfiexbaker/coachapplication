@@ -25,7 +25,11 @@ interface RosterFilterChipsProps {
   };
 }
 
-const STATUS_FILTERS: { label: string; value: StatusFilter; statKey: keyof RosterFilterChipsProps['stats'] }[] = [
+const STATUS_FILTERS: {
+  label: string;
+  value: StatusFilter;
+  statKey: keyof RosterFilterChipsProps['stats'];
+}[] = [
   { label: 'All', value: 'ALL', statKey: 'total' },
   { label: 'Active', value: 'ACTIVE', statKey: 'active' },
   { label: 'Paused', value: 'PAUSED', statKey: 'paused' },

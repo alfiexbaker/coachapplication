@@ -65,10 +65,12 @@ export const SegmentSelector = memo(function SegmentSelector<T extends string | 
               },
             ]}
           >
-            <ThemedText style={[
-              styles.segmentText,
-              { color: selected === opt.key ? palette.onPrimary : palette.text },
-            ]}>
+            <ThemedText
+              style={[
+                styles.segmentText,
+                { color: selected === opt.key ? palette.onPrimary : palette.text },
+              ]}
+            >
               {opt.label}
             </ThemedText>
           </Clickable>
@@ -98,7 +100,12 @@ export const CapacityStepper = memo(function CapacityStepper({
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Max Athletes</ThemedText>
-      <Row style={[styles.stepperRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
+      <Row
+        style={[
+          styles.stepperRow,
+          { borderColor: palette.border, backgroundColor: palette.background },
+        ]}
+      >
         <Clickable
           accessibilityLabel="Decrease value"
           onPress={() => onChange(Math.max(min, value - 1))}
@@ -106,7 +113,9 @@ export const CapacityStepper = memo(function CapacityStepper({
         >
           <Ionicons name="remove" size={18} color={palette.text} />
         </Clickable>
-        <ThemedText type="defaultSemiBold" style={styles.stepperValue}>{value}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.stepperValue}>
+          {value}
+        </ThemedText>
         <Clickable
           accessibilityLabel="Increase value"
           onPress={() => onChange(Math.min(max, value + 1))}
@@ -127,15 +136,16 @@ interface PriceInputProps {
   palette: ThemeColors;
 }
 
-export const PriceInput = memo(function PriceInput({
-  value,
-  onChange,
-  palette,
-}: PriceInputProps) {
+export const PriceInput = memo(function PriceInput({ value, onChange, palette }: PriceInputProps) {
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Price per Head</ThemedText>
-      <Row style={[styles.priceRow, { borderColor: palette.border, backgroundColor: palette.background }]}>
+      <Row
+        style={[
+          styles.priceRow,
+          { borderColor: palette.border, backgroundColor: palette.background },
+        ]}
+      >
         <ThemedText style={{ color: palette.muted }}>£</ThemedText>
         <TextInput
           style={[styles.priceInput, { color: palette.text }]}

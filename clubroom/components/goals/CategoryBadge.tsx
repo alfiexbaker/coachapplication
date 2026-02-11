@@ -9,7 +9,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import type { GoalCategory } from '@/constants/types';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
@@ -73,7 +73,11 @@ export function CategoryBadge({
   if (variant === 'text') {
     return (
       <Row style={[styles.textBadge, { gap: currentSize.gap }]}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={currentSize.iconSize} color={color} />
+        <Ionicons
+          name={icon as keyof typeof Ionicons.glyphMap}
+          size={currentSize.iconSize}
+          color={color}
+        />
         {!iconOnly && (
           <ThemedText style={[styles.textLabel, { fontSize: currentSize.fontSize, color }]}>
             {label}
@@ -89,13 +93,19 @@ export function CategoryBadge({
         styles.badge,
         {
           backgroundColor: withAlpha(color, 0.09),
-          paddingHorizontal: iconOnly ? currentSize.paddingVertical + 2 : currentSize.paddingHorizontal,
+          paddingHorizontal: iconOnly
+            ? currentSize.paddingVertical + 2
+            : currentSize.paddingHorizontal,
           paddingVertical: currentSize.paddingVertical,
           gap: currentSize.gap,
         },
       ]}
     >
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={currentSize.iconSize} color={color} />
+      <Ionicons
+        name={icon as keyof typeof Ionicons.glyphMap}
+        size={currentSize.iconSize}
+        color={color}
+      />
       {!iconOnly && (
         <ThemedText style={[styles.label, { fontSize: currentSize.fontSize, color }]}>
           {label}
@@ -140,9 +150,7 @@ export function CategoryBadgeRow({
               size="small"
               variant={isSelected ? 'text' : 'filled'}
             />
-            {isSelected && (
-              <View style={[styles.selectedIndicator, { backgroundColor: color }]} />
-            )}
+            {isSelected && <View style={[styles.selectedIndicator, { backgroundColor: color }]} />}
           </View>
         );
       })}

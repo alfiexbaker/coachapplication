@@ -45,8 +45,20 @@ export function formatDate(date: Date | string): string {
 }
 
 export const AVAILABLE_SKILLS = [
-  'Passing', 'Shooting', 'Dribbling', 'Defending', 'Positioning', 'First Touch',
-  'Crossing', 'Heading', 'Tackling', 'Ball Control', 'Finishing', 'Weak Foot', 'Speed', 'Stamina',
+  'Passing',
+  'Shooting',
+  'Dribbling',
+  'Defending',
+  'Positioning',
+  'First Touch',
+  'Crossing',
+  'Heading',
+  'Tackling',
+  'Ball Control',
+  'Finishing',
+  'Weak Foot',
+  'Speed',
+  'Stamina',
 ];
 
 export type SkillRating = { skill: string; rating: number; previousRating?: number };
@@ -211,25 +223,56 @@ export function useDevSession(sessionId: string | undefined) {
         visibility,
         badgeAwarded: sessionBadges.length > 0 ? sessionBadges[0].badgeLabel : undefined,
       });
-      logger.info('Session feedback saved', { sessionId, rating, skillCount: selectedSkills.length });
-      Alert.alert('Success', 'Session notes saved. Parents can now see the feedback.', [{ text: 'OK', onPress: () => router.back() }]);
+      logger.info('Session feedback saved', {
+        sessionId,
+        rating,
+        skillCount: selectedSkills.length,
+      });
+      Alert.alert('Success', 'Session notes saved. Parents can now see the feedback.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     } catch (error) {
       logger.error('Failed to save session', error);
       Alert.alert('Error', 'Failed to save session. Please try again.');
     } finally {
       setSaving(false);
     }
-  }, [session, athlete, currentUser, sessionId, publicNotes, rating, selectedSkills, videoUrls, imageUrls, privateNotes, skillRatings, improvements, homework, effortRating, visibility, sessionBadges]);
+  }, [
+    session,
+    athlete,
+    currentUser,
+    sessionId,
+    publicNotes,
+    rating,
+    selectedSkills,
+    videoUrls,
+    imageUrls,
+    privateNotes,
+    skillRatings,
+    improvements,
+    homework,
+    effortRating,
+    visibility,
+    sessionBadges,
+  ]);
 
   const toggleSkill = useCallback((skill: string) => {
-    setSelectedSkills((prev) => (prev.includes(skill) ? prev.filter((item) => item !== skill) : [...prev, skill]));
-    setSkillRatings((prev) => (prev.find((ratingItem) => ratingItem.skill === skill)
-      ? prev.filter((ratingItem) => ratingItem.skill !== skill)
-      : [...prev, { skill, rating: 5 }]));
+    setSelectedSkills((prev) =>
+      prev.includes(skill) ? prev.filter((item) => item !== skill) : [...prev, skill],
+    );
+    setSkillRatings((prev) =>
+      prev.find((ratingItem) => ratingItem.skill === skill)
+        ? prev.filter((ratingItem) => ratingItem.skill !== skill)
+        : [...prev, { skill, rating: 5 }],
+    );
   }, []);
 
   const updateSkillRating = useCallback((skill: string, newRating: number) => {
-    setSkillRatings((prev) => prev.map((ratingItem) => (ratingItem.skill === skill ? { ...ratingItem, rating: newRating } : ratingItem)));
+    setSkillRatings((prev) =>
+      prev.map((ratingItem) =>
+        ratingItem.skill === skill ? { ...ratingItem, rating: newRating } : ratingItem,
+      ),
+    );
   }, []);
 
   const handleAddImage = useCallback(async () => {
@@ -239,31 +282,71 @@ export function useDevSession(sessionId: string | undefined) {
         Alert.alert('Permission needed', 'Please allow access to your photos');
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsMultipleSelection: false, quality: 0.8 });
-      if (!result.canceled && result.assets[0]) setImageUrls((prev) => [...prev, result.assets[0].uri]);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0])
+        setImageUrls((prev) => [...prev, result.assets[0].uri]);
     } catch (error) {
       logger.error('Failed to pick image', error);
       Alert.alert('Error', 'Failed to pick image');
     }
   }, []);
 
-  const handleRemoveImage = useCallback((index: number) => { setImageUrls((prev) => prev.filter((_, i) => i !== index)); }, []);
-  const handleAddVideo = useCallback(() => { setVideoUrls((prev) => [...prev, `https://example.com/video_${Date.now()}.mp4`]); }, []);
-  const handleRemoveVideo = useCallback((index: number) => { setVideoUrls((prev) => prev.filter((_, i) => i !== index)); }, []);
-  const handleBadgeAwarded = useCallback((award: BadgeAward) => { setSessionBadges((prev) => [award, ...prev]); setShowBadgeModal(false); }, []);
+  const handleRemoveImage = useCallback((index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+  const handleAddVideo = useCallback(() => {
+    setVideoUrls((prev) => [...prev, `https://example.com/video_${Date.now()}.mp4`]);
+  }, []);
+  const handleRemoveVideo = useCallback((index: number) => {
+    setVideoUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+  const handleBadgeAwarded = useCallback((award: BadgeAward) => {
+    setSessionBadges((prev) => [award, ...prev]);
+    setShowBadgeModal(false);
+  }, []);
   const handleOpenBadgeModal = useCallback(() => setShowBadgeModal(true), []);
   const handleCloseBadgeModal = useCallback(() => setShowBadgeModal(false), []);
 
   return {
-    session, athlete, currentUser, loading, saving,
-    publicNotes, setPublicNotes, privateNotes, setPrivateNotes,
-    rating, setRating, effortRating, setEffortRating,
-    selectedSkills, skillRatings, improvements, setImprovements,
-    homework, setHomework, videoUrls, imageUrls, visibility, setVisibility,
-    showBadgeModal, sessionBadges,
-    handleSave, toggleSkill, updateSkillRating,
-    handleAddImage, handleRemoveImage, handleAddVideo, handleRemoveVideo,
-    handleBadgeAwarded, handleOpenBadgeModal, handleCloseBadgeModal,
+    session,
+    athlete,
+    currentUser,
+    loading,
+    saving,
+    publicNotes,
+    setPublicNotes,
+    privateNotes,
+    setPrivateNotes,
+    rating,
+    setRating,
+    effortRating,
+    setEffortRating,
+    selectedSkills,
+    skillRatings,
+    improvements,
+    setImprovements,
+    homework,
+    setHomework,
+    videoUrls,
+    imageUrls,
+    visibility,
+    setVisibility,
+    showBadgeModal,
+    sessionBadges,
+    handleSave,
+    toggleSkill,
+    updateSkillRating,
+    handleAddImage,
+    handleRemoveImage,
+    handleAddVideo,
+    handleRemoveVideo,
+    handleBadgeAwarded,
+    handleOpenBadgeModal,
+    handleCloseBadgeModal,
     formatDate,
   };
 }

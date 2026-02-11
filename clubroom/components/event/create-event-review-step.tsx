@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -76,7 +76,10 @@ function CreateEventReviewStepInner({
 
         <Row style={styles.reviewRow}>
           <Ionicons name="calendar-outline" size={18} color={palette.icon} />
-          <ThemedText>{date} at {startTime}{endTime && ` - ${endTime}`}</ThemedText>
+          <ThemedText>
+            {date} at {startTime}
+            {endTime && ` - ${endTime}`}
+          </ThemedText>
         </Row>
 
         <Row style={styles.reviewRow}>

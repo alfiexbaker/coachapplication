@@ -60,7 +60,8 @@ export const GroupConversationRow = memo(function GroupConversationRow({
             </ThemedText>
             <Row align="center">
               <ThemedText style={[styles.metaPill, { color: palette.icon }]}>
-                <Ionicons name="person" size={13} color={palette.icon} /> {thread.memberCount ?? '\u2014'} members
+                <Ionicons name="person" size={13} color={palette.icon} />{' '}
+                {thread.memberCount ?? '\u2014'} members
               </ThemedText>
               {thread.scopeLabel ? (
                 <ThemedText style={[styles.metaPill, { color: palette.icon }]}>
@@ -74,7 +75,9 @@ export const GroupConversationRow = memo(function GroupConversationRow({
             onPress={onPress}
             accessibilityLabel={`Open ${displayName} group`}
           >
-            <ThemedText style={{ color: palette.tint, ...Typography.bodySemiBold }}>Open</ThemedText>
+            <ThemedText style={{ color: palette.tint, ...Typography.bodySemiBold }}>
+              Open
+            </ThemedText>
           </Clickable>
         </Row>
         {thread.lastMessageSnippet ? (

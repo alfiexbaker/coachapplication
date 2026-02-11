@@ -83,7 +83,11 @@ export interface UseCoachProfileResult {
   // Actions
   handleComposePress: () => void;
   handleSignOut: () => Promise<void>;
-  renderPostCard: (post: NormalizedPost) => { post: NormalizedPost; coachName: string; coachAvatar: string };
+  renderPostCard: (post: NormalizedPost) => {
+    post: NormalizedPost;
+    coachName: string;
+    coachAvatar: string;
+  };
 }
 
 function normalizePost(post: ClubFeedPost): NormalizedPost {
@@ -102,12 +106,25 @@ function getProfileCompletion(coach: CoachProfile | undefined): ProfileCompletio
   const checks: ProfileCompletionCheck[] = [
     { label: 'Profile photo', done: !!coach?.profilePhotoUrl, icon: 'camera' },
     { label: 'Bio written', done: !!(coach?.bio || coach?.shortBio), icon: 'document-text' },
-    { label: 'Hourly rate set', done: !!(coach?.sessionRate && coach.sessionRate > 0), icon: 'cash' },
-    { label: 'At least 1 certification', done: !!(coach?.certifications && coach.certifications.length > 0), icon: 'ribbon' },
+    {
+      label: 'Hourly rate set',
+      done: !!(coach?.sessionRate && coach.sessionRate > 0),
+      icon: 'cash',
+    },
+    {
+      label: 'At least 1 certification',
+      done: !!(coach?.certifications && coach.certifications.length > 0),
+      icon: 'ribbon',
+    },
     { label: 'Availability set', done: true, icon: 'calendar' },
   ];
   const completed = checks.filter((c) => c.done).length;
-  return { checks, completed, total: checks.length, percentage: Math.round((completed / checks.length) * 100) };
+  return {
+    checks,
+    completed,
+    total: checks.length,
+    percentage: Math.round((completed / checks.length) * 100),
+  };
 }
 
 function buildFallbackCoach(currentUser: ReturnType<typeof useAuth>['currentUser']): CoachProfile {
@@ -183,7 +200,9 @@ export function useCoachProfile(): UseCoachProfileResult {
       let activeCoach = coach ?? buildFallbackCoach(currentUser);
       const coachesResult = await discoverService.getAllCoaches();
       if (coachesResult.success && coachesResult.data.length > 0) {
-        activeCoach = coachesResult.data.find((candidate) => candidate.id === currentUser?.id) ?? coachesResult.data[0];
+        activeCoach =
+          coachesResult.data.find((candidate) => candidate.id === currentUser?.id) ??
+          coachesResult.data[0];
       }
       setCoach(activeCoach);
 
@@ -199,7 +218,9 @@ export function useCoachProfile(): UseCoachProfileResult {
         })(),
         (async () => {
           const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-          setSessionOfferings(offerings.filter((o) => o.coachId === activeCoach.id && o.status === 'active'));
+          setSessionOfferings(
+            offerings.filter((o) => o.coachId === activeCoach.id && o.status === 'active'),
+          );
         })(),
       ]);
       const failures = results.filter((r) => r.status === 'rejected');
@@ -264,25 +285,34 @@ export function useCoachProfile(): UseCoachProfileResult {
   }, [currentUser, isFollowing, followLoading, resolvedCoach]);
 
   // ── Go-Live toggle ──
-  const handleGoLiveToggle = useCallback(async (value: boolean) => {
-    if (!canGoLive && value) {
-      Alert.alert('Complete Your Profile', 'You need to complete at least 80% of your profile before going live.', [{ text: 'OK' }]);
-      return;
-    }
-    setLiveLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsLive(value);
-      if (value) {
-        Alert.alert("You're Live!", 'Athletes can now discover and book sessions with you.', [{ text: 'Great!' }]);
+  const handleGoLiveToggle = useCallback(
+    async (value: boolean) => {
+      if (!canGoLive && value) {
+        Alert.alert(
+          'Complete Your Profile',
+          'You need to complete at least 80% of your profile before going live.',
+          [{ text: 'OK' }],
+        );
+        return;
       }
-    } catch (error) {
-      logger.error('Failed to update live status:', error);
-      Alert.alert('Error', 'Failed to update your status. Please try again.');
-    } finally {
-      setLiveLoading(false);
-    }
-  }, [canGoLive]);
+      setLiveLoading(true);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setIsLive(value);
+        if (value) {
+          Alert.alert("You're Live!", 'Athletes can now discover and book sessions with you.', [
+            { text: 'Great!' },
+          ]);
+        }
+      } catch (error) {
+        logger.error('Failed to update live status:', error);
+        Alert.alert('Error', 'Failed to update your status. Please try again.');
+      } finally {
+        setLiveLoading(false);
+      }
+    },
+    [canGoLive],
+  );
 
   // ── Offering press ──
   const handleOfferingPress = useCallback((offering: SessionOffering) => {
@@ -293,7 +323,9 @@ export function useCoachProfile(): UseCoachProfileResult {
   // ── Refresh offerings ──
   const refreshOfferings = useCallback(async () => {
     const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-    setSessionOfferings(offerings.filter((o) => o.coachId === resolvedCoach.id && o.status === 'active'));
+    setSessionOfferings(
+      offerings.filter((o) => o.coachId === resolvedCoach.id && o.status === 'active'),
+    );
   }, [resolvedCoach.id]);
 
   // ── Navigation handlers ──
@@ -313,7 +345,7 @@ export function useCoachProfile(): UseCoachProfileResult {
       coachName: resolvedCoach.fullName,
       coachAvatar: resolvedCoach.profilePhotoUrl,
     }),
-    [resolvedCoach.fullName, resolvedCoach.profilePhotoUrl]
+    [resolvedCoach.fullName, resolvedCoach.profilePhotoUrl],
   );
 
   return {

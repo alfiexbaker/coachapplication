@@ -6,12 +6,7 @@
  */
 
 import { useState } from 'react';
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
@@ -43,26 +38,25 @@ export default function FeedScreen() {
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const { data, status, error, refreshing, onRefresh, retry, colors } =
-    useScreen<FeedData>({
-      load: async (): Promise<Result<FeedData, ServiceError>> => {
-        try {
-          if (!currentUser?.id) {
-            return ok({ feed: [], clubs: [] });
-          }
-          const feed = isCoach
-            ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
-            : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
-          const clubs = socialFeedService.getUserClubs(currentUser.id);
-          return ok({ feed, clubs });
-        } catch {
-          return err({ code: 'UNKNOWN' as const, message: 'Failed to load feed' });
+  const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<FeedData>({
+    load: async (): Promise<Result<FeedData, ServiceError>> => {
+      try {
+        if (!currentUser?.id) {
+          return ok({ feed: [], clubs: [] });
         }
-      },
-      deps: [currentUser?.id, feedFilter, isCoach],
-      events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
-      isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
-    });
+        const feed = isCoach
+          ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
+          : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
+        const clubs = socialFeedService.getUserClubs(currentUser.id);
+        return ok({ feed, clubs });
+      } catch {
+        return err({ code: 'UNKNOWN' as const, message: 'Failed to load feed' });
+      }
+    },
+    deps: [currentUser?.id, feedFilter, isCoach],
+    events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
+    isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
+  });
 
   const feed = data?.feed ?? [];
   const clubs = data?.clubs ?? [];
@@ -144,11 +138,7 @@ export default function FeedScreen() {
           {feed.length > 0 ? (
             feed.map((post) => <FeedPostCard key={post.id} post={post} />)
           ) : (
-            <EmptyFeedState
-              hasClubs={clubs.length > 0}
-              filter={feedFilter}
-              isCoach={isCoach}
-            />
+            <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />
           )}
         </View>
       </ScrollView>

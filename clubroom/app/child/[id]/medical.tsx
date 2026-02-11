@@ -26,20 +26,46 @@ import { useMedicalInfo } from '@/hooks/use-medical-info';
 export default function MedicalInfoScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    loading, status, error, saving,
-    refreshing, onRefresh, retry,
-    conditions, allergies, medications, restrictions,
-    doctorName, setDoctorName, doctorPhone, setDoctorPhone,
-    insuranceProvider, setInsuranceProvider, insuranceNumber, setInsuranceNumber,
-    notes, setNotes, consents,
-    handleConsentToggle, handleSave,
-    addCondition, removeCondition, addAllergy, removeAllergy,
-    addMedication, removeMedication, addRestriction, removeRestriction,
+    loading,
+    status,
+    error,
+    saving,
+    refreshing,
+    onRefresh,
+    retry,
+    conditions,
+    allergies,
+    medications,
+    restrictions,
+    doctorName,
+    setDoctorName,
+    doctorPhone,
+    setDoctorPhone,
+    insuranceProvider,
+    setInsuranceProvider,
+    insuranceNumber,
+    setInsuranceNumber,
+    notes,
+    setNotes,
+    consents,
+    handleConsentToggle,
+    handleSave,
+    addCondition,
+    removeCondition,
+    addAllergy,
+    removeAllergy,
+    addMedication,
+    removeMedication,
+    addRestriction,
+    removeRestriction,
   } = useMedicalInfo();
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -47,8 +73,14 @@ export default function MedicalInfoScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <ErrorState message={error?.message ?? 'Failed to load medical information.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load medical information.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -56,10 +88,15 @@ export default function MedicalInfoScreen() {
   const inputStyle = [styles.input, { borderColor: colors.border, color: colors.text }];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
       >
         <Row gap="sm" align="center">
           <Clickable onPress={() => router.back()} style={styles.backButton}>
@@ -74,21 +111,58 @@ export default function MedicalInfoScreen() {
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Health Conditions</ThemedText>
-          <MedicalTagInput label="Medical Conditions" placeholder="e.g., Asthma, Diabetes" items={conditions} onAdd={addCondition} onRemove={removeCondition} />
-          <MedicalTagInput label="Allergies" placeholder="e.g., Peanuts, Penicillin" items={allergies} onAdd={addAllergy} onRemove={removeAllergy} />
-          <MedicalTagInput label="Medications" placeholder="e.g., Ventolin inhaler" items={medications} onAdd={addMedication} onRemove={removeMedication} />
-          <MedicalTagInput label="Activity Restrictions" placeholder="e.g., No contact sports" items={restrictions} onAdd={addRestriction} onRemove={removeRestriction} />
+          <MedicalTagInput
+            label="Medical Conditions"
+            placeholder="e.g., Asthma, Diabetes"
+            items={conditions}
+            onAdd={addCondition}
+            onRemove={removeCondition}
+          />
+          <MedicalTagInput
+            label="Allergies"
+            placeholder="e.g., Peanuts, Penicillin"
+            items={allergies}
+            onAdd={addAllergy}
+            onRemove={removeAllergy}
+          />
+          <MedicalTagInput
+            label="Medications"
+            placeholder="e.g., Ventolin inhaler"
+            items={medications}
+            onAdd={addMedication}
+            onRemove={removeMedication}
+          />
+          <MedicalTagInput
+            label="Activity Restrictions"
+            placeholder="e.g., No contact sports"
+            items={restrictions}
+            onAdd={addRestriction}
+            onRemove={removeRestriction}
+          />
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Doctor Information</ThemedText>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Doctor Name</ThemedText>
-            <TextInput style={inputStyle} placeholder="Dr. John Smith" placeholderTextColor={colors.muted} value={doctorName} onChangeText={setDoctorName} />
+            <TextInput
+              style={inputStyle}
+              placeholder="Dr. John Smith"
+              placeholderTextColor={colors.muted}
+              value={doctorName}
+              onChangeText={setDoctorName}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Doctor Phone</ThemedText>
-            <TextInput style={inputStyle} placeholder="+44 20 1234 5678" placeholderTextColor={colors.muted} value={doctorPhone} onChangeText={setDoctorPhone} keyboardType="phone-pad" />
+            <TextInput
+              style={inputStyle}
+              placeholder="+44 20 1234 5678"
+              placeholderTextColor={colors.muted}
+              value={doctorPhone}
+              onChangeText={setDoctorPhone}
+              keyboardType="phone-pad"
+            />
           </View>
         </SurfaceCard>
 
@@ -96,11 +170,23 @@ export default function MedicalInfoScreen() {
           <ThemedText type="defaultSemiBold">Insurance</ThemedText>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Insurance Provider</ThemedText>
-            <TextInput style={inputStyle} placeholder="e.g., Bupa, AXA" placeholderTextColor={colors.muted} value={insuranceProvider} onChangeText={setInsuranceProvider} />
+            <TextInput
+              style={inputStyle}
+              placeholder="e.g., Bupa, AXA"
+              placeholderTextColor={colors.muted}
+              value={insuranceProvider}
+              onChangeText={setInsuranceProvider}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Policy Number</ThemedText>
-            <TextInput style={inputStyle} placeholder="Policy number" placeholderTextColor={colors.muted} value={insuranceNumber} onChangeText={setInsuranceNumber} />
+            <TextInput
+              style={inputStyle}
+              placeholder="Policy number"
+              placeholderTextColor={colors.muted}
+              value={insuranceNumber}
+              onChangeText={setInsuranceNumber}
+            />
           </View>
         </SurfaceCard>
 
@@ -110,18 +196,26 @@ export default function MedicalInfoScreen() {
             style={[styles.textArea, { borderColor: colors.border, color: colors.text }]}
             placeholder="Any other important medical information..."
             placeholderTextColor={colors.muted}
-            value={notes} onChangeText={setNotes}
-            multiline numberOfLines={4}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
           />
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Consents</ThemedText>
-          <ThemedText style={{ color: colors.muted, ...Typography.small, marginBottom: Spacing.sm }}>
+          <ThemedText
+            style={{ color: colors.muted, ...Typography.small, marginBottom: Spacing.sm }}
+          >
             Manage permissions for your child during sessions
           </ThemedText>
           {consents.map((consent) => (
-            <MedicalConsentToggle key={consent.type} consent={consent} onToggle={handleConsentToggle} />
+            <MedicalConsentToggle
+              key={consent.type}
+              consent={consent}
+              onToggle={handleConsentToggle}
+            />
           ))}
         </SurfaceCard>
 
@@ -140,5 +234,12 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.md },
   field: { gap: Spacing.xs },
   input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
-  textArea: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body, minHeight: 100, textAlignVertical: 'top' },
+  textArea: {
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    ...Typography.body,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
 });

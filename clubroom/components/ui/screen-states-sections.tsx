@@ -8,7 +8,13 @@
 
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolateColor } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  interpolateColor,
+} from 'react-native-reanimated';
 import { Row } from '@/components/primitives/row';
 
 import { Spacing, Radii, Components } from '@/constants/theme';
@@ -83,8 +89,18 @@ function ListSkeleton({ baseColor, highlightColor }: SkeletonColors) {
             highlightColor={highlightColor}
           />
           <View style={styles.listTextGroup}>
-            <ShimmerBlock width="70%" height={14} baseColor={baseColor} highlightColor={highlightColor} />
-            <ShimmerBlock width="45%" height={12} baseColor={baseColor} highlightColor={highlightColor} />
+            <ShimmerBlock
+              width="70%"
+              height={14}
+              baseColor={baseColor}
+              highlightColor={highlightColor}
+            />
+            <ShimmerBlock
+              width="45%"
+              height={12}
+              baseColor={baseColor}
+              highlightColor={highlightColor}
+            />
           </View>
         </Row>
       ))}
@@ -99,10 +115,26 @@ function CardSkeleton({ baseColor, highlightColor }: SkeletonColors) {
     <View style={styles.cardContainer}>
       {Array.from({ length: 3 }).map((_, i) => (
         <View key={i} style={styles.card}>
-          <ShimmerBlock width="100%" height={120} borderRadius={Radii.card} baseColor={baseColor} highlightColor={highlightColor} />
+          <ShimmerBlock
+            width="100%"
+            height={120}
+            borderRadius={Radii.card}
+            baseColor={baseColor}
+            highlightColor={highlightColor}
+          />
           <View style={styles.cardTextGroup}>
-            <ShimmerBlock width="60%" height={14} baseColor={baseColor} highlightColor={highlightColor} />
-            <ShimmerBlock width="80%" height={12} baseColor={baseColor} highlightColor={highlightColor} />
+            <ShimmerBlock
+              width="60%"
+              height={14}
+              baseColor={baseColor}
+              highlightColor={highlightColor}
+            />
+            <ShimmerBlock
+              width="80%"
+              height={12}
+              baseColor={baseColor}
+              highlightColor={highlightColor}
+            />
           </View>
         </View>
       ))}
@@ -115,7 +147,13 @@ function CardSkeleton({ baseColor, highlightColor }: SkeletonColors) {
 function DetailSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={styles.detailContainer}>
-      <ShimmerBlock width="100%" height={200} borderRadius={Radii.card} baseColor={baseColor} highlightColor={highlightColor} />
+      <ShimmerBlock
+        width="100%"
+        height={200}
+        borderRadius={Radii.card}
+        baseColor={baseColor}
+        highlightColor={highlightColor}
+      />
       <ShimmerBlock
         width="50%"
         height={20}
@@ -144,7 +182,12 @@ function FormSkeleton({ baseColor, highlightColor }: SkeletonColors) {
     <View style={styles.formContainer}>
       {Array.from({ length: 4 }).map((_, i) => (
         <View key={i} style={styles.formField}>
-          <ShimmerBlock width={100} height={12} baseColor={baseColor} highlightColor={highlightColor} />
+          <ShimmerBlock
+            width={100}
+            height={12}
+            baseColor={baseColor}
+            highlightColor={highlightColor}
+          />
           <ShimmerBlock
             width="100%"
             height={Components.input.height}
@@ -165,10 +208,22 @@ function CalendarSkeleton({ baseColor, highlightColor }: SkeletonColors) {
 
   return (
     <View style={styles.calendarContainer}>
-      <ShimmerBlock width={160} height={18} style={styles.calendarHeader} baseColor={baseColor} highlightColor={highlightColor} />
+      <ShimmerBlock
+        width={160}
+        height={18}
+        style={styles.calendarHeader}
+        baseColor={baseColor}
+        highlightColor={highlightColor}
+      />
       <Row wrap justify="between" gap="xs">
         {Array.from({ length: 7 }).map((_, dayIndex) => (
-          <ShimmerBlock key={`header-${dayIndex}`} width={cellSize} height={14} baseColor={baseColor} highlightColor={highlightColor} />
+          <ShimmerBlock
+            key={`header-${dayIndex}`}
+            width={cellSize}
+            height={14}
+            baseColor={baseColor}
+            highlightColor={highlightColor}
+          />
         ))}
         {Array.from({ length: 35 }).map((_, i) => (
           <ShimmerBlock

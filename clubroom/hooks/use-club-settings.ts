@@ -48,7 +48,10 @@ function buildInviteCodes(club: Club | null): InviteCodeItem[] {
 }
 
 export function useClubSettings() {
-  const { clubId: paramClubId, section: paramSection } = useLocalSearchParams<{ clubId?: string; section?: string }>();
+  const { clubId: paramClubId, section: paramSection } = useLocalSearchParams<{
+    clubId?: string;
+    section?: string;
+  }>();
   const { currentUser, availableUsers } = useAuth();
   const { showToast } = useToast();
 
@@ -76,7 +79,9 @@ export function useClubSettings() {
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCodeItem[]>([]);
-  const [activeSection, setActiveSection] = useState<SettingsSection>((paramSection as SettingsSection) || 'details');
+  const [activeSection, setActiveSection] = useState<SettingsSection>(
+    (paramSection as SettingsSection) || 'details',
+  );
   const [loading, setLoading] = useState(true);
   const [editName, setEditName] = useState('');
   const [editTagline, setEditTagline] = useState('');
@@ -116,7 +121,9 @@ export function useClubSettings() {
     }
   }, [clubId, knownClubs]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.CLUB_MEMBER_LEFT, (payload) => {
@@ -125,27 +132,46 @@ export function useClubSettings() {
     return unsub;
   }, [clubId, loadData]);
 
-  const handleCopyCode = useCallback(async (code: string) => {
-    await Clipboard.setStringAsync(code);
-    showToast('Code copied!', 'success');
-    logger.action('CopyInviteCode', { code });
-  }, [showToast]);
+  const handleCopyCode = useCallback(
+    async (code: string) => {
+      await Clipboard.setStringAsync(code);
+      showToast('Code copied!', 'success');
+      logger.action('CopyInviteCode', { code });
+    },
+    [showToast],
+  );
 
-  const handleShareCode = useCallback(async (code: string, role: string) => {
-    try {
-      await Share.share({ message: `Join ${club?.name} on ClubRoom! Use invite code: ${code}` });
-      logger.action('ShareInviteCode', { code, role });
-    } catch (error) { logger.error('ShareFailed', error); }
-  }, [club?.name]);
+  const handleShareCode = useCallback(
+    async (code: string, role: string) => {
+      try {
+        await Share.share({ message: `Join ${club?.name} on ClubRoom! Use invite code: ${code}` });
+        logger.action('ShareInviteCode', { code, role });
+      } catch (error) {
+        logger.error('ShareFailed', error);
+      }
+    },
+    [club?.name],
+  );
 
-  const handleGenerateCode = useCallback((role: ClubRole) => {
-    const prefix = club?.name.slice(0, 4).toUpperCase() || 'CLUB';
-    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newCode = `${prefix}-${suffix}`;
-    setInviteCodes(prev => [...prev, { code: newCode, role, remainingUses: 10, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }]);
-    showToast(`New ${role.toLowerCase()} invite code created`, 'success');
-    logger.action('GenerateInviteCode', { role, code: newCode });
-  }, [club?.name, showToast]);
+  const handleGenerateCode = useCallback(
+    (role: ClubRole) => {
+      const prefix = club?.name.slice(0, 4).toUpperCase() || 'CLUB';
+      const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const newCode = `${prefix}-${suffix}`;
+      setInviteCodes((prev) => [
+        ...prev,
+        {
+          code: newCode,
+          role,
+          remainingUses: 10,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ]);
+      showToast(`New ${role.toLowerCase()} invite code created`, 'success');
+      logger.action('GenerateInviteCode', { role, code: newCode });
+    },
+    [club?.name, showToast],
+  );
 
   const handleSaveDetails = useCallback(() => {
     if (!club) return;
@@ -158,21 +184,44 @@ export function useClubSettings() {
   }, [clubId]);
 
   const handleDeleteClub = useCallback(() => {
-    Alert.alert('Delete Club', 'This will permanently delete the club and remove all members. This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => {
-        logger.action('DeleteClub', { clubId });
-        showToast('Club deleted', 'success');
-        router.replace(Routes.CLUB_HUB);
-      }},
-    ]);
+    Alert.alert(
+      'Delete Club',
+      'This will permanently delete the club and remove all members. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            logger.action('DeleteClub', { clubId });
+            showToast('Club deleted', 'success');
+            router.replace(Routes.CLUB_HUB);
+          },
+        },
+      ],
+    );
   }, [clubId, showToast]);
 
   return {
-    club, clubId, squads, members, inviteCodes, loading,
-    activeSection, setActiveSection,
-    editName, setEditName, editTagline, setEditTagline, editCity, setEditCity,
-    handleCopyCode, handleShareCode, handleGenerateCode,
-    handleSaveDetails, handleCreateSquad, handleDeleteClub,
+    club,
+    clubId,
+    squads,
+    members,
+    inviteCodes,
+    loading,
+    activeSection,
+    setActiveSection,
+    editName,
+    setEditName,
+    editTagline,
+    setEditTagline,
+    editCity,
+    setEditCity,
+    handleCopyCode,
+    handleShareCode,
+    handleGenerateCode,
+    handleSaveDetails,
+    handleCreateSquad,
+    handleDeleteClub,
   };
 }

@@ -82,60 +82,70 @@ export function useSessionDetailModal(
 
   const isCoach = currentUser?.role === 'COACH';
   const isMyOffering = offering?.coachId === currentUser?.id;
-  const registeredCount = offering?.registrations.filter(r => r.status === 'confirmed').length ?? 0;
+  const registeredCount =
+    offering?.registrations.filter((r) => r.status === 'confirmed').length ?? 0;
   const isFull = registeredCount >= (offering?.maxParticipants ?? 0);
-  const isRegistered = offering?.registrations.some(
-    r => r.userId === currentUser?.id && r.status === 'confirmed'
-  ) ?? false;
+  const isRegistered =
+    offering?.registrations.some((r) => r.userId === currentUser?.id && r.status === 'confirmed') ??
+    false;
 
   const children = useMemo(
     () =>
       currentUser && hasChildren(currentUser)
         ? (currentUser.children || []).map((child) => ({
-          id: child.childId,
-          name: child.childName || 'Child',
-        }))
+            id: child.childId,
+            name: child.childName || 'Child',
+          }))
         : [],
     [currentUser],
   );
   const hasMultipleKids = children.length > 1;
 
-  const handleCancelInstance = useCallback(async (instanceDate: Date) => {
-    if (!offering) return;
-    const dateStr = toDateStr(instanceDate);
-    const formattedDate = instanceDate.toLocaleDateString('en-GB', {
-      weekday: 'long', day: 'numeric', month: 'long',
-    });
+  const handleCancelInstance = useCallback(
+    async (instanceDate: Date) => {
+      if (!offering) return;
+      const dateStr = toDateStr(instanceDate);
+      const formattedDate = instanceDate.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      });
 
-    Alert.alert('Cancel Session', `Cancel the session on ${formattedDate}? Athletes will be notified.`, [
-      { text: 'Keep Session', style: 'cancel' },
-      {
-        text: 'Cancel Session',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-            const updatedOfferings = offerings.map(o => {
-              if (o.id === offering.id) {
-                return { ...o, cancelledInstances: [...(o.cancelledInstances || []), dateStr] };
+      Alert.alert(
+        'Cancel Session',
+        `Cancel the session on ${formattedDate}? Athletes will be notified.`,
+        [
+          { text: 'Keep Session', style: 'cancel' },
+          {
+            text: 'Cancel Session',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+                const updatedOfferings = offerings.map((o) => {
+                  if (o.id === offering.id) {
+                    return { ...o, cancelledInstances: [...(o.cancelledInstances || []), dateStr] };
+                  }
+                  return o;
+                });
+                await apiClient.set('session_offerings', updatedOfferings);
+                Alert.alert('Cancelled', `Session on ${formattedDate} has been cancelled.`);
+                onUpdate?.();
+              } catch {
+                Alert.alert('Error', 'Failed to cancel session. Please try again.');
               }
-              return o;
-            });
-            await apiClient.set('session_offerings', updatedOfferings);
-            Alert.alert('Cancelled', `Session on ${formattedDate} has been cancelled.`);
-            onUpdate?.();
-          } catch {
-            Alert.alert('Error', 'Failed to cancel session. Please try again.');
-          }
-        },
-      },
-    ]);
-  }, [offering, onUpdate]);
+            },
+          },
+        ],
+      );
+    },
+    [offering, onUpdate],
+  );
 
   const handleCancelBooking = useCallback(async () => {
     if (!offering || !currentUser) return;
     const myRegistration = offering.registrations.find(
-      r => r.userId === currentUser.id && r.status === 'confirmed'
+      (r) => r.userId === currentUser.id && r.status === 'confirmed',
     );
     if (!myRegistration) return;
 
@@ -150,21 +160,24 @@ export function useSessionDetailModal(
           onPress: async () => {
             try {
               const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-              const updatedOfferings = offerings.map(o => {
+              const updatedOfferings = offerings.map((o) => {
                 if (o.id === offering.id) {
-                  const updatedRegistrations = o.registrations.map(reg =>
-                    reg.id === myRegistration.id ? { ...reg, status: 'cancelled' as const } : reg
+                  const updatedRegistrations = o.registrations.map((reg) =>
+                    reg.id === myRegistration.id ? { ...reg, status: 'cancelled' as const } : reg,
                   );
                   return {
                     ...o,
                     registrations: updatedRegistrations,
-                    status: o.status === 'full' ? 'active' as const : o.status,
+                    status: o.status === 'full' ? ('active' as const) : o.status,
                   };
                 }
                 return o;
               });
               await apiClient.set('session_offerings', updatedOfferings);
-              Alert.alert('Booking Cancelled', 'Your booking has been cancelled. The coach has been notified.');
+              Alert.alert(
+                'Booking Cancelled',
+                'Your booking has been cancelled. The coach has been notified.',
+              );
               onUpdate?.();
               onClose();
             } catch {
@@ -172,7 +185,7 @@ export function useSessionDetailModal(
             }
           },
         },
-      ]
+      ],
     );
   }, [offering, currentUser, onUpdate, onClose]);
 
@@ -189,7 +202,7 @@ export function useSessionDetailModal(
           onPress: async () => {
             try {
               const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-              const updatedOfferings = offerings.map(o => {
+              const updatedOfferings = offerings.map((o) => {
                 if (o.id === offering.id) {
                   return { ...o, endDate: toDateStr(new Date()), status: 'cancelled' as const };
                 }
@@ -204,7 +217,7 @@ export function useSessionDetailModal(
             }
           },
         },
-      ]
+      ],
     );
   }, [offering, onUpdate, onClose]);
 
@@ -220,9 +233,9 @@ export function useSessionDetailModal(
     }
 
     try {
-      const userId = hasMultipleKids ? selectedChildId : (currentUser.id || '');
+      const userId = hasMultipleKids ? selectedChildId : currentUser.id || '';
       const userName = hasMultipleKids
-        ? children.find(c => c.id === selectedChildId)?.name || 'Unknown'
+        ? children.find((c) => c.id === selectedChildId)?.name || 'Unknown'
         : currentUser.fullName || 'Unknown';
 
       const newRegistration = {
@@ -234,29 +247,41 @@ export function useSessionDetailModal(
       };
 
       const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-      const updatedOfferings = offerings.map(o => {
+      const updatedOfferings = offerings.map((o) => {
         if (o.id === offering.id) {
           const updatedRegistrations = [...o.registrations, newRegistration];
           return {
             ...o,
             registrations: updatedRegistrations,
-            status: updatedRegistrations.length >= o.maxParticipants ? 'full' as const : o.status,
+            status: updatedRegistrations.length >= o.maxParticipants ? ('full' as const) : o.status,
           };
         }
         return o;
       });
       await apiClient.set('session_offerings', updatedOfferings);
 
-      Alert.alert('Success', offering.isRecurring
-        ? `Booked for the next ${weeksToBook} week${weeksToBook > 1 ? 's' : ''}`
-        : 'Session booked'
+      Alert.alert(
+        'Success',
+        offering.isRecurring
+          ? `Booked for the next ${weeksToBook} week${weeksToBook > 1 ? 's' : ''}`
+          : 'Session booked',
       );
       onUpdate?.();
       onClose();
     } catch {
       Alert.alert('Error', 'Failed to book session. Please try again.');
     }
-  }, [offering, currentUser, isFull, hasMultipleKids, selectedChildId, children, weeksToBook, onUpdate, onClose]);
+  }, [
+    offering,
+    currentUser,
+    isFull,
+    hasMultipleKids,
+    selectedChildId,
+    children,
+    weeksToBook,
+    onUpdate,
+    onClose,
+  ]);
 
   const formatSchedule = useCallback(() => {
     if (!offering) return '';
@@ -266,7 +291,12 @@ export function useSessionDetailModal(
     }
     const date = new Date(offering.scheduledAt);
     return date.toLocaleDateString(undefined, {
-      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     });
   }, [offering]);
 

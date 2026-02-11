@@ -7,7 +7,7 @@
  * ArchiveToggle — keep history toggle row.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, Switch } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,10 +62,7 @@ export const ReasonGrid = React.memo(function ReasonGrid({
       {reasons.map((reason) => {
         const isSelected = selectedReason === reason.value;
         return (
-          <Clickable
-            key={reason.value}
-            onPress={() => onSelect(reason.value as ReasonType)}
-          >
+          <Clickable key={reason.value} onPress={() => onSelect(reason.value as ReasonType)}>
             <Row
               align="center"
               gap="xs"
@@ -83,10 +80,7 @@ export const ReasonGrid = React.memo(function ReasonGrid({
                 color={isSelected ? palette.tint : palette.icon}
               />
               <ThemedText
-                style={[
-                  styles.reasonLabel,
-                  { color: isSelected ? palette.tint : palette.text },
-                ]}
+                style={[styles.reasonLabel, { color: isSelected ? palette.tint : palette.text }]}
               >
                 {reason.label}
               </ThemedText>
@@ -110,7 +104,14 @@ export const WarningBox = React.memo(function WarningBox({ archive }: WarningBox
   const { colors: palette } = useTheme();
 
   return (
-    <Row align="center" gap="sm" style={[styles.warningBox, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
+    <Row
+      align="center"
+      gap="sm"
+      style={[
+        styles.warningBox,
+        { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning },
+      ]}
+    >
       <Ionicons name="information-circle" size={18} color={palette.warning} />
       <ThemedText style={{ ...Typography.small, color: palette.warning, flex: 1 }}>
         {archive
@@ -137,7 +138,11 @@ export const ArchiveToggle = React.memo(function ArchiveToggle({
   const { colors: palette } = useTheme();
 
   return (
-    <Row align="center" justify="between" style={[styles.archiveRow, { borderColor: palette.border }]}>
+    <Row
+      align="center"
+      justify="between"
+      style={[styles.archiveRow, { borderColor: palette.border }]}
+    >
       <View style={styles.archiveInfo}>
         <ThemedText type="defaultSemiBold">Keep history</ThemedText>
         <ThemedText style={{ ...Typography.caption, color: palette.muted }}>

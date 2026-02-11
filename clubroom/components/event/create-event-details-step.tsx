@@ -59,10 +59,7 @@ function CreateEventDetailsStepInner({
         />
       </View>
 
-      <Clickable
-        onPress={() => onFieldChange('isVirtual', !isVirtual)}
-        style={styles.toggleRow}
-      >
+      <Clickable onPress={() => onFieldChange('isVirtual', !isVirtual)} style={styles.toggleRow}>
         <View style={styles.toggleInfo}>
           <ThemedText type="defaultSemiBold">Virtual Event</ThemedText>
           <ThemedText style={[styles.toggleDesc, { color: palette.muted }]}>
@@ -78,7 +75,10 @@ function CreateEventDetailsStepInner({
           <View
             style={[
               styles.toggleHandle,
-              { backgroundColor: palette.surface, transform: [{ translateX: isVirtual ? 18 : Spacing.micro }] },
+              {
+                backgroundColor: palette.surface,
+                transform: [{ translateX: isVirtual ? 18 : Spacing.micro }],
+              },
             ]}
           />
         </View>

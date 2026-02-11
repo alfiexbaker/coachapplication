@@ -23,7 +23,13 @@ interface TemplateTimeSectionProps {
 }
 
 function TemplateTimeSectionInner({
-  isEditing, selectedDays, startTime, endTime, duration, onStartTimeChange, onEndTimeChange,
+  isEditing,
+  selectedDays,
+  startTime,
+  endTime,
+  duration,
+  onStartTimeChange,
+  onEndTimeChange,
 }: TemplateTimeSectionProps) {
   const { colors: palette } = useTheme();
 
@@ -37,18 +43,33 @@ function TemplateTimeSectionInner({
       </ThemedText>
 
       <Row style={styles.timeRow}>
-        <DateTimeField mode="time" label="Start Time" value={startTime} onChange={onStartTimeChange} minuteInterval={15} style={{ flex: 1 }} />
+        <DateTimeField
+          mode="time"
+          label="Start Time"
+          value={startTime}
+          onChange={onStartTimeChange}
+          minuteInterval={15}
+          style={{ flex: 1 }}
+        />
         <View style={styles.timeArrow}>
           <Ionicons name="arrow-forward" size={20} color={palette.muted} />
         </View>
-        <DateTimeField mode="time" label="End Time" value={endTime} onChange={onEndTimeChange} minuteInterval={15} style={{ flex: 1 }} />
+        <DateTimeField
+          mode="time"
+          label="End Time"
+          value={endTime}
+          onChange={onEndTimeChange}
+          minuteInterval={15}
+          style={{ flex: 1 }}
+        />
       </Row>
 
       {duration && (
         <Row style={[styles.durationBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="time-outline" size={16} color={palette.success} />
           <ThemedText style={{ ...Typography.bodySemiBold, color: palette.success }}>
-            {duration} availability {!isEditing && selectedDays.length > 1 && `× ${selectedDays.length} days`}
+            {duration} availability{' '}
+            {!isEditing && selectedDays.length > 1 && `× ${selectedDays.length} days`}
           </ThemedText>
         </Row>
       )}
@@ -64,5 +85,13 @@ const styles = StyleSheet.create({
   sectionHint: { ...Typography.small, marginBottom: Spacing.xs },
   timeRow: { alignItems: 'flex-end', gap: Spacing.sm },
   timeArrow: { paddingBottom: Spacing.sm },
-  durationBadge: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.xs },
+  durationBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs,
+  },
 });

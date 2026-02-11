@@ -73,16 +73,30 @@ export function AddAnnotationModal({
   const selectedTypeConfig = ANNOTATION_TYPES.find((t) => t.type === type)!;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+    >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
-        <Row align="center" justify="between" style={[styles.header, { borderBottomColor: palette.border }]}>
+        <Row
+          align="center"
+          justify="between"
+          style={[styles.header, { borderBottomColor: palette.border }]}
+        >
           <Clickable onPress={handleClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="subtitle">Add Annotation</ThemedText>
           <Clickable onPress={handleSave} disabled={saving || !label.trim()}>
-            <ThemedText style={{ color: !saving && label.trim() ? palette.tint : palette.muted, fontWeight: '600' }}>
+            <ThemedText
+              style={{
+                color: !saving && label.trim() ? palette.tint : palette.muted,
+                fontWeight: '600',
+              }}
+            >
               {saving ? 'Saving...' : 'Save'}
             </ThemedText>
           </Clickable>
@@ -90,10 +104,16 @@ export function AddAnnotationModal({
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Timestamp */}
-          <Row align="center" gap="md" style={[styles.timestampCard, { backgroundColor: palette.surface }]}>
+          <Row
+            align="center"
+            gap="md"
+            style={[styles.timestampCard, { backgroundColor: palette.surface }]}
+          >
             <Ionicons name="time-outline" size={24} color={palette.tint} />
             <View style={styles.timestampInfo}>
-              <ThemedText style={[styles.timestampLabel, { color: palette.muted }]}>Timestamp</ThemedText>
+              <ThemedText style={[styles.timestampLabel, { color: palette.muted }]}>
+                Timestamp
+              </ThemedText>
               <ThemedText type="title">{formatTime(timestamp)}</ThemedText>
             </View>
             <ThemedText style={{ color: palette.muted }}>/ {formatTime(duration)}</ThemedText>
@@ -112,15 +132,31 @@ export function AddAnnotationModal({
                     style={[
                       styles.typeButton,
                       {
-                        backgroundColor: isSelected ? withAlpha(annotationType.color, 0.09) : palette.surface,
+                        backgroundColor: isSelected
+                          ? withAlpha(annotationType.color, 0.09)
+                          : palette.surface,
                         borderColor: isSelected ? annotationType.color : palette.border,
                       },
                     ]}
                   >
-                    <View style={[styles.typeIcon, { backgroundColor: withAlpha(annotationType.color, 0.12) }]}>
-                      <Ionicons name={annotationType.icon as keyof typeof Ionicons.glyphMap} size={18} color={annotationType.color} />
+                    <View
+                      style={[
+                        styles.typeIcon,
+                        { backgroundColor: withAlpha(annotationType.color, 0.12) },
+                      ]}
+                    >
+                      <Ionicons
+                        name={annotationType.icon as keyof typeof Ionicons.glyphMap}
+                        size={18}
+                        color={annotationType.color}
+                      />
                     </View>
-                    <ThemedText style={[styles.typeLabel, { color: isSelected ? annotationType.color : palette.text }]}>
+                    <ThemedText
+                      style={[
+                        styles.typeLabel,
+                        { color: isSelected ? annotationType.color : palette.text },
+                      ]}
+                    >
                       {annotationType.label}
                     </ThemedText>
                   </Clickable>
@@ -133,21 +169,37 @@ export function AddAnnotationModal({
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Label *</ThemedText>
             <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border, backgroundColor: palette.surface }]}
+              style={[
+                styles.input,
+                {
+                  color: palette.text,
+                  borderColor: palette.border,
+                  backgroundColor: palette.surface,
+                },
+              ]}
               placeholder="e.g., Great technique"
               placeholderTextColor={palette.muted}
               value={label}
               onChangeText={setLabel}
               maxLength={50}
             />
-            <ThemedText style={[styles.charCount, { color: palette.muted }]}>{label.length}/50</ThemedText>
+            <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+              {label.length}/50
+            </ThemedText>
           </View>
 
           {/* Note */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Note (optional)</ThemedText>
             <TextInput
-              style={[styles.textArea, { color: palette.text, borderColor: palette.border, backgroundColor: palette.surface }]}
+              style={[
+                styles.textArea,
+                {
+                  color: palette.text,
+                  borderColor: palette.border,
+                  backgroundColor: palette.surface,
+                },
+              ]}
               placeholder="Add additional details..."
               placeholderTextColor={palette.muted}
               value={note}
@@ -156,20 +208,38 @@ export function AddAnnotationModal({
               numberOfLines={3}
               maxLength={200}
             />
-            <ThemedText style={[styles.charCount, { color: palette.muted }]}>{note.length}/200</ThemedText>
+            <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+              {note.length}/200
+            </ThemedText>
           </View>
 
           {/* Preview */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Preview</ThemedText>
-            <Row align="start" gap="md" style={[styles.previewCard, { backgroundColor: withAlpha(selectedTypeConfig.color, 0.06), borderColor: selectedTypeConfig.color }]}>
+            <Row
+              align="start"
+              gap="md"
+              style={[
+                styles.previewCard,
+                {
+                  backgroundColor: withAlpha(selectedTypeConfig.color, 0.06),
+                  borderColor: selectedTypeConfig.color,
+                },
+              ]}
+            >
               <View style={[styles.previewDot, { backgroundColor: selectedTypeConfig.color }]} />
               <View style={styles.previewContent}>
                 <Row align="center" justify="between">
                   <ThemedText type="defaultSemiBold">{label || 'Enter a label...'}</ThemedText>
-                  <ThemedText style={[styles.previewTime, { color: palette.muted }]}>{formatTime(timestamp)}</ThemedText>
+                  <ThemedText style={[styles.previewTime, { color: palette.muted }]}>
+                    {formatTime(timestamp)}
+                  </ThemedText>
                 </Row>
-                {note ? <ThemedText style={{ ...Typography.small, color: palette.muted }}>{note}</ThemedText> : null}
+                {note ? (
+                  <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+                    {note}
+                  </ThemedText>
+                ) : null}
               </View>
             </Row>
           </View>
@@ -190,11 +260,38 @@ const styles = StyleSheet.create({
   timestampLabel: { ...Typography.caption },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.bodySmallSemiBold },
-  typeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs },
-  typeIcon: { width: 28, height: 28, borderRadius: Radii.lg, alignItems: 'center', justifyContent: 'center' },
+  typeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.xs,
+  },
+  typeIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   typeLabel: { ...Typography.caption },
-  input: { ...Typography.subheading, height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
-  textArea: { ...Typography.body, height: 80, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md, textAlignVertical: 'top' },
+  input: {
+    ...Typography.subheading,
+    height: 48,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+  },
+  textArea: {
+    ...Typography.body,
+    height: 80,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    textAlignVertical: 'top',
+  },
   charCount: { ...Typography.caption, textAlign: 'right' },
   previewCard: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   previewDot: { width: 10, height: 10, borderRadius: Radii.sm, marginTop: Spacing.xxs },

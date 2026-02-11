@@ -26,9 +26,19 @@ interface BlockedDatesEditorProps {
 export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEditorProps) {
   const { colors, scheme } = useTheme();
   const {
-    loading, blockedDates, selectedStart, selectedEnd, reason, setReason,
-    bookingConflict, hasSelection, selectionLabel,
-    handleDateSelect, handleAddBlock, handleBlockThisWeek, handleRemoveBlock,
+    loading,
+    blockedDates,
+    selectedStart,
+    selectedEnd,
+    reason,
+    setReason,
+    bookingConflict,
+    hasSelection,
+    selectionLabel,
+    handleDateSelect,
+    handleAddBlock,
+    handleBlockThisWeek,
+    handleRemoveBlock,
   } = useBlockedDates(coachId, onUpdate);
 
   if (loading) {
@@ -45,13 +55,36 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <MiniCalendar selectedStart={selectedStart} selectedEnd={selectedEnd} onSelectDate={handleDateSelect} blockedDates={blockedDates} />
-      {hasSelection && <BookingWarningBanner count={bookingConflict.count} dates={bookingConflict.dates} colors={colors} />}
+      <MiniCalendar
+        selectedStart={selectedStart}
+        selectedEnd={selectedEnd}
+        onSelectDate={handleDateSelect}
+        blockedDates={blockedDates}
+      />
       {hasSelection && (
-        <SelectionArea selectionLabel={selectionLabel} reason={reason} onReasonChange={setReason} onBlock={handleAddBlock} colors={colors} scheme={scheme} />
+        <BookingWarningBanner
+          count={bookingConflict.count}
+          dates={bookingConflict.dates}
+          colors={colors}
+        />
+      )}
+      {hasSelection && (
+        <SelectionArea
+          selectionLabel={selectionLabel}
+          reason={reason}
+          onReasonChange={setReason}
+          onBlock={handleAddBlock}
+          colors={colors}
+          scheme={scheme}
+        />
       )}
       <QuickActions onBlockThisWeek={handleBlockThisWeek} colors={colors} scheme={scheme} />
-      <BlockedDatesList blockedDates={blockedDates} onRemove={handleRemoveBlock} colors={colors} scheme={scheme} />
+      <BlockedDatesList
+        blockedDates={blockedDates}
+        onRemove={handleRemoveBlock}
+        colors={colors}
+        scheme={scheme}
+      />
       {blockedDates.length === 0 && !hasSelection && <BlockedDatesEmpty colors={colors} />}
       <View style={styles.bottomSpacer} />
     </ScrollView>

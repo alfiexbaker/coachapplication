@@ -1,10 +1,10 @@
-import { View, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
+import { StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface AcceptRejectButtonsProps {
@@ -28,7 +28,8 @@ export function AcceptRejectButtons({
   rejectLabel = 'Decline',
   counterProposeLabel = 'Counter',
   showCounterPropose = true,
-  variant = 'default' }: AcceptRejectButtonsProps) {
+  variant = 'default',
+}: AcceptRejectButtonsProps) {
   const { colors: palette } = useTheme();
 
   const isCompact = variant === 'compact';
@@ -45,25 +46,26 @@ export function AcceptRejectButtons({
   }
 
   return (
-    <Row gap={isCompact ? "xs" : "sm"} style={[styles.container, isCompact ? styles.containerCompact : undefined]}>
+    <Row
+      gap={isCompact ? 'xs' : 'sm'}
+      style={[styles.container, isCompact ? styles.containerCompact : undefined]}
+    >
       {/* Accept button */}
       <Clickable
         onPress={onAccept}
-        style={[
-          styles.button,
-          styles.acceptButton,
-          { backgroundColor: palette.success },
-          isCompact ? styles.buttonCompact : undefined,
-        ].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.button,
+            styles.acceptButton,
+            { backgroundColor: palette.success },
+            isCompact ? styles.buttonCompact : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
         accessibilityLabel={acceptLabel}
         accessibilityRole="button"
       >
         <Row align="center" justify="center" gap="xxs">
-          <Ionicons
-            name="checkmark"
-            size={isCompact ? 16 : 18}
-            color={palette.onPrimary}
-          />
+          <Ionicons name="checkmark" size={isCompact ? 16 : 18} color={palette.onPrimary} />
           <ThemedText
             style={[
               styles.buttonText,
@@ -80,21 +82,19 @@ export function AcceptRejectButtons({
       {/* Reject button */}
       <Clickable
         onPress={onReject}
-        style={[
-          styles.button,
-          styles.rejectButton,
-          { backgroundColor: withAlpha(palette.error, 0.09), borderColor: palette.error },
-          isCompact ? styles.buttonCompact : undefined,
-        ].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.button,
+            styles.rejectButton,
+            { backgroundColor: withAlpha(palette.error, 0.09), borderColor: palette.error },
+            isCompact ? styles.buttonCompact : undefined,
+          ].filter(Boolean) as ViewStyle[]
+        }
         accessibilityLabel={rejectLabel}
         accessibilityRole="button"
       >
         <Row align="center" justify="center" gap="xxs">
-          <Ionicons
-            name="close"
-            size={isCompact ? 16 : 18}
-            color={palette.error}
-          />
+          <Ionicons name="close" size={isCompact ? 16 : 18} color={palette.error} />
           <ThemedText
             style={[
               styles.buttonText,
@@ -111,21 +111,19 @@ export function AcceptRejectButtons({
       {showCounterPropose && onCounterPropose && (
         <Clickable
           onPress={onCounterPropose}
-          style={[
-            styles.button,
-            styles.counterButton,
-            { backgroundColor: palette.surface, borderColor: palette.border },
-            isCompact ? styles.buttonCompact : undefined,
-          ].filter(Boolean) as ViewStyle[]}
+          style={
+            [
+              styles.button,
+              styles.counterButton,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+              isCompact ? styles.buttonCompact : undefined,
+            ].filter(Boolean) as ViewStyle[]
+          }
           accessibilityLabel={counterProposeLabel}
           accessibilityRole="button"
         >
           <Row align="center" justify="center" gap="xxs">
-            <Ionicons
-              name="swap-horizontal"
-              size={isCompact ? 16 : 18}
-              color={palette.tint}
-            />
+            <Ionicons name="swap-horizontal" size={isCompact ? 16 : 18} color={palette.tint} />
             <ThemedText
               style={[
                 styles.buttonText,
@@ -144,28 +142,36 @@ export function AcceptRejectButtons({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: Spacing.sm },
+    marginTop: Spacing.sm,
+  },
   containerCompact: {
-    marginTop: Spacing.xs },
+    marginTop: Spacing.xs,
+  },
   button: {
     flex: 1,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    borderColor: 'transparent' },
+    borderColor: 'transparent',
+  },
   buttonCompact: {
     paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.xs },
+    paddingHorizontal: Spacing.xs,
+  },
   acceptButton: {},
   rejectButton: {},
   counterButton: {},
   buttonText: {
     ...Typography.sm,
-    fontWeight: '600' },
+    fontWeight: '600',
+  },
   buttonTextCompact: { ...Typography.caption },
   acceptText: {},
   loadingContainer: {
-    paddingVertical: Spacing.md },
+    paddingVertical: Spacing.md,
+  },
   loadingText: {
-    ...Typography.sm } });
+    ...Typography.sm,
+  },
+});

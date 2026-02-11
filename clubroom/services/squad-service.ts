@@ -389,9 +389,7 @@ export const squadService = {
   async getSquadMembers(squadId: string): Promise<SquadMember[]> {
     if (USE_MOCK) {
       membersCache = await loadMembers();
-      return membersCache.filter(
-        (m) => m.squadId === squadId && m.status === 'ACTIVE'
-      );
+      return membersCache.filter((m) => m.squadId === squadId && m.status === 'ACTIVE');
     }
 
     const response = await fetch(`/api/squads/${squadId}/members`);
@@ -404,14 +402,10 @@ export const squadService = {
   async getMembersForSquads(squadIds: string[]): Promise<SquadMember[]> {
     if (USE_MOCK) {
       membersCache = await loadMembers();
-      return membersCache.filter(
-        (m) => squadIds.includes(m.squadId) && m.status === 'ACTIVE'
-      );
+      return membersCache.filter((m) => squadIds.includes(m.squadId) && m.status === 'ACTIVE');
     }
 
-    const response = await fetch(
-      `/api/squads/members?squadIds=${squadIds.join(',')}`
-    );
+    const response = await fetch(`/api/squads/members?squadIds=${squadIds.join(',')}`);
     return response.json();
   },
 
@@ -419,7 +413,7 @@ export const squadService = {
    * Get all unique parents for a squad (for sending notifications)
    */
   async getSquadParents(
-    squadId: string
+    squadId: string,
   ): Promise<{ parentId: string; parentName: string; parentEmail?: string; athletes: string[] }[]> {
     const members = await this.getSquadMembers(squadId);
 
@@ -466,9 +460,8 @@ export const squadService = {
     const squads = await this.getSquads(clubId);
     // Filter by coach assignment - show squads where coach is primary coach
     // Also include squads without a coach assigned (for assignment)
-    return squads.filter((s) =>
-      s.id !== 'squad_staff' &&
-      (s.primaryCoach === coachId || !s.primaryCoach)
+    return squads.filter(
+      (s) => s.id !== 'squad_staff' && (s.primaryCoach === coachId || !s.primaryCoach),
     );
   },
 

@@ -83,12 +83,8 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
 
       <Row style={styles.datesRow}>
         <View style={styles.dateItem}>
-          <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>
-            Injury Date
-          </ThemedText>
-          <ThemedText style={styles.dateValue}>
-            {injuryService.formatDate(occurredAt)}
-          </ThemedText>
+          <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>Injury Date</ThemedText>
+          <ThemedText style={styles.dateValue}>{injuryService.formatDate(occurredAt)}</ThemedText>
         </View>
         {expectedRecovery && (
           <View style={[styles.dateItem, styles.dateItemRight]}>
@@ -138,14 +134,9 @@ export const TimelineItem = memo(function TimelineItem({
   });
 
   return (
-    <Animated.View
-      entering={FadeInDown.delay(100).springify()}
-      style={styles.timelineItem}
-    >
+    <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.timelineItem}>
       <View style={styles.timelineConnector}>
-        {!isFirst && (
-          <View style={[styles.connectorLine, { backgroundColor: palette.border }]} />
-        )}
+        {!isFirst && <View style={[styles.connectorLine, { backgroundColor: palette.border }]} />}
         <View style={[styles.connectorDot, { backgroundColor: statusColor }]} />
         {!isLast && (
           <View

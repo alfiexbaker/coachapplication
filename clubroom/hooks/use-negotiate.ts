@@ -62,17 +62,14 @@ export function useNegotiate() {
     }
   }, [id, currentUserId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<NegotiateScreenData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<NegotiateScreenData>({
     load: loadData,
     deps: [id, currentUserId],
-    events: [ServiceEvents.COUNTER_OFFER_CREATED, ServiceEvents.COUNTER_OFFER_ACCEPTED, ServiceEvents.COUNTER_OFFER_REJECTED],
+    events: [
+      ServiceEvents.COUNTER_OFFER_CREATED,
+      ServiceEvents.COUNTER_OFFER_ACCEPTED,
+      ServiceEvents.COUNTER_OFFER_REJECTED,
+    ],
     isEmpty: (payload) => payload.negotiation === null,
     refetchOnFocus: true,
   });
@@ -80,22 +77,32 @@ export function useNegotiate() {
   const negotiation = data?.negotiation ?? null;
   const pendingOffer = data?.pendingOffer ?? null;
 
-  const handleAccept = useCallback(async (offerId: string) => {
-    try {
-      setIsProcessing(true);
-      const acceptResult = await counterOfferService.acceptCounterOffer(offerId);
-      if (!acceptResult.success) {
-        Alert.alert('Error', acceptResult.error.message || 'Failed to accept the proposal. Please try again.');
-        return;
+  const handleAccept = useCallback(
+    async (offerId: string) => {
+      try {
+        setIsProcessing(true);
+        const acceptResult = await counterOfferService.acceptCounterOffer(offerId);
+        if (!acceptResult.success) {
+          Alert.alert(
+            'Error',
+            acceptResult.error.message || 'Failed to accept the proposal. Please try again.',
+          );
+          return;
+        }
+        Alert.alert(
+          'Time Change Accepted',
+          'The booking has been updated with the new time. Both parties will be notified.',
+          [{ text: 'OK', onPress: () => retry() }],
+        );
+      } catch (err) {
+        logger.error('Failed to accept offer', err);
+        Alert.alert('Error', 'Failed to accept the proposal. Please try again.');
+      } finally {
+        setIsProcessing(false);
       }
-      Alert.alert('Time Change Accepted', 'The booking has been updated with the new time. Both parties will be notified.', [{ text: 'OK', onPress: () => retry() }]);
-    } catch (err) {
-      logger.error('Failed to accept offer', err);
-      Alert.alert('Error', 'Failed to accept the proposal. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [retry]);
+    },
+    [retry],
+  );
 
   const handleRejectPress = useCallback((offerId: string) => {
     setOfferToReject(offerId);
@@ -110,13 +117,20 @@ export function useNegotiate() {
       setShowRejectModal(false);
       const rejectResult = await counterOfferService.rejectCounterOffer({
         offerId: offerToReject,
-        reason: rejectReason.trim() || undefined
+        reason: rejectReason.trim() || undefined,
       });
       if (!rejectResult.success) {
-        Alert.alert('Error', rejectResult.error.message || 'Failed to decline the proposal. Please try again.');
+        Alert.alert(
+          'Error',
+          rejectResult.error.message || 'Failed to decline the proposal. Please try again.',
+        );
         return;
       }
-      Alert.alert('Proposal Declined', 'The other party has been notified. They may propose an alternative time.', [{ text: 'OK', onPress: () => retry() }]);
+      Alert.alert(
+        'Proposal Declined',
+        'The other party has been notified. They may propose an alternative time.',
+        [{ text: 'OK', onPress: () => retry() }],
+      );
     } catch (err) {
       logger.error('Failed to reject offer', err);
       Alert.alert('Error', 'Failed to decline the proposal. Please try again.');
@@ -128,22 +142,33 @@ export function useNegotiate() {
 
   const handleRejectCancel = useCallback(() => setShowRejectModal(false), []);
 
-  const handleNewProposal = useCallback(() => { router.push(Routes.bookingsCounter(id!)); }, [id]);
+  const handleNewProposal = useCallback(() => {
+    router.push(Routes.bookingsCounter(id!));
+  }, [id]);
 
   const isResolved = negotiation?.status === 'RESOLVED';
   const canPropose = !isResolved && negotiation?.status !== 'CANCELLED';
 
   return {
-    id, currentUserId, negotiation, pendingOffer,
+    id,
+    currentUserId,
+    negotiation,
+    pendingOffer,
     isLoading: status === 'loading',
     isRefreshing: refreshing,
     isProcessing,
     error: error?.message ?? null,
-    showRejectModal, rejectReason, setRejectReason,
+    showRejectModal,
+    rejectReason,
+    setRejectReason,
     loadData: retry,
     handleRefresh: onRefresh,
-    handleAccept, handleRejectPress,
-    handleRejectConfirm, handleRejectCancel, handleNewProposal,
-    isResolved, canPropose,
+    handleAccept,
+    handleRejectPress,
+    handleRejectConfirm,
+    handleRejectCancel,
+    handleNewProposal,
+    isResolved,
+    canPropose,
   };
 }

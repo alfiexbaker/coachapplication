@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
@@ -50,7 +50,12 @@ function CreateSessionInviteStepInner({
           </Row>
 
           {squadInviteSent ? (
-            <Row style={[styles.inviteSentBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+            <Row
+              style={[
+                styles.inviteSentBadge,
+                { backgroundColor: withAlpha(palette.success, 0.09) },
+              ]}
+            >
               <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               <ThemedText style={[styles.inviteSentText, { color: palette.success }]}>
                 Invites sent successfully!

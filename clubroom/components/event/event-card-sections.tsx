@@ -92,21 +92,25 @@ export const FullEventCardContent = memo(function FullEventCardContent({
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
-      {event.imageUrl && (
-        <Image source={{ uri: event.imageUrl }} style={styles.image} />
-      )}
+      {event.imageUrl && <Image source={{ uri: event.imageUrl }} style={styles.image} />}
 
       <View style={styles.content}>
         {/* Type badge */}
         <Row style={styles.header}>
           <Row style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
-            <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={14} color={typeColor} />
+            <Ionicons
+              name={typeIcon as keyof typeof Ionicons.glyphMap}
+              size={14}
+              color={typeColor}
+            />
             <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
               {eventService.formatEventType(event.eventType)}
             </ThemedText>
           </Row>
           {event.isVirtual && (
-            <Row style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+            <Row
+              style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}
+            >
               <Ionicons name="videocam" size={12} color={palette.accent} />
               <ThemedText style={[styles.virtualBadgeText, { color: palette.accent }]}>
                 Virtual
@@ -154,14 +158,16 @@ export const FullEventCardContent = memo(function FullEventCardContent({
 
           <Row style={styles.footerRight}>
             {isFull && (
-              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-                <ThemedText style={[styles.statusText, { color: palette.error }]}>
-                  FULL
-                </ThemedText>
+              <View
+                style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}
+              >
+                <ThemedText style={[styles.statusText, { color: palette.error }]}>FULL</ThemedText>
               </View>
             )}
             {rsvpClosed && !isFull && (
-              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+              <View
+                style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+              >
                 <ThemedText style={[styles.statusText, { color: palette.warning }]}>
                   RSVP CLOSED
                 </ThemedText>
@@ -173,10 +179,10 @@ export const FullEventCardContent = memo(function FullEventCardContent({
               </ThemedText>
             )}
             {event.price === 0 && !isFull && !rsvpClosed && (
-              <View style={[styles.freeBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-                <ThemedText style={[styles.freeText, { color: palette.success }]}>
-                  FREE
-                </ThemedText>
+              <View
+                style={[styles.freeBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+              >
+                <ThemedText style={[styles.freeText, { color: palette.success }]}>FREE</ThemedText>
               </View>
             )}
           </Row>

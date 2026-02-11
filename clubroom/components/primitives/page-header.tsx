@@ -136,12 +136,10 @@ export function PageHeader({
             {title}
           </ThemedText>
           {subtitle ? (
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              {subtitle}
-            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</ThemedText>
           ) : null}
         </View>
-        {rightContent || (action || actionIcon) ? (
+        {rightContent || action || actionIcon ? (
           <Row align="center">
             {rightContent || (
               <Clickable
@@ -192,8 +190,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   title: { ...Typography.title, letterSpacing: -0.3 },
-  subtitle: { ...Typography.caption, lineHeight: 18,
-    fontWeight: '400' },
+  subtitle: { ...Typography.caption, lineHeight: 18, fontWeight: '400' },
   actionButton: {
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,

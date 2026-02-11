@@ -21,7 +21,10 @@ import { useTheme } from '@/hooks/useTheme';
 import type { SessionInvite, WeekAcceptance } from '@/constants/types';
 import { sessionInviteService } from '@/services/invite/session-invite-service';
 import { createLogger } from '@/utils/logger';
-import { getSessionInviteAthleteNames, getSessionInviteCoachName } from '@/utils/session-invite-display';
+import {
+  getSessionInviteAthleteNames,
+  getSessionInviteCoachName,
+} from '@/utils/session-invite-display';
 
 import {
   WeekSeparator,
@@ -39,10 +42,7 @@ interface MultiWeekInviteCardProps {
   onResponded?: () => void;
 }
 
-export function MultiWeekInviteCard({
-  invite,
-  onResponded,
-}: MultiWeekInviteCardProps) {
+export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCardProps) {
   const { colors: palette } = useTheme();
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);
@@ -58,9 +58,7 @@ export function MultiWeekInviteCard({
 
   const handleToggle = useCallback((weekDate: string) => {
     setWeekAcceptances((prev) =>
-      prev.map((w) =>
-        w.weekDate === weekDate ? { ...w, accepted: !w.accepted } : w
-      )
+      prev.map((w) => (w.weekDate === weekDate ? { ...w, accepted: !w.accepted } : w)),
     );
   }, []);
 
@@ -69,7 +67,7 @@ export function MultiWeekInviteCard({
     try {
       const result = await sessionInviteService.respondToRecurringInvite(
         invite.id,
-        weekAcceptances
+        weekAcceptances,
       );
 
       if (result.success) {
@@ -102,7 +100,7 @@ export function MultiWeekInviteCard({
     ({ item }: { item: WeekAcceptance }) => (
       <WeekToggleRow week={item} onToggle={handleToggle} palette={palette} />
     ),
-    [handleToggle, palette]
+    [handleToggle, palette],
   );
 
   const keyExtractor = useCallback((item: WeekAcceptance) => item.weekDate, []);
@@ -144,22 +142,14 @@ export function MultiWeekInviteCard({
 
       <Divider />
 
-      <TotalRow
-        acceptedCount={acceptedCount}
-        totalCost={totalCost}
-        palette={palette}
-      />
+      <TotalRow acceptedCount={acceptedCount} totalCost={totalCost} palette={palette} />
 
-      <Button
-        variant="primary"
-        onPress={handleSubmit}
-        disabled={acceptedCount === 0 || submitting}
-      >
+      <Button variant="primary" onPress={handleSubmit} disabled={acceptedCount === 0 || submitting}>
         {submitting
           ? 'Booking...'
           : acceptedCount === 0
-          ? 'Select weeks to accept'
-          : `Accept ${acceptedCount} Week${acceptedCount !== 1 ? 's' : ''}`}
+            ? 'Select weeks to accept'
+            : `Accept ${acceptedCount} Week${acceptedCount !== 1 ? 's' : ''}`}
       </Button>
     </SurfaceCard>
   );

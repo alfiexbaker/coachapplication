@@ -74,14 +74,7 @@ export function useCoachDetail(coachId: string | undefined) {
     }
   }, [coachId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<CoachDetailData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CoachDetailData>({
     load: loadCoach,
     deps: [coachId],
     isEmpty: (value) => value.coach === null,
@@ -106,7 +99,8 @@ export function useCoachDetail(coachId: string | undefined) {
     retry,
     activeTab,
     setActiveTab,
-    isFollowing, isOwnProfile,
+    isFollowing,
+    isOwnProfile,
     handleRefresh: onRefresh,
     handleFollow,
     handleBook,

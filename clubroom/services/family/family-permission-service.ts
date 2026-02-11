@@ -40,7 +40,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
   'PRIMARY' | 'GUARDIAN' | 'VIEWER',
   GuardianPermission[]
 > = {
-  PRIMARY: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS', 'MANAGE_PAYMENTS', 'MANAGE_PROFILE', 'ADMIN'],
+  PRIMARY: [
+    'VIEW_SCHEDULE',
+    'VIEW_PROGRESS',
+    'BOOK_SESSIONS',
+    'MANAGE_PAYMENTS',
+    'MANAGE_PROFILE',
+    'ADMIN',
+  ],
   GUARDIAN: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS'],
   VIEWER: ['VIEW_SCHEDULE', 'VIEW_PROGRESS'],
 };
@@ -87,7 +94,7 @@ class FamilyPermissionService {
    */
   async getGuardianPermissions(
     userId: string,
-    familyId: string
+    familyId: string,
   ): Promise<Result<GuardianPermission[], ServiceError>> {
     try {
       const permissions = await this.getPermissions(userId, familyId);
@@ -104,7 +111,7 @@ class FamilyPermissionService {
   async hasPermission(
     userId: string,
     familyId: string,
-    permission: GuardianPermission
+    permission: GuardianPermission,
   ): Promise<boolean> {
     const permissions = await this.getPermissions(userId, familyId);
     // ADMIN permission grants all permissions
@@ -157,7 +164,7 @@ class FamilyPermissionService {
     familyId: string,
     requesterId: string,
     guardianId: string,
-    newPermissions: GuardianPermission[]
+    newPermissions: GuardianPermission[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
     // Check if requester has admin permission
     const hasAdmin = await this.isAdmin(requesterId, familyId);
@@ -201,7 +208,7 @@ class FamilyPermissionService {
     familyId: string,
     requesterId: string,
     guardianId: string,
-    newPermissions: GuardianPermission[]
+    newPermissions: GuardianPermission[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
     return this.updatePermissions(familyId, requesterId, guardianId, newPermissions);
   }
@@ -217,7 +224,7 @@ class FamilyPermissionService {
     familyId: string,
     requesterId: string,
     guardianId: string,
-    childIds: string[]
+    childIds: string[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
     const hasAdmin = await this.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
@@ -252,7 +259,7 @@ class FamilyPermissionService {
     familyId: string,
     requesterId: string,
     guardianId: string,
-    childIds: string[]
+    childIds: string[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
     return this.updateChildAccess(familyId, requesterId, guardianId, childIds);
   }
@@ -261,10 +268,7 @@ class FamilyPermissionService {
    * Get children that a guardian has access to.
    * Empty childAccess means access to all children.
    */
-  async getAccessibleChildren(
-    userId: string,
-    familyId: string
-  ): Promise<FamilyMember[]> {
+  async getAccessibleChildren(userId: string, familyId: string): Promise<FamilyMember[]> {
     const accounts = await this.loadAccounts();
     const account = accounts.find((a) => a.id === familyId);
 

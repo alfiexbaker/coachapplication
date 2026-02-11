@@ -39,50 +39,50 @@ export const ConversationRow = memo(function ConversationRow({
       <Clickable
         onPress={onPress}
         style={({ pressed }) => ({
-            backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
-          })}
+          backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
+        })}
         accessibilityLabel={`Message from ${displayName}`}
       >
         <Row align="center" gap="md" style={styles.conversationRow}>
-        <View style={[styles.avatar, { backgroundColor: palette.surface }]}>
-          <ThemedText style={[styles.avatarText, { color: palette.text }]}>
-            {displayName
-              .split(' ')
-              .map((n: string) => n[0])
-              .join('')}
-          </ThemedText>
-        </View>
-        <Column gap={2} style={styles.conversationContent}>
-          <Row justify="between" align="center">
-            <ThemedText type="defaultSemiBold" style={styles.coachName} numberOfLines={1}>
-              {displayName}
+          <View style={[styles.avatar, { backgroundColor: palette.surface }]}>
+            <ThemedText style={[styles.avatarText, { color: palette.text }]}>
+              {displayName
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')}
             </ThemedText>
-            <ThemedText style={[styles.time, { color: palette.muted }]} numberOfLines={1}>
-              {new Date(thread.scheduledFor).toLocaleDateString('en-GB', {
-                month: 'short',
-                day: 'numeric',
-              })}
-            </ThemedText>
-          </Row>
-          <Row justify="between" align="center">
-            <ThemedText style={[styles.serviceName, { color: palette.muted }]} numberOfLines={1}>
-              {subtitle}
-            </ThemedText>
-            {hasUnread && (
-              <View style={[styles.badge, { backgroundColor: palette.premium }]}>
-                <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
-                  {thread.unreadCount}
-                </ThemedText>
-              </View>
-            )}
-          </Row>
-          {thread.lastMessageSnippet ? (
-            <ThemedText style={[styles.preview, { color: palette.muted }]} numberOfLines={1}>
-              {thread.lastMessageSender ? `${thread.lastMessageSender}: ` : ''}
-              {thread.lastMessageSnippet}
-            </ThemedText>
-          ) : null}
-        </Column>
+          </View>
+          <Column gap={2} style={styles.conversationContent}>
+            <Row justify="between" align="center">
+              <ThemedText type="defaultSemiBold" style={styles.coachName} numberOfLines={1}>
+                {displayName}
+              </ThemedText>
+              <ThemedText style={[styles.time, { color: palette.muted }]} numberOfLines={1}>
+                {new Date(thread.scheduledFor).toLocaleDateString('en-GB', {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </ThemedText>
+            </Row>
+            <Row justify="between" align="center">
+              <ThemedText style={[styles.serviceName, { color: palette.muted }]} numberOfLines={1}>
+                {subtitle}
+              </ThemedText>
+              {hasUnread && (
+                <View style={[styles.badge, { backgroundColor: palette.premium }]}>
+                  <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
+                    {thread.unreadCount}
+                  </ThemedText>
+                </View>
+              )}
+            </Row>
+            {thread.lastMessageSnippet ? (
+              <ThemedText style={[styles.preview, { color: palette.muted }]} numberOfLines={1}>
+                {thread.lastMessageSender ? `${thread.lastMessageSender}: ` : ''}
+                {thread.lastMessageSnippet}
+              </ThemedText>
+            ) : null}
+          </Column>
         </Row>
       </Clickable>
     </Animated.View>

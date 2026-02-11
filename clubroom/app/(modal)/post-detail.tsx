@@ -27,18 +27,34 @@ export default function PostDetailScreen() {
   const { colors: palette } = useTheme();
   const p = usePostDetail();
 
-  const renderComment = useCallback(({ item }: { item: FlatItem }) => (
-    <CommentCard comment={item.data} isReply={item.isReply} currentUserId={p.currentUser?.id ?? ''}
-      onLike={p.handleLikeComment} onReply={p.handleReply} onDelete={p.handleDeleteComment}
-    />
-  ), [p.currentUser?.id, p.handleLikeComment, p.handleReply, p.handleDeleteComment]);
+  const renderComment = useCallback(
+    ({ item }: { item: FlatItem }) => (
+      <CommentCard
+        comment={item.data}
+        isReply={item.isReply}
+        currentUserId={p.currentUser?.id ?? ''}
+        onLike={p.handleLikeComment}
+        onReply={p.handleReply}
+        onDelete={p.handleDeleteComment}
+      />
+    ),
+    [p.currentUser?.id, p.handleLikeComment, p.handleReply, p.handleDeleteComment],
+  );
 
   const keyExtractor = useCallback((item: FlatItem) => item.data.id, []);
 
   if (!p.post) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <Row style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <Row
+          style={[
+            styles.header,
+            { backgroundColor: palette.surface, borderBottomColor: palette.border },
+          ]}
+        >
           <Clickable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
             <Ionicons name="chevron-back" size={24} color={palette.text} />
           </Clickable>
@@ -47,8 +63,12 @@ export default function PostDetailScreen() {
         </Row>
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>Post not found</ThemedText>
-          <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>This post may have been removed.</ThemedText>
+          <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
+            Post not found
+          </ThemedText>
+          <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
+            This post may have been removed.
+          </ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -56,29 +76,50 @@ export default function PostDetailScreen() {
 
   const ListHeader = (
     <PostDetailCard
-      authorName={p.postAuthorName} initials={p.initials} title={p.postTitle}
-      content={p.postContent} createdAt={p.postCreatedAt} liked={p.liked}
-      likeCount={p.likeCount} commentCount={p.totalCommentCount} onLike={p.handleLikePost}
+      authorName={p.postAuthorName}
+      initials={p.initials}
+      title={p.postTitle}
+      content={p.postContent}
+      createdAt={p.postCreatedAt}
+      liked={p.liked}
+      likeCount={p.likeCount}
+      commentCount={p.totalCommentCount}
+      onLike={p.handleLikePost}
     />
   );
 
-  const ListEmpty = p.status === 'loading' ? (
-    <View style={styles.loadingContainer}><LoadingState variant="list" /></View>
-  ) : p.status === 'error' ? (
-    <View style={styles.errorContainer}>
-      <ErrorState message={p.error ?? 'Failed to load comments.'} onRetry={p.retry} />
-    </View>
-  ) : (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubbles-outline" size={40} color={palette.muted} />
-      <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>No comments yet</ThemedText>
-      <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>Be the first to comment on this post.</ThemedText>
-    </View>
-  );
+  const ListEmpty =
+    p.status === 'loading' ? (
+      <View style={styles.loadingContainer}>
+        <LoadingState variant="list" />
+      </View>
+    ) : p.status === 'error' ? (
+      <View style={styles.errorContainer}>
+        <ErrorState message={p.error ?? 'Failed to load comments.'} onRetry={p.retry} />
+      </View>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="chatbubbles-outline" size={40} color={palette.muted} />
+        <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
+          No comments yet
+        </ThemedText>
+        <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
+          Be the first to comment on this post.
+        </ThemedText>
+      </View>
+    );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <Row style={[styles.header, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <Row
+        style={[
+          styles.header,
+          { backgroundColor: palette.surface, borderBottomColor: palette.border },
+        ]}
+      >
         <Clickable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Clickable>
@@ -86,16 +127,29 @@ export default function PostDetailScreen() {
         <View style={styles.headerSpacer} />
       </Row>
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <FlatList<FlatItem>
-          data={p.flatItems} renderItem={renderComment} keyExtractor={keyExtractor}
-          ListHeaderComponent={ListHeader} ListEmptyComponent={ListEmpty}
-          contentContainerStyle={styles.listContent} refreshing={p.refreshing}
-          onRefresh={p.onRefresh} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive"
+          data={p.flatItems}
+          renderItem={renderComment}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={ListEmpty}
+          contentContainerStyle={styles.listContent}
+          refreshing={p.refreshing}
+          onRefresh={p.onRefresh}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         />
         <SafeAreaView edges={['bottom']} style={{ backgroundColor: palette.surface }}>
-          <CommentInput value={p.newComment} onChangeText={p.setNewComment} onSubmit={p.handleSubmitComment}
-            replyingTo={p.replyingTo?.authorName ?? null} onCancelReply={p.handleCancelReply}
+          <CommentInput
+            value={p.newComment}
+            onChangeText={p.setNewComment}
+            onSubmit={p.handleSubmitComment}
+            replyingTo={p.replyingTo?.authorName ?? null}
+            onCancelReply={p.handleCancelReply}
           />
         </SafeAreaView>
       </KeyboardAvoidingView>
@@ -106,7 +160,13 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  header: { justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderBottomWidth: 1 },
+  header: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+  },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
   headerTitle: { ...Typography.heading },
   headerSpacer: { width: 44 },

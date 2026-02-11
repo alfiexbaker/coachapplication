@@ -39,17 +39,15 @@ export const OfferHeader = memo(function OfferHeader({
   proposerName,
   proposedBy,
   status,
-  palette }: OfferHeaderProps) {
+  palette,
+}: OfferHeaderProps) {
   const statusConfig = getStatusConfig(status, palette);
 
   return (
     <Row justify="between" align="center">
       <Row align="center" gap="sm">
         <View
-          style={[
-            styles.avatarPlaceholder,
-            { backgroundColor: withAlpha(palette.tint, 0.09) },
-          ]}
+          style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
         >
           <Ionicons
             name={proposedBy === 'PARENT' ? 'person' : 'school'}
@@ -68,10 +66,7 @@ export const OfferHeader = memo(function OfferHeader({
       <Row
         align="center"
         gap="xxs"
-        style={[
-          styles.statusBadge,
-          { backgroundColor: withAlpha(statusConfig.color, 0.09) },
-        ]}
+        style={[styles.statusBadge, { backgroundColor: withAlpha(statusConfig.color, 0.09) }]}
       >
         <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} />
         <ThemedText style={[styles.statusText, { color: statusConfig.color }]}>
@@ -99,18 +94,15 @@ interface TimeChangeDisplayProps {
 export const TimeChangeDisplay = memo(function TimeChangeDisplay({
   originalTime,
   proposedTime,
-  palette }: TimeChangeDisplayProps) {
+  palette,
+}: TimeChangeDisplayProps) {
   return (
     <Row align="center" gap="sm">
       <View style={styles.timeBlock}>
-        <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>
-          Original
-        </ThemedText>
+        <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>Original</ThemedText>
         <Row align="center" gap="xxs">
           <Ionicons name="calendar-outline" size={16} color={palette.muted} />
-          <ThemedText style={styles.timeValue}>
-            {formatDate(originalTime.date)}
-          </ThemedText>
+          <ThemedText style={styles.timeValue}>{formatDate(originalTime.date)}</ThemedText>
         </Row>
         <Row align="center" gap="xxs">
           <Ionicons name="time-outline" size={16} color={palette.muted} />
@@ -131,9 +123,7 @@ export const TimeChangeDisplay = memo(function TimeChangeDisplay({
           { backgroundColor: withAlpha(palette.tint, 0.03) },
         ]}
       >
-        <ThemedText style={[styles.timeLabel, { color: palette.tint }]}>
-          Proposed
-        </ThemedText>
+        <ThemedText style={[styles.timeLabel, { color: palette.tint }]}>Proposed</ThemedText>
         <Row align="center" gap="xxs">
           <Ionicons name="calendar" size={16} color={palette.tint} />
           <ThemedText style={[styles.timeValue, { color: palette.tint }]}>
@@ -158,11 +148,13 @@ interface OfferMessageProps {
   palette: ThemeColors;
 }
 
-export const OfferMessage = memo(function OfferMessage({
-  message,
-  palette }: OfferMessageProps) {
+export const OfferMessage = memo(function OfferMessage({ message, palette }: OfferMessageProps) {
   return (
-    <Row align="start" gap="xs" style={[styles.messageContainer, { backgroundColor: palette.background }]}>
+    <Row
+      align="start"
+      gap="xs"
+      style={[styles.messageContainer, { backgroundColor: palette.background }]}
+    >
       <Ionicons name="chatbubble-outline" size={14} color={palette.muted} />
       <ThemedText style={[styles.messageText, { color: palette.text }]}>
         &quot;{message}&quot;
@@ -180,13 +172,16 @@ interface RejectionReasonProps {
 
 export const RejectionReason = memo(function RejectionReason({
   reason,
-  palette }: RejectionReasonProps) {
+  palette,
+}: RejectionReasonProps) {
   return (
-    <Row align="start" gap="xs" style={[styles.rejectionContainer, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+    <Row
+      align="start"
+      gap="xs"
+      style={[styles.rejectionContainer, { backgroundColor: withAlpha(palette.error, 0.06) }]}
+    >
       <Ionicons name="information-circle-outline" size={14} color={palette.error} />
-      <ThemedText style={[styles.rejectionText, { color: palette.error }]}>
-        {reason}
-      </ThemedText>
+      <ThemedText style={[styles.rejectionText, { color: palette.error }]}>{reason}</ThemedText>
     </Row>
   );
 });
@@ -198,9 +193,7 @@ interface ExpiryTimerProps {
   palette: ThemeColors;
 }
 
-export const ExpiryTimer = memo(function ExpiryTimer({
-  expiresAt,
-  palette }: ExpiryTimerProps) {
+export const ExpiryTimer = memo(function ExpiryTimer({ expiresAt, palette }: ExpiryTimerProps) {
   return (
     <Row align="center" gap="xxs">
       <Ionicons name="hourglass-outline" size={14} color={palette.warning} />

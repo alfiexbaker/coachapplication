@@ -38,10 +38,10 @@ function CarpoolOfferCardComponent({
   const isFull = seatsLeft === 0;
   const pendingRequests = offer.requests.filter((r) => r.status === 'PENDING').length;
   const hasUserRequested = offer.requests.some(
-    (r) => r.parentId === currentUserId && (r.status === 'PENDING' || r.status === 'ACCEPTED')
+    (r) => r.parentId === currentUserId && (r.status === 'PENDING' || r.status === 'ACCEPTED'),
   );
   const userRequestAccepted = offer.requests.some(
-    (r) => r.parentId === currentUserId && r.status === 'ACCEPTED'
+    (r) => r.parentId === currentUserId && r.status === 'ACCEPTED',
   );
 
   if (compact) {

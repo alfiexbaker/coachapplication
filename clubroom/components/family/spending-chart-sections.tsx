@@ -45,7 +45,8 @@ export const SummaryCard = memo(function SummaryCard({
         </ThemedText>
       </Row>
       <ThemedText style={styles.totalAmount}>
-        {currencySymbol}{totalSpent.toFixed(2)}
+        {currencySymbol}
+        {totalSpent.toFixed(2)}
       </ThemedText>
       <Row style={styles.summaryStats}>
         <View style={styles.summaryStat}>
@@ -57,7 +58,8 @@ export const SummaryCard = memo(function SummaryCard({
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
         <View style={styles.summaryStat}>
           <ThemedText style={styles.summaryStatValue}>
-            {currencySymbol}{averagePerChild.toFixed(0)}
+            {currencySymbol}
+            {averagePerChild.toFixed(0)}
           </ThemedText>
           <ThemedText style={[styles.summaryStatLabel, { color: palette.muted }]}>
             avg per child
@@ -112,9 +114,7 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
           return (
             <Row key={child.childId} style={styles.childRow}>
               <Row style={styles.childInfo}>
-                <View
-                  style={[styles.childColorDot, { backgroundColor: child.colorCode }]}
-                />
+                <View style={[styles.childColorDot, { backgroundColor: child.colorCode }]} />
                 <ThemedText style={styles.childName}>{child.childId}</ThemedText>
               </Row>
               <Row style={styles.childStats}>
@@ -131,7 +131,8 @@ export const ChildBreakdownCard = memo(function ChildBreakdownCard({
                   </Row>
                 )}
                 <ThemedText type="defaultSemiBold" style={styles.childAmount}>
-                  {currencySymbol}{child.totalSpent.toFixed(2)}
+                  {currencySymbol}
+                  {child.totalSpent.toFixed(2)}
                 </ThemedText>
                 <ThemedText style={[styles.childSessions, { color: palette.muted }]}>
                   {child.sessionCount} sessions
@@ -191,7 +192,8 @@ export const MonthlyBarChart = memo(function MonthlyBarChart({
                 {formatMonth(month.month)}
               </ThemedText>
               <ThemedText style={styles.barValue}>
-                {currencySymbol}{month.amount.toFixed(0)}
+                {currencySymbol}
+                {month.amount.toFixed(0)}
               </ThemedText>
             </View>
           );

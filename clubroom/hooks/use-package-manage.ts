@@ -71,14 +71,7 @@ export function usePackageManage() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ManagePackagesData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ManagePackagesData>({
     load: loadData,
     deps: [currentUser?.id],
     isEmpty: (value) => value.packages.length === 0,
@@ -90,50 +83,87 @@ export function usePackageManage() {
 
   const handleCreateSuccess = useCallback(() => {
     setShowCreateModal(false);
-    showToast(editingPackage ? 'Package updated successfully!' : 'Package created successfully!', 'success');
+    showToast(
+      editingPackage ? 'Package updated successfully!' : 'Package created successfully!',
+      'success',
+    );
     setEditingPackage(null);
     retry();
   }, [editingPackage, showToast, retry]);
 
-  const handleCreateError = useCallback((error: string) => { showToast(error, 'error'); }, [showToast]);
+  const handleCreateError = useCallback(
+    (error: string) => {
+      showToast(error, 'error');
+    },
+    [showToast],
+  );
 
   const handleEditPackage = useCallback((pkg: SessionPackage) => {
     setEditingPackage(pkg);
     setShowCreateModal(true);
   }, []);
 
-  const handleToggleActive = useCallback(async (pkg: SessionPackage) => {
-    try {
-      const updatedResult = await packageService.updatePackage(pkg.id, { isActive: !pkg.isActive });
-      if (!updatedResult.success) {
-        showToast(updatedResult.error.message, 'error');
-        return;
+  const handleToggleActive = useCallback(
+    async (pkg: SessionPackage) => {
+      try {
+        const updatedResult = await packageService.updatePackage(pkg.id, {
+          isActive: !pkg.isActive,
+        });
+        if (!updatedResult.success) {
+          showToast(updatedResult.error.message, 'error');
+          return;
+        }
+        if (updatedResult.data) {
+          showToast(pkg.isActive ? 'Package deactivated' : 'Package activated', 'success');
+          retry();
+        }
+      } catch {
+        showToast('Failed to update package', 'error');
       }
-      if (updatedResult.data) {
-        showToast(pkg.isActive ? 'Package deactivated' : 'Package activated', 'success');
-        retry();
-      }
-    } catch { showToast('Failed to update package', 'error'); }
-  }, [showToast, retry]);
+    },
+    [showToast, retry],
+  );
 
-  const handleDeletePackage = useCallback((pkg: SessionPackage) => {
-    Alert.alert('Delete Package', `Are you sure you want to delete "${pkg.name}"? This action cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try {
-          const result = await packageService.deletePackage(pkg.id);
-          if (!result.success) {
-            showToast(result.error.message, 'error');
-            return;
-          }
-          if (result.data) { showToast('Package deleted', 'success'); retry(); }
-        } catch { showToast('Failed to delete package', 'error'); }
-      }},
-    ]);
-  }, [showToast, retry]);
+  const handleDeletePackage = useCallback(
+    (pkg: SessionPackage) => {
+      Alert.alert(
+        'Delete Package',
+        `Are you sure you want to delete "${pkg.name}"? This action cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const result = await packageService.deletePackage(pkg.id);
+                if (!result.success) {
+                  showToast(result.error.message, 'error');
+                  return;
+                }
+                if (result.data) {
+                  showToast('Package deleted', 'success');
+                  retry();
+                }
+              } catch {
+                showToast('Failed to delete package', 'error');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [showToast, retry],
+  );
 
-  const openCreateModal = useCallback(() => { setEditingPackage(null); setShowCreateModal(true); }, []);
-  const closeModal = useCallback(() => { setShowCreateModal(false); setEditingPackage(null); }, []);
+  const openCreateModal = useCallback(() => {
+    setEditingPackage(null);
+    setShowCreateModal(true);
+  }, []);
+  const closeModal = useCallback(() => {
+    setShowCreateModal(false);
+    setEditingPackage(null);
+  }, []);
 
   return {
     packages,
@@ -149,8 +179,11 @@ export function usePackageManage() {
     handleRefresh: onRefresh,
     handleCreateSuccess,
     handleCreateError,
-    handleEditPackage, handleToggleActive, handleDeletePackage,
-    openCreateModal, closeModal,
+    handleEditPackage,
+    handleToggleActive,
+    handleDeletePackage,
+    openCreateModal,
+    closeModal,
   } satisfies {
     packages: SessionPackage[];
     loading: boolean;

@@ -46,11 +46,16 @@ export function AthleteProgressScreen() {
   if (!currentUser || !athlete) return null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>My Progress</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            My Progress
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Track your football development
           </ThemedText>
@@ -72,7 +77,7 @@ export function AthleteProgressScreen() {
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
-            <Clickable
+              <Clickable
                 key={tab.key}
                 onPress={() => handleSelectTab(tab.key)}
                 style={[
@@ -83,7 +88,11 @@ export function AthleteProgressScreen() {
                 accessibilityLabel={tab.label}
                 accessibilityState={{ selected: isActive }}
               >
-                <Ionicons name={tab.icon} size={16} color={isActive ? palette.onPrimary : palette.muted} />
+                <Ionicons
+                  name={tab.icon}
+                  size={16}
+                  color={isActive ? palette.onPrimary : palette.muted}
+                />
                 <ThemedText
                   style={[
                     styles.tabLabel,
@@ -93,17 +102,19 @@ export function AthleteProgressScreen() {
                 >
                   {tab.label}
                 </ThemedText>
-            </Clickable>
-          );
-        })}
-      </Row>
+              </Clickable>
+            );
+          })}
+        </Row>
 
         {activeTab === 'progress' && (
-          <ProgressSkillsTab skills={skills} skillsByCategory={skillsByCategory} sortedSessions={sortedSessions} />
+          <ProgressSkillsTab
+            skills={skills}
+            skillsByCategory={skillsByCategory}
+            sortedSessions={sortedSessions}
+          />
         )}
-        {activeTab === 'badges' && (
-          <ProgressBadgesTab awards={awards} />
-        )}
+        {activeTab === 'badges' && <ProgressBadgesTab awards={awards} />}
         {activeTab === 'goals' && (
           <ProgressGoalsTab activeGoals={activeGoals} completedGoals={completedGoals} />
         )}
@@ -114,12 +125,25 @@ export function AthleteProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20 },
   tabContainer: { borderRadius: Radii.md, padding: Spacing.xxs, gap: Spacing.xxs },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.sm },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
   tabActive: {},
   tabLabel: { ...Typography.smallSemiBold },
   tabLabelActive: { fontWeight: '700' },

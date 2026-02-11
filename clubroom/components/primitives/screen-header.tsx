@@ -60,24 +60,24 @@ export function ScreenHeader({
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[
-      styles.container,
-      bordered ? { borderBottomWidth: 1, borderBottomColor: palette.border } : undefined,
-    ]}>
+    <View
+      style={[
+        styles.container,
+        bordered ? { borderBottomWidth: 1, borderBottomColor: palette.border } : undefined,
+      ]}
+    >
       <Row align="center" justify="between" gap="sm">
         <View style={styles.textContainer}>
           <ThemedText style={styles.title}>{title}</ThemedText>
           {subtitle && (
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              {subtitle}
-            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</ThemedText>
           )}
         </View>
 
         {(rightElement || action) && (
           <Row align="center">
-            {rightElement || (
-              action && (
+            {rightElement ||
+              (action && (
                 <Clickable
                   onPress={action.onPress}
                   style={[styles.actionButton, { backgroundColor: palette.tint }]}
@@ -90,12 +90,13 @@ export function ScreenHeader({
                       <Ionicons name={action.icon} size={18} color={palette.onPrimary} />
                     )}
                     {action.label && (
-                      <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>{action.label}</ThemedText>
+                      <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>
+                        {action.label}
+                      </ThemedText>
                     )}
                   </Row>
                 </Clickable>
-              )
-            )}
+              ))}
           </Row>
         )}
       </Row>
@@ -129,7 +130,8 @@ const styles = StyleSheet.create({
 });
 
 // SIMPLE TYPOGRAPHY - Same everywhere
-export const SCREEN_TYPOGRAPHY = { // ALL headers use this - no exceptions
+export const SCREEN_TYPOGRAPHY = {
+  // ALL headers use this - no exceptions
   title: {
     ...Typography.title,
     letterSpacing: -0.3,

@@ -19,12 +19,12 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 
+import { formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
+import { Row } from '@/components/primitives';
+
 // Re-export extracted components for backward compat
 export { getStatusColor, formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
 export type { SeriesWeekRowProps } from './series-booking-group-sections';
-
-import { formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
-import { Row } from '@/components/primitives';
 
 interface SeriesBookingGroupProps {
   seriesId: string;
@@ -50,7 +50,7 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
   }, []);
 
   const sorted = [...bookings].sort(
-    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   );
 
   const totalWeeks = sorted.length;
@@ -60,9 +60,7 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
   const progress = activeCount > 0 ? completedCount / activeCount : 0;
 
   const now = new Date();
-  const nextBooking = sorted.find(
-    (b) => new Date(b.start) > now && b.status !== 'Cancelled'
-  );
+  const nextBooking = sorted.find((b) => new Date(b.start) > now && b.status !== 'Cancelled');
 
   const nextLabel = nextBooking
     ? (() => {
@@ -95,7 +93,12 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
 
       <View style={styles.progressContainer}>
         <View style={[styles.progressTrack, { backgroundColor: withAlpha(palette.muted, 0.1) }]}>
-          <View style={[styles.progressFill, { backgroundColor: palette.success, width: `${Math.round(progress * 100)}%` }]} />
+          <View
+            style={[
+              styles.progressFill,
+              { backgroundColor: palette.success, width: `${Math.round(progress * 100)}%` },
+            ]}
+          />
         </View>
         <ThemedText style={[Typography.small, { color: palette.muted }]}>
           {completedCount}/{activeCount} completed
@@ -103,7 +106,11 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
       </View>
 
       {expanded && (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={styles.expandedContent}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(150)}
+          style={styles.expandedContent}
+        >
           {sorted.map((booking, index) => (
             <SeriesWeekRow
               key={booking.id}
@@ -124,7 +131,13 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   header: { alignItems: 'center', justifyContent: 'space-between' },
   headerLeft: { flex: 1, alignItems: 'center', gap: Spacing.sm },
-  seriesBadge: { width: 40, height: 40, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  seriesBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerText: { flex: 1, gap: Spacing.micro },
   progressContainer: { gap: Spacing.xxs },
   progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },

@@ -30,7 +30,7 @@ async function addSessionFeedback(feedback) {
     };
     // Update skill levels based on ratings
     if (feedback.skillRatings && feedback.skillRatings.length > 0) {
-        await progress_skills_service_1.progressSkillsService.updateMultipleSkillLevels(feedback.athleteId, feedback.skillRatings.map(r => ({ skill: r.skill, level: r.rating })), feedback.coachId);
+        await progress_skills_service_1.progressSkillsService.updateMultipleSkillLevels(feedback.athleteId, feedback.skillRatings.map((r) => ({ skill: r.skill, level: r.rating })), feedback.coachId);
     }
     allFeedback.unshift(newFeedback);
     await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);
@@ -45,21 +45,21 @@ async function addSessionFeedback(feedback) {
 }
 async function getSessionFeedback(sessionId) {
     const allFeedback = await getAllSessionFeedback();
-    return allFeedback.find(f => f.sessionId === sessionId) ?? null;
+    return allFeedback.find((f) => f.sessionId === sessionId) ?? null;
 }
 async function getFeedbackForAthlete(athleteId, viewerRole, limit) {
     const allFeedback = await getAllSessionFeedback();
-    let filtered = allFeedback.filter(f => f.athleteId === athleteId);
+    let filtered = allFeedback.filter((f) => f.athleteId === athleteId);
     // Filter based on visibility
     if (viewerRole === 'parent') {
-        filtered = filtered.filter(f => f.visibility !== 'coach_only');
+        filtered = filtered.filter((f) => f.visibility !== 'coach_only');
         // Remove private notes for parents
-        filtered = filtered.map(f => ({ ...f, privateNotes: undefined }));
+        filtered = filtered.map((f) => ({ ...f, privateNotes: undefined }));
     }
     else if (viewerRole === 'athlete') {
-        filtered = filtered.filter(f => f.visibility === 'athlete');
+        filtered = filtered.filter((f) => f.visibility === 'athlete');
         // Remove private notes for athletes
-        filtered = filtered.map(f => ({ ...f, privateNotes: undefined }));
+        filtered = filtered.map((f) => ({ ...f, privateNotes: undefined }));
     }
     if (limit) {
         filtered = filtered.slice(0, limit);

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession, SessionInviteType } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -19,11 +19,22 @@ const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: st
   { key: 'TRIAL', label: 'Trial', icon: 'sparkles' },
 ];
 
-const INVITE_TYPES: { key: SessionInviteType; label: string; icon: string; description: string }[] = [
-  { key: 'OPEN', label: 'Open', icon: 'globe-outline', description: 'Anyone can see & book' },
-  { key: 'CLOSED', label: 'Invite Only', icon: 'lock-closed-outline', description: 'Only invited athletes' },
-  { key: 'SQUAD_ONLY', label: 'Squad Only', icon: 'people-outline', description: 'Squad members only' },
-];
+const INVITE_TYPES: { key: SessionInviteType; label: string; icon: string; description: string }[] =
+  [
+    { key: 'OPEN', label: 'Open', icon: 'globe-outline', description: 'Anyone can see & book' },
+    {
+      key: 'CLOSED',
+      label: 'Invite Only',
+      icon: 'lock-closed-outline',
+      description: 'Only invited athletes',
+    },
+    {
+      key: 'SQUAD_ONLY',
+      label: 'Squad Only',
+      icon: 'people-outline',
+      description: 'Squad members only',
+    },
+  ];
 
 interface CreateSessionTypeStepProps {
   sessionType: GroupSession['sessionType'];
@@ -32,7 +43,12 @@ interface CreateSessionTypeStepProps {
   onInviteTypeChange: (type: SessionInviteType) => void;
 }
 
-function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChange, onInviteTypeChange }: CreateSessionTypeStepProps) {
+function CreateSessionTypeStepInner({
+  sessionType,
+  inviteType,
+  onSessionTypeChange,
+  onInviteTypeChange,
+}: CreateSessionTypeStepProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -51,7 +67,8 @@ function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChan
             style={[
               styles.typeCard,
               {
-                backgroundColor: sessionType === type.key ? withAlpha(palette.tint, 0.09) : palette.surface,
+                backgroundColor:
+                  sessionType === type.key ? withAlpha(palette.tint, 0.09) : palette.surface,
                 borderColor: sessionType === type.key ? palette.tint : palette.border,
               },
             ]}
@@ -94,7 +111,8 @@ function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChan
             style={[
               styles.inviteTypeCard,
               {
-                backgroundColor: inviteType === type.key ? withAlpha(palette.tint, 0.06) : palette.surface,
+                backgroundColor:
+                  inviteType === type.key ? withAlpha(palette.tint, 0.06) : palette.surface,
                 borderColor: inviteType === type.key ? palette.tint : palette.border,
               },
             ]}
@@ -103,7 +121,8 @@ function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChan
               style={[
                 styles.inviteTypeIcon,
                 {
-                  backgroundColor: inviteType === type.key ? withAlpha(palette.tint, 0.09) : palette.background,
+                  backgroundColor:
+                    inviteType === type.key ? withAlpha(palette.tint, 0.09) : palette.background,
                 },
               ]}
             >

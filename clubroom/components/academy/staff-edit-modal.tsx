@@ -22,7 +22,13 @@ interface StaffEditModalProps {
 }
 
 export const StaffEditModal = memo(function StaffEditModal({
-  member, colors, editRole, onRoleChange, onUpdateRole, onRemove, onClose,
+  member,
+  colors,
+  editRole,
+  onRoleChange,
+  onUpdateRole,
+  onRemove,
+  onClose,
 }: StaffEditModalProps) {
   return (
     <Modal visible={!!member} animationType="slide" transparent>
@@ -37,13 +43,20 @@ export const StaffEditModal = memo(function StaffEditModal({
 
           {member && (
             <>
-              <ThemedText style={[styles.memberName, { color: colors.muted }]}>{member.userId}</ThemedText>
+              <ThemedText style={[styles.memberName, { color: colors.muted }]}>
+                {member.userId}
+              </ThemedText>
               <ThemedText style={styles.label}>Change Role</ThemedText>
               <StaffRolePicker selectedRole={editRole} onSelectRole={onRoleChange} />
               <View style={styles.actions}>
                 <Button onPress={onUpdateRole}>Update Role</Button>
-                <Clickable onPress={onRemove} style={[styles.removeButton, { borderColor: colors.error }]}>
-                  <ThemedText style={{ color: colors.error, fontWeight: '600' }}>Remove from Academy</ThemedText>
+                <Clickable
+                  onPress={onRemove}
+                  style={[styles.removeButton, { borderColor: colors.error }]}
+                >
+                  <ThemedText style={{ color: colors.error, fontWeight: '600' }}>
+                    Remove from Academy
+                  </ThemedText>
                 </Clickable>
               </View>
             </>
@@ -56,10 +69,21 @@ export const StaffEditModal = memo(function StaffEditModal({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  content: { borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl, padding: Spacing.lg, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    borderTopLeftRadius: Radii.xl,
+    borderTopRightRadius: Radii.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   header: { alignItems: 'center', justifyContent: 'space-between' },
   memberName: { ...Typography.bodySmall, marginTop: -Spacing.xs },
   label: { ...Typography.smallSemiBold, marginTop: Spacing.sm },
   actions: { gap: Spacing.sm, marginTop: Spacing.md },
-  removeButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
+  removeButton: {
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
 });

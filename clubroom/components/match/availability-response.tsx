@@ -67,7 +67,9 @@ export function AvailabilityResponse({
     <SurfaceCard style={styles.card}>
       <View style={styles.inviteHeader}>
         <Ionicons name="football" size={32} color={palette.tint} />
-        <ThemedText type="title" style={styles.inviteTitle}>Match Invitation</ThemedText>
+        <ThemedText type="title" style={styles.inviteTitle}>
+          Match Invitation
+        </ThemedText>
       </View>
 
       <ThemedText style={[styles.inviteMessage, { color: palette.text }]}>
@@ -78,7 +80,11 @@ export function AvailabilityResponse({
       <MatchInfoCard match={match} palette={palette} />
 
       {match.notes && (
-        <Row align="flex-start" gap="sm" style={[styles.coachNote, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
+        <Row
+          align="flex-start"
+          gap="sm"
+          style={[styles.coachNote, { backgroundColor: withAlpha(palette.tint, 0.03) }]}
+        >
           <Ionicons name="chatbubble-outline" size={16} color={palette.tint} />
           <ThemedText style={styles.coachNoteText}>{match.notes}</ThemedText>
         </Row>
@@ -92,7 +98,11 @@ export function AvailabilityResponse({
           <TextInput
             style={[
               styles.noteInput,
-              { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border },
+              {
+                backgroundColor: palette.surface,
+                color: palette.text,
+                borderColor: palette.border,
+              },
             ]}
             placeholder="e.g., Family commitment, doctor's appointment..."
             placeholderTextColor={palette.muted}
@@ -112,7 +122,9 @@ export function AvailabilityResponse({
         >
           <Row align="center" justify="center" gap="xs" flex>
             <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
-            <ThemedText style={[styles.responseButtonText, { color: palette.onSuccess }]}>Available</ThemedText>
+            <ThemedText style={[styles.responseButtonText, { color: palette.onSuccess }]}>
+              Available
+            </ThemedText>
           </Row>
         </Clickable>
 
@@ -170,7 +182,14 @@ const styles = StyleSheet.create({
   coachNoteText: { ...Typography.small, flex: 1, fontStyle: 'italic' },
   noteInputContainer: { gap: Spacing.xs },
   noteInputLabel: { ...Typography.small },
-  noteInput: { ...Typography.bodySmall, borderRadius: Radii.md, borderWidth: 1, padding: Spacing.sm, minHeight: 60, textAlignVertical: 'top' },
+  noteInput: {
+    ...Typography.bodySmall,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
   responseButton: { flex: 1, padding: Spacing.md, borderRadius: Radii.md },
   responseButtonText: { ...Typography.bodySemiBold },
   cancelNoteButton: { alignItems: 'center', padding: Spacing.sm },

@@ -47,7 +47,9 @@ export function ReferralHistory({
     <>
       {title && (
         <Row align="center" justify="space-between" style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
+          <ThemedText type="subtitle" style={styles.title}>
+            {title}
+          </ThemedText>
           {referrals.length > 0 && (
             <ThemedText style={[styles.count, { color: palette.muted }]}>
               {referrals.length} total
@@ -94,7 +96,11 @@ export function ReferralHistory({
 }
 
 // Re-export for backward compat
-export function ReferralHistoryItem(props: { referral: Referral; onPress?: () => void; isLast: boolean }) {
+export function ReferralHistoryItem(props: {
+  referral: Referral;
+  onPress?: () => void;
+  isLast: boolean;
+}) {
   const { colors: palette } = useTheme();
   return <ReferralHistoryItemInner {...props} palette={palette} />;
 }

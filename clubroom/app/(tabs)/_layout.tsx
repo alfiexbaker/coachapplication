@@ -5,7 +5,7 @@ import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Typography, Spacing, Shadows} from '@/constants/theme';
+import { Typography, Spacing, Shadows } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { useNotificationCount } from '@/hooks/use-notifications';
@@ -89,7 +89,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
+      {
+        name: 'messages',
+        title: 'Messages',
+        icon: 'bubble.left.and.bubble.right.fill',
+        badge: 'messages',
+      },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
@@ -99,7 +104,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
+      {
+        name: 'messages',
+        title: 'Messages',
+        icon: 'bubble.left.and.bubble.right.fill',
+        badge: 'messages',
+      },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
@@ -109,7 +119,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'index', title: 'Users', icon: 'person.2.fill', badge: 'notifications' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
+      {
+        name: 'messages',
+        title: 'Messages',
+        icon: 'bubble.left.and.bubble.right.fill',
+        badge: 'messages',
+      },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
@@ -119,7 +134,12 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
+      {
+        name: 'messages',
+        title: 'Messages',
+        icon: 'bubble.left.and.bubble.right.fill',
+        badge: 'messages',
+      },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
@@ -139,10 +159,7 @@ export default function TabLayout() {
       return;
     }
 
-    const count = threadResult.data.reduce(
-      (total, thread) => total + (thread.unreadCount ?? 0),
-      0,
-    );
+    const count = threadResult.data.reduce((total, thread) => total + (thread.unreadCount ?? 0), 0);
     setMessageCount(count);
   }, []);
 

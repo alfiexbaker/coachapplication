@@ -54,19 +54,11 @@ export function AnnotationTypeCountBadge({
         size={14}
         color={isSelected ? config.color : palette.muted}
       />
-      <ThemedText
-        style={[
-          styles.countLabel,
-          { color: isSelected ? config.color : palette.text },
-        ]}
-      >
+      <ThemedText style={[styles.countLabel, { color: isSelected ? config.color : palette.text }]}>
         {config.label}
       </ThemedText>
       <View
-        style={[
-          styles.countNumber,
-          { backgroundColor: isSelected ? config.color : palette.muted },
-        ]}
+        style={[styles.countNumber, { backgroundColor: isSelected ? config.color : palette.muted }]}
       >
         <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
       </View>
@@ -122,11 +114,7 @@ interface InlineIndicatorProps {
   timestamp?: string;
 }
 
-export function AnnotationInlineIndicator({
-  type,
-  label,
-  timestamp,
-}: InlineIndicatorProps) {
+export function AnnotationInlineIndicator({ type, label, timestamp }: InlineIndicatorProps) {
   const { colors: palette } = useTheme();
   const config = ANNOTATION_TYPE_CONFIG[type];
 

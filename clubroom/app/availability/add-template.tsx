@@ -20,10 +20,20 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
-import { useAddTemplate, TIME_OPTIONS, BUFFER_OPTIONS, MAX_SLOTS_OPTIONS } from '@/hooks/use-add-template';
+import {
+  useAddTemplate,
+  TIME_OPTIONS,
+  BUFFER_OPTIONS,
+  MAX_SLOTS_OPTIONS,
+} from '@/hooks/use-add-template';
 
 export default function AddTemplateScreen() {
-  const { status, error, retry, colors: palette } = useScreen<boolean>({
+  const {
+    status,
+    error,
+    retry,
+    colors: palette,
+  } = useScreen<boolean>({
     load: async () => ok(true),
     isEmpty: () => false,
     refetchOnFocus: true,
@@ -32,7 +42,10 @@ export default function AddTemplateScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -41,16 +54,25 @@ export default function AddTemplateScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
-        <ErrorState message={error?.message || 'Failed to open add-template flow.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message || 'Failed to open add-template flow.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
         <EmptyState
           icon="calendar-outline"
@@ -64,7 +86,10 @@ export default function AddTemplateScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <PageHeader title="Add Availability" showBack onBackPress={() => router.back()} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
@@ -72,12 +97,23 @@ export default function AddTemplateScreen() {
           <ThemedText type="subtitle">Day of Week</ThemedText>
           <Row style={styles.dayGrid}>
             {DAY_NAMES.map((day, index) => (
-              <Clickable key={day} onPress={() => c.handleDaySelect(index)}
-                style={[styles.dayButton, {
-                  borderColor: c.dayOfWeek === index ? palette.tint : palette.border,
-                  backgroundColor: c.dayOfWeek === index ? palette.tint : 'transparent',
-                }]}>
-                <ThemedText style={[styles.dayButtonText, { color: c.dayOfWeek === index ? palette.onPrimary : palette.text }]}>
+              <Clickable
+                key={day}
+                onPress={() => c.handleDaySelect(index)}
+                style={[
+                  styles.dayButton,
+                  {
+                    borderColor: c.dayOfWeek === index ? palette.tint : palette.border,
+                    backgroundColor: c.dayOfWeek === index ? palette.tint : 'transparent',
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.dayButtonText,
+                    { color: c.dayOfWeek === index ? palette.onPrimary : palette.text },
+                  ]}
+                >
                   {day.slice(0, 3)}
                 </ThemedText>
               </Clickable>
@@ -93,12 +129,23 @@ export default function AddTemplateScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Row style={styles.timeOptions}>
                   {TIME_OPTIONS.map((time) => (
-                    <Clickable key={`start-${time}`} onPress={() => c.setStartTime(time)}
-                      style={[styles.timeOption, {
-                        borderColor: c.startTime === time ? palette.tint : palette.border,
-                        backgroundColor: c.startTime === time ? withAlpha(palette.tint, 0.09) : 'transparent',
-                      }]}>
-                      <ThemedText style={{ color: c.startTime === time ? palette.tint : palette.text }}>{time}</ThemedText>
+                    <Clickable
+                      key={`start-${time}`}
+                      onPress={() => c.setStartTime(time)}
+                      style={[
+                        styles.timeOption,
+                        {
+                          borderColor: c.startTime === time ? palette.tint : palette.border,
+                          backgroundColor:
+                            c.startTime === time ? withAlpha(palette.tint, 0.09) : 'transparent',
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{ color: c.startTime === time ? palette.tint : palette.text }}
+                      >
+                        {time}
+                      </ThemedText>
                     </Clickable>
                   ))}
                 </Row>
@@ -111,12 +158,23 @@ export default function AddTemplateScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Row style={styles.timeOptions}>
                   {TIME_OPTIONS.map((time) => (
-                    <Clickable key={`end-${time}`} onPress={() => c.setEndTime(time)}
-                      style={[styles.timeOption, {
-                        borderColor: c.endTime === time ? palette.tint : palette.border,
-                        backgroundColor: c.endTime === time ? withAlpha(palette.tint, 0.09) : 'transparent',
-                      }]}>
-                      <ThemedText style={{ color: c.endTime === time ? palette.tint : palette.text }}>{time}</ThemedText>
+                    <Clickable
+                      key={`end-${time}`}
+                      onPress={() => c.setEndTime(time)}
+                      style={[
+                        styles.timeOption,
+                        {
+                          borderColor: c.endTime === time ? palette.tint : palette.border,
+                          backgroundColor:
+                            c.endTime === time ? withAlpha(palette.tint, 0.09) : 'transparent',
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{ color: c.endTime === time ? palette.tint : palette.text }}
+                      >
+                        {time}
+                      </ThemedText>
                     </Clickable>
                   ))}
                 </Row>
@@ -131,12 +189,22 @@ export default function AddTemplateScreen() {
             <ThemedText>Max concurrent bookings</ThemedText>
             <Row style={styles.optionButtons}>
               {MAX_SLOTS_OPTIONS.map((num) => (
-                <Clickable key={num} onPress={() => c.setMaxSlots(num)}
-                  style={[styles.optionButton, {
-                    borderColor: c.maxSlots === num ? palette.tint : palette.border,
-                    backgroundColor: c.maxSlots === num ? palette.tint : 'transparent',
-                  }]}>
-                  <ThemedText style={{ color: c.maxSlots === num ? palette.onPrimary : palette.text }}>{num}</ThemedText>
+                <Clickable
+                  key={num}
+                  onPress={() => c.setMaxSlots(num)}
+                  style={[
+                    styles.optionButton,
+                    {
+                      borderColor: c.maxSlots === num ? palette.tint : palette.border,
+                      backgroundColor: c.maxSlots === num ? palette.tint : 'transparent',
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={{ color: c.maxSlots === num ? palette.onPrimary : palette.text }}
+                  >
+                    {num}
+                  </ThemedText>
                 </Clickable>
               ))}
             </Row>
@@ -145,12 +213,20 @@ export default function AddTemplateScreen() {
             <ThemedText>Buffer between sessions</ThemedText>
             <Row style={styles.optionButtons}>
               {BUFFER_OPTIONS.map((mins) => (
-                <Clickable key={mins} onPress={() => c.setBufferMinutes(mins)}
-                  style={[styles.optionButton, {
-                    borderColor: c.bufferMinutes === mins ? palette.tint : palette.border,
-                    backgroundColor: c.bufferMinutes === mins ? palette.tint : 'transparent',
-                  }]}>
-                  <ThemedText style={{ color: c.bufferMinutes === mins ? palette.onPrimary : palette.text }}>
+                <Clickable
+                  key={mins}
+                  onPress={() => c.setBufferMinutes(mins)}
+                  style={[
+                    styles.optionButton,
+                    {
+                      borderColor: c.bufferMinutes === mins ? palette.tint : palette.border,
+                      backgroundColor: c.bufferMinutes === mins ? palette.tint : 'transparent',
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={{ color: c.bufferMinutes === mins ? palette.onPrimary : palette.text }}
+                  >
                     {mins === 0 ? 'None' : `${mins}m`}
                   </ThemedText>
                 </Clickable>
@@ -168,18 +244,31 @@ export default function AddTemplateScreen() {
             Every {DAY_NAMES[c.dayOfWeek]}, {c.startTime} - {c.endTime}
           </ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            {c.maxSlots} slot{c.maxSlots > 1 ? 's' : ''} available{c.bufferMinutes > 0 ? `, ${c.bufferMinutes}min buffer` : ''}
+            {c.maxSlots} slot{c.maxSlots > 1 ? 's' : ''} available
+            {c.bufferMinutes > 0 ? `, ${c.bufferMinutes}min buffer` : ''}
           </ThemedText>
         </SurfaceCard>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Clickable style={[styles.saveButton, { backgroundColor: c.saving ? palette.muted : palette.tint }]}
-          onPress={c.handleSave} disabled={c.saving}>
-          {c.saving ? <ActivityIndicator size="small" color={palette.onPrimary} /> : (
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: palette.background, borderTopColor: palette.border },
+        ]}
+      >
+        <Clickable
+          style={[styles.saveButton, { backgroundColor: c.saving ? palette.muted : palette.tint }]}
+          onPress={c.handleSave}
+          disabled={c.saving}
+        >
+          {c.saving ? (
+            <ActivityIndicator size="small" color={palette.onPrimary} />
+          ) : (
             <Row align="center" justify="center" gap="sm">
               <Ionicons name="checkmark-circle" size={22} color={palette.onPrimary} />
-              <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Add Availability</ThemedText>
+              <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>
+                Add Availability
+              </ThemedText>
             </Row>
           )}
         </Clickable>
@@ -194,16 +283,33 @@ const styles = StyleSheet.create({
   contentInner: { padding: Spacing.md, paddingBottom: 100, gap: Spacing.md },
   section: { padding: Spacing.md, gap: Spacing.sm },
   dayGrid: { flexWrap: 'wrap', gap: Spacing.xs },
-  dayButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  dayButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
   dayButtonText: { ...Typography.bodySmallSemiBold },
   timeRow: { marginTop: Spacing.sm },
   timeCol: { gap: 8 },
   label: { ...Typography.smallSemiBold },
   timeOptions: { gap: Spacing.xs },
-  timeOption: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5 },
+  timeOption: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.sm,
+    borderWidth: 1.5,
+  },
   optionRow: { gap: Spacing.sm, paddingVertical: Spacing.sm },
   optionButtons: { gap: Spacing.xs },
-  optionButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.sm, borderWidth: 1.5, minWidth: 50, alignItems: 'center' },
+  optionButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.sm,
+    borderWidth: 1.5,
+    minWidth: 50,
+    alignItems: 'center',
+  },
   previewHeader: { alignItems: 'center', gap: Spacing.sm },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
   saveButton: { paddingVertical: Spacing.md, borderRadius: Radii.md },

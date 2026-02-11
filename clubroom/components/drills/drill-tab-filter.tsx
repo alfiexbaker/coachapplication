@@ -25,23 +25,57 @@ interface DrillTabFilterProps {
   delay?: number;
 }
 
-export const DrillTabFilter = memo(function DrillTabFilter({ activeTab, stats, colors, onTabChange, delay = 150 }: DrillTabFilterProps) {
+export const DrillTabFilter = memo(function DrillTabFilter({
+  activeTab,
+  stats,
+  colors,
+  onTabChange,
+  delay = 150,
+}: DrillTabFilterProps) {
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()}>
       <Row gap="xs" style={styles.row}>
         {TABS.map(({ key, label }) => {
-          const count = key === 'pending' ? stats?.pending ?? 0 : key === 'completed' ? stats?.completed ?? 0 : stats?.totalAssigned ?? 0;
+          const count =
+            key === 'pending'
+              ? (stats?.pending ?? 0)
+              : key === 'completed'
+                ? (stats?.completed ?? 0)
+                : (stats?.totalAssigned ?? 0);
           const isActive = activeTab === key;
 
           return (
             <Clickable
               key={key}
               onPress={() => onTabChange(key)}
-              style={[styles.tab, { backgroundColor: isActive ? colors.tint : 'transparent', borderColor: isActive ? colors.tint : colors.border }]}
+              style={[
+                styles.tab,
+                {
+                  backgroundColor: isActive ? colors.tint : 'transparent',
+                  borderColor: isActive ? colors.tint : colors.border,
+                },
+              ]}
             >
-              <ThemedText style={[styles.tabText, { color: isActive ? colors.onPrimary : colors.text }]}>{label}</ThemedText>
-              <View style={[styles.badge, { backgroundColor: isActive ? withAlpha(colors.onPrimary, 0.2) : colors.surfaceSecondary }]}>
-                <ThemedText style={[styles.badgeText, { color: isActive ? colors.onPrimary : colors.muted }]}>{count}</ThemedText>
+              <ThemedText
+                style={[styles.tabText, { color: isActive ? colors.onPrimary : colors.text }]}
+              >
+                {label}
+              </ThemedText>
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: isActive
+                      ? withAlpha(colors.onPrimary, 0.2)
+                      : colors.surfaceSecondary,
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[styles.badgeText, { color: isActive ? colors.onPrimary : colors.muted }]}
+                >
+                  {count}
+                </ThemedText>
               </View>
             </Clickable>
           );
@@ -54,10 +88,25 @@ export const DrillTabFilter = memo(function DrillTabFilter({ activeTab, stats, c
 const styles = StyleSheet.create({
   row: { marginBottom: Spacing.md },
   tab: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    gap: 8, paddingVertical: 10, borderRadius: Radii.md, borderWidth: 1,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: Radii.md,
+    borderWidth: 1,
   },
-  tabText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
-  badge: { minWidth: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxs },
+  tabText: {
+    ...Typography.bodySmallSemiBold,
+    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xxs,
+  },
   badgeText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
 });

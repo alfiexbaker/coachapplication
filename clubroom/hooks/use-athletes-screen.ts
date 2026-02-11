@@ -23,7 +23,7 @@ const isNeedsAttention = (athlete: RosterEntry) => {
   if (!athlete.lastSessionDate) return true;
 
   const daysSinceSession = Math.floor(
-    (Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - new Date(athlete.lastSessionDate).getTime()) / (1000 * 60 * 60 * 24),
   );
   return daysSinceSession > DAYS_BEFORE_NEEDS_ATTENTION;
 };
@@ -69,7 +69,7 @@ export function useAthletesScreen() {
 
   const needsAttentionCount = useMemo(
     () => roster.filter((athlete) => isNeedsAttention(athlete)).length,
-    [roster]
+    [roster],
   );
 
   const filteredAthletes = useMemo(() => {
@@ -80,7 +80,7 @@ export function useAthletesScreen() {
       filtered = filtered.filter(
         (athlete) =>
           getRosterAthleteName(athlete).toLowerCase().includes(query) ||
-          getRosterParentName(athlete).toLowerCase().includes(query)
+          getRosterParentName(athlete).toLowerCase().includes(query),
       );
     }
 

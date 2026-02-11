@@ -177,7 +177,11 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '');
     let parsed: { code?: string; message?: string; details?: Record<string, string[]> } = {};
-    try { parsed = JSON.parse(errorBody); } catch { /* raw text */ }
+    try {
+      parsed = JSON.parse(errorBody);
+    } catch {
+      /* raw text */
+    }
     throw new ApiError(
       response.status,
       parsed.code || 'API_ERROR',
@@ -193,7 +197,10 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
 /**
  * API fetch with Result pattern - catches all errors and returns Result<T, ServiceError>.
  */
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<Result<T, ServiceError>> {
+export async function apiFetch<T>(
+  path: string,
+  options?: RequestInit,
+): Promise<Result<T, ServiceError>> {
   try {
     const data = await _apiFetchUnsafe<T>(path, options);
     return ok(data);

@@ -105,7 +105,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
               title: notification.request.content.title,
             });
           }
-        }
+        },
       );
 
       // Listen for notification responses (user tapped notification)
@@ -115,7 +115,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
           logger.info('Notification tapped', {
             data: response.notification.request.content.data,
           });
-        }
+        },
       );
     }
 

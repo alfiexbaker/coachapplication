@@ -75,9 +75,7 @@ export function ChallengeCard({
           <View style={[styles.playCircle, { backgroundColor: palette.overlay }]}>
             <Ionicons name="play" size={Components.icon.xl} color={palette.foreground} />
           </View>
-          <ThemedText style={[styles.videoLabel, { color: palette.muted }]}>
-            Demo Video
-          </ThemedText>
+          <ThemedText style={[styles.videoLabel, { color: palette.muted }]}>Demo Video</ThemedText>
         </View>
       </Clickable>
 
@@ -133,7 +131,10 @@ export function ChallengeCard({
                   {index + 1}
                 </ThemedText>
               </View>
-              <ThemedText style={[styles.leaderName, { color: palette.foreground }]} numberOfLines={1}>
+              <ThemedText
+                style={[styles.leaderName, { color: palette.foreground }]}
+                numberOfLines={1}
+              >
                 {sub.athleteName}
               </ThemedText>
               {sub.awardedBadge && (

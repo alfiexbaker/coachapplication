@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,15 +23,31 @@ export default function InjuryDetailScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
-    injury, loading, status, error, refreshing, retry, showAddNote, noteText, noteProgress, saving,
-    setNoteText, setNoteProgress,
-    handleRefresh, handleAddNote, handleMarkHealed,
-    cancelAddNote, openAddNote,
+    injury,
+    loading,
+    status,
+    error,
+    refreshing,
+    retry,
+    showAddNote,
+    noteText,
+    noteProgress,
+    saving,
+    setNoteText,
+    setNoteProgress,
+    handleRefresh,
+    handleAddNote,
+    handleMarkHealed,
+    cancelAddNote,
+    openAddNote,
   } = useHealthDetail(id);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -39,7 +55,10 @@ export default function InjuryDetailScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load injury.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -47,8 +66,15 @@ export default function InjuryDetailScreen() {
 
   if (status === 'empty' || !injury) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <EmptyState icon="alert-circle-outline" title="Injury not found" message="This injury record could not be located." />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Injury not found"
+          message="This injury record could not be located."
+        />
       </SafeAreaView>
     );
   }
@@ -56,14 +82,27 @@ export default function InjuryDetailScreen() {
   const statusInfo = injuryService.getStatusInfo(injury.status);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row justify="space-between" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
-          <Ionicons name={statusInfo.icon as keyof typeof Ionicons.glyphMap} size={14} color={statusInfo.color} />
-          <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</ThemedText>
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}
+        >
+          <Ionicons
+            name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
+            size={14}
+            color={statusInfo.color}
+          />
+          <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
+            {statusInfo.label}
+          </ThemedText>
         </Row>
       </Row>
 
@@ -96,10 +135,16 @@ export default function InjuryDetailScreen() {
 
         {injury.status !== 'HEALED' && (
           <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.actionsSection}>
-            <Button onPress={handleMarkHealed} disabled={saving} style={[styles.healedButton, { backgroundColor: colors.success }]}>
+            <Button
+              onPress={handleMarkHealed}
+              disabled={saving}
+              style={[styles.healedButton, { backgroundColor: colors.success }]}
+            >
               <Row gap="xs" align="center">
                 <Ionicons name="checkmark-circle-outline" size={20} color={colors.onPrimary} />
-                <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>Mark as Healed</ThemedText>
+                <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>
+                  Mark as Healed
+                </ThemedText>
               </Row>
             </Button>
           </Animated.View>
@@ -112,8 +157,15 @@ export default function InjuryDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
-  statusText: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
+  statusText: {
+    ...Typography.smallSemiBold,
+    fontSize: scaleFont(Typography.smallSemiBold.fontSize),
+  },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
   actionsSection: { marginTop: Spacing.lg },
   healedButton: { marginTop: Spacing.sm },

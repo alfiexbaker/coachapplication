@@ -31,7 +31,9 @@ export function BookingStepper({
           />
         ))}
       </Row>
-      <ThemedText style={[styles.caption, { color: palette.muted }]}>Step {isParent ? step + 1 : step} of {totalSteps}</ThemedText>
+      <ThemedText style={[styles.caption, { color: palette.muted }]}>
+        Step {isParent ? step + 1 : step} of {totalSteps}
+      </ThemedText>
     </View>
   );
 }

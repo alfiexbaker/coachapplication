@@ -67,7 +67,12 @@ export const VideoBottomControls = memo(function VideoBottomControls({
   return (
     <View style={[styles.bottomControls, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarBackground, { backgroundColor: withAlpha(palette.onPrimary, 0.3) }]}>
+        <View
+          style={[
+            styles.progressBarBackground,
+            { backgroundColor: withAlpha(palette.onPrimary, 0.3) },
+          ]}
+        >
           <View
             style={[
               styles.progressBarFill,
@@ -134,11 +139,7 @@ export const VideoPlayButton = memo(function VideoPlayButton({
       accessibilityLabel={isPlaying ? 'Pause video' : 'Play video'}
       style={[styles.playButton, { backgroundColor: withAlpha(palette.text, 0.6) }]}
     >
-      <Ionicons
-        name={isPlaying ? 'pause' : 'play'}
-        size={32}
-        color={palette.onPrimary}
-      />
+      <Ionicons name={isPlaying ? 'pause' : 'play'} size={32} color={palette.onPrimary} />
     </Clickable>
   );
 });
@@ -175,9 +176,7 @@ export const NoVideoPlaceholderInner = memo(function NoVideoPlaceholderInner({
   return (
     <View style={[styles.noVideoContainer, { height, backgroundColor: palette.surfaceSecondary }]}>
       <Ionicons name="videocam-off-outline" size={48} color={palette.muted} />
-      <ThemedText style={[styles.noVideoText, { color: palette.muted }]}>
-        {message}
-      </ThemedText>
+      <ThemedText style={[styles.noVideoText, { color: palette.muted }]}>{message}</ThemedText>
     </View>
   );
 });

@@ -16,7 +16,7 @@
  *   <Badge label="4.9" tone="premium" icon="star" size="sm" />
  */
 
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -44,13 +44,16 @@ export interface BadgeProps {
 // Size config
 // -----------------------------------------------------------------------------
 
-const SIZE_CONFIG: Record<BadgeSize, {
-  paddingH: number;
-  paddingV: number;
-  fontSize: number;
-  iconSize: number;
-  gap: number;
-}> = {
+const SIZE_CONFIG: Record<
+  BadgeSize,
+  {
+    paddingH: number;
+    paddingV: number;
+    fontSize: number;
+    iconSize: number;
+    gap: number;
+  }
+> = {
   sm: {
     ...Typography.micro,
     paddingH: Spacing.xs + 2,
@@ -58,14 +61,20 @@ const SIZE_CONFIG: Record<BadgeSize, {
     iconSize: 10,
     gap: Spacing.micro,
   },
-  md: { ...Typography.caption, paddingH: Spacing.sm,
+  md: {
+    ...Typography.caption,
+    paddingH: Spacing.sm,
     paddingV: Spacing.xs,
     iconSize: 12,
-    gap: Spacing.xxs },
-  lg: { ...Typography.bodySmall, paddingH: Spacing.sm + 2,
+    gap: Spacing.xxs,
+  },
+  lg: {
+    ...Typography.bodySmall,
+    paddingH: Spacing.sm + 2,
     paddingV: Spacing.xs + 2,
     iconSize: 14,
-    gap: Spacing.xxs },
+    gap: Spacing.xxs,
+  },
 };
 
 // -----------------------------------------------------------------------------
@@ -140,13 +149,7 @@ export function Badge({
         },
       ]}
     >
-      {icon && (
-        <Ionicons
-          name={icon}
-          size={sizeConfig.iconSize}
-          color={variantStyles.textColor}
-        />
-      )}
+      {icon && <Ionicons name={icon} size={sizeConfig.iconSize} color={variantStyles.textColor} />}
       <ThemedText
         style={[
           styles.label,

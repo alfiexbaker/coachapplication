@@ -24,43 +24,47 @@ const SOCIAL_PLATFORMS: Record<SocialPlatform, SocialLinkConfig> = {
     icon: 'logo-instagram',
     color: '#E4405F', // Brand: Instagram official color
     label: 'Instagram',
-    getUrl: (value) => value.startsWith('http') ? value : `https://instagram.com/${value.replace('@', '')}`,
+    getUrl: (value) =>
+      value.startsWith('http') ? value : `https://instagram.com/${value.replace('@', '')}`,
   },
   twitter: {
     icon: 'logo-twitter',
     color: '#1DA1F2', // Brand: X/Twitter official color
     label: 'X / Twitter',
-    getUrl: (value) => value.startsWith('http') ? value : `https://x.com/${value.replace('@', '')}`,
+    getUrl: (value) =>
+      value.startsWith('http') ? value : `https://x.com/${value.replace('@', '')}`,
   },
   facebook: {
     icon: 'logo-facebook',
     color: '#1877F2', // Brand: Facebook official color
     label: 'Facebook',
-    getUrl: (value) => value.startsWith('http') ? value : `https://facebook.com/${value}`,
+    getUrl: (value) => (value.startsWith('http') ? value : `https://facebook.com/${value}`),
   },
   linkedin: {
     icon: 'logo-linkedin',
     color: '#0A66C2', // Brand: LinkedIn official color
     label: 'LinkedIn',
-    getUrl: (value) => value.startsWith('http') ? value : `https://linkedin.com/in/${value}`,
+    getUrl: (value) => (value.startsWith('http') ? value : `https://linkedin.com/in/${value}`),
   },
   youtube: {
     icon: 'logo-youtube',
     color: '#FF0000', // Brand: YouTube official color
     label: 'YouTube',
-    getUrl: (value) => value.startsWith('http') ? value : `https://youtube.com/@${value.replace('@', '')}`,
+    getUrl: (value) =>
+      value.startsWith('http') ? value : `https://youtube.com/@${value.replace('@', '')}`,
   },
   tiktok: {
     icon: 'logo-tiktok',
     color: '#000000', // Brand: TikTok official color
     label: 'TikTok',
-    getUrl: (value) => value.startsWith('http') ? value : `https://tiktok.com/@${value.replace('@', '')}`,
+    getUrl: (value) =>
+      value.startsWith('http') ? value : `https://tiktok.com/@${value.replace('@', '')}`,
   },
   website: {
     icon: 'globe-outline',
     color: '#6366F1', // Brand: generic website accent color
     label: 'Website',
-    getUrl: (value) => value.startsWith('http') ? value : `https://${value}`,
+    getUrl: (value) => (value.startsWith('http') ? value : `https://${value}`),
   },
 };
 
@@ -81,8 +85,9 @@ export function SocialLinks({
 
   if (!socialLinks) return null;
 
-  const activePlatforms = (Object.entries(socialLinks) as [SocialPlatform, string | undefined][])
-    .filter(([, value]) => value && value.trim() !== '');
+  const activePlatforms = (
+    Object.entries(socialLinks) as [SocialPlatform, string | undefined][]
+  ).filter(([, value]) => value && value.trim() !== '');
 
   if (activePlatforms.length === 0) return null;
 
@@ -123,14 +128,26 @@ export function SocialLinks({
               accessibilityLabel={`Open ${config.label} profile`}
             >
               <Row align="center" gap="sm">
-                <View style={[styles.listIconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
-                  <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
+                <View
+                  style={[
+                    styles.listIconContainer,
+                    { backgroundColor: withAlpha(config.color, 0.09) },
+                  ]}
+                >
+                  <Ionicons
+                    name={config.icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={config.color}
+                  />
                 </View>
                 <View style={styles.listContent}>
                   <ThemedText type="defaultSemiBold" style={styles.listLabel}>
                     {config.label}
                   </ThemedText>
-                  <ThemedText style={[styles.listValue, { color: palette.muted }]} numberOfLines={1}>
+                  <ThemedText
+                    style={[styles.listValue, { color: palette.muted }]}
+                    numberOfLines={1}
+                  >
                     {value}
                   </ThemedText>
                 </View>
@@ -155,14 +172,20 @@ export function SocialLinks({
               {
                 width: buttonSize,
                 height: buttonSize,
-                backgroundColor: pressed ? withAlpha(config.color, 0.15) : withAlpha(config.color, 0.09),
+                backgroundColor: pressed
+                  ? withAlpha(config.color, 0.15)
+                  : withAlpha(config.color, 0.09),
               },
             ]}
             onPress={() => handlePress(platform, value!)}
             accessibilityRole="button"
             accessibilityLabel={`Open ${config.label} profile`}
           >
-            <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={iconSize} color={config.color} />
+            <Ionicons
+              name={config.icon as keyof typeof Ionicons.glyphMap}
+              size={iconSize}
+              color={config.color}
+            />
             {showLabels && (
               <ThemedText style={[styles.iconLabel, { color: config.color }]}>
                 {config.label}

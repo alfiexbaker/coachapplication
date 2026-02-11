@@ -3,12 +3,7 @@
  */
 
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,12 +18,16 @@ import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
 import OnboardingScreen from './onboarding-screen';
 
-// Re-export extracted components for backward compat
-export { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
-export type { SignupCardProps, InviteCodeCardProps, DemoAccountsCardProps } from './login-screen-sections';
-
 import { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
+export type {
+  SignupCardProps,
+  InviteCodeCardProps,
+  DemoAccountsCardProps,
+} from './login-screen-sections';
 
 type ScreenMode = 'login' | 'signup' | 'coach-signup';
 
@@ -87,10 +86,14 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.wrapper}>
+        style={styles.wrapper}
+      >
         <SurfaceCard style={styles.loginCard}>
           <ThemedText type="eyebrow" style={styles.eyebrow}>
             Demo build · Auth gate

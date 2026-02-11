@@ -29,18 +29,43 @@ import { styles } from './development-section-styles';
 function QuickActionsInner() {
   const { colors: palette } = useTheme();
   const actions = [
-    { icon: 'calendar-number' as const, label: 'Bookings', route: Routes.BOOKINGS, color: palette.error },
-    { icon: 'chatbubbles' as const, label: 'Messages', route: Routes.MESSAGES, color: palette.tint },
-    { icon: 'calendar' as const, label: 'Schedule', route: Routes.SCHEDULE, color: palette.success },
+    {
+      icon: 'calendar-number' as const,
+      label: 'Bookings',
+      route: Routes.BOOKINGS,
+      color: palette.error,
+    },
+    {
+      icon: 'chatbubbles' as const,
+      label: 'Messages',
+      route: Routes.MESSAGES,
+      color: palette.tint,
+    },
+    {
+      icon: 'calendar' as const,
+      label: 'Schedule',
+      route: Routes.SCHEDULE,
+      color: palette.success,
+    },
     { icon: 'people' as const, label: 'Athletes', route: Routes.ATHLETES, color: palette.icon },
-    { icon: 'paper-plane' as const, label: 'Send Invite', route: Routes.SESSION_INVITES_CREATE, color: palette.warning },
+    {
+      icon: 'paper-plane' as const,
+      label: 'Send Invite',
+      route: Routes.SESSION_INVITES_CREATE,
+      color: palette.warning,
+    },
   ];
   return (
     <Row style={styles.quickRow}>
       {actions.map((a) => (
-        <Clickable key={a.label}
-          onPress={() => { if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(a.route as Href); }}
-          style={styles.quickItem}>
+        <Clickable
+          key={a.label}
+          onPress={() => {
+            if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push(a.route as Href);
+          }}
+          style={styles.quickItem}
+        >
           <View style={[styles.quickIcon, { backgroundColor: withAlpha(a.color, 0.09) }]}>
             <Ionicons name={a.icon} size={20} color={a.color} />
           </View>
@@ -61,9 +86,13 @@ function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
   const { colors: palette } = useTheme();
   if (bookings.length === 0) return null;
   return (
-    <SurfaceCard style={[styles.sectionCard, styles.completionCard, { borderLeftColor: palette.warning }]}>
+    <SurfaceCard
+      style={[styles.sectionCard, styles.completionCard, { borderLeftColor: palette.warning }]}
+    >
       <Row style={styles.completionHeader}>
-        <View style={[styles.completionIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+        <View
+          style={[styles.completionIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+        >
           <Ionicons name="clipboard-outline" size={20} color={palette.warning} />
         </View>
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
@@ -73,23 +102,40 @@ function CompletionCardInner({ bookings }: { bookings: Booking[] }) {
       {bookings.slice(0, 3).map((booking) => {
         const sessionDate = new Date(booking.scheduledAt);
         const isToday = sessionDate.toDateString() === new Date().toDateString();
-        const timeStr = sessionDate.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
-        const dateStr = isToday ? `Today ${timeStr}` : `${sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${timeStr}`;
+        const timeStr = sessionDate.toLocaleTimeString('en-GB', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+        const dateStr = isToday
+          ? `Today ${timeStr}`
+          : `${sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${timeStr}`;
         const athleteName = getBookingAthleteName(booking);
         return (
-          <Clickable key={booking.id} style={[styles.completionRow, { borderColor: palette.border }]}
-            onPress={() => router.push(Routes.sessionComplete(booking.id))}>
+          <Clickable
+            key={booking.id}
+            style={[styles.completionRow, { borderColor: palette.border }]}
+            onPress={() => router.push(Routes.sessionComplete(booking.id))}
+          >
             <View style={styles.completionRowContent}>
-              <ThemedText type="defaultSemiBold" style={styles.completionRowTitle} numberOfLines={1}>
+              <ThemedText
+                type="defaultSemiBold"
+                style={styles.completionRowTitle}
+                numberOfLines={1}
+              >
                 {booking.service || 'Session'} {athleteName ? `with ${athleteName}` : ''}
               </ThemedText>
-              <ThemedText style={[styles.completionRowMeta, { color: palette.muted }]}>{dateStr}</ThemedText>
+              <ThemedText style={[styles.completionRowMeta, { color: palette.muted }]}>
+                {dateStr}
+              </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={18} color={palette.muted} />
           </Clickable>
         );
       })}
-      <ThemedText style={[styles.completionHint, { color: palette.muted }]}>Tap to mark attendance & add notes</ThemedText>
+      <ThemedText style={[styles.completionHint, { color: palette.muted }]}>
+        Tap to mark attendance & add notes
+      </ThemedText>
     </SurfaceCard>
   );
 }
@@ -100,13 +146,23 @@ export const CompletionCard = memo(CompletionCardInner);
 // AttentionSection — Athletes needing follow-up
 // ---------------------------------------------------------------------------
 
-function AttentionSectionInner({ athletes, logger }: { athletes: AthleteRosterEntry[]; logger: { press: (event: string, data: Record<string, unknown>) => void } }) {
+function AttentionSectionInner({
+  athletes,
+  logger,
+}: {
+  athletes: AthleteRosterEntry[];
+  logger: { press: (event: string, data: Record<string, unknown>) => void };
+}) {
   const { colors: palette } = useTheme();
   return (
     <SurfaceCard style={styles.sectionCard}>
       <Row style={styles.sectionHeaderRow}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Needs attention</ThemedText>
-        <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Prioritised by recency and missing notes</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Needs attention
+        </ThemedText>
+        <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+          Prioritised by recency and missing notes
+        </ThemedText>
       </Row>
       {athletes.length === 0 ? (
         <View style={styles.emptyState}>
@@ -114,31 +170,76 @@ function AttentionSectionInner({ athletes, logger }: { athletes: AthleteRosterEn
             <Ionicons name="checkmark-circle" size={28} color={palette.tint} />
           </View>
           <ThemedText type="defaultSemiBold">All caught up</ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No athletes need follow-up right now.</ThemedText>
+          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            No athletes need follow-up right now.
+          </ThemedText>
         </View>
       ) : (
         <View style={styles.attentionList}>
           {athletes.map((entry) => (
-            <Clickable key={entry.athlete.id}
-              onPress={() => { logger.press('AttentionAthlete', { athleteId: entry.athlete.id, athleteName: entry.athlete.name, needsNotes: entry.needsNotes }); router.push(Routes.developmentAthlete(entry.athlete.id)); }}
-              style={[styles.rowCard, { borderColor: palette.border }]}>
+            <Clickable
+              key={entry.athlete.id}
+              onPress={() => {
+                logger.press('AttentionAthlete', {
+                  athleteId: entry.athlete.id,
+                  athleteName: entry.athlete.name,
+                  needsNotes: entry.needsNotes,
+                });
+                router.push(Routes.developmentAthlete(entry.athlete.id));
+              }}
+              style={[styles.rowCard, { borderColor: palette.border }]}
+            >
               <Row style={styles.rowTop}>
                 <Row style={styles.rowLeft}>
                   <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{entry.athlete.avatar || entry.athlete.name.charAt(0)}</ThemedText>
-                    {entry.needsNotes && <View style={[styles.badge, { backgroundColor: palette.error, borderColor: palette.surface }]} />}
+                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                      {entry.athlete.avatar || entry.athlete.name.charAt(0)}
+                    </ThemedText>
+                    {entry.needsNotes && (
+                      <View
+                        style={[
+                          styles.badge,
+                          { backgroundColor: palette.error, borderColor: palette.surface },
+                        ]}
+                      />
+                    )}
                   </View>
                   <View style={styles.rowContent}>
-                    <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>{entry.athlete.name}</ThemedText>
-                    <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>{entry.sessionCount} sessions · Last {formatDate(entry.lastSession)}</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
+                      {entry.athlete.name}
+                    </ThemedText>
+                    <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
+                      {entry.sessionCount} sessions · Last {formatDate(entry.lastSession)}
+                    </ThemedText>
                   </View>
                 </Row>
                 <Ionicons name="chevron-forward" size={16} color={palette.muted} />
               </Row>
               <Row style={styles.actionRow}>
-                {entry.needsNotes && <Row style={[styles.pill, { backgroundColor: withAlpha(palette.error, 0.06) }]}><Ionicons name="document-text" size={12} color={palette.error} /><ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText></Row>}
-                {entry.averageRating < 4 && <Row style={[styles.pill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}><Ionicons name="trending-up" size={12} color={palette.tint} /><ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText></Row>}
-                {entry.daysSinceLast >= 10 && <Row style={[styles.pill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}><Ionicons name="time" size={12} color={palette.icon} /><ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText></Row>}
+                {entry.needsNotes && (
+                  <Row style={[styles.pill, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+                    <Ionicons name="document-text" size={12} color={palette.error} />
+                    <ThemedText style={[styles.pillLabel, { color: palette.error }]}>
+                      Add notes
+                    </ThemedText>
+                  </Row>
+                )}
+                {entry.averageRating < 4 && (
+                  <Row style={[styles.pill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                    <Ionicons name="trending-up" size={12} color={palette.tint} />
+                    <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>
+                      Boost rating
+                    </ThemedText>
+                  </Row>
+                )}
+                {entry.daysSinceLast >= 10 && (
+                  <Row style={[styles.pill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}>
+                    <Ionicons name="time" size={12} color={palette.icon} />
+                    <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>
+                      Reach out
+                    </ThemedText>
+                  </Row>
+                )}
               </Row>
             </Clickable>
           ))}
@@ -167,8 +268,12 @@ function RecentSessionsSectionInner({
   return (
     <SurfaceCard style={styles.sectionCard}>
       <Row style={styles.sectionHeaderRow}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent sessions</ThemedText>
-        <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Open feedback to share notes or badges</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Recent sessions
+        </ThemedText>
+        <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+          Open feedback to share notes or badges
+        </ThemedText>
       </Row>
       <View style={{ gap: Spacing.xs }}>
         {sessions.map((session) => {
@@ -179,17 +284,34 @@ function RecentSessionsSectionInner({
             <Row key={session.id} style={[styles.recentRow, { borderColor: palette.border }]}>
               <Row style={styles.rowLeft}>
                 <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-                  <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{athleteAvatar}</ThemedText>
+                  <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                    {athleteAvatar}
+                  </ThemedText>
                 </View>
                 <View style={styles.rowContent}>
-                  <ThemedText type="defaultSemiBold" style={styles.athleteName}>{athleteName}</ThemedText>
-                  <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>{formatDate(session.completedAt)} · Rated {session.performanceRating}</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                    {athleteName}
+                  </ThemedText>
+                  <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
+                    {formatDate(session.completedAt)} · Rated {session.performanceRating}
+                  </ThemedText>
                 </View>
               </Row>
-              <Clickable onPress={() => { logger.press('SessionFeedbackOpen', { sessionId: session.id, athleteId: session.athleteId, source: 'RecentSessions' }); router.push(Routes.developmentSession(session.id)); }}>
+              <Clickable
+                onPress={() => {
+                  logger.press('SessionFeedbackOpen', {
+                    sessionId: session.id,
+                    athleteId: session.athleteId,
+                    source: 'RecentSessions',
+                  });
+                  router.push(Routes.developmentSession(session.id));
+                }}
+              >
                 <Row style={[styles.actionPill, { borderColor: palette.tint }]}>
                   <Ionicons name="create-outline" size={14} color={palette.tint} />
-                  <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Open feedback</ThemedText>
+                  <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>
+                    Open feedback
+                  </ThemedText>
                 </Row>
               </Clickable>
             </Row>
@@ -206,18 +328,30 @@ export const RecentSessionsSection = memo(RecentSessionsSectionInner);
 // BadgesShortcut
 // ---------------------------------------------------------------------------
 
-function BadgesShortcutInner({ logger }: { logger: { press: (event: string, data: Record<string, unknown>) => void } }) {
+function BadgesShortcutInner({
+  logger,
+}: {
+  logger: { press: (event: string, data: Record<string, unknown>) => void };
+}) {
   const { colors: palette } = useTheme();
   return (
     <Clickable
-      onPress={() => { logger.press('BadgesShortcut', { source: 'CoachDevelopment' }); router.push(Routes.DEVELOPMENT_BADGES); }}
-      style={[styles.badgesShortcut, { borderColor: palette.border }]}>
+      onPress={() => {
+        logger.press('BadgesShortcut', { source: 'CoachDevelopment' });
+        router.push(Routes.DEVELOPMENT_BADGES);
+      }}
+      style={[styles.badgesShortcut, { borderColor: palette.border }]}
+    >
       <View style={[styles.badgesIcon, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
         <Ionicons name="ribbon" size={20} color={palette.success} />
       </View>
       <View style={styles.rowContent}>
-        <ThemedText type="defaultSemiBold" style={styles.athleteName}>Badges & Awards</ThemedText>
-        <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>Award badges, view athlete achievements</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+          Badges & Awards
+        </ThemedText>
+        <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
+          Award badges, view athlete achievements
+        </ThemedText>
       </View>
       <Ionicons name="chevron-forward" size={16} color={palette.muted} />
     </Clickable>

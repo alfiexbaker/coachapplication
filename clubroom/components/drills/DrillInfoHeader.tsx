@@ -57,7 +57,9 @@ function DrillInfoHeaderInner({
     <View>
       {/* Category and difficulty */}
       <Row style={styles.badgeRow}>
-        <Row style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
+        <Row
+          style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}
+        >
           <Ionicons
             name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
             size={14}

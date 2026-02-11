@@ -27,17 +27,37 @@ export default function CoachAnnotateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    video, loading, status, error, retry, currentTime, showAnnotationForm, editingAnnotation,
-    viewMode, annotationStats, isOwner,
+    video,
+    loading,
+    status,
+    error,
+    retry,
+    currentTime,
+    showAnnotationForm,
+    editingAnnotation,
+    viewMode,
+    annotationStats,
+    isOwner,
     setViewMode,
-    handleTimeUpdate, handleSeek, handleAnnotationSelect, handleQuickAnnotation,
-    handleAddAnnotation, handleEditAnnotation, handleDeleteAnnotation,
-    handleSaveAnnotation, handleExport, handleClearAll, dismissAnnotationForm,
+    handleTimeUpdate,
+    handleSeek,
+    handleAnnotationSelect,
+    handleQuickAnnotation,
+    handleAddAnnotation,
+    handleEditAnnotation,
+    handleDeleteAnnotation,
+    handleSaveAnnotation,
+    handleExport,
+    handleClearAll,
+    dismissAnnotationForm,
   } = useVideoAnnotate(id);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -52,23 +72,39 @@ export default function CoachAnnotateScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={error?.message ?? 'Failed to load video annotation workspace.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load video annotation workspace.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty' || !video) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <EmptyState icon="videocam-outline" title="Video not found" message="This video is unavailable for annotation." />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <EmptyState
+          icon="videocam-outline"
+          title="Video not found"
+          message="This video is unavailable for annotation."
+        />
       </SafeAreaView>
     );
   }
 
   if (!isOwner) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
@@ -76,19 +112,28 @@ export default function CoachAnnotateScreen() {
           <ThemedText type="defaultSemiBold">Access Denied</ThemedText>
           <View style={{ width: 24 }} />
         </Row>
-        <EmptyState icon="lock-closed-outline" title="Not Authorized" message="Only the coach who uploaded this video can add annotations." />
+        <EmptyState
+          icon="lock-closed-outline"
+          title="Not Authorized"
+          message="Only the coach who uploaded this video can add annotations."
+        />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <View style={styles.headerCenter}>
-          <ThemedText type="defaultSemiBold" numberOfLines={1}>Annotate Video</ThemedText>
+          <ThemedText type="defaultSemiBold" numberOfLines={1}>
+            Annotate Video
+          </ThemedText>
         </View>
         <Clickable accessibilityLabel="Export annotations" onPress={handleExport} hitSlop={8}>
           <Ionicons name="share-outline" size={22} color={palette.text} />
@@ -98,29 +143,67 @@ export default function CoachAnnotateScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.springify()}>
           <ErrorBoundary>
-            <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} duration={video.duration} annotations={video.annotations} onAnnotationPress={handleAnnotationSelect} onTimeUpdate={handleTimeUpdate} initialPosition={currentTime} />
+            <VideoPlayer
+              videoUrl={video.videoUrl}
+              thumbnailUrl={video.thumbnailUrl}
+              duration={video.duration}
+              annotations={video.annotations}
+              onAnnotationPress={handleAnnotationSelect}
+              onTimeUpdate={handleTimeUpdate}
+              initialPosition={currentTime}
+            />
           </ErrorBoundary>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(50).springify()}>
-          <TimelineBar duration={video.duration} currentTime={currentTime} annotations={video.annotations} onSeek={handleSeek} onAnnotationPress={handleAnnotationSelect} showLabels />
+          <TimelineBar
+            duration={video.duration}
+            currentTime={currentTime}
+            annotations={video.annotations}
+            onSeek={handleSeek}
+            onAnnotationPress={handleAnnotationSelect}
+            showLabels
+          />
         </Animated.View>
 
         {/* Quick Add Toolbar */}
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Row align="center" justify="space-between" style={[styles.toolbar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <Clickable onPress={handleAddAnnotation} style={[styles.addButton, { backgroundColor: palette.tint }]}>
+          <Row
+            align="center"
+            justify="space-between"
+            style={[
+              styles.toolbar,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
+            <Clickable
+              onPress={handleAddAnnotation}
+              style={[styles.addButton, { backgroundColor: palette.tint }]}
+            >
               <Row align="center" gap="xs">
                 <Ionicons name="add" size={20} color={palette.onPrimary} />
-                <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>Add at {videoService.formatTimestamp(currentTime)}</ThemedText>
+                <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>
+                  Add at {videoService.formatTimestamp(currentTime)}
+                </ThemedText>
               </Row>
             </Clickable>
             <Row gap="xs">
               {(['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE'] as VideoAnnotationType[]).map((type) => {
                 const config = ANNOTATION_TYPE_CONFIG[type];
                 return (
-                  <Clickable key={type} onPress={() => handleQuickAnnotation(type)} style={[styles.quickTypeButton, { backgroundColor: withAlpha(config.color, 0.15) }]}>
-                    <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={16} color={config.color} />
+                  <Clickable
+                    key={type}
+                    onPress={() => handleQuickAnnotation(type)}
+                    style={[
+                      styles.quickTypeButton,
+                      { backgroundColor: withAlpha(config.color, 0.15) },
+                    ]}
+                  >
+                    <Ionicons
+                      name={config.icon as keyof typeof Ionicons.glyphMap}
+                      size={16}
+                      color={config.color}
+                    />
                   </Clickable>
                 );
               })}
@@ -130,7 +213,15 @@ export default function CoachAnnotateScreen() {
 
         {showAnnotationForm && (
           <Animated.View entering={FadeInDown.springify()}>
-            <AnnotationForm videoId={video.id} videoDuration={video.duration} currentTimestamp={editingAnnotation?.timestamp ?? currentTime} existingAnnotation={editingAnnotation ?? undefined} onSave={handleSaveAnnotation} onCancel={dismissAnnotationForm} onTimestampChange={handleSeek} />
+            <AnnotationForm
+              videoId={video.id}
+              videoDuration={video.duration}
+              currentTimestamp={editingAnnotation?.timestamp ?? currentTime}
+              existingAnnotation={editingAnnotation ?? undefined}
+              onSave={handleSaveAnnotation}
+              onCancel={dismissAnnotationForm}
+              onTimestampChange={handleSeek}
+            />
           </Animated.View>
         )}
 
@@ -139,20 +230,54 @@ export default function CoachAnnotateScreen() {
           <Row gap="xs">
             <Clickable
               onPress={() => setViewMode('timeline')}
-              style={[styles.viewModeButton, { backgroundColor: viewMode === 'timeline' ? palette.tint : palette.surface, borderColor: viewMode === 'timeline' ? palette.tint : palette.border }]}
+              style={[
+                styles.viewModeButton,
+                {
+                  backgroundColor: viewMode === 'timeline' ? palette.tint : palette.surface,
+                  borderColor: viewMode === 'timeline' ? palette.tint : palette.border,
+                },
+              ]}
             >
               <Row align="center" justify="center" gap="xs" style={styles.viewModeButtonInner}>
-                <Ionicons name="git-commit-outline" size={16} color={viewMode === 'timeline' ? palette.onPrimary : palette.text} />
-                <ThemedText style={[styles.viewModeText, { color: viewMode === 'timeline' ? palette.onPrimary : palette.text }]}>Timeline</ThemedText>
+                <Ionicons
+                  name="git-commit-outline"
+                  size={16}
+                  color={viewMode === 'timeline' ? palette.onPrimary : palette.text}
+                />
+                <ThemedText
+                  style={[
+                    styles.viewModeText,
+                    { color: viewMode === 'timeline' ? palette.onPrimary : palette.text },
+                  ]}
+                >
+                  Timeline
+                </ThemedText>
               </Row>
             </Clickable>
             <Clickable
               onPress={() => setViewMode('list')}
-              style={[styles.viewModeButton, { backgroundColor: viewMode === 'list' ? palette.tint : palette.surface, borderColor: viewMode === 'list' ? palette.tint : palette.border }]}
+              style={[
+                styles.viewModeButton,
+                {
+                  backgroundColor: viewMode === 'list' ? palette.tint : palette.surface,
+                  borderColor: viewMode === 'list' ? palette.tint : palette.border,
+                },
+              ]}
             >
               <Row align="center" justify="center" gap="xs" style={styles.viewModeButtonInner}>
-                <Ionicons name="list-outline" size={16} color={viewMode === 'list' ? palette.onPrimary : palette.text} />
-                <ThemedText style={[styles.viewModeText, { color: viewMode === 'list' ? palette.onPrimary : palette.text }]}>List</ThemedText>
+                <Ionicons
+                  name="list-outline"
+                  size={16}
+                  color={viewMode === 'list' ? palette.onPrimary : palette.text}
+                />
+                <ThemedText
+                  style={[
+                    styles.viewModeText,
+                    { color: viewMode === 'list' ? palette.onPrimary : palette.text },
+                  ]}
+                >
+                  List
+                </ThemedText>
               </Row>
             </Clickable>
           </Row>
@@ -163,8 +288,12 @@ export default function CoachAnnotateScreen() {
           <Row align="center" justify="space-between">
             <ThemedText type="defaultSemiBold">Annotations</ThemedText>
             <Row gap="md">
-              <ThemedText style={[styles.statText, { color: palette.muted }]}>{annotationStats.total} total</ThemedText>
-              <ThemedText style={[styles.statText, { color: palette.muted }]}>{annotationStats.averagePerMinute}/min</ThemedText>
+              <ThemedText style={[styles.statText, { color: palette.muted }]}>
+                {annotationStats.total} total
+              </ThemedText>
+              <ThemedText style={[styles.statText, { color: palette.muted }]}>
+                {annotationStats.averagePerMinute}/min
+              </ThemedText>
             </Row>
           </Row>
           <AnnotationTypesSummary counts={annotationStats.byType} onTypePress={undefined} />
@@ -172,22 +301,38 @@ export default function CoachAnnotateScreen() {
 
         {/* Annotations Panel */}
         <SurfaceCard style={styles.annotationsCard}>
-          <AnnotationPanel annotations={video.annotations} currentTime={currentTime} onAnnotationSelect={handleAnnotationSelect} onAnnotationEdit={handleEditAnnotation} onAnnotationDelete={handleDeleteAnnotation} isEditable title="All Annotations" />
+          <AnnotationPanel
+            annotations={video.annotations}
+            currentTime={currentTime}
+            onAnnotationSelect={handleAnnotationSelect}
+            onAnnotationEdit={handleEditAnnotation}
+            onAnnotationDelete={handleDeleteAnnotation}
+            isEditable
+            title="All Annotations"
+          />
         </SurfaceCard>
 
         {/* Actions */}
         {video.annotations.length > 0 && (
           <Row gap="sm">
-            <Clickable onPress={handleExport} style={[styles.actionButton, { borderColor: palette.border }]}>
+            <Clickable
+              onPress={handleExport}
+              style={[styles.actionButton, { borderColor: palette.border }]}
+            >
               <Row align="center" justify="center" gap="xs" style={styles.actionButtonInner}>
                 <Ionicons name="download-outline" size={18} color={palette.tint} />
                 <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Export</ThemedText>
               </Row>
             </Clickable>
-            <Clickable onPress={handleClearAll} style={[styles.actionButton, { borderColor: palette.error }]}>
+            <Clickable
+              onPress={handleClearAll}
+              style={[styles.actionButton, { borderColor: palette.error }]}
+            >
               <Row align="center" justify="center" gap="xs" style={styles.actionButtonInner}>
                 <Ionicons name="trash-outline" size={18} color={palette.error} />
-                <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Clear All</ThemedText>
+                <ThemedText style={{ color: palette.error, fontWeight: '600' }}>
+                  Clear All
+                </ThemedText>
               </Row>
             </Clickable>
           </Row>
@@ -208,7 +353,13 @@ const styles = StyleSheet.create({
   addButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   addButtonText: { ...Typography.smallSemiBold },
   quickTypes: {},
-  quickTypeButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  quickTypeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statsCard: { padding: Spacing.md, gap: Spacing.md },
   statsHeader: {},
   statsInfo: {},

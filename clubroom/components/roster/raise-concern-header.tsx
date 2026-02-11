@@ -21,7 +21,7 @@ export const RaiseConcernHeader = React.memo(function RaiseConcernHeader({
   onBack,
 }: HeaderProps) {
   return (
-    <Row gap="md" align="center" style={[styles.headerRow, { borderBottomColor: colors.border }]}> 
+    <Row gap="md" align="center" style={[styles.headerRow, { borderBottomColor: colors.border }]}>
       <Clickable onPress={onBack} hitSlop={8} accessibilityLabel="Go back">
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>

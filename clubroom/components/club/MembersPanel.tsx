@@ -41,33 +41,27 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
           if (buttonIndex === 1) {
             onRemove();
           }
-        }
+        },
       );
     } else {
-      Alert.alert(
-        member.userName,
-        clubService.formatRole(member.role),
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Remove from Club',
-            style: 'destructive',
-            onPress: onRemove,
-          },
-        ]
-      );
+      Alert.alert(member.userName, clubService.formatRole(member.role), [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove from Club',
+          style: 'destructive',
+          onPress: onRemove,
+        },
+      ]);
     }
   };
 
   return (
-    <Clickable
-      onPress={onPress}
-      onLongPress={handleLongPress}
-      delayLongPress={500}
-    >
+    <Clickable onPress={onPress} onLongPress={handleLongPress} delayLongPress={500}>
       <Row style={[styles.memberRow, { borderColor: palette.border }]}>
         <View style={[styles.memberAvatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
-          <ThemedText style={[styles.memberAvatarText, { color: roleColor }]}>{initials}</ThemedText>
+          <ThemedText style={[styles.memberAvatarText, { color: roleColor }]}>
+            {initials}
+          </ThemedText>
         </View>
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
@@ -75,9 +69,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
             {clubService.formatRole(member.role)}
           </ThemedText>
         </View>
-        {member.status === 'pending' && (
-          <Chip>Pending</Chip>
-        )}
+        {member.status === 'pending' && <Chip>Pending</Chip>}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
     </Clickable>
@@ -91,7 +83,12 @@ export interface MembersPanelProps {
   clubId?: string;
 }
 
-export function MembersPanel({ members, canRemoveMembers, onRemoveMember, clubId }: MembersPanelProps) {
+export function MembersPanel({
+  members,
+  canRemoveMembers,
+  onRemoveMember,
+  clubId,
+}: MembersPanelProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -109,13 +106,19 @@ export function MembersPanel({ members, canRemoveMembers, onRemoveMember, clubId
             member={member}
             canRemove={canRemoveMembers && clubService.canBeRemoved(member.role)}
             onRemove={() => onRemoveMember(member)}
-            onPress={clubId ? () => {
-              router.push(Routes.clubMember(clubId, member.userId));
-            } : undefined}
+            onPress={
+              clubId
+                ? () => {
+                    router.push(Routes.clubMember(clubId, member.userId));
+                  }
+                : undefined
+            }
           />
         ))}
         {members.length === 0 && (
-          <ThemedText style={{ color: palette.muted, textAlign: 'center', paddingVertical: Spacing.md }}>
+          <ThemedText
+            style={{ color: palette.muted, textAlign: 'center', paddingVertical: Spacing.md }}
+          >
             No members found
           </ThemedText>
         )}

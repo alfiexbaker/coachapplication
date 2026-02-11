@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -71,12 +71,7 @@ export const InviteDetailsCard = memo(function InviteDetailsCard({
         )}
 
         {invite.notes != null && invite.notes.length > 0 && (
-          <DetailRow
-            icon="chatbubble-outline"
-            label="Notes"
-            value={invite.notes}
-            colors={colors}
-          />
+          <DetailRow icon="chatbubble-outline" label="Notes" value={invite.notes} colors={colors} />
         )}
       </SurfaceCard>
     </Animated.View>

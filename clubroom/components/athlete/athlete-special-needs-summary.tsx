@@ -28,7 +28,10 @@ export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
       {childData.disabilities.length > 0 && (
         <Column gap="xs">
           {childData.disabilities.slice(0, 2).map((d) => (
-            <View key={d.id} style={[styles.needItem, { backgroundColor: withAlpha(colors.warning, 0.06) }]}>
+            <View
+              key={d.id}
+              style={[styles.needItem, { backgroundColor: withAlpha(colors.warning, 0.06) }]}
+            >
               <Row gap="xs" align="center">
                 <Ionicons name="information-circle" size={16} color={colors.warning} />
                 <ThemedText type="defaultSemiBold">{d.type}</ThemedText>
@@ -45,7 +48,9 @@ export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
 
       {childData.communicationNotes && (
         <Column gap="xxs">
-          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>Communication</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>
+            Communication
+          </ThemedText>
           <ThemedText style={styles.bodySmall}>{childData.communicationNotes}</ThemedText>
         </Column>
       )}
@@ -53,11 +58,7 @@ export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
   );
 });
 
-export const SenSummary = React.memo(function SenSummary({
-  athlete,
-}: {
-  athlete: RosterEntry;
-}) {
+export const SenSummary = React.memo(function SenSummary({ athlete }: { athlete: RosterEntry }) {
   const { colors } = useTheme();
   if (!athlete.senInfo?.hasSen) return null;
 

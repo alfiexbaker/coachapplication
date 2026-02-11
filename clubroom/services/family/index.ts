@@ -89,15 +89,19 @@ export const familyService = {
   // ==========================================================================
   getGuardianPermissions: familyPermissionService.getPermissions.bind(familyPermissionService),
   hasPermission: familyPermissionService.hasPermission.bind(familyPermissionService),
-  updateGuardianPermissions: familyPermissionService.updatePermissions.bind(familyPermissionService),
-  updateGuardianChildAccess: familyPermissionService.updateChildAccess.bind(familyPermissionService),
-  getAccessibleChildren: familyPermissionService.getAccessibleChildren.bind(familyPermissionService),
+  updateGuardianPermissions:
+    familyPermissionService.updatePermissions.bind(familyPermissionService),
+  updateGuardianChildAccess:
+    familyPermissionService.updateChildAccess.bind(familyPermissionService),
+  getAccessibleChildren:
+    familyPermissionService.getAccessibleChildren.bind(familyPermissionService),
 
   // ==========================================================================
   // FAMILY SHARING - INVITES (from familyRelationshipService)
   // ==========================================================================
   inviteGuardian: familyRelationshipService.inviteGuardian.bind(familyRelationshipService),
-  getPendingInvitesForUser: familyRelationshipService.getPendingInvitesForUser.bind(familyRelationshipService),
+  getPendingInvitesForUser:
+    familyRelationshipService.getPendingInvitesForUser.bind(familyRelationshipService),
   acceptInvite: familyRelationshipService.acceptInvite.bind(familyRelationshipService),
   declineInvite: familyRelationshipService.declineInvite.bind(familyRelationshipService),
   cancelInvite: familyRelationshipService.cancelInvite.bind(familyRelationshipService),

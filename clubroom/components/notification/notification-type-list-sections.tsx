@@ -46,7 +46,9 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
 };
 
 export function getTypesForCategory(category: NotificationCategory): NotificationType[] {
-  return (Object.entries(NOTIFICATION_TYPE_CATEGORIES) as [NotificationType, NotificationCategory][])
+  return (
+    Object.entries(NOTIFICATION_TYPE_CATEGORIES) as [NotificationType, NotificationCategory][]
+  )
     .filter(([_, cat]) => cat === category)
     .map(([type]) => type);
 }
@@ -92,15 +94,21 @@ export const CategorySection = memo(function CategorySection({
   const someEnabled = enabledCount > 0 && enabledCount < types.length;
 
   return (
-    <View style={[styles.categoryContainer, { backgroundColor: palette.card, borderColor: palette.border }]}>
+    <View
+      style={[
+        styles.categoryContainer,
+        { backgroundColor: palette.card, borderColor: palette.border },
+      ]}
+    >
       <Clickable onPress={handleToggleExpand} style={styles.categoryHeader}>
         <View
           style={[
             styles.iconContainer,
             {
-              backgroundColor: allEnabled || someEnabled
-                ? withAlpha(palette.accent, 0.09)
-                : withAlpha(palette.muted, 0.09),
+              backgroundColor:
+                allEnabled || someEnabled
+                  ? withAlpha(palette.accent, 0.09)
+                  : withAlpha(palette.muted, 0.09),
             },
           ]}
         >

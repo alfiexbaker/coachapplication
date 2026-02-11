@@ -421,8 +421,7 @@ exports.squadService = {
         const squads = await this.getSquads(clubId);
         // Filter by coach assignment - show squads where coach is primary coach
         // Also include squads without a coach assigned (for assignment)
-        return squads.filter((s) => s.id !== 'squad_staff' &&
-            (s.primaryCoach === coachId || !s.primaryCoach));
+        return squads.filter((s) => s.id !== 'squad_staff' && (s.primaryCoach === coachId || !s.primaryCoach));
     },
     /**
      * Get squad summary for display

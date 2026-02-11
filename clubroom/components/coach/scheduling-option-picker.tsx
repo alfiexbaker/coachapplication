@@ -19,7 +19,11 @@ interface OptionPickerProps<T> {
   onSelect: (value: T) => void;
 }
 
-function OptionPickerInner<T extends number>({ options, selectedValue, onSelect }: OptionPickerProps<T>) {
+function OptionPickerInner<T extends number>({
+  options,
+  selectedValue,
+  onSelect,
+}: OptionPickerProps<T>) {
   const { colors: palette } = useTheme();
 
   return (

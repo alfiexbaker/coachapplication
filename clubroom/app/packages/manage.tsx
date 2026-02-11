@@ -31,12 +31,19 @@ export default function ManagePackagesScreen() {
 
   if (c.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
           <View style={styles.headerTitle}>
             <ThemedText type="title">Manage Packages</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Create and manage session bundles</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+              Create and manage session bundles
+            </ThemedText>
           </View>
         </Row>
         <LoadingState variant="list" />
@@ -46,12 +53,19 @@ export default function ManagePackagesScreen() {
 
   if (c.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Row align="center" gap="md" style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Clickable>
           <View style={styles.headerTitle}>
             <ThemedText type="title">Manage Packages</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Create and manage session bundles</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+              Create and manage session bundles
+            </ThemedText>
           </View>
         </Row>
         <ErrorState message={c.error?.message ?? 'Failed to load packages.'} onRetry={c.retry} />
@@ -60,35 +74,64 @@ export default function ManagePackagesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}><Ionicons name="arrow-back" size={24} color={palette.text} /></Clickable>
+        <Clickable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={palette.text} />
+        </Clickable>
         <View style={styles.headerTitle}>
           <ThemedText type="title">Manage Packages</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Create and manage session bundles</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            Create and manage session bundles
+          </ThemedText>
         </View>
-        <Clickable accessibilityLabel="Create package" onPress={c.openCreateModal} style={[styles.addButton, { backgroundColor: palette.tint }]}>
+        <Clickable
+          accessibilityLabel="Create package"
+          onPress={c.openCreateModal}
+          style={[styles.addButton, { backgroundColor: palette.tint }]}
+        >
           <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}>
-
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={c.refreshing}
+            onRefresh={c.onRefresh}
+            tintColor={palette.tint}
+          />
+        }
+      >
         {/* Stats */}
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <SurfaceCard style={styles.statsCard}>
-            <ThemedText type="defaultSemiBold" style={styles.statsTitle}>Package Performance</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.statsTitle}>
+              Package Performance
+            </ThemedText>
             <Row justify="around">
               {[
                 { value: c.stats.totalPackagesSold, label: 'Sold', color: palette.tint },
-                { value: packageService.formatPrice(c.stats.totalRevenue), label: 'Revenue', color: palette.success },
+                {
+                  value: packageService.formatPrice(c.stats.totalRevenue),
+                  label: 'Revenue',
+                  color: palette.success,
+                },
                 { value: c.stats.sessionsRedeemed, label: 'Redeemed', color: palette.warning },
               ].map((s) => (
                 <View key={s.label} style={styles.statItem}>
-                  <ThemedText type="heading" style={[styles.statValue, { color: s.color }]}>{s.value}</ThemedText>
-                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{s.label}</ThemedText>
+                  <ThemedText type="heading" style={[styles.statValue, { color: s.color }]}>
+                    {s.value}
+                  </ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                    {s.label}
+                  </ThemedText>
                 </View>
               ))}
             </Row>
@@ -97,16 +140,28 @@ export default function ManagePackagesScreen() {
 
         {/* Package List */}
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Your Packages ({c.packages.length})</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Your Packages ({c.packages.length})
+          </ThemedText>
           {c.packages.length === 0 ? (
-            <EmptyState icon="pricetags-outline" title="No Packages Yet"
+            <EmptyState
+              icon="pricetags-outline"
+              title="No Packages Yet"
               message="Create your first session package to offer discounted bundles to your clients"
-              actionLabel="Create Package" onPressAction={c.openCreateModal} />
+              actionLabel="Create Package"
+              onPressAction={c.openCreateModal}
+            />
           ) : (
             <View style={styles.packageList}>
               {c.packages.map((pkg, index) => (
-                <PackageCard key={pkg.id} pkg={pkg} index={index}
-                  onEdit={c.handleEditPackage} onToggle={c.handleToggleActive} onDelete={c.handleDeletePackage} />
+                <PackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  index={index}
+                  onEdit={c.handleEditPackage}
+                  onToggle={c.handleToggleActive}
+                  onDelete={c.handleDeletePackage}
+                />
               ))}
             </View>
           )}
@@ -114,25 +169,52 @@ export default function ManagePackagesScreen() {
       </ScrollView>
 
       {/* Create/Edit Modal */}
-      <Modal visible={c.showCreateModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={c.closeModal}>
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]} edges={['top']}>
+      <Modal
+        visible={c.showCreateModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={c.closeModal}
+      >
+        <SafeAreaView
+          style={[styles.modalContainer, { backgroundColor: palette.background }]}
+          edges={['top']}
+        >
           <Row align="center" justify="between" style={styles.modalHeader}>
-            <ThemedText type="title" style={styles.modalTitle}>{c.editingPackage ? 'Edit Package' : 'Create Package'}</ThemedText>
-            <Clickable accessibilityLabel="Close" style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]} onPress={c.closeModal}>
+            <ThemedText type="title" style={styles.modalTitle}>
+              {c.editingPackage ? 'Edit Package' : 'Create Package'}
+            </ThemedText>
+            <Clickable
+              accessibilityLabel="Close"
+              style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
+              onPress={c.closeModal}
+            >
               <Ionicons name="close" size={24} color={palette.text} />
             </Clickable>
           </Row>
-          <CreatePackageForm editPackage={c.editingPackage || undefined}
-            onSuccess={c.handleCreateSuccess} onError={c.handleCreateError} onCancel={c.closeModal} />
+          <CreatePackageForm
+            editPackage={c.editingPackage || undefined}
+            onSuccess={c.handleCreateSuccess}
+            onError={c.handleCreateError}
+            onCancel={c.closeModal}
+          />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
 }
 
-function PackageCard({ pkg, index, onEdit, onToggle, onDelete }: {
-  pkg: SessionPackage; index: number;
-  onEdit: (p: SessionPackage) => void; onToggle: (p: SessionPackage) => void; onDelete: (p: SessionPackage) => void;
+function PackageCard({
+  pkg,
+  index,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  pkg: SessionPackage;
+  index: number;
+  onEdit: (p: SessionPackage) => void;
+  onToggle: (p: SessionPackage) => void;
+  onDelete: (p: SessionPackage) => void;
 }) {
   const { colors: palette } = useTheme();
   return (
@@ -142,32 +224,75 @@ function PackageCard({ pkg, index, onEdit, onToggle, onDelete }: {
           <View style={styles.packageInfo}>
             <ThemedText type="defaultSemiBold">{pkg.name}</ThemedText>
             <Row align="center" gap="xxs">
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>{pkg.sessionCount} sessions</ThemedText>
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                {pkg.sessionCount} sessions
+              </ThemedText>
               <View style={[styles.dot, { backgroundColor: palette.muted }]} />
-              <ThemedText style={[styles.metaText, { color: palette.muted }]}>{packageService.formatPrice(pkg.price, pkg.currency)}</ThemedText>
-              {pkg.discountPercent > 0 && (<><View style={[styles.dot, { backgroundColor: palette.muted }]} />
-                <ThemedText style={[styles.metaText, { color: palette.success }]}>{pkg.discountPercent}% off</ThemedText></>)}
+              <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+                {packageService.formatPrice(pkg.price, pkg.currency)}
+              </ThemedText>
+              {pkg.discountPercent > 0 && (
+                <>
+                  <View style={[styles.dot, { backgroundColor: palette.muted }]} />
+                  <ThemedText style={[styles.metaText, { color: palette.success }]}>
+                    {pkg.discountPercent}% off
+                  </ThemedText>
+                </>
+              )}
             </Row>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: pkg.isActive ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }]}>
-            <ThemedText style={[styles.statusText, { color: pkg.isActive ? palette.success : palette.error }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: pkg.isActive
+                  ? withAlpha(palette.success, 0.09)
+                  : withAlpha(palette.error, 0.09),
+              },
+            ]}
+          >
+            <ThemedText
+              style={[styles.statusText, { color: pkg.isActive ? palette.success : palette.error }]}
+            >
               {pkg.isActive ? 'Active' : 'Inactive'}
             </ThemedText>
           </View>
         </Row>
         <Row gap="xs" style={styles.packageActions}>
-          <Clickable style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => onEdit(pkg)}>
+          <Clickable
+            style={[styles.actionButton, { borderColor: palette.border }]}
+            onPress={() => onEdit(pkg)}
+          >
             <Row align="center" gap="xxs">
-              <Ionicons name="create-outline" size={18} color={palette.tint} /><ThemedText style={[styles.actionText, { color: palette.tint }]}>Edit</ThemedText>
+              <Ionicons name="create-outline" size={18} color={palette.tint} />
+              <ThemedText style={[styles.actionText, { color: palette.tint }]}>Edit</ThemedText>
             </Row>
           </Clickable>
-          <Clickable style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => onToggle(pkg)}>
+          <Clickable
+            style={[styles.actionButton, { borderColor: palette.border }]}
+            onPress={() => onToggle(pkg)}
+          >
             <Row align="center" gap="xxs">
-              <Ionicons name={pkg.isActive ? 'pause-outline' : 'play-outline'} size={18} color={pkg.isActive ? palette.warning : palette.success} />
-              <ThemedText style={[styles.actionText, { color: pkg.isActive ? palette.warning : palette.success }]}>{pkg.isActive ? 'Deactivate' : 'Activate'}</ThemedText>
+              <Ionicons
+                name={pkg.isActive ? 'pause-outline' : 'play-outline'}
+                size={18}
+                color={pkg.isActive ? palette.warning : palette.success}
+              />
+              <ThemedText
+                style={[
+                  styles.actionText,
+                  { color: pkg.isActive ? palette.warning : palette.success },
+                ]}
+              >
+                {pkg.isActive ? 'Deactivate' : 'Activate'}
+              </ThemedText>
             </Row>
           </Clickable>
-          <Clickable accessibilityLabel="Delete package" style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => onDelete(pkg)}>
+          <Clickable
+            accessibilityLabel="Delete package"
+            style={[styles.actionButton, { borderColor: palette.border }]}
+            onPress={() => onDelete(pkg)}
+          >
             <Ionicons name="trash-outline" size={18} color={palette.error} />
           </Clickable>
         </Row>
@@ -181,7 +306,13 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { flex: 1 },
   subtitle: { ...Typography.small, marginTop: Spacing.micro },
-  addButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.lg },
   statsCard: { padding: Spacing.md, gap: Spacing.md },
   statsTitle: { ...Typography.body },
@@ -196,13 +327,28 @@ const styles = StyleSheet.create({
   packageInfo: { flex: 1, gap: Spacing.xxs },
   metaText: { ...Typography.caption },
   dot: { width: 3, height: 3, borderRadius: 1.5 },
-  statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   statusText: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   packageActions: { marginTop: Spacing.xs },
-  actionButton: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.sm, borderWidth: 1 },
+  actionButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
   actionText: { ...Typography.caption },
   modalContainer: { flex: 1 },
   modalHeader: { padding: Spacing.md, paddingTop: Spacing.lg },
   modalTitle: { ...Typography.title },
-  closeButton: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

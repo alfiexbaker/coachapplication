@@ -81,28 +81,17 @@ export const TimelineEventRow = memo(function TimelineEventRow({
   const iconConfig = EVENT_ICONS[event.type];
 
   return (
-    <Clickable
-      onPress={() => onPress?.(event)}
-      disabled={!onPress}
-      style={styles.eventRow}
-    >
+    <Clickable onPress={() => onPress?.(event)} disabled={!onPress} style={styles.eventRow}>
       {/* Timeline Line */}
       <View style={styles.timelineColumn}>
-        <View
-          style={[
-            styles.iconCircle,
-            { backgroundColor: withAlpha(iconConfig.color, 0.09) },
-          ]}
-        >
+        <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconConfig.color, 0.09) }]}>
           <Ionicons
             name={iconConfig.icon as keyof typeof Ionicons.glyphMap}
             size={16}
             color={iconConfig.color}
           />
         </View>
-        {!isLast && (
-          <View style={[styles.timelineLine, { backgroundColor: palette.border }]} />
-        )}
+        {!isLast && <View style={[styles.timelineLine, { backgroundColor: palette.border }]} />}
       </View>
 
       {/* Event Content */}
@@ -187,7 +176,11 @@ export const HorizontalTimelineItem = memo(function HorizontalTimelineItem({
         <View
           style={[styles.horizontalIcon, { backgroundColor: withAlpha(iconConfig.color, 0.09) }]}
         >
-          <Ionicons name={iconConfig.icon as keyof typeof Ionicons.glyphMap} size={18} color={iconConfig.color} />
+          <Ionicons
+            name={iconConfig.icon as keyof typeof Ionicons.glyphMap}
+            size={18}
+            color={iconConfig.color}
+          />
         </View>
         <ThemedText style={styles.horizontalDate}>
           {new Date(event.date).toLocaleDateString('en-GB', {

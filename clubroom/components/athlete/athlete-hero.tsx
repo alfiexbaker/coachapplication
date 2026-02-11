@@ -31,9 +31,7 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
   const tenure = React.useMemo(() => {
     const start = new Date(athlete.startDate);
     const now = new Date();
-    const months = Math.floor(
-      (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30)
-    );
+    const months = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
     if (months < 1) return 'New';
     if (months < 12) return `${months}mo`;
     const years = Math.floor(months / 12);
@@ -51,9 +49,15 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
       <SurfaceCard style={styles.card}>
         <Row gap="lg" align="center">
           {/* Avatar */}
-          <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+          <View
+            style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
+          >
             <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
-              {athleteName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+              {athleteName
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')
+                .toUpperCase()}
             </ThemedText>
           </View>
 

@@ -38,9 +38,10 @@ export default function AthleteJournalScreen() {
   const loadData = useCallback(async () => {
     try {
       const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
-      const entries = stored.length > 0
-        ? stored.filter((e) => e.athleteId === userId)
-        : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
+      const entries =
+        stored.length > 0
+          ? stored.filter((e) => e.athleteId === userId)
+          : SESSION_JOURNAL_SEEDS.filter((e) => e.athleteId === userId);
       return ok<{ entries: JournalEntry[] }>({ entries });
     } catch (loadError) {
       logger.error('Failed to load journal', loadError);
@@ -81,19 +82,23 @@ export default function AthleteJournalScreen() {
         const stored = await apiClient.get<JournalEntry[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
         await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, [newEntry, ...stored]);
 
-        Platform.OS !== 'web' && void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Platform.OS !== 'web' &&
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onRefresh();
         logger.info('Journal entry saved', { entryId: newEntry.id });
       } catch (saveError) {
         logger.error('Failed to save journal entry', saveError);
       }
     },
-    [userId, onRefresh]
+    [userId, onRefresh],
   );
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -101,14 +106,20 @@ export default function AthleteJournalScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load journal entries'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">

@@ -54,9 +54,8 @@ export default function ChildrenHubScreen() {
   );
 
   // Navigate to first child's progress, or stay on this screen if multiple
-  const progressRoute = children.length === 1
-    ? `/development/child-progress/${children[0].id}`
-    : '/(tabs)/children';
+  const progressRoute =
+    children.length === 1 ? `/development/child-progress/${children[0].id}` : '/(tabs)/children';
 
   if (status === 'loading') {
     return (
@@ -112,11 +111,7 @@ export default function ChildrenHubScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
       >
-        <ChildrenStatsRow
-          childCount={0}
-          totalSessions={0}
-          totalUnseenBadges={0}
-        />
+        <ChildrenStatsRow childCount={0} totalSessions={0} totalUnseenBadges={0} />
 
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <EmptyState
@@ -150,13 +145,13 @@ export default function ChildrenHubScreen() {
         totalUnseenBadges={totalUnseenBadges}
       />
 
-      <ChildrenRecentBadges
-        badges={recentBadges}
-        onViewBadge={handleBadgeView}
-      />
+      <ChildrenRecentBadges badges={recentBadges} onViewBadge={handleBadgeView} />
 
       <Column gap="xs">
-        <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall, marginBottom: Spacing.xs }}>
+        <ThemedText
+          type="defaultSemiBold"
+          style={{ ...Typography.bodySmall, marginBottom: Spacing.xs }}
+        >
           My Children
         </ThemedText>
         <Column gap="sm">
@@ -164,7 +159,9 @@ export default function ChildrenHubScreen() {
             <ChildrenChildCard
               key={child.id}
               child={child}
-              stats={childStats[child.id] || { sessions: 0, badges: 0, avgRating: 0, unseenBadges: 0 }}
+              stats={
+                childStats[child.id] || { sessions: 0, badges: 0, avgRating: 0, unseenBadges: 0 }
+              }
               index={index}
             />
           ))}

@@ -21,7 +21,7 @@ export const PaymentMethodCard = React.memo(function PaymentMethodCard({
   onChange,
 }: PaymentMethodCardProps) {
   return (
-    <View style={[styles.card, { borderColor: colors.border }]}> 
+    <View style={[styles.card, { borderColor: colors.border }]}>
       <ThemedText type="defaultSemiBold">Payment method</ThemedText>
       <ThemedText style={{ color: colors.muted }}>{paymentMethod}</ThemedText>
       <Clickable onPress={onChange} accessibilityLabel="Change payment method">
@@ -51,7 +51,7 @@ export const PromoCodeCard = React.memo(function PromoCodeCard({
   onRemovePromo,
 }: PromoCardProps) {
   return (
-    <View style={[styles.card, { borderColor: colors.border }]}> 
+    <View style={[styles.card, { borderColor: colors.border }]}>
       <ThemedText type="defaultSemiBold">Promo code</ThemedText>
       {promoApplied ? (
         <Row style={styles.promoApplied}>
@@ -74,20 +74,32 @@ export const PromoCodeCard = React.memo(function PromoCodeCard({
               placeholder="Enter code"
               placeholderTextColor={colors.muted}
               autoCapitalize="characters"
-              style={[styles.promoInput, { borderColor: colors.border, backgroundColor: colors.card }]}
+              style={[
+                styles.promoInput,
+                { borderColor: colors.border, backgroundColor: colors.card },
+              ]}
               accessibilityLabel="Promo code"
             />
             <Clickable
               onPress={onApplyPromo}
               disabled={!promoCode.trim()}
-              style={[styles.promoApplyButton, { backgroundColor: promoCode.trim() ? colors.tint : colors.border }]}
+              style={[
+                styles.promoApplyButton,
+                { backgroundColor: promoCode.trim() ? colors.tint : colors.border },
+              ]}
               accessibilityLabel="Apply promo code"
             >
               <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
             </Clickable>
           </Row>
-          {promoError ? <ThemedText style={{ color: colors.error, ...Typography.small }}>{promoError}</ThemedText> : null}
-          <ThemedText style={{ color: colors.muted, ...Typography.caption }}>Try: FIRST10, WELCOME20, VIP50</ThemedText>
+          {promoError ? (
+            <ThemedText style={{ color: colors.error, ...Typography.small }}>
+              {promoError}
+            </ThemedText>
+          ) : null}
+          <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+            Try: FIRST10, WELCOME20, VIP50
+          </ThemedText>
         </>
       )}
     </View>
@@ -110,10 +122,12 @@ export const BookingTotalsCard = React.memo(function BookingTotalsCard({
   total,
 }: TotalsCardProps) {
   return (
-    <View style={[styles.card, { borderColor: colors.border }]}> 
+    <View style={[styles.card, { borderColor: colors.border }]}>
       <SummaryRow label="Session" value={`£${sessionPrice.toFixed(2)}`} />
       <SummaryRow label="Platform fee (15%)" value={`£${platformFee.toFixed(2)}`} />
-      {promoDiscount > 0 ? <SummaryRow label="Promo discount" value={`-£${promoDiscount.toFixed(2)}`} /> : null}
+      {promoDiscount > 0 ? (
+        <SummaryRow label="Promo discount" value={`-£${promoDiscount.toFixed(2)}`} />
+      ) : null}
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <SummaryRow label="Total" value={`£${total.toFixed(2)}`} />
     </View>

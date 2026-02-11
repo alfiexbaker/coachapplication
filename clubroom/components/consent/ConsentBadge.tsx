@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
@@ -20,12 +20,7 @@ const SIZE_CONFIG = {
   lg: { ...Typography.bodySmall, icon: 22, padding: 8, gap: Spacing.xxs },
 } as const;
 
-export function ConsentBadge({
-  type,
-  granted,
-  showLabel = false,
-  size = 'md',
-}: ConsentBadgeProps) {
+export function ConsentBadge({ type, granted, showLabel = false, size = 'md' }: ConsentBadgeProps) {
   const { colors: palette } = useTheme();
   const config = SIZE_CONFIG[size];
 
@@ -56,20 +51,11 @@ export function ConsentBadge({
           color={iconColor}
         />
         <View style={[styles.statusIndicator, { backgroundColor: palette.surface }]}>
-          <Ionicons
-            name={statusIcon}
-            size={config.icon * 0.6}
-            color={iconColor}
-          />
+          <Ionicons name={statusIcon} size={config.icon * 0.6} color={iconColor} />
         </View>
       </View>
       {showLabel && (
-        <ThemedText
-          style={[
-            styles.label,
-            { color: iconColor, fontSize: config.fontSize },
-          ]}
-        >
+        <ThemedText style={[styles.label, { color: iconColor, fontSize: config.fontSize }]}>
           {label}
         </ThemedText>
       )}

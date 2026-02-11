@@ -108,22 +108,26 @@ export const RecurringSummaryCard = memo(function RecurringSummaryCard({
   const totalMonthlyValue = bookings
     .filter((b) => b.status === 'ACTIVE' && b.pricePerSession)
     .reduce((sum, b) => {
-      const sessionsPerMonth =
-        b.frequency === 'WEEKLY' ? 4 : b.frequency === 'BIWEEKLY' ? 2 : 1;
+      const sessionsPerMonth = b.frequency === 'WEEKLY' ? 4 : b.frequency === 'BIWEEKLY' ? 2 : 1;
       return sum + (b.pricePerSession || 0) * sessionsPerMonth;
     }, 0);
 
   const totalSessions = bookings.reduce((sum, b) => sum + b.sessionsCompleted, 0);
 
   return (
-    <Row align="center" justify="around" style={[styles.summaryContainer, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <Row
+      align="center"
+      justify="around"
+      style={[
+        styles.summaryContainer,
+        { backgroundColor: palette.surface, borderColor: palette.border },
+      ]}
+    >
       <View style={styles.summaryItem}>
         <ThemedText style={[styles.summaryValue, { color: palette.success }]}>
           {activeCount}
         </ThemedText>
-        <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
-          Active
-        </ThemedText>
+        <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>Active</ThemedText>
       </View>
       <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
       <View style={styles.summaryItem}>

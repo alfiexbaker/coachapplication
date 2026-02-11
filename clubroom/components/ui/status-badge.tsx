@@ -23,12 +23,5 @@ const STATUS_TONE_MAP: Record<BookingStatus, BadgeTone> = {
 };
 
 export function StatusBadge({ status }: { status: BookingStatus }) {
-  return (
-    <Badge
-      label={status}
-      tone={STATUS_TONE_MAP[status]}
-      variant="outlined"
-      size="md"
-    />
-  );
+  return <Badge label={status} tone={STATUS_TONE_MAP[status]} variant="outlined" size="md" />;
 }

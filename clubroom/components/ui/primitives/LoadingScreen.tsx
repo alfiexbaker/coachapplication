@@ -35,34 +35,24 @@ export interface LoadingScreenProps {
 // Component
 // ---------------------------------------------------------------------------
 
-function LoadingScreenInner({
-  title,
-  subtitle,
-  fullScreen = true,
-}: LoadingScreenProps) {
+function LoadingScreenInner({ title, subtitle, fullScreen = true }: LoadingScreenProps) {
   const { colors } = useTheme();
 
   const content = (
     <View style={styles.content}>
       <ActivityIndicator size="large" color={colors.tint} />
       {title ? (
-        <ThemedText style={[styles.title, { color: colors.text }]}>
-          {title}
-        </ThemedText>
+        <ThemedText style={[styles.title, { color: colors.text }]}>{title}</ThemedText>
       ) : null}
       {subtitle ? (
-        <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-          {subtitle}
-        </ThemedText>
+        <ThemedText style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</ThemedText>
       ) : null}
     </View>
   );
 
   if (fullScreen) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {content}
       </SafeAreaView>
     );

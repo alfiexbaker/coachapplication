@@ -29,7 +29,12 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
           const athleteName = getMatchPlayerAthleteName(player);
           const statusCol = matchService.getPlayerStatusColor(player.status);
           return (
-            <Row key={player.athleteId} align="center" gap="sm" style={[styles.row, { borderBottomColor: colors.border }]}>
+            <Row
+              key={player.athleteId}
+              align="center"
+              gap="sm"
+              style={[styles.row, { borderBottomColor: colors.border }]}
+            >
               <View style={[styles.avatar, { backgroundColor: withAlpha(statusCol, 0.09) }]}>
                 <ThemedText style={[Typography.bodySmallSemiBold, { color: statusCol }]}>
                   {athleteName.slice(0, 2).toUpperCase()}
@@ -39,7 +44,8 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
                 <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
                 {player.position && (
                   <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                    {player.position}{player.jerseyNumber && ` #${player.jerseyNumber}`}
+                    {player.position}
+                    {player.jerseyNumber && ` #${player.jerseyNumber}`}
                   </ThemedText>
                 )}
               </View>
@@ -60,6 +66,12 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   title: { ...Typography.subheading, marginBottom: Spacing.sm },
   row: { paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
-  avatar: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
 });

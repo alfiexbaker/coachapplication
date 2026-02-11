@@ -48,7 +48,8 @@ export const ReviewStep = memo(function ReviewStep({
   shareNotesWithParents,
   onShareNotesChange,
   shareAttendance,
-  onShareAttendanceChange }: ReviewStepProps) {
+  onShareAttendanceChange,
+}: ReviewStepProps) {
   return (
     <>
       {/* Review Summary */}
@@ -90,9 +91,7 @@ export const ReviewStep = memo(function ReviewStep({
               <Ionicons name="football-outline" size={18} color={colors.tint} />
               <ThemedText type="defaultSemiBold">Skills</ThemedText>
             </Row>
-            <ThemedText style={{ color: colors.muted }}>
-              {skillsFocused.join(', ')}
-            </ThemedText>
+            <ThemedText style={{ color: colors.muted }}>{skillsFocused.join(', ')}</ThemedText>
           </View>
         )}
 
@@ -126,7 +125,11 @@ export const ReviewStep = memo(function ReviewStep({
           <ThemedText type="subtitle">Sharing Preferences</ThemedText>
         </Row>
 
-        <Row align="center" justify="between" style={[styles.toggleRow, { borderBottomColor: colors.border }]}>
+        <Row
+          align="center"
+          justify="between"
+          style={[styles.toggleRow, { borderBottomColor: colors.border }]}
+        >
           <View style={styles.toggleInfo}>
             <ThemedText type="defaultSemiBold">Share notes with parents</ThemedText>
             <ThemedText style={[styles.toggleHint, { color: colors.muted }]}>
@@ -169,23 +172,31 @@ export const ReviewStep = memo(function ReviewStep({
 const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.md,
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   sectionHeader: {
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   summaryHint: {
     ...Typography.small,
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   summaryRow: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    gap: Spacing.xxs },
+    gap: Spacing.xxs,
+  },
   toggleRow: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent' },
+    borderBottomColor: 'transparent',
+  },
   toggleInfo: {
     flex: 1,
     gap: Spacing.micro,
-    marginRight: Spacing.sm },
+    marginRight: Spacing.sm,
+  },
   toggleHint: {
-    ...Typography.caption } });
+    ...Typography.caption,
+  },
+});

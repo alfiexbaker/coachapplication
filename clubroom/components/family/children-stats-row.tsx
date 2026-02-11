@@ -59,7 +59,10 @@ export const ChildrenStatsRow = memo(function ChildrenStatsRow({
               {stat.value}
             </ThemedText>
             <ThemedText
-              style={[styles.statLabel, { color: stat.highlight ? palette.warning : palette.muted }]}
+              style={[
+                styles.statLabel,
+                { color: stat.highlight ? palette.warning : palette.muted },
+              ]}
             >
               {stat.label}
             </ThemedText>

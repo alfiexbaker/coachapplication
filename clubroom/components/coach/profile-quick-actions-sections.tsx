@@ -60,14 +60,10 @@ export const GoLiveCard = memo(function GoLiveCard({
                   { backgroundColor: isLive ? palette.success : palette.muted },
                 ]}
               />
-              <ThemedText type="subtitle">
-                {isLive ? "You're Live" : 'Profile Offline'}
-              </ThemedText>
+              <ThemedText type="subtitle">{isLive ? "You're Live" : 'Profile Offline'}</ThemedText>
             </Row>
             <ThemedText style={[styles.goLiveSubtitle, { color: palette.muted }]}>
-              {isLive
-                ? 'Athletes can find and book you'
-                : 'Go live to start receiving bookings'}
+              {isLive ? 'Athletes can find and book you' : 'Go live to start receiving bookings'}
             </ThemedText>
           </View>
           <Switch
@@ -152,17 +148,9 @@ export const QuickAccessItem = memo(function QuickAccessItem({
   palette,
 }: QuickAccessItemProps) {
   return (
-    <SurfaceCard
-      style={styles.quickAccessCard}
-      onPress={() => router.push(route)}
-    >
+    <SurfaceCard style={styles.quickAccessCard} onPress={() => router.push(route)}>
       <Row style={styles.quickAccessRow}>
-        <View
-          style={[
-            styles.quickAccessIcon,
-            { backgroundColor: withAlpha(iconColor, 0.09) },
-          ]}
-        >
+        <View style={[styles.quickAccessIcon, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
           <Ionicons name={icon} size={24} color={iconColor} />
         </View>
         <View style={styles.quickAccessText}>
@@ -189,14 +177,9 @@ export const SignOutButton = memo(function SignOutButton({
   palette,
 }: SignOutButtonProps) {
   return (
-    <Clickable
-      style={[styles.signOutButton, { borderColor: palette.error }]}
-      onPress={onSignOut}
-    >
+    <Clickable style={[styles.signOutButton, { borderColor: palette.error }]} onPress={onSignOut}>
       <Ionicons name="log-out-outline" size={20} color={palette.error} />
-      <ThemedText style={[styles.signOutText, { color: palette.error }]}>
-        Sign Out
-      </ThemedText>
+      <ThemedText style={[styles.signOutText, { color: palette.error }]}>Sign Out</ThemedText>
     </Clickable>
   );
 });

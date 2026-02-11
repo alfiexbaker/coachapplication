@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -24,8 +24,11 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
         onPress={() => onTabChange('list')}
         style={[
           styles.tab,
-          activeTab === 'list' ? { ...styles.activeTab, borderBottomColor: palette.tint } : undefined,
-        ]}>
+          activeTab === 'list'
+            ? { ...styles.activeTab, borderBottomColor: palette.tint }
+            : undefined,
+        ]}
+      >
         <Ionicons
           name="list-outline"
           size={20}
@@ -35,7 +38,8 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
           style={[
             styles.tabText,
             activeTab === 'list' ? { color: palette.tint, fontWeight: '700' } : undefined,
-          ]}>
+          ]}
+        >
           Bookings List
         </ThemedText>
       </Clickable>
@@ -44,8 +48,11 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
         onPress={() => onTabChange('create')}
         style={[
           styles.tab,
-          activeTab === 'create' ? { ...styles.activeTab, borderBottomColor: palette.tint } : undefined,
-        ]}>
+          activeTab === 'create'
+            ? { ...styles.activeTab, borderBottomColor: palette.tint }
+            : undefined,
+        ]}
+      >
         <Ionicons
           name="add-circle-outline"
           size={20}
@@ -55,7 +62,8 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
           style={[
             styles.tabText,
             activeTab === 'create' ? { color: palette.tint, fontWeight: '700' } : undefined,
-          ]}>
+          ]}
+        >
           Create Booking
         </ThemedText>
       </Clickable>

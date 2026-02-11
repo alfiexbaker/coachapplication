@@ -44,10 +44,7 @@ export function InjuryStepIndicator({ currentStep }: InjuryStepIndicatorProps) {
                 <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
               ) : (
                 <ThemedText
-                  style={[
-                    styles.number,
-                    { color: isActive ? palette.onPrimary : palette.muted },
-                  ]}
+                  style={[styles.number, { color: isActive ? palette.onPrimary : palette.muted }]}
                 >
                   {index + 1}
                 </ThemedText>

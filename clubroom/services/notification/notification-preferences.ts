@@ -49,7 +49,7 @@ class NotificationPreferencesService {
   private async loadAllPreferences(): Promise<EnhancedNotificationPreferences[]> {
     return apiClient.get<EnhancedNotificationPreferences[]>(
       STORAGE_KEYS.NOTIFICATION_PREFERENCES,
-      []
+      [],
     );
   }
 
@@ -58,7 +58,7 @@ class NotificationPreferencesService {
    */
   private async savePreferences(
     userId: string,
-    prefs: EnhancedNotificationPreferences
+    prefs: EnhancedNotificationPreferences,
   ): Promise<void> {
     const all = await this.loadAllPreferences();
     const index = all.findIndex((p) => p.userId === userId);
@@ -92,7 +92,9 @@ class NotificationPreferencesService {
   /**
    * Get preferences for a user.
    */
-  async getPreferences(userId: string): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
+  async getPreferences(
+    userId: string,
+  ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       return ok(await this.getPreferencesValue(userId));
     } catch (error) {
@@ -106,7 +108,7 @@ class NotificationPreferencesService {
    */
   async updatePreferences(
     userId: string,
-    updates: Partial<EnhancedNotificationPreferences>
+    updates: Partial<EnhancedNotificationPreferences>,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -133,7 +135,7 @@ class NotificationPreferencesService {
     userId: string,
     startTime: string,
     endTime: string,
-    enabled = true
+    enabled = true,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     const quietHours: QuietHours = { enabled, startTime, endTime };
     return this.updatePreferences(userId, { quietHours });
@@ -144,7 +146,7 @@ class NotificationPreferencesService {
    */
   async toggleQuietHours(
     userId: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -163,7 +165,7 @@ class NotificationPreferencesService {
   async toggleChannel(
     userId: string,
     channel: NotificationChannel,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -185,7 +187,7 @@ class NotificationPreferencesService {
   async toggleNotificationType(
     userId: string,
     type: NotificationType,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -212,7 +214,7 @@ class NotificationPreferencesService {
   async setNotificationTypeChannels(
     userId: string,
     type: NotificationType,
-    channels: NotificationChannel[]
+    channels: NotificationChannel[],
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -241,7 +243,7 @@ class NotificationPreferencesService {
     coachId: string,
     coachName: string,
     coachAvatar?: string,
-    reason?: string
+    reason?: string,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -279,7 +281,7 @@ class NotificationPreferencesService {
    */
   async unmuteCoach(
     userId: string,
-    coachId: string
+    coachId: string,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const current = await this.getPreferencesValue(userId);
@@ -355,7 +357,7 @@ class NotificationPreferencesService {
     userId: string,
     type: NotificationType,
     channel: NotificationChannel,
-    coachId?: string
+    coachId?: string,
   ): Promise<Result<boolean, ServiceError>> {
     const prefsResult = await this.getPreferences(userId);
     if (!prefsResult.success) {
@@ -402,7 +404,9 @@ class NotificationPreferencesService {
   /**
    * Reset preferences to defaults.
    */
-  async resetPreferences(userId: string): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
+  async resetPreferences(
+    userId: string,
+  ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const defaults = this.createDefaultPreferences(userId);
       await this.savePreferences(userId, defaults);

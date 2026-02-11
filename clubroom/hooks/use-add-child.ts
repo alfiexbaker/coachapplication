@@ -9,7 +9,13 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
-import { childService, type Gender, type Relationship, type Disability, type SpecialNeed } from '@/services/child-service';
+import {
+  childService,
+  type Gender,
+  type Relationship,
+  type Disability,
+  type SpecialNeed,
+} from '@/services/child-service';
 
 export type Step = 'basic' | 'special_needs' | 'medical' | 'emergency' | 'consents';
 
@@ -75,18 +81,43 @@ export function useAddChild() {
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
   }, []);
 
-  const addAllergy = useCallback(() => { if (allergyInput.trim()) { setAllergies((p) => [...p, allergyInput.trim()]); setAllergyInput(''); } }, [allergyInput]);
-  const addCondition = useCallback(() => { if (conditionInput.trim()) { setMedicalConditions((p) => [...p, conditionInput.trim()]); setConditionInput(''); } }, [conditionInput]);
-  const addMedication = useCallback(() => { if (medicationInput.trim()) { setMedications((p) => [...p, medicationInput.trim()]); setMedicationInput(''); } }, [medicationInput]);
+  const addAllergy = useCallback(() => {
+    if (allergyInput.trim()) {
+      setAllergies((p) => [...p, allergyInput.trim()]);
+      setAllergyInput('');
+    }
+  }, [allergyInput]);
+  const addCondition = useCallback(() => {
+    if (conditionInput.trim()) {
+      setMedicalConditions((p) => [...p, conditionInput.trim()]);
+      setConditionInput('');
+    }
+  }, [conditionInput]);
+  const addMedication = useCallback(() => {
+    if (medicationInput.trim()) {
+      setMedications((p) => [...p, medicationInput.trim()]);
+      setMedicationInput('');
+    }
+  }, [medicationInput]);
 
   const addDisability = useCallback(() => {
     if (selectedDisabilityType) {
-      setDisabilities((p) => [...p, { id: `dis-${Date.now()}`, type: selectedDisabilityType, description: disabilityDescription || undefined }]);
+      setDisabilities((p) => [
+        ...p,
+        {
+          id: `dis-${Date.now()}`,
+          type: selectedDisabilityType,
+          description: disabilityDescription || undefined,
+        },
+      ]);
       setSelectedDisabilityType(null);
       setDisabilityDescription('');
     }
@@ -94,71 +125,244 @@ export function useAddChild() {
 
   const validateStep = useCallback((): boolean => {
     switch (currentStep) {
-      case 'basic': if (!firstName.trim() || !lastName.trim() || !gender || !relationship) { Alert.alert('Required Fields', 'Please fill in name, gender, and relationship'); return false; } return true;
-      case 'special_needs': if (hasSpecialNeeds === null) { Alert.alert('Required', 'Please indicate if your child has any special needs or disabilities'); return false; } return true;
-      case 'emergency': if (!emergencyName.trim() || !emergencyPhone.trim() || !emergencyRelation.trim()) { Alert.alert('Required Fields', 'Please provide at least one emergency contact'); return false; } return true;
-      default: return true;
+      case 'basic':
+        if (!firstName.trim() || !lastName.trim() || !gender || !relationship) {
+          Alert.alert('Required Fields', 'Please fill in name, gender, and relationship');
+          return false;
+        }
+        return true;
+      case 'special_needs':
+        if (hasSpecialNeeds === null) {
+          Alert.alert(
+            'Required',
+            'Please indicate if your child has any special needs or disabilities',
+          );
+          return false;
+        }
+        return true;
+      case 'emergency':
+        if (!emergencyName.trim() || !emergencyPhone.trim() || !emergencyRelation.trim()) {
+          Alert.alert('Required Fields', 'Please provide at least one emergency contact');
+          return false;
+        }
+        return true;
+      default:
+        return true;
     }
-  }, [currentStep, firstName, lastName, gender, relationship, hasSpecialNeeds, emergencyName, emergencyPhone, emergencyRelation]);
+  }, [
+    currentStep,
+    firstName,
+    lastName,
+    gender,
+    relationship,
+    hasSpecialNeeds,
+    emergencyName,
+    emergencyPhone,
+    emergencyRelation,
+  ]);
 
-  const goNext = useCallback(() => { if (validateStep() && !isLastStep) setCurrentStep(STEPS[stepIndex + 1]); }, [validateStep, isLastStep, stepIndex]);
-  const goBack = useCallback(() => { if (!isFirstStep) setCurrentStep(STEPS[stepIndex - 1]); else router.back(); }, [isFirstStep, stepIndex]);
+  const goNext = useCallback(() => {
+    if (validateStep() && !isLastStep) setCurrentStep(STEPS[stepIndex + 1]);
+  }, [validateStep, isLastStep, stepIndex]);
+  const goBack = useCallback(() => {
+    if (!isFirstStep) setCurrentStep(STEPS[stepIndex - 1]);
+    else router.back();
+  }, [isFirstStep, stepIndex]);
 
   const handleSave = useCallback(async () => {
     if (!validateStep() || !currentUser?.id) return;
     setSaving(true);
     try {
       await childService.createChild(currentUser.id, {
-        firstName: firstName.trim(), lastName: lastName.trim(), nickname: nickname.trim() || undefined,
-        dateOfBirth: dateOfBirth ? toDateStr(dateOfBirth) : undefined, gender: gender!, relationship: relationship!,
-        photoUrl: photoUri || undefined, disabilities, specialNeeds, allergies, medicalConditions, medications,
-        communicationNotes: communicationNotes.trim() || undefined, behavioralNotes: behavioralNotes.trim() || undefined,
-        emergencyContactName: emergencyName.trim(), emergencyContactPhone: emergencyPhone.trim(),
-        emergencyContactRelation: emergencyRelation.trim(), secondaryEmergencyName: secondaryName.trim() || undefined,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        nickname: nickname.trim() || undefined,
+        dateOfBirth: dateOfBirth ? toDateStr(dateOfBirth) : undefined,
+        gender: gender!,
+        relationship: relationship!,
+        photoUrl: photoUri || undefined,
+        disabilities,
+        specialNeeds,
+        allergies,
+        medicalConditions,
+        medications,
+        communicationNotes: communicationNotes.trim() || undefined,
+        behavioralNotes: behavioralNotes.trim() || undefined,
+        emergencyContactName: emergencyName.trim(),
+        emergencyContactPhone: emergencyPhone.trim(),
+        emergencyContactRelation: emergencyRelation.trim(),
+        secondaryEmergencyName: secondaryName.trim() || undefined,
         secondaryEmergencyPhone: secondaryPhone.trim() || undefined,
-        photoConsent, videoConsent, socialMediaConsent, emergencyTreatmentConsent,
+        photoConsent,
+        videoConsent,
+        socialMediaConsent,
+        emergencyTreatmentConsent,
       });
-      Alert.alert('Success', `${firstName}'s profile has been created!`, [{ text: 'OK', onPress: () => router.back() }]);
-    } catch { Alert.alert('Error', 'Failed to create child profile. Please try again.'); }
-    finally { setSaving(false); }
-  }, [validateStep, currentUser, firstName, lastName, nickname, dateOfBirth, gender, relationship, photoUri, disabilities, specialNeeds, allergies, medicalConditions, medications, communicationNotes, behavioralNotes, emergencyName, emergencyPhone, emergencyRelation, secondaryName, secondaryPhone, photoConsent, videoConsent, socialMediaConsent, emergencyTreatmentConsent]);
+      Alert.alert('Success', `${firstName}'s profile has been created!`, [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch {
+      Alert.alert('Error', 'Failed to create child profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    validateStep,
+    currentUser,
+    firstName,
+    lastName,
+    nickname,
+    dateOfBirth,
+    gender,
+    relationship,
+    photoUri,
+    disabilities,
+    specialNeeds,
+    allergies,
+    medicalConditions,
+    medications,
+    communicationNotes,
+    behavioralNotes,
+    emergencyName,
+    emergencyPhone,
+    emergencyRelation,
+    secondaryName,
+    secondaryPhone,
+    photoConsent,
+    videoConsent,
+    socialMediaConsent,
+    emergencyTreatmentConsent,
+  ]);
 
   // Pre-built props for step components
-  const basicProps = useMemo(() => ({
-    firstName, lastName, nickname, dateOfBirth, gender, relationship, photoUri, showDatePicker,
-    onFirstNameChange: setFirstName, onLastNameChange: setLastName, onNicknameChange: setNickname,
-    onDateOfBirthChange: setDateOfBirth, onGenderChange: setGender, onRelationshipChange: setRelationship,
-    onPickImage: pickImage, onShowDatePicker: setShowDatePicker,
-  }), [firstName, lastName, nickname, dateOfBirth, gender, relationship, photoUri, showDatePicker, pickImage]);
+  const basicProps = useMemo(
+    () => ({
+      firstName,
+      lastName,
+      nickname,
+      dateOfBirth,
+      gender,
+      relationship,
+      photoUri,
+      showDatePicker,
+      onFirstNameChange: setFirstName,
+      onLastNameChange: setLastName,
+      onNicknameChange: setNickname,
+      onDateOfBirthChange: setDateOfBirth,
+      onGenderChange: setGender,
+      onRelationshipChange: setRelationship,
+      onPickImage: pickImage,
+      onShowDatePicker: setShowDatePicker,
+    }),
+    [
+      firstName,
+      lastName,
+      nickname,
+      dateOfBirth,
+      gender,
+      relationship,
+      photoUri,
+      showDatePicker,
+      pickImage,
+    ],
+  );
 
-  const medicalProps = useMemo(() => ({
-    firstName, hasSpecialNeeds, disabilities, selectedDisabilityType, disabilityDescription,
-    communicationNotes, behavioralNotes, allergies, allergyInput, medicalConditions, conditionInput,
-    medications, medicationInput,
-    onHasSpecialNeedsChange: setHasSpecialNeeds, onDisabilitiesChange: setDisabilities,
-    onSelectedDisabilityTypeChange: setSelectedDisabilityType, onDisabilityDescriptionChange: setDisabilityDescription,
-    onCommunicationNotesChange: setCommunicationNotes, onBehavioralNotesChange: setBehavioralNotes,
-    onAddDisability: addDisability, onAllergiesChange: setAllergies, onAllergyInputChange: setAllergyInput,
-    onAddAllergy: addAllergy, onMedicalConditionsChange: setMedicalConditions, onConditionInputChange: setConditionInput,
-    onAddCondition: addCondition, onMedicationsChange: setMedications, onMedicationInputChange: setMedicationInput,
-    onAddMedication: addMedication,
-  }), [firstName, hasSpecialNeeds, disabilities, selectedDisabilityType, disabilityDescription, communicationNotes, behavioralNotes, allergies, allergyInput, medicalConditions, conditionInput, medications, medicationInput, addDisability, addAllergy, addCondition, addMedication]);
+  const medicalProps = useMemo(
+    () => ({
+      firstName,
+      hasSpecialNeeds,
+      disabilities,
+      selectedDisabilityType,
+      disabilityDescription,
+      communicationNotes,
+      behavioralNotes,
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
+      onHasSpecialNeedsChange: setHasSpecialNeeds,
+      onDisabilitiesChange: setDisabilities,
+      onSelectedDisabilityTypeChange: setSelectedDisabilityType,
+      onDisabilityDescriptionChange: setDisabilityDescription,
+      onCommunicationNotesChange: setCommunicationNotes,
+      onBehavioralNotesChange: setBehavioralNotes,
+      onAddDisability: addDisability,
+      onAllergiesChange: setAllergies,
+      onAllergyInputChange: setAllergyInput,
+      onAddAllergy: addAllergy,
+      onMedicalConditionsChange: setMedicalConditions,
+      onConditionInputChange: setConditionInput,
+      onAddCondition: addCondition,
+      onMedicationsChange: setMedications,
+      onMedicationInputChange: setMedicationInput,
+      onAddMedication: addMedication,
+    }),
+    [
+      firstName,
+      hasSpecialNeeds,
+      disabilities,
+      selectedDisabilityType,
+      disabilityDescription,
+      communicationNotes,
+      behavioralNotes,
+      allergies,
+      allergyInput,
+      medicalConditions,
+      conditionInput,
+      medications,
+      medicationInput,
+      addDisability,
+      addAllergy,
+      addCondition,
+      addMedication,
+    ],
+  );
 
-  const emergencyProps = useMemo(() => ({
-    emergencyName, emergencyPhone, emergencyRelation, secondaryName, secondaryPhone,
-    onEmergencyNameChange: setEmergencyName, onEmergencyPhoneChange: setEmergencyPhone,
-    onEmergencyRelationChange: setEmergencyRelation, onSecondaryNameChange: setSecondaryName, onSecondaryPhoneChange: setSecondaryPhone,
-  }), [emergencyName, emergencyPhone, emergencyRelation, secondaryName, secondaryPhone]);
+  const emergencyProps = useMemo(
+    () => ({
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+      secondaryName,
+      secondaryPhone,
+      onEmergencyNameChange: setEmergencyName,
+      onEmergencyPhoneChange: setEmergencyPhone,
+      onEmergencyRelationChange: setEmergencyRelation,
+      onSecondaryNameChange: setSecondaryName,
+      onSecondaryPhoneChange: setSecondaryPhone,
+    }),
+    [emergencyName, emergencyPhone, emergencyRelation, secondaryName, secondaryPhone],
+  );
 
-  const consentsProps = useMemo(() => ({
-    photoConsent, videoConsent, socialMediaConsent, emergencyTreatmentConsent,
-    onPhotoConsentChange: setPhotoConsent, onVideoConsentChange: setVideoConsent,
-    onSocialMediaConsentChange: setSocialMediaConsent, onEmergencyTreatmentConsentChange: setEmergencyTreatmentConsent,
-  }), [photoConsent, videoConsent, socialMediaConsent, emergencyTreatmentConsent]);
+  const consentsProps = useMemo(
+    () => ({
+      photoConsent,
+      videoConsent,
+      socialMediaConsent,
+      emergencyTreatmentConsent,
+      onPhotoConsentChange: setPhotoConsent,
+      onVideoConsentChange: setVideoConsent,
+      onSocialMediaConsentChange: setSocialMediaConsent,
+      onEmergencyTreatmentConsentChange: setEmergencyTreatmentConsent,
+    }),
+    [photoConsent, videoConsent, socialMediaConsent, emergencyTreatmentConsent],
+  );
 
   return {
-    currentStep, stepIndex, isFirstStep, isLastStep, saving, firstName,
-    goNext, goBack, handleSave,
-    basicProps, medicalProps, emergencyProps, consentsProps,
+    currentStep,
+    stepIndex,
+    isFirstStep,
+    isLastStep,
+    saving,
+    firstName,
+    goNext,
+    goBack,
+    handleSave,
+    basicProps,
+    medicalProps,
+    emergencyProps,
+    consentsProps,
   };
 }

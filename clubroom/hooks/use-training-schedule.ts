@@ -64,14 +64,23 @@ export function useTrainingSchedule() {
   }, [loadData]);
 
   const filteredSessions = useMemo(
-    () => selectedSquadId ? trainingSessions.filter((s) => s.squadId === selectedSquadId) : trainingSessions,
-    [selectedSquadId, trainingSessions]
+    () =>
+      selectedSquadId
+        ? trainingSessions.filter((s) => s.squadId === selectedSquadId)
+        : trainingSessions,
+    [selectedSquadId, trainingSessions],
   );
 
   return {
-    loading, viewMode, setViewMode,
-    selectedSquadId, setSelectedSquadId,
-    clubName, squads, filteredSessions,
-    userHasChildren, isCoach,
+    loading,
+    viewMode,
+    setViewMode,
+    selectedSquadId,
+    setSelectedSquadId,
+    clubName,
+    squads,
+    filteredSessions,
+    userHasChildren,
+    isCoach,
   };
 }

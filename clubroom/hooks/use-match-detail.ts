@@ -36,7 +36,9 @@ export interface UseMatchDetailResult {
   isComplete: boolean;
   isCancelled: boolean;
   setShowLineupSelector: (value: boolean) => void;
-  handleSetLineup: (lineup: { athleteId: string; position?: string; jerseyNumber?: number; isReserve?: boolean }[]) => Promise<void>;
+  handleSetLineup: (
+    lineup: { athleteId: string; position?: string; jerseyNumber?: number; isReserve?: boolean }[],
+  ) => Promise<void>;
   handlePlayerResponse: (status: 'AVAILABLE' | 'UNAVAILABLE', note?: string) => Promise<void>;
   handleRecordResult: () => void;
   handleCancelMatch: () => void;
@@ -60,18 +62,13 @@ export function useMatchDetail() {
       return ok<MatchDetailData>({ match: data });
     } catch (loadError) {
       logger.error('Failed to load match:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load match details. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load match details. Pull down to refresh.', loadError),
+      );
     }
   }, [id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<MatchDetailData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<MatchDetailData>({
     load: loadMatch,
     deps: [id],
     isEmpty: (value) => value.match === null,
@@ -81,91 +78,125 @@ export function useMatchDetail() {
   const match = data?.match ?? null;
   const loading = status === 'loading';
   const currentPlayerInfo = match?.selectedPlayers.find(
-    (p) => p.parentId === currentUser?.id || p.parentId === 'parent_1'
+    (p) => p.parentId === currentUser?.id || p.parentId === 'parent_1',
   );
 
-  const handleSetLineup = useCallback(async (
-    lineup: { athleteId: string; position?: string; jerseyNumber?: number; isReserve?: boolean }[]
-  ) => {
-    if (!match) return;
-    setIsSubmitting(true);
-    try {
-      const result = await matchService.setLineup({ matchId: match.id, lineup });
-      if (!result.success) {
-        logger.error('Failed to set lineup:', result.error);
+  const handleSetLineup = useCallback(
+    async (
+      lineup: {
+        athleteId: string;
+        position?: string;
+        jerseyNumber?: number;
+        isReserve?: boolean;
+      }[],
+    ) => {
+      if (!match) return;
+      setIsSubmitting(true);
+      try {
+        const result = await matchService.setLineup({ matchId: match.id, lineup });
+        if (!result.success) {
+          logger.error('Failed to set lineup:', result.error);
+          Alert.alert('Error', 'Failed to set lineup. Please try again.');
+          return;
+        }
+        onRefresh();
+        setShowLineupSelector(false);
+        Alert.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
+      } catch (error) {
+        logger.error('Failed to set lineup:', error);
         Alert.alert('Error', 'Failed to set lineup. Please try again.');
-        return;
+      } finally {
+        setIsSubmitting(false);
       }
-      onRefresh();
-      setShowLineupSelector(false);
-      Alert.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
-    } catch (error) {
-      logger.error('Failed to set lineup:', error);
-      Alert.alert('Error', 'Failed to set lineup. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [match, onRefresh]);
+    },
+    [match, onRefresh],
+  );
 
-  const handlePlayerResponse = useCallback(async (status: 'AVAILABLE' | 'UNAVAILABLE', note?: string) => {
-    if (!match || !currentPlayerInfo) return;
-    setIsSubmitting(true);
-    try {
-      const result = await matchService.respondToMatch({
-        matchId: match.id, athleteId: currentPlayerInfo.athleteId,
-        parentId: currentPlayerInfo.parentId, status, note,
-      });
-      if (!result.success) {
-        logger.error('Failed to respond:', result.error);
-        throw new Error(result.error.message);
+  const handlePlayerResponse = useCallback(
+    async (status: 'AVAILABLE' | 'UNAVAILABLE', note?: string) => {
+      if (!match || !currentPlayerInfo) return;
+      setIsSubmitting(true);
+      try {
+        const result = await matchService.respondToMatch({
+          matchId: match.id,
+          athleteId: currentPlayerInfo.athleteId,
+          parentId: currentPlayerInfo.parentId,
+          status,
+          note,
+        });
+        if (!result.success) {
+          logger.error('Failed to respond:', result.error);
+          throw new Error(result.error.message);
+        }
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to respond:', error);
+        throw error;
+      } finally {
+        setIsSubmitting(false);
       }
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to respond:', error);
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [match, currentPlayerInfo, onRefresh]);
+    },
+    [match, currentPlayerInfo, onRefresh],
+  );
 
   const handleRecordResult = useCallback(() => {
-    Alert.prompt('Record Result', 'Enter the final score (home-away, e.g., 3-1)', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Save',
-        onPress: async (score: string | undefined) => {
-          if (!score || !match) return;
-          const [home, away] = score.split('-').map(Number);
-          if (isNaN(home) || isNaN(away)) {
-            Alert.alert('Invalid Score', 'Please enter a valid score like 3-1');
-            return;
-          }
-          try {
-            const result = await matchService.recordResult(match.id, { home, away });
-            if (!result.success) { Alert.alert('Error', 'Failed to record result.'); return; }
-            onRefresh();
-            Alert.alert('Result Recorded', 'The match result has been saved.');
-          } catch { Alert.alert('Error', 'Failed to record result.'); }
+    Alert.prompt(
+      'Record Result',
+      'Enter the final score (home-away, e.g., 3-1)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Save',
+          onPress: async (score: string | undefined) => {
+            if (!score || !match) return;
+            const [home, away] = score.split('-').map(Number);
+            if (isNaN(home) || isNaN(away)) {
+              Alert.alert('Invalid Score', 'Please enter a valid score like 3-1');
+              return;
+            }
+            try {
+              const result = await matchService.recordResult(match.id, { home, away });
+              if (!result.success) {
+                Alert.alert('Error', 'Failed to record result.');
+                return;
+              }
+              onRefresh();
+              Alert.alert('Result Recorded', 'The match result has been saved.');
+            } catch {
+              Alert.alert('Error', 'Failed to record result.');
+            }
+          },
         },
-      },
-    ], 'plain-text');
+      ],
+      'plain-text',
+    );
   }, [match, onRefresh]);
 
   const handleCancelMatch = useCallback(() => {
-    Alert.alert('Cancel Match', 'Are you sure you want to cancel this match? All players will be notified.', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Cancel Match', style: 'destructive',
-        onPress: async () => {
-          if (!match) return;
-          try {
-            const result = await matchService.cancelMatch(match.id);
-            if (!result.success) { Alert.alert('Error', 'Failed to cancel match.'); return; }
-            onRefresh();
-          } catch { Alert.alert('Error', 'Failed to cancel match.'); }
+    Alert.alert(
+      'Cancel Match',
+      'Are you sure you want to cancel this match? All players will be notified.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Cancel Match',
+          style: 'destructive',
+          onPress: async () => {
+            if (!match) return;
+            try {
+              const result = await matchService.cancelMatch(match.id);
+              if (!result.success) {
+                Alert.alert('Error', 'Failed to cancel match.');
+                return;
+              }
+              onRefresh();
+            } catch {
+              Alert.alert('Error', 'Failed to cancel match.');
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   }, [match, onRefresh]);
 
   const isUpcoming = match?.status === 'SCHEDULED' || match?.status === 'LINEUP_SET';
@@ -173,10 +204,24 @@ export function useMatchDetail() {
   const isCancelled = match?.status === 'CANCELLED';
 
   return {
-    match, loading, status, error, refreshing, onRefresh, retry, showLineupSelector, isSubmitting,
-    isCoach, currentPlayerInfo, isUpcoming, isComplete, isCancelled,
+    match,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    showLineupSelector,
+    isSubmitting,
+    isCoach,
+    currentPlayerInfo,
+    isUpcoming,
+    isComplete,
+    isCancelled,
     setShowLineupSelector,
-    handleSetLineup, handlePlayerResponse,
-    handleRecordResult, handleCancelMatch,
+    handleSetLineup,
+    handlePlayerResponse,
+    handleRecordResult,
+    handleCancelMatch,
   } satisfies UseMatchDetailResult;
 }

@@ -66,38 +66,47 @@ export function NotificationsPanel({
     }
   }, [refreshToken, refresh]);
 
-  const handleShare = useCallback(async (item: ExtendedNotificationItem) => {
-    logger.info('badge_view_event', {
-      notificationId: item.id,
-      badgeTitle: item.badgeTitle,
-      athleteName: item.athleteName,
-    });
+  const handleShare = useCallback(
+    async (item: ExtendedNotificationItem) => {
+      logger.info('badge_view_event', {
+        notificationId: item.id,
+        badgeTitle: item.badgeTitle,
+        athleteName: item.athleteName,
+      });
 
-    if (item.badgeAwardId) {
-      await markAsRead(item.id);
-      router.push(Routes.developmentBadgesHighlight(item.badgeAwardId));
-    }
-  }, [markAsRead]);
+      if (item.badgeAwardId) {
+        await markAsRead(item.id);
+        router.push(Routes.developmentBadgesHighlight(item.badgeAwardId));
+      }
+    },
+    [markAsRead],
+  );
 
-  const handleAddToFeed = useCallback(async (item: ExtendedNotificationItem) => {
-    logger.info('badge_add_to_feed', {
-      notificationId: item.id,
-      badgeTitle: item.badgeTitle,
-      athleteName: item.athleteName,
-      badgeAwardId: item.badgeAwardId,
-    });
+  const handleAddToFeed = useCallback(
+    async (item: ExtendedNotificationItem) => {
+      logger.info('badge_add_to_feed', {
+        notificationId: item.id,
+        badgeTitle: item.badgeTitle,
+        athleteName: item.athleteName,
+        badgeAwardId: item.badgeAwardId,
+      });
 
-    if (item.badgeAwardId) {
-      await badgeService.postBadgeToFeed(item.badgeAwardId);
-      await notificationService.markHandled(item.id);
-    }
+      if (item.badgeAwardId) {
+        await badgeService.postBadgeToFeed(item.badgeAwardId);
+        await notificationService.markHandled(item.id);
+      }
 
-    refresh();
-  }, [refresh]);
+      refresh();
+    },
+    [refresh],
+  );
 
-  const handleNotificationPress = useCallback(async (id: string) => {
-    await markAsRead(id);
-  }, [markAsRead]);
+  const handleNotificationPress = useCallback(
+    async (id: string) => {
+      await markAsRead(id);
+    },
+    [markAsRead],
+  );
 
   const visibleItems = limit > 0 ? notifications.slice(0, limit) : notifications;
 
@@ -123,7 +132,9 @@ export function NotificationsPanel({
               item={item}
               onPress={() => handleNotificationPress(item.id)}
               onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
-              onAddToFeed={item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined}
+              onAddToFeed={
+                item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined
+              }
               showTypeIndicator={false}
             />
           ))

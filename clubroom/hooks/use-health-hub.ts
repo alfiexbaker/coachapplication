@@ -39,14 +39,10 @@ export function useHealthHub() {
     }
   }, [userId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ injuries: Injury[]; stats: InjuryStats | null }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
+    injuries: Injury[];
+    stats: InjuryStats | null;
+  }>({
     load: loadData,
     deps: [userId],
     isEmpty: () => false,
@@ -74,13 +70,15 @@ export function useHealthHub() {
 
   const activeCount = useMemo(
     () => injuries.filter((i) => i.status === 'ACTIVE' || i.status === 'RECOVERING').length,
-    [injuries]
+    [injuries],
   );
 
   const avgRecovery = useMemo(() => {
     const recovering = injuries.filter((i) => i.status === 'RECOVERING');
     if (recovering.length === 0) return 0;
-    return Math.round(recovering.reduce((sum, i) => sum + i.recoveryPercent, 0) / recovering.length);
+    return Math.round(
+      recovering.reduce((sum, i) => sum + i.recoveryPercent, 0) / recovering.length,
+    );
   }, [injuries]);
 
   return {

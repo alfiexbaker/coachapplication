@@ -24,7 +24,8 @@ export function EmergencyBanner({
   primaryContact,
   onPressContact,
   onPressMedical,
-  compact = false }: EmergencyBannerProps) {
+  compact = false,
+}: EmergencyBannerProps) {
   const { colors: palette } = useTheme();
 
   const hasAllergies = medical.allergies.length > 0;
@@ -50,7 +51,10 @@ export function EmergencyBanner({
 
   if (compact) {
     return (
-      <Row gap="xs" style={[styles.compactBanner, { backgroundColor: withAlpha(severityColor, 0.06) }]}>
+      <Row
+        gap="xs"
+        style={[styles.compactBanner, { backgroundColor: withAlpha(severityColor, 0.06) }]}
+      >
         {hasAlerts && (
           <Clickable
             onPress={onPressMedical}
@@ -87,7 +91,11 @@ export function EmergencyBanner({
 
   return (
     <View style={[styles.banner, { borderColor: withAlpha(severityColor, 0.25) }]}>
-      <Row align="center" gap="sm" style={[styles.bannerHeader, { borderBottomColor: palette.border }]}>
+      <Row
+        align="center"
+        gap="sm"
+        style={[styles.bannerHeader, { borderBottomColor: palette.border }]}
+      >
         <View style={[styles.iconContainer, { backgroundColor: withAlpha(severityColor, 0.09) }]}>
           <Ionicons name="warning" size={20} color={severityColor} />
         </View>
@@ -103,7 +111,9 @@ export function EmergencyBanner({
               <Row align="start" gap="sm">
                 <Ionicons name="alert-circle" size={16} color={palette.error} />
                 <View style={{ flex: 1 }}>
-                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Allergies</ThemedText>
+                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
+                    Allergies
+                  </ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.allergies.join(', ')}
                   </ThemedText>
@@ -115,7 +125,9 @@ export function EmergencyBanner({
               <Row align="start" gap="sm">
                 <Ionicons name="medical" size={16} color={palette.warning} />
                 <View style={{ flex: 1 }}>
-                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Conditions</ThemedText>
+                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
+                    Conditions
+                  </ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.conditions.join(', ')}
                   </ThemedText>
@@ -127,7 +139,9 @@ export function EmergencyBanner({
               <Row align="start" gap="sm">
                 <Ionicons name="fitness" size={16} color={palette.muted} />
                 <View style={{ flex: 1 }}>
-                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Medications</ThemedText>
+                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
+                    Medications
+                  </ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.medications.join(', ')}
                   </ThemedText>
@@ -140,10 +154,16 @@ export function EmergencyBanner({
 
       {primaryContact && (
         <Clickable onPress={onPressContact}>
-          <Row align="center" gap="sm" style={[styles.contactSection, { borderTopColor: palette.border }]}>
+          <Row
+            align="center"
+            gap="sm"
+            style={[styles.contactSection, { borderTopColor: palette.border }]}
+          >
             <Ionicons name="call" size={18} color={palette.tint} />
             <View style={{ flex: 1 }}>
-              <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Emergency Contact</ThemedText>
+              <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>
+                Emergency Contact
+              </ThemedText>
               <ThemedText style={{ color: palette.text }}>
                 {primaryContact.name} ({primaryContact.relationship})
               </ThemedText>
@@ -161,31 +181,38 @@ const styles = StyleSheet.create({
   banner: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
-    overflow: 'hidden' },
+    overflow: 'hidden',
+  },
   bannerHeader: {
     padding: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'transparent' },
+    borderBottomColor: 'transparent',
+  },
   iconContainer: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   section: {
     padding: Spacing.sm,
-    gap: Spacing.sm },
-  alertLabel: { ...Typography.caption,
-    marginBottom: Spacing.micro },
+    gap: Spacing.sm,
+  },
+  alertLabel: { ...Typography.caption, marginBottom: Spacing.micro },
   contactSection: {
     padding: Spacing.sm,
-    borderTopWidth: 1 },
+    borderTopWidth: 1,
+  },
   compactBanner: {
     padding: Spacing.xs,
-    borderRadius: Radii.md },
+    borderRadius: Radii.md,
+  },
   compactItem: {
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1 },
-  compactText: { ...Typography.caption } });
+    borderWidth: 1,
+  },
+  compactText: { ...Typography.caption },
+});

@@ -17,7 +17,10 @@ interface GroupSessionHeroProps {
   isCoach: boolean;
 }
 
-export const GroupSessionHero = memo(function GroupSessionHero({ session, isCoach }: GroupSessionHeroProps) {
+export const GroupSessionHero = memo(function GroupSessionHero({
+  session,
+  isCoach,
+}: GroupSessionHeroProps) {
   const { colors } = useTheme();
   const typeColor = SESSION_TYPE_COLORS[session.sessionType];
 
@@ -31,11 +34,17 @@ export const GroupSessionHero = memo(function GroupSessionHero({ session, isCoac
         </View>
       )}
       <View style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.2) }]} />
-      <Clickable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: withAlpha(colors.text, 0.4) }]}>
+      <Clickable
+        onPress={() => router.back()}
+        style={[styles.backButton, { backgroundColor: withAlpha(colors.text, 0.4) }]}
+      >
         <Ionicons name="arrow-back" size={22} color={colors.onPrimary} />
       </Clickable>
       {isCoach && (
-        <Clickable onPress={() => router.push(Routes.groupSessionRoster(session.id))} style={[styles.rosterButton, { backgroundColor: withAlpha(colors.text, 0.4) }]}>
+        <Clickable
+          onPress={() => router.push(Routes.groupSessionRoster(session.id))}
+          style={[styles.rosterButton, { backgroundColor: withAlpha(colors.text, 0.4) }]}
+        >
           <Ionicons name="people" size={20} color={colors.onPrimary} />
         </Clickable>
       )}
@@ -53,8 +62,33 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   placeholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
   overlay: { ...StyleSheet.absoluteFillObject },
-  backButton: { position: 'absolute', top: Spacing.md, left: Spacing.md, width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  rosterButton: { position: 'absolute', top: Spacing.md, right: Spacing.md, width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  typeBadge: { position: 'absolute', bottom: Spacing.md, left: Spacing.md, paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  backButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rosterButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typeBadge: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    left: Spacing.md,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   typeText: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
 });

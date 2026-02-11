@@ -20,7 +20,12 @@ export interface SparklineProps {
   height?: number;
 }
 
-export const Sparkline = memo(function Sparkline({ data, color, width = 60, height = 20 }: SparklineProps) {
+export const Sparkline = memo(function Sparkline({
+  data,
+  color,
+  width = 60,
+  height = 20,
+}: SparklineProps) {
   const { colors: palette } = useTheme();
   const lineColor = color || palette.tint;
 

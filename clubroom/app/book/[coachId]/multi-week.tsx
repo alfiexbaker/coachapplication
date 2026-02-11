@@ -26,7 +26,10 @@ export default function MultiWeekScreen() {
 
   if (c.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -34,15 +37,24 @@ export default function MultiWeekScreen() {
 
   if (c.status === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={c.error?.message ?? 'Failed to load multi-week availability.'} onRetry={c.retry} />
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={c.error?.message ?? 'Failed to load multi-week availability.'}
+          onRetry={c.retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (c.status === 'empty') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="calendar-outline"
           title="No multi-week slots found"
@@ -55,14 +67,19 @@ export default function MultiWeekScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <Row style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Clickable>
         <View style={styles.headerText}>
           <ThemedText type="defaultSemiBold">Book Multiple Weeks</ThemedText>
-          <ThemedText style={[Typography.small, { color: palette.muted }]}>{c.coachName} - {c.sessionType}</ThemedText>
+          <ThemedText style={[Typography.small, { color: palette.muted }]}>
+            {c.coachName} - {c.sessionType}
+          </ThemedText>
         </View>
       </Row>
 
@@ -71,11 +88,23 @@ export default function MultiWeekScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={c.refreshing}
+              onRefresh={c.onRefresh}
+              tintColor={palette.tint}
+            />
+          }
         >
-          <MultiWeekConfirmation selectedWeeks={c.selectedWeekRows} coachName={c.coachName}
-            sessionType={c.sessionType} location={c.primaryLocation}
-            loading={c.submitting} onConfirm={c.handleConfirm} onCancel={c.handleCancelConfirmation} />
+          <MultiWeekConfirmation
+            selectedWeeks={c.selectedWeekRows}
+            coachName={c.coachName}
+            sessionType={c.sessionType}
+            location={c.primaryLocation}
+            loading={c.submitting}
+            onConfirm={c.handleConfirm}
+            onCancel={c.handleCancelConfirmation}
+          />
         </ScrollView>
       ) : (
         <>
@@ -83,7 +112,13 @@ export default function MultiWeekScreen() {
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+            refreshControl={
+              <RefreshControl
+                refreshing={c.refreshing}
+                onRefresh={c.onRefresh}
+                tintColor={palette.tint}
+              />
+            }
           >
             <Row style={[styles.infoBanner, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
               <Ionicons name="information-circle-outline" size={18} color={palette.info} />
@@ -91,10 +126,24 @@ export default function MultiWeekScreen() {
                 Select the weeks you want to book. Each session is at the same time and location.
               </ThemedText>
             </Row>
-            <MultiWeekPicker weeks={c.weeks} selectedWeeks={c.selectedWeeks} onToggleWeek={c.handleToggleWeek} />
+            <MultiWeekPicker
+              weeks={c.weeks}
+              selectedWeeks={c.selectedWeeks}
+              onToggleWeek={c.handleToggleWeek}
+            />
           </ScrollView>
-          <View style={[styles.footer, { borderTopColor: palette.border, backgroundColor: palette.surface }]}>
-            <Button variant="primary" onPress={c.handleShowConfirmation} disabled={c.selectedWeeks.size === 0} style={styles.footerButton}>
+          <View
+            style={[
+              styles.footer,
+              { borderTopColor: palette.border, backgroundColor: palette.surface },
+            ]}
+          >
+            <Button
+              variant="primary"
+              onPress={c.handleShowConfirmation}
+              disabled={c.selectedWeeks.size === 0}
+              style={styles.footerButton}
+            >
               {`Review ${c.selectedWeeks.size} Week${c.selectedWeeks.size !== 1 ? 's' : ''}`}
             </Button>
           </View>
@@ -106,12 +155,27 @@ export default function MultiWeekScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  header: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, gap: Spacing.xs },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.xs,
+  },
   backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1, gap: Spacing.micro },
   scrollView: { flex: 1 },
   scrollContent: { padding: Spacing.md, gap: Spacing.md },
-  infoBanner: { alignItems: 'flex-start', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
-  footer: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
+  infoBanner: {
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  footer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   footerButton: { width: '100%' },
 });

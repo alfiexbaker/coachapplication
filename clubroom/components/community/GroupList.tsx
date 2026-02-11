@@ -41,13 +41,9 @@ function GroupListComponent({
 
   const renderItem: ListRenderItem<ParentGroup> = useCallback(
     ({ item }) => (
-      <ParentGroupCard
-        group={item}
-        onPress={() => onGroupPress(item)}
-        compact={compact}
-      />
+      <ParentGroupCard group={item} onPress={() => onGroupPress(item)} compact={compact} />
     ),
-    [onGroupPress, compact]
+    [onGroupPress, compact],
   );
 
   const keyExtractor = useCallback((item: ParentGroup) => item.id, []);
@@ -65,9 +61,7 @@ function GroupListComponent({
         <ThemedText type="subtitle" style={styles.emptyTitle}>
           {emptyTitle}
         </ThemedText>
-        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-          {emptyMessage}
-        </ThemedText>
+        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{emptyMessage}</ThemedText>
         {showCreateButton && onCreateGroup && (
           <Button onPress={onCreateGroup} style={styles.emptyButton}>
             Create Group
@@ -82,15 +76,10 @@ function GroupListComponent({
       data={groups}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      contentContainerStyle={[
-        styles.listContent,
-        groups.length === 0 && styles.emptyListContent,
-      ]}
+      contentContainerStyle={[styles.listContent, groups.length === 0 && styles.emptyListContent]}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        onRefresh ? (
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        ) : undefined
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
       }
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={renderEmptyState}

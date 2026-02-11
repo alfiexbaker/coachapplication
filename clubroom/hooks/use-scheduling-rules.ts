@@ -87,14 +87,7 @@ export function useSchedulingRules() {
     }
   }, [coachId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<CoachSchedulingRules>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CoachSchedulingRules>({
     load: loadRules,
     deps: [coachId],
     isEmpty: () => false,
@@ -140,23 +133,31 @@ export function useSchedulingRules() {
     } finally {
       setSaving(false);
     }
-  }, [coachId, minimumAdvanceHours, maxAdvanceDays, bufferMinutes, allowSameDayBookings, allowRescheduling, rescheduleDeadlineHours]);
+  }, [
+    coachId,
+    minimumAdvanceHours,
+    maxAdvanceDays,
+    bufferMinutes,
+    allowSameDayBookings,
+    allowRescheduling,
+    rescheduleDeadlineHours,
+  ]);
 
-  const updateField = useCallback(<T,>(setter: (value: T) => void) => (value: T) => {
-    setter(value);
-    setHasChanges(true);
-  }, []);
+  const updateField = useCallback(
+    <T>(setter: (value: T) => void) =>
+      (value: T) => {
+        setter(value);
+        setHasChanges(true);
+      },
+    [],
+  );
 
   const handleBack = useCallback(() => {
     if (hasChanges) {
-      Alert.alert(
-        'Unsaved Changes',
-        'You have unsaved changes. Are you sure you want to leave?',
-        [
-          { text: 'Stay', style: 'cancel' },
-          { text: 'Leave', style: 'destructive', onPress: () => router.back() },
-        ]
-      );
+      Alert.alert('Unsaved Changes', 'You have unsaved changes. Are you sure you want to leave?', [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Leave', style: 'destructive', onPress: () => router.back() },
+      ]);
     } else {
       router.back();
     }

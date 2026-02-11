@@ -64,35 +64,39 @@ export const WeekToggleRow = memo(function WeekToggleRow({
   }, [week.weekDate, onToggle]);
 
   return (
-    <Clickable
-      onPress={handlePress}
-    >
-      <Row align="center" justify="space-between" style={[
-        styles.weekRow,
-        {
-          backgroundColor: week.accepted ? withAlpha(palette.success, 0.04) : withAlpha(palette.muted, 0.04),
-          borderColor: week.accepted ? withAlpha(palette.success, 0.2) : palette.border,
-        },
-      ]}>
+    <Clickable onPress={handlePress}>
+      <Row
+        align="center"
+        justify="space-between"
+        style={[
+          styles.weekRow,
+          {
+            backgroundColor: week.accepted
+              ? withAlpha(palette.success, 0.04)
+              : withAlpha(palette.muted, 0.04),
+            borderColor: week.accepted ? withAlpha(palette.success, 0.2) : palette.border,
+          },
+        ]}
+      >
         <View style={styles.weekRowLeft}>
-        <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
-          {formatWeekDate(week.weekDate)}
-        </ThemedText>
-        <Row align="center" gap="xxs">
-          <Ionicons name="time-outline" size={12} color={palette.muted} />
-          <ThemedText style={[Typography.small, { color: palette.muted }]}>
-            {formatTime(week.startTime)} - {formatTime(week.endTime)}
+          <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
+            {formatWeekDate(week.weekDate)}
           </ThemedText>
-        </Row>
-        {week.location ? (
           <Row align="center" gap="xxs">
-            <Ionicons name="location-outline" size={12} color={palette.tint} />
-            <ThemedText style={[Typography.small, { color: palette.tint }]} numberOfLines={1}>
-              {week.location}
+            <Ionicons name="time-outline" size={12} color={palette.muted} />
+            <ThemedText style={[Typography.small, { color: palette.muted }]}>
+              {formatTime(week.startTime)} - {formatTime(week.endTime)}
             </ThemedText>
           </Row>
-        ) : null}
-      </View>
+          {week.location ? (
+            <Row align="center" gap="xxs">
+              <Ionicons name="location-outline" size={12} color={palette.tint} />
+              <ThemedText style={[Typography.small, { color: palette.tint }]} numberOfLines={1}>
+                {week.location}
+              </ThemedText>
+            </Row>
+          ) : null}
+        </View>
         <Ionicons
           name={week.accepted ? 'checkmark-circle' : 'close-circle-outline'}
           size={24}
@@ -121,14 +125,19 @@ export const InviteHeader = memo(function InviteHeader({
   palette,
 }: InviteHeaderProps) {
   const coachFirstName = coachName.split(' ')[0];
-  const initials = coachName.split(' ').map((n) => n[0]).join('');
+  const initials = coachName
+    .split(' ')
+    .map((n) => n[0])
+    .join('');
 
   return (
     <Row align="center" gap="md">
-      <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-        <ThemedText style={[Typography.heading, { color: palette.tint }]}>
-          {initials}
-        </ThemedText>
+      <Row
+        align="center"
+        justify="center"
+        style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+      >
+        <ThemedText style={[Typography.heading, { color: palette.tint }]}>{initials}</ThemedText>
       </Row>
       <View style={styles.headerContent}>
         <ThemedText type="defaultSemiBold">
@@ -166,14 +175,10 @@ export const SelectionControls = memo(function SelectionControls({
       </ThemedText>
       <Row gap="sm">
         <Clickable onPress={onSelectAll} style={styles.selectAllButton}>
-          <ThemedText style={[Typography.small, { color: palette.tint }]}>
-            Select All
-          </ThemedText>
+          <ThemedText style={[Typography.small, { color: palette.tint }]}>Select All</ThemedText>
         </Clickable>
         <Clickable onPress={onDeselectAll} style={styles.selectAllButton}>
-          <ThemedText style={[Typography.small, { color: palette.muted }]}>
-            Clear
-          </ThemedText>
+          <ThemedText style={[Typography.small, { color: palette.muted }]}>Clear</ThemedText>
         </Clickable>
       </Row>
     </Row>
@@ -199,7 +204,8 @@ export const TotalRow = memo(function TotalRow({
         Total ({acceptedCount} week{acceptedCount !== 1 ? 's' : ''})
       </ThemedText>
       <ThemedText type="defaultSemiBold" style={{ color: palette.text }}>
-        {'\u00A3'}{totalCost}
+        {'\u00A3'}
+        {totalCost}
       </ThemedText>
     </Row>
   );

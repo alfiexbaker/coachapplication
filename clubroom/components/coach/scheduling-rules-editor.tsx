@@ -22,14 +22,23 @@ interface SchedulingRulesEditorProps {
 
 export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEditorProps) {
   const { colors: palette } = useTheme();
-  const { loading, rules, toastVisible, toastAnimatedStyle, handleStepperChange, handleToggle } = useSchedulingRulesEditor(coachId, onSaved);
+  const { loading, rules, toastVisible, toastAnimatedStyle, handleStepperChange, handleToggle } =
+    useSchedulingRulesEditor(coachId, onSaved);
 
   if (loading) {
-    return <View style={styles.loadingWrap}><ActivityIndicator size="small" color={palette.tint} /></View>;
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="small" color={palette.tint} />
+      </View>
+    );
   }
 
   if (!rules) {
-    return <View style={styles.loadingWrap}><ThemedText style={{ color: palette.muted }}>Unable to load rules</ThemedText></View>;
+    return (
+      <View style={styles.loadingWrap}>
+        <ThemedText style={{ color: palette.muted }}>Unable to load rules</ThemedText>
+      </View>
+    );
   }
 
   const visibleSteppers = STEPPER_FIELDS.filter((f) => {
@@ -46,19 +55,35 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
         {visibleSteppers.map((config, idx) => (
           <View key={config.key}>
             {idx > 0 && <Divider spacing={Spacing.xs} />}
-            <StepperRow config={config} value={rules[config.key] as number} onChange={(v) => handleStepperChange(config.key, v)} />
+            <StepperRow
+              config={config}
+              value={rules[config.key] as number}
+              onChange={(v) => handleStepperChange(config.key, v)}
+            />
           </View>
         ))}
       </SurfaceCard>
 
       <SurfaceCard style={styles.card}>
-        <ToggleRow icon="today-outline" iconColor={palette.success} label="Same-Day Bookings"
-          helper="Allow athletes to book sessions for today" value={rules.allowSameDayBookings}
-          onValueChange={(v) => handleToggle('allowSameDayBookings', v)} trackColor={palette.success} />
+        <ToggleRow
+          icon="today-outline"
+          iconColor={palette.success}
+          label="Same-Day Bookings"
+          helper="Allow athletes to book sessions for today"
+          value={rules.allowSameDayBookings}
+          onValueChange={(v) => handleToggle('allowSameDayBookings', v)}
+          trackColor={palette.success}
+        />
         <Divider spacing={Spacing.xs} />
-        <ToggleRow icon="swap-horizontal-outline" iconColor={palette.tint} label="Allow Rescheduling"
-          helper="Let athletes change their booking time" value={rules.allowRescheduling}
-          onValueChange={(v) => handleToggle('allowRescheduling', v)} trackColor={palette.tint} />
+        <ToggleRow
+          icon="swap-horizontal-outline"
+          iconColor={palette.tint}
+          label="Allow Rescheduling"
+          helper="Let athletes change their booking time"
+          value={rules.allowRescheduling}
+          onValueChange={(v) => handleToggle('allowRescheduling', v)}
+          trackColor={palette.tint}
+        />
       </SurfaceCard>
     </View>
   );

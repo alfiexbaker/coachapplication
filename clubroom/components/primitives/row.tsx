@@ -12,19 +12,32 @@
  */
 
 import React, { memo } from 'react';
-import { View, type ViewStyle, type StyleProp, type AccessibilityRole, type AccessibilityState } from 'react-native';
+import {
+  View,
+  type ViewStyle,
+  type StyleProp,
+  type AccessibilityRole,
+  type AccessibilityState,
+} from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 
 type SpacingKey = keyof typeof Spacing;
 
-type AlignItems =
-  | 'start' | 'end' | 'center' | 'stretch' | 'baseline'
-  | 'flex-start' | 'flex-end';
+type AlignItems = 'start' | 'end' | 'center' | 'stretch' | 'baseline' | 'flex-start' | 'flex-end';
 
 type JustifyContent =
-  | 'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'
-  | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+  | 'start'
+  | 'end'
+  | 'center'
+  | 'between'
+  | 'around'
+  | 'evenly'
+  | 'flex-start'
+  | 'flex-end'
+  | 'space-between'
+  | 'space-around'
+  | 'space-evenly';
 
 const alignMap: Record<AlignItems, ViewStyle['alignItems']> = {
   start: 'flex-start',

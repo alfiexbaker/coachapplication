@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, TextInput, Modal } from 'react-native';
+import { StyleSheet, TextInput, Modal } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -14,7 +14,13 @@ interface RejectModalProps {
   onCancel: () => void;
 }
 
-export const RejectModal = memo(function RejectModal({ visible, reason, onReasonChange, onConfirm, onCancel }: RejectModalProps) {
+export const RejectModal = memo(function RejectModal({
+  visible,
+  reason,
+  onReasonChange,
+  onConfirm,
+  onCancel,
+}: RejectModalProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -25,24 +31,48 @@ export const RejectModal = memo(function RejectModal({ visible, reason, onReason
         accessibilityRole="button"
         accessibilityLabel="Close reject modal"
       >
-        <Clickable style={[styles.content, { backgroundColor: palette.surface }]} onPress={() => {}} accessibilityRole="none">
-          <ThemedText type="defaultSemiBold" style={styles.title}>Decline Proposal</ThemedText>
+        <Clickable
+          style={[styles.content, { backgroundColor: palette.surface }]}
+          onPress={() => {}}
+          accessibilityRole="none"
+        >
+          <ThemedText type="defaultSemiBold" style={styles.title}>
+            Decline Proposal
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Let them know why this time doesn&apos;t work (optional)
           </ThemedText>
           <TextInput
-            style={[styles.input, { borderColor: palette.border, color: palette.text, backgroundColor: palette.background }]}
+            style={[
+              styles.input,
+              {
+                borderColor: palette.border,
+                color: palette.text,
+                backgroundColor: palette.background,
+              },
+            ]}
             placeholder="e.g., I have another commitment at that time"
             placeholderTextColor={palette.muted}
-            value={reason} onChangeText={onReasonChange}
-            multiline numberOfLines={3} textAlignVertical="top"
+            value={reason}
+            onChangeText={onReasonChange}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
           />
           <Row gap="sm" style={styles.buttons}>
-            <Clickable onPress={onCancel} style={[styles.cancelButton, { borderColor: palette.border }]}>
+            <Clickable
+              onPress={onCancel}
+              style={[styles.cancelButton, { borderColor: palette.border }]}
+            >
               <ThemedText>Cancel</ThemedText>
             </Clickable>
-            <Clickable onPress={onConfirm} style={[styles.confirmButton, { backgroundColor: palette.error }]}>
-              <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>Decline</ThemedText>
+            <Clickable
+              onPress={onConfirm}
+              style={[styles.confirmButton, { backgroundColor: palette.error }]}
+            >
+              <ThemedText style={[styles.confirmText, { color: palette.onPrimary }]}>
+                Decline
+              </ThemedText>
             </Clickable>
           </Row>
         </Clickable>
@@ -53,11 +83,36 @@ export const RejectModal = memo(function RejectModal({ visible, reason, onReason
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
-  content: { width: '100%', maxWidth: 400, padding: Spacing.lg, borderRadius: Radii.lg, gap: Spacing.sm },
+  content: {
+    width: '100%',
+    maxWidth: 400,
+    padding: Spacing.lg,
+    borderRadius: Radii.lg,
+    gap: Spacing.sm,
+  },
   title: { ...Typography.heading },
   subtitle: { ...Typography.small },
-  input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body, minHeight: 80, marginTop: Spacing.xs },
+  input: {
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    ...Typography.body,
+    minHeight: 80,
+    marginTop: Spacing.xs,
+  },
   buttons: { marginTop: Spacing.sm },
-  cancelButton: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
-  confirmButton: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md },
-  confirmText: { fontWeight: '600' } });
+  cancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  confirmButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  confirmText: { fontWeight: '600' },
+});

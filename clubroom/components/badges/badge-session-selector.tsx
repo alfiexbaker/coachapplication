@@ -32,8 +32,13 @@ function formatDate(date: Date | string): string {
 }
 
 export const BadgeSessionSelector = memo(function BadgeSessionSelector({
-  sessionQuery, onQueryChange, filteredSessions, selectedSessionId, onSelectSession,
-  linkedAthlete, selectedSession,
+  sessionQuery,
+  onQueryChange,
+  filteredSessions,
+  selectedSessionId,
+  onSelectSession,
+  linkedAthlete,
+  selectedSession,
 }: BadgeSessionSelectorProps) {
   const { colors } = useTheme();
 
@@ -68,7 +73,9 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
       </Row>
 
       {filteredSessions.length === 0 ? (
-        <ThemedText style={[Typography.small, { color: colors.muted }]}>No matching sessions yet</ThemedText>
+        <ThemedText style={[Typography.small, { color: colors.muted }]}>
+          No matching sessions yet
+        </ThemedText>
       ) : (
         <ScrollView style={styles.sessionList} contentContainerStyle={{ gap: Spacing.xs }}>
           {filteredSessions.map((session) => {
@@ -78,18 +85,32 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
               <Clickable
                 key={session.id}
                 onPress={() => onSelectSession(session.id)}
-                style={[styles.sessionRow, { borderColor: isSelected ? colors.tint : colors.border, backgroundColor: isSelected ? withAlpha(colors.tint, 0.03) : colors.surface }]}
+                style={[
+                  styles.sessionRow,
+                  {
+                    borderColor: isSelected ? colors.tint : colors.border,
+                    backgroundColor: isSelected ? withAlpha(colors.tint, 0.03) : colors.surface,
+                  },
+                ]}
               >
                 <Row gap="sm" align="center" style={{ flex: 1 }}>
                   <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                    <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>{athleteName.charAt(0)}</ThemedText>
+                    <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>
+                      {athleteName.charAt(0)}
+                    </ThemedText>
                   </View>
                   <View style={styles.sessionMeta}>
                     <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
-                    <ThemedText style={{ color: colors.muted }}>{getSessionLabel(session)} · {formatDate(session.completedAt)}</ThemedText>
+                    <ThemedText style={{ color: colors.muted }}>
+                      {getSessionLabel(session)} · {formatDate(session.completedAt)}
+                    </ThemedText>
                   </View>
                 </Row>
-                <Ionicons name={isSelected ? 'checkmark' : 'add'} size={16} color={isSelected ? colors.tint : colors.icon} />
+                <Ionicons
+                  name={isSelected ? 'checkmark' : 'add'}
+                  size={16}
+                  color={isSelected ? colors.tint : colors.icon}
+                />
               </Clickable>
             );
           })}
@@ -101,11 +122,36 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm, padding: Spacing.sm },
-  sessionPill: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
-  inputContainer: { alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.sm, paddingVertical: 8 },
+  sessionPill: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
+  inputContainer: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+  },
   input: { flex: 1, ...Typography.bodySmall },
   sessionList: { maxHeight: 200 },
-  sessionRow: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  sessionRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   sessionMeta: { flex: 1, gap: Spacing.micro },
-  avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

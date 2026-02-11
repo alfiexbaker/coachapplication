@@ -64,7 +64,9 @@ const ExistingSessionRow = memo(function ExistingSessionRow({
         <Ionicons name="football-outline" size={20} color={colors.tint} />
       </View>
       <Column gap="micro" style={styles.sessionInfo}>
-        <ThemedText type="defaultSemiBold" numberOfLines={1}>{session.title}</ThemedText>
+        <ThemedText type="defaultSemiBold" numberOfLines={1}>
+          {session.title}
+        </ThemedText>
         {nextSchedule && (
           <ThemedText style={[styles.sessionMeta, { color: colors.muted }]}>
             {new Date(nextSchedule.date).toLocaleDateString('en-GB', {

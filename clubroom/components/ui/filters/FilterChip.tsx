@@ -93,9 +93,7 @@ export function FilterChip({
           <Ionicons name="checkmark" size={iconSize} color={palette.tint} />
         )}
 
-        {showChevron && active && (
-          <Ionicons name="chevron-down" size={12} color={palette.tint} />
-        )}
+        {showChevron && active && <Ionicons name="chevron-down" size={12} color={palette.tint} />}
       </Row>
     </Clickable>
   );

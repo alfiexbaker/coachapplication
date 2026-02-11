@@ -45,7 +45,10 @@ export function useClubInvite() {
 
   const club = useMemo(() => {
     if (!clubId || !currentUser?.id) return null;
-    return socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId) || null;
+    return (
+      socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId) ||
+      null
+    );
   }, [clubId, currentUser?.id]);
 
   useEffect(() => {
@@ -68,7 +71,9 @@ export function useClubInvite() {
         }
 
         setCompletedBookings(
-          allBookings.filter((booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED'),
+          allBookings.filter(
+            (booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED',
+          ),
         );
       } catch (loadError) {
         logger.error('Failed to load completed bookings for invites', loadError);
@@ -132,7 +137,7 @@ export function useClubInvite() {
     if (!searchQuery) return pastSessionUsers;
     const query = searchQuery.toLowerCase();
     return pastSessionUsers.filter(
-      (u) => u.userName.toLowerCase().includes(query) || u.childName?.toLowerCase().includes(query)
+      (u) => u.userName.toLowerCase().includes(query) || u.childName?.toLowerCase().includes(query),
     );
   }, [pastSessionUsers, searchQuery]);
 
@@ -185,12 +190,21 @@ export function useClubInvite() {
 
   return {
     loading,
-    activeTab, setActiveTab,
-    searchQuery, setSearchQuery,
-    selectedUsers, selectedRole, setSelectedRole,
-    manualEmail, setManualEmail,
-    isInviting, club,
+    activeTab,
+    setActiveTab,
+    searchQuery,
+    setSearchQuery,
+    selectedUsers,
+    selectedRole,
+    setSelectedRole,
+    manualEmail,
+    setManualEmail,
+    isInviting,
+    club,
     filteredUsers,
-    toggleUserSelection, handleSelectAll, handleSendInvites, handleManualInvite,
+    toggleUserSelection,
+    handleSelectAll,
+    handleSendInvites,
+    handleManualInvite,
   };
 }

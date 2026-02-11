@@ -21,17 +21,28 @@ export default function SettingsHubScreen() {
   const { currentUser, isCoach, userHasChildren, handleLogout } = useSettingsHub();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row justify="space-between" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>Settings</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Settings
+        </ThemedText>
         <View style={{ width: 24 }} />
       </Row>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SurfaceCard style={styles.profileCard} onPress={() => { logger.press('ProfileCard'); router.push(Routes.EDIT_PROFILE); }}>
+        <SurfaceCard
+          style={styles.profileCard}
+          onPress={() => {
+            logger.press('ProfileCard');
+            router.push(Routes.EDIT_PROFILE);
+          }}
+        >
           <Row align="center" gap="md">
             {currentUser?.avatar ? (
               <Image source={{ uri: currentUser.avatar }} style={styles.profilePhoto} />
@@ -41,51 +52,189 @@ export default function SettingsHubScreen() {
               </View>
             )}
             <View style={styles.profileInfo}>
-              <ThemedText type="subtitle" style={styles.profileName}>{currentUser?.fullName || currentUser?.name || 'User'}</ThemedText>
-              <ThemedText style={[styles.profileEmail, { color: colors.muted }]}>{currentUser?.email || 'Not set'}</ThemedText>
+              <ThemedText type="subtitle" style={styles.profileName}>
+                {currentUser?.fullName || currentUser?.name || 'User'}
+              </ThemedText>
+              <ThemedText style={[styles.profileEmail, { color: colors.muted }]}>
+                {currentUser?.email || 'Not set'}
+              </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.muted} />
           </Row>
         </SurfaceCard>
 
         <SettingsSection title="Account">
-          <SettingsRow icon="person" title="Account" subtitle="Email, password, delete account" onPress={() => { logger.press('AccountSettings'); router.push(Routes.SETTINGS_ACCOUNT); }} />
-          {isCoach && <SettingsRow icon="briefcase" title="Coach Profile" subtitle="Services, rates, verification" onPress={() => { logger.press('CoachProfile'); router.push(Routes.COACH_PROFILE); }} />}
-          {isCoach && <SettingsRow icon="calendar" title="Availability" subtitle="Set your schedule and time slots" onPress={() => { logger.press('Availability'); router.push(Routes.AVAILABILITY); }} />}
-          {(userHasChildren || currentUser?.hasChildren) && <SettingsRow icon="people" title="Children" subtitle="Manage your children's profiles" onPress={() => { logger.press('ChildrenManagement'); router.push(Routes.CHILDREN); }} />}
+          <SettingsRow
+            icon="person"
+            title="Account"
+            subtitle="Email, password, delete account"
+            onPress={() => {
+              logger.press('AccountSettings');
+              router.push(Routes.SETTINGS_ACCOUNT);
+            }}
+          />
+          {isCoach && (
+            <SettingsRow
+              icon="briefcase"
+              title="Coach Profile"
+              subtitle="Services, rates, verification"
+              onPress={() => {
+                logger.press('CoachProfile');
+                router.push(Routes.COACH_PROFILE);
+              }}
+            />
+          )}
+          {isCoach && (
+            <SettingsRow
+              icon="calendar"
+              title="Availability"
+              subtitle="Set your schedule and time slots"
+              onPress={() => {
+                logger.press('Availability');
+                router.push(Routes.AVAILABILITY);
+              }}
+            />
+          )}
+          {(userHasChildren || currentUser?.hasChildren) && (
+            <SettingsRow
+              icon="people"
+              title="Children"
+              subtitle="Manage your children's profiles"
+              onPress={() => {
+                logger.press('ChildrenManagement');
+                router.push(Routes.CHILDREN);
+              }}
+            />
+          )}
         </SettingsSection>
 
         <SettingsSection title="Preferences">
-          <SettingsRow icon="notifications" title="Notifications" subtitle="Push, email, and session reminders" onPress={() => { logger.press('NotificationSettings'); router.push(Routes.SETTINGS_NOTIFICATIONS); }} />
-          <SettingsRow icon="calendar" title="Calendar Sync" subtitle="Export sessions to Google/Apple Calendar" onPress={() => { logger.press('CalendarSync'); router.push(Routes.SETTINGS_CALENDAR_SYNC); }} />
-          <SettingsRow icon="moon" title="Appearance" subtitle="Dark mode and display settings" onPress={() => { logger.press('AppearanceSettings'); router.push(Routes.SETTINGS_APPEARANCE); }} />
-          <SettingsRow icon="language" title="Language" value="English (UK)" onPress={() => { logger.press('Language'); Alert.alert('Language', 'Additional languages not available'); }} />
+          <SettingsRow
+            icon="notifications"
+            title="Notifications"
+            subtitle="Push, email, and session reminders"
+            onPress={() => {
+              logger.press('NotificationSettings');
+              router.push(Routes.SETTINGS_NOTIFICATIONS);
+            }}
+          />
+          <SettingsRow
+            icon="calendar"
+            title="Calendar Sync"
+            subtitle="Export sessions to Google/Apple Calendar"
+            onPress={() => {
+              logger.press('CalendarSync');
+              router.push(Routes.SETTINGS_CALENDAR_SYNC);
+            }}
+          />
+          <SettingsRow
+            icon="moon"
+            title="Appearance"
+            subtitle="Dark mode and display settings"
+            onPress={() => {
+              logger.press('AppearanceSettings');
+              router.push(Routes.SETTINGS_APPEARANCE);
+            }}
+          />
+          <SettingsRow
+            icon="language"
+            title="Language"
+            value="English (UK)"
+            onPress={() => {
+              logger.press('Language');
+              Alert.alert('Language', 'Additional languages not available');
+            }}
+          />
         </SettingsSection>
 
         <SettingsSection title="Privacy & Security">
-          <SettingsRow icon="shield-checkmark" title="Privacy" subtitle="Profile visibility and data sharing" onPress={() => { logger.press('PrivacySettings'); router.push(Routes.SETTINGS_PRIVACY); }} />
-          <SettingsRow icon="lock-closed" title="Security" subtitle="Password and account protection" onPress={() => { logger.press('Security'); Alert.alert('Coming Soon', 'Security settings coming in Sprint 2'); }} />
+          <SettingsRow
+            icon="shield-checkmark"
+            title="Privacy"
+            subtitle="Profile visibility and data sharing"
+            onPress={() => {
+              logger.press('PrivacySettings');
+              router.push(Routes.SETTINGS_PRIVACY);
+            }}
+          />
+          <SettingsRow
+            icon="lock-closed"
+            title="Security"
+            subtitle="Password and account protection"
+            onPress={() => {
+              logger.press('Security');
+              Alert.alert('Coming Soon', 'Security settings coming in Sprint 2');
+            }}
+          />
         </SettingsSection>
 
         {(isCoach || userHasChildren) && (
           <SettingsSection title="Payments">
-            <SettingsRow icon="card" title="Payment Methods" subtitle={isCoach ? 'Manage how you get paid' : 'Manage your payment methods'} onPress={() => { logger.press('PaymentMethods'); router.push(Routes.PAYMENT_METHODS); }} />
-            {isCoach && <SettingsRow icon="wallet" title="Earnings" subtitle="View your earnings and payouts" onPress={() => { logger.press('Earnings'); router.push(Routes.EARNINGS); }} />}
+            <SettingsRow
+              icon="card"
+              title="Payment Methods"
+              subtitle={isCoach ? 'Manage how you get paid' : 'Manage your payment methods'}
+              onPress={() => {
+                logger.press('PaymentMethods');
+                router.push(Routes.PAYMENT_METHODS);
+              }}
+            />
+            {isCoach && (
+              <SettingsRow
+                icon="wallet"
+                title="Earnings"
+                subtitle="View your earnings and payouts"
+                onPress={() => {
+                  logger.press('Earnings');
+                  router.push(Routes.EARNINGS);
+                }}
+              />
+            )}
           </SettingsSection>
         )}
 
         <SettingsSection title="Support">
-          <SettingsRow icon="help-circle" title="Help & Support" subtitle="FAQ, contact us, report a problem" onPress={() => { logger.press('HelpSupport'); router.push(Routes.SETTINGS_HELP); }} />
-          <SettingsRow icon="information-circle" title="About" subtitle="Version, terms, privacy policy" onPress={() => { logger.press('About'); Alert.alert('Clubroom', 'Version 1.0.0\n\nBuilt with care for athletes, coaches, and parents.', [{ text: 'OK' }]); }} />
+          <SettingsRow
+            icon="help-circle"
+            title="Help & Support"
+            subtitle="FAQ, contact us, report a problem"
+            onPress={() => {
+              logger.press('HelpSupport');
+              router.push(Routes.SETTINGS_HELP);
+            }}
+          />
+          <SettingsRow
+            icon="information-circle"
+            title="About"
+            subtitle="Version, terms, privacy policy"
+            onPress={() => {
+              logger.press('About');
+              Alert.alert(
+                'Clubroom',
+                'Version 1.0.0\n\nBuilt with care for athletes, coaches, and parents.',
+                [{ text: 'OK' }],
+              );
+            }}
+          />
         </SettingsSection>
 
         <SettingsSection>
-          <SettingsRow icon="log-out" title="Sign Out" onPress={handleLogout} showChevron={false} destructive />
+          <SettingsRow
+            icon="log-out"
+            title="Sign Out"
+            onPress={handleLogout}
+            showChevron={false}
+            destructive
+          />
         </SettingsSection>
 
         <View style={styles.versionContainer}>
-          <ThemedText style={[styles.versionText, { color: colors.muted }]}>Clubroom v1.0.0</ThemedText>
-          <ThemedText style={[styles.versionText, { color: colors.muted }]}>{currentUser?.role ?? 'GUEST'} account</ThemedText>
+          <ThemedText style={[styles.versionText, { color: colors.muted }]}>
+            Clubroom v1.0.0
+          </ThemedText>
+          <ThemedText style={[styles.versionText, { color: colors.muted }]}>
+            {currentUser?.role ?? 'GUEST'} account
+          </ThemedText>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -98,7 +247,13 @@ const styles = StyleSheet.create({
   headerTitle: { ...Typography.heading },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
   profileCard: { marginBottom: Spacing.xs },
-  profilePhoto: { width: Components.avatar.lg, height: Components.avatar.lg, borderRadius: Components.avatar.lg / 2, justifyContent: 'center', alignItems: 'center' },
+  profilePhoto: {
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   profileInfo: { flex: 1, gap: Spacing.micro },
   profileName: { ...Typography.heading },
   profileEmail: { ...Typography.bodySmall },

@@ -36,12 +36,24 @@ interface Props {
 }
 
 function SubscribeOptionsSectionInner({
-  athletes, selectedAthleteId, onAthleteChange,
-  sessionTypes, sessionType, onSessionTypeChange,
-  duration, onDurationChange,
-  location, onLocationChange,
-  notes, onNotesChange,
-  hasEndDate, onToggleEndDate, endDate, showEndDatePicker, onShowEndDatePicker, onEndDateChange,
+  athletes,
+  selectedAthleteId,
+  onAthleteChange,
+  sessionTypes,
+  sessionType,
+  onSessionTypeChange,
+  duration,
+  onDurationChange,
+  location,
+  onLocationChange,
+  notes,
+  onNotesChange,
+  hasEndDate,
+  onToggleEndDate,
+  endDate,
+  showEndDatePicker,
+  onShowEndDatePicker,
+  onEndDateChange,
 }: Props) {
   const { colors: palette } = useTheme();
 
@@ -50,7 +62,9 @@ function SubscribeOptionsSectionInner({
       {/* Athlete Selector */}
       {athletes && athletes.length > 1 && (
         <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Booking For</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Booking For
+          </ThemedText>
           <Row wrap gap="xs">
             {athletes.map((athlete) => {
               const isSelected = selectedAthleteId === athlete.id;
@@ -58,10 +72,22 @@ function SubscribeOptionsSectionInner({
                 <Clickable
                   key={athlete.id}
                   onPress={() => onAthleteChange(athlete.id)}
-                  style={[styles.chipOption, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.1) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}
+                  style={[
+                    styles.chipOption,
+                    {
+                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.1) : palette.surface,
+                      borderColor: isSelected ? palette.tint : palette.border,
+                    },
+                  ]}
                 >
-                  <Ionicons name={isSelected ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={isSelected ? palette.tint : palette.muted} />
-                  <ThemedText style={{ color: isSelected ? palette.tint : palette.foreground }}>{athlete.name}</ThemedText>
+                  <Ionicons
+                    name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={20}
+                    color={isSelected ? palette.tint : palette.muted}
+                  />
+                  <ThemedText style={{ color: isSelected ? palette.tint : palette.foreground }}>
+                    {athlete.name}
+                  </ThemedText>
                 </Clickable>
               );
             })}
@@ -71,7 +97,9 @@ function SubscribeOptionsSectionInner({
 
       {/* Session Type */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Session Type</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Session Type
+        </ThemedText>
         <Row wrap gap="xs">
           {sessionTypes.map((type) => {
             const isSelected = sessionType === type;
@@ -79,9 +107,22 @@ function SubscribeOptionsSectionInner({
               <Clickable
                 key={type}
                 onPress={() => onSessionTypeChange(type)}
-                style={[styles.typeOption, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.1) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}
+                style={[
+                  styles.typeOption,
+                  {
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.1) : palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
               >
-                <ThemedText style={[styles.typeText, { color: isSelected ? palette.tint : palette.foreground }]}>{type}</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.typeText,
+                    { color: isSelected ? palette.tint : palette.foreground },
+                  ]}
+                >
+                  {type}
+                </ThemedText>
               </Clickable>
             );
           })}
@@ -90,7 +131,9 @@ function SubscribeOptionsSectionInner({
 
       {/* Duration */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Duration</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Duration
+        </ThemedText>
         <Row gap="xs">
           {DURATION_OPTIONS.map((d) => {
             const isSelected = duration === d;
@@ -98,9 +141,22 @@ function SubscribeOptionsSectionInner({
               <Clickable
                 key={d}
                 onPress={() => onDurationChange(d)}
-                style={[styles.durationOption, { backgroundColor: isSelected ? palette.tint : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}
+                style={[
+                  styles.durationOption,
+                  {
+                    backgroundColor: isSelected ? palette.tint : palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
               >
-                <ThemedText style={[styles.durationText, { color: isSelected ? palette.onPrimary : palette.foreground }]}>{d} min</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.durationText,
+                    { color: isSelected ? palette.onPrimary : palette.foreground },
+                  ]}
+                >
+                  {d} min
+                </ThemedText>
               </Clickable>
             );
           })}
@@ -109,9 +165,18 @@ function SubscribeOptionsSectionInner({
 
       {/* Location */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Location</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Location
+        </ThemedText>
         <TextInput
-          style={[styles.textInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.foreground }]}
+          style={[
+            styles.textInput,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              color: palette.foreground,
+            },
+          ]}
           placeholder="Enter session location"
           placeholderTextColor={palette.muted}
           value={location}
@@ -122,23 +187,57 @@ function SubscribeOptionsSectionInner({
       {/* End Date */}
       <View style={styles.section}>
         <Row justify="between" align="center">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>End Date</ThemedText>
-          <Clickable onPress={onToggleEndDate} style={[styles.toggleButton, { backgroundColor: hasEndDate ? withAlpha(palette.tint, 0.1) : palette.surface }]}>
-            <Ionicons name={hasEndDate ? 'checkbox' : 'square-outline'} size={20} color={hasEndDate ? palette.tint : palette.muted} />
-            <ThemedText style={[styles.toggleText, { color: hasEndDate ? palette.tint : palette.muted }]}>Set end date</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            End Date
+          </ThemedText>
+          <Clickable
+            onPress={onToggleEndDate}
+            style={[
+              styles.toggleButton,
+              { backgroundColor: hasEndDate ? withAlpha(palette.tint, 0.1) : palette.surface },
+            ]}
+          >
+            <Ionicons
+              name={hasEndDate ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={hasEndDate ? palette.tint : palette.muted}
+            />
+            <ThemedText
+              style={[styles.toggleText, { color: hasEndDate ? palette.tint : palette.muted }]}
+            >
+              Set end date
+            </ThemedText>
           </Clickable>
         </Row>
         {hasEndDate && (
           <>
-            <Clickable onPress={() => onShowEndDatePicker(true)} style={[styles.timeSelector, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Clickable
+              onPress={() => onShowEndDatePicker(true)}
+              style={[
+                styles.timeSelector,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ]}
+            >
               <Ionicons name="calendar-outline" size={20} color={palette.icon} />
               <ThemedText style={styles.timeText}>
-                {endDate ? endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select end date'}
+                {endDate
+                  ? endDate.toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'Select end date'}
               </ThemedText>
               <Ionicons name="chevron-down" size={16} color={palette.muted} />
             </Clickable>
             {showEndDatePicker && (
-              <DateTimePicker value={endDate || new Date()} mode="date" minimumDate={new Date()} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onEndDateChange} />
+              <DateTimePicker
+                value={endDate || new Date()}
+                mode="date"
+                minimumDate={new Date()}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onEndDateChange}
+              />
             )}
           </>
         )}
@@ -146,9 +245,19 @@ function SubscribeOptionsSectionInner({
 
       {/* Notes */}
       <View style={styles.section}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Notes (Optional)</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+          Notes (Optional)
+        </ThemedText>
         <TextInput
-          style={[styles.textInput, styles.notesInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.foreground }]}
+          style={[
+            styles.textInput,
+            styles.notesInput,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              color: palette.foreground,
+            },
+          ]}
           placeholder="Any special requests or notes for your coach"
           placeholderTextColor={palette.muted}
           value={notes}
@@ -165,15 +274,48 @@ export const SubscribeOptionsSection = memo(SubscribeOptionsSectionInner);
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionTitle: { marginBottom: Spacing.xxs },
-  chipOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1 },
-  typeOption: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  chipOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  typeOption: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   typeText: { ...Typography.small, fontWeight: '500' },
-  durationOption: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center' },
+  durationOption: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
   durationText: { ...Typography.smallSemiBold },
   textInput: { borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md, ...Typography.body },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
-  toggleButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   toggleText: { ...Typography.small },
-  timeSelector: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  timeSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   timeText: { flex: 1, ...Typography.body },
 });

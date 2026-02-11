@@ -6,10 +6,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { RosterFilters } from '@/services/roster-service';
+import { RosterFilters, rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { rosterService } from '@/services/roster-service';
 
 interface AthleteFiltersProps {
   filters: RosterFilters;
@@ -92,30 +91,32 @@ export function AthleteFilters({
           {STATUS_OPTIONS.map((status) => {
             const statusColor = rosterService.getStatusColor(status.key);
             return (
-            <Clickable
-              key={status.key}
-              onPress={() => toggleStatus(status.key)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor:
-                    filters.status === status.key ? withAlpha(statusColor, 0.09) : palette.surfaceSecondary,
-                  borderColor: filters.status === status.key ? statusColor : 'transparent',
-                },
-              ]}
-            >
-              <Row align="center" gap="xxs">
-                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                <ThemedText
-                  style={[
-                    styles.chipText,
-                    { color: filters.status === status.key ? statusColor : palette.text },
-                  ]}
-                >
-                  {status.label}
-                </ThemedText>
-              </Row>
-            </Clickable>
+              <Clickable
+                key={status.key}
+                onPress={() => toggleStatus(status.key)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor:
+                      filters.status === status.key
+                        ? withAlpha(statusColor, 0.09)
+                        : palette.surfaceSecondary,
+                    borderColor: filters.status === status.key ? statusColor : 'transparent',
+                  },
+                ]}
+              >
+                <Row align="center" gap="xxs">
+                  <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                  <ThemedText
+                    style={[
+                      styles.chipText,
+                      { color: filters.status === status.key ? statusColor : palette.text },
+                    ]}
+                  >
+                    {status.label}
+                  </ThemedText>
+                </Row>
+              </Clickable>
             );
           })}
         </ScrollView>
@@ -174,11 +175,16 @@ export function AthleteFilters({
                 >
                   <Row align="center" gap="xxs">
                     <ThemedText
-                      style={[styles.tagText, { color: isSelected ? palette.onPrimary : palette.text }]}
+                      style={[
+                        styles.tagText,
+                        { color: isSelected ? palette.onPrimary : palette.text },
+                      ]}
                     >
                       {tag}
                     </ThemedText>
-                    {isSelected && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
+                    )}
                   </Row>
                 </Clickable>
               );

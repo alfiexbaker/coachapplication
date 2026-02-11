@@ -9,7 +9,13 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { DAYS, MONTHS, ChildFilterRow, CalendarDayGrid, EventListSection } from './family-calendar-sections';
+import {
+  DAYS,
+  MONTHS,
+  ChildFilterRow,
+  CalendarDayGrid,
+  EventListSection,
+} from './family-calendar-sections';
 import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -91,16 +97,28 @@ export function FamilyCalendar({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  const selectedDateEvents = useMemo(() => getEventsForDate(selectedDate), [selectedDate, getEventsForDate]);
+  const selectedDateEvents = useMemo(
+    () => getEventsForDate(selectedDate),
+    [selectedDate, getEventsForDate],
+  );
 
   return (
     <View style={styles.container}>
-      <ChildFilterRow members={members} selectedChildId={selectedChildId} onChildFilterChange={onChildFilterChange} palette={palette} />
+      <ChildFilterRow
+        members={members}
+        selectedChildId={selectedChildId}
+        onChildFilterChange={onChildFilterChange}
+        palette={palette}
+      />
 
       <SurfaceCard style={styles.calendarCard}>
         {/* Month navigation */}
         <Row style={styles.header}>
-          <Clickable accessibilityLabel="Go back" onPress={goToPreviousMonth} style={styles.navButton}>
+          <Clickable
+            accessibilityLabel="Go back"
+            onPress={goToPreviousMonth}
+            style={styles.navButton}
+          >
             <Ionicons name="chevron-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="defaultSemiBold" style={styles.monthTitle}>
@@ -115,7 +133,9 @@ export function FamilyCalendar({
         <Row style={styles.dayHeaders}>
           {DAYS.map((day) => (
             <View key={day} style={styles.dayHeaderCell}>
-              <ThemedText style={[styles.dayHeaderText, { color: palette.muted }]}>{day}</ThemedText>
+              <ThemedText style={[styles.dayHeaderText, { color: palette.muted }]}>
+                {day}
+              </ThemedText>
             </View>
           ))}
         </Row>
@@ -130,7 +150,12 @@ export function FamilyCalendar({
         />
       </SurfaceCard>
 
-      <EventListSection events={selectedDateEvents} selectedDate={selectedDate} onEventPress={onEventPress} palette={palette} />
+      <EventListSection
+        events={selectedDateEvents}
+        selectedDate={selectedDate}
+        onEventPress={onEventPress}
+        palette={palette}
+      />
     </View>
   );
 }

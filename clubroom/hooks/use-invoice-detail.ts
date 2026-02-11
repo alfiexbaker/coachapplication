@@ -76,11 +76,17 @@ export function useInvoiceDetail() {
     Alert.alert('Mark as Paid', 'Are you sure you want to mark this invoice as paid?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Mark Paid', onPress: async () => {
+        text: 'Mark Paid',
+        onPress: async () => {
           setActionLoading(true);
-          try { await invoiceService.markAsPaid(invoice.id); onRefresh(); }
-          catch { Alert.alert('Error', 'Failed to update invoice'); }
-          finally { setActionLoading(false); }
+          try {
+            await invoiceService.markAsPaid(invoice.id);
+            onRefresh();
+          } catch {
+            Alert.alert('Error', 'Failed to update invoice');
+          } finally {
+            setActionLoading(false);
+          }
         },
       },
     ]);
@@ -88,17 +94,28 @@ export function useInvoiceDetail() {
 
   const handleVoidInvoice = useCallback(async () => {
     if (!invoice) return;
-    Alert.alert('Void Invoice', 'Are you sure you want to void this invoice? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Void Invoice', style: 'destructive', onPress: async () => {
-          setActionLoading(true);
-          try { await invoiceService.voidInvoice(invoice.id, 'Voided by user'); onRefresh(); }
-          catch { Alert.alert('Error', 'Failed to void invoice'); }
-          finally { setActionLoading(false); }
+    Alert.alert(
+      'Void Invoice',
+      'Are you sure you want to void this invoice? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Void Invoice',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              await invoiceService.voidInvoice(invoice.id, 'Voided by user');
+              onRefresh();
+            } catch {
+              Alert.alert('Error', 'Failed to void invoice');
+            } finally {
+              setActionLoading(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   }, [invoice, onRefresh]);
 
   const goBack = useCallback(() => router.back(), []);
@@ -121,8 +138,16 @@ export function useInvoiceDetail() {
     actionLoading,
     showSendModal,
     sendEmail,
-    isCoach, canSend, canMarkPaid, canVoid,
-    setSendEmail, handleSendInvoice, handleMarkPaid, handleVoidInvoice,
-    goBack, openSendModal, closeSendModal,
+    isCoach,
+    canSend,
+    canMarkPaid,
+    canVoid,
+    setSendEmail,
+    handleSendInvoice,
+    handleMarkPaid,
+    handleVoidInvoice,
+    goBack,
+    openSendModal,
+    closeSendModal,
   };
 }

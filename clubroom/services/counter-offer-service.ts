@@ -138,7 +138,10 @@ async function saveCounterOffersToStorage(offers: CounterOffer[]): Promise<void>
 
 async function loadNegotiationsFromStorage(): Promise<NegotiationHistory[]> {
   try {
-    const stored = await apiClient.get<NegotiationHistory[] | null>(STORAGE_KEYS.NEGOTIATIONS, null);
+    const stored = await apiClient.get<NegotiationHistory[] | null>(
+      STORAGE_KEYS.NEGOTIATIONS,
+      null,
+    );
     if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load negotiations', error);
@@ -169,7 +172,9 @@ export const counterOfferService = {
    * Create a new counter-offer for a booking
    * Sends notification to the other party
    */
-  async createCounterOffer(input: CreateCounterOfferInput): Promise<Result<CounterOffer, ServiceError>> {
+  async createCounterOffer(
+    input: CreateCounterOfferInput,
+  ): Promise<Result<CounterOffer, ServiceError>> {
     try {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + (input.expiryHours || DEFAULT_EXPIRY_HOURS));
@@ -324,7 +329,7 @@ export const counterOfferService = {
           const scheduledAt = `${offer.proposedTime.date}T${offer.proposedTime.startTime}:00`;
           const [startH, startM] = offer.proposedTime.startTime.split(':').map(Number);
           const [endH, endM] = offer.proposedTime.endTime.split(':').map(Number);
-          const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+          const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
           const [coachName, athleteName, parentName] = await Promise.all([
             resolveUserName(negotiation.coachId, 'Coach'),
             resolveUserName(negotiation.athleteId, 'Athlete'),
@@ -346,9 +351,13 @@ export const counterOfferService = {
           });
 
           if (bookingResult.success) {
-            logger.info('Booking created from counter-offer', { bookingId: bookingResult.data?.id });
+            logger.info('Booking created from counter-offer', {
+              bookingId: bookingResult.data?.id,
+            });
           } else {
-            logger.error('Failed to create booking from counter-offer', { error: bookingResult.error?.message });
+            logger.error('Failed to create booking from counter-offer', {
+              error: bookingResult.error?.message,
+            });
           }
         }
       }
@@ -378,7 +387,9 @@ export const counterOfferService = {
    * Reject a counter-offer with optional reason
    * Notifies proposer of rejection
    */
-  async rejectCounterOffer(input: RejectCounterOfferInput): Promise<Result<CounterOffer, ServiceError>> {
+  async rejectCounterOffer(
+    input: RejectCounterOfferInput,
+  ): Promise<Result<CounterOffer, ServiceError>> {
     if (USE_MOCK) {
       counterOffersCache = await loadCounterOffersFromStorage();
       const index = counterOffersCache.findIndex((o) => o.id === input.offerId);
@@ -492,7 +503,7 @@ export const counterOfferService = {
    */
   async getPendingCounterOffers(
     userId: string,
-    role: CounterOfferProposerRole
+    role: CounterOfferProposerRole,
   ): Promise<Result<CounterOffer[], ServiceError>> {
     try {
       if (USE_MOCK) {
@@ -500,19 +511,21 @@ export const counterOfferService = {
         const now = new Date();
 
         // Get offers where user is the recipient (not proposer)
-        return ok(counterOffersCache.filter((o) => {
-          // Only pending offers
-          if (o.status !== 'PENDING') return false;
+        return ok(
+          counterOffersCache.filter((o) => {
+            // Only pending offers
+            if (o.status !== 'PENDING') return false;
 
-          // Not expired
-          if (new Date(o.expiresAt) <= now) return false;
+            // Not expired
+            if (new Date(o.expiresAt) <= now) return false;
 
-          // User is the recipient (opposite role from proposer)
-          // If proposer is PARENT, recipient is COACH, and vice versa
-          // We check if the user is the one who should respond
-          // This is simplified - in production we'd check actual recipient ID
-          return o.proposedBy !== role;
-        }));
+            // User is the recipient (opposite role from proposer)
+            // If proposer is PARENT, recipient is COACH, and vice versa
+            // We check if the user is the one who should respond
+            // This is simplified - in production we'd check actual recipient ID
+            return o.proposedBy !== role;
+          }),
+        );
       }
 
       const response = await fetch(`/api/counter-offers/pending?userId=${userId}&role=${role}`);
@@ -533,16 +546,18 @@ export const counterOfferService = {
         counterOffersCache = await loadCounterOffersFromStorage();
         const now = new Date();
 
-        return ok(counterOffersCache.filter((o) => {
-          // Only pending offers
-          if (o.status !== 'PENDING') return false;
+        return ok(
+          counterOffersCache.filter((o) => {
+            // Only pending offers
+            if (o.status !== 'PENDING') return false;
 
-          // Not expired
-          if (new Date(o.expiresAt) <= now) return false;
+            // Not expired
+            if (new Date(o.expiresAt) <= now) return false;
 
-          // User is NOT the proposer (they need to respond)
-          return o.proposerId !== userId;
-        }));
+            // User is NOT the proposer (they need to respond)
+            return o.proposerId !== userId;
+          }),
+        );
       }
 
       const response = await fetch(`/api/counter-offers/actionable?userId=${userId}`);
@@ -556,7 +571,9 @@ export const counterOfferService = {
   /**
    * Get the full negotiation history for a booking
    */
-  async getNegotiationHistory(bookingId: string): Promise<Result<NegotiationHistory | null, ServiceError>> {
+  async getNegotiationHistory(
+    bookingId: string,
+  ): Promise<Result<NegotiationHistory | null, ServiceError>> {
     try {
       if (USE_MOCK) {
         negotiationsCache = await loadNegotiationsFromStorage();
@@ -579,11 +596,11 @@ export const counterOfferService = {
     try {
       if (USE_MOCK) {
         negotiationsCache = await loadNegotiationsFromStorage();
-        return ok(negotiationsCache.filter(
-          (n) =>
-            n.status === 'IN_PROGRESS' &&
-            (n.coachId === userId || n.parentId === userId)
-        ));
+        return ok(
+          negotiationsCache.filter(
+            (n) => n.status === 'IN_PROGRESS' && (n.coachId === userId || n.parentId === userId),
+          ),
+        );
       }
 
       const response = await fetch(`/api/negotiations?userId=${userId}&status=IN_PROGRESS`);
@@ -657,14 +674,19 @@ export const counterOfferService = {
   /**
    * Get stats for a booking's negotiation
    */
-  async getNegotiationStats(bookingId: string): Promise<Result<{
-    totalOffers: number;
-    pendingOffers: number;
-    acceptedOffers: number;
-    rejectedOffers: number;
-    isResolved: boolean;
-    latestOffer: CounterOffer | null;
-  }, ServiceError>> {
+  async getNegotiationStats(bookingId: string): Promise<
+    Result<
+      {
+        totalOffers: number;
+        pendingOffers: number;
+        acceptedOffers: number;
+        rejectedOffers: number;
+        isResolved: boolean;
+        latestOffer: CounterOffer | null;
+      },
+      ServiceError
+    >
+  > {
     const negotiationResult = await this.getNegotiationHistory(bookingId);
     if (!negotiationResult.success) {
       return negotiationResult;

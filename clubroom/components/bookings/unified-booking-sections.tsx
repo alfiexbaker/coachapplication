@@ -38,16 +38,25 @@ export function formatBookingDateTime(start: string) {
   return {
     day: date.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' }),
     time: date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-    full: date.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+    full: date.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }),
   };
 }
 
 export function getBookingStatusColor(status: string, palette: ThemeColors): string {
   switch (status) {
-    case 'Confirmed': return palette.success;
-    case 'Pending': return palette.warning;
-    case 'Completed': return palette.muted;
-    default: return palette.muted;
+    case 'Confirmed':
+      return palette.success;
+    case 'Pending':
+      return palette.warning;
+    case 'Completed':
+      return palette.muted;
+    default:
+      return palette.muted;
   }
 }
 
@@ -86,7 +95,10 @@ export const CompactBookingCard = memo(function CompactBookingCard({
             {booking.locationLabel ? (
               <Row style={styles.locationRow}>
                 <Ionicons name="location-outline" size={12} color={palette.tint} />
-                <ThemedText style={[styles.compactLocation, { color: palette.tint }]} numberOfLines={1}>
+                <ThemedText
+                  style={[styles.compactLocation, { color: palette.tint }]}
+                  numberOfLines={1}
+                >
                   {booking.locationLabel}
                 </ThemedText>
               </Row>
@@ -160,7 +172,8 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
           <Row style={styles.metaRow}>
             <Ionicons name="time-outline" size={16} color={palette.muted} />
             <ThemedText style={styles.metaText}>
-              {time}{extendedBooking.duration ? ` (${extendedBooking.duration} mins)` : ''}
+              {time}
+              {extendedBooking.duration ? ` (${extendedBooking.duration} mins)` : ''}
             </ThemedText>
           </Row>
           {booking.locationLabel && (
@@ -189,9 +202,7 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
         {/* Price */}
         {extendedBooking.price !== undefined && extendedBooking.price > 0 && (
           <View style={styles.priceRow}>
-            <ThemedText style={styles.priceText}>
-              {formatPrice(extendedBooking.price)}
-            </ThemedText>
+            <ThemedText style={styles.priceText}>{formatPrice(extendedBooking.price)}</ThemedText>
           </View>
         )}
 

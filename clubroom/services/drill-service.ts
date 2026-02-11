@@ -53,7 +53,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_1',
     coachId: 'coach1',
     title: 'Ball Juggling Challenge',
-    description: 'Practice juggling the ball with both feet, thighs, and head. Start with 10 touches and work up to 50 consecutive touches without the ball touching the ground.',
+    description:
+      'Practice juggling the ball with both feet, thighs, and head. Start with 10 touches and work up to 50 consecutive touches without the ball touching the ground.',
     category: 'TECHNIQUE',
     videoUrl: 'https://example.com/videos/juggling.mp4',
     thumbnailUrl: 'https://example.com/thumbnails/juggling.jpg',
@@ -69,7 +70,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_2',
     coachId: 'coach1',
     title: 'Sprint Intervals',
-    description: 'Perform 10 x 30m sprints with 30 seconds rest between each. Focus on explosive starts and proper running form.',
+    description:
+      'Perform 10 x 30m sprints with 30 seconds rest between each. Focus on explosive starts and proper running form.',
     category: 'FITNESS',
     duration: 20,
     difficulty: 'INTERMEDIATE',
@@ -83,7 +85,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_3',
     coachId: 'coach1',
     title: 'Dynamic Warm-up Routine',
-    description: 'Complete warm-up sequence: high knees, butt kicks, leg swings, lunges with twist, and arm circles. 2 sets of each exercise.',
+    description:
+      'Complete warm-up sequence: high knees, butt kicks, leg swings, lunges with twist, and arm circles. 2 sets of each exercise.',
     category: 'WARMUP',
     videoUrl: 'https://example.com/videos/warmup.mp4',
     thumbnailUrl: 'https://example.com/thumbnails/warmup.jpg',
@@ -98,7 +101,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_4',
     coachId: 'coach1',
     title: 'Wall Pass Technique',
-    description: 'Using a wall, practice one-touch passing with both feet. Complete 50 passes with each foot, focusing on proper technique and receiving the ball cleanly.',
+    description:
+      'Using a wall, practice one-touch passing with both feet. Complete 50 passes with each foot, focusing on proper technique and receiving the ball cleanly.',
     category: 'TECHNIQUE',
     videoUrl: 'https://example.com/videos/wallpass.mp4',
     thumbnailUrl: 'https://example.com/thumbnails/wallpass.jpg',
@@ -114,7 +118,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_5',
     coachId: 'coach1',
     title: 'Cone Dribbling Course',
-    description: 'Set up 8 cones in a zig-zag pattern. Dribble through the course using inside and outside of both feet. Time yourself and try to improve each run.',
+    description:
+      'Set up 8 cones in a zig-zag pattern. Dribble through the course using inside and outside of both feet. Time yourself and try to improve each run.',
     category: 'TECHNIQUE',
     videoUrl: 'https://example.com/videos/dribbling.mp4',
     thumbnailUrl: 'https://example.com/thumbnails/dribbling.jpg',
@@ -130,7 +135,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_6',
     coachId: 'coach1',
     title: 'Tactical Positioning Awareness',
-    description: 'Watch the provided match analysis video and identify 5 instances of good defensive positioning and 5 instances where positioning could be improved. Write brief notes on each.',
+    description:
+      'Watch the provided match analysis video and identify 5 instances of good defensive positioning and 5 instances where positioning could be improved. Write brief notes on each.',
     category: 'TACTICAL',
     videoUrl: 'https://example.com/videos/tactics.mp4',
     thumbnailUrl: 'https://example.com/thumbnails/tactics.jpg',
@@ -145,7 +151,8 @@ const MOCK_DRILLS: Drill[] = [
     id: 'drill_7',
     coachId: 'coach1',
     title: 'Cool-down Stretching',
-    description: 'Post-training stretching routine: hold each stretch for 30 seconds. Include quadriceps, hamstrings, hip flexors, calves, and upper body stretches.',
+    description:
+      'Post-training stretching routine: hold each stretch for 30 seconds. Include quadriceps, hamstrings, hip flexors, calves, and upper body stretches.',
     category: 'COOLDOWN',
     duration: 10,
     difficulty: 'BEGINNER',
@@ -165,7 +172,8 @@ const MOCK_ASSIGNMENTS: AssignedDrill[] = [
     assignedAt: '2026-01-08T09:00:00Z',
     dueDate: '2026-01-15T23:59:59Z',
     isCompleted: false,
-    notes: 'Focus on keeping your head up while juggling. Try to increase your count by 5 each day.',
+    notes:
+      'Focus on keeping your head up while juggling. Try to increase your count by 5 each day.',
     repetitions: 3,
     priority: 1,
   },
@@ -189,7 +197,8 @@ const MOCK_ASSIGNMENTS: AssignedDrill[] = [
     assignedAt: '2026-01-09T10:00:00Z',
     dueDate: '2026-01-16T23:59:59Z',
     isCompleted: false,
-    notes: 'Work on your weaker foot especially. Try to get the ball to come back at the same pace.',
+    notes:
+      'Work on your weaker foot especially. Try to get the ball to come back at the same pace.',
     repetitions: 2,
     priority: 1,
   },
@@ -265,7 +274,7 @@ async function getDrillLibrary(coachId: string): Promise<Drill[]> {
 
   // Sort by most recently updated
   return coachDrills.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
 }
 
@@ -289,7 +298,7 @@ async function getDrillById(drillId: string): Promise<Drill | null> {
 async function createDrill(
   coachId: string,
   _coachName: string,
-  params: CreateDrillInput
+  params: CreateDrillInput,
 ): Promise<Drill> {
   const drills = await getAllDrills();
   const now = new Date().toISOString();
@@ -332,7 +341,7 @@ async function createDrill(
  */
 async function updateDrill(
   drillId: string,
-  updates: Partial<CreateDrillInput>
+  updates: Partial<CreateDrillInput>,
 ): Promise<Drill | null> {
   const drills = await getAllDrills();
   const drillIndex = drills.findIndex((d) => d.id === drillId);
@@ -397,7 +406,7 @@ async function assignDrill(
   athleteName: string,
   assignedBy: string,
   assignedByName: string,
-  params: AssignDrillInput
+  params: AssignDrillInput,
 ): Promise<Result<AssignedDrill, ServiceError>> {
   const assignments = await getAllAssignments();
   const drills = await getAllDrills();
@@ -441,12 +450,8 @@ async function assignDrill(
 
   // Notify parent that a drill has been assigned to their athlete
   const [coachDisplayName, athleteDisplayName] = await Promise.all([
-    assignedByName?.trim()
-      ? Promise.resolve(assignedByName)
-      : resolveUserName(assignedBy, 'Coach'),
-    athleteName?.trim()
-      ? Promise.resolve(athleteName)
-      : resolveUserName(athleteId, 'Athlete'),
+    assignedByName?.trim() ? Promise.resolve(assignedByName) : resolveUserName(assignedBy, 'Coach'),
+    athleteName?.trim() ? Promise.resolve(athleteName) : resolveUserName(athleteId, 'Athlete'),
   ]);
   await notificationTriggers.drillAssigned(coachDisplayName, drill.title, athleteDisplayName);
 
@@ -461,7 +466,7 @@ async function assignDrill(
  */
 async function getAthleteAssignments(
   athleteId: string,
-  includeCompleted: boolean = true
+  includeCompleted: boolean = true,
 ): Promise<AssignedDrill[]> {
   const assignments = await getAllAssignments();
   const drills = await getAllDrills();
@@ -521,7 +526,7 @@ async function getAssignmentById(assignmentId: string): Promise<AssignedDrill | 
  */
 async function completeDrill(
   assignmentId: string,
-  athleteFeedback?: string
+  athleteFeedback?: string,
 ): Promise<AssignedDrill | null> {
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
@@ -754,11 +759,12 @@ function getDifficultyInfo(difficulty: DrillDifficulty): {
   color: string;
   bgColor: string;
 } {
-  const difficultyInfo: Record<DrillDifficulty, { label: string; color: string; bgColor: string }> = {
-    BEGINNER: { label: 'Beginner', color: '#10B981', bgColor: '#D1FAE5' },
-    INTERMEDIATE: { label: 'Intermediate', color: '#F59E0B', bgColor: '#FEF3C7' },
-    ADVANCED: { label: 'Advanced', color: '#EF4444', bgColor: '#FEE2E2' },
-  };
+  const difficultyInfo: Record<DrillDifficulty, { label: string; color: string; bgColor: string }> =
+    {
+      BEGINNER: { label: 'Beginner', color: '#10B981', bgColor: '#D1FAE5' },
+      INTERMEDIATE: { label: 'Intermediate', color: '#F59E0B', bgColor: '#FEF3C7' },
+      ADVANCED: { label: 'Advanced', color: '#EF4444', bgColor: '#FEE2E2' },
+    };
 
   return difficultyInfo[difficulty] ?? difficultyInfo.BEGINNER;
 }

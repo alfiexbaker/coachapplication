@@ -19,19 +19,34 @@ import { scaleFont } from '@/utils/scale';
 export default function DrillsDashboardScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    stats, loading, status, error, refreshing, onRefresh, retry, activeTab, filteredAssignments,
-    handleAssignmentPress, handleComplete, handleTabChange,
+    stats,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    activeTab,
+    filteredAssignments,
+    handleAssignmentPress,
+    handleComplete,
+    handleTabChange,
   } = useDrillsScreen();
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
           <Row gap="md" align="center">
             <Clickable onPress={() => router.back()} hitSlop={8}>
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </Clickable>
-            <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+            <ThemedText type="title" style={styles.headerTitle}>
+              My Drills
+            </ThemedText>
           </Row>
         </Row>
         <LoadingState variant="list" />
@@ -41,13 +56,18 @@ export default function DrillsDashboardScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
           <Row gap="md" align="center">
             <Clickable onPress={() => router.back()} hitSlop={8}>
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </Clickable>
-            <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+            <ThemedText type="title" style={styles.headerTitle}>
+              My Drills
+            </ThemedText>
           </Row>
         </Row>
         <ErrorState message={error?.message ?? 'Failed to load drills.'} onRetry={retry} />
@@ -57,13 +77,18 @@ export default function DrillsDashboardScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <Row align="center" justify="space-between" style={styles.header}>
           <Row gap="md" align="center">
             <Clickable onPress={() => router.back()} hitSlop={8}>
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </Clickable>
-            <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+            <ThemedText type="title" style={styles.headerTitle}>
+              My Drills
+            </ThemedText>
           </Row>
         </Row>
         <ScrollView
@@ -81,14 +106,19 @@ export default function DrillsDashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Row gap="md" align="center">
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>My Drills</ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>
+            My Drills
+          </ThemedText>
         </Row>
       </Row>
 
@@ -99,7 +129,12 @@ export default function DrillsDashboardScreen() {
       >
         {stats && <DrillStatsCard stats={stats} colors={colors} />}
 
-        <DrillTabFilter activeTab={activeTab} stats={stats} colors={colors} onTabChange={handleTabChange} />
+        <DrillTabFilter
+          activeTab={activeTab}
+          stats={stats}
+          colors={colors}
+          onTabChange={handleTabChange}
+        />
 
         <View style={styles.listSection}>
           <DrillList
@@ -107,8 +142,20 @@ export default function DrillsDashboardScreen() {
             onAssignmentPress={handleAssignmentPress}
             onAssignmentComplete={handleComplete}
             loading={loading}
-            emptyMessage={activeTab === 'pending' ? 'No pending drills' : activeTab === 'completed' ? 'No completed drills yet' : 'No drills assigned'}
-            emptyDescription={activeTab === 'pending' ? "Great job! You've completed all your drills." : activeTab === 'completed' ? 'Complete some drills to see them here.' : 'Ask your coach to assign some drills.'}
+            emptyMessage={
+              activeTab === 'pending'
+                ? 'No pending drills'
+                : activeTab === 'completed'
+                  ? 'No completed drills yet'
+                  : 'No drills assigned'
+            }
+            emptyDescription={
+              activeTab === 'pending'
+                ? "Great job! You've completed all your drills."
+                : activeTab === 'completed'
+                  ? 'Complete some drills to see them here.'
+                  : 'Ask your coach to assign some drills.'
+            }
           />
         </View>
       </ScrollView>
@@ -121,6 +168,12 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
-  emptyContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+  emptyContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
   listSection: { flex: 1 },
 });

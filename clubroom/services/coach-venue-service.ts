@@ -53,7 +53,9 @@ export const coachVenueService = {
   /**
    * Save a new venue. Generates an ID if none provided.
    */
-  async saveVenue(venue: Omit<CoachVenue, 'id' | 'createdAt'> & { id?: string; createdAt?: string }): Promise<CoachVenue> {
+  async saveVenue(
+    venue: Omit<CoachVenue, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
+  ): Promise<CoachVenue> {
     const saved: CoachVenue = {
       ...venue,
       id: venue.id || `venue_${Date.now()}`,

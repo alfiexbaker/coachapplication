@@ -41,7 +41,7 @@ export function getBackgroundColor(
   node: SkillNodeType,
   themeColor: string,
   canUnlock: boolean,
-  palette: ThemeColors
+  palette: ThemeColors,
 ): string {
   if (node.isUnlocked) return themeColor;
   if (canUnlock) return withAlpha(themeColor, 0.25);
@@ -53,7 +53,7 @@ export function getBorderColor(
   node: SkillNodeType,
   themeColor: string,
   canUnlock: boolean,
-  palette: ThemeColors
+  palette: ThemeColors,
 ): string {
   if (node.isUnlocked) return themeColor;
   if (canUnlock || (!node.isUnlocked && node.progress > 0)) return withAlpha(themeColor, 0.38);
@@ -64,7 +64,7 @@ export function getIconColor(
   node: SkillNodeType,
   themeColor: string,
   canUnlock: boolean,
-  palette: ThemeColors
+  palette: ThemeColors,
 ): string {
   if (node.isUnlocked) return palette.onPrimary;
   if (canUnlock || (!node.isUnlocked && node.progress > 0)) return themeColor;
@@ -188,12 +188,7 @@ export const LevelBadge = memo(function LevelBadge({
         },
       ]}
     >
-      <ThemedText
-        style={[
-          styles.levelText,
-          { color: isUnlocked ? themeColor : palette.muted },
-        ]}
-      >
+      <ThemedText style={[styles.levelText, { color: isUnlocked ? themeColor : palette.muted }]}>
         {level}
       </ThemedText>
     </View>
@@ -222,10 +217,7 @@ export const NodeLabel = memo(function NodeLabel({
   return (
     <View style={styles.labelContainer}>
       <ThemedText
-        style={[
-          styles.label,
-          { color: isUnlocked ? palette.foreground : palette.muted },
-        ]}
+        style={[styles.label, { color: isUnlocked ? palette.foreground : palette.muted }]}
         numberOfLines={2}
       >
         {name}

@@ -10,13 +10,13 @@
  *   <StatusBanner message="Your profile is incomplete" variant="warning" icon="alert-circle" onDismiss={dismiss} />
  */
 
-import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, Text } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Components, Fonts, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Components, Fonts, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
@@ -80,28 +80,16 @@ function getVariantConfig(variant: StatusBannerVariant, palette: ThemeColors): V
 // Component
 // ---------------------------------------------------------------------------
 
-function StatusBannerInner({
-  message,
-  variant = 'info',
-  icon,
-  onDismiss,
-}: StatusBannerProps) {
+function StatusBannerInner({ message, variant = 'info', icon, onDismiss }: StatusBannerProps) {
   const { colors } = useTheme();
   const config = useMemo(() => getVariantConfig(variant, colors), [variant, colors]);
   const iconName = icon ?? config.icon;
 
   return (
     <Row align="center" gap="xs" style={[styles.container, { backgroundColor: config.background }]}>
-      <Ionicons
-        name={iconName}
-        size={Components.icon.md}
-        color={config.text}
-      />
+      <Ionicons name={iconName} size={Components.icon.md} color={config.text} />
 
-      <Text
-        style={[styles.message, { color: config.text }]}
-        numberOfLines={3}
-      >
+      <Text style={[styles.message, { color: config.text }]} numberOfLines={3}>
         {message}
       </Text>
 
@@ -113,11 +101,7 @@ function StatusBannerInner({
           hitSlop={8}
           style={styles.dismissButton}
         >
-          <Ionicons
-            name="close"
-            size={Components.icon.md}
-            color={config.text}
-          />
+          <Ionicons name="close" size={Components.icon.md} color={config.text} />
         </Clickable>
       ) : null}
     </Row>

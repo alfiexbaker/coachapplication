@@ -7,7 +7,7 @@
 > **POC Decision:** Keep mock-data-backed service paths active; do not run mock-data retirement.
 > **Live Tracker:** `docs/sprints/Foundation/PHASE-5-LIVE-TRACKER.md`
 > **POC Contract:** `docs/sprints/Foundation/POC-MOCK-SERVICE-CONTRACT.md`
-> **Follow-on Closure:** `docs/sprints/Foundation/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
+> **Follow-on Closure:** `docs/sprints/CompletedSprints/SPRINT-46-POC-MOCK-SERVICE-STABILIZATION.md`
 
 ---
 

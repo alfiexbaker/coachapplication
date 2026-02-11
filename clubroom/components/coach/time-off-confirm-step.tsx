@@ -32,7 +32,15 @@ interface TimeOffConfirmStepProps {
 }
 
 function TimeOffConfirmStepInner({
-  startDate, endDate, isSameDay, dayCount, reason, conflicts, saving, onSave, onBack,
+  startDate,
+  endDate,
+  isSameDay,
+  dayCount,
+  reason,
+  conflicts,
+  saving,
+  onSave,
+  onBack,
 }: TimeOffConfirmStepProps) {
   const { colors: palette } = useTheme();
 
@@ -44,10 +52,12 @@ function TimeOffConfirmStepInner({
           <Ionicons name="airplane-outline" size={20} color={palette.tint} />
           <View style={styles.summaryInfo}>
             <ThemedText type="defaultSemiBold">
-              {isSameDay ? formatDateDisplay(startDate) : `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`}
+              {isSameDay
+                ? formatDateDisplay(startDate)
+                : `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`}
             </ThemedText>
             <ThemedText style={[styles.summaryMeta, { color: palette.muted }]}>
-              {REASONS.find(r => r.id === reason)?.label}
+              {REASONS.find((r) => r.id === reason)?.label}
               {!isSameDay ? ` \u00B7 ${dayCount} days` : ''}
             </ThemedText>
           </View>
@@ -71,7 +81,9 @@ function TimeOffConfirmStepInner({
             </View>
           ))}
           {conflicts.bookingCount > 3 && (
-            <ThemedText style={[styles.conflictMore, { color: palette.muted }]}>+{conflicts.bookingCount - 3} more</ThemedText>
+            <ThemedText style={[styles.conflictMore, { color: palette.muted }]}>
+              +{conflicts.bookingCount - 3} more
+            </ThemedText>
           )}
           <ThemedText style={[styles.conflictNote, { color: palette.muted }]}>
             You may need to cancel or reschedule these sessions.
@@ -80,14 +92,23 @@ function TimeOffConfirmStepInner({
       ) : (
         <Row style={[styles.allClear, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={palette.success} />
-          <ThemedText style={[styles.allClearText, { color: palette.success }]}>No sessions affected</ThemedText>
+          <ThemedText style={[styles.allClearText, { color: palette.success }]}>
+            No sessions affected
+          </ThemedText>
         </Row>
       )}
 
       {/* Actions */}
-      <Clickable onPress={onSave} disabled={saving} style={[styles.primaryBtn, { backgroundColor: palette.error }]} accessibilityLabel={saving ? 'Saving time off' : 'Confirm time off'}>
+      <Clickable
+        onPress={onSave}
+        disabled={saving}
+        style={[styles.primaryBtn, { backgroundColor: palette.error }]}
+        accessibilityLabel={saving ? 'Saving time off' : 'Confirm time off'}
+      >
         <Ionicons name="airplane-outline" size={18} color={palette.onPrimary} />
-        <ThemedText style={[styles.primaryBtnText, { color: palette.onPrimary }]}>{saving ? 'Saving...' : 'Confirm Time Off'}</ThemedText>
+        <ThemedText style={[styles.primaryBtnText, { color: palette.onPrimary }]}>
+          {saving ? 'Saving...' : 'Confirm Time Off'}
+        </ThemedText>
       </Clickable>
 
       <Clickable onPress={onBack} style={styles.backBtn} accessibilityLabel="Go back">
@@ -115,7 +136,14 @@ const styles = StyleSheet.create({
   conflictNote: { ...Typography.caption, marginTop: Spacing.xs },
   allClear: { alignItems: 'center', gap: Spacing.xs, padding: Spacing.md, borderRadius: Radii.md },
   allClearText: { ...Typography.smallSemiBold },
-  primaryBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 52, borderRadius: Radii.md, marginTop: Spacing.xs },
+  primaryBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    minHeight: 52,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs,
+  },
   primaryBtnText: { ...Typography.bodySemiBold },
   backBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, minHeight: 44 },
   backBtnText: { ...Typography.bodySmall },

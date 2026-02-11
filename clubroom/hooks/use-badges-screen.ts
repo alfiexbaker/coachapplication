@@ -22,7 +22,11 @@ export const BADGE_TIER_COLORS = {
 
 export type FilterTab = 'all' | 'unlocked' | 'locked' | 'in-progress';
 
-export const FILTER_TABS: { key: FilterTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+export const FILTER_TABS: {
+  key: FilterTab;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'unlocked', label: 'Earned', icon: 'checkmark-circle-outline' },
   { key: 'locked', label: 'Locked', icon: 'lock-closed-outline' },
@@ -30,8 +34,15 @@ export const FILTER_TABS: { key: FilterTab; label: string; icon: keyof typeof Io
 ];
 
 export const SECTION_ORDER = [
-  'milestones', 'streaks', 'events', 'leadership', 'consistency',
-  'technique', 'mindset', 'teamwork', 'resilience',
+  'milestones',
+  'streaks',
+  'events',
+  'leadership',
+  'consistency',
+  'technique',
+  'mindset',
+  'teamwork',
+  'resilience',
 ];
 
 interface BadgesScreenData {
@@ -65,14 +76,7 @@ export function useBadgesScreen() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<BadgesScreenData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<BadgesScreenData>({
     load: loadBadges,
     deps: [currentUser?.id],
     isEmpty: () => false,
@@ -84,10 +88,14 @@ export function useBadgesScreen() {
 
   const filteredBadges = useMemo(() => {
     switch (activeFilter) {
-      case 'unlocked': return allBadges.filter((b) => b.isUnlocked);
-      case 'locked': return allBadges.filter((b) => !b.isUnlocked && b.progress === 0);
-      case 'in-progress': return allBadges.filter((b) => !b.isUnlocked && b.progress > 0);
-      default: return allBadges;
+      case 'unlocked':
+        return allBadges.filter((b) => b.isUnlocked);
+      case 'locked':
+        return allBadges.filter((b) => !b.isUnlocked && b.progress === 0);
+      case 'in-progress':
+        return allBadges.filter((b) => !b.isUnlocked && b.progress > 0);
+      default:
+        return allBadges;
     }
   }, [allBadges, activeFilter]);
 
@@ -95,10 +103,14 @@ export function useBadgesScreen() {
     if (activeFilter === 'all') return badgesByCategory;
     const grouped = new Map<string, AllBadgeWithProgress[]>();
     filteredBadges.forEach((badge) => {
-      const section = badge.badgeType === 'milestone' ? 'milestones'
-        : badge.badgeType === 'streak' ? 'streaks'
-        : badge.badgeType === 'event' ? 'events'
-        : badge.category || 'other';
+      const section =
+        badge.badgeType === 'milestone'
+          ? 'milestones'
+          : badge.badgeType === 'streak'
+            ? 'streaks'
+            : badge.badgeType === 'event'
+              ? 'events'
+              : badge.category || 'other';
       if (!grouped.has(section)) grouped.set(section, []);
       grouped.get(section)!.push(badge);
     });
@@ -112,14 +124,21 @@ export function useBadgesScreen() {
     return { total, unlocked, points };
   }, [allBadges]);
 
-  const getFilterCount = useCallback((key: FilterTab) => {
-    switch (key) {
-      case 'all': return allBadges.length;
-      case 'unlocked': return allBadges.filter((b) => b.isUnlocked).length;
-      case 'locked': return allBadges.filter((b) => !b.isUnlocked && b.progress === 0).length;
-      case 'in-progress': return allBadges.filter((b) => !b.isUnlocked && b.progress > 0).length;
-    }
-  }, [allBadges]);
+  const getFilterCount = useCallback(
+    (key: FilterTab) => {
+      switch (key) {
+        case 'all':
+          return allBadges.length;
+        case 'unlocked':
+          return allBadges.filter((b) => b.isUnlocked).length;
+        case 'locked':
+          return allBadges.filter((b) => !b.isUnlocked && b.progress === 0).length;
+        case 'in-progress':
+          return allBadges.filter((b) => !b.isUnlocked && b.progress > 0).length;
+      }
+    },
+    [allBadges],
+  );
 
   const handleFilterChange = useCallback((key: FilterTab) => {
     setActiveFilter(key);
@@ -129,13 +148,17 @@ export function useBadgesScreen() {
   const handleBadgePress = useCallback((badge: AllBadgeWithProgress) => {
     logger.press('BadgeCard', { badgeId: badge.id, isUnlocked: badge.isUnlocked });
     if (badge.isUnlocked) {
-      Alert.alert(badge.label,
+      Alert.alert(
+        badge.label,
         `${badge.description || 'Achievement unlocked!'}\n\nEarned: ${badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'Recently'}${badge.awardedBy ? `\nAwarded by: ${badge.awardedBy}` : ''}\nPoints: +${badge.pointValue}`,
-        [{ text: 'Close', style: 'cancel' }]);
+        [{ text: 'Close', style: 'cancel' }],
+      );
     } else {
-      Alert.alert(`${badge.label} (Locked)`,
+      Alert.alert(
+        `${badge.label} (Locked)`,
         `${badge.description || 'Keep working to unlock this badge!'}\n\nProgress: ${badge.progressLabel}\nPoints when unlocked: +${badge.pointValue}`,
-        [{ text: 'Got it', style: 'cancel' }]);
+        [{ text: 'Got it', style: 'cancel' }],
+      );
     }
   }, []);
 
@@ -149,8 +172,12 @@ export function useBadgesScreen() {
     refreshing,
     onRefresh,
     retry,
-    filteredBadges, filteredBySection, stats,
-    getFilterCount, handleFilterChange, handleBadgePress,
+    filteredBadges,
+    filteredBySection,
+    stats,
+    getFilterCount,
+    handleFilterChange,
+    handleBadgePress,
   } satisfies {
     currentUser: typeof currentUser;
     allBadges: AllBadgeWithProgress[];

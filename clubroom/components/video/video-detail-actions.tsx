@@ -17,17 +17,26 @@ interface VideoDetailActionsProps {
 }
 
 export const VideoDetailActions = memo(function VideoDetailActions({
-  colors, visibility, onAddAnnotation, onToggleVisibility,
+  colors,
+  visibility,
+  onAddAnnotation,
+  onToggleVisibility,
 }: VideoDetailActionsProps) {
   return (
     <SurfaceCard style={styles.card}>
       <ThemedText type="defaultSemiBold">Actions</ThemedText>
       <Row gap="sm">
-        <Clickable onPress={onAddAnnotation} style={[styles.actionButton, { borderColor: colors.border }]}>
+        <Clickable
+          onPress={onAddAnnotation}
+          style={[styles.actionButton, { borderColor: colors.border }]}
+        >
           <Ionicons name="bookmark-outline" size={18} color={colors.tint} />
           <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Add Annotation</ThemedText>
         </Clickable>
-        <Clickable onPress={onToggleVisibility} style={[styles.actionButton, { borderColor: colors.border }]}>
+        <Clickable
+          onPress={onToggleVisibility}
+          style={[styles.actionButton, { borderColor: colors.border }]}
+        >
           <Ionicons
             name={visibility === 'PRIVATE' ? 'share-outline' : 'lock-closed-outline'}
             size={18}

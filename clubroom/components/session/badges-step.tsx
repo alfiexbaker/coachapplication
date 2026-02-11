@@ -49,7 +49,8 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
   athlete,
   availableBadges,
   colors,
-  onToggleBadge }: BadgeAthleteRowProps) {
+  onToggleBadge,
+}: BadgeAthleteRowProps) {
   const handleToggle = useCallback(
     (badgeId: string) => {
       onToggleBadge(athlete.registrationId, badgeId);
@@ -69,7 +70,11 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
           {athlete.userName}
         </ThemedText>
         {athlete.badges.length > 0 && (
-          <Row align="center" gap="xxs" style={[styles.badgeCountPill, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.badgeCountPill, { backgroundColor: withAlpha(colors.warning, 0.09) }]}
+          >
             <Ionicons name="ribbon" size={12} color={colors.warning} />
             <ThemedText style={[styles.badgeCount, { color: colors.warning }]}>
               {athlete.badges.length}
@@ -79,7 +84,7 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
       </Row>
 
       <Row wrap gap="xs">
-        {availableBadges.slice(0, 8).map(badge => {
+        {availableBadges.slice(0, 8).map((badge) => {
           const isAwarded = athlete.badges.includes(badge.id);
           return (
             <Clickable
@@ -88,14 +93,20 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
                 styles.badgeOption,
                 {
                   backgroundColor: isAwarded ? withAlpha(colors.warning, 0.09) : 'transparent',
-                  borderColor: isAwarded ? colors.warning : colors.border },
+                  borderColor: isAwarded ? colors.warning : colors.border,
+                },
               ]}
               onPress={() => handleToggle(badge.id)}
               accessibilityLabel={`${isAwarded ? 'Remove' : 'Award'} ${badge.label} badge to ${athlete.userName}`}
               accessibilityRole="button"
               accessibilityState={{ selected: isAwarded }}
             >
-              <ThemedText style={[styles.badgeOptionText, { color: isAwarded ? colors.warning : colors.text }]}>
+              <ThemedText
+                style={[
+                  styles.badgeOptionText,
+                  { color: isAwarded ? colors.warning : colors.text },
+                ]}
+              >
                 {badge.label}
               </ThemedText>
             </Clickable>
@@ -114,7 +125,8 @@ export const BadgesStep = memo(function BadgesStep({
   presentAthletes,
   availableBadges,
   colors,
-  onToggleBadge }: BadgesStepProps) {
+  onToggleBadge,
+}: BadgesStepProps) {
   return (
     <SurfaceCard style={styles.section}>
       <Row align="center" gap="sm" style={styles.sectionHeader}>
@@ -130,7 +142,7 @@ export const BadgesStep = memo(function BadgesStep({
           No athletes marked as present
         </ThemedText>
       ) : (
-        presentAthletes.map(athlete => (
+        presentAthletes.map((athlete) => (
           <BadgeAthleteRow
             key={athlete.registrationId}
             athlete={athlete}
@@ -151,36 +163,46 @@ export const BadgesStep = memo(function BadgesStep({
 const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.md,
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   sectionHeader: {
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   badgeStepHint: {
-    ...Typography.small },
+    ...Typography.small,
+  },
   emptyText: {
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: Spacing.md },
+    paddingVertical: Spacing.md,
+  },
   badgeAthleteRow: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   athleteInfo: {},
   avatar: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center' },
+    justifyContent: 'center',
+  },
   avatarText: {
-    ...Typography.bodySmallSemiBold },
+    ...Typography.bodySmallSemiBold,
+  },
   athleteNameText: {
-    flex: 1 },
+    flex: 1,
+  },
   badgeCountPill: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill },
+    borderRadius: Radii.pill,
+  },
   badgeCount: {
-    ...Typography.caption },
+    ...Typography.caption,
+  },
   badgeGrid: {},
   badgeOption: {
     paddingHorizontal: Spacing.sm,
@@ -188,6 +210,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     borderWidth: 1,
     minHeight: 44,
-    justifyContent: 'center' },
+    justifyContent: 'center',
+  },
   badgeOptionText: {
-    ...Typography.caption } });
+    ...Typography.caption,
+  },
+});

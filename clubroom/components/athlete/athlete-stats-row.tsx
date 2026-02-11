@@ -41,21 +41,16 @@ export const AthleteStatsRow = React.memo(function AthleteStatsRow({
         color: colors.success,
       },
     ],
-    [athlete, colors]
+    [athlete, colors],
   );
 
   return (
     <Row gap="sm">
       {stats.map((stat) => (
-        <View
-          key={stat.label}
-          style={[styles.statCard, { backgroundColor: colors.surface }]}
-        >
+        <View key={stat.label} style={[styles.statCard, { backgroundColor: colors.surface }]}>
           <Ionicons name={stat.icon} size={18} color={stat.color} />
           <ThemedText type="heading">{stat.value}</ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.muted }]}>
-            {stat.label}
-          </ThemedText>
+          <ThemedText style={[styles.statLabel, { color: colors.muted }]}>{stat.label}</ThemedText>
         </View>
       ))}
     </Row>

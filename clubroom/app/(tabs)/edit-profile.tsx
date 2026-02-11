@@ -31,7 +31,10 @@ export default function EditProfileScreen() {
 
   if (authLoading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Profile" showBack />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -40,7 +43,10 @@ export default function EditProfileScreen() {
 
   if (authError) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Profile" showBack />
         <ErrorState message={authError} onRetry={() => {}} />
       </SafeAreaView>
@@ -49,7 +55,10 @@ export default function EditProfileScreen() {
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Profile" showBack />
         <EmptyState
           icon="person-outline"
@@ -62,7 +71,10 @@ export default function EditProfileScreen() {
 
   if (profile.initializing) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Profile" showBack />
         <LoadingState variant="form" />
       </SafeAreaView>
@@ -71,7 +83,10 @@ export default function EditProfileScreen() {
 
   if (profile.loadError) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <PageHeader title="Edit Profile" showBack />
         <ErrorState message={profile.loadError} onRetry={profile.retryLoad} />
       </SafeAreaView>
@@ -122,7 +137,7 @@ export default function EditProfileScreen() {
           {!profile.userIsCoach && (
             <EditChildrenSection
               colors={colors}
-              children={profile.children}
+              childProfiles={profile.children}
               onAddChild={profile.addChild}
               onUpdateChild={profile.updateChild}
               onRemoveChild={profile.removeChild}

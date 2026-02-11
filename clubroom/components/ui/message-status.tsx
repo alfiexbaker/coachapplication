@@ -40,18 +40,8 @@ export function MessageStatus({ status }: MessageStatusProps) {
 
   return (
     <Row align="center" style={styles.doubleCheckContainer}>
-      <Ionicons
-        name="checkmark"
-        size={ICON_SIZE}
-        color={checkColor}
-        style={styles.checkFirst}
-      />
-      <Ionicons
-        name="checkmark"
-        size={ICON_SIZE}
-        color={checkColor}
-        style={styles.checkSecond}
-      />
+      <Ionicons name="checkmark" size={ICON_SIZE} color={checkColor} style={styles.checkFirst} />
+      <Ionicons name="checkmark" size={ICON_SIZE} color={checkColor} style={styles.checkSecond} />
     </Row>
   );
 }

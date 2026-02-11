@@ -54,7 +54,14 @@ export function getTierColor(tier?: number): string {
 function generateMockSkills(sessions: { id: string }[]): SkillProgress[] {
   if (sessions.length === 0) return [];
 
-  const skillNames = ['Dribbling', 'Passing', 'Shooting', 'Defending', 'Positioning', 'First Touch'];
+  const skillNames = [
+    'Dribbling',
+    'Passing',
+    'Shooting',
+    'Defending',
+    'Positioning',
+    'First Touch',
+  ];
   const categories = ['Technical', 'Technical', 'Technical', 'Physical', 'Tactical', 'Technical'];
 
   return skillNames.map((name, index) => ({
@@ -82,10 +89,35 @@ function getMockGoals(athleteId: string): Goal[] {
       targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       progress: 65,
       milestones: [
-        { id: 'm1', goalId: 'goal-1', order: 0, title: 'Complete 10 dribbling drills', isCompleted: true, completedAt: new Date().toISOString() },
-        { id: 'm2', goalId: 'goal-1', order: 1, title: 'Successfully beat defender in 5 sessions', isCompleted: true },
-        { id: 'm3', goalId: 'goal-1', order: 2, title: 'Use both feet consistently', isCompleted: false },
-        { id: 'm4', goalId: 'goal-1', order: 3, title: 'Apply in match situation', isCompleted: false },
+        {
+          id: 'm1',
+          goalId: 'goal-1',
+          order: 0,
+          title: 'Complete 10 dribbling drills',
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
+        },
+        {
+          id: 'm2',
+          goalId: 'goal-1',
+          order: 1,
+          title: 'Successfully beat defender in 5 sessions',
+          isCompleted: true,
+        },
+        {
+          id: 'm3',
+          goalId: 'goal-1',
+          order: 2,
+          title: 'Use both feet consistently',
+          isCompleted: false,
+        },
+        {
+          id: 'm4',
+          goalId: 'goal-1',
+          order: 3,
+          title: 'Apply in match situation',
+          isCompleted: false,
+        },
       ],
       status: 'ACTIVE',
       createdBy: 'COACH',
@@ -103,9 +135,27 @@ function getMockGoals(athleteId: string): Goal[] {
       targetDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
       progress: 40,
       milestones: [
-        { id: 'm5', goalId: 'goal-2', order: 0, title: 'Complete passing fundamentals course', isCompleted: true },
-        { id: 'm6', goalId: 'goal-2', order: 1, title: 'Practice weighted passes daily', isCompleted: false },
-        { id: 'm7', goalId: 'goal-2', order: 2, title: 'Achieve 80% accuracy in drills', isCompleted: false },
+        {
+          id: 'm5',
+          goalId: 'goal-2',
+          order: 0,
+          title: 'Complete passing fundamentals course',
+          isCompleted: true,
+        },
+        {
+          id: 'm6',
+          goalId: 'goal-2',
+          order: 1,
+          title: 'Practice weighted passes daily',
+          isCompleted: false,
+        },
+        {
+          id: 'm7',
+          goalId: 'goal-2',
+          order: 2,
+          title: 'Achieve 80% accuracy in drills',
+          isCompleted: false,
+        },
       ],
       status: 'ACTIVE',
       createdBy: 'ATHLETE',
@@ -123,7 +173,13 @@ function getMockGoals(athleteId: string): Goal[] {
       progress: 100,
       milestones: [
         { id: 'm8', goalId: 'goal-3', order: 0, title: 'Practice wall passes', isCompleted: true },
-        { id: 'm9', goalId: 'goal-3', order: 1, title: 'Receive and turn drill mastery', isCompleted: true },
+        {
+          id: 'm9',
+          goalId: 'goal-3',
+          order: 1,
+          title: 'Receive and turn drill mastery',
+          isCompleted: true,
+        },
       ],
       status: 'COMPLETED',
       createdBy: 'COACH',
@@ -201,7 +257,7 @@ export function useAthleteProgress() {
 
   const skillsByCategory = useMemo(() => {
     const grouped: Record<string, SkillProgress[]> = {};
-    skills.forEach(skill => {
+    skills.forEach((skill) => {
       const cat = skill.category || 'General';
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(skill);
@@ -212,10 +268,14 @@ export function useAthleteProgress() {
   const trend = useMemo(() => {
     if (sessions.length < 2) return 'steady' as const;
     const sorted = [...sessions].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
     );
-    const recentAvg = sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) / Math.min(3, sorted.length);
-    const previousAvg = sorted.slice(3, 6).reduce((sum, s) => sum + s.performanceRating, 0) / Math.min(3, sorted.slice(3, 6).length);
+    const recentAvg =
+      sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) /
+      Math.min(3, sorted.length);
+    const previousAvg =
+      sorted.slice(3, 6).reduce((sum, s) => sum + s.performanceRating, 0) /
+      Math.min(3, sorted.slice(3, 6).length);
     if (sorted.length < 4) return 'steady' as const;
     if (recentAvg > previousAvg + 0.3) return 'improving' as const;
     if (recentAvg < previousAvg - 0.3) return 'declining' as const;
@@ -230,19 +290,23 @@ export function useAthleteProgress() {
   }, [sessions.length]);
 
   const sortedSessions = useMemo(
-    () => [...sessions].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()),
-    [sessions]
+    () =>
+      [...sessions].sort(
+        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
+      ),
+    [sessions],
   );
 
   const avgRating = useMemo(
-    () => sessions.length > 0
-      ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
-      : '0.0',
-    [sessions]
+    () =>
+      sessions.length > 0
+        ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
+        : '0.0',
+    [sessions],
   );
 
-  const activeGoals = useMemo(() => goals.filter(g => g.status === 'ACTIVE'), [goals]);
-  const completedGoals = useMemo(() => goals.filter(g => g.status === 'COMPLETED'), [goals]);
+  const activeGoals = useMemo(() => goals.filter((g) => g.status === 'ACTIVE'), [goals]);
+  const completedGoals = useMemo(() => goals.filter((g) => g.status === 'COMPLETED'), [goals]);
 
   const handleSelectTab = useCallback((tab: ProgressTabType) => {
     setActiveTab(tab);

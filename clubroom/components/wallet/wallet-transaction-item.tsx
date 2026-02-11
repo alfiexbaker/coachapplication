@@ -33,20 +33,12 @@ export const WalletTransactionItem = memo(function WalletTransactionItem({
   const iconBgColor = isPending
     ? withAlpha(colors.warning, 0.09)
     : isCredit
-    ? withAlpha(colors.success, 0.09)
-    : withAlpha(colors.error, 0.09);
+      ? withAlpha(colors.success, 0.09)
+      : withAlpha(colors.error, 0.09);
 
-  const iconColor = isPending
-    ? colors.warning
-    : isCredit
-    ? colors.success
-    : colors.error;
+  const iconColor = isPending ? colors.warning : isCredit ? colors.success : colors.error;
 
-  const amountColor = isPending
-    ? colors.warning
-    : isCredit
-    ? colors.success
-    : colors.text;
+  const amountColor = isPending ? colors.warning : isCredit ? colors.success : colors.text;
 
   return (
     <Row align="center" gap="md" style={styles.container}>
@@ -62,10 +54,7 @@ export const WalletTransactionItem = memo(function WalletTransactionItem({
           {isPending && ' - Pending'}
         </ThemedText>
       </Column>
-      <ThemedText
-        type="defaultSemiBold"
-        style={[styles.amount, { color: amountColor }]}
-      >
+      <ThemedText type="defaultSemiBold" style={[styles.amount, { color: amountColor }]}>
         {isCredit ? '+' : ''}
         {walletService.formatAmount(transaction.amount)}
       </ThemedText>

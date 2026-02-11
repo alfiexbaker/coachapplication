@@ -71,7 +71,10 @@ function CreateSessionPricingStepInner({
           <View
             style={[
               styles.toggleHandle,
-              { backgroundColor: palette.surface, transform: [{ translateX: waitlistEnabled ? 18 : Spacing.micro }] },
+              {
+                backgroundColor: palette.surface,
+                transform: [{ translateX: waitlistEnabled ? 18 : Spacing.micro }],
+              },
             ]}
           />
         </View>

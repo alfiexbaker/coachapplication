@@ -53,11 +53,17 @@ export const PhotoUploadSection = memo(function PhotoUploadSection({
 }: PhotoUploadSectionProps) {
   return (
     <View style={styles.photoSection}>
-      <Clickable accessibilityLabel="Upload photo" onPress={onPickImage} style={styles.photoPickerContainer}>
+      <Clickable
+        accessibilityLabel="Upload photo"
+        onPress={onPickImage}
+        style={styles.photoPickerContainer}
+      >
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.photo} />
         ) : (
-          <View style={[styles.photoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <View
+            style={[styles.photoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+          >
             <Ionicons name="camera" size={32} color={palette.tint} />
           </View>
         )}

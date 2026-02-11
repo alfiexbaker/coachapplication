@@ -50,7 +50,7 @@ export function InvoiceList({
         dateTo: dateRange.to,
       });
     },
-    [onFilterChange, dateRange]
+    [onFilterChange, dateRange],
   );
 
   const handleDateSelect = useCallback(
@@ -63,7 +63,7 @@ export function InvoiceList({
         dateTo: to,
       });
     },
-    [onFilterChange, selectedStatus]
+    [onFilterChange, selectedStatus],
   );
 
   const handleDateClear = useCallback(() => {
@@ -75,9 +75,7 @@ export function InvoiceList({
   }, [onFilterChange, selectedStatus]);
 
   const filteredInvoices =
-    selectedStatus === 'ALL'
-      ? invoices
-      : invoices.filter((inv) => inv.status === selectedStatus);
+    selectedStatus === 'ALL' ? invoices : invoices.filter((inv) => inv.status === selectedStatus);
 
   const renderItem = useCallback(
     ({ item, index }: { item: Invoice; index: number }) => (
@@ -85,7 +83,7 @@ export function InvoiceList({
         <InvoiceCard invoice={item} compact={compact} />
       </Animated.View>
     ),
-    [compact]
+    [compact],
   );
 
   const renderEmpty = useCallback(
@@ -97,7 +95,7 @@ export function InvoiceList({
         palette={palette}
       />
     ),
-    [emptyMessage, selectedStatus, handleStatusFilter, palette]
+    [emptyMessage, selectedStatus, handleStatusFilter, palette],
   );
 
   const renderHeader = useCallback(
@@ -116,7 +114,15 @@ export function InvoiceList({
         )}
       </>
     ),
-    [ListHeaderComponent, showFilters, selectedStatus, handleStatusFilter, dateRange, handleDateClear, palette]
+    [
+      ListHeaderComponent,
+      showFilters,
+      selectedStatus,
+      handleStatusFilter,
+      dateRange,
+      handleDateClear,
+      palette,
+    ],
   );
 
   return (
@@ -135,7 +141,11 @@ export function InvoiceList({
         ItemSeparatorComponent={compact ? undefined : InvoiceSeparator}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={palette.tint}
+            />
           ) : undefined
         }
       />

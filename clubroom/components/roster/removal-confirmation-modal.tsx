@@ -46,9 +46,10 @@ export function RemovalConfirmationModal({
 
   const reasons = type === 'athlete' ? ATHLETE_REASONS : MEMBER_REASONS;
   const title = type === 'athlete' ? 'Remove from Roster' : 'Remove from Club';
-  const description = type === 'athlete'
-    ? `Are you sure you want to remove ${name} from your roster?`
-    : `Are you sure you want to remove ${name} from this club?`;
+  const description =
+    type === 'athlete'
+      ? `Are you sure you want to remove ${name} from your roster?`
+      : `Are you sure you want to remove ${name} from this club?`;
 
   const handleConfirm = () => {
     if (!selectedReason) return;
@@ -70,7 +71,9 @@ export function RemovalConfirmationModal({
         <SurfaceCard style={styles.modalCard}>
           {/* Header */}
           <Row align="start" gap="md">
-            <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+            <View
+              style={[styles.iconContainer, { backgroundColor: withAlpha(palette.error, 0.09) }]}
+            >
               <Ionicons name="person-remove-outline" size={24} color={palette.error} />
             </View>
             <View style={styles.headerText}>
@@ -99,7 +102,11 @@ export function RemovalConfirmationModal({
               <TextInput
                 style={[
                   styles.input,
-                  { backgroundColor: palette.background, color: palette.text, borderColor: palette.border },
+                  {
+                    backgroundColor: palette.background,
+                    color: palette.text,
+                    borderColor: palette.border,
+                  },
                 ]}
                 placeholder="Enter reason..."
                 placeholderTextColor={palette.muted}
@@ -112,9 +119,7 @@ export function RemovalConfirmationModal({
           )}
 
           {/* Archive Option */}
-          {type === 'athlete' && (
-            <ArchiveToggle archive={archive} onToggle={setArchive} />
-          )}
+          {type === 'athlete' && <ArchiveToggle archive={archive} onToggle={setArchive} />}
 
           {/* Warning */}
           <WarningBox archive={archive} />
@@ -178,12 +183,15 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
-  input: { ...Typography.body, borderWidth: 1,
+  input: {
+    ...Typography.body,
+    borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     minHeight: 60,
-    textAlignVertical: 'top' },
+    textAlignVertical: 'top',
+  },
   actions: {
     marginTop: Spacing.xs,
   },

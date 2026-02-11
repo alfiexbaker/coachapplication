@@ -29,7 +29,10 @@ export function useEmergencyAccess() {
 
     try {
       const entry = await rosterService.getRosterEntry(coachId, athleteId);
-      const dataResult = await safetyService.getAthleteEmergency(athleteId, entry ? getRosterAthleteName(entry) : undefined);
+      const dataResult = await safetyService.getAthleteEmergency(
+        athleteId,
+        entry ? getRosterAthleteName(entry) : undefined,
+      );
       if (!dataResult.success) {
         return err(serviceError('UNKNOWN', dataResult.error.message, dataResult.error));
       }
@@ -59,30 +62,44 @@ export function useEmergencyAccess() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert('Call Emergency Contact', `Call ${name} at ${phone}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Call', onPress: async () => {
-        try {
-          const url = `tel:${phone.replace(/\s+/g, '')}`;
-          const canOpen = await Linking.canOpenURL(url);
-          if (canOpen) await Linking.openURL(url);
-          else Alert.alert('Error', 'Unable to make phone calls on this device');
-        } catch { Alert.alert('Error', 'Failed to initiate call'); }
-      }},
+      {
+        text: 'Call',
+        onPress: async () => {
+          try {
+            const url = `tel:${phone.replace(/\s+/g, '')}`;
+            const canOpen = await Linking.canOpenURL(url);
+            if (canOpen) await Linking.openURL(url);
+            else Alert.alert('Error', 'Unable to make phone calls on this device');
+          } catch {
+            Alert.alert('Error', 'Failed to initiate call');
+          }
+        },
+      },
     ]);
   }, []);
 
   const handleCallDoctor = useCallback(async () => {
     if (!emergencyData?.doctorPhone) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Call Doctor', `Call ${emergencyData.doctorName || 'Doctor'} at ${emergencyData.doctorPhone}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Call', onPress: async () => {
-        try {
-          const url = `tel:${emergencyData.doctorPhone!.replace(/\s+/g, '')}`;
-          const canOpen = await Linking.canOpenURL(url);
-          if (canOpen) await Linking.openURL(url);
-        } catch { Alert.alert('Error', 'Failed to initiate call'); }
-      }},
-    ]);
+    Alert.alert(
+      'Call Doctor',
+      `Call ${emergencyData.doctorName || 'Doctor'} at ${emergencyData.doctorPhone}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call',
+          onPress: async () => {
+            try {
+              const url = `tel:${emergencyData.doctorPhone!.replace(/\s+/g, '')}`;
+              const canOpen = await Linking.canOpenURL(url);
+              if (canOpen) await Linking.openURL(url);
+            } catch {
+              Alert.alert('Error', 'Failed to initiate call');
+            }
+          },
+        },
+      ],
+    );
   }, [emergencyData]);
 
   return {

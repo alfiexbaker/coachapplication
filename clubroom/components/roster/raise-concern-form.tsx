@@ -22,6 +22,7 @@ type FormProps = {
   onDescriptionChange: (value: string) => void;
   actionTaken: string;
   onActionTakenChange: (value: string) => void;
+  isEscalationRisk: boolean;
   canSubmit: boolean;
   submitting: boolean;
   onSubmit: () => void;
@@ -39,6 +40,7 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
   onDescriptionChange,
   actionTaken,
   onActionTakenChange,
+  isEscalationRisk,
   canSubmit,
   submitting,
   onSubmit,
@@ -57,7 +59,10 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
         <Column gap="xs">
           <ThemedText type="defaultSemiBold">Title</ThemedText>
           <TextInput
-            style={[styles.textInput, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
+            style={[
+              styles.textInput,
+              { backgroundColor: colors.surfaceSecondary, color: colors.text },
+            ]}
             placeholder="Brief summary of the concern..."
             placeholderTextColor={colors.muted}
             value={title}
@@ -72,7 +77,10 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
         <Column gap="xs">
           <ThemedText type="defaultSemiBold">Description</ThemedText>
           <TextInput
-            style={[styles.textArea, { backgroundColor: colors.surfaceSecondary, color: colors.text }]}
+            style={[
+              styles.textArea,
+              { backgroundColor: colors.surfaceSecondary, color: colors.text },
+            ]}
             placeholder="Describe the concern in detail. What happened? When? Who was involved?"
             placeholderTextColor={colors.muted}
             value={description}
@@ -87,7 +95,14 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
 
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <Column gap="xs">
-          <ThemedText type="defaultSemiBold">Action Taken (Optional)</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            Action Taken {isEscalationRisk ? '(Required for high-risk concerns)' : '(Optional)'}
+          </ThemedText>
+          {isEscalationRisk && (
+            <ThemedText style={[styles.helper, { color: colors.warning }]}>
+              Include immediate safeguarding steps. High-risk concerns are auto-escalated.
+            </ThemedText>
+          )}
           <TextInput
             style={[
               styles.textArea,
@@ -126,5 +141,8 @@ const styles = StyleSheet.create({
     minHeight: 100,
     borderRadius: Radii.md,
     padding: Spacing.md,
+  },
+  helper: {
+    ...Typography.caption,
   },
 });

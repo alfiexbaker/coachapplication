@@ -49,12 +49,7 @@ export const QuietHoursHeader = memo(function QuietHoursHeader({
           Pause push notifications during set hours
         </ThemedText>
       </View>
-      <View
-        style={[
-          styles.toggle,
-          { backgroundColor: enabled ? palette.accent : palette.border },
-        ]}
-      >
+      <View style={[styles.toggle, { backgroundColor: enabled ? palette.accent : palette.border }]}>
         <View
           style={[
             styles.toggleThumb,
@@ -119,7 +114,11 @@ export const TimeRangeSection = memo(function TimeRangeSection({
           <Ionicons name="chevron-down" size={16} color={palette.muted} />
         </Clickable>
       </Row>
-      <Row align="start" gap="xs" style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}>
+      <Row
+        align="start"
+        gap="xs"
+        style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}
+      >
         <Ionicons name="information-circle" size={16} color={palette.accent} />
         <ThemedText style={[styles.infoText, { color: palette.accent }]}>
           {isOvernight
@@ -153,7 +152,11 @@ export const TimePickerModal = memo(function TimePickerModal({
     <Modal transparent animationType="slide" visible>
       <View style={[styles.modalOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
         <View style={[styles.pickerContainer, { backgroundColor: palette.card }]}>
-          <Row justify="between" align="center" style={[styles.pickerHeader, { borderBottomColor: palette.border }]}>
+          <Row
+            justify="between"
+            align="center"
+            style={[styles.pickerHeader, { borderBottomColor: palette.border }]}
+          >
             <Clickable onPress={onCancel}>
               <ThemedText style={[styles.pickerButton, { color: palette.muted }]}>
                 Cancel
@@ -161,9 +164,7 @@ export const TimePickerModal = memo(function TimePickerModal({
             </Clickable>
             <ThemedText type="defaultSemiBold">{title}</ThemedText>
             <Clickable onPress={onConfirm}>
-              <ThemedText style={[styles.pickerButton, { color: palette.accent }]}>
-                Done
-              </ThemedText>
+              <ThemedText style={[styles.pickerButton, { color: palette.accent }]}>Done</ThemedText>
             </Clickable>
           </Row>
           <DateTimePicker

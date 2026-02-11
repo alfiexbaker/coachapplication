@@ -35,16 +35,8 @@ export const SettingsSupportSection = memo(function SettingsSupportSection() {
           subtitle="Get help and contact us"
           onPress={handleHelp}
         />
-        <SettingsRow
-          icon="document-text"
-          title="Terms of service"
-          onPress={handleTerms}
-        />
-        <SettingsRow
-          icon="lock-closed"
-          title="Privacy policy"
-          onPress={handlePrivacy}
-        />
+        <SettingsRow icon="document-text" title="Terms of service" onPress={handleTerms} />
+        <SettingsRow icon="lock-closed" title="Privacy policy" onPress={handlePrivacy} />
       </SurfaceCard>
     </Column>
   );

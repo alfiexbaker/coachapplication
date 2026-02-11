@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { ConsentGrid } from './ConsentGrid';
-import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { AthleteConsent } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
@@ -16,11 +16,7 @@ interface ConsentCardProps {
   showDetails?: boolean;
 }
 
-export function ConsentCard({
-  athleteConsent,
-  onPress,
-  showDetails = false,
-}: ConsentCardProps) {
+export function ConsentCard({ athleteConsent, onPress, showDetails = false }: ConsentCardProps) {
   const { colors: palette } = useTheme();
   const athleteName = athleteConsent.athleteId || 'Athlete';
 
@@ -46,9 +42,7 @@ export function ConsentCard({
       <Row style={styles.header}>
         {/* Avatar */}
         <View style={[styles.avatarPlaceholder, { backgroundColor: palette.border }]}>
-          <ThemedText style={styles.avatarText}>
-            {athleteName.slice(0, 2).toUpperCase()}
-          </ThemedText>
+          <ThemedText style={styles.avatarText}>{athleteName.slice(0, 2).toUpperCase()}</ThemedText>
         </View>
 
         {/* Info */}
@@ -56,22 +50,13 @@ export function ConsentCard({
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
             {athleteName}
           </ThemedText>
-          <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-            Parent
-          </ThemedText>
+          <ThemedText style={[styles.parentName, { color: palette.muted }]}>Parent</ThemedText>
         </View>
 
         {/* Consent Count */}
         <View style={styles.countContainer}>
-          <View
-            style={[
-              styles.countBadge,
-              { backgroundColor: withAlpha(getStatusColor(), 0.09) },
-            ]}
-          >
-            <ThemedText
-              style={[styles.countText, { color: getStatusColor() }]}
-            >
+          <View style={[styles.countBadge, { backgroundColor: withAlpha(getStatusColor(), 0.09) }]}>
+            <ThemedText style={[styles.countText, { color: getStatusColor() }]}>
               {granted}/{total}
             </ThemedText>
           </View>
@@ -113,7 +98,9 @@ export function ConsentCard({
             <Row key={consent.type} style={styles.detailRow}>
               <Row style={styles.detailLeft}>
                 <Ionicons
-                  name={consentService.getConsentIcon(consent.type) as keyof typeof Ionicons.glyphMap}
+                  name={
+                    consentService.getConsentIcon(consent.type) as keyof typeof Ionicons.glyphMap
+                  }
                   size={16}
                   color={consent.granted ? palette.success : palette.muted}
                 />

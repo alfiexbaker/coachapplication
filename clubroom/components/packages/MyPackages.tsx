@@ -14,11 +14,11 @@ import { createLogger } from '@/utils/logger';
 import { packageService } from '@/services/package-service';
 import type { PackagePurchase } from '@/constants/types';
 
+import { PurchaseListItem } from './my-packages-sections';
+
 // Re-export extracted components for backward compat
 export { getStatusColor, getStatusLabel, PurchaseListItem } from './my-packages-sections';
 export type { PurchaseListItemProps } from './my-packages-sections';
-
-import { PurchaseListItem } from './my-packages-sections';
 
 const logger = createLogger('MyPackages');
 
@@ -66,7 +66,7 @@ export function MyPackages({
         }
       }
       loadPurchases();
-    }, [currentUser?.id, activeOnly, limit])
+    }, [currentUser?.id, activeOnly, limit]),
   );
 
   if (loading) {
@@ -109,7 +109,11 @@ export function MyPackages({
             My Packages
           </ThemedText>
           {onViewAll && purchases.length > 0 && (
-            <Clickable onPress={onViewAll} accessibilityRole="button" accessibilityLabel="View all packages">
+            <Clickable
+              onPress={onViewAll}
+              accessibilityRole="button"
+              accessibilityLabel="View all packages"
+            >
               <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
                 View All
               </ThemedText>

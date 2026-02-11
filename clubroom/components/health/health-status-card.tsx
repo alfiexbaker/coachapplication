@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { scaleFont } from '@/utils/scale';
+
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Injury } from '@/constants/types';
 import { Row } from '@/components/primitives';
@@ -18,7 +18,10 @@ interface HealthStatusCardProps {
 }
 
 export const HealthStatusCard = memo(function HealthStatusCard({
-  colors, injuries, activeCount, avgRecovery,
+  colors,
+  injuries,
+  activeCount,
+  avgRecovery,
 }: HealthStatusCardProps) {
   if (activeCount === 0) {
     return (
@@ -27,7 +30,9 @@ export const HealthStatusCard = memo(function HealthStatusCard({
           <View style={[styles.healthyIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={48} color={colors.success} />
           </View>
-          <ThemedText type="subtitle" style={styles.healthyTitle}>All Clear!</ThemedText>
+          <ThemedText type="subtitle" style={styles.healthyTitle}>
+            All Clear!
+          </ThemedText>
           <ThemedText style={[styles.healthyText, { color: colors.muted }]}>
             You have no active injuries. Keep up the great work!
           </ThemedText>
@@ -41,21 +46,30 @@ export const HealthStatusCard = memo(function HealthStatusCard({
       <View style={styles.statusContent}>
         <Row style={styles.statusRow}>
           <StatusItem
-            icon="pulse" iconColor={colors.error}
+            icon="pulse"
+            iconColor={colors.error}
             value={String(injuries.filter((i) => i.status === 'ACTIVE').length)}
-            valueColor={colors.error} label="Active" labelColor={colors.muted}
+            valueColor={colors.error}
+            label="Active"
+            labelColor={colors.muted}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <StatusItem
-            icon="trending-up" iconColor={colors.warning}
+            icon="trending-up"
+            iconColor={colors.warning}
             value={String(injuries.filter((i) => i.status === 'RECOVERING').length)}
-            valueColor={colors.warning} label="Recovering" labelColor={colors.muted}
+            valueColor={colors.warning}
+            label="Recovering"
+            labelColor={colors.muted}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <StatusItem
-            icon="fitness" iconColor={colors.tint}
+            icon="fitness"
+            iconColor={colors.tint}
             value={`${avgRecovery}%`}
-            valueColor={colors.tint} label="Avg Recovery" labelColor={colors.muted}
+            valueColor={colors.tint}
+            label="Avg Recovery"
+            labelColor={colors.muted}
           />
         </Row>
       </View>
@@ -78,7 +92,9 @@ function StatusItem({ icon, iconColor, value, valueColor, label, labelColor }: S
       <View style={[styles.statusIcon, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
         <Ionicons name={icon as never} size={24} color={iconColor} />
       </View>
-      <ThemedText type="title" style={{ color: valueColor }}>{value}</ThemedText>
+      <ThemedText type="title" style={{ color: valueColor }}>
+        {value}
+      </ThemedText>
       <ThemedText style={[styles.statusLabel, { color: labelColor }]}>{label}</ThemedText>
     </View>
   );
@@ -87,13 +103,27 @@ function StatusItem({ icon, iconColor, value, valueColor, label, labelColor }: S
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.md },
   healthyState: { alignItems: 'center', padding: Spacing.md },
-  healthyIcon: { width: 80, height: 80, borderRadius: Radii['3xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  healthyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: Radii['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
   healthyTitle: { marginBottom: Spacing.xxs },
   healthyText: { textAlign: 'center', ...Typography.bodySmall },
   statusContent: { padding: Spacing.sm },
   statusRow: { alignItems: 'center', justifyContent: 'space-around' },
   statusItem: { alignItems: 'center', flex: 1 },
-  statusIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  statusIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
   statusLabel: { ...Typography.caption },
   divider: { width: 1, height: 50 },
 });

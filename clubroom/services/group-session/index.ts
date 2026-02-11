@@ -61,20 +61,28 @@ export const groupSessionService = {
   // ==========================================================================
 
   register: sessionRegistrationService.register.bind(sessionRegistrationService),
-  cancelRegistration: sessionRegistrationService.cancelRegistration.bind(sessionRegistrationService),
+  cancelRegistration: sessionRegistrationService.cancelRegistration.bind(
+    sessionRegistrationService,
+  ),
   getSessionRoster: sessionRegistrationService.getSessionRoster.bind(sessionRegistrationService),
   markAttendance: sessionRegistrationService.markAttendance.bind(sessionRegistrationService),
-  getParentRegistrations: sessionRegistrationService.getParentRegistrations.bind(sessionRegistrationService),
+  getParentRegistrations: sessionRegistrationService.getParentRegistrations.bind(
+    sessionRegistrationService,
+  ),
 
   // ==========================================================================
   // SCHEDULING METHODS (from sessionSchedulingService)
   // ==========================================================================
 
-  getClubTrainingSessions: sessionSchedulingService.getClubTrainingSessions.bind(sessionSchedulingService),
-  getSquadTrainingSessions: sessionSchedulingService.getSquadTrainingSessions.bind(sessionSchedulingService),
-  getChildTrainingSessions: sessionSchedulingService.getChildTrainingSessions.bind(sessionSchedulingService),
+  getClubTrainingSessions:
+    sessionSchedulingService.getClubTrainingSessions.bind(sessionSchedulingService),
+  getSquadTrainingSessions:
+    sessionSchedulingService.getSquadTrainingSessions.bind(sessionSchedulingService),
+  getChildTrainingSessions:
+    sessionSchedulingService.getChildTrainingSessions.bind(sessionSchedulingService),
   formatDayOfWeek: sessionSchedulingService.formatDayOfWeek.bind(sessionSchedulingService),
-  formatRecurringPattern: sessionSchedulingService.formatRecurringPattern.bind(sessionSchedulingService),
+  formatRecurringPattern:
+    sessionSchedulingService.formatRecurringPattern.bind(sessionSchedulingService),
   getNextTrainingDate: sessionSchedulingService.getNextTrainingDate.bind(sessionSchedulingService),
 
   // ==========================================================================

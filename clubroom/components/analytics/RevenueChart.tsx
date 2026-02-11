@@ -86,12 +86,7 @@ export function RevenueChart({
   const trendColor = getTrendColor();
 
   return (
-    <SurfaceCard
-      style={styles.card}
-      loading={loading}
-      onPress={onPress}
-      tactile={!!onPress}
-    >
+    <SurfaceCard style={styles.card} loading={loading} onPress={onPress} tactile={!!onPress}>
       <View style={styles.header}>
         <Row style={styles.titleRow}>
           <Ionicons name="bar-chart" size={20} color={palette.tint} />
@@ -99,14 +94,13 @@ export function RevenueChart({
         </Row>
         {totalRevenue !== undefined && (
           <Row style={styles.totalContainer}>
-            <ThemedText style={styles.totalValue}>
-              {formatCurrency(totalRevenue)}
-            </ThemedText>
+            <ThemedText style={styles.totalValue}>{formatCurrency(totalRevenue)}</ThemedText>
             {trend && changePercent !== undefined && (
               <Row style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
                 <Ionicons name={getTrendIcon()} size={12} color={trendColor} />
                 <ThemedText style={[styles.trendText, { color: trendColor }]}>
-                  {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(1)}%
+                  {changePercent >= 0 ? '+' : ''}
+                  {changePercent.toFixed(1)}%
                 </ThemedText>
               </Row>
             )}
@@ -203,8 +197,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     minHeight: 4,
   },
-  barLabel: { ...Typography.micro, marginTop: Spacing.xxs,
-    textAlign: 'center' },
+  barLabel: { ...Typography.micro, marginTop: Spacing.xxs, textAlign: 'center' },
   emptyState: {
     height: 120,
     alignItems: 'center',

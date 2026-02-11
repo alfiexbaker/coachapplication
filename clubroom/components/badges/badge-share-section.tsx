@@ -28,10 +28,14 @@ const BADGE_TIER_COLORS = {
 
 function getTierColor(tier: 1 | 2 | 3 | undefined, fallback: string): string {
   switch (tier) {
-    case 3: return BADGE_TIER_COLORS.gold;
-    case 2: return BADGE_TIER_COLORS.silver;
-    case 1: return BADGE_TIER_COLORS.bronze;
-    default: return fallback;
+    case 3:
+      return BADGE_TIER_COLORS.gold;
+    case 2:
+      return BADGE_TIER_COLORS.silver;
+    case 1:
+      return BADGE_TIER_COLORS.bronze;
+    default:
+      return fallback;
   }
 }
 
@@ -82,7 +86,10 @@ const ShareableAwardRow = memo(function ShareableAwardRow({
       <Clickable
         disabled={isSharing}
         onPress={handlePress}
-        style={[styles.pillButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        style={[
+          styles.pillButton,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}
         accessibilityLabel={`Share ${award.badgeLabel} badge`}
         accessibilityRole="button"
       >

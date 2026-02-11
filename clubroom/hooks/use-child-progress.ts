@@ -3,7 +3,11 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
+import {
+  progressService,
+  type AthleteProgress,
+  type SessionFeedback,
+} from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
@@ -73,14 +77,7 @@ export function useChildProgress() {
     }
   }, [childId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ChildProgressData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildProgressData>({
     load: loadData,
     deps: [childId],
     isEmpty: (value) => !value.child,
@@ -92,17 +89,20 @@ export function useChildProgress() {
   const feedback = data?.feedback ?? [];
   const badges = data?.badges ?? [];
 
-  const getTrendInfo = useCallback((palette: { success: string; error: string; muted: string }) => {
-    if (!progress) return { icon: 'remove', color: palette.muted, label: 'No Data' };
-    switch (progress.overallTrend) {
-      case 'improving':
-        return { icon: 'trending-up', color: palette.success, label: 'Improving' };
-      case 'declining':
-        return { icon: 'trending-down', color: palette.error, label: 'Needs Attention' };
-      default:
-        return { icon: 'remove', color: palette.muted, label: 'Steady Progress' };
-    }
-  }, [progress]);
+  const getTrendInfo = useCallback(
+    (palette: { success: string; error: string; muted: string }) => {
+      if (!progress) return { icon: 'remove', color: palette.muted, label: 'No Data' };
+      switch (progress.overallTrend) {
+        case 'improving':
+          return { icon: 'trending-up', color: palette.success, label: 'Improving' };
+        case 'declining':
+          return { icon: 'trending-down', color: palette.error, label: 'Needs Attention' };
+        default:
+          return { icon: 'remove', color: palette.muted, label: 'Steady Progress' };
+      }
+    },
+    [progress],
+  );
 
   return {
     loading: status === 'loading',
@@ -133,6 +133,10 @@ export function useChildProgress() {
     activeTab: ProgressTab;
     setActiveTab: (value: ProgressTab) => void;
     handleRefresh: () => void;
-    getTrendInfo: (palette: { success: string; error: string; muted: string }) => { icon: string; color: string; label: string };
+    getTrendInfo: (palette: { success: string; error: string; muted: string }) => {
+      icon: string;
+      color: string;
+      label: string;
+    };
   };
 }

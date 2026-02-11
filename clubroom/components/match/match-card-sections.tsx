@@ -32,7 +32,11 @@ export const MatchAvailabilityRow = React.memo(function MatchAvailabilityRow({
   const availability = matchService.getAvailabilitySummary(match);
 
   return (
-    <Row align="center" justify="between" style={[styles.availabilityRow, { borderTopColor: palette.border }]}>
+    <Row
+      align="center"
+      justify="between"
+      style={[styles.availabilityRow, { borderTopColor: palette.border }]}
+    >
       <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
         <ThemedText style={[styles.statusText, { color: statusColor }]}>
           {matchService.formatStatus(match.status)}

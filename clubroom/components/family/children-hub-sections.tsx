@@ -65,10 +65,12 @@ const HubSectionCard = memo(function HubSectionCard({
         accessibilityRole="button"
       >
         <SurfaceCard
-          style={[
-            styles.sectionCard,
-            hasUnseen && { borderColor: section.color, borderWidth: 1 },
-          ].filter(Boolean) as ViewStyle[]}
+          style={
+            [
+              styles.sectionCard,
+              hasUnseen && { borderColor: section.color, borderWidth: 1 },
+            ].filter(Boolean) as ViewStyle[]
+          }
         >
           <Row align="center" gap="md">
             <View
@@ -77,11 +79,7 @@ const HubSectionCard = memo(function HubSectionCard({
                 { backgroundColor: withAlpha(section.color || palette.tint, 0.09) },
               ]}
             >
-              <Ionicons
-                name={section.icon}
-                size={24}
-                color={section.color || palette.tint}
-              />
+              <Ionicons name={section.icon} size={24} color={section.color || palette.tint} />
               {hasUnseen && (
                 <View style={[styles.iconBadge, { backgroundColor: section.color }]}>
                   <ThemedText style={[styles.iconBadgeText, { color: palette.onPrimary }]}>

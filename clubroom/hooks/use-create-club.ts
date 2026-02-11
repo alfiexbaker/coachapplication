@@ -9,7 +9,10 @@ import type { Club, ClubMembership } from '@/constants/types';
 const logger = createLogger('CreateClub');
 
 function generateInviteCode(name: string): string {
-  const prefix = name.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase();
+  const prefix = name
+    .replace(/[^a-zA-Z]/g, '')
+    .slice(0, 5)
+    .toUpperCase();
   const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${suffix}`;
 }
@@ -94,13 +97,21 @@ export function useCreateClub() {
   const previewLocation = `${city || 'City'}, ${country || 'UK'}`;
 
   return {
-    name, setName,
-    tagline, setTagline,
-    city, setCity,
-    country, setCountry,
-    badge, handleBadgeChange,
-    isSubmitting, isValid,
+    name,
+    setName,
+    tagline,
+    setTagline,
+    city,
+    setCity,
+    country,
+    setCountry,
+    badge,
+    handleBadgeChange,
+    isSubmitting,
+    isValid,
     handleCreate,
-    previewBadge, previewName, previewLocation,
+    previewBadge,
+    previewName,
+    previewLocation,
   };
 }

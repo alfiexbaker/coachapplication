@@ -78,11 +78,7 @@ export function Button({
       onPress={onPress}
     >
       {typeof children === 'string' ? (
-        <ThemedText
-          style={[styles.buttonLabel, { color: getTextColor() }]}
-        >
-          {children}
-        </ThemedText>
+        <ThemedText style={[styles.buttonLabel, { color: getTextColor() }]}>{children}</ThemedText>
       ) : (
         children
       )}

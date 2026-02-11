@@ -63,8 +63,12 @@ function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTa
 
       <View style={styles.section}>
         <Row align="center" justify="space-between">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Sessions</ThemedText>
-          <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>{sessions.length} total</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Recent Sessions
+          </ThemedText>
+          <ThemedText style={[styles.sectionCount, { color: palette.muted }]}>
+            {sessions.length} total
+          </ThemedText>
         </Row>
 
         {sessions.length === 0 ? (
@@ -82,18 +86,30 @@ function DevProgressTabInner({ skills, sessions, sortedSessions }: DevProgressTa
                     <Row justify="space-between" align="flex-start">
                       <View style={styles.cardInfo}>
                         <ThemedText type="defaultSemiBold">{session.coachName}</ThemedText>
-                        <ThemedText style={[styles.date, { color: palette.muted }]}>{formatShortDateWithYear(session.completedAt)}</ThemedText>
+                        <ThemedText style={[styles.date, { color: palette.muted }]}>
+                          {formatShortDateWithYear(session.completedAt)}
+                        </ThemedText>
                       </View>
                       <Row align="center" gap="xxs">
-                        <ThemedText type="defaultSemiBold" style={styles.ratingValue}>{session.performanceRating.toFixed(1)}</ThemedText>
+                        <ThemedText type="defaultSemiBold" style={styles.ratingValue}>
+                          {session.performanceRating.toFixed(1)}
+                        </ThemedText>
                         <Ionicons name="star" size={14} color={palette.warning} />
                       </Row>
                     </Row>
                     {session.skillsWorkedOn && session.skillsWorkedOn.length > 0 && (
                       <Row wrap gap="xs">
                         {session.skillsWorkedOn.slice(0, 3).map((skill, idx) => (
-                          <View key={idx} style={[styles.skillPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
-                            <ThemedText style={[styles.skillText, { color: palette.tint }]}>{skill}</ThemedText>
+                          <View
+                            key={idx}
+                            style={[
+                              styles.skillPill,
+                              { backgroundColor: withAlpha(palette.tint, 0.07) },
+                            ]}
+                          >
+                            <ThemedText style={[styles.skillText, { color: palette.tint }]}>
+                              {skill}
+                            </ThemedText>
                           </View>
                         ))}
                       </Row>
@@ -121,6 +137,10 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1, gap: Spacing.micro },
   date: { ...Typography.caption },
   ratingValue: { ...Typography.subheading },
-  skillPill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm },
+  skillPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
   skillText: { ...Typography.caption },
 });

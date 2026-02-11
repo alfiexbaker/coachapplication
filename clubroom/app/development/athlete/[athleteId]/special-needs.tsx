@@ -52,7 +52,10 @@ export default function SpecialNeedsScreen() {
   if (status === 'error') {
     return (
       <PageContainer>
-        <ErrorState message={error?.message ?? 'Failed to load special needs profile.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message ?? 'Failed to load special needs profile.'}
+          onRetry={retry}
+        />
       </PageContainer>
     );
   }
@@ -65,7 +68,9 @@ export default function SpecialNeedsScreen() {
           <Clickable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.foreground} />
           </Clickable>
-          <ThemedText type="title" style={Typography.heading}>Special Needs</ThemedText>
+          <ThemedText type="title" style={Typography.heading}>
+            Special Needs
+          </ThemedText>
           <View style={{ width: 24 }} />
         </Row>
       }
@@ -89,7 +94,9 @@ export default function SpecialNeedsScreen() {
           <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.muted, 0.06) }]}>
             <Ionicons name="accessibility-outline" size={Components.icon.xl} color={colors.muted} />
           </View>
-          <ThemedText type="heading" style={{ textAlign: 'center' }}>No Special Needs</ThemedText>
+          <ThemedText type="heading" style={{ textAlign: 'center' }}>
+            No Special Needs
+          </ThemedText>
           <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
             No disabilities or accommodations have been documented for this athlete.
           </ThemedText>
@@ -103,5 +110,12 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   backButton: { padding: Spacing.xs },
   emptyCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
-  emptyIcon: { width: Components.avatar.xl, height: Components.avatar.xl, borderRadius: Components.avatar.xl / 2, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  emptyIcon: {
+    width: Components.avatar.xl,
+    height: Components.avatar.xl,
+    borderRadius: Components.avatar.xl / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
 });

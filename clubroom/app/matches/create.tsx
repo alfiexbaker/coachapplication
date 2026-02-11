@@ -26,14 +26,40 @@ export default function CreateMatchScreen() {
     refetchOnFocus: true,
   });
   const {
-    step, currentStepIndex, totalSteps, isSubmitting,
-    matchType, setMatchType, opponent, setOpponent, isHome, setIsHome,
-    venue, setVenue, address, setAddress, date, setDate,
-    kickoffTime, setKickoffTime, meetTime, setMeetTime,
-    maxPlayers, setMaxPlayers, notes, setNotes,
-    selectedSquadId, setSelectedSquadId, selectedSquad,
-    squads, squadMemberCount, autoInvite, setAutoInvite,
-    handleNext, handleBack, handleSubmit,
+    step,
+    currentStepIndex,
+    totalSteps,
+    isSubmitting,
+    matchType,
+    setMatchType,
+    opponent,
+    setOpponent,
+    isHome,
+    setIsHome,
+    venue,
+    setVenue,
+    address,
+    setAddress,
+    date,
+    setDate,
+    kickoffTime,
+    setKickoffTime,
+    meetTime,
+    setMeetTime,
+    maxPlayers,
+    setMaxPlayers,
+    notes,
+    setNotes,
+    selectedSquadId,
+    setSelectedSquadId,
+    selectedSquad,
+    squads,
+    squadMemberCount,
+    autoInvite,
+    setAutoInvite,
+    handleNext,
+    handleBack,
+    handleSubmit,
   } = useCreateMatch();
 
   if (status === 'loading') {
@@ -41,7 +67,14 @@ export default function CreateMatchScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <PageContainer
-          header={<PageHeader title="Create Match" subtitle="Preparing form" showBack onBackPress={handleBack} />}
+          header={
+            <PageHeader
+              title="Create Match"
+              subtitle="Preparing form"
+              showBack
+              onBackPress={handleBack}
+            />
+          }
         >
           <LoadingState variant="form" />
         </PageContainer>
@@ -54,9 +87,19 @@ export default function CreateMatchScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <PageContainer
-          header={<PageHeader title="Create Match" subtitle="Unable to load form" showBack onBackPress={handleBack} />}
+          header={
+            <PageHeader
+              title="Create Match"
+              subtitle="Unable to load form"
+              showBack
+              onBackPress={handleBack}
+            />
+          }
         >
-          <ErrorState message={error?.message || 'Failed to open match creation flow.'} onRetry={retry} />
+          <ErrorState
+            message={error?.message || 'Failed to open match creation flow.'}
+            onRetry={retry}
+          />
         </PageContainer>
       </>
     );
@@ -67,7 +110,14 @@ export default function CreateMatchScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <PageContainer
-          header={<PageHeader title="Create Match" subtitle="Unavailable" showBack onBackPress={handleBack} />}
+          header={
+            <PageHeader
+              title="Create Match"
+              subtitle="Unavailable"
+              showBack
+              onBackPress={handleBack}
+            />
+          }
         >
           <EmptyState
             icon="football-outline"
@@ -84,61 +134,128 @@ export default function CreateMatchScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <PageContainer
-          header={<PageHeader title="Create Match" subtitle={`Step ${currentStepIndex + 1} of ${totalSteps}`} showBack onBackPress={handleBack} />}
-          gap={0} horizontalSpacing={0}
+          header={
+            <PageHeader
+              title="Create Match"
+              subtitle={`Step ${currentStepIndex + 1} of ${totalSteps}`}
+              showBack
+              onBackPress={handleBack}
+            />
+          }
+          gap={0}
+          horizontalSpacing={0}
         >
           <Row justify="center" gap="xs" style={styles.progress}>
             {Array.from({ length: totalSteps }, (_, i) => (
-              <View key={i} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? colors.tint : colors.border }]} />
+              <View
+                key={i}
+                style={[
+                  styles.progressDot,
+                  { backgroundColor: i <= currentStepIndex ? colors.tint : colors.border },
+                ]}
+              />
             ))}
           </Row>
 
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
             {step === 'details' && (
               <CreateMatchDetails
-                matchType={matchType} opponent={opponent} isHome={isHome} venue={venue} address={address} colors={colors}
-                onMatchTypeChange={setMatchType} onOpponentChange={setOpponent} onIsHomeChange={setIsHome} onVenueChange={setVenue} onAddressChange={setAddress}
+                matchType={matchType}
+                opponent={opponent}
+                isHome={isHome}
+                venue={venue}
+                address={address}
+                colors={colors}
+                onMatchTypeChange={setMatchType}
+                onOpponentChange={setOpponent}
+                onIsHomeChange={setIsHome}
+                onVenueChange={setVenue}
+                onAddressChange={setAddress}
               />
             )}
             {step === 'schedule' && (
               <CreateMatchSchedule
-                date={date} kickoffTime={kickoffTime} meetTime={meetTime} maxPlayers={maxPlayers} notes={notes} colors={colors}
-                onDateChange={setDate} onKickoffTimeChange={setKickoffTime} onMeetTimeChange={setMeetTime} onMaxPlayersChange={setMaxPlayers} onNotesChange={setNotes}
+                date={date}
+                kickoffTime={kickoffTime}
+                meetTime={meetTime}
+                maxPlayers={maxPlayers}
+                notes={notes}
+                colors={colors}
+                onDateChange={setDate}
+                onKickoffTimeChange={setKickoffTime}
+                onMeetTimeChange={setMeetTime}
+                onMaxPlayersChange={setMaxPlayers}
+                onNotesChange={setNotes}
               />
             )}
             {step === 'squad' && (
               <CreateMatchSquad
-                squads={squads} selectedSquadId={selectedSquadId} squadMemberCount={squadMemberCount} autoInvite={autoInvite} colors={colors}
-                onSelectSquad={setSelectedSquadId} onAutoInviteChange={setAutoInvite}
+                squads={squads}
+                selectedSquadId={selectedSquadId}
+                squadMemberCount={squadMemberCount}
+                autoInvite={autoInvite}
+                colors={colors}
+                onSelectSquad={setSelectedSquadId}
+                onAutoInviteChange={setAutoInvite}
               />
             )}
             {step === 'review' && (
               <CreateMatchReview
-                matchType={matchType} opponent={opponent} isHome={isHome} venue={venue} date={date} kickoffTime={kickoffTime}
-                meetTime={meetTime} maxPlayers={maxPlayers} notes={notes} selectedSquad={selectedSquad} squadMemberCount={squadMemberCount}
-                autoInvite={autoInvite} colors={colors}
+                matchType={matchType}
+                opponent={opponent}
+                isHome={isHome}
+                venue={venue}
+                date={date}
+                kickoffTime={kickoffTime}
+                meetTime={meetTime}
+                maxPlayers={maxPlayers}
+                notes={notes}
+                selectedSquad={selectedSquad}
+                squadMemberCount={squadMemberCount}
+                autoInvite={autoInvite}
+                colors={colors}
               />
             )}
           </ScrollView>
 
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
             {step === 'review' ? (
-              <Clickable style={[styles.primaryBtn, { backgroundColor: colors.tint }]} onPress={handleSubmit} disabled={isSubmitting}>
+              <Clickable
+                style={[styles.primaryBtn, { backgroundColor: colors.tint }]}
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
-                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Creating...</ThemedText>
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                    Creating...
+                  </ThemedText>
                 ) : (
                   <Row align="center" justify="center" gap="sm">
                     <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                    <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Create Match</ThemedText>
+                    <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                      Create Match
+                    </ThemedText>
                   </Row>
                 )}
               </Clickable>
             ) : (
-              <Clickable style={[styles.primaryBtn, { backgroundColor: colors.tint }]} onPress={handleNext}>
+              <Clickable
+                style={[styles.primaryBtn, { backgroundColor: colors.tint }]}
+                onPress={handleNext}
+              >
                 <Row align="center" justify="center" gap="sm">
-                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>Continue</ThemedText>
+                  <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                    Continue
+                  </ThemedText>
                   <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
                 </Row>
               </Clickable>

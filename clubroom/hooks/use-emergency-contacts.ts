@@ -37,14 +37,7 @@ export function useEmergencyContacts() {
     }
   }, [id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<EmergencyContactsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<EmergencyContactsData>({
     load: loadInfo,
     deps: [id],
     isEmpty: () => false,
@@ -53,63 +46,75 @@ export function useEmergencyContacts() {
 
   const info = data?.info ?? null;
 
-  const handleAddContact = useCallback(async (contact: Omit<EmergencyContact, 'id'>) => {
-    if (!id) return;
-    try {
-      const result = await safetyService.addContact(id, contact);
-      if (!result.success) {
-        logger.error('Failed to add contact', result.error);
-        return;
+  const handleAddContact = useCallback(
+    async (contact: Omit<EmergencyContact, 'id'>) => {
+      if (!id) return;
+      try {
+        const result = await safetyService.addContact(id, contact);
+        if (!result.success) {
+          logger.error('Failed to add contact', result.error);
+          return;
+        }
+        onRefresh();
+        setShowForm(false);
+      } catch (error) {
+        logger.error('Failed to add contact:', error);
       }
-      onRefresh();
-      setShowForm(false);
-    } catch (error) {
-      logger.error('Failed to add contact:', error);
-    }
-  }, [id, onRefresh]);
+    },
+    [id, onRefresh],
+  );
 
-  const handleUpdateContact = useCallback(async (contact: Omit<EmergencyContact, 'id'>) => {
-    if (!id || !editingContact) return;
-    try {
-      const result = await safetyService.updateContact(id, editingContact.id, contact);
-      if (!result.success) {
-        logger.error('Failed to update contact', result.error);
-        return;
+  const handleUpdateContact = useCallback(
+    async (contact: Omit<EmergencyContact, 'id'>) => {
+      if (!id || !editingContact) return;
+      try {
+        const result = await safetyService.updateContact(id, editingContact.id, contact);
+        if (!result.success) {
+          logger.error('Failed to update contact', result.error);
+          return;
+        }
+        onRefresh();
+        setEditingContact(null);
+      } catch (error) {
+        logger.error('Failed to update contact:', error);
       }
-      onRefresh();
-      setEditingContact(null);
-    } catch (error) {
-      logger.error('Failed to update contact:', error);
-    }
-  }, [id, editingContact, onRefresh]);
+    },
+    [id, editingContact, onRefresh],
+  );
 
-  const handleDeleteContact = useCallback(async (contactId: string) => {
-    if (!id) return;
-    try {
-      const result = await safetyService.removeContact(id, contactId);
-      if (!result.success) {
-        logger.error('Failed to delete contact', result.error);
-        return;
+  const handleDeleteContact = useCallback(
+    async (contactId: string) => {
+      if (!id) return;
+      try {
+        const result = await safetyService.removeContact(id, contactId);
+        if (!result.success) {
+          logger.error('Failed to delete contact', result.error);
+          return;
+        }
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to delete contact:', error);
       }
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to delete contact:', error);
-    }
-  }, [id, onRefresh]);
+    },
+    [id, onRefresh],
+  );
 
-  const handleSetPrimary = useCallback(async (contactId: string) => {
-    if (!id) return;
-    try {
-      const result = await safetyService.updateContact(id, contactId, { isPrimary: true });
-      if (!result.success) {
-        logger.error('Failed to set primary contact', result.error);
-        return;
+  const handleSetPrimary = useCallback(
+    async (contactId: string) => {
+      if (!id) return;
+      try {
+        const result = await safetyService.updateContact(id, contactId, { isPrimary: true });
+        if (!result.success) {
+          logger.error('Failed to set primary contact', result.error);
+          return;
+        }
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to set primary contact:', error);
       }
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to set primary contact:', error);
-    }
-  }, [id, onRefresh]);
+    },
+    [id, onRefresh],
+  );
 
   const contacts = info?.contacts ?? [];
 
@@ -127,8 +132,15 @@ export function useEmergencyContacts() {
     refreshing,
     onRefresh,
     retry,
-    contacts, showForm, editingContact,
-    handleAddContact, handleUpdateContact, handleDeleteContact, handleSetPrimary,
-    openForm, closeForm, startEdit,
+    contacts,
+    showForm,
+    editingContact,
+    handleAddContact,
+    handleUpdateContact,
+    handleDeleteContact,
+    handleSetPrimary,
+    openForm,
+    closeForm,
+    startEdit,
   };
 }

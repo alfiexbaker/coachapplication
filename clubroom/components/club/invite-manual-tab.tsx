@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -15,7 +15,11 @@ interface InviteManualTabProps {
   onSend: () => void;
 }
 
-export const InviteManualTab = memo(function InviteManualTab({ email, onEmailChange, onSend }: InviteManualTabProps) {
+export const InviteManualTab = memo(function InviteManualTab({
+  email,
+  onEmailChange,
+  onSend,
+}: InviteManualTabProps) {
   const { colors } = useTheme();
 
   return (
@@ -26,7 +30,10 @@ export const InviteManualTab = memo(function InviteManualTab({ email, onEmailCha
       </ThemedText>
       <Row style={styles.inputRow}>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          style={[
+            styles.input,
+            { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+          ]}
           placeholder="email@example.com"
           placeholderTextColor={colors.muted}
           value={email}
@@ -45,6 +52,19 @@ export const InviteManualTab = memo(function InviteManualTab({ email, onEmailCha
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },
   inputRow: { gap: Spacing.sm, marginTop: Spacing.xs },
-  input: { flex: 1, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.body },
-  sendButton: { width: 44, height: 44, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

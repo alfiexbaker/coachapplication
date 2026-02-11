@@ -27,12 +27,20 @@ export default function DiscoverSessionsScreen() {
   const c = useDiscoverSessions();
   const hasFilters = Boolean(c.searchQuery.trim() || c.skillFilter || c.typeFilter);
   const header = (
-    <PageHeader title="Discover Sessions" subtitle="Find and book coaching sessions" showBack onBackPress={() => router.back()} />
+    <PageHeader
+      title="Discover Sessions"
+      subtitle="Find and book coaching sessions"
+      showBack
+      onBackPress={() => router.back()}
+    />
   );
 
   if (c.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -41,7 +49,10 @@ export default function DiscoverSessionsScreen() {
 
   if (c.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <ErrorState
           message={c.error?.message || 'Failed to load discover sessions.'}
@@ -53,7 +64,10 @@ export default function DiscoverSessionsScreen() {
 
   if (c.status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <EmptyState
           icon="search-outline"
@@ -67,31 +81,63 @@ export default function DiscoverSessionsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {header}
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Row align="center" gap="sm" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Row
+          align="center"
+          gap="sm"
+          style={[
+            styles.searchBar,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
+        >
           <Ionicons name="search" size={20} color={palette.muted} />
-          <TextInput style={[styles.searchInput, { color: palette.text }]} placeholder="Search sessions, coaches, locations..."
-            placeholderTextColor={palette.muted} value={c.searchQuery} onChangeText={c.setSearchQuery} />
+          <TextInput
+            style={[styles.searchInput, { color: palette.text }]}
+            placeholder="Search sessions, coaches, locations..."
+            placeholderTextColor={palette.muted}
+            value={c.searchQuery}
+            onChangeText={c.setSearchQuery}
+          />
           {c.searchQuery.length > 0 && (
-            <Clickable accessibilityLabel="Clear search" onPress={c.clearSearch}><Ionicons name="close-circle" size={20} color={palette.muted} /></Clickable>
+            <Clickable accessibilityLabel="Clear search" onPress={c.clearSearch}>
+              <Ionicons name="close-circle" size={20} color={palette.muted} />
+            </Clickable>
           )}
         </Row>
       </View>
 
       {/* Type Filter Pills */}
       <View style={styles.filters}>
-        <FlatList data={TYPE_FILTERS} horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList} keyExtractor={item => item.value || 'all-types'}
+        <FlatList
+          data={TYPE_FILTERS}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          keyExtractor={(item) => item.value || 'all-types'}
           renderItem={({ item }) => (
-            <Clickable style={[styles.filterPill, {
-              backgroundColor: c.typeFilter === item.value ? palette.tint : 'transparent',
-              borderColor: c.typeFilter === item.value ? palette.tint : palette.border,
-            }]} onPress={() => c.setTypeFilter(item.value as typeof c.typeFilter)}>
-              <ThemedText style={[styles.filterText, { color: c.typeFilter === item.value ? palette.onPrimary : palette.text }]}>
+            <Clickable
+              style={[
+                styles.filterPill,
+                {
+                  backgroundColor: c.typeFilter === item.value ? palette.tint : 'transparent',
+                  borderColor: c.typeFilter === item.value ? palette.tint : palette.border,
+                },
+              ]}
+              onPress={() => c.setTypeFilter(item.value as typeof c.typeFilter)}
+            >
+              <ThemedText
+                style={[
+                  styles.filterText,
+                  { color: c.typeFilter === item.value ? palette.onPrimary : palette.text },
+                ]}
+              >
                 {item.label}
               </ThemedText>
             </Clickable>
@@ -101,14 +147,29 @@ export default function DiscoverSessionsScreen() {
 
       {/* Skill Filter Pills */}
       <View style={styles.filters}>
-        <FlatList data={SKILL_FILTERS} horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList} keyExtractor={item => item.value || 'all-skills'}
+        <FlatList
+          data={SKILL_FILTERS}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          keyExtractor={(item) => item.value || 'all-skills'}
           renderItem={({ item }) => (
-            <Clickable style={[styles.filterPill, {
-              backgroundColor: c.skillFilter === item.value ? palette.tint : 'transparent',
-              borderColor: c.skillFilter === item.value ? palette.tint : palette.border,
-            }]} onPress={() => c.setSkillFilter(item.value as FootballObjective | '')}>
-              <ThemedText style={[styles.filterText, { color: c.skillFilter === item.value ? palette.onPrimary : palette.text }]}>
+            <Clickable
+              style={[
+                styles.filterPill,
+                {
+                  backgroundColor: c.skillFilter === item.value ? palette.tint : 'transparent',
+                  borderColor: c.skillFilter === item.value ? palette.tint : palette.border,
+                },
+              ]}
+              onPress={() => c.setSkillFilter(item.value as FootballObjective | '')}
+            >
+              <ThemedText
+                style={[
+                  styles.filterText,
+                  { color: c.skillFilter === item.value ? palette.onPrimary : palette.text },
+                ]}
+              >
                 {item.label}
               </ThemedText>
             </Clickable>
@@ -117,10 +178,21 @@ export default function DiscoverSessionsScreen() {
       </View>
 
       {/* Results */}
-      <FlatList data={c.filteredOfferings} keyExtractor={item => item.id}
-        renderItem={({ item }) => <SessionOfferingCard offering={item} onPress={c.handleOfferingPress} />}
-        contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+      <FlatList
+        data={c.filteredOfferings}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <SessionOfferingCard offering={item} onPress={c.handleOfferingPress} />
+        )}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={c.refreshing}
+            onRefresh={c.onRefresh}
+            tintColor={palette.tint}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
@@ -130,7 +202,8 @@ export default function DiscoverSessionsScreen() {
               {hasFilters ? 'No matching sessions' : 'No sessions found'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              {hasFilters ? 'Try adjusting your search or filters'
+              {hasFilters
+                ? 'Try adjusting your search or filters'
                 : 'Check back later for new sessions'}
             </ThemedText>
           </View>
@@ -138,7 +211,12 @@ export default function DiscoverSessionsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      <SessionDetailModal visible={c.showDetailModal} offering={c.selectedOffering} onClose={c.handleModalClose} onUpdate={c.handleModalUpdate} />
+      <SessionDetailModal
+        visible={c.showDetailModal}
+        offering={c.selectedOffering}
+        onClose={c.handleModalClose}
+        onUpdate={c.handleModalUpdate}
+      />
     </SafeAreaView>
   );
 }
@@ -146,16 +224,39 @@ export default function DiscoverSessionsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   searchContainer: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
-  searchBar: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  searchBar: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   searchInput: { flex: 1, ...Typography.subheading, paddingVertical: Spacing.xxs },
   filters: { paddingBottom: Spacing.xs },
   filterList: { paddingHorizontal: Spacing.md, gap: Spacing.xs },
-  filterPill: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1.5 },
+  filterPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1.5,
+  },
   filterText: { ...Typography.smallSemiBold },
   list: { padding: Spacing.md, paddingTop: Spacing.sm },
   separator: { height: Spacing.sm },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl, gap: Spacing.sm },
-  emptyIcon: { width: 72, height: 72, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
   emptyTitle: { ...Typography.heading },
   emptyText: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
 });

@@ -7,12 +7,8 @@
  * ChatInputBar — text input + attach + send button.
  */
 
-import React, { memo, useCallback } from 'react';
-import {
-  Pressable,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { memo } from 'react';
+import { Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -44,7 +40,12 @@ export const PinnedBanner = memo(function PinnedBanner({
   palette,
 }: PinnedBannerProps) {
   return (
-    <Row style={[styles.pinnedBanner, { backgroundColor: palette.surface, borderBottomColor: palette.border }]}>
+    <Row
+      style={[
+        styles.pinnedBanner,
+        { backgroundColor: palette.surface, borderBottomColor: palette.border },
+      ]}
+    >
       <Ionicons name="pin" size={Components.icon.sm} color={palette.tint} />
       <View style={styles.pinnedContent}>
         <ThemedText style={[styles.pinnedSender, { color: palette.tint }]} numberOfLines={1}>
@@ -110,7 +111,10 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
           styles.bubble,
           isOwn
             ? [styles.bubbleOwn, { backgroundColor: withAlpha(palette.tint, 0.15) }]
-            : [styles.bubbleOther, { backgroundColor: palette.surface, borderColor: palette.border }],
+            : [
+                styles.bubbleOther,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+              ],
         ]}
       >
         {!isOwn ? (
@@ -118,7 +122,9 @@ export const ChatMessageBubble = memo(function ChatMessageBubble({
             {message.senderName}
           </ThemedText>
         ) : null}
-        <ThemedText style={[styles.messageBody, { color: palette.text }]}>{message.body}</ThemedText>
+        <ThemedText style={[styles.messageBody, { color: palette.text }]}>
+          {message.body}
+        </ThemedText>
         <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
           {formatChatTime(message.createdAt)}
         </ThemedText>
@@ -145,7 +151,12 @@ export const GroupChatInputBar = memo(function GroupChatInputBar({
   palette,
 }: GroupChatInputBarProps) {
   return (
-    <Row style={[styles.inputBar, { backgroundColor: palette.surface, borderTopColor: palette.border }]}>
+    <Row
+      style={[
+        styles.inputBar,
+        { backgroundColor: palette.surface, borderTopColor: palette.border },
+      ]}
+    >
       <Pressable
         style={styles.attachButton}
         onPress={onAttachPhoto}

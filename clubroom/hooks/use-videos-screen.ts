@@ -31,7 +31,9 @@ export function useVideosScreen() {
     }
   }, [currentUser?.id]);
 
-  useEffect(() => { loadVideos(); }, [loadVideos]);
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
 
   const handleUploadPress = useCallback(() => {
     router.push(Routes.VIDEOS_UPLOAD);

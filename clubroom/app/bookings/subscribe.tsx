@@ -27,7 +27,10 @@ export default function SubscribeScreen() {
 
   if (c.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -36,7 +39,10 @@ export default function SubscribeScreen() {
 
   if (c.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <ErrorState message={c.error?.message ?? 'Failed to load coaches'} onRetry={c.retry} />
       </SafeAreaView>
@@ -45,7 +51,10 @@ export default function SubscribeScreen() {
 
   if (c.status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <EmptyState
           icon="people-outline"
@@ -60,7 +69,10 @@ export default function SubscribeScreen() {
 
   if (!c.selectedCoach) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
         <ThemedView style={styles.header}>
           <ThemedText type="subtitle">Choose Your Coach</ThemedText>
@@ -72,32 +84,62 @@ export default function SubscribeScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.coachList}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} tintColor={palette.tint} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={c.refreshing}
+              onRefresh={c.onRefresh}
+              tintColor={palette.tint}
+            />
+          }
         >
           {c.coaches.map((coach: CoachOption) => (
-            <SurfaceCard key={coach.id} style={styles.coachCard} onPress={() => c.setSelectedCoach(coach)}>
+            <SurfaceCard
+              key={coach.id}
+              style={styles.coachCard}
+              onPress={() => c.setSelectedCoach(coach)}
+            >
               <Row style={styles.coachRow}>
-                <Image source={{ uri: coach.photoUrl }} style={styles.coachAvatar} contentFit="cover" />
+                <Image
+                  source={{ uri: coach.photoUrl }}
+                  style={styles.coachAvatar}
+                  contentFit="cover"
+                />
                 <View style={styles.coachInfo}>
                   <ThemedText type="defaultSemiBold">{coach.name}</ThemedText>
                   <Row style={styles.coachMeta}>
                     <Ionicons name="star" size={14} color={palette.warning} />
-                    <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>{coach.rating.toFixed(1)} ({coach.totalSessions} sessions)</ThemedText>
+                    <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>
+                      {coach.rating.toFixed(1)} ({coach.totalSessions} sessions)
+                    </ThemedText>
                   </Row>
                   <Row style={styles.coachMeta}>
                     <Ionicons name="location-outline" size={14} color={palette.muted} />
-                    <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>{coach.location}</ThemedText>
+                    <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>
+                      {coach.location}
+                    </ThemedText>
                   </Row>
                 </View>
                 <View style={styles.coachPrice}>
-                  <ThemedText type="defaultSemiBold" style={{ color: palette.tint }}>${coach.pricePerSession}</ThemedText>
-                  <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>/session</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={{ color: palette.tint }}>
+                    ${coach.pricePerSession}
+                  </ThemedText>
+                  <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
+                    /session
+                  </ThemedText>
                 </View>
               </Row>
               <Row style={styles.specialtiesRow}>
                 {coach.sessionTypes.slice(0, 3).map((specialty, index) => (
-                  <View key={index} style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
-                    <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>{specialty}</ThemedText>
+                  <View
+                    key={index}
+                    style={[
+                      styles.specialtyBadge,
+                      { backgroundColor: withAlpha(palette.tint, 0.1) },
+                    ]}
+                  >
+                    <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
+                      {specialty}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -109,19 +151,41 @@ export default function SubscribeScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <Stack.Screen options={{ title: 'New Subscription', headerShown: true,
-        headerLeft: () => (
-          <Clickable accessibilityLabel="Go back" onPress={c.clearCoach} style={styles.headerButton}>
-            <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-          </Clickable>
-        ),
-      }} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <Stack.Screen
+        options={{
+          title: 'New Subscription',
+          headerShown: true,
+          headerLeft: () => (
+            <Clickable
+              accessibilityLabel="Go back"
+              onPress={c.clearCoach}
+              style={styles.headerButton}
+            >
+              <Ionicons name="arrow-back" size={24} color={palette.foreground} />
+            </Clickable>
+          ),
+        }}
+      />
       <SubscribeForm
-        coach={{ id: c.selectedCoach.id, name: c.selectedCoach.name, photoUrl: c.selectedCoach.photoUrl,
-          sessionTypes: c.selectedCoach.sessionTypes, pricePerSession: c.selectedCoach.pricePerSession, location: c.selectedCoach.location }}
-        userId={c.currentUser?.id || 'user1'} userName={c.currentUser?.fullName || 'Guest User'}
-        athletes={c.athletes} onSubmit={c.handleSubmit} onCancel={c.handleCancel} submitting={c.submitting} />
+        coach={{
+          id: c.selectedCoach.id,
+          name: c.selectedCoach.name,
+          photoUrl: c.selectedCoach.photoUrl,
+          sessionTypes: c.selectedCoach.sessionTypes,
+          pricePerSession: c.selectedCoach.pricePerSession,
+          location: c.selectedCoach.location,
+        }}
+        userId={c.currentUser?.id || 'user1'}
+        userName={c.currentUser?.fullName || 'Guest User'}
+        athletes={c.athletes}
+        onSubmit={c.handleSubmit}
+        onCancel={c.handleCancel}
+        submitting={c.submitting}
+      />
     </SafeAreaView>
   );
 }
@@ -142,6 +206,10 @@ const styles = StyleSheet.create({
   coachPrice: { alignItems: 'flex-end' },
   priceLabel: { ...Typography.caption },
   specialtiesRow: { flexWrap: 'wrap', gap: Spacing.xs },
-  specialtyBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
+  specialtyBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+  },
   specialtyText: { ...Typography.caption },
 });

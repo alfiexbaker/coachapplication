@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,7 +54,7 @@ export default function LogInjuryScreen() {
         setLoading(false);
       }
     },
-    [userId, userName]
+    [userId, userName],
   );
 
   const handleCancel = useCallback(() => {
@@ -63,7 +63,10 @@ export default function LogInjuryScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
@@ -82,11 +85,7 @@ export default function LogInjuryScreen() {
         keyboardVerticalOffset={100}
       >
         <ErrorBoundary>
-          <InjuryForm
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            loading={loading}
-          />
+          <InjuryForm onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} />
         </ErrorBoundary>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -103,7 +102,8 @@ const styles = StyleSheet.create({
   },
   headerLeft: {},
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
+    ...Typography.display,
+    fontSize: scaleFont(Typography.display.fontSize),
   },
   content: {
     flex: 1,

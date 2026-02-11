@@ -74,7 +74,10 @@ export function useObjectives() {
 
   const loadObjectives = useCallback(async () => {
     try {
-      const storedObjectives = await apiClient.get<AthleteObjective[]>(OBJECTIVES_STORAGE_KEY, DEFAULT_OBJECTIVES);
+      const storedObjectives = await apiClient.get<AthleteObjective[]>(
+        OBJECTIVES_STORAGE_KEY,
+        DEFAULT_OBJECTIVES,
+      );
       return ok<ObjectivesLoadData>({ objectives: storedObjectives });
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load objectives.', loadError));
@@ -113,7 +116,7 @@ export function useObjectives() {
   }, [availableUsers, currentUser]);
 
   const [selectedChildId, setSelectedChildId] = useState<string>(
-    children.length > 0 ? children[0].id : ''
+    children.length > 0 ? children[0].id : '',
   );
 
   useEffect(() => {
@@ -157,14 +160,12 @@ export function useObjectives() {
       const next = objectives.map((obj) =>
         obj.id === editingObjective.id
           ? { ...obj, label: selectedSkill, note, targetSessions: parseInt(targetSessions) }
-          : obj
+          : obj,
       );
       setObjectives(next);
       void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
     } else {
-      const athleteId = isParent && selectedChildId
-        ? selectedChildId
-        : currentUser?.id;
+      const athleteId = isParent && selectedChildId ? selectedChildId : currentUser?.id;
       const newObjective: AthleteObjective = {
         id: `obj-${Date.now()}`,
         athleteId,
@@ -182,22 +183,34 @@ export function useObjectives() {
       void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
     }
     setShowModal(false);
-  }, [editingObjective, selectedSkill, note, targetSessions, isParent, selectedChildId, currentUser, objectives]);
+  }, [
+    editingObjective,
+    selectedSkill,
+    note,
+    targetSessions,
+    isParent,
+    selectedChildId,
+    currentUser,
+    objectives,
+  ]);
 
-  const deleteObjective = useCallback((id: string) => {
-    Alert.alert('Delete Goal', 'Remove this goal from your list?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          const next = objectives.filter((obj) => obj.id !== id);
-          setObjectives(next);
-          void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
+  const deleteObjective = useCallback(
+    (id: string) => {
+      Alert.alert('Delete Goal', 'Remove this goal from your list?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const next = objectives.filter((obj) => obj.id !== id);
+            setObjectives(next);
+            void apiClient.set(OBJECTIVES_STORAGE_KEY, next);
+          },
         },
-      },
-    ]);
-  }, [objectives]);
+      ]);
+    },
+    [objectives],
+  );
 
   return {
     // Data

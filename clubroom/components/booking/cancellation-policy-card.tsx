@@ -31,7 +31,10 @@ interface CancellationPolicyCardProps {
   policy?: CancellationPolicy;
 }
 
-function getDotColor(refundPercentage: number, palette: ReturnType<typeof useTheme>['colors']): string {
+function getDotColor(
+  refundPercentage: number,
+  palette: ReturnType<typeof useTheme>['colors'],
+): string {
   if (refundPercentage >= 100) return palette.success;
   if (refundPercentage > 0) return palette.warning;
   return palette.error;
@@ -51,9 +54,7 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
   };
 
   // Sort tiers from highest refund to lowest
-  const sortedTiers = [...policy.tiers].sort(
-    (a, b) => b.refundPercentage - a.refundPercentage,
-  );
+  const sortedTiers = [...policy.tiers].sort((a, b) => b.refundPercentage - a.refundPercentage);
 
   return (
     <View style={[styles.card, { borderColor: palette.border }]}>
@@ -96,7 +97,9 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
           ))}
 
           {!policy.allowCancellations && (
-            <Row style={[styles.noCancelBanner, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+            <Row
+              style={[styles.noCancelBanner, { backgroundColor: withAlpha(palette.error, 0.06) }]}
+            >
               <Ionicons name="information-circle-outline" size={16} color={palette.error} />
               <ThemedText style={[styles.noCancelText, { color: palette.error }]}>
                 Cancellations not allowed for this coach

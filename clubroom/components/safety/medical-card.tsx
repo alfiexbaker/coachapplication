@@ -13,7 +13,8 @@ import {
   getSeverityBadge,
   MedicalInfoRow,
   MedicalSummaryRowInner,
-  MedicalInfoEmptyStateInner } from './medical-card-sections';
+  MedicalInfoEmptyStateInner,
+} from './medical-card-sections';
 
 type MedicalCardProps = {
   athleteName: string;
@@ -30,7 +31,8 @@ export function MedicalCard({
   contacts = [],
   onPress,
   onPressContacts,
-  showContacts = true }: MedicalCardProps) {
+  showContacts = true,
+}: MedicalCardProps) {
   const { colors: palette } = useTheme();
 
   const hasAllergies = medical.allergies.length > 0;
@@ -39,7 +41,8 @@ export function MedicalCard({
   const hasRestrictions = medical.restrictions.length > 0;
   const hasNotes = Boolean(medical.notes);
   const hasDoctor = Boolean(medical.doctorName || medical.doctorPhone);
-  const hasAnyMedicalInfo = hasAllergies || hasConditions || hasMedications || hasRestrictions || hasNotes;
+  const hasAnyMedicalInfo =
+    hasAllergies || hasConditions || hasMedications || hasRestrictions || hasNotes;
 
   const primaryContact = contacts.find((c) => c.isPrimary) ?? contacts[0];
   const severityBadge = getSeverityBadge(medical);
@@ -65,25 +68,51 @@ export function MedicalCard({
       {hasAnyMedicalInfo && (
         <View style={[styles.content, { borderTopColor: palette.border }]}>
           {hasAllergies && (
-            <MedicalInfoRow icon="alert-circle" iconColor={palette.error}
-              label="Allergies" value={medical.allergies.join(', ')} palette={palette} />
+            <MedicalInfoRow
+              icon="alert-circle"
+              iconColor={palette.error}
+              label="Allergies"
+              value={medical.allergies.join(', ')}
+              palette={palette}
+            />
           )}
           {hasConditions && (
-            <MedicalInfoRow icon="fitness" iconColor={palette.warning}
-              label="Conditions" value={medical.conditions.join(', ')} palette={palette} />
+            <MedicalInfoRow
+              icon="fitness"
+              iconColor={palette.warning}
+              label="Conditions"
+              value={medical.conditions.join(', ')}
+              palette={palette}
+            />
           )}
           {hasMedications && (
-            <MedicalInfoRow icon="medkit" iconColor={palette.tint}
-              label="Medications" value={medical.medications.join(', ')} palette={palette} />
+            <MedicalInfoRow
+              icon="medkit"
+              iconColor={palette.tint}
+              label="Medications"
+              value={medical.medications.join(', ')}
+              palette={palette}
+            />
           )}
           {hasRestrictions && (
-            <MedicalInfoRow icon="ban" iconColor={palette.muted}
-              label="Restrictions" value={medical.restrictions.join(', ')} palette={palette} />
+            <MedicalInfoRow
+              icon="ban"
+              iconColor={palette.muted}
+              label="Restrictions"
+              value={medical.restrictions.join(', ')}
+              palette={palette}
+            />
           )}
           {hasNotes && (
-            <Row align="start" gap="sm" style={[styles.notesBox, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row
+              align="start"
+              gap="sm"
+              style={[styles.notesBox, { backgroundColor: palette.surfaceSecondary }]}
+            >
               <Ionicons name="document-text" size={14} color={palette.muted} />
-              <ThemedText style={[styles.notes, { color: palette.muted }]}>{medical.notes}</ThemedText>
+              <ThemedText style={[styles.notes, { color: palette.muted }]}>
+                {medical.notes}
+              </ThemedText>
             </Row>
           )}
         </View>
@@ -95,10 +124,13 @@ export function MedicalCard({
           style={[styles.contactRow, { borderTopColor: palette.border }]}
         >
           <Row align="center" gap="sm">
-            <MedicalInfoRow icon="call" iconColor={palette.success}
+            <MedicalInfoRow
+              icon="call"
+              iconColor={palette.success}
               label="Emergency Contact"
               value={`${primaryContact.name} - ${primaryContact.phone}`}
-              palette={palette} />
+              palette={palette}
+            />
             {contacts.length > 1 && <Badge label={`+${contacts.length - 1}`} tone="neutral" />}
           </Row>
         </Clickable>
@@ -117,7 +149,13 @@ export function MedicalCard({
   );
 }
 
-export function MedicalSummaryRow({ medical, onPress }: { medical: MedicalInfo; onPress?: () => void }) {
+export function MedicalSummaryRow({
+  medical,
+  onPress,
+}: {
+  medical: MedicalInfo;
+  onPress?: () => void;
+}) {
   const { colors: palette } = useTheme();
   return <MedicalSummaryRowInner medical={medical} onPress={onPress} palette={palette} />;
 }
@@ -130,24 +168,30 @@ export function MedicalInfoEmptyState({ onAddPress }: { onAddPress?: () => void 
 const styles = StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },
   header: {
-    padding: Spacing.md },
+    padding: Spacing.md,
+  },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   content: { borderTopWidth: 1, padding: Spacing.md, gap: Spacing.sm },
   notesBox: {
     marginTop: Spacing.xs,
     padding: Spacing.sm,
     backgroundColor: 'transparent',
-    borderRadius: Radii.sm },
+    borderRadius: Radii.sm,
+  },
   notes: { ...Typography.small, flex: 1, lineHeight: 18 },
   contactRow: {
     padding: Spacing.md,
-    borderTopWidth: 1 },
+    borderTopWidth: 1,
+  },
   doctorRow: {
     padding: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderTopWidth: 1 } });
+    borderTopWidth: 1,
+  },
+});

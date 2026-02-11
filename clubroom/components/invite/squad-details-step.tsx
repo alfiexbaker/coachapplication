@@ -15,7 +15,14 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Training'] as const;
-const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'] as const;
+const FOCUSES = [
+  'Dribbling',
+  'Passing',
+  'Finishing',
+  'Defending',
+  'Goalkeeping',
+  'Conditioning',
+] as const;
 
 export interface SquadDetailsStepProps {
   sessionTitle: string;

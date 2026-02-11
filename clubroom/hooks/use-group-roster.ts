@@ -18,35 +18,48 @@ const logger = createLogger('SessionRosterScreen');
 export type RosterFilter = 'all' | 'registered' | 'waitlisted' | 'attended';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'unmarked';
 
-export const BODY_PART_CATEGORIES: { label: string; parts: { part: BodyPart; label: string }[] }[] = [
-  {
-    label: 'Lower Body',
-    parts: [
-      { part: 'LEFT_ANKLE', label: 'L. Ankle' }, { part: 'RIGHT_ANKLE', label: 'R. Ankle' },
-      { part: 'LEFT_KNEE', label: 'L. Knee' }, { part: 'RIGHT_KNEE', label: 'R. Knee' },
-      { part: 'LEFT_THIGH', label: 'L. Thigh' }, { part: 'RIGHT_THIGH', label: 'R. Thigh' },
-      { part: 'LEFT_CALF', label: 'L. Calf' }, { part: 'RIGHT_CALF', label: 'R. Calf' },
-      { part: 'LEFT_FOOT', label: 'L. Foot' }, { part: 'RIGHT_FOOT', label: 'R. Foot' },
-    ],
-  },
-  {
-    label: 'Upper Body',
-    parts: [
-      { part: 'LEFT_SHOULDER', label: 'L. Shoulder' }, { part: 'RIGHT_SHOULDER', label: 'R. Shoulder' },
-      { part: 'LEFT_ARM', label: 'L. Arm' }, { part: 'RIGHT_ARM', label: 'R. Arm' },
-      { part: 'LEFT_WRIST', label: 'L. Wrist' }, { part: 'RIGHT_WRIST', label: 'R. Wrist' },
-      { part: 'LEFT_HAND', label: 'L. Hand' }, { part: 'RIGHT_HAND', label: 'R. Hand' },
-    ],
-  },
-  {
-    label: 'Core & Head',
-    parts: [
-      { part: 'HEAD', label: 'Head' }, { part: 'NECK', label: 'Neck' },
-      { part: 'CHEST', label: 'Chest' }, { part: 'UPPER_BACK', label: 'Upper Back' },
-      { part: 'LOWER_BACK', label: 'Lower Back' }, { part: 'ABDOMEN', label: 'Abdomen' },
-    ],
-  },
-];
+export const BODY_PART_CATEGORIES: { label: string; parts: { part: BodyPart; label: string }[] }[] =
+  [
+    {
+      label: 'Lower Body',
+      parts: [
+        { part: 'LEFT_ANKLE', label: 'L. Ankle' },
+        { part: 'RIGHT_ANKLE', label: 'R. Ankle' },
+        { part: 'LEFT_KNEE', label: 'L. Knee' },
+        { part: 'RIGHT_KNEE', label: 'R. Knee' },
+        { part: 'LEFT_THIGH', label: 'L. Thigh' },
+        { part: 'RIGHT_THIGH', label: 'R. Thigh' },
+        { part: 'LEFT_CALF', label: 'L. Calf' },
+        { part: 'RIGHT_CALF', label: 'R. Calf' },
+        { part: 'LEFT_FOOT', label: 'L. Foot' },
+        { part: 'RIGHT_FOOT', label: 'R. Foot' },
+      ],
+    },
+    {
+      label: 'Upper Body',
+      parts: [
+        { part: 'LEFT_SHOULDER', label: 'L. Shoulder' },
+        { part: 'RIGHT_SHOULDER', label: 'R. Shoulder' },
+        { part: 'LEFT_ARM', label: 'L. Arm' },
+        { part: 'RIGHT_ARM', label: 'R. Arm' },
+        { part: 'LEFT_WRIST', label: 'L. Wrist' },
+        { part: 'RIGHT_WRIST', label: 'R. Wrist' },
+        { part: 'LEFT_HAND', label: 'L. Hand' },
+        { part: 'RIGHT_HAND', label: 'R. Hand' },
+      ],
+    },
+    {
+      label: 'Core & Head',
+      parts: [
+        { part: 'HEAD', label: 'Head' },
+        { part: 'NECK', label: 'Neck' },
+        { part: 'CHEST', label: 'Chest' },
+        { part: 'UPPER_BACK', label: 'Upper Back' },
+        { part: 'LOWER_BACK', label: 'Lower Back' },
+        { part: 'ABDOMEN', label: 'Abdomen' },
+      ],
+    },
+  ];
 
 export const SEVERITY_OPTIONS: { value: InjurySeverity; label: string; color: string }[] = [
   { value: 'MINOR', label: 'Minor', color: '#F59E0B' },
@@ -109,7 +122,9 @@ export interface UseGroupRosterResult {
 export function useGroupRoster(sessionId: string | undefined) {
   const [filter, setFilter] = useState<RosterFilter>('all');
   const [showRollCall, setShowRollCall] = useState(false);
-  const [rollCallAttendance, setRollCallAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [rollCallAttendance, setRollCallAttendance] = useState<Record<string, AttendanceStatus>>(
+    {},
+  );
 
   // Injury report state
   const [showInjuryReport, setShowInjuryReport] = useState(false);
@@ -138,18 +153,13 @@ export function useGroupRoster(sessionId: string | undefined) {
       });
     } catch (loadError) {
       logger.error('Failed to load roster:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load session roster. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load session roster. Pull down to refresh.', loadError),
+      );
     }
   }, [sessionId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<GroupRosterData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupRosterData>({
     load: loadData,
     deps: [sessionId],
     isEmpty: (value) => value.session === null,
@@ -160,64 +170,88 @@ export function useGroupRoster(sessionId: string | undefined) {
   const roster = data?.roster ?? [];
   const loading = status === 'loading';
 
-  const handleMarkAttendance = useCallback(async (registration: GroupRegistration, attended: boolean) => {
-    if (!session) return;
-    const date = session.schedule[0]?.date;
-    if (!date) return;
-    try {
-      const result = await groupSessionService.markAttendance(registration.id, date, attended);
-      if (!result.success) {
-        Alert.alert('Error', result.error.message || 'Failed to update attendance.');
-        return;
-      }
-      onRefresh();
-    } catch (error) {
-      logger.error('Failed to mark attendance:', error);
-      Alert.alert('Error', 'Failed to update attendance.');
-    }
-  }, [session, onRefresh]);
-
-  const handleCancelRegistration = useCallback(async (registration: GroupRegistration) => {
-    Alert.alert('Cancel Registration', `Remove ${getGroupRegistrationAthleteName(registration)} from this session?`, [
-      { text: 'No', style: 'cancel' },
-      { text: 'Yes, Remove', style: 'destructive', onPress: async () => {
-        try {
-          const result = await groupSessionService.cancelRegistration(registration.id);
-          if (!result.success) {
-            Alert.alert('Error', result.error.message || 'Failed to cancel registration.');
-            return;
-          }
-          onRefresh();
-        } catch (error) {
-          logger.error('Failed to cancel registration:', error);
-          Alert.alert('Error', 'Failed to cancel registration.');
+  const handleMarkAttendance = useCallback(
+    async (registration: GroupRegistration, attended: boolean) => {
+      if (!session) return;
+      const date = session.schedule[0]?.date;
+      if (!date) return;
+      try {
+        const result = await groupSessionService.markAttendance(registration.id, date, attended);
+        if (!result.success) {
+          Alert.alert('Error', result.error.message || 'Failed to update attendance.');
+          return;
         }
-      }},
-    ]);
-  }, [onRefresh]);
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to mark attendance:', error);
+        Alert.alert('Error', 'Failed to update attendance.');
+      }
+    },
+    [session, onRefresh],
+  );
+
+  const handleCancelRegistration = useCallback(
+    async (registration: GroupRegistration) => {
+      Alert.alert(
+        'Cancel Registration',
+        `Remove ${getGroupRegistrationAthleteName(registration)} from this session?`,
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Yes, Remove',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const result = await groupSessionService.cancelRegistration(registration.id);
+                if (!result.success) {
+                  Alert.alert('Error', result.error.message || 'Failed to cancel registration.');
+                  return;
+                }
+                onRefresh();
+              } catch (error) {
+                logger.error('Failed to cancel registration:', error);
+                Alert.alert('Error', 'Failed to cancel registration.');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [onRefresh],
+  );
 
   const startRollCall = useCallback(() => {
     const initial: Record<string, AttendanceStatus> = {};
-    roster.filter(r => r.status === 'REGISTERED' || r.status === 'ATTENDED').forEach(r => {
-      initial[r.id] = r.status === 'ATTENDED' ? 'present' : 'unmarked';
-    });
+    roster
+      .filter((r) => r.status === 'REGISTERED' || r.status === 'ATTENDED')
+      .forEach((r) => {
+        initial[r.id] = r.status === 'ATTENDED' ? 'present' : 'unmarked';
+      });
     setRollCallAttendance(initial);
     setShowRollCall(true);
   }, [roster]);
 
   const markRollCallStatus = useCallback((id: string, status: AttendanceStatus) => {
-    setRollCallAttendance(prev => ({ ...prev, [id]: status }));
+    setRollCallAttendance((prev) => ({ ...prev, [id]: status }));
   }, []);
 
   const markAllPresent = useCallback(() => {
     const updated = { ...rollCallAttendance };
-    roster.filter(r => r.status === 'REGISTERED' || r.status === 'ATTENDED').forEach(r => { updated[r.id] = 'present'; });
+    roster
+      .filter((r) => r.status === 'REGISTERED' || r.status === 'ATTENDED')
+      .forEach((r) => {
+        updated[r.id] = 'present';
+      });
     setRollCallAttendance(updated);
   }, [rollCallAttendance, roster]);
 
   const resetRollCall = useCallback(() => {
     const updated = { ...rollCallAttendance };
-    roster.filter(r => r.status === 'REGISTERED' || r.status === 'ATTENDED').forEach(r => { updated[r.id] = 'unmarked'; });
+    roster
+      .filter((r) => r.status === 'REGISTERED' || r.status === 'ATTENDED')
+      .forEach((r) => {
+        updated[r.id] = 'unmarked';
+      });
     setRollCallAttendance(updated);
   }, [rollCallAttendance, roster]);
 
@@ -235,7 +269,10 @@ export function useGroupRoster(sessionId: string | undefined) {
         }
 
         if (result && !result.success) {
-          Alert.alert('Error', result.error.message || 'Failed to save roll call. Please try again.');
+          Alert.alert(
+            'Error',
+            result.error.message || 'Failed to save roll call. Please try again.',
+          );
           return;
         }
       }
@@ -265,13 +302,23 @@ export function useGroupRoster(sessionId: string | undefined) {
     setSavingInjury(true);
     try {
       const ctx = session ? ` during ${session.title}` : '';
-      await injuryService.logInjury(selectedParticipant.athleteId, {
-        bodyPart: injuryBodyPart, severity: injurySeverity,
-        description: injuryDescription.trim() + ctx, occurredAt: new Date().toISOString(), sharedWithCoach: true,
-      }, getGroupRegistrationAthleteName(selectedParticipant));
+      await injuryService.logInjury(
+        selectedParticipant.athleteId,
+        {
+          bodyPart: injuryBodyPart,
+          severity: injurySeverity,
+          description: injuryDescription.trim() + ctx,
+          occurredAt: new Date().toISOString(),
+          sharedWithCoach: true,
+        },
+        getGroupRegistrationAthleteName(selectedParticipant),
+      );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowInjuryReport(false);
-      Alert.alert('Injury Reported', `Injury logged for ${getGroupRegistrationAthleteName(selectedParticipant)}. The athlete can track their recovery in the Health section.`);
+      Alert.alert(
+        'Injury Reported',
+        `Injury logged for ${getGroupRegistrationAthleteName(selectedParticipant)}. The athlete can track their recovery in the Health section.`,
+      );
     } catch (error) {
       logger.error('Failed to report injury:', error);
       Alert.alert('Error', 'Failed to report injury. Please try again.');
@@ -291,9 +338,11 @@ export function useGroupRoster(sessionId: string | undefined) {
     };
   }, [rollCallAttendance]);
 
-  const rollCallParticipants = roster.filter(r => r.status === 'REGISTERED' || r.status === 'ATTENDED');
+  const rollCallParticipants = roster.filter(
+    (r) => r.status === 'REGISTERED' || r.status === 'ATTENDED',
+  );
   const registeredCount = rollCallParticipants.length;
-  const waitlistedCount = roster.filter(r => r.status === 'WAITLISTED').length;
+  const waitlistedCount = roster.filter((r) => r.status === 'WAITLISTED').length;
 
   const filteredRoster = roster.filter((r) => {
     if (filter === 'registered') return r.status === 'REGISTERED';
@@ -310,14 +359,43 @@ export function useGroupRoster(sessionId: string | undefined) {
   ];
 
   return {
-    session, roster, loading, status, error, refreshing, onRefresh, retry, filter, setFilter,
-    showRollCall, setShowRollCall, rollCallAttendance, rollCallStats, rollCallParticipants,
-    showInjuryReport, setShowInjuryReport, selectedParticipant,
-    injuryBodyPart, setInjuryBodyPart, injurySeverity, setInjurySeverity,
-    injuryDescription, setInjuryDescription, savingInjury,
-    filteredRoster, filters, registeredCount, waitlistedCount,
-    handleMarkAttendance, handleCancelRegistration,
-    startRollCall, markRollCallStatus, markAllPresent, resetRollCall, saveRollCall,
-    openInjuryReport, submitInjuryReport,
+    session,
+    roster,
+    loading,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    filter,
+    setFilter,
+    showRollCall,
+    setShowRollCall,
+    rollCallAttendance,
+    rollCallStats,
+    rollCallParticipants,
+    showInjuryReport,
+    setShowInjuryReport,
+    selectedParticipant,
+    injuryBodyPart,
+    setInjuryBodyPart,
+    injurySeverity,
+    setInjurySeverity,
+    injuryDescription,
+    setInjuryDescription,
+    savingInjury,
+    filteredRoster,
+    filters,
+    registeredCount,
+    waitlistedCount,
+    handleMarkAttendance,
+    handleCancelRegistration,
+    startRollCall,
+    markRollCallStatus,
+    markAllPresent,
+    resetRollCall,
+    saveRollCall,
+    openInjuryReport,
+    submitInjuryReport,
   } satisfies UseGroupRosterResult;
 }

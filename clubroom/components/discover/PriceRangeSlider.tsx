@@ -1,11 +1,7 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
@@ -44,7 +40,7 @@ export function PriceRangeSlider({
       if (range === 0) return 0;
       return ((value - min) / range) * sliderWidth;
     },
-    [min, max, sliderWidth]
+    [min, max, sliderWidth],
   );
 
   const positionToValue = useCallback(
@@ -54,7 +50,7 @@ export function PriceRangeSlider({
       const steppedValue = Math.round(rawValue / step) * step;
       return Math.max(min, Math.min(max, steppedValue));
     },
-    [min, max, step, sliderWidth]
+    [min, max, step, sliderWidth],
   );
 
   const minPosition = useSharedValue(valueToPosition(currentMin));
@@ -76,7 +72,7 @@ export function PriceRangeSlider({
       const clampedMin = Math.min(newMin, currentMax - step);
       onChange(clampedMin, currentMax);
     },
-    [currentMax, step, onChange]
+    [currentMax, step, onChange],
   );
 
   const handleMaxChange = useCallback(
@@ -84,22 +80,26 @@ export function PriceRangeSlider({
       const clampedMax = Math.max(newMax, currentMin + step);
       onChange(currentMin, clampedMax);
     },
-    [currentMin, step, onChange]
+    [currentMin, step, onChange],
   );
 
-  const minGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      const newPosition = Math.max(0, Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE));
-      minPosition.value = newPosition;
-      runOnJS(handleMinChange)(positionToValue(newPosition));
-    });
+  const minGesture = Gesture.Pan().onUpdate((event) => {
+    const newPosition = Math.max(
+      0,
+      Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE),
+    );
+    minPosition.value = newPosition;
+    runOnJS(handleMinChange)(positionToValue(newPosition));
+  });
 
-  const maxGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      const newPosition = Math.max(minPosition.value + THUMB_SIZE, Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth));
-      maxPosition.value = newPosition;
-      runOnJS(handleMaxChange)(positionToValue(newPosition));
-    });
+  const maxGesture = Gesture.Pan().onUpdate((event) => {
+    const newPosition = Math.max(
+      minPosition.value + THUMB_SIZE,
+      Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth),
+    );
+    maxPosition.value = newPosition;
+    runOnJS(handleMaxChange)(positionToValue(newPosition));
+  });
 
   const minThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: minPosition.value }],
@@ -130,11 +130,7 @@ export function PriceRangeSlider({
         <View style={[styles.track, { backgroundColor: palette.border }]} />
 
         <Animated.View
-          style={[
-            styles.activeRange,
-            { backgroundColor: palette.tint },
-            rangeStyle,
-          ]}
+          style={[styles.activeRange, { backgroundColor: palette.tint }, rangeStyle]}
         />
 
         <GestureDetector gesture={minGesture}>

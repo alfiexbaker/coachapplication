@@ -15,7 +15,13 @@ type EmptyStateProps = {
   onPressAction?: () => void;
 };
 
-export function EmptyState({ icon = 'information-circle', title, message, actionLabel, onPressAction }: EmptyStateProps) {
+export function EmptyState({
+  icon = 'information-circle',
+  title,
+  message,
+  actionLabel,
+  onPressAction,
+}: EmptyStateProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -38,7 +44,11 @@ export function EmptyState({ icon = 'information-circle', title, message, action
             },
           ]}
         >
-          <ThemedText style={styles.actionLabel} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
+          <ThemedText
+            style={styles.actionLabel}
+            lightColor={palette.onPrimary}
+            darkColor={palette.onPrimary}
+          >
             {actionLabel}
           </ThemedText>
         </Clickable>
@@ -59,8 +69,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   title: { ...Typography.heading, textAlign: 'center' },
-  message: { ...Typography.bodySmall, textAlign: 'center',
-    lineHeight: 20 },
+  message: { ...Typography.bodySmall, textAlign: 'center', lineHeight: 20 },
   action: {
     marginTop: Spacing.xs,
     paddingHorizontal: Spacing.md,
@@ -76,4 +85,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
-

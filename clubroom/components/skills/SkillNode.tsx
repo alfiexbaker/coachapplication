@@ -75,16 +75,16 @@ export function SkillNode({
       hasAnimated.current = true;
       unlockAnimation.value = withSequence(
         withTiming(1, { duration: 300 }),
-        withSpring(0.8, { damping: 10, stiffness: 100 })
+        withSpring(0.8, { damping: 10, stiffness: 100 }),
       );
       glowOpacity.value = withSequence(
         withTiming(1, { duration: 200 }),
-        withDelay(500, withTiming(0, { duration: 300 }))
+        withDelay(500, withTiming(0, { duration: 300 })),
       );
       rotation.value = withSequence(
         withTiming(10, { duration: 100 }),
         withTiming(-10, { duration: 100 }),
-        withTiming(0, { duration: 100 })
+        withTiming(0, { duration: 100 }),
       );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
@@ -106,18 +106,10 @@ export function SkillNode({
   };
 
   const animatedContainerStyle = useAnimatedStyle(() => {
-    const unlockScale = interpolate(
-      unlockAnimation.value,
-      [0, 1],
-      [1, 1.2],
-      Extrapolation.CLAMP
-    );
+    const unlockScale = interpolate(unlockAnimation.value, [0, 1], [1, 1.2], Extrapolation.CLAMP);
 
     return {
-      transform: [
-        { scale: scale.value * unlockScale },
-        { rotate: `${rotation.value}deg` },
-      ],
+      transform: [{ scale: scale.value * unlockScale }, { rotate: `${rotation.value}deg` }],
     };
   });
 

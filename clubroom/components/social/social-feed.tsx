@@ -26,13 +26,16 @@ export function SocialFeed() {
           Your Club Feed
         </ThemedText>
         <ThemedText style={[styles.description, { color: palette.muted }]}>
-          See updates from all your clubs in one place. Announcements, photos, and events from every club you are part of.
+          See updates from all your clubs in one place. Announcements, photos, and events from every
+          club you are part of.
         </ThemedText>
         <Clickable
           style={[styles.button, { backgroundColor: palette.tint }]}
           onPress={() => router.push(Routes.FEED)}
         >
-          <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Go to Feed</ThemedText>
+          <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
+            Go to Feed
+          </ThemedText>
           <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
         </Clickable>
       </SurfaceCard>

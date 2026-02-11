@@ -21,7 +21,12 @@ import { styles } from './decline-invite-styles';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type DeclineCategory = 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+export type DeclineCategory =
+  | 'schedule_conflict'
+  | 'too_far'
+  | 'price'
+  | 'child_unavailable'
+  | 'other';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -57,8 +62,7 @@ export const InviteSummaryBanner = memo(function InviteSummaryBanner({
   return (
     <View style={[styles.inviteSummary, { backgroundColor: palette.background }]}>
       <ThemedText style={[styles.inviteSummaryText, { color: palette.text }]}>
-        Coach {coachName} invited {athleteDisplay} to a{' '}
-        {sessionType.toLowerCase()} session
+        Coach {coachName} invited {athleteDisplay} to a {sessionType.toLowerCase()} session
       </ThemedText>
       {slotCount > 0 && (
         <ThemedText style={[styles.inviteSummaryMuted, { color: palette.muted }]}>
@@ -93,7 +97,9 @@ export const ReasonRadioItem = memo(function ReasonRadioItem({
       style={[
         styles.reasonItem,
         { borderColor: palette.border, backgroundColor: palette.surface },
-        isSelected ? { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.03) } : undefined,
+        isSelected
+          ? { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.03) }
+          : undefined,
       ]}
       onPress={onPress}
     >
@@ -106,11 +112,7 @@ export const ReasonRadioItem = memo(function ReasonRadioItem({
       >
         {isSelected && <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />}
       </View>
-      <Ionicons
-        name={icon}
-        size={20}
-        color={isSelected ? palette.tint : palette.muted}
-      />
+      <Ionicons name={icon} size={20} color={isSelected ? palette.tint : palette.muted} />
       <ThemedText
         style={[
           styles.reasonLabel,
@@ -137,10 +139,7 @@ export const CounterOfferLink = memo(function CounterOfferLink({
 }: CounterOfferLinkProps) {
   return (
     <Clickable
-      style={[
-        styles.counterOfferButton,
-        { borderColor: palette.border },
-      ]}
+      style={[styles.counterOfferButton, { borderColor: palette.border }]}
       onPress={onPress}
     >
       <Ionicons name="swap-horizontal-outline" size={18} color={palette.tint} />
@@ -169,13 +168,7 @@ export const DeclineActionButtons = memo(function DeclineActionButtons({
 }: DeclineActionButtonsProps) {
   return (
     <Row style={styles.buttonRow}>
-      <Clickable
-        style={[
-          styles.cancelButton,
-          { borderColor: palette.border },
-        ]}
-        onPress={onCancel}
-      >
+      <Clickable style={[styles.cancelButton, { borderColor: palette.border }]} onPress={onCancel}>
         <ThemedText style={[styles.cancelButtonText, { color: palette.text }]}>Cancel</ThemedText>
       </Clickable>
 

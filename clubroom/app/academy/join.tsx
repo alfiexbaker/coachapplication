@@ -14,7 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import { createLogger } from '@/utils/logger';
@@ -22,7 +22,12 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('JoinTeam');
 
 export default function JoinTeamScreen() {
-  const { status, error, retry, colors: palette } = useScreen<boolean>({
+  const {
+    status,
+    error,
+    retry,
+    colors: palette,
+  } = useScreen<boolean>({
     load: async () => ok(true),
     isEmpty: () => false,
     refetchOnFocus: true,
@@ -46,7 +51,12 @@ export default function JoinTeamScreen() {
 
     setLoading(true);
     try {
-      const result = await academyService.joinWithCode(code, currentUser.id, currentUser.name, currentUser.avatar);
+      const result = await academyService.joinWithCode(
+        code,
+        currentUser.id,
+        currentUser.name,
+        currentUser.avatar,
+      );
       if (!result.success) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         logger.error('team_join_failed', { error: result.error.message });
@@ -70,7 +80,10 @@ export default function JoinTeamScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -78,7 +91,10 @@ export default function JoinTeamScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message || 'Failed to open join-team flow.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -86,7 +102,10 @@ export default function JoinTeamScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="people-outline"
           title="Join flow unavailable"
@@ -99,7 +118,10 @@ export default function JoinTeamScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -161,7 +183,11 @@ export default function JoinTeamScreen() {
           </Button>
 
           {/* Info */}
-          <Row align="flex-start" gap="sm" style={[styles.infoCard, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
+          <Row
+            align="flex-start"
+            gap="sm"
+            style={[styles.infoCard, { backgroundColor: withAlpha(palette.info, 0.06) }]}
+          >
             <Ionicons name="information-circle" size={20} color={palette.info} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
               Don&apos;t have a code? Ask your coach or club administrator for an invite.

@@ -42,19 +42,22 @@ export function RecurringList({
   onCardPress,
   onCreatePress,
   emptyTitle = 'No Recurring Bookings',
-  emptyMessage = 'You don\'t have any recurring bookings yet. Subscribe to a weekly or monthly session slot to get started.',
+  emptyMessage = "You don't have any recurring bookings yet. Subscribe to a weekly or monthly session slot to get started.",
   showFilters = true,
 }: RecurringListProps) {
   const { colors: palette } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterOption>('ALL');
 
-  const filterCounts = useMemo(() => ({
-    ALL: bookings.length,
-    ACTIVE: bookings.filter((b) => b.status === 'ACTIVE').length,
-    PAUSED: bookings.filter((b) => b.status === 'PAUSED').length,
-    CANCELLED: bookings.filter((b) => b.status === 'CANCELLED').length,
-    EXPIRED: bookings.filter((b) => b.status === 'EXPIRED').length,
-  }), [bookings]);
+  const filterCounts = useMemo(
+    () => ({
+      ALL: bookings.length,
+      ACTIVE: bookings.filter((b) => b.status === 'ACTIVE').length,
+      PAUSED: bookings.filter((b) => b.status === 'PAUSED').length,
+      CANCELLED: bookings.filter((b) => b.status === 'CANCELLED').length,
+      EXPIRED: bookings.filter((b) => b.status === 'EXPIRED').length,
+    }),
+    [bookings],
+  );
 
   const filteredBookings = useMemo(() => {
     if (activeFilter === 'ALL') return bookings;
@@ -64,7 +67,10 @@ export function RecurringList({
   const sortedBookings = useMemo(() => {
     return [...filteredBookings].sort((a, b) => {
       const statusPriority: Record<RecurringBookingStatus, number> = {
-        ACTIVE: 0, PAUSED: 1, EXPIRED: 2, CANCELLED: 3,
+        ACTIVE: 0,
+        PAUSED: 1,
+        EXPIRED: 2,
+        CANCELLED: 3,
       };
       const statusDiff = statusPriority[a.status] - statusPriority[b.status];
       if (statusDiff !== 0) return statusDiff;
@@ -83,7 +89,7 @@ export function RecurringList({
         loading={loading}
       />
     ),
-    [onPause, onResume, onCancel, onCardPress, loading]
+    [onPause, onResume, onCancel, onCardPress, loading],
   );
 
   const renderEmpty = useCallback(() => {
@@ -110,7 +116,15 @@ export function RecurringList({
         onPressAction={onCreatePress}
       />
     );
-  }, [loading, bookings.length, filteredBookings.length, activeFilter, emptyTitle, emptyMessage, onCreatePress]);
+  }, [
+    loading,
+    bookings.length,
+    filteredBookings.length,
+    activeFilter,
+    emptyTitle,
+    emptyMessage,
+    onCreatePress,
+  ]);
 
   const renderFilterChip = useCallback(
     ({ item }: { item: FilterItem }) => (
@@ -122,7 +136,7 @@ export function RecurringList({
         palette={palette}
       />
     ),
-    [activeFilter, filterCounts, palette]
+    [activeFilter, filterCounts, palette],
   );
 
   const filterKeyExtractor = useCallback((item: FilterItem) => item.key, []);

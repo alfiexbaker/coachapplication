@@ -35,21 +35,141 @@ type AwardBadgeInput = {
 };
 
 const BASE_BADGE_CATALOG: BadgeDefinition[] = [
-  { id: 'badge_best_training', label: 'Best Training Session', tone: 'success', description: 'Recognises a standout session with effort and focus.', category: 'consistency', tier: 1, pointValue: 10 },
-  { id: 'badge_streak_starter', label: 'Streak Starter', tone: 'default', description: 'Completed 3 sessions in a row without missing.', category: 'consistency', tier: 1, pointValue: 10 },
-  { id: 'badge_dedicated_athlete', label: 'Dedicated Athlete', tone: 'success', description: 'Maintained perfect attendance for a month.', category: 'consistency', tier: 2, pointValue: 25 },
-  { id: 'badge_master_passer', label: 'Master Passer', tone: 'default', description: 'Awarded for reliable build-up play and vision.', category: 'technique', tier: 2, pointValue: 25 },
-  { id: 'badge_sharp_shooter_pro', label: 'Sharp Shooter Pro', tone: 'warning', description: 'Celebrates clinical finishing under pressure.', category: 'technique', tier: 3, pointValue: 50 },
-  { id: 'badge_first_touch', label: 'Silky First Touch', tone: 'default', description: 'Demonstrated excellent ball control in tight spaces.', category: 'technique', tier: 1, pointValue: 10 },
-  { id: 'badge_team_captain', label: 'Team Captain', tone: 'success', description: 'Led drills and encouraged teammates.', category: 'leadership', tier: 2, pointValue: 25 },
-  { id: 'badge_vocal_leader', label: 'Vocal Leader', tone: 'default', description: 'Communicated well and organized the group.', category: 'leadership', tier: 1, pointValue: 10 },
-  { id: 'badge_mentor', label: 'Mentor', tone: 'success', description: 'Helped younger players improve their skills.', category: 'leadership', tier: 3, pointValue: 50 },
-  { id: 'badge_growth_mindset', label: 'Growth Mindset', tone: 'default', description: 'Embraced challenges and learned from mistakes.', category: 'mindset', tier: 1, pointValue: 10 },
-  { id: 'badge_focused_athlete', label: 'Laser Focus', tone: 'success', description: 'Maintained concentration throughout the session.', category: 'mindset', tier: 2, pointValue: 25 },
-  { id: 'badge_team_player', label: 'Team Player', tone: 'default', description: 'Put the team first and supported others.', category: 'teamwork', tier: 1, pointValue: 10 },
-  { id: 'badge_assist_king', label: 'Assist King', tone: 'success', description: 'Created multiple scoring opportunities for teammates.', category: 'teamwork', tier: 2, pointValue: 25 },
-  { id: 'badge_comeback_kid', label: 'Comeback Kid', tone: 'warning', description: 'Bounced back from setbacks with determination.', category: 'resilience', tier: 2, pointValue: 25 },
-  { id: 'badge_never_give_up', label: 'Never Give Up', tone: 'success', description: 'Showed incredible perseverance under pressure.', category: 'resilience', tier: 3, pointValue: 50 },
+  {
+    id: 'badge_best_training',
+    label: 'Best Training Session',
+    tone: 'success',
+    description: 'Recognises a standout session with effort and focus.',
+    category: 'consistency',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_streak_starter',
+    label: 'Streak Starter',
+    tone: 'default',
+    description: 'Completed 3 sessions in a row without missing.',
+    category: 'consistency',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_dedicated_athlete',
+    label: 'Dedicated Athlete',
+    tone: 'success',
+    description: 'Maintained perfect attendance for a month.',
+    category: 'consistency',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_master_passer',
+    label: 'Master Passer',
+    tone: 'default',
+    description: 'Awarded for reliable build-up play and vision.',
+    category: 'technique',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_sharp_shooter_pro',
+    label: 'Sharp Shooter Pro',
+    tone: 'warning',
+    description: 'Celebrates clinical finishing under pressure.',
+    category: 'technique',
+    tier: 3,
+    pointValue: 50,
+  },
+  {
+    id: 'badge_first_touch',
+    label: 'Silky First Touch',
+    tone: 'default',
+    description: 'Demonstrated excellent ball control in tight spaces.',
+    category: 'technique',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_team_captain',
+    label: 'Team Captain',
+    tone: 'success',
+    description: 'Led drills and encouraged teammates.',
+    category: 'leadership',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_vocal_leader',
+    label: 'Vocal Leader',
+    tone: 'default',
+    description: 'Communicated well and organized the group.',
+    category: 'leadership',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_mentor',
+    label: 'Mentor',
+    tone: 'success',
+    description: 'Helped younger players improve their skills.',
+    category: 'leadership',
+    tier: 3,
+    pointValue: 50,
+  },
+  {
+    id: 'badge_growth_mindset',
+    label: 'Growth Mindset',
+    tone: 'default',
+    description: 'Embraced challenges and learned from mistakes.',
+    category: 'mindset',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_focused_athlete',
+    label: 'Laser Focus',
+    tone: 'success',
+    description: 'Maintained concentration throughout the session.',
+    category: 'mindset',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_team_player',
+    label: 'Team Player',
+    tone: 'default',
+    description: 'Put the team first and supported others.',
+    category: 'teamwork',
+    tier: 1,
+    pointValue: 10,
+  },
+  {
+    id: 'badge_assist_king',
+    label: 'Assist King',
+    tone: 'success',
+    description: 'Created multiple scoring opportunities for teammates.',
+    category: 'teamwork',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_comeback_kid',
+    label: 'Comeback Kid',
+    tone: 'warning',
+    description: 'Bounced back from setbacks with determination.',
+    category: 'resilience',
+    tier: 2,
+    pointValue: 25,
+  },
+  {
+    id: 'badge_never_give_up',
+    label: 'Never Give Up',
+    tone: 'success',
+    description: 'Showed incredible perseverance under pressure.',
+    category: 'resilience',
+    tier: 3,
+    pointValue: 50,
+  },
 ];
 
 const SEED_BADGE_AWARDS: BadgeAward[] = [
@@ -174,9 +294,11 @@ class BadgeService {
       const diffDays = (now - lastAwardDate) / (1000 * 60 * 60 * 24);
 
       if (diffDays < cooldownWindowDays && !input.overrideCooldown) {
-        return err(validationError(
-          `Cooldown in effect. Last badge was ${Math.ceil(diffDays)} day(s) ago. Toggle exception with a note to proceed.`,
-        ));
+        return err(
+          validationError(
+            `Cooldown in effect. Last badge was ${Math.ceil(diffDays)} day(s) ago. Toggle exception with a note to proceed.`,
+          ),
+        );
       }
 
       if (diffDays < cooldownWindowDays && input.overrideCooldown && !input.overrideNote?.trim()) {
@@ -433,7 +555,7 @@ class BadgeService {
     const updated = merged.map((award) =>
       award.athleteId === athleteId && !award.seenByParent
         ? { ...award, seenByParent: true, seenAt: now }
-        : award
+        : award,
     );
 
     await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, updated);
@@ -445,9 +567,8 @@ class BadgeService {
    */
   async getUnseenBadgeCount(athleteId: string): Promise<number> {
     const awards = await this.listAwardsForAthlete(athleteId);
-    return awards.filter(
-      (award) => award.visibility !== 'coach_only' && !award.seenByParent
-    ).length;
+    return awards.filter((award) => award.visibility !== 'coach_only' && !award.seenByParent)
+      .length;
   }
 
   /**
@@ -455,9 +576,7 @@ class BadgeService {
    */
   async getUnseenBadges(athleteId: string): Promise<BadgeAward[]> {
     const awards = await this.listAwardsForAthlete(athleteId);
-    return awards.filter(
-      (award) => award.visibility !== 'coach_only' && !award.seenByParent
-    );
+    return awards.filter((award) => award.visibility !== 'coach_only' && !award.seenByParent);
   }
 
   // ===== Progression Methods =====
@@ -571,7 +690,9 @@ class BadgeService {
   async getTopCategories(
     athleteId: string,
     limit = 3,
-  ): Promise<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[]> {
+  ): Promise<
+    { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[]
+  > {
     const breakdown = await this.getCategoryBreakdown(athleteId);
     return breakdown
       .filter((cat) => cat.badgeCount > 0)
@@ -606,7 +727,12 @@ class BadgeService {
       progressPercent: number;
       totalPoints: number;
     }[];
-    topCategories: { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[];
+    topCategories: {
+      category: BadgeCategory;
+      label: string;
+      badgeCount: number;
+      totalPoints: number;
+    }[];
   }> {
     const [progress, categoryBreakdown, topCategories, awards] = await Promise.all([
       this.getProgressToNextLevel(athleteId),
@@ -691,7 +817,7 @@ class BadgeService {
         badgeType: 'skill',
         isUnlocked,
         earnedAt: award?.awardedAt,
-        awardedBy: award ? coachNameById.get(award.coachId) ?? 'Coach' : undefined,
+        awardedBy: award ? (coachNameById.get(award.coachId) ?? 'Coach') : undefined,
         progress: isUnlocked ? 100 : 0,
         progressLabel: isUnlocked ? 'Earned' : 'Locked',
       });
@@ -713,9 +839,7 @@ class BadgeService {
         isUnlocked,
         earnedAt: isUnlocked ? new Date().toISOString() : undefined,
         progress,
-        progressLabel: isUnlocked
-          ? 'Earned'
-          : `${sessionCount}/${milestone.threshold} sessions`,
+        progressLabel: isUnlocked ? 'Earned' : `${sessionCount}/${milestone.threshold} sessions`,
         currentValue: sessionCount,
         targetValue: milestone.threshold,
       });
@@ -737,9 +861,7 @@ class BadgeService {
         isUnlocked,
         earnedAt: isUnlocked ? new Date().toISOString() : undefined,
         progress,
-        progressLabel: isUnlocked
-          ? 'Earned'
-          : `${weeklyStreak}/${streak.threshold} weeks`,
+        progressLabel: isUnlocked ? 'Earned' : `${weeklyStreak}/${streak.threshold} weeks`,
         currentValue: weeklyStreak,
         targetValue: streak.threshold,
       });
@@ -747,9 +869,7 @@ class BadgeService {
 
     // Add special event badges
     // Check if athlete has earned any event badges from their awards
-    const eventAwards = awards.filter((a) =>
-      EVENT_BADGES.some((e) => e.id === a.badgeId)
-    );
+    const eventAwards = awards.filter((a) => EVENT_BADGES.some((e) => e.id === a.badgeId));
     const earnedEventIds = new Set(eventAwards.map((a) => a.badgeId));
 
     EVENT_BADGES.forEach((event) => {
@@ -782,13 +902,29 @@ class BadgeService {
     const grouped = new Map<string, AllBadgeWithProgress[]>();
 
     // Add type-based groups
-    grouped.set('milestones', badges.filter((b) => b.badgeType === 'milestone'));
-    grouped.set('streaks', badges.filter((b) => b.badgeType === 'streak'));
-    grouped.set('events', badges.filter((b) => b.badgeType === 'event'));
+    grouped.set(
+      'milestones',
+      badges.filter((b) => b.badgeType === 'milestone'),
+    );
+    grouped.set(
+      'streaks',
+      badges.filter((b) => b.badgeType === 'streak'),
+    );
+    grouped.set(
+      'events',
+      badges.filter((b) => b.badgeType === 'event'),
+    );
 
     // Add category-based groups for skill badges
     const skillBadges = badges.filter((b) => b.badgeType === 'skill');
-    const categories: BadgeCategory[] = ['leadership', 'consistency', 'technique', 'mindset', 'teamwork', 'resilience'];
+    const categories: BadgeCategory[] = [
+      'leadership',
+      'consistency',
+      'technique',
+      'mindset',
+      'teamwork',
+      'resilience',
+    ];
 
     categories.forEach((cat) => {
       const catBadges = skillBadges.filter((b) => b.category === cat);
@@ -808,7 +944,7 @@ class BadgeService {
       const bookings = await bookingService.getBookingsForUser(athleteId, 'athlete');
       // Count completed sessions
       const completedCount = bookings.filter(
-        (b) => b.status === 'COMPLETED' || b.status === 'AWAITING_COMPLETION'
+        (b) => b.status === 'COMPLETED' || b.status === 'AWAITING_COMPLETION',
       ).length;
       return completedCount;
     } catch (error) {
@@ -823,10 +959,10 @@ class BadgeService {
   private async getWeeklyStreak(athleteId: string): Promise<number> {
     // In production, this would calculate from session history
     const mockStreaks: Record<string, number> = {
-      'user1': 6,
-      'user2': 3,
-      'user3': 2,
-      'athlete1': 4,
+      user1: 6,
+      user2: 3,
+      user3: 2,
+      athlete1: 4,
     };
     return mockStreaks[athleteId] ?? 1;
   }
@@ -844,7 +980,8 @@ class BadgeService {
 
     // Find next milestone
     const milestones = [2, 4, 8, 12];
-    const nextMilestone = milestones.find((m) => m > currentStreak) ?? milestones[milestones.length - 1];
+    const nextMilestone =
+      milestones.find((m) => m > currentStreak) ?? milestones[milestones.length - 1];
     const daysToNextMilestone = Math.max(0, nextMilestone - currentStreak);
 
     // Generate motivational label

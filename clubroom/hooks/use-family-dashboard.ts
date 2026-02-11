@@ -50,14 +50,7 @@ export function useFamilyDashboard() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<FamilyDashboardData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyDashboardData>({
     load: loadData,
     deps: [currentUser?.id],
     isEmpty: (value) => value.members.length === 0 && value.upcomingSessions.length === 0,
@@ -94,7 +87,9 @@ export function useFamilyDashboard() {
     members,
     upcomingSessions,
     overview,
-    handleMemberPress, handleSessionPress,
-    navigateToCalendar, navigateToSpending,
+    handleMemberPress,
+    handleSessionPress,
+    navigateToCalendar,
+    navigateToSpending,
   };
 }

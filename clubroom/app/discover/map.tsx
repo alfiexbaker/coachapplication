@@ -96,7 +96,7 @@ export default function MapScreen() {
     (coach: CoachProfile) => {
       router.push(Routes.bookCoach(coach.id));
     },
-    [router]
+    [router],
   );
 
   const header = (
@@ -116,7 +116,10 @@ export default function MapScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         <LoadingState variant="detail" />
       </SafeAreaView>
@@ -125,16 +128,25 @@ export default function MapScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
-        <ErrorState message={error?.message || 'Failed to load coaches on the map.'} onRetry={retry} />
+        <ErrorState
+          message={error?.message || 'Failed to load coaches on the map.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         {filterOptions ? (
           <FilterBar
@@ -169,7 +181,10 @@ export default function MapScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {header}
 
       {filterOptions ? (

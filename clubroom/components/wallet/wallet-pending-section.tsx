@@ -3,7 +3,7 @@
  */
 
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -43,9 +43,7 @@ export const WalletPendingSection = memo(function WalletPendingSection({
             align="center"
             style={[styles.item, { borderTopColor: colors.border }]}
           >
-            <ThemedText style={styles.description}>
-              {transaction.description}
-            </ThemedText>
+            <ThemedText style={styles.description}>{transaction.description}</ThemedText>
             <ThemedText type="defaultSemiBold" style={{ color: colors.warning }}>
               {walletService.formatAmount(Math.abs(transaction.amount))}
             </ThemedText>

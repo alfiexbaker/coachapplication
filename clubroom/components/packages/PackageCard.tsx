@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionPackage } from '@/constants/types';
 import { packageService } from '@/services/package-service';
@@ -40,11 +40,15 @@ export function PackageCard({
 }: PackageCardProps) {
   const { colors: palette } = useTheme();
 
-  const pricePerSession = pkg.pricePerSession ?? Math.round((pkg.price / pkg.sessionCount) * 100) / 100;
+  const pricePerSession =
+    pkg.pricePerSession ?? Math.round((pkg.price / pkg.sessionCount) * 100) / 100;
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <SurfaceCard style={[styles.card, compact ? styles.cardCompact : undefined]} onPress={onPress}>
+      <SurfaceCard
+        style={[styles.card, compact ? styles.cardCompact : undefined]}
+        onPress={onPress}
+      >
         {/* Discount Badge */}
         {pkg.discountPercent > 0 && (
           <View style={[styles.discountBadge, { backgroundColor: palette.success }]}>
@@ -93,7 +97,9 @@ export function PackageCard({
             </Row>
 
             <Row align="center" gap="xxs">
-              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+              <View
+                style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}
+              >
                 <Ionicons name="pricetag-outline" size={14} color={palette.success} />
               </View>
               <ThemedText style={styles.statText}>
@@ -102,12 +108,12 @@ export function PackageCard({
             </Row>
 
             <Row align="center" gap="xxs">
-              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
+              <View
+                style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.06) }]}
+              >
                 <Ionicons name="time-outline" size={14} color={palette.warning} />
               </View>
-              <ThemedText style={styles.statText}>
-                {pkg.validDays} days valid
-              </ThemedText>
+              <ThemedText style={styles.statText}>{pkg.validDays} days valid</ThemedText>
             </Row>
           </Row>
 
@@ -115,7 +121,10 @@ export function PackageCard({
           {!compact && pkg.focus && pkg.focus.length > 0 && (
             <Row gap="xxs" style={styles.focusRow}>
               {pkg.focus.slice(0, 3).map((f) => (
-                <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                <View
+                  key={f}
+                  style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+                >
                   <ThemedText style={[styles.focusText, { color: palette.tint }]}>{f}</ThemedText>
                 </View>
               ))}
@@ -124,7 +133,11 @@ export function PackageCard({
 
           {/* Inactive indicator */}
           {!pkg.isActive && (
-            <Row align="center" gap="xxs" style={[styles.inactiveBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.inactiveBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}
+            >
               <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
               <ThemedText style={[styles.inactiveText, { color: palette.error }]}>
                 Currently unavailable
@@ -155,9 +168,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: Radii.md,
     zIndex: 1,
   },
-  discountText: { ...Typography.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+  discountText: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   content: {
     padding: Components.card.padding,
     gap: Spacing.sm,

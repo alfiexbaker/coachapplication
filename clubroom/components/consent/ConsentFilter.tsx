@@ -45,17 +45,10 @@ function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
           color={isActive ? palette.onPrimary : palette.muted}
         />
       )}
-      <ThemedText
-        style={[
-          styles.chipText,
-          { color: isActive ? palette.onPrimary : palette.text },
-        ]}
-      >
+      <ThemedText style={[styles.chipText, { color: isActive ? palette.onPrimary : palette.text }]}>
         {label}
       </ThemedText>
-      {isActive && (
-        <Ionicons name="close" size={14} color={palette.onPrimary} />
-      )}
+      {isActive && <Ionicons name="close" size={14} color={palette.onPrimary} />}
     </Clickable>
   );
 }
@@ -114,9 +107,7 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
 
       {/* Status Filters */}
       <View style={styles.section}>
-        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-          Status
-        </ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Status</ThemedText>
         <Row style={styles.chipRow}>
           <FilterChip
             label="Granted"
@@ -140,11 +131,14 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
 
       {/* Clear Filters */}
       {hasActiveFilters && (
-        <Clickable onPress={clearFilters} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Clear filters">
+        <Clickable
+          onPress={clearFilters}
+          style={styles.clearButton}
+          accessibilityRole="button"
+          accessibilityLabel="Clear filters"
+        >
           <Ionicons name="refresh" size={14} color={palette.tint} />
-          <ThemedText style={[styles.clearText, { color: palette.tint }]}>
-            Clear Filters
-          </ThemedText>
+          <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear Filters</ThemedText>
         </Clickable>
       )}
     </View>
@@ -160,8 +154,7 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.xs,
   },
-  sectionLabel: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.5 },
+  sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   chipRow: {
     gap: Spacing.xs,
   },

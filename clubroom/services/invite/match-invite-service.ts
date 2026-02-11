@@ -20,10 +20,7 @@ import { matchService } from '../match-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from '../user-service';
 
-import {
-  loadSquadInvites,
-  saveSquadInvites,
-} from './squad-invite-service';
+import { loadSquadInvites, saveSquadInvites } from './squad-invite-service';
 
 const logger = createLogger('MatchInviteService');
 
@@ -101,7 +98,7 @@ export const matchInviteService = {
           athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
           parentId: member.parentId,
           parentName: await resolveUserName(member.parentId, 'Parent'),
-        }))
+        })),
       );
       await matchService.invitePlayers({
         matchId: match.id,
@@ -147,8 +144,8 @@ export const matchInviteService = {
         const athleteNames = (
           await Promise.all(
             athletes.map((athlete, index) =>
-              resolveUserName(athlete.athleteId, `Athlete ${index + 1}`)
-            )
+              resolveUserName(athlete.athleteId, `Athlete ${index + 1}`),
+            ),
           )
         ).join(', ');
         await notificationService.create({
@@ -177,7 +174,15 @@ export const matchInviteService = {
 
     return {
       match,
-      inviteResult: { sent, successful: sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
+      inviteResult: {
+        sent,
+        successful: sent,
+        failed,
+        skipped: 0,
+        totalAttempted: eligibleMembers.length,
+        errors,
+        groupId,
+      },
     };
   },
 
@@ -186,9 +191,7 @@ export const matchInviteService = {
    */
   async getMatchInvites(matchId: string): Promise<SquadInvite[]> {
     const squadInvitesCache = await loadSquadInvites();
-    return squadInvitesCache.filter(
-      (si) => si.targetType === 'MATCH' && si.targetId === matchId
-    );
+    return squadInvitesCache.filter((si) => si.targetType === 'MATCH' && si.targetId === matchId);
   },
 
   /**
@@ -196,9 +199,7 @@ export const matchInviteService = {
    */
   async getCoachMatchInvites(coachId: string): Promise<SquadInvite[]> {
     const squadInvitesCache = await loadSquadInvites();
-    return squadInvitesCache.filter(
-      (si) => si.targetType === 'MATCH' && si.invitedBy === coachId
-    );
+    return squadInvitesCache.filter((si) => si.targetType === 'MATCH' && si.invitedBy === coachId);
   },
 
   /**
@@ -208,11 +209,11 @@ export const matchInviteService = {
     matchId: string,
     squadId: string,
     accepted: number,
-    declined: number
+    declined: number,
   ): Promise<void> {
     let squadInvitesCache = await loadSquadInvites();
     const index = squadInvitesCache.findIndex(
-      (si) => si.targetType === 'MATCH' && si.targetId === matchId && si.squadId === squadId
+      (si) => si.targetType === 'MATCH' && si.targetId === matchId && si.squadId === squadId,
     );
 
     if (index !== -1) {

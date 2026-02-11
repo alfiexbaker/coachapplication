@@ -49,10 +49,7 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
           color={isActive ? palette.onPrimary : palette.muted}
         />
         <ThemedText
-          style={[
-            styles.filterLabel,
-            { color: isActive ? palette.onPrimary : palette.text },
-          ]}
+          style={[styles.filterLabel, { color: isActive ? palette.onPrimary : palette.text }]}
         >
           {label}
         </ThemedText>

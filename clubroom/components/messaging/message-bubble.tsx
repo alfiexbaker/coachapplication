@@ -18,27 +18,38 @@ interface MessageBubbleProps {
 }
 
 function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string }) {
-  const { colors: palette, scheme } = useTheme();
+  const { colors: palette } = useTheme();
   return (
     <Row
       align="center"
       gap="sm"
       style={[styles.attachment, { borderColor: palette.border, backgroundColor: palette.surface }]}
       accessibilityRole="button"
-      accessibilityLabel={`${title}${subtitle ? `, ${subtitle}` : ''}`}>
+      accessibilityLabel={`${title}${subtitle ? `, ${subtitle}` : ''}`}
+    >
       <IconSymbol name="doc.text" size={20} color={palette.icon} />
       <View style={styles.attachmentCopy}>
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
-        {subtitle ? <ThemedText style={[styles.attachmentSubtitle, { color: palette.muted }]}>{subtitle}</ThemedText> : null}
+        {subtitle ? (
+          <ThemedText style={[styles.attachmentSubtitle, { color: palette.muted }]}>
+            {subtitle}
+          </ThemedText>
+        ) : null}
       </View>
       <IconSymbol name="chevron.right" size={18} color={palette.icon} />
     </Row>
   );
 }
 
-function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSenderLabel }: MessageBubbleProps) {
+function MessageBubbleComponent({
+  message,
+  isOwnMessage,
+  onLongPress,
+  showSenderLabel,
+}: MessageBubbleProps) {
   const { colors: palette, scheme } = useTheme();
-  const senderLabel = message.sender === 'coach' ? 'Coach' : message.sender === 'parent' ? 'Parent' : 'System';
+  const senderLabel =
+    message.sender === 'coach' ? 'Coach' : message.sender === 'parent' ? 'Parent' : 'System';
   const bubbleColor = isOwnMessage
     ? scheme === 'dark'
       ? palette.secondary
@@ -62,21 +73,36 @@ function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSender
       }}
     >
       {showSenderLabel && senderLabel ? (
-        <ThemedText style={[styles.senderLabel, { color: palette.muted }]}>{senderLabel}</ThemedText>
+        <ThemedText style={[styles.senderLabel, { color: palette.muted }]}>
+          {senderLabel}
+        </ThemedText>
       ) : null}
       <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
         <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>
         {message.attachments?.map((attachment) => (
-          <AttachmentCard key={attachment.id} title={attachment.title} subtitle={attachment.subtitle} />
+          <AttachmentCard
+            key={attachment.id}
+            title={attachment.title}
+            subtitle={attachment.subtitle}
+          />
         ))}
       </View>
-      <Row align="center" gap="xs" style={[styles.footerRow, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}>
+      <Row
+        align="center"
+        gap="xs"
+        style={[styles.footerRow, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}
+      >
         <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
-          {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(message.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
         </ThemedText>
         {isOwnMessage && (
-          <SurfaceCard style={[styles.statusPill, { backgroundColor: palette.surface }]}> 
-            <ThemedText style={[styles.statusText, { color: palette.muted }]}>{message.status}</ThemedText>
+          <SurfaceCard style={[styles.statusPill, { backgroundColor: palette.surface }]}>
+            <ThemedText style={[styles.statusText, { color: palette.muted }]}>
+              {message.status}
+            </ThemedText>
           </SurfaceCard>
         )}
       </Row>

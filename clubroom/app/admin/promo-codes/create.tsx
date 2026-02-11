@@ -15,22 +15,18 @@ export default function CreatePromoCodeScreen() {
 
   const handleSuccess = useCallback(
     (promoCode: PromoCode) => {
-      Alert.alert(
-        'Success',
-        `Promo code "${promoCode.code}" created successfully!`,
-        [
-          {
-            text: 'View Codes',
-            onPress: () => router.back(),
-          },
-          {
-            text: 'Create Another',
-            style: 'cancel',
-          },
-        ]
-      );
+      Alert.alert('Success', `Promo code "${promoCode.code}" created successfully!`, [
+        {
+          text: 'View Codes',
+          onPress: () => router.back(),
+        },
+        {
+          text: 'Create Another',
+          style: 'cancel',
+        },
+      ]);
     },
-    [router]
+    [router],
   );
 
   const handleError = useCallback((error: string) => {
@@ -44,11 +40,7 @@ export default function CreatePromoCodeScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
-          title="Create Promo Code"
-          subtitle="Add a new promotional code"
-          showBack
-        />
+        <PageHeader title="Create Promo Code" subtitle="Add a new promotional code" showBack />
       }
       scrollable={false}
     >

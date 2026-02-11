@@ -93,13 +93,9 @@ export function useAthleteData(
     viewerRole?: 'coach' | 'parent' | 'athlete';
     includeBadgeProgress?: boolean;
     feedbackLimit?: number;
-  }
+  },
 ): AthleteDataResult {
-  const {
-    viewerRole = 'parent',
-    includeBadgeProgress = true,
-    feedbackLimit = 5,
-  } = options ?? {};
+  const { viewerRole = 'parent', includeBadgeProgress = true, feedbackLimit = 5 } = options ?? {};
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -127,19 +123,15 @@ export function useAthleteData(
       setError(null);
 
       // Fetch all data in parallel for performance
-      const [
-        athleteProgress,
-        badgeAwards,
-        progressionSummary,
-        allBadgesWithProgress,
-      ] = await Promise.all([
-        progressService.getAthleteProgress(athleteId, viewerRole),
-        badgeService.listAwardsForAthlete(athleteId),
-        badgeService.getProgressionSummary(athleteId),
-        includeBadgeProgress
-          ? badgeService.getAllBadgesWithProgress(athleteId)
-          : Promise.resolve([]),
-      ]);
+      const [athleteProgress, badgeAwards, progressionSummary, allBadgesWithProgress] =
+        await Promise.all([
+          progressService.getAthleteProgress(athleteId, viewerRole),
+          badgeService.listAwardsForAthlete(athleteId),
+          badgeService.getProgressionSummary(athleteId),
+          includeBadgeProgress
+            ? badgeService.getAllBadgesWithProgress(athleteId)
+            : Promise.resolve([]),
+        ]);
 
       // Build athlete info from progress data
       const athleteInfo: AthleteInfo = {
@@ -211,7 +203,7 @@ export function useAthleteData(
       error,
       refetch,
     }),
-    [athlete, progress, badges, goals, recentFeedback, loading, error, refetch]
+    [athlete, progress, badges, goals, recentFeedback, loading, error, refetch],
   );
 }
 
@@ -253,7 +245,7 @@ export function useAthleteBadges(athleteId: string | null | undefined) {
 
   return useMemo(
     () => ({ badges, loading, error, refetch: fetchBadges }),
-    [badges, loading, error, fetchBadges]
+    [badges, loading, error, fetchBadges],
   );
 }
 
@@ -301,7 +293,7 @@ export function useAthleteProgress(athleteId: string | null | undefined) {
 
   return useMemo(
     () => ({ progress: progressData, loading, error, refetch: fetchProgress }),
-    [progressData, loading, error, fetchProgress]
+    [progressData, loading, error, fetchProgress],
   );
 }
 
@@ -341,6 +333,6 @@ export function useAthleteGoals(athleteId: string | null | undefined) {
 
   return useMemo(
     () => ({ goals, loading, error, refetch: fetchGoals }),
-    [goals, loading, error, fetchGoals]
+    [goals, loading, error, fetchGoals],
   );
 }

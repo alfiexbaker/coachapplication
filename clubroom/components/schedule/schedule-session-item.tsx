@@ -4,7 +4,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -43,9 +43,7 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
         <ThemedText type="defaultSemiBold" style={styles.timeText}>
           {session.time}
         </ThemedText>
-        <ThemedText style={[styles.endTime, { color: colors.muted }]}>
-          {session.endTime}
-        </ThemedText>
+        <ThemedText style={[styles.endTime, { color: colors.muted }]}>{session.endTime}</ThemedText>
       </Column>
 
       <Column flex gap="xxs">

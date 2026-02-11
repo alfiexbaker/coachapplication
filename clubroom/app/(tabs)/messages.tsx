@@ -39,7 +39,10 @@ export default function MessagesScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Messages" subtitle="Your conversations" />
         <LoadingState variant="list" />
       </SafeAreaView>
@@ -48,7 +51,10 @@ export default function MessagesScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Messages" subtitle="Your conversations" />
         <ErrorState message={error?.message ?? 'Unable to load conversations'} onRetry={retry} />
       </SafeAreaView>
@@ -57,7 +63,10 @@ export default function MessagesScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ScreenHeader title="Messages" subtitle="Your conversations" />
         <EmptyState
           icon="chatbubbles"
@@ -71,7 +80,10 @@ export default function MessagesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScreenHeader title="Messages" subtitle="Your conversations" />
       <MessagesSearchBar value={search} onChangeText={setSearch} />
       <MessagesViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />

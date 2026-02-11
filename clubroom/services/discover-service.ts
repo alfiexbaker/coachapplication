@@ -32,14 +32,16 @@ const MAX_RECENT_SEARCHES = 10;
 const importedCoachProfiles: CoachProfile[] = [];
 
 // Create coaches with location data from imported profiles
-const coachesFromImport: CoachProfile[] = importedCoachProfiles.map((coach: CoachProfile, index: number) => ({
-  ...coach,
-  location: coach.location ?? {
-    lat: 51.5074 + (Math.random() - 0.5) * 0.1,
-    lng: -0.1278 + (Math.random() - 0.5) * 0.2,
-  },
-  distanceMiles: coach.distanceMiles ?? (1 + index * 1.5),
-}));
+const coachesFromImport: CoachProfile[] = importedCoachProfiles.map(
+  (coach: CoachProfile, index: number) => ({
+    ...coach,
+    location: coach.location ?? {
+      lat: 51.5074 + (Math.random() - 0.5) * 0.1,
+      lng: -0.1278 + (Math.random() - 0.5) * 0.2,
+    },
+    distanceMiles: coach.distanceMiles ?? 1 + index * 1.5,
+  }),
+);
 
 // Mock extended coach data for discovery
 const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
@@ -227,12 +229,7 @@ const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
 /**
  * Calculate distance between two coordinates using Haversine formula
  */
-function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
@@ -245,7 +242,6 @@ function calculateDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-
 
 /**
  * Check if coach matches text search query
@@ -275,7 +271,7 @@ function matchesQuery(coach: CoachProfile, query: string): boolean {
 function calculateRelevanceScore(
   coach: CoachProfile,
   filters: CoachSearchFilters,
-  distanceKm?: number
+  distanceKm?: number,
 ): number {
   let score = 50; // Base score
 
@@ -318,7 +314,7 @@ class DiscoverService {
   async searchCoaches(
     filters: CoachSearchFilters = {},
     page: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<Result<CoachSearchResponse, ServiceError>> {
     try {
       let results = [...this.coaches];
@@ -344,14 +340,14 @@ class DiscoverService {
       // Apply focuses filter
       if (filters.focuses && filters.focuses.length > 0) {
         results = results.filter((coach) =>
-          filters.focuses!.some((focus) => coach.footballFocuses.includes(focus))
+          filters.focuses!.some((focus) => coach.footballFocuses.includes(focus)),
         );
       }
 
       // Apply formats filter
       if (filters.formats && filters.formats.length > 0) {
         results = results.filter((coach) =>
-          filters.formats!.some((format) => coach.sessionFormats.includes(format))
+          filters.formats!.some((format) => coach.sessionFormats.includes(format)),
         );
       }
 
@@ -359,14 +355,14 @@ class DiscoverService {
       if (filters.languages && filters.languages.length > 0) {
         results = results.filter((coach) =>
           filters.languages!.some((lang) =>
-            coach.languages?.some((l) => l.name.toLowerCase() === lang.toLowerCase())
-          )
+            coach.languages?.some((l) => l.name.toLowerCase() === lang.toLowerCase()),
+          ),
         );
       }
 
       // Apply location/distance filter
       let resultsWithDistance: { coach: CoachProfile; distanceKm?: number }[] = results.map(
-        (coach) => ({ coach })
+        (coach) => ({ coach }),
       );
 
       if (filters.location) {
@@ -375,7 +371,7 @@ class DiscoverService {
             filters.location!.lat,
             filters.location!.lng,
             coach.location.lat,
-            coach.location.lng
+            coach.location.lng,
           );
           return { coach, distanceKm };
         });
@@ -383,7 +379,7 @@ class DiscoverService {
         // Filter by radius
         if (filters.distance) {
           resultsWithDistance = resultsWithDistance.filter(
-            (r) => r.distanceKm !== undefined && r.distanceKm <= filters.distance!
+            (r) => r.distanceKm !== undefined && r.distanceKm <= filters.distance!,
           );
         }
       }
@@ -455,7 +451,7 @@ class DiscoverService {
   async getCoachesNearLocation(
     lat: number,
     lng: number,
-    radiusKm: number = 10
+    radiusKm: number = 10,
   ): Promise<Result<CoachSearchResult[], ServiceError>> {
     try {
       const results = this.coaches
@@ -480,104 +476,106 @@ class DiscoverService {
   /**
    * Get available filter options with counts
    */
-  async getFilterOptions(currentFilters: CoachSearchFilters = {}): Promise<Result<FilterOptions, ServiceError>> {
+  async getFilterOptions(
+    currentFilters: CoachSearchFilters = {},
+  ): Promise<Result<FilterOptions, ServiceError>> {
     try {
-    // Get all coaches that match current filters (except the filter being counted)
+      // Get all coaches that match current filters (except the filter being counted)
       const matchingCoaches = this.coaches.filter((coach) => {
         if (currentFilters.query && !matchesQuery(coach, currentFilters.query)) return false;
-        if (currentFilters.priceMin && coach.priceRange.maxUsd < currentFilters.priceMin) return false;
-        if (currentFilters.priceMax && coach.priceRange.minUsd > currentFilters.priceMax) return false;
+        if (currentFilters.priceMin && coach.priceRange.maxUsd < currentFilters.priceMin)
+          return false;
+        if (currentFilters.priceMax && coach.priceRange.minUsd > currentFilters.priceMax)
+          return false;
         if (currentFilters.rating && coach.rating.average < currentFilters.rating) return false;
         return true;
       });
 
-    // Collect unique values with counts
-    const focusCounts = new Map<string, number>();
-    const languageCounts = new Map<string, number>();
-    const formatCounts = new Map<string, number>();
-    let minPrice = Infinity;
-    let maxPrice = 0;
-    const ratingCounts = new Map<number, number>();
+      // Collect unique values with counts
+      const focusCounts = new Map<string, number>();
+      const languageCounts = new Map<string, number>();
+      const formatCounts = new Map<string, number>();
+      let minPrice = Infinity;
+      let maxPrice = 0;
+      const ratingCounts = new Map<number, number>();
 
-    matchingCoaches.forEach((coach) => {
-      // Focuses
-      coach.footballFocuses.forEach((focus) => {
-        focusCounts.set(focus, (focusCounts.get(focus) ?? 0) + 1);
+      matchingCoaches.forEach((coach) => {
+        // Focuses
+        coach.footballFocuses.forEach((focus) => {
+          focusCounts.set(focus, (focusCounts.get(focus) ?? 0) + 1);
+        });
+
+        // Languages
+        coach.languages?.forEach((lang) => {
+          languageCounts.set(lang.name, (languageCounts.get(lang.name) ?? 0) + 1);
+        });
+
+        // Formats
+        coach.sessionFormats.forEach((format) => {
+          formatCounts.set(format, (formatCounts.get(format) ?? 0) + 1);
+        });
+
+        // Price range
+        minPrice = Math.min(minPrice, coach.priceRange.minUsd);
+        maxPrice = Math.max(maxPrice, coach.priceRange.maxUsd);
+
+        // Rating distribution
+        const ratingBucket = Math.floor(coach.rating.average);
+        ratingCounts.set(ratingBucket, (ratingCounts.get(ratingBucket) ?? 0) + 1);
       });
 
-      // Languages
-      coach.languages?.forEach((lang) => {
-        languageCounts.set(lang.name, (languageCounts.get(lang.name) ?? 0) + 1);
-      });
+      // Convert to FilterOption arrays
+      const focuses: FilterOption[] = Array.from(focusCounts.entries())
+        .map(([value, count]) => ({
+          value,
+          label: value,
+          count,
+          selected: currentFilters.focuses?.includes(value as FootballObjective),
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      // Formats
-      coach.sessionFormats.forEach((format) => {
-        formatCounts.set(format, (formatCounts.get(format) ?? 0) + 1);
-      });
+      const languages: FilterOption[] = Array.from(languageCounts.entries())
+        .map(([value, count]) => ({
+          value,
+          label: value,
+          count,
+          selected: currentFilters.languages?.includes(value),
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      // Price range
-      minPrice = Math.min(minPrice, coach.priceRange.minUsd);
-      maxPrice = Math.max(maxPrice, coach.priceRange.maxUsd);
+      const formats: FilterOption[] = Array.from(formatCounts.entries())
+        .map(([value, count]) => ({
+          value,
+          label: value,
+          count,
+          selected: currentFilters.formats?.includes(value as TrainingFormat),
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      // Rating distribution
-      const ratingBucket = Math.floor(coach.rating.average);
-      ratingCounts.set(ratingBucket, (ratingCounts.get(ratingBucket) ?? 0) + 1);
-    });
+      const genders: FilterOption[] = [
+        { value: 'Any', label: 'Any', count: matchingCoaches.length },
+        { value: 'Male', label: 'Male', count: Math.floor(matchingCoaches.length * 0.6) },
+        { value: 'Female', label: 'Female', count: Math.floor(matchingCoaches.length * 0.4) },
+      ];
 
-    // Convert to FilterOption arrays
-    const focuses: FilterOption[] = Array.from(focusCounts.entries())
-      .map(([value, count]) => ({
-        value,
-        label: value,
-        count,
-        selected: currentFilters.focuses?.includes(value as FootballObjective),
-      }))
-      .sort((a, b) => b.count - a.count);
+      const verificationLevels: FilterOption[] = [
+        {
+          value: 'VERIFIED',
+          label: 'Verified',
+          count: matchingCoaches.filter((c) => c.badges?.some((b) => b.label === 'Verified'))
+            .length,
+        },
+        {
+          value: 'PREMIUM',
+          label: 'Premium',
+          count: matchingCoaches.filter((c) => c.badges?.some((b) => b.label === 'Premium Coach'))
+            .length,
+        },
+      ];
 
-    const languages: FilterOption[] = Array.from(languageCounts.entries())
-      .map(([value, count]) => ({
-        value,
-        label: value,
-        count,
-        selected: currentFilters.languages?.includes(value),
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    const formats: FilterOption[] = Array.from(formatCounts.entries())
-      .map(([value, count]) => ({
-        value,
-        label: value,
-        count,
-        selected: currentFilters.formats?.includes(value as TrainingFormat),
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    const genders: FilterOption[] = [
-      { value: 'Any', label: 'Any', count: matchingCoaches.length },
-      { value: 'Male', label: 'Male', count: Math.floor(matchingCoaches.length * 0.6) },
-      { value: 'Female', label: 'Female', count: Math.floor(matchingCoaches.length * 0.4) },
-    ];
-
-    const verificationLevels: FilterOption[] = [
-      {
-        value: 'VERIFIED',
-        label: 'Verified',
-        count: matchingCoaches.filter((c) =>
-          c.badges?.some((b) => b.label === 'Verified')
-        ).length,
-      },
-      {
-        value: 'PREMIUM',
-        label: 'Premium',
-        count: matchingCoaches.filter((c) =>
-          c.badges?.some((b) => b.label === 'Premium Coach')
-        ).length,
-      },
-    ];
-
-    const ratingDistribution = Array.from(ratingCounts.entries())
-      .map(([rating, count]) => ({ rating, count }))
-      .sort((a, b) => b.rating - a.rating);
+      const ratingDistribution = Array.from(ratingCounts.entries())
+        .map(([rating, count]) => ({ rating, count }))
+        .sort((a, b) => b.rating - a.rating);
 
       return ok({
         sports: [{ value: 'Football', label: 'Football', count: matchingCoaches.length }],
@@ -604,70 +602,70 @@ class DiscoverService {
    */
   async getSuggestedCoaches(userId: string): Promise<Result<SuggestedCoach[], ServiceError>> {
     try {
-    // For demo, return a mix of suggestions
+      // For demo, return a mix of suggestions
       const suggestions: SuggestedCoach[] = [];
 
-    // Top rated coaches
-    const topRated = [...this.coaches]
-      .sort((a, b) => b.rating.average - a.rating.average)
-      .slice(0, 2);
+      // Top rated coaches
+      const topRated = [...this.coaches]
+        .sort((a, b) => b.rating.average - a.rating.average)
+        .slice(0, 2);
 
-    topRated.forEach((coach) => {
-      suggestions.push({
-        coach,
-        reason: 'highly_rated',
-        reasonText: `Highly rated with ${coach.rating.average.toFixed(1)} stars`,
-        confidence: 0.9,
+      topRated.forEach((coach) => {
+        suggestions.push({
+          coach,
+          reason: 'highly_rated',
+          reasonText: `Highly rated with ${coach.rating.average.toFixed(1)} stars`,
+          confidence: 0.9,
+        });
       });
-    });
 
-    // Nearby coaches
-    const nearby = [...this.coaches]
-      .sort((a, b) => a.distanceMiles - b.distanceMiles)
-      .slice(0, 2);
+      // Nearby coaches
+      const nearby = [...this.coaches]
+        .sort((a, b) => a.distanceMiles - b.distanceMiles)
+        .slice(0, 2);
 
-    nearby.forEach((coach) => {
-      if (!suggestions.find((s) => s.coach.id === coach.id)) {
-        suggestions.push({
-          coach,
-          reason: 'nearby',
-          reasonText: `Only ${coach.distanceMiles.toFixed(1)} miles away`,
-          confidence: 0.85,
-        });
-      }
-    });
+      nearby.forEach((coach) => {
+        if (!suggestions.find((s) => s.coach.id === coach.id)) {
+          suggestions.push({
+            coach,
+            reason: 'nearby',
+            reasonText: `Only ${coach.distanceMiles.toFixed(1)} miles away`,
+            confidence: 0.85,
+          });
+        }
+      });
 
-    // Popular coaches (by review count)
-    const popular = [...this.coaches]
-      .sort((a, b) => b.rating.reviewCount - a.rating.reviewCount)
-      .slice(0, 2);
+      // Popular coaches (by review count)
+      const popular = [...this.coaches]
+        .sort((a, b) => b.rating.reviewCount - a.rating.reviewCount)
+        .slice(0, 2);
 
-    popular.forEach((coach) => {
-      if (!suggestions.find((s) => s.coach.id === coach.id)) {
-        suggestions.push({
-          coach,
-          reason: 'popular',
-          reasonText: `${coach.rating.reviewCount} reviews`,
-          confidence: 0.8,
-        });
-      }
-    });
+      popular.forEach((coach) => {
+        if (!suggestions.find((s) => s.coach.id === coach.id)) {
+          suggestions.push({
+            coach,
+            reason: 'popular',
+            reasonText: `${coach.rating.reviewCount} reviews`,
+            confidence: 0.8,
+          });
+        }
+      });
 
-    // New coaches (by join date)
-    const newCoaches = [...this.coaches]
-      .sort((a, b) => new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime())
-      .slice(0, 1);
+      // New coaches (by join date)
+      const newCoaches = [...this.coaches]
+        .sort((a, b) => new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime())
+        .slice(0, 1);
 
-    newCoaches.forEach((coach) => {
-      if (!suggestions.find((s) => s.coach.id === coach.id)) {
-        suggestions.push({
-          coach,
-          reason: 'new',
-          reasonText: 'Recently joined',
-          confidence: 0.7,
-        });
-      }
-    });
+      newCoaches.forEach((coach) => {
+        if (!suggestions.find((s) => s.coach.id === coach.id)) {
+          suggestions.push({
+            coach,
+            reason: 'new',
+            reasonText: 'Recently joined',
+            confidence: 0.7,
+          });
+        }
+      });
 
       return ok(suggestions.slice(0, 6));
     } catch (error) {

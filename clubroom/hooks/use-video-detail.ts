@@ -61,16 +61,29 @@ export function useVideoDetail(id: string | undefined) {
     setShowAnnotationModal(true);
   }, []);
 
-  const handleSaveAnnotation = useCallback(async (annotation: Omit<VideoAnnotation, 'id'>) => {
-    if (!video) return;
-    await videoService.addAnnotation(video.id, annotation.timestamp, annotation.label, annotation.type, annotation.note);
-    await loadVideo();
-  }, [video, loadVideo]);
+  const handleSaveAnnotation = useCallback(
+    async (annotation: Omit<VideoAnnotation, 'id'>) => {
+      if (!video) return;
+      await videoService.addAnnotation(
+        video.id,
+        annotation.timestamp,
+        annotation.label,
+        annotation.type,
+        annotation.note,
+      );
+      await loadVideo();
+    },
+    [video, loadVideo],
+  );
 
   const handleShare = useCallback(async () => {
     if (!video) return;
     try {
-      await Share.share({ title: video.title, message: `Check out this training video: ${video.title}`, url: video.videoUrl });
+      await Share.share({
+        title: video.title,
+        message: `Check out this training video: ${video.title}`,
+        url: video.videoUrl,
+      });
     } catch (error) {
       logger.error('Failed to share:', error);
     }
@@ -94,33 +107,33 @@ export function useVideoDetail(id: string | undefined) {
 
   const handleDelete = useCallback(() => {
     if (!video) return;
-    Alert.alert('Delete Video', 'Are you sure you want to delete this video? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          try {
-            await videoService.deleteVideo(video.id);
-            router.back();
-          } catch (error) {
-            logger.error('Failed to delete video:', error);
-          }
+    Alert.alert(
+      'Delete Video',
+      'Are you sure you want to delete this video? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await videoService.deleteVideo(video.id);
+              router.back();
+            } catch (error) {
+              logger.error('Failed to delete video:', error);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   }, [video]);
 
   const dismissAnnotationModal = useCallback(() => {
     setShowAnnotationModal(false);
   }, []);
 
-  const status: ScreenStatus = loading && !video
-    ? 'loading'
-    : error && !video
-      ? 'error'
-      : !video
-        ? 'empty'
-        : 'success';
+  const status: ScreenStatus =
+    loading && !video ? 'loading' : error && !video ? 'error' : !video ? 'empty' : 'success';
 
   return {
     video,
@@ -131,8 +144,14 @@ export function useVideoDetail(id: string | undefined) {
     showAnnotationModal,
     isOwner,
     retry: loadVideo,
-    handleTimeUpdate, handleSeekToAnnotation, handleQuickAnnotation,
-    handleSaveAnnotation, handleShare, handleToggleVisibility,
-    handleDelete, dismissAnnotationModal, setCurrentTime,
+    handleTimeUpdate,
+    handleSeekToAnnotation,
+    handleQuickAnnotation,
+    handleSaveAnnotation,
+    handleShare,
+    handleToggleVisibility,
+    handleDelete,
+    dismissAnnotationModal,
+    setCurrentTime,
   };
 }

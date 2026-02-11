@@ -7,20 +7,28 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { PeakHoursData } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export {
-  DAY_LABELS, HOUR_START, HOUR_END,
-  formatHour, getIntensityColor,
-  HeatmapSummary, HeatmapLegend,
-} from './peak-hours-heatmap-sections';
-export type { HeatmapSummaryProps, HeatmapLegendProps } from './peak-hours-heatmap-sections';
-
 import {
-  DAY_LABELS, HOUR_START, HOUR_END,
-  formatHour, getIntensityColor,
-  HeatmapSummary, HeatmapLegend,
+  DAY_LABELS,
+  HOUR_START,
+  HOUR_END,
+  formatHour,
+  getIntensityColor,
+  HeatmapSummary,
+  HeatmapLegend,
 } from './peak-hours-heatmap-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export {
+  DAY_LABELS,
+  HOUR_START,
+  HOUR_END,
+  formatHour,
+  getIntensityColor,
+  HeatmapSummary,
+  HeatmapLegend,
+} from './peak-hours-heatmap-sections';
+export type { HeatmapSummaryProps, HeatmapLegendProps } from './peak-hours-heatmap-sections';
 
 export interface PeakHoursHeatmapProps {
   data: PeakHoursData[];
@@ -51,21 +59,14 @@ export function PeakHoursHeatmap({
   const hours = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
 
   return (
-    <SurfaceCard
-      style={styles.card}
-      loading={loading}
-      onPress={onPress}
-      tactile={!!onPress}
-    >
+    <SurfaceCard style={styles.card} loading={loading} onPress={onPress} tactile={!!onPress}>
       <View style={styles.header}>
         <Row style={styles.titleRow}>
           <Ionicons name="time" size={20} color={palette.tint} />
           <ThemedText style={styles.title}>{title}</ThemedText>
         </Row>
         {subtitle && (
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            {subtitle}
-          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</ThemedText>
         )}
       </View>
 

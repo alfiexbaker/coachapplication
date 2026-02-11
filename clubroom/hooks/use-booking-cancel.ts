@@ -58,7 +58,20 @@ export function formatTimeUntil(hours: number): string {
 
 export function formatSessionDate(d: Date): string {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   const h = d.getHours();
   const m = d.getMinutes();
   const ampm = h >= 12 ? 'pm' : 'am';
@@ -137,16 +150,19 @@ export function useBookingCancel(id: string, mode?: string) {
       });
     } catch (loadError) {
       logger.error('Failed to load booking', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load booking cancellation details.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load booking cancellation details.', loadError),
+      );
     }
   }, [id]);
 
-  const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<CancelLoadData | null>({
-    load: loadBookingDetails,
-    deps: [loadBookingDetails],
-    isEmpty: (value) => value === null,
-    refetchOnFocus: true,
-  });
+  const { data, status, error, refreshing, onRefresh, retry, colors } =
+    useScreen<CancelLoadData | null>({
+      load: loadBookingDetails,
+      deps: [loadBookingDetails],
+      isEmpty: (value) => value === null,
+      refetchOnFocus: true,
+    });
 
   const bookingAmount = data?.bookingAmount ?? 0;
   const sessionTime = data?.sessionTime ?? null;
@@ -158,7 +174,8 @@ export function useBookingCancel(id: string, mode?: string) {
 
   const handleCancel = useCallback(async () => {
     if (!refundCalc) return;
-    const reasonLabel = filteredReasons.find((r) => r.key === reason)?.label || reason || 'Not specified';
+    const reasonLabel =
+      filteredReasons.find((r) => r.key === reason)?.label || reason || 'Not specified';
 
     setProcessing(true);
     try {

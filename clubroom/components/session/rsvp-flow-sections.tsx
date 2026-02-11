@@ -12,7 +12,7 @@ import { Row } from '@/components/primitives/row';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Typography, withAlpha } from '@/constants/theme';
 
 // ============================================================================
 // HELPERS
@@ -23,14 +23,16 @@ export function formatSessionDate(isoDate: string): string {
   return date.toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long' });
+    month: 'long',
+  });
 }
 
 export function formatSessionTime(isoDate: string): string {
   const date = new Date(isoDate);
   return date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
-    minute: '2-digit' });
+    minute: '2-digit',
+  });
 }
 
 export function getTimeUntilDeadline(deadline: string): string {
@@ -76,7 +78,8 @@ export const ResponseButton = React.memo(function ResponseButton({
   surfaceColor,
   isSelected,
   isSubmitting,
-  onPress }: ResponseButtonProps) {
+  onPress,
+}: ResponseButtonProps) {
   return (
     <Clickable
       style={[
@@ -116,7 +119,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 64,
     borderRadius: Radii.card,
-    borderWidth: 2 },
+    borderWidth: 2,
+  },
   responseButtonText: {
     ...Typography.heading,
-    letterSpacing: -0.2 } });
+    letterSpacing: -0.2,
+  },
+});

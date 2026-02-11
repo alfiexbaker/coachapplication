@@ -16,7 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { createLogger } from '@/utils/logger';
@@ -28,7 +28,7 @@ export default function DynamicCompareScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   // Parse coach IDs from comma-separated string
-  const coachIds = useMemo(() => ids ? ids.split(',').filter(Boolean) : [], [ids]);
+  const coachIds = useMemo(() => (ids ? ids.split(',').filter(Boolean) : []), [ids]);
 
   const handleCoachRemoved = useCallback(
     (removedId: string) => {
@@ -39,7 +39,7 @@ export default function DynamicCompareScreen() {
         router.replace(Routes.compareCoaches(remainingIds.join(',')));
       }
     },
-    [coachIds]
+    [coachIds],
   );
 
   const handleShare = useCallback(async () => {
@@ -49,7 +49,8 @@ export default function DynamicCompareScreen() {
       await Share.share({
         message: `Compare these coaches on Clubroom: ${shareUrl}`,
         url: shareUrl,
-        title: 'Coach Comparison' });
+        title: 'Coach Comparison',
+      });
     } catch (error) {
       logger.error('Failed to share', error);
       Alert.alert('Share', `Share this link: ${shareUrl}`);
@@ -64,7 +65,8 @@ export default function DynamicCompareScreen() {
             headerShown: true,
             title: 'Compare Coaches',
             headerStyle: { backgroundColor: palette.background },
-            headerTintColor: palette.text }}
+            headerTintColor: palette.text,
+          }}
         />
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
@@ -86,12 +88,15 @@ export default function DynamicCompareScreen() {
               style={({ pressed }) => [
                 styles.backButton,
                 {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint },
+                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
+                },
               ]}
             >
               <Row align="center" gap="xs">
                 <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>
+                  Go Back
+                </ThemedText>
               </Row>
             </Clickable>
           </View>
@@ -108,7 +113,8 @@ export default function DynamicCompareScreen() {
             headerShown: true,
             title: 'Compare Coaches',
             headerStyle: { backgroundColor: palette.background },
-            headerTintColor: palette.text }}
+            headerTintColor: palette.text,
+          }}
         />
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
@@ -130,12 +136,15 @@ export default function DynamicCompareScreen() {
               style={({ pressed }) => [
                 styles.backButton,
                 {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint },
+                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
+                },
               ]}
             >
               <Row align="center" gap="xs">
                 <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+                <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>
+                  Go Back
+                </ThemedText>
               </Row>
             </Clickable>
           </View>
@@ -160,7 +169,8 @@ export default function DynamicCompareScreen() {
             >
               <Ionicons name="share-outline" size={22} color={palette.icon} />
             </Clickable>
-          ) }}
+          ),
+        }}
       />
 
       <SafeAreaView
@@ -191,50 +201,64 @@ export default function DynamicCompareScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 },
+    flex: 1,
+  },
   headerButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs },
+    paddingVertical: Spacing.xs,
+  },
   statusBar: {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1 },
+    borderBottomWidth: 1,
+  },
   statusInfo: {
     alignItems: 'center',
-    gap: Spacing.xs },
+    gap: Spacing.xs,
+  },
   statusText: {
-    ...Typography.bodySmallSemiBold },
+    ...Typography.bodySmallSemiBold,
+  },
   badge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill },
+    borderRadius: Radii.pill,
+  },
   badgeText: {
-    ...Typography.caption },
+    ...Typography.caption,
+  },
   errorState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg },
+    padding: Spacing.lg,
+  },
   errorIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md },
+    marginBottom: Spacing.md,
+  },
   errorTitle: {
     marginBottom: Spacing.xs,
-    textAlign: 'center' },
+    textAlign: 'center',
+  },
   errorText: {
     ...Typography.bodySmall,
     textAlign: 'center',
     marginBottom: Spacing.lg,
-    maxWidth: 280 },
+    maxWidth: 280,
+  },
   backButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button },
+    borderRadius: Radii.button,
+  },
   backButtonText: {
-    ...Typography.bodySemiBold } });
+    ...Typography.bodySemiBold,
+  },
+});

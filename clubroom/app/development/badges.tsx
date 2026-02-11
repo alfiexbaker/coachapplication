@@ -30,19 +30,34 @@ export default function BadgesScreen() {
     status,
     error,
     retry,
-    activeTab, setActiveTab,
-    sessionQuery, setSessionQuery,
-    selectedSessionId, setSelectedSessionId,
-    selectedSession, linkedAthlete,
-    filteredSessions, visibleBadges,
-    showAwardModal, awardContext,
+    activeTab,
+    setActiveTab,
+    sessionQuery,
+    setSessionQuery,
+    selectedSessionId,
+    setSelectedSessionId,
+    selectedSession,
+    linkedAthlete,
+    filteredSessions,
+    visibleBadges,
+    showAwardModal,
+    awardContext,
     currentUser,
-    openAwardModal, closeAwardModal,
+    openAwardModal,
+    closeAwardModal,
   } = useDevBadges();
 
   if (loading) {
     return (
-      <PageContainer gap={Spacing.md} header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}>
+      <PageContainer
+        gap={Spacing.md}
+        header={
+          <PageHeader
+            title="Badges"
+            subtitle="Recognise achievements without leaving development"
+          />
+        }
+      >
         <LoadingState variant="list" />
       </PageContainer>
     );
@@ -50,15 +65,34 @@ export default function BadgesScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer gap={Spacing.md} header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}>
-        <ErrorState message={error?.message ?? 'Failed to load badges workspace.'} onRetry={retry} />
+      <PageContainer
+        gap={Spacing.md}
+        header={
+          <PageHeader
+            title="Badges"
+            subtitle="Recognise achievements without leaving development"
+          />
+        }
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load badges workspace.'}
+          onRetry={retry}
+        />
       </PageContainer>
     );
   }
 
   return (
     <>
-      <PageContainer gap={Spacing.md} header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}>
+      <PageContainer
+        gap={Spacing.md}
+        header={
+          <PageHeader
+            title="Badges"
+            subtitle="Recognise achievements without leaving development"
+          />
+        }
+      >
         {/* Tabs */}
         <SurfaceCard style={styles.tabRow}>
           <Row gap="xs">
@@ -68,11 +102,28 @@ export default function BadgesScreen() {
                 <Clickable
                   key={tab.key}
                   onPress={() => setActiveTab(tab.key)}
-                  style={[styles.tabButton, isActive ? { backgroundColor: withAlpha(colors.tint, 0.07), borderColor: colors.tint } : undefined].filter(Boolean) as ViewStyle[]}
+                  style={
+                    [
+                      styles.tabButton,
+                      isActive
+                        ? {
+                            backgroundColor: withAlpha(colors.tint, 0.07),
+                            borderColor: colors.tint,
+                          }
+                        : undefined,
+                    ].filter(Boolean) as ViewStyle[]
+                  }
                 >
                   <Row gap="xs" align="center" justify="center">
-                    <Ionicons name={tab.icon as any} size={16} color={isActive ? colors.tint : colors.icon} />
-                    <ThemedText type="defaultSemiBold" style={[Typography.small, { color: isActive ? colors.tint : colors.icon }]}>
+                    <Ionicons
+                      name={tab.icon as any}
+                      size={16}
+                      color={isActive ? colors.tint : colors.icon}
+                    />
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={[Typography.small, { color: isActive ? colors.tint : colors.icon }]}
+                    >
                       {tab.label}
                     </ThemedText>
                   </Row>
@@ -83,15 +134,20 @@ export default function BadgesScreen() {
         </SurfaceCard>
 
         <BadgeSessionSelector
-          sessionQuery={sessionQuery} onQueryChange={setSessionQuery}
-          filteredSessions={filteredSessions} selectedSessionId={selectedSessionId}
-          onSelectSession={setSelectedSessionId} linkedAthlete={linkedAthlete}
+          sessionQuery={sessionQuery}
+          onQueryChange={setSessionQuery}
+          filteredSessions={filteredSessions}
+          selectedSessionId={selectedSessionId}
+          onSelectSession={setSelectedSessionId}
+          linkedAthlete={linkedAthlete}
           selectedSession={selectedSession}
         />
 
         <BadgeListSection
-          activeTab={activeTab} visibleBadges={visibleBadges}
-          selectedSession={selectedSession} linkedAthlete={linkedAthlete}
+          activeTab={activeTab}
+          visibleBadges={visibleBadges}
+          selectedSession={selectedSession}
+          linkedAthlete={linkedAthlete}
           onAward={openAwardModal}
         />
       </PageContainer>
@@ -113,5 +169,12 @@ export default function BadgesScreen() {
 
 const styles = StyleSheet.create({
   tabRow: { padding: Spacing.xs },
-  tabButton: { flex: 1, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderWidth: 1, borderColor: 'transparent', borderRadius: Radii.md },
+  tabButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: Radii.md,
+  },
 });

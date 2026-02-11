@@ -39,7 +39,11 @@ export const BadgeCtaSection = memo(function BadgeCtaSection() {
       {/* View All Achievements CTA */}
       <SurfaceCard style={styles.card}>
         <Row gap="sm" align="center">
-          <Row style={[styles.allBadgesIcon, { backgroundColor: withAlpha(palette.text, 0.07) }]} align="center" justify="center">
+          <Row
+            style={[styles.allBadgesIcon, { backgroundColor: withAlpha(palette.text, 0.07) }]}
+            align="center"
+            justify="center"
+          >
             <Ionicons name="trophy" size={24} color={palette.tint} />
           </Row>
           <Column gap="xxs" flex>

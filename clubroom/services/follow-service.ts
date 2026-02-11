@@ -144,7 +144,7 @@ export const followService = {
 
     // Check if already following
     const existing = followsCache.find(
-      (f) => f.followerId === input.followerId && f.followingId === input.followingId
+      (f) => f.followerId === input.followerId && f.followingId === input.followingId,
     );
 
     if (existing) {
@@ -190,7 +190,7 @@ export const followService = {
     followsCache = await loadFollows();
 
     const index = followsCache.findIndex(
-      (f) => f.followerId === followerId && f.followingId === followingId
+      (f) => f.followerId === followerId && f.followingId === followingId,
     );
 
     if (index === -1) {
@@ -209,9 +209,7 @@ export const followService = {
    */
   async isFollowing(followerId: string, followingId: string): Promise<boolean> {
     followsCache = await loadFollows();
-    return followsCache.some(
-      (f) => f.followerId === followerId && f.followingId === followingId
-    );
+    return followsCache.some((f) => f.followerId === followerId && f.followingId === followingId);
   },
 
   /**
@@ -261,12 +259,12 @@ export const followService = {
   async updateNotificationPreferences(
     followerId: string,
     followingId: string,
-    preferences: { notifyOnPost?: boolean; notifyOnSession?: boolean }
+    preferences: { notifyOnPost?: boolean; notifyOnSession?: boolean },
   ): Promise<Follow | null> {
     followsCache = await loadFollows();
 
     const index = followsCache.findIndex(
-      (f) => f.followerId === followerId && f.followingId === followingId
+      (f) => f.followerId === followerId && f.followingId === followingId,
     );
 
     if (index === -1) {
@@ -276,7 +274,9 @@ export const followService = {
     followsCache[index] = {
       ...followsCache[index],
       ...(preferences.notifyOnPost !== undefined && { notifyOnPost: preferences.notifyOnPost }),
-      ...(preferences.notifyOnSession !== undefined && { notifyOnSession: preferences.notifyOnSession }),
+      ...(preferences.notifyOnSession !== undefined && {
+        notifyOnSession: preferences.notifyOnSession,
+      }),
     };
 
     await saveFollows(followsCache);
@@ -288,9 +288,9 @@ export const followService = {
    */
   async getFollow(followerId: string, followingId: string): Promise<Follow | null> {
     followsCache = await loadFollows();
-    return followsCache.find(
-      (f) => f.followerId === followerId && f.followingId === followingId
-    ) || null;
+    return (
+      followsCache.find((f) => f.followerId === followerId && f.followingId === followingId) || null
+    );
   },
 
   /**
@@ -328,7 +328,10 @@ export const followService = {
 
     // Check if request already exists
     const existing = requestsCache.find(
-      (r) => r.requesterId === input.requesterId && r.targetId === input.targetId && r.status === 'PENDING'
+      (r) =>
+        r.requesterId === input.requesterId &&
+        r.targetId === input.targetId &&
+        r.status === 'PENDING',
     );
 
     if (existing) {
@@ -373,7 +376,7 @@ export const followService = {
    */
   async respondToRequest(
     requestId: string,
-    response: 'ACCEPTED' | 'DECLINED'
+    response: 'ACCEPTED' | 'DECLINED',
   ): Promise<FollowRequest | null> {
     requestsCache = await loadRequests();
 

@@ -5,7 +5,7 @@
  * All state/logic in useCommunityHub hook. Tab content extracted to component.
  */
 
-import { View, StyleSheet, ScrollView, RefreshControl, Modal, ViewStyle } from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl, Modal, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,16 +33,25 @@ export default function CommunityHubScreen() {
   const c = useCommunityHub();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
       <Row style={styles.header}>
         <Row style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
-          <ThemedText type="title" style={styles.headerTitle}>Community</ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Community
+          </ThemedText>
         </Row>
-        <Clickable accessibilityLabel="Create community group" onPress={() => c.setShowCreateModal(true)} style={[styles.addButton, { backgroundColor: palette.tint }]}>
+        <Clickable
+          accessibilityLabel="Create community group"
+          onPress={() => c.setShowCreateModal(true)}
+          style={[styles.addButton, { backgroundColor: palette.tint }]}
+        >
           <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </Row>
@@ -50,25 +59,51 @@ export default function CommunityHubScreen() {
       {/* Tabs */}
       <Row style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
         {TABS.map((tab) => (
-          <Clickable key={tab.key} onPress={() => c.setActiveTab(tab.key)}
-            style={[styles.tab, c.activeTab === tab.key ? { borderBottomColor: palette.tint, borderBottomWidth: 2 } : undefined].filter(Boolean) as ViewStyle[]}
+          <Clickable
+            key={tab.key}
+            onPress={() => c.setActiveTab(tab.key)}
+            style={
+              [
+                styles.tab,
+                c.activeTab === tab.key
+                  ? { borderBottomColor: palette.tint, borderBottomWidth: 2 }
+                  : undefined,
+              ].filter(Boolean) as ViewStyle[]
+            }
           >
             <Row align="center" justify="center" gap="xxs">
-              <Ionicons name={tab.icon} size={20} color={c.activeTab === tab.key ? palette.tint : palette.muted} />
-              <ThemedText style={[styles.tabLabel, { color: c.activeTab === tab.key ? palette.tint : palette.muted }]}>{tab.label}</ThemedText>
+              <Ionicons
+                name={tab.icon}
+                size={20}
+                color={c.activeTab === tab.key ? palette.tint : palette.muted}
+              />
+              <ThemedText
+                style={[
+                  styles.tabLabel,
+                  { color: c.activeTab === tab.key ? palette.tint : palette.muted },
+                ]}
+              >
+                {tab.label}
+              </ThemedText>
             </Row>
           </Clickable>
         ))}
       </Row>
 
       {/* Content */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.onRefresh} />}
       >
         {c.status === 'loading' ? (
           <LoadingState variant="list" />
         ) : c.status === 'error' ? (
-          <ErrorState message={c.error?.message || 'Failed to load community hub.'} onRetry={c.retry} />
+          <ErrorState
+            message={c.error?.message || 'Failed to load community hub.'}
+            onRetry={c.retry}
+          />
         ) : c.status === 'empty' ? (
           <EmptyState
             icon="chatbubbles-outline"
@@ -94,15 +129,26 @@ export default function CommunityHubScreen() {
       </ScrollView>
 
       {/* Create Group Modal */}
-      <Modal visible={c.showCreateModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => c.setShowCreateModal(false)}>
+      <Modal
+        visible={c.showCreateModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => c.setShowCreateModal(false)}
+      >
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]}>
           <Row style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
-            <ThemedText type="title" style={styles.modalTitle}>Create Group</ThemedText>
+            <ThemedText type="title" style={styles.modalTitle}>
+              Create Group
+            </ThemedText>
             <Clickable onPress={() => c.setShowCreateModal(false)}>
               <Ionicons name="close" size={24} color={palette.text} />
             </Clickable>
           </Row>
-          <CreateGroupForm onSubmit={c.handleCreateGroup} onCancel={() => c.setShowCreateModal(false)} loading={c.creatingGroup} />
+          <CreateGroupForm
+            onSubmit={c.handleCreateGroup}
+            onCancel={() => c.setShowCreateModal(false)}
+            loading={c.creatingGroup}
+          />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -111,16 +157,33 @@ export default function CommunityHubScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
   headerLeft: { alignItems: 'center', gap: Spacing.md },
   headerTitle: { ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
-  addButton: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabsContainer: { borderBottomWidth: 1, paddingHorizontal: Spacing.lg },
   tab: { flex: 1, paddingVertical: Spacing.sm, marginBottom: -1 },
   tabLabel: { ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   modalContainer: { flex: 1 },
-  modalHeader: { alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 1 },
+  modalHeader: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
   modalTitle: { ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
 });

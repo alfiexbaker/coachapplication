@@ -274,16 +274,36 @@ function getBodyPartLabel(bodyPart) {
  */
 function getBodyPartsByCategory(category) {
     const allParts = [
-        'HEAD', 'NECK',
-        'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ARM', 'RIGHT_ARM',
-        'LEFT_ELBOW', 'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST',
-        'LEFT_HAND', 'RIGHT_HAND',
-        'CHEST', 'UPPER_BACK', 'LOWER_BACK', 'ABDOMEN',
-        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_THIGH', 'RIGHT_THIGH',
-        'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_CALF', 'RIGHT_CALF',
-        'LEFT_ANKLE', 'RIGHT_ANKLE', 'LEFT_FOOT', 'RIGHT_FOOT',
+        'HEAD',
+        'NECK',
+        'LEFT_SHOULDER',
+        'RIGHT_SHOULDER',
+        'LEFT_ARM',
+        'RIGHT_ARM',
+        'LEFT_ELBOW',
+        'RIGHT_ELBOW',
+        'LEFT_WRIST',
+        'RIGHT_WRIST',
+        'LEFT_HAND',
+        'RIGHT_HAND',
+        'CHEST',
+        'UPPER_BACK',
+        'LOWER_BACK',
+        'ABDOMEN',
+        'LEFT_HIP',
+        'RIGHT_HIP',
+        'LEFT_THIGH',
+        'RIGHT_THIGH',
+        'LEFT_KNEE',
+        'RIGHT_KNEE',
+        'LEFT_CALF',
+        'RIGHT_CALF',
+        'LEFT_ANKLE',
+        'RIGHT_ANKLE',
+        'LEFT_FOOT',
+        'RIGHT_FOOT',
     ];
-    return allParts.filter(part => getBodyPartCategory(part) === category);
+    return allParts.filter((part) => getBodyPartCategory(part) === category);
 }
 /**
  * Get display info for severity level
@@ -373,9 +393,9 @@ async function logInjury(userId, params, _userName) {
  */
 async function getUserInjuries(userId, includeHealed = true) {
     const injuries = await getAllInjuries();
-    let filtered = injuries.filter(i => i.userId === userId);
+    let filtered = injuries.filter((i) => i.userId === userId);
     if (!includeHealed) {
-        filtered = filtered.filter(i => i.status !== 'HEALED');
+        filtered = filtered.filter((i) => i.status !== 'HEALED');
     }
     // Sort by status (active first, then recovering, then healed) and by date
     return filtered.sort((a, b) => {
@@ -393,7 +413,7 @@ async function getUserInjuries(userId, includeHealed = true) {
  */
 async function getInjuryById(id) {
     const injuries = await getAllInjuries();
-    return injuries.find(i => i.id === id) ?? null;
+    return injuries.find((i) => i.id === id) ?? null;
 }
 /**
  * Update an existing injury
@@ -403,7 +423,7 @@ async function getInjuryById(id) {
  */
 async function updateInjury(id, updates) {
     const injuries = await getAllInjuries();
-    const injuryIndex = injuries.findIndex(i => i.id === id);
+    const injuryIndex = injuries.findIndex((i) => i.id === id);
     if (injuryIndex === -1) {
         logger.warn('injury_not_found', { injuryId: id });
         return null;
@@ -438,7 +458,7 @@ async function updateInjury(id, updates) {
  */
 async function addRecoveryNote(injuryId, note, createdBy, _createdByName, recoveryPercent) {
     const injuries = await getAllInjuries();
-    const injuryIndex = injuries.findIndex(i => i.id === injuryId);
+    const injuryIndex = injuries.findIndex((i) => i.id === injuryId);
     if (injuryIndex === -1) {
         logger.warn('injury_not_found_for_note', { injuryId });
         return null;
@@ -495,7 +515,7 @@ async function markAsHealed(id) {
  */
 async function getAthleteInjuries(athleteId) {
     const injuries = await getUserInjuries(athleteId, true);
-    return injuries.filter(i => i.sharedWithCoach);
+    return injuries.filter((i) => i.sharedWithCoach);
 }
 /**
  * Check if user has any active injuries
@@ -504,7 +524,7 @@ async function getAthleteInjuries(athleteId) {
  */
 async function hasActiveInjury(userId) {
     const injuries = await getUserInjuries(userId, false);
-    return injuries.some(i => i.status === 'ACTIVE' || i.status === 'RECOVERING');
+    return injuries.some((i) => i.status === 'ACTIVE' || i.status === 'RECOVERING');
 }
 /**
  * Get active injury count for a user
@@ -513,7 +533,7 @@ async function hasActiveInjury(userId) {
  */
 async function getActiveInjuryCount(userId) {
     const injuries = await getUserInjuries(userId, false);
-    return injuries.filter(i => i.status === 'ACTIVE' || i.status === 'RECOVERING').length;
+    return injuries.filter((i) => i.status === 'ACTIVE' || i.status === 'RECOVERING').length;
 }
 // ============================================================================
 // STATISTICS & ANALYTICS
@@ -525,12 +545,12 @@ async function getActiveInjuryCount(userId) {
  */
 async function getInjuryStats(userId) {
     const injuries = await getUserInjuries(userId, true);
-    const active = injuries.filter(i => i.status === 'ACTIVE').length;
-    const recovering = injuries.filter(i => i.status === 'RECOVERING').length;
-    const healed = injuries.filter(i => i.status === 'HEALED').length;
+    const active = injuries.filter((i) => i.status === 'ACTIVE').length;
+    const recovering = injuries.filter((i) => i.status === 'RECOVERING').length;
+    const healed = injuries.filter((i) => i.status === 'HEALED').length;
     // Count body parts
     const bodyPartCounts = {};
-    injuries.forEach(i => {
+    injuries.forEach((i) => {
         bodyPartCounts[i.bodyPart] = (bodyPartCounts[i.bodyPart] || 0) + 1;
     });
     const commonBodyParts = Object.entries(bodyPartCounts)
@@ -538,7 +558,7 @@ async function getInjuryStats(userId) {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
     // Calculate average recovery time for healed injuries
-    const healedInjuries = injuries.filter(i => i.healedAt);
+    const healedInjuries = injuries.filter((i) => i.healedAt);
     let averageRecoveryDays = 0;
     if (healedInjuries.length > 0) {
         const totalDays = healedInjuries.reduce((sum, i) => {

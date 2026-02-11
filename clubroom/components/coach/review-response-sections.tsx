@@ -35,7 +35,9 @@ export const ReviewHeader = memo(function ReviewHeader({
   return (
     <Row style={styles.reviewHeader}>
       <Row style={styles.reviewerInfo}>
-        <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+        <View
+          style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+        >
           <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
             {reviewerName.charAt(0).toUpperCase()}
           </ThemedText>
@@ -72,18 +74,17 @@ export interface ExistingReplyCardProps {
   palette: ThemeColors;
 }
 
-export const ExistingReplyCard = memo(function ExistingReplyCard({ reply, palette }: ExistingReplyCardProps) {
+export const ExistingReplyCard = memo(function ExistingReplyCard({
+  reply,
+  palette,
+}: ExistingReplyCardProps) {
   return (
     <View style={[styles.existingReply, { backgroundColor: palette.surfaceSecondary }]}>
       <Row style={styles.replyHeader}>
         <Ionicons name="return-down-forward" size={Components.icon.sm} color={palette.muted} />
-        <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-          Your Reply
-        </ThemedText>
+        <ThemedText style={[Typography.caption, { color: palette.muted }]}>Your Reply</ThemedText>
       </Row>
-      <ThemedText style={[Typography.body, { color: palette.text }]}>
-        {reply}
-      </ThemedText>
+      <ThemedText style={[Typography.body, { color: palette.text }]}>{reply}</ThemedText>
     </View>
   );
 });

@@ -69,14 +69,7 @@ export function useRevenueAnalytics() {
     return ok<RevenueAnalyticsData>({ analytics, revenueData });
   }, [currentUser?.id, period]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<RevenueAnalyticsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<RevenueAnalyticsData>({
     load: fetchData,
     deps: [currentUser?.id, period],
     isEmpty: (value) => value.analytics === null,
@@ -86,11 +79,14 @@ export function useRevenueAnalytics() {
   const analytics = data?.analytics ?? null;
   const revenueData = data?.revenueData ?? [];
 
-  const handlePeriodChange = useCallback((newPeriod: CoachAnalyticsPeriod) => {
-    if (newPeriod !== period) {
-      setPeriod(newPeriod);
-    }
-  }, [period]);
+  const handlePeriodChange = useCallback(
+    (newPeriod: CoachAnalyticsPeriod) => {
+      if (newPeriod !== period) {
+        setPeriod(newPeriod);
+      }
+    },
+    [period],
+  );
 
   const formatCurrency = useCallback((amount: number): string => {
     return `\u00A3${amount.toLocaleString()}`;
@@ -98,11 +94,16 @@ export function useRevenueAnalytics() {
 
   const getPeriodLabel = useCallback((): string => {
     switch (period) {
-      case 'WEEK': return 'This Week';
-      case 'MONTH': return 'This Month';
-      case 'QUARTER': return 'This Quarter';
-      case 'YEAR': return 'This Year';
-      default: return 'All Time';
+      case 'WEEK':
+        return 'This Week';
+      case 'MONTH':
+        return 'This Month';
+      case 'QUARTER':
+        return 'This Quarter';
+      case 'YEAR':
+        return 'This Year';
+      default:
+        return 'All Time';
     }
   }, [period]);
 

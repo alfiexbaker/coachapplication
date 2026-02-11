@@ -9,7 +9,6 @@ import { Spacing, Typography } from '@/constants/theme';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { useTheme } from '@/hooks/useTheme';
 import { CoachAvatar } from './coach-card-header';
 import { CompactRating } from './coach-card-reviews';
 import { LocationDisplay } from './coach-card-availability';
@@ -18,32 +17,64 @@ import { InlineFavouriteIcon, BookButton } from './coach-card-cta';
 import type { FavouriteVariantProps } from './coach-card-shared';
 import { Row } from '@/components/primitives';
 
-function FavouriteCardInner({ coach, onPress, onBook, onToggleFavourite, toggleLoading = false, isFavourite = true, index = 0 }: FavouriteVariantProps) {
-  const { colors: palette } = useTheme();
-  const handleBook = useCallback(() => { onBook?.(coach.id); }, [onBook, coach.id]);
+function FavouriteCardInner({
+  coach,
+  onPress,
+  onBook,
+  onToggleFavourite,
+  toggleLoading = false,
+  isFavourite = true,
+  index = 0,
+}: FavouriteVariantProps) {
+  const handleBook = useCallback(() => {
+    onBook?.(coach.id);
+  }, [onBook, coach.id]);
   const priceStr = formatPrice(coach.pricePerHour, coach.priceMin, coach.priceMax);
 
   return (
-    <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify()}>
-      <SurfaceCard accessibilityHint="View coach profile" accessibilityLabel={`${coach.fullName}, favourited coach`} onPress={onPress} style={styles.card}>
+    <Animated.View
+      entering={FadeInDown.duration(300)
+        .delay(index * 50)
+        .springify()}
+    >
+      <SurfaceCard
+        accessibilityHint="View coach profile"
+        accessibilityLabel={`${coach.fullName}, favourited coach`}
+        onPress={onPress}
+        style={styles.card}
+      >
         <Row style={styles.content}>
           <CoachAvatar profilePhotoUrl={coach.profilePhotoUrl} size="lg" />
           <View style={styles.info}>
             <Row style={styles.nameRow}>
-              <ThemedText type="subtitle" style={styles.name} numberOfLines={1}>{coach.fullName}</ThemedText>
-              <InlineFavouriteIcon isFavourite={isFavourite} onPress={() => onToggleFavourite?.()} loading={toggleLoading} />
+              <ThemedText type="subtitle" style={styles.name} numberOfLines={1}>
+                {coach.fullName}
+              </ThemedText>
+              <InlineFavouriteIcon
+                isFavourite={isFavourite}
+                onPress={() => onToggleFavourite?.()}
+                loading={toggleLoading}
+              />
             </Row>
             <Row style={styles.metaRow}>
               {coach.rating !== undefined && <CompactRating rating={coach.rating} />}
               {coach.city && (
                 <>
-                  {coach.rating !== undefined && <Divider vertical style={{ height: 12, opacity: 0.5 }} />}
+                  {coach.rating !== undefined && (
+                    <Divider vertical style={{ height: 12, opacity: 0.5 }} />
+                  )}
                   <LocationDisplay city={coach.city} />
                 </>
               )}
             </Row>
             <Row style={styles.actionRow}>
-              {priceStr && <InlinePrice pricePerHour={coach.pricePerHour} priceMin={coach.priceMin} priceMax={coach.priceMax} />}
+              {priceStr && (
+                <InlinePrice
+                  pricePerHour={coach.pricePerHour}
+                  priceMin={coach.priceMin}
+                  priceMax={coach.priceMax}
+                />
+              )}
               <BookButton coachName={coach.fullName} onPress={handleBook} variant="primary" />
             </Row>
           </View>

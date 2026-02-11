@@ -6,18 +6,8 @@
  */
 
 import { createLogger } from '@/utils/logger';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  storageError,
-} from '@/types/result';
-import type {
-  SkillTree,
-  SkillTreeCategory,
-  SkillNode,
-} from '@/constants/types';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import type { SkillTree, SkillTreeCategory, SkillNode } from '@/constants/types';
 
 const logger = createLogger('SkillDefinitionService');
 
@@ -1064,9 +1054,7 @@ class SkillDefinitionService {
   /**
    * Get category info for display
    */
-  getCategoryInfo(
-    category: SkillTreeCategory
-  ): { label: string; icon: string; color: string } {
+  getCategoryInfo(category: SkillTreeCategory): { label: string; icon: string; color: string } {
     return (
       SKILL_TREE_CATEGORIES[category] ?? {
         label: category,

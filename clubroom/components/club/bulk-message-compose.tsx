@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -106,8 +106,7 @@ export const BulkMessageCompose = memo(function BulkMessageCompose({
                 backgroundColor:
                   selectedSquadId === squad.id ? withAlpha(palette.tint, 0.15) : palette.surface,
                 borderWidth: 1,
-                borderColor:
-                  selectedSquadId === squad.id ? palette.tint : palette.border,
+                borderColor: selectedSquadId === squad.id ? palette.tint : palette.border,
               }}
             >
               <ThemedText

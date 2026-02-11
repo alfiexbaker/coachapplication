@@ -55,7 +55,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Unmute', onPress: () => onUnmute(coach.coachId) },
-      ]
+      ],
     );
   };
 
@@ -74,7 +74,9 @@ export const MutedCoachRow = memo(function MutedCoachRow({
       {coach.coachAvatar ? (
         <Image source={{ uri: coach.coachAvatar }} style={styles.avatar} />
       ) : (
-        <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.accent, 0.12) }]}>
+        <View
+          style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.accent, 0.12) }]}
+        >
           <ThemedText type="defaultSemiBold" style={{ color: palette.accent }}>
             {coach.coachName.charAt(0).toUpperCase()}
           </ThemedText>
@@ -88,9 +90,7 @@ export const MutedCoachRow = memo(function MutedCoachRow({
           Muted {formatMutedDate(coach.mutedAt)}
         </ThemedText>
         {coach.reason && (
-          <ThemedText style={[styles.reason, { color: palette.muted }]}>
-            {coach.reason}
-          </ThemedText>
+          <ThemedText style={[styles.reason, { color: palette.muted }]}>{coach.reason}</ThemedText>
         )}
       </View>
       <Clickable

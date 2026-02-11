@@ -119,7 +119,12 @@ export const MilestoneItem = memo(function MilestoneItem({
         </View>
 
         {editable && onDelete && (
-          <Clickable accessibilityLabel="Delete milestone" onPress={onDelete} hitSlop={8} style={styles.deleteButton}>
+          <Clickable
+            accessibilityLabel="Delete milestone"
+            onPress={onDelete}
+            hitSlop={8}
+            style={styles.deleteButton}
+          >
             <Ionicons name="trash-outline" size={18} color={palette.error} />
           </Clickable>
         )}

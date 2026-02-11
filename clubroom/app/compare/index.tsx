@@ -89,7 +89,8 @@ export default function CompareScreen() {
                   Clear All
                 </ThemedText>
               </Clickable>
-            ) : null }}
+            ) : null,
+        }}
       />
 
       <SafeAreaView
@@ -102,70 +103,74 @@ export default function CompareScreen() {
           <ErrorState message={error} onRetry={() => setRefreshKey((k) => k + 1)} />
         ) : (
           <>
-        {/* Status bar */}
-        <Row style={[styles.statusBar, { borderBottomColor: palette.border }]}>
-          <Row style={styles.statusInfo}>
-            <Ionicons name="git-compare" size={18} color={palette.icon} />
-            <ThemedText style={styles.statusText}>
-              {coachCount === 0
-                ? 'No coaches selected'
-                : coachCount === 1
-                ? '1 coach selected'
-                : `${coachCount} coaches selected`}
-            </ThemedText>
-          </Row>
-          {coachCount < comparisonService.getMaxCoaches() && coachCount > 0 && (
-            <Clickable
-              accessibilityLabel="Add more coaches to comparison"
-              onPress={handleAddMore}
-              style={({ pressed }) => [
-                styles.addMoreButton,
-                {
-                  backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
-                  borderColor: palette.border },
-              ]}
-            >
-              <Row align="center" gap="xxs">
-                <Ionicons name="add" size={16} color={palette.tint} />
-                <ThemedText style={[styles.addMoreText, { color: palette.tint }]}>
-                  Add More
+            {/* Status bar */}
+            <Row style={[styles.statusBar, { borderBottomColor: palette.border }]}>
+              <Row style={styles.statusInfo}>
+                <Ionicons name="git-compare" size={18} color={palette.icon} />
+                <ThemedText style={styles.statusText}>
+                  {coachCount === 0
+                    ? 'No coaches selected'
+                    : coachCount === 1
+                      ? '1 coach selected'
+                      : `${coachCount} coaches selected`}
                 </ThemedText>
               </Row>
-            </Clickable>
-          )}
-        </Row>
+              {coachCount < comparisonService.getMaxCoaches() && coachCount > 0 && (
+                <Clickable
+                  accessibilityLabel="Add more coaches to comparison"
+                  onPress={handleAddMore}
+                  style={({ pressed }) => [
+                    styles.addMoreButton,
+                    {
+                      backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <Row align="center" gap="xxs">
+                    <Ionicons name="add" size={16} color={palette.tint} />
+                    <ThemedText style={[styles.addMoreText, { color: palette.tint }]}>
+                      Add More
+                    </ThemedText>
+                  </Row>
+                </Clickable>
+              )}
+            </Row>
 
-        {/* Comparison table */}
-        <ComparisonTable key={refreshKey} onCoachRemoved={handleCoachRemoved} />
+            {/* Comparison table */}
+            <ComparisonTable key={refreshKey} onCoachRemoved={handleCoachRemoved} />
 
-        {/* Empty state */}
-        {coachCount === 0 && (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: palette.surfaceSecondary }]}>
-              <Ionicons name="git-compare" size={48} color={palette.muted} />
-            </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              No Coaches to Compare
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              Browse coaches and tap the compare button to add them to your comparison list
-            </ThemedText>
-            <Clickable
-              accessibilityLabel="Browse coaches"
-              onPress={() => router.back()}
-              style={({ pressed }) => [
-                styles.browseButton,
-                {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint },
-              ]}
-            >
-              <Row align="center" gap="xs">
-                <Ionicons name="search" size={18} color={palette.onPrimary} />
-                <ThemedText style={[styles.browseButtonText, { color: palette.onPrimary }]}>Browse Coaches</ThemedText>
-              </Row>
-            </Clickable>
-          </View>
-        )}
+            {/* Empty state */}
+            {coachCount === 0 && (
+              <View style={styles.emptyState}>
+                <View style={[styles.emptyIcon, { backgroundColor: palette.surfaceSecondary }]}>
+                  <Ionicons name="git-compare" size={48} color={palette.muted} />
+                </View>
+                <ThemedText type="subtitle" style={styles.emptyTitle}>
+                  No Coaches to Compare
+                </ThemedText>
+                <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                  Browse coaches and tap the compare button to add them to your comparison list
+                </ThemedText>
+                <Clickable
+                  accessibilityLabel="Browse coaches"
+                  onPress={() => router.back()}
+                  style={({ pressed }) => [
+                    styles.browseButton,
+                    {
+                      backgroundColor: pressed ? palette.tintPressed : palette.tint,
+                    },
+                  ]}
+                >
+                  <Row align="center" gap="xs">
+                    <Ionicons name="search" size={18} color={palette.onPrimary} />
+                    <ThemedText style={[styles.browseButtonText, { color: palette.onPrimary }]}>
+                      Browse Coaches
+                    </ThemedText>
+                  </Row>
+                </Clickable>
+              </View>
+            )}
           </>
         )}
       </SafeAreaView>
@@ -175,53 +180,68 @@ export default function CompareScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 },
+    flex: 1,
+  },
   headerButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs },
+    paddingVertical: Spacing.xs,
+  },
   headerButtonText: {
-    ...Typography.bodySemiBold },
+    ...Typography.bodySemiBold,
+  },
   statusBar: {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1 },
+    borderBottomWidth: 1,
+  },
   statusInfo: {
     alignItems: 'center',
-    gap: Spacing.xs },
+    gap: Spacing.xs,
+  },
   statusText: {
-    ...Typography.bodySmallSemiBold },
+    ...Typography.bodySmallSemiBold,
+  },
   addMoreButton: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    borderWidth: 1 },
+    borderWidth: 1,
+  },
   addMoreText: {
-    ...Typography.smallSemiBold },
+    ...Typography.smallSemiBold,
+  },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg },
+    padding: Spacing.lg,
+  },
   emptyIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md },
+    marginBottom: Spacing.md,
+  },
   emptyTitle: {
     marginBottom: Spacing.xs,
-    textAlign: 'center' },
+    textAlign: 'center',
+  },
   emptyText: {
     ...Typography.bodySmall,
     textAlign: 'center',
     marginBottom: Spacing.lg,
-    maxWidth: 280 },
+    maxWidth: 280,
+  },
   browseButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button },
+    borderRadius: Radii.button,
+  },
   browseButtonText: {
-    ...Typography.bodySemiBold } });
+    ...Typography.bodySemiBold,
+  },
+});

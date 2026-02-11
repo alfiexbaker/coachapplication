@@ -59,7 +59,7 @@ async function apiFetch(path, options) {
             }
             return (0, result_1.err)((0, result_1.networkError)(errorMessage));
         }
-        const data = await response.json();
+        const data = (await response.json());
         return (0, result_1.ok)(data);
     }
     catch (error) {
@@ -88,7 +88,11 @@ exports.authService = {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, result.data.user);
         currentUser = result.data.user;
         logger.success('Login successful', { userId: result.data.user.id });
-        return (0, result_1.ok)({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
+        return (0, result_1.ok)({
+            user: result.data.user,
+            tokens: result.data.tokens,
+            token: result.data.tokens.accessToken,
+        });
     },
     async register(input) {
         logger.info('Registration attempt', { email: input.email, accountType: input.accountType });
@@ -107,7 +111,11 @@ exports.authService = {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AUTH_USER, result.data.user);
         currentUser = result.data.user;
         logger.success('Registration successful', { userId: result.data.user.id });
-        return (0, result_1.ok)({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
+        return (0, result_1.ok)({
+            user: result.data.user,
+            tokens: result.data.tokens,
+            token: result.data.tokens.accessToken,
+        });
     },
     async storeTokens(tokens) {
         try {
@@ -203,7 +211,7 @@ exports.authService = {
     async forgotPassword(email) {
         logger.info('Password reset requested', { email });
         if (USE_MOCK) {
-            const user = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase());
+            const user = usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
             if (user) {
                 logger.info('Password reset email would be sent', { userId: user.id });
             }
@@ -253,7 +261,7 @@ exports.authService = {
             return (0, result_1.err)((0, result_1.unauthorized)('Not authenticated'));
         }
         if (USE_MOCK) {
-            const userIndex = usersCache.findIndex(u => u.id === currentUser.id);
+            const userIndex = usersCache.findIndex((u) => u.id === currentUser.id);
             if (userIndex === -1) {
                 return (0, result_1.err)((0, result_1.notFound)('User'));
             }
@@ -354,7 +362,7 @@ exports.authService = {
     },
     async checkEmailAvailable(email) {
         if (USE_MOCK) {
-            const existing = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase());
+            const existing = usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
             return !existing;
         }
         const result = await apiFetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
@@ -364,7 +372,7 @@ exports.authService = {
     // MOCK IMPLEMENTATIONS (internal)
     // ============================================================================
     async _mockLogin(email, password) {
-        const user = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+        const user = usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
         if (!user) {
             logger.warn('Login failed: Invalid credentials', { email });
             return (0, result_1.err)((0, result_1.unauthorized)('Invalid email or password'));
@@ -379,7 +387,7 @@ exports.authService = {
         return (0, result_1.ok)({ user: userWithoutPassword, tokens, token: legacyToken });
     },
     async _mockRegister(input) {
-        const existing = usersCache.find(u => u.email.toLowerCase() === input.email.toLowerCase());
+        const existing = usersCache.find((u) => u.email.toLowerCase() === input.email.toLowerCase());
         if (existing) {
             logger.warn('Registration failed: Email exists', { email: input.email });
             return (0, result_1.err)((0, result_1.conflictError)('An account with this email already exists'));

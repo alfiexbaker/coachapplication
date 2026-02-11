@@ -88,7 +88,7 @@ export function FavouriteButton({
     scale.value = withSequence(
       withTiming(0.7, { duration: 100 }),
       withSpring(1.2, { damping: 8, stiffness: 400 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
+      withSpring(1, { damping: 12, stiffness: 200 }),
     );
 
     // Call the toggle handler
@@ -102,11 +102,7 @@ export function FavouriteButton({
   });
 
   const animatedColorStyle = useAnimatedStyle(() => {
-    const color = interpolateColor(
-      fillProgress.value,
-      [0, 1],
-      [emptyColor, heartColor]
-    );
+    const color = interpolateColor(fillProgress.value, [0, 1], [emptyColor, heartColor]);
     return {
       color,
     };
@@ -117,8 +113,8 @@ export function FavouriteButton({
       ? `Remove ${coachName} from favourites`
       : `Add ${coachName} to favourites`
     : isFavourite
-    ? 'Remove from favourites'
-    : 'Add to favourites';
+      ? 'Remove from favourites'
+      : 'Add to favourites';
 
   return (
     <AnimatedClickable
@@ -128,18 +124,11 @@ export function FavouriteButton({
       accessibilityRole="button"
       accessibilityState={{ selected: isFavourite, disabled: loading || disabled }}
       hitSlop={12}
-      style={[
-        styles.button,
-        { opacity: loading || disabled ? 0.5 : 1 },
-        style,
-      ]}
+      style={[styles.button, { opacity: loading || disabled ? 0.5 : 1 }, style]}
     >
       <Animated.View style={animatedIconStyle}>
         <Animated.Text style={animatedColorStyle}>
-          <Ionicons
-            name={isFavourite ? 'heart' : 'heart-outline'}
-            size={size}
-          />
+          <Ionicons name={isFavourite ? 'heart' : 'heart-outline'} size={size} />
         </Animated.Text>
       </Animated.View>
     </AnimatedClickable>

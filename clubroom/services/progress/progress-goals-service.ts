@@ -39,11 +39,43 @@ const MOCK_GOALS: Goal[] = [
     status: 'ACTIVE',
     progress: 40,
     milestones: [
-      { id: 'ms_1', goalId: 'goal_1', title: 'Complete baseline speed test', isCompleted: true, completedAt: '2026-01-05T10:00:00Z', order: 0 },
-      { id: 'ms_2', goalId: 'goal_1', title: 'Improve starting technique', isCompleted: true, completedAt: '2026-01-10T15:00:00Z', order: 1 },
-      { id: 'ms_3', goalId: 'goal_1', title: 'Achieve 0.2s improvement', isCompleted: false, order: 2 },
-      { id: 'ms_4', goalId: 'goal_1', title: 'Maintain improvement for 3 sessions', isCompleted: false, order: 3 },
-      { id: 'ms_5', goalId: 'goal_1', title: 'Achieve full 0.5s improvement', isCompleted: false, order: 4 },
+      {
+        id: 'ms_1',
+        goalId: 'goal_1',
+        title: 'Complete baseline speed test',
+        isCompleted: true,
+        completedAt: '2026-01-05T10:00:00Z',
+        order: 0,
+      },
+      {
+        id: 'ms_2',
+        goalId: 'goal_1',
+        title: 'Improve starting technique',
+        isCompleted: true,
+        completedAt: '2026-01-10T15:00:00Z',
+        order: 1,
+      },
+      {
+        id: 'ms_3',
+        goalId: 'goal_1',
+        title: 'Achieve 0.2s improvement',
+        isCompleted: false,
+        order: 2,
+      },
+      {
+        id: 'ms_4',
+        goalId: 'goal_1',
+        title: 'Maintain improvement for 3 sessions',
+        isCompleted: false,
+        order: 3,
+      },
+      {
+        id: 'ms_5',
+        goalId: 'goal_1',
+        title: 'Achieve full 0.5s improvement',
+        isCompleted: false,
+        order: 4,
+      },
     ],
     createdBy: 'ATHLETE',
     createdById: 'user1',
@@ -61,9 +93,29 @@ const MOCK_GOALS: Goal[] = [
     status: 'ACTIVE',
     progress: 66,
     milestones: [
-      { id: 'ms_6', goalId: 'goal_2', title: 'Complete 10 juggling sessions', isCompleted: true, completedAt: '2026-01-08T14:00:00Z', order: 0 },
-      { id: 'ms_7', goalId: 'goal_2', title: 'Master inside-outside dribble', isCompleted: true, completedAt: '2026-01-09T16:00:00Z', order: 1 },
-      { id: 'ms_8', goalId: 'goal_2', title: 'Perfect first touch control', isCompleted: false, order: 2 },
+      {
+        id: 'ms_6',
+        goalId: 'goal_2',
+        title: 'Complete 10 juggling sessions',
+        isCompleted: true,
+        completedAt: '2026-01-08T14:00:00Z',
+        order: 0,
+      },
+      {
+        id: 'ms_7',
+        goalId: 'goal_2',
+        title: 'Master inside-outside dribble',
+        isCompleted: true,
+        completedAt: '2026-01-09T16:00:00Z',
+        order: 1,
+      },
+      {
+        id: 'ms_8',
+        goalId: 'goal_2',
+        title: 'Perfect first touch control',
+        isCompleted: false,
+        order: 2,
+      },
     ],
     createdBy: 'COACH',
     createdById: 'coach1',
@@ -80,10 +132,35 @@ const MOCK_GOALS: Goal[] = [
     status: 'ACTIVE',
     progress: 25,
     milestones: [
-      { id: 'ms_9', goalId: 'goal_3', title: 'Learn breathing techniques', isCompleted: true, completedAt: '2026-01-07T11:00:00Z', order: 0 },
-      { id: 'ms_10', goalId: 'goal_3', title: 'Practice visualization daily for 2 weeks', isCompleted: false, order: 1 },
-      { id: 'ms_11', goalId: 'goal_3', title: 'Apply techniques in practice match', isCompleted: false, order: 2 },
-      { id: 'ms_12', goalId: 'goal_3', title: 'Demonstrate composure in competitive match', isCompleted: false, order: 3 },
+      {
+        id: 'ms_9',
+        goalId: 'goal_3',
+        title: 'Learn breathing techniques',
+        isCompleted: true,
+        completedAt: '2026-01-07T11:00:00Z',
+        order: 0,
+      },
+      {
+        id: 'ms_10',
+        goalId: 'goal_3',
+        title: 'Practice visualization daily for 2 weeks',
+        isCompleted: false,
+        order: 1,
+      },
+      {
+        id: 'ms_11',
+        goalId: 'goal_3',
+        title: 'Apply techniques in practice match',
+        isCompleted: false,
+        order: 2,
+      },
+      {
+        id: 'ms_12',
+        goalId: 'goal_3',
+        title: 'Demonstrate composure in competitive match',
+        isCompleted: false,
+        order: 3,
+      },
     ],
     createdBy: 'ATHLETE',
     createdById: 'user1',
@@ -101,9 +178,30 @@ const MOCK_GOALS: Goal[] = [
     status: 'COMPLETED',
     progress: 100,
     milestones: [
-      { id: 'ms_13', goalId: 'goal_4', title: 'Run 5km without stopping', isCompleted: true, completedAt: '2025-12-15T08:00:00Z', order: 0 },
-      { id: 'ms_14', goalId: 'goal_4', title: 'Complete interval training program', isCompleted: true, completedAt: '2025-12-28T09:00:00Z', order: 1 },
-      { id: 'ms_15', goalId: 'goal_4', title: 'Play full 90 minutes in training', isCompleted: true, completedAt: '2026-01-04T17:00:00Z', order: 2 },
+      {
+        id: 'ms_13',
+        goalId: 'goal_4',
+        title: 'Run 5km without stopping',
+        isCompleted: true,
+        completedAt: '2025-12-15T08:00:00Z',
+        order: 0,
+      },
+      {
+        id: 'ms_14',
+        goalId: 'goal_4',
+        title: 'Complete interval training program',
+        isCompleted: true,
+        completedAt: '2025-12-28T09:00:00Z',
+        order: 1,
+      },
+      {
+        id: 'ms_15',
+        goalId: 'goal_4',
+        title: 'Play full 90 minutes in training',
+        isCompleted: true,
+        completedAt: '2026-01-04T17:00:00Z',
+        order: 2,
+      },
     ],
     createdBy: 'COACH',
     createdById: 'coach1',
@@ -120,8 +218,21 @@ const MOCK_GOALS: Goal[] = [
     status: 'ACTIVE',
     progress: 50,
     milestones: [
-      { id: 'ms_16', goalId: 'goal_5', title: 'Watch 5 match analysis videos', isCompleted: true, completedAt: '2026-01-06T19:00:00Z', order: 0 },
-      { id: 'ms_17', goalId: 'goal_5', title: 'Practice positioning drills', isCompleted: false, order: 1 },
+      {
+        id: 'ms_16',
+        goalId: 'goal_5',
+        title: 'Watch 5 match analysis videos',
+        isCompleted: true,
+        completedAt: '2026-01-06T19:00:00Z',
+        order: 0,
+      },
+      {
+        id: 'ms_17',
+        goalId: 'goal_5',
+        title: 'Practice positioning drills',
+        isCompleted: false,
+        order: 1,
+      },
     ],
     createdBy: 'ATHLETE',
     createdById: 'user2',
@@ -147,13 +258,15 @@ async function saveGoals(goals: Goal[]): Promise<void> {
   await apiClient.set(STORAGE_KEYS.GOALS, goals);
 }
 
-async function getGoalsForAthlete(athleteId: string): Promise<{ active: Goal[]; completed: Goal[] }> {
+async function getGoalsForAthlete(
+  athleteId: string,
+): Promise<{ active: Goal[]; completed: Goal[] }> {
   const allGoals = await getAllGoals();
-  const athleteGoals = allGoals.filter(g => g.athleteId === athleteId);
+  const athleteGoals = allGoals.filter((g) => g.athleteId === athleteId);
 
   return {
-    active: athleteGoals.filter(g => g.status === 'ACTIVE'),
-    completed: athleteGoals.filter(g => g.status === 'COMPLETED'),
+    active: athleteGoals.filter((g) => g.status === 'ACTIVE'),
+    completed: athleteGoals.filter((g) => g.status === 'COMPLETED'),
   };
 }
 
@@ -161,14 +274,16 @@ async function createGoal(
   userId: string,
   params: CreateGoalInput | Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>,
   createdBy: GoalCreator = 'ATHLETE',
-  createdById: string = userId
+  createdById: string = userId,
 ): Promise<Goal> {
   const allGoals = await getAllGoals();
   const now = new Date().toISOString();
   const goalId = `goal_${Date.now()}`;
 
   // Handle both old and new parameter formats
-  const isCreateInput = 'milestones' in params && Array.isArray(params.milestones) &&
+  const isCreateInput =
+    'milestones' in params &&
+    Array.isArray(params.milestones) &&
     typeof params.milestones[0] === 'string';
 
   let milestones: GoalMilestone[];
@@ -221,10 +336,10 @@ async function createGoal(
 
 async function getUserGoals(userId: string, status?: GoalStatus): Promise<Goal[]> {
   const goals = await getAllGoals();
-  let filtered = goals.filter(g => g.userId === userId || g.athleteId === userId);
+  let filtered = goals.filter((g) => g.userId === userId || g.athleteId === userId);
 
   if (status) {
-    filtered = filtered.filter(g => g.status === status);
+    filtered = filtered.filter((g) => g.status === status);
   }
 
   // Sort by status (active first), then by updated date
@@ -237,12 +352,12 @@ async function getUserGoals(userId: string, status?: GoalStatus): Promise<Goal[]
 
 async function getGoalById(id: string): Promise<Goal | null> {
   const goals = await getAllGoals();
-  return goals.find(g => g.id === id) ?? null;
+  return goals.find((g) => g.id === id) ?? null;
 }
 
 async function updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal | null> {
   const goals = await getAllGoals();
-  const goalIndex = goals.findIndex(g => g.id === id);
+  const goalIndex = goals.findIndex((g) => g.id === id);
 
   if (goalIndex === -1) {
     logger.warn('goal_not_found', { goalId: id });
@@ -269,7 +384,7 @@ async function updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal | 
 
 async function deleteGoal(id: string): Promise<boolean> {
   const goals = await getAllGoals();
-  const goalIndex = goals.findIndex(g => g.id === id);
+  const goalIndex = goals.findIndex((g) => g.id === id);
 
   if (goalIndex === -1) {
     logger.warn('goal_not_found_for_delete', { goalId: id });
@@ -286,10 +401,10 @@ async function deleteGoal(id: string): Promise<boolean> {
 async function updateGoalProgress(
   goalId: string,
   progress: number,
-  completedMilestones?: string[]
+  completedMilestones?: string[],
 ): Promise<Goal | null> {
   const allGoals = await getAllGoals();
-  const goalIndex = allGoals.findIndex(g => g.id === goalId);
+  const goalIndex = allGoals.findIndex((g) => g.id === goalId);
 
   if (goalIndex === -1) return null;
 
@@ -299,7 +414,7 @@ async function updateGoalProgress(
 
   // Update milestones if provided
   if (completedMilestones) {
-    goal.milestones = goal.milestones.map(m => ({
+    goal.milestones = goal.milestones.map((m) => ({
       ...m,
       isCompleted: completedMilestones.includes(m.id),
       completedAt: completedMilestones.includes(m.id) ? new Date().toISOString() : m.completedAt,
@@ -329,7 +444,7 @@ async function updateGoalProgress(
 
 async function addMilestone(goalId: string, title: string): Promise<Goal | null> {
   const goals = await getAllGoals();
-  const goalIndex = goals.findIndex(g => g.id === goalId);
+  const goalIndex = goals.findIndex((g) => g.id === goalId);
 
   if (goalIndex === -1) {
     logger.warn('goal_not_found_for_milestone', { goalId });
@@ -337,7 +452,7 @@ async function addMilestone(goalId: string, title: string): Promise<Goal | null>
   }
 
   const goal = goals[goalIndex];
-  const maxOrder = Math.max(...goal.milestones.map(m => m.order), -1);
+  const maxOrder = Math.max(...goal.milestones.map((m) => m.order), -1);
 
   const newMilestone: GoalMilestone = {
     id: `ms_${Date.now()}`,
@@ -367,9 +482,7 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
   const goals = await getAllGoals();
 
   // Find the goal containing this milestone
-  const goalIndex = goals.findIndex(g =>
-    g.milestones.some(m => m.id === milestoneId)
-  );
+  const goalIndex = goals.findIndex((g) => g.milestones.some((m) => m.id === milestoneId));
 
   if (goalIndex === -1) {
     logger.warn('milestone_not_found', { milestoneId });
@@ -377,7 +490,7 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
   }
 
   const goal = goals[goalIndex];
-  const milestoneIndex = goal.milestones.findIndex(m => m.id === milestoneId);
+  const milestoneIndex = goal.milestones.findIndex((m) => m.id === milestoneId);
   const milestone = goal.milestones[milestoneIndex];
 
   // Mark as completed
@@ -409,9 +522,7 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
 async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
   const goals = await getAllGoals();
 
-  const goalIndex = goals.findIndex(g =>
-    g.milestones.some(m => m.id === milestoneId)
-  );
+  const goalIndex = goals.findIndex((g) => g.milestones.some((m) => m.id === milestoneId));
 
   if (goalIndex === -1) {
     logger.warn('milestone_not_found', { milestoneId });
@@ -419,7 +530,7 @@ async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
   }
 
   const goal = goals[goalIndex];
-  const milestoneIndex = goal.milestones.findIndex(m => m.id === milestoneId);
+  const milestoneIndex = goal.milestones.findIndex((m) => m.id === milestoneId);
   const milestone = goal.milestones[milestoneIndex];
 
   // Mark as incomplete
@@ -451,9 +562,7 @@ async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
 async function deleteMilestone(milestoneId: string): Promise<Goal | null> {
   const goals = await getAllGoals();
 
-  const goalIndex = goals.findIndex(g =>
-    g.milestones.some(m => m.id === milestoneId)
-  );
+  const goalIndex = goals.findIndex((g) => g.milestones.some((m) => m.id === milestoneId));
 
   if (goalIndex === -1) {
     logger.warn('milestone_not_found_for_delete', { milestoneId });
@@ -461,7 +570,7 @@ async function deleteMilestone(milestoneId: string): Promise<Goal | null> {
   }
 
   const goal = goals[goalIndex];
-  goal.milestones = goal.milestones.filter(m => m.id !== milestoneId);
+  goal.milestones = goal.milestones.filter((m) => m.id !== milestoneId);
 
   // Reorder remaining milestones
   goal.milestones.forEach((m, idx) => {
@@ -491,7 +600,7 @@ function calculateGoalProgress(goal: Goal): number {
   if (goal.milestones.length === 0) {
     return 0;
   }
-  const completed = goal.milestones.filter(m => m.isCompleted).length;
+  const completed = goal.milestones.filter((m) => m.isCompleted).length;
   return Math.round((completed / goal.milestones.length) * 100);
 }
 
@@ -511,9 +620,9 @@ async function getAthleteGoals(athleteId: string): Promise<{
   const goals = await getUserGoals(athleteId);
 
   return {
-    active: goals.filter(g => g.status === 'ACTIVE'),
-    completed: goals.filter(g => g.status === 'COMPLETED'),
-    paused: goals.filter(g => g.status === 'PAUSED'),
+    active: goals.filter((g) => g.status === 'ACTIVE'),
+    completed: goals.filter((g) => g.status === 'COMPLETED'),
+    paused: goals.filter((g) => g.status === 'PAUSED'),
   };
 }
 
@@ -526,18 +635,29 @@ async function getGoalStats(userId: string): Promise<{
 }> {
   const goals = await getUserGoals(userId);
 
-  const activeGoals = goals.filter(g => g.status === 'ACTIVE');
-  const completedGoals = goals.filter(g => g.status === 'COMPLETED');
+  const activeGoals = goals.filter((g) => g.status === 'ACTIVE');
+  const completedGoals = goals.filter((g) => g.status === 'COMPLETED');
 
-  const averageProgress = activeGoals.length > 0
-    ? Math.round(activeGoals.reduce((sum, g) => sum + g.progress, 0) / activeGoals.length)
-    : 0;
+  const averageProgress =
+    activeGoals.length > 0
+      ? Math.round(activeGoals.reduce((sum, g) => sum + g.progress, 0) / activeGoals.length)
+      : 0;
 
-  const categories: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
-  const goalsByCategory = categories.reduce((acc, cat) => {
-    acc[cat] = goals.filter(g => g.category === cat).length;
-    return acc;
-  }, {} as Record<GoalCategory, number>);
+  const categories: GoalCategory[] = [
+    'SPEED',
+    'TECHNIQUE',
+    'FITNESS',
+    'TACTICAL',
+    'MENTAL',
+    'OTHER',
+  ];
+  const goalsByCategory = categories.reduce(
+    (acc, cat) => {
+      acc[cat] = goals.filter((g) => g.category === cat).length;
+      return acc;
+    },
+    {} as Record<GoalCategory, number>,
+  );
 
   return {
     totalGoals: goals.length,

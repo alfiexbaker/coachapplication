@@ -71,7 +71,15 @@ export function MapBottomSheet({
 
   return (
     <Animated.View
-      style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border, shadowColor: palette.text }, sheetAnimStyle]}
+      style={[
+        styles.sheet,
+        {
+          backgroundColor: palette.surface,
+          borderColor: palette.border,
+          shadowColor: palette.text,
+        },
+        sheetAnimStyle,
+      ]}
     >
       {/* Drag handle */}
       <View {...panResponder.panHandlers} style={styles.handleArea}>
@@ -123,8 +131,23 @@ export function MapBottomSheet({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  sheet: { borderTopLeftRadius: Radii.card, borderTopRightRadius: Radii.card, borderWidth: 1, borderBottomWidth: 0, shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: -4 }, elevation: 8, overflow: 'hidden' },
-  handleArea: { alignItems: 'center', paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: Spacing.xs },
+  sheet: {
+    borderTopLeftRadius: Radii.card,
+    borderTopRightRadius: Radii.card,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
   dragHandle: { width: 36, height: 4, borderRadius: Radii.pill },
   sheetTitle: { ...Typography.bodySemiBold },
   carouselContent: { paddingHorizontal: Spacing.sm, gap: Spacing.sm },

@@ -13,7 +13,15 @@ import { bookingService } from './booking-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
-import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  storageError,
+} from '@/types/result';
 
 // Re-export getDayName for consumers that imported it from here
 export { getDayName };
@@ -101,7 +109,7 @@ class RecurringBookingService {
    * @param params - The parameters for creating the recurring booking
    */
   async createRecurring(
-    params: CreateRecurringBookingParams
+    params: CreateRecurringBookingParams,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       const now = new Date().toISOString();
@@ -133,7 +141,7 @@ class RecurringBookingService {
         newRecurring.sessionsRemaining = this.calculateSessionsRemaining(
           params.startDate,
           params.endDate,
-          params.frequency
+          params.frequency,
         );
       }
 
@@ -168,7 +176,9 @@ class RecurringBookingService {
         read: false,
       });
       if (!notifyResult.success) {
-        logger.warn('Failed to create recurring booking notification', { error: notifyResult.error });
+        logger.warn('Failed to create recurring booking notification', {
+          error: notifyResult.error,
+        });
       }
 
       return ok(newRecurring);
@@ -182,7 +192,9 @@ class RecurringBookingService {
    * Get all recurring bookings for a specific user
    * @param userId - The user ID
    */
-  async getUserRecurringBookings(userId: string): Promise<Result<RecurringBooking[], ServiceError>> {
+  async getUserRecurringBookings(
+    userId: string,
+  ): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
       const bookings = await this.listValue();
       return ok(bookings.filter((b) => b.userId === userId));
@@ -196,7 +208,9 @@ class RecurringBookingService {
    * Get all recurring bookings for a specific coach
    * @param coachId - The coach ID
    */
-  async getCoachRecurringBookings(coachId: string): Promise<Result<RecurringBooking[], ServiceError>> {
+  async getCoachRecurringBookings(
+    coachId: string,
+  ): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
       const bookings = await this.listValue();
       return ok(bookings.filter((b) => b.coachId === coachId));
@@ -210,7 +224,9 @@ class RecurringBookingService {
    * Get active recurring bookings for a user
    * @param userId - The user ID
    */
-  async getActiveUserRecurringBookings(userId: string): Promise<Result<RecurringBooking[], ServiceError>> {
+  async getActiveUserRecurringBookings(
+    userId: string,
+  ): Promise<Result<RecurringBooking[], ServiceError>> {
     const bookingsResult = await this.getUserRecurringBookings(userId);
     if (!bookingsResult.success) {
       return bookingsResult;
@@ -222,7 +238,9 @@ class RecurringBookingService {
    * Get active recurring bookings for a coach
    * @param coachId - The coach ID
    */
-  async getActiveCoachRecurringBookings(coachId: string): Promise<Result<RecurringBooking[], ServiceError>> {
+  async getActiveCoachRecurringBookings(
+    coachId: string,
+  ): Promise<Result<RecurringBooking[], ServiceError>> {
     const bookingsResult = await this.getCoachRecurringBookings(coachId);
     if (!bookingsResult.success) {
       return bookingsResult;
@@ -237,7 +255,7 @@ class RecurringBookingService {
    */
   async cancelRecurring(
     recurringId: string,
-    reason?: string
+    reason?: string,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       const bookings = await this.listValue();
@@ -291,7 +309,9 @@ class RecurringBookingService {
         read: false,
       });
       if (!notifyResult.success) {
-        logger.warn('Failed to create recurring cancel notification', { error: notifyResult.error });
+        logger.warn('Failed to create recurring cancel notification', {
+          error: notifyResult.error,
+        });
       }
 
       return ok(updated);
@@ -308,7 +328,7 @@ class RecurringBookingService {
    */
   async pauseRecurring(
     recurringId: string,
-    reason?: string
+    reason?: string,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       const bookings = await this.listValue();
@@ -321,7 +341,9 @@ class RecurringBookingService {
       const booking = bookings[index];
 
       if (booking.status !== 'ACTIVE') {
-        return err(validationError(`Cannot pause a subscription that is ${booking.status.toLowerCase()}.`));
+        return err(
+          validationError(`Cannot pause a subscription that is ${booking.status.toLowerCase()}.`),
+        );
       }
 
       const now = new Date().toISOString();
@@ -382,7 +404,9 @@ class RecurringBookingService {
       const booking = bookings[index];
 
       if (booking.status !== 'PAUSED') {
-        return err(validationError(`Cannot resume a subscription that is ${booking.status.toLowerCase()}.`));
+        return err(
+          validationError(`Cannot resume a subscription that is ${booking.status.toLowerCase()}.`),
+        );
       }
 
       const now = new Date().toISOString();
@@ -416,7 +440,9 @@ class RecurringBookingService {
         read: false,
       });
       if (!notifyResult.success) {
-        logger.warn('Failed to create recurring resume notification', { error: notifyResult.error });
+        logger.warn('Failed to create recurring resume notification', {
+          error: notifyResult.error,
+        });
       }
 
       return ok(updated);
@@ -434,7 +460,7 @@ class RecurringBookingService {
    */
   async generateUpcomingBookings(
     recurringId: string,
-    count: number = 4
+    count: number = 4,
   ): Promise<Result<GeneratedBookingSummary[], ServiceError>> {
     try {
       const recurringResult = await this.getById(recurringId);
@@ -448,7 +474,11 @@ class RecurringBookingService {
       }
 
       if (recurring.status !== 'ACTIVE') {
-        return err(validationError(`Cannot generate bookings for a ${recurring.status.toLowerCase()} subscription.`));
+        return err(
+          validationError(
+            `Cannot generate bookings for a ${recurring.status.toLowerCase()} subscription.`,
+          ),
+        );
       }
 
       const generatedBookings: GeneratedBookingSummary[] = [];
@@ -553,7 +583,9 @@ class RecurringBookingService {
    */
   async updateRecurring(
     recurringId: string,
-    updates: Partial<Pick<RecurringBooking, 'time' | 'duration' | 'location' | 'notes' | 'endDate'>>
+    updates: Partial<
+      Pick<RecurringBooking, 'time' | 'duration' | 'location' | 'notes' | 'endDate'>
+    >,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       const bookings = await this.listValue();
@@ -582,7 +614,7 @@ class RecurringBookingService {
           updated.sessionsRemaining = this.calculateSessionsRemaining(
             booking.startDate,
             updates.endDate,
-            booking.frequency
+            booking.frequency,
           );
         } else {
           updated.sessionsRemaining = undefined;
@@ -702,7 +734,7 @@ class RecurringBookingService {
   private calculateSessionsRemaining(
     startDate: string,
     endDate: string,
-    frequency: RecurrenceFrequency
+    frequency: RecurrenceFrequency,
   ): number {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -716,8 +748,7 @@ class RecurringBookingService {
         return Math.ceil(diffDays / 14);
       case 'MONTHLY':
         const months =
-          (end.getFullYear() - start.getFullYear()) * 12 +
-          (end.getMonth() - start.getMonth());
+          (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
         return Math.max(1, months);
       default:
         return 0;
@@ -734,11 +765,7 @@ class RecurringBookingService {
       let updated = false;
 
       const updatedBookings = bookings.map((booking) => {
-        if (
-          booking.status === 'ACTIVE' &&
-          booking.endDate &&
-          new Date(booking.endDate) < now
-        ) {
+        if (booking.status === 'ACTIVE' && booking.endDate && new Date(booking.endDate) < now) {
           updated = true;
           return {
             ...booking,

@@ -58,7 +58,9 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
               <ThemedText style={[styles.adminText, { color: palette.tint }]}>Admin</ThemedText>
             </Row>
           ) : null}
-          <ThemedText style={[styles.authorName, { color: palette.text }]}>{data.authorName}</ThemedText>
+          <ThemedText style={[styles.authorName, { color: palette.text }]}>
+            {data.authorName}
+          </ThemedText>
           <ThemedText style={[styles.dateText, { color: palette.muted }]}>
             {formatDate(data.createdAt)}
           </ThemedText>
@@ -75,7 +77,9 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
       {data.isPinned ? (
         <Row style={[styles.pinnedRow, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="pin" size={Components.icon.sm} color={palette.tint} />
-          <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>Pinned Announcement</ThemedText>
+          <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>
+            Pinned Announcement
+          </ThemedText>
         </Row>
       ) : null}
 
@@ -85,7 +89,12 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
 
       {/* RSVP integration */}
       {data.rsvp ? (
-        <View style={[styles.rsvpContainer, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border }]}>
+        <View
+          style={[
+            styles.rsvpContainer,
+            { backgroundColor: palette.surfaceSecondary, borderColor: palette.border },
+          ]}
+        >
           <Row style={styles.rsvpInfo}>
             <Ionicons name="calendar-outline" size={Components.icon.sm} color={palette.tint} />
             <View style={{ flex: 1 }}>

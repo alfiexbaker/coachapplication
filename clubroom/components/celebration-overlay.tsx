@@ -60,37 +60,37 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
       });
     }, [opacity, onComplete]);
 
-    const celebrate = useCallback((opts: CelebrationOptions = {}) => {
-      setOptions(opts);
-      setShowModal(true);
-      visible.value = true;
+    const celebrate = useCallback(
+      (opts: CelebrationOptions = {}) => {
+        setOptions(opts);
+        setShowModal(true);
+        visible.value = true;
 
-      // Trigger haptics - celebratory pattern
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setTimeout(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }, 100);
-      setTimeout(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }, 200);
+        // Trigger haptics - celebratory pattern
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setTimeout(() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }, 100);
+        setTimeout(() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }, 200);
 
-      // Animate in
-      opacity.value = withSpring(1, { damping: 12 });
-      scale.value = withSequence(
-        withSpring(1.3, { damping: 8 }),
-        withSpring(1, { damping: 10 })
-      );
-      titleOpacity.value = withDelay(300, withSpring(1, { damping: 12 }));
+        // Animate in
+        opacity.value = withSpring(1, { damping: 12 });
+        scale.value = withSequence(withSpring(1.3, { damping: 8 }), withSpring(1, { damping: 10 }));
+        titleOpacity.value = withDelay(300, withSpring(1, { damping: 12 }));
 
-      // Fire confetti
-      setTimeout(() => {
-        confettiRef.current?.start();
-      }, 100);
+        // Fire confetti
+        setTimeout(() => {
+          confettiRef.current?.start();
+        }, 100);
 
-      // Auto-hide after duration
-      const duration = opts.duration ?? 3000;
-      setTimeout(hide, duration);
-    }, [visible, opacity, scale, titleOpacity, hide]);
+        // Auto-hide after duration
+        const duration = opts.duration ?? 3000;
+        setTimeout(hide, duration);
+      },
+      [visible, opacity, scale, titleOpacity, hide],
+    );
 
     useImperativeHandle(ref, () => ({ celebrate }), [celebrate]);
 
@@ -114,7 +114,13 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
 
     return (
       <Modal visible={showModal} transparent animationType="none">
-        <Animated.View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.85) }, containerStyle]}>
+        <Animated.View
+          style={[
+            styles.overlay,
+            { backgroundColor: withAlpha(palette.text, 0.85) },
+            containerStyle,
+          ]}
+        >
           <View style={styles.content}>
             <Animated.View style={[styles.iconContainer, iconStyle]}>
               <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.12) }]}>
@@ -141,12 +147,21 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
             fallSpeed={3000}
             explosionSpeed={350}
             // Decorative: celebration confetti colors (not themeable)
-            colors={['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']}
+            colors={[
+              '#FFD700',
+              '#FF6B6B',
+              '#4ECDC4',
+              '#45B7D1',
+              '#96CEB4',
+              '#FFEAA7',
+              '#DDA0DD',
+              '#98D8C8',
+            ]}
           />
         </Animated.View>
       </Modal>
     );
-  }
+  },
 );
 
 CelebrationOverlay.displayName = 'CelebrationOverlay';
@@ -175,8 +190,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: { ...Typography.display, textAlign: 'center',
-    letterSpacing: -0.5 },
-  subtitle: { ...Typography.subheading, textAlign: 'center',
-    maxWidth: 280 },
+  title: { ...Typography.display, textAlign: 'center', letterSpacing: -0.5 },
+  subtitle: { ...Typography.subheading, textAlign: 'center', maxWidth: 280 },
 });

@@ -49,9 +49,7 @@ export const InvitePersonCard = memo(function InvitePersonCard({
       <SurfaceCard style={styles.card}>
         <Row gap="md" align="center">
           <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
-            <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
-              {initials}
-            </ThemedText>
+            <ThemedText style={[styles.avatarText, { color: colors.tint }]}>{initials}</ThemedText>
           </View>
           <Column gap="micro" style={styles.info}>
             <ThemedText style={[styles.roleLabel, { color: colors.muted }]}>

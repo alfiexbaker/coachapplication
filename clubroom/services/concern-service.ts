@@ -11,14 +11,10 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { BaseService } from './base-service';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { notificationService } from './notification-service';
+import { reportService } from './report-service';
 import { createLogger } from '@/utils/logger';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  validationError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 
 const logger = createLogger('ConcernService');
 
@@ -41,6 +37,7 @@ export interface AthleteConcern {
   id: string;
   coachId: string;
   athleteId: string;
+  parentId?: string;
   athleteName: string;
   type: ConcernType;
   severity: ConcernSeverity;
@@ -53,6 +50,9 @@ export interface AthleteConcern {
   updatedAt: string;
   resolvedAt?: string;
   resolution?: string;
+  escalatedAt?: string;
+  escalationReason?: string;
+  parentNotifiedAt?: string;
 }
 
 export const CONCERN_TYPE_LABELS: Record<ConcernType, string> = {
@@ -93,11 +93,17 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
   protected storageKey = STORAGE_KEYS.CONCERNS;
   protected entityName = 'Concern';
 
+  private shouldAutoEscalate(type: ConcernType, severity: ConcernSeverity): boolean {
+    if (severity === 'URGENT') return true;
+    if (severity === 'HIGH' && (type === 'SAFEGUARDING' || type === 'MEDICAL')) return true;
+    return false;
+  }
+
   /**
    * Raise a new concern about an athlete.
    */
   async raiseConcern(
-    input: Omit<AthleteConcern, 'id' | 'createdAt' | 'updatedAt' | 'status'>
+    input: Omit<AthleteConcern, 'id' | 'createdAt' | 'updatedAt' | 'status'>,
   ): Promise<Result<AthleteConcern, ServiceError>> {
     if (!input.title.trim()) {
       return err(validationError('Title is required'));
@@ -106,12 +112,56 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
       return err(validationError('Description is required'));
     }
 
+    const autoEscalate = this.shouldAutoEscalate(input.type, input.severity);
+    const now = new Date().toISOString();
+    const escalationReason = autoEscalate
+      ? `${CONCERN_TYPE_LABELS[input.type]} concern marked ${CONCERN_SEVERITY_LABELS[input.severity]}`
+      : undefined;
+
     const result = await this.create({
       ...input,
-      status: 'OPEN',
+      status: autoEscalate ? 'ESCALATED' : 'OPEN',
+      escalatedAt: autoEscalate ? now : undefined,
+      escalationReason,
     } as Omit<AthleteConcern, 'id' | 'createdAt' | 'updatedAt'>);
 
     if (result.success) {
+      if (autoEscalate) {
+        // Mirror escalated safeguarding concerns into the report queue for ops follow-up.
+        const reportResult = await reportService.submitReport({
+          reportedUserId: result.data.athleteId,
+          reportedByUserId: result.data.coachId,
+          type: 'safety_concern',
+          context: 'profile',
+          description: `${result.data.title}\n\n${result.data.description}`,
+        });
+        if (!reportResult.success) {
+          logger.error('Failed to mirror escalated concern to reports', {
+            concernId: result.data.id,
+            error: reportResult.error.message,
+          });
+        }
+
+        if (result.data.parentId) {
+          const parentNotifyResult = await notificationService.create({
+            id: `notif_concern_${Date.now()}`,
+            type: 'reminder',
+            notificationType: 'MESSAGE_RECEIVED',
+            title: 'Important Safeguarding Update',
+            body: `A ${CONCERN_TYPE_LABELS[result.data.type].toLowerCase()} concern was raised for ${result.data.athleteName}.`,
+            recipientId: result.data.parentId,
+            recipientRole: 'parent',
+            deepLink: `/roster/${result.data.athleteId}/raise-concern`,
+            read: false,
+            timeLabel: 'Just now',
+          });
+
+          if (parentNotifyResult.success) {
+            await this.update(result.data.id, { parentNotifiedAt: now });
+          }
+        }
+      }
+
       emitTyped(ServiceEvents.CONCERN_RAISED, {
         concernId: result.data.id,
         coachId: result.data.coachId,
@@ -131,7 +181,7 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
    */
   async getForAthlete(
     coachId: string,
-    athleteId: string
+    athleteId: string,
   ): Promise<Result<AthleteConcern[], ServiceError>> {
     return this.getAll({
       filter: { coachId, athleteId } as Partial<AthleteConcern>,
@@ -143,17 +193,13 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
   /**
    * Get all open concerns for a coach.
    */
-  async getOpenConcerns(
-    coachId: string
-  ): Promise<Result<AthleteConcern[], ServiceError>> {
+  async getOpenConcerns(coachId: string): Promise<Result<AthleteConcern[], ServiceError>> {
     const result = await this.getAll({
       filter: { coachId } as Partial<AthleteConcern>,
     });
     if (!result.success) return result;
 
-    return ok(
-      result.data.filter((c) => c.status === 'OPEN' || c.status === 'IN_PROGRESS')
-    );
+    return ok(result.data.filter((c) => c.status === 'OPEN' || c.status === 'IN_PROGRESS'));
   }
 
   /**
@@ -161,7 +207,7 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
    */
   async resolveConcern(
     id: string,
-    resolution: string
+    resolution: string,
   ): Promise<Result<AthleteConcern, ServiceError>> {
     const result = await this.update(id, {
       status: 'RESOLVED',
@@ -184,7 +230,7 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
    */
   async updateStatus(
     id: string,
-    status: ConcernStatus
+    status: ConcernStatus,
   ): Promise<Result<AthleteConcern, ServiceError>> {
     const result = await this.update(id, {
       status,

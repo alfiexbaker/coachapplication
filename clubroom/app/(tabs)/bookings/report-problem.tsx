@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 
@@ -24,7 +24,7 @@ type ProblemCategory = {
 
 const problemCategories: ProblemCategory[] = [
   { id: 'coach-late', icon: 'time-outline', label: 'Coach was late' },
-  { id: 'coach-noshow', icon: 'close-circle-outline', label: 'Coach didn\'t show up' },
+  { id: 'coach-noshow', icon: 'close-circle-outline', label: "Coach didn't show up" },
   { id: 'location-issue', icon: 'location-outline', label: 'Location problem' },
   { id: 'quality', icon: 'star-outline', label: 'Session quality' },
   { id: 'safety', icon: 'shield-outline', label: 'Safety concern' },
@@ -72,7 +72,7 @@ export default function ReportProblemScreen() {
       Alert.alert(
         'Report Submitted',
         'Thank you for your feedback. We will review your report within 24 hours.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK', onPress: () => router.back() }],
       );
     } catch (error) {
       logger.error('Failed to submit report', error);
@@ -83,7 +83,10 @@ export default function ReportProblemScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['bottom']}
+    >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <ThemedView style={styles.header}>
@@ -102,7 +105,8 @@ export default function ReportProblemScreen() {
                 <Clickable
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
-                  style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+                  style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+                >
                   <SurfaceCard
                     style={[
                       styles.categoryCard,
@@ -111,14 +115,19 @@ export default function ReportProblemScreen() {
                         borderWidth: 2,
                         backgroundColor: withAlpha(palette.tint, 0.06),
                       },
-                    ]}>
+                    ]}
+                  >
                     <Ionicons
                       name={category.icon}
                       size={28}
                       color={isSelected ? palette.tint : palette.foreground}
                     />
                     <ThemedText
-                      style={[styles.categoryLabel, isSelected && { color: palette.tint, fontWeight: '600' }]}>
+                      style={[
+                        styles.categoryLabel,
+                        isSelected && { color: palette.tint, fontWeight: '600' },
+                      ]}
+                    >
                       {category.label}
                     </ThemedText>
                   </SurfaceCard>
@@ -158,7 +167,12 @@ export default function ReportProblemScreen() {
       </ScrollView>
 
       {/* Submit Button */}
-      <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: palette.background, borderTopColor: palette.border },
+        ]}
+      >
         <Clickable
           onPress={handleSubmit}
           disabled={!selectedCategory || !description.trim() || submitting}
@@ -168,7 +182,8 @@ export default function ReportProblemScreen() {
             { backgroundColor: palette.tint },
             (!selectedCategory || !description.trim() || submitting) && { opacity: 0.5 },
             pressed && { opacity: 0.8 },
-          ]}>
+          ]}
+        >
           <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
             {submitting ? 'Submitting...' : 'Submit Report'}
           </ThemedText>

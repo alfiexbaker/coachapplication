@@ -99,12 +99,14 @@ export const walletService = {
     const result = await walletTransactionService.getTransactionsFiltered(...args);
     return result.success ? result.data : [];
   },
-  getTransactionById: async (...args: Parameters<typeof walletTransactionService.getTransactionById>) => {
+  getTransactionById: async (
+    ...args: Parameters<typeof walletTransactionService.getTransactionById>
+  ) => {
     const result = await walletTransactionService.getTransactionById(...args);
     return result.success ? result.data : null;
   },
   createCustomTransaction: async (
-    params: Parameters<typeof walletTransactionService.createCustomTransaction>[0]
+    params: Parameters<typeof walletTransactionService.createCustomTransaction>[0],
   ) => {
     const walletResult = await walletCrudService.getWallet(params.userId);
     if (!walletResult.success) {
@@ -134,11 +136,15 @@ export const walletService = {
 
     return transaction;
   },
-  cancelTransaction: async (...args: Parameters<typeof walletTransactionService.cancelTransaction>) => {
+  cancelTransaction: async (
+    ...args: Parameters<typeof walletTransactionService.cancelTransaction>
+  ) => {
     const result = await walletTransactionService.cancelTransaction(...args);
     return result.success ? result.data : null;
   },
-  deleteTransaction: async (...args: Parameters<typeof walletTransactionService.deleteTransaction>) => {
+  deleteTransaction: async (
+    ...args: Parameters<typeof walletTransactionService.deleteTransaction>
+  ) => {
     const result = await walletTransactionService.deleteTransaction(...args);
     return result.success ? result.data : false;
   },
@@ -173,7 +179,9 @@ export const walletService = {
   // UTILITY METHODS (from walletUtilsService)
   // ==========================================================================
 
-  hasSufficientBalance: async (...args: Parameters<typeof walletUtilsService.hasSufficientBalance>) => {
+  hasSufficientBalance: async (
+    ...args: Parameters<typeof walletUtilsService.hasSufficientBalance>
+  ) => {
     const result = await walletUtilsService.hasSufficientBalance(...args);
     return result.success ? result.data : false;
   },
@@ -195,7 +203,9 @@ export const walletService = {
     };
   },
   formatAmount: walletUtilsService.formatAmount.bind(walletUtilsService),
-  getPendingTransactions: async (...args: Parameters<typeof walletTransactionService.getPendingTransactions>) => {
+  getPendingTransactions: async (
+    ...args: Parameters<typeof walletTransactionService.getPendingTransactions>
+  ) => {
     const result = await walletTransactionService.getPendingTransactions(...args);
     return result.success ? result.data : [];
   },

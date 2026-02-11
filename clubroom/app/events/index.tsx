@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -38,7 +38,9 @@ export default function EventsListScreen() {
       return ok(data);
     } catch (loadError) {
       logger.error('Failed to load events:', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load events. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load events. Pull down to refresh.', loadError),
+      );
     }
   }, [clubId]);
 
@@ -61,12 +63,22 @@ export default function EventsListScreen() {
   });
 
   const onCreate = () => router.push(Routes.EVENTS_CREATE);
-  const header = <EventsHeader colors={palette} isCoach={isCoach} onBack={() => router.back()} onCreate={onCreate} />;
+  const header = (
+    <EventsHeader
+      colors={palette}
+      isCoach={isCoach}
+      onBack={() => router.back()}
+      onCreate={onCreate}
+    />
+  );
   const tabs = <EventsFilterTabs colors={palette} filter={filter} onChange={setFilter} />;
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         {tabs}
         <LoadingState variant="list" />
@@ -76,7 +88,10 @@ export default function EventsListScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         {tabs}
         <ErrorState message={error?.message || 'Failed to load events.'} onRetry={retry} />
@@ -86,7 +101,10 @@ export default function EventsListScreen() {
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         {header}
         {tabs}
         <EmptyState
@@ -101,18 +119,30 @@ export default function EventsListScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {header}
       {tabs}
 
       <FlatList
         data={filteredEvents}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <EventCard event={item} onPress={() => router.push(Routes.event(item.id))} />}
+        renderItem={({ item }) => (
+          <EventCard event={item} onPress={() => router.push(Routes.event(item.id))} />
+        )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={<EventsListEmptyState colors={palette} filter={filter} isCoach={isCoach} onCreate={onCreate} />}
+        ListEmptyComponent={
+          <EventsListEmptyState
+            colors={palette}
+            filter={filter}
+            isCoach={isCoach}
+            onCreate={onCreate}
+          />
+        }
       />
     </SafeAreaView>
   );

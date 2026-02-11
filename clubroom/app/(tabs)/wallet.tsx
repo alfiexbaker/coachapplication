@@ -50,10 +50,8 @@ export default function WalletScreen() {
   } = useWallet();
 
   const renderTransaction = useCallback(
-    ({ item }: { item: WalletTransaction }) => (
-      <WalletTransactionItem transaction={item} />
-    ),
-    []
+    ({ item }: { item: WalletTransaction }) => <WalletTransactionItem transaction={item} />,
+    [],
   );
 
   const keyExtractor = useCallback((item: WalletTransaction) => item.id, []);
@@ -72,7 +70,7 @@ export default function WalletScreen() {
         </Column>
       </Center>
     ),
-    [colors.muted]
+    [colors.muted],
   );
 
   const renderHeader = useCallback(
@@ -88,7 +86,7 @@ export default function WalletScreen() {
         </Animated.View>
       </Column>
     ),
-    [wallet, openTopUpModal, pendingTransactions]
+    [wallet, openTopUpModal, pendingTransactions],
   );
 
   if (status === 'loading') {

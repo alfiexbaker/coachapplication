@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, StyleSheet, Alert, Platform } from 'react-native';
+import { StyleSheet, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,11 +24,7 @@ interface AthleteQuickActionsProps {
   onRemove: () => void;
 }
 
-function AthleteQuickActionsInner({
-  athlete,
-  onRaiseConcern,
-  onRemove,
-}: AthleteQuickActionsProps) {
+function AthleteQuickActionsInner({ athlete, onRaiseConcern, onRemove }: AthleteQuickActionsProps) {
   const { colors } = useTheme();
   const athleteName = getRosterAthleteName(athlete);
   const parentName = getRosterParentName(athlete);
@@ -58,35 +54,38 @@ function AthleteQuickActionsInner({
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    Alert.alert(
-      athleteName,
-      undefined,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'View Analytics',
-          onPress: () => router.push(Routes.analyticsAthlete(athlete.athleteId)),
+    Alert.alert(athleteName, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'View Analytics',
+        onPress: () => router.push(Routes.analyticsAthlete(athlete.athleteId)),
+      },
+      {
+        text: 'Raise Concern',
+        onPress: onRaiseConcern,
+      },
+      {
+        text: 'Email Parent',
+        onPress: () => {
+          if (parentEmail) void sendEmail(parentEmail);
         },
-        {
-          text: 'Raise Concern',
-          onPress: onRaiseConcern,
-        },
-        {
-          text: 'Email Parent',
-          onPress: () => { if (parentEmail) void sendEmail(parentEmail); },
-        },
-        {
-          text: 'Remove from Roster',
-          style: 'destructive',
-          onPress: onRemove,
-        },
-      ]
-    );
+      },
+      {
+        text: 'Remove from Roster',
+        style: 'destructive',
+        onPress: onRemove,
+      },
+    ]);
   }, [athlete.athleteId, athleteName, onRaiseConcern, onRemove, parentEmail]);
 
   const actions = [
     { icon: 'add-circle-outline' as const, label: 'Book', onPress: handleBook, primary: true },
-    { icon: 'chatbubble-outline' as const, label: 'Message', onPress: handleMessage, primary: false },
+    {
+      icon: 'chatbubble-outline' as const,
+      label: 'Message',
+      onPress: handleMessage,
+      primary: false,
+    },
     { icon: 'call-outline' as const, label: 'Call', onPress: handleCall, primary: false },
     { icon: 'ellipsis-horizontal' as const, label: 'More', onPress: handleMore, primary: false },
   ];
@@ -100,9 +99,7 @@ function AthleteQuickActionsInner({
           style={[
             styles.actionButton,
             {
-              backgroundColor: action.primary
-                ? colors.tint
-                : withAlpha(colors.tint, 0.09),
+              backgroundColor: action.primary ? colors.tint : withAlpha(colors.tint, 0.09),
             },
           ]}
           accessibilityLabel={action.label}
@@ -113,10 +110,7 @@ function AthleteQuickActionsInner({
             color={action.primary ? colors.onPrimary : colors.tint}
           />
           <ThemedText
-            style={[
-              styles.actionLabel,
-              { color: action.primary ? colors.onPrimary : colors.tint },
-            ]}
+            style={[styles.actionLabel, { color: action.primary ? colors.onPrimary : colors.tint }]}
           >
             {action.label}
           </ThemedText>

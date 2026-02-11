@@ -173,8 +173,8 @@ async function respondToInvite(input: RespondToInviteInput): Promise<Result<Sess
     const bookingResult = await bookingService.createBooking({
       coachId: invite.coachId,
       coachName: invite.coachName,
-      athleteIds: [invite.athleteIds[0]],
-      athleteNames: [invite.athleteNames[0]],
+      athleteIds: invite.athleteIds,
+      athleteNames: invite.athleteNames,
       bookedById: invite.parentId,
       bookedByName: invite.parentName,
       scheduledAt,
@@ -297,8 +297,8 @@ async function acceptCounterProposal(
   const bookingResult = await bookingService.createBooking({
     coachId: invite.coachId,
     coachName: invite.coachName,
-    athleteIds: [invite.athleteIds[0]],
-    athleteNames: [invite.athleteNames[0]],
+    athleteIds: invite.athleteIds,
+    athleteNames: invite.athleteNames,
     bookedById: invite.parentId,
     bookedByName: invite.parentName,
     scheduledAt,
@@ -1035,5 +1035,39 @@ describe('Edge cases', () => {
     assert.equal(params.price, 60);
     assert.deepEqual(params.objectives, ['Finishing']);
     assert.equal(params.notes, 'Work on weak foot finishing.');
+  });
+
+  test('respondToInvite forwards all athletes for multi-athlete invite', async () => {
+    invitesStorage.push({
+      ...PENDING_INVITE,
+      id: 'inv_multi_001',
+      athleteIds: ['athlete_flow_1', 'athlete_flow_3'],
+      athleteNames: ['Tom Baker', 'Leo Baker'],
+    });
+
+    await respondToInvite({
+      inviteId: 'inv_multi_001',
+      response: 'ACCEPTED',
+      selectedSlot: SELECTED_SLOT,
+    });
+
+    const params = bookingCreateCallArgs[0];
+    assert.deepEqual(params.athleteIds, ['athlete_flow_1', 'athlete_flow_3']);
+    assert.deepEqual(params.athleteNames, ['Tom Baker', 'Leo Baker']);
+  });
+
+  test('acceptCounterProposal forwards all athletes for multi-athlete invite', async () => {
+    invitesStorage.push({
+      ...COUNTERED_INVITE,
+      id: 'inv_multi_002',
+      athleteIds: ['athlete_flow_2', 'athlete_flow_4'],
+      athleteNames: ['Lucy Baker', 'Maya Baker'],
+    });
+
+    await acceptCounterProposal('inv_multi_002', COUNTER_SLOT);
+
+    const params = bookingCreateCallArgs[0];
+    assert.deepEqual(params.athleteIds, ['athlete_flow_2', 'athlete_flow_4']);
+    assert.deepEqual(params.athleteNames, ['Lucy Baker', 'Maya Baker']);
   });
 });

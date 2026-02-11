@@ -35,14 +35,7 @@ export function useInjuries() {
     }
   }, [userId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ injuries: Injury[] }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ injuries: Injury[] }>({
     load: loadInjuries,
     deps: [userId],
     isEmpty: (value) => value.injuries.length === 0,
@@ -57,12 +50,15 @@ export function useInjuries() {
     return injuries.filter((i) => i.status === statusFilter);
   }, [injuries, statusFilter]);
 
-  const counts = useMemo(() => ({
-    ALL: injuries.length,
-    ACTIVE: injuries.filter((i) => i.status === 'ACTIVE').length,
-    RECOVERING: injuries.filter((i) => i.status === 'RECOVERING').length,
-    HEALED: injuries.filter((i) => i.status === 'HEALED').length,
-  }), [injuries]);
+  const counts = useMemo(
+    () => ({
+      ALL: injuries.length,
+      ACTIVE: injuries.filter((i) => i.status === 'ACTIVE').length,
+      RECOVERING: injuries.filter((i) => i.status === 'RECOVERING').length,
+      HEALED: injuries.filter((i) => i.status === 'HEALED').length,
+    }),
+    [injuries],
+  );
 
   const handleInjuryPress = useCallback((injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -8,12 +8,61 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
 import { Row } from '@/components/primitives';
 export const MOCK_MAP_COACHES: MapCoach[] = [
-  { id: 'm1', fullName: 'James Whitfield', pricePerHour: 35, lat: 51.515, lng: -0.09, rating: 4.9, distanceMiles: 1.2 },
-  { id: 'm2', fullName: 'Priya Sharma', pricePerHour: 40, lat: 51.525, lng: -0.12, rating: 4.8, distanceMiles: 2.4 },
-  { id: 'm3', fullName: 'Daniel Okafor', pricePerHour: 30, lat: 51.505, lng: -0.07, rating: 4.7, distanceMiles: 3.1 },
-  { id: 'm4', fullName: 'Emily Chen', pricePerHour: 45, lat: 51.530, lng: -0.05, rating: 5.0, distanceMiles: 0.8 },
-  { id: 'm5', fullName: 'Marcus Rivera', pricePerHour: 25, lat: 51.510, lng: -0.15, rating: 4.6, distanceMiles: 4.5 },
-  { id: 'm6', fullName: 'Sarah Mitchell', pricePerHour: 50, lat: 51.520, lng: -0.10, rating: 4.9, distanceMiles: 1.0, saved: true },
+  {
+    id: 'm1',
+    fullName: 'James Whitfield',
+    pricePerHour: 35,
+    lat: 51.515,
+    lng: -0.09,
+    rating: 4.9,
+    distanceMiles: 1.2,
+  },
+  {
+    id: 'm2',
+    fullName: 'Priya Sharma',
+    pricePerHour: 40,
+    lat: 51.525,
+    lng: -0.12,
+    rating: 4.8,
+    distanceMiles: 2.4,
+  },
+  {
+    id: 'm3',
+    fullName: 'Daniel Okafor',
+    pricePerHour: 30,
+    lat: 51.505,
+    lng: -0.07,
+    rating: 4.7,
+    distanceMiles: 3.1,
+  },
+  {
+    id: 'm4',
+    fullName: 'Emily Chen',
+    pricePerHour: 45,
+    lat: 51.53,
+    lng: -0.05,
+    rating: 5.0,
+    distanceMiles: 0.8,
+  },
+  {
+    id: 'm5',
+    fullName: 'Marcus Rivera',
+    pricePerHour: 25,
+    lat: 51.51,
+    lng: -0.15,
+    rating: 4.6,
+    distanceMiles: 4.5,
+  },
+  {
+    id: 'm6',
+    fullName: 'Sarah Mitchell',
+    pricePerHour: 50,
+    lat: 51.52,
+    lng: -0.1,
+    rating: 4.9,
+    distanceMiles: 1.0,
+    saved: true,
+  },
 ];
 interface MapGridLinesProps {
   palette: ThemeColors;
@@ -60,8 +109,20 @@ interface MapParksProps {
 export const MapParks = memo(function MapParks({ palette }: MapParksProps) {
   return (
     <>
-      <View style={[styles.parkPatch, styles.park1, { backgroundColor: withAlpha(palette.success, 0.07) }]} />
-      <View style={[styles.parkPatch, styles.park2, { backgroundColor: withAlpha(palette.success, 0.06) }]} />
+      <View
+        style={[
+          styles.parkPatch,
+          styles.park1,
+          { backgroundColor: withAlpha(palette.success, 0.07) },
+        ]}
+      />
+      <View
+        style={[
+          styles.parkPatch,
+          styles.park2,
+          { backgroundColor: withAlpha(palette.success, 0.06) },
+        ]}
+      />
     </>
   );
 });

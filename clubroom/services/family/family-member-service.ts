@@ -12,14 +12,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  notFound,
-  storageError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import {
   type FamilyMember,
   type FamilyCalendarEvent,
@@ -253,7 +246,7 @@ class FamilyMemberService {
     if (USE_MOCK) {
       return apiClient.get<FamilyCalendarEvent[]>(
         STORAGE_KEYS.FAMILY_BOOKINGS,
-        MOCK_FAMILY_BOOKINGS
+        MOCK_FAMILY_BOOKINGS,
       );
     }
     return apiClient.get<FamilyCalendarEvent[]>(STORAGE_KEYS.FAMILY_BOOKINGS, []);
@@ -311,7 +304,7 @@ class FamilyMemberService {
    */
   async addFamilyMember(
     parentId: string,
-    member: Omit<FamilyMember, 'id' | 'colorCode' | 'addedAt' | 'isActive'>
+    member: Omit<FamilyMember, 'id' | 'colorCode' | 'addedAt' | 'isActive'>,
   ): Promise<FamilyMember> {
     const members = await this.loadMembers();
     const colorIndex = members.length % CHILD_COLORS.length;
@@ -341,7 +334,7 @@ class FamilyMemberService {
    */
   async create(
     parentId: string,
-    data: Omit<FamilyMember, 'id' | 'colorCode' | 'addedAt' | 'isActive'>
+    data: Omit<FamilyMember, 'id' | 'colorCode' | 'addedAt' | 'isActive'>,
   ): Promise<Result<FamilyMember, ServiceError>> {
     try {
       const member = await this.addFamilyMember(parentId, data);
@@ -357,7 +350,7 @@ class FamilyMemberService {
    */
   async updateFamilyMember(
     childId: string,
-    updates: Partial<FamilyMember>
+    updates: Partial<FamilyMember>,
   ): Promise<FamilyMember | null> {
     const members = await this.loadMembers();
     const index = members.findIndex((m) => m.id === childId);
@@ -378,7 +371,7 @@ class FamilyMemberService {
    */
   async update(
     childId: string,
-    updates: Partial<FamilyMember>
+    updates: Partial<FamilyMember>,
   ): Promise<Result<FamilyMember, ServiceError>> {
     try {
       const member = await this.updateFamilyMember(childId, updates);
@@ -430,7 +423,7 @@ class FamilyMemberService {
     try {
       const bookings = await this.loadBookings();
       const sortedBookings = bookings.sort(
-        (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()
+        (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
       );
       logger.info('family_bookings_retrieved', { parentId, count: sortedBookings.length });
       return sortedBookings;
@@ -459,7 +452,7 @@ class FamilyMemberService {
    */
   async getFamilyCalendar(
     parentId: string,
-    dateRange: FamilyDateRange
+    dateRange: FamilyDateRange,
   ): Promise<FamilyCalendarEvent[]> {
     try {
       const bookings = await this.loadBookings();
@@ -472,7 +465,7 @@ class FamilyMemberService {
       });
 
       const sortedBookings = filteredBookings.sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
       );
 
       logger.info('family_calendar_retrieved', {
@@ -500,8 +493,7 @@ class FamilyMemberService {
         .filter((booking) => {
           const bookingDate = new Date(booking.start).getTime();
           return (
-            bookingDate > now &&
-            (booking.status === 'CONFIRMED' || booking.status === 'PENDING')
+            bookingDate > now && (booking.status === 'CONFIRMED' || booking.status === 'PENDING')
           );
         })
         .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
@@ -524,7 +516,7 @@ class FamilyMemberService {
    */
   async getEventsGroupedByDate(
     parentId: string,
-    dateRange: FamilyDateRange
+    dateRange: FamilyDateRange,
   ): Promise<Record<string, FamilyCalendarEvent[]>> {
     const events = await this.getFamilyCalendar(parentId, dateRange);
     const grouped: Record<string, FamilyCalendarEvent[]> = {};
@@ -554,9 +546,7 @@ class FamilyMemberService {
 
       const spendingByChild: FamilySpending[] = members.map((member) => {
         const childBookings = bookings.filter(
-          (b) =>
-            b.childId === member.id &&
-            (b.status === 'COMPLETED' || b.status === 'CONFIRMED')
+          (b) => b.childId === member.id && (b.status === 'COMPLETED' || b.status === 'CONFIRMED'),
         );
 
         const totalSpent = childBookings.reduce((sum, b) => sum + (b.price || 0), 0);
@@ -646,9 +636,7 @@ class FamilyMemberService {
     };
   }
 
-  private calculateMonthlyBreakdown(
-    bookings: FamilyCalendarEvent[]
-  ): FamilySpendingMonth[] {
+  private calculateMonthlyBreakdown(bookings: FamilyCalendarEvent[]): FamilySpendingMonth[] {
     const monthlyMap = new Map<string, FamilySpendingMonth>();
 
     bookings.forEach((booking) => {
@@ -669,9 +657,10 @@ class FamilyMemberService {
     return Array.from(monthlyMap.values()).sort((a, b) => b.month.localeCompare(a.month));
   }
 
-  private calculateSpendingTrend(
-    monthlyBreakdown: FamilySpendingMonth[]
-  ): { trend: 'up' | 'down' | 'stable'; trendPercent: number } {
+  private calculateSpendingTrend(monthlyBreakdown: FamilySpendingMonth[]): {
+    trend: 'up' | 'down' | 'stable';
+    trendPercent: number;
+  } {
     if (monthlyBreakdown.length < 2) {
       return { trend: 'stable', trendPercent: 0 };
     }
@@ -707,16 +696,12 @@ class FamilyMemberService {
       const upcomingBookings = bookings.filter(
         (b) =>
           (b.status === 'CONFIRMED' || b.status === 'PENDING') &&
-          new Date(b.start).getTime() > Date.now()
+          new Date(b.start).getTime() > Date.now(),
       );
 
       // Sort to find dates
-      completedBookings.sort(
-        (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()
-      );
-      upcomingBookings.sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
-      );
+      completedBookings.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+      upcomingBookings.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
       const progress: ChildProgressSummary = {
         childId,
@@ -758,10 +743,7 @@ class FamilyMemberService {
       // Calculate upcoming sessions
       const upcomingSessions = bookings.filter((b) => {
         const bookingDate = new Date(b.start).getTime();
-        return (
-          bookingDate > now.getTime() &&
-          (b.status === 'CONFIRMED' || b.status === 'PENDING')
-        );
+        return bookingDate > now.getTime() && (b.status === 'CONFIRMED' || b.status === 'PENDING');
       });
 
       // Calculate sessions this month
@@ -777,13 +759,15 @@ class FamilyMemberService {
       });
 
       // Calculate spending
-      const completedBookings = bookings.filter((b) => b.status === 'COMPLETED' || b.status === 'CONFIRMED');
+      const completedBookings = bookings.filter(
+        (b) => b.status === 'COMPLETED' || b.status === 'CONFIRMED',
+      );
       const totalSpending = completedBookings.reduce((sum, b) => sum + (b.price || 0), 0);
       const spendingThisMonth = sessionsThisMonth.reduce((sum, b) => sum + (b.price || 0), 0);
 
       // Get next session
       const sortedUpcoming = upcomingSessions.sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
       );
       const nextSession = sortedUpcoming[0] || undefined;
 

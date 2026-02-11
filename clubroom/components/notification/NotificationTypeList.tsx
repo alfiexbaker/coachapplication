@@ -8,11 +8,10 @@
 import { View, StyleSheet } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
-import type {
-  NotificationType,
-  TypeNotificationPreference,
-} from '@/constants/types';
+import type { NotificationType, TypeNotificationPreference } from '@/constants/types';
 import { NOTIFICATION_CATEGORIES } from '@/constants/types';
+
+import { getTypesForCategory, CategorySection } from './notification-type-list-sections';
 
 // Re-export extracted components for backward compat
 export {
@@ -21,8 +20,6 @@ export {
   CategorySection,
 } from './notification-type-list-sections';
 export type { CategorySectionProps } from './notification-type-list-sections';
-
-import { getTypesForCategory, CategorySection } from './notification-type-list-sections';
 
 export interface NotificationTypeListProps {
   typePreferences: Partial<Record<NotificationType, TypeNotificationPreference>>;

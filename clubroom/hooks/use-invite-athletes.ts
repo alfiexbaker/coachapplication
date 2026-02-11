@@ -28,13 +28,20 @@ export type AgeFilter = 'ALL' | 'U8' | 'U10' | 'U12' | 'U14' | 'U16' | '16+';
 function isInAgeRange(age: number | undefined, filter: AgeFilter): boolean {
   if (!age || filter === 'ALL') return true;
   switch (filter) {
-    case 'U8': return age < 8;
-    case 'U10': return age >= 8 && age < 10;
-    case 'U12': return age >= 10 && age < 12;
-    case 'U14': return age >= 12 && age < 14;
-    case 'U16': return age >= 14 && age < 16;
-    case '16+': return age >= 16;
-    default: return true;
+    case 'U8':
+      return age < 8;
+    case 'U10':
+      return age >= 8 && age < 10;
+    case 'U12':
+      return age >= 10 && age < 12;
+    case 'U14':
+      return age >= 12 && age < 14;
+    case 'U16':
+      return age >= 14 && age < 16;
+    case '16+':
+      return age >= 16;
+    default:
+      return true;
   }
 }
 
@@ -48,7 +55,9 @@ export function useInviteAthletes(athletes: Athlete[], squads: Squad[]) {
 
   const filteredAthletes = useMemo(() => {
     return athletes.filter((a) => {
-      const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) || a.parentName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.parentName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesSkill = skillFilter === 'ALL' || a.skillLevel === skillFilter;
       const matchesAge = isInAgeRange(a.age, ageFilter);
       const matchesSquad = squadFilter === 'ALL' || a.squadId === squadFilter;
@@ -59,23 +68,33 @@ export function useInviteAthletes(athletes: Athlete[], squads: Squad[]) {
   const availableSquads = useMemo(() => {
     if (squads.length > 0) return squads;
     const squadMap = new Map<string, string>();
-    athletes.forEach((a) => { if (a.squadId && a.squadName) squadMap.set(a.squadId, a.squadName); });
+    athletes.forEach((a) => {
+      if (a.squadId && a.squadName) squadMap.set(a.squadId, a.squadName);
+    });
     return Array.from(squadMap.entries()).map(([id, name]) => ({ id, name }));
   }, [athletes, squads]);
 
   const groupedByParent = useMemo(() => {
-    return filteredAthletes.reduce((acc, athlete) => {
-      if (!acc[athlete.parentId]) acc[athlete.parentId] = { parentName: athlete.parentName, athletes: [] };
-      acc[athlete.parentId].athletes.push(athlete);
-      return acc;
-    }, {} as Record<string, { parentName: string; athletes: Athlete[] }>);
+    return filteredAthletes.reduce(
+      (acc, athlete) => {
+        if (!acc[athlete.parentId])
+          acc[athlete.parentId] = { parentName: athlete.parentName, athletes: [] };
+        acc[athlete.parentId].athletes.push(athlete);
+        return acc;
+      },
+      {} as Record<string, { parentName: string; athletes: Athlete[] }>,
+    );
   }, [filteredAthletes]);
 
   const hasActiveFilters = skillFilter !== 'ALL' || ageFilter !== 'ALL' || squadFilter !== 'ALL';
 
   const toggleAthlete = useCallback((athlete: Athlete, multiSelect: boolean) => {
     if (multiSelect) {
-      setSelectedAthletes((prev) => prev.some((a) => a.id === athlete.id) ? prev.filter((a) => a.id !== athlete.id) : [...prev, athlete]);
+      setSelectedAthletes((prev) =>
+        prev.some((a) => a.id === athlete.id)
+          ? prev.filter((a) => a.id !== athlete.id)
+          : [...prev, athlete],
+      );
     } else {
       setSelectedAthletes([athlete]);
     }
@@ -84,15 +103,21 @@ export function useInviteAthletes(athletes: Athlete[], squads: Squad[]) {
   const selectAll = useCallback(() => setSelectedAthletes(filteredAthletes), [filteredAthletes]);
   const selectNone = useCallback(() => setSelectedAthletes([]), []);
 
-  const selectBySquad = useCallback((squadId: string) => {
-    setSelectedAthletes(athletes.filter((a) => a.squadId === squadId));
-    setSquadFilter(squadId);
-  }, [athletes]);
+  const selectBySquad = useCallback(
+    (squadId: string) => {
+      setSelectedAthletes(athletes.filter((a) => a.squadId === squadId));
+      setSquadFilter(squadId);
+    },
+    [athletes],
+  );
 
-  const selectBySkillLevel = useCallback((level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED') => {
-    setSelectedAthletes(athletes.filter((a) => a.skillLevel === level));
-    setSkillFilter(level);
-  }, [athletes]);
+  const selectBySkillLevel = useCallback(
+    (level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED') => {
+      setSelectedAthletes(athletes.filter((a) => a.skillLevel === level));
+      setSkillFilter(level);
+    },
+    [athletes],
+  );
 
   const resetFilters = useCallback(() => {
     setSkillFilter('ALL');
@@ -107,11 +132,27 @@ export function useInviteAthletes(athletes: Athlete[], squads: Squad[]) {
   }, []);
 
   return {
-    selectedAthletes, searchQuery, setSearchQuery,
-    skillFilter, setSkillFilter, ageFilter, setAgeFilter,
-    squadFilter, setSquadFilter, showFilters, setShowFilters,
-    filteredAthletes, availableSquads, groupedByParent, hasActiveFilters,
-    toggleAthlete, selectAll, selectNone, selectBySquad, selectBySkillLevel,
-    resetFilters, resetAll,
+    selectedAthletes,
+    searchQuery,
+    setSearchQuery,
+    skillFilter,
+    setSkillFilter,
+    ageFilter,
+    setAgeFilter,
+    squadFilter,
+    setSquadFilter,
+    showFilters,
+    setShowFilters,
+    filteredAthletes,
+    availableSquads,
+    groupedByParent,
+    hasActiveFilters,
+    toggleAthlete,
+    selectAll,
+    selectNone,
+    selectBySquad,
+    selectBySkillLevel,
+    resetFilters,
+    resetAll,
   };
 }

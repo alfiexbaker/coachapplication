@@ -102,7 +102,9 @@ export const AnnotationTypeFilters = memo(function AnnotationTypeFilters({
                 style={[
                   styles.filterChip,
                   {
-                    backgroundColor: isSelected ? withAlpha(config.color, 0.12) : palette.background,
+                    backgroundColor: isSelected
+                      ? withAlpha(config.color, 0.12)
+                      : palette.background,
                     borderColor: isSelected ? config.color : palette.border,
                   },
                 ]}
@@ -113,10 +115,7 @@ export const AnnotationTypeFilters = memo(function AnnotationTypeFilters({
                   color={isSelected ? config.color : palette.muted}
                 />
                 <ThemedText
-                  style={[
-                    styles.filterLabel,
-                    { color: isSelected ? config.color : palette.text },
-                  ]}
+                  style={[styles.filterLabel, { color: isSelected ? config.color : palette.text }]}
                 >
                   {config.label} ({count})
                 </ThemedText>
@@ -168,9 +167,7 @@ export const AnnotationListItem = memo(function AnnotationListItem({
       <View style={styles.annotationContent}>
         <Row align="center" justify="between">
           <Row align="center" gap="xs">
-            <View
-              style={[styles.typeBadge, { backgroundColor: withAlpha(config.color, 0.12) }]}
-            >
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(config.color, 0.12) }]}>
               <Ionicons
                 name={config.icon as keyof typeof Ionicons.glyphMap}
                 size={12}
@@ -190,7 +187,12 @@ export const AnnotationListItem = memo(function AnnotationListItem({
                 </Clickable>
               )}
               {onDelete && (
-                <Clickable accessibilityLabel="Delete annotation" onPress={onDelete} hitSlop={8} style={styles.actionButton}>
+                <Clickable
+                  accessibilityLabel="Delete annotation"
+                  onPress={onDelete}
+                  hitSlop={8}
+                  style={styles.actionButton}
+                >
                   <Ionicons name="trash-outline" size={16} color={palette.error} />
                 </Clickable>
               )}
@@ -198,15 +200,10 @@ export const AnnotationListItem = memo(function AnnotationListItem({
           )}
         </Row>
 
-        <ThemedText style={styles.annotationLabel}>
-          {annotation.label}
-        </ThemedText>
+        <ThemedText style={styles.annotationLabel}>{annotation.label}</ThemedText>
 
         {annotation.note && (
-          <ThemedText
-            style={[styles.annotationNote, { color: palette.muted }]}
-            numberOfLines={2}
-          >
+          <ThemedText style={[styles.annotationNote, { color: palette.muted }]} numberOfLines={2}>
             {annotation.note}
           </ThemedText>
         )}
@@ -230,9 +227,7 @@ export const AnnotationEmptyState = memo(function AnnotationEmptyState({
     <View style={styles.emptyState}>
       <Ionicons name="bookmark-outline" size={40} color={palette.muted} />
       <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-        {hasAnnotations
-          ? 'No annotations match your filters'
-          : 'No annotations yet'}
+        {hasAnnotations ? 'No annotations match your filters' : 'No annotations yet'}
       </ThemedText>
     </View>
   );

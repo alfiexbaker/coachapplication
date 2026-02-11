@@ -20,9 +20,16 @@ interface EditPricingSectionProps {
 }
 
 export const EditPricingSection = memo(function EditPricingSection({
-  colors, priceMin, onChangeMin, priceMax, onChangeMax,
+  colors,
+  priceMin,
+  onChangeMin,
+  priceMax,
+  onChangeMax,
 }: EditPricingSectionProps) {
-  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+  const inputStyle = [
+    styles.input,
+    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
+  ];
 
   return (
     <SurfaceCard style={styles.section}>
@@ -63,8 +70,10 @@ const styles = StyleSheet.create({
   label: { fontWeight: '600' },
   priceField: { flex: 1 },
   input: {
-    borderWidth: 1, borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
 });

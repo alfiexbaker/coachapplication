@@ -17,10 +17,7 @@ interface InvoiceHeaderProps {
   palette: ThemeColors;
 }
 
-export const InvoiceHeader = memo(function InvoiceHeader({
-  invoice,
-  palette,
-}: InvoiceHeaderProps) {
+export const InvoiceHeader = memo(function InvoiceHeader({ invoice, palette }: InvoiceHeaderProps) {
   const statusColor = invoiceService.getStatusColor(invoice.status);
 
   return (
@@ -29,7 +26,11 @@ export const InvoiceHeader = memo(function InvoiceHeader({
         <ThemedText type="display" style={styles.invoiceNumber}>
           {invoice.invoiceNumber}
         </ThemedText>
-        <Row align="center" gap="xxs" style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
+        <Row
+          align="center"
+          gap="xxs"
+          style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}
+        >
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <ThemedText style={[styles.statusText, { color: statusColor }]}>
             {invoiceService.getStatusLabel(invoice.status)}

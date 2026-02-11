@@ -14,7 +14,11 @@ interface ObjectiveSelectorProps {
   onToggle: (objective: FootballObjective) => void;
 }
 
-export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: ObjectiveSelectorProps) {
+export function ObjectiveSelector({
+  objectives,
+  selectedObjectives,
+  onToggle,
+}: ObjectiveSelectorProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -22,7 +26,9 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
       <ThemedText type="defaultSemiBold" style={styles.title}>
         What do you want to work on?
       </ThemedText>
-      <ThemedText style={[styles.helper, { color: palette.muted }]}>Select up to 3 focus areas</ThemedText>
+      <ThemedText style={[styles.helper, { color: palette.muted }]}>
+        Select up to 3 focus areas
+      </ThemedText>
       <Row wrap gap="sm" style={styles.grid}>
         {objectives.map((objective) => {
           const isSelected = selectedObjectives.includes(objective);
@@ -47,7 +53,9 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
                   size={20}
                   color={isSelected ? palette.onPrimary : palette.muted}
                 />
-                <ThemedText style={[styles.label, { color: isSelected ? palette.onPrimary : palette.text }]}>
+                <ThemedText
+                  style={[styles.label, { color: isSelected ? palette.onPrimary : palette.text }]}
+                >
                   {objective}
                 </ThemedText>
               </Row>

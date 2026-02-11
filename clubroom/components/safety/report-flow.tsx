@@ -13,11 +13,7 @@ import { reportService } from '@/services/report-service';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
 
-import {
-  type ReportType,
-  ReportFormContent,
-  ReportSuccessView,
-} from './report-flow-sections';
+import { type ReportType, ReportFormContent, ReportSuccessView } from './report-flow-sections';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -30,12 +26,7 @@ interface ReportFlowProps {
 
 // ─── Component ──────────────────────────────────────────────────
 
-export function ReportFlow({
-  visible,
-  onClose,
-  reportedUserId,
-  context,
-}: ReportFlowProps) {
+export function ReportFlow({ visible, onClose, reportedUserId, context }: ReportFlowProps) {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const ModalStyles = createModalStyles(palette);
@@ -73,12 +64,7 @@ export function ReportFlow({
   }, [onClose]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <View style={ModalStyles.overlay}>
         <View style={[ModalStyles.container, { backgroundColor: palette.surface }]}>
           <View style={ModalStyles.handle} />

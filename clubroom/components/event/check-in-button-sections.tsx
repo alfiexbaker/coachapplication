@@ -49,8 +49,8 @@ export const CheckInUnavailable = memo(function CheckInUnavailable({
         {isPast
           ? 'Check-in closed'
           : isFuture
-          ? `Check-in opens on ${eventService.formatEventDate(eventDate)}`
-          : 'Check-in not available'}
+            ? `Check-in opens on ${eventService.formatEventDate(eventDate)}`
+            : 'Check-in not available'}
       </ThemedText>
     </Row>
   );
@@ -97,11 +97,7 @@ export const CheckedInBadge = memo(function CheckedInBadge({
       </Row>
 
       {onUndoCheckIn && (
-        <Clickable
-          onPress={onUndoCheckIn}
-          disabled={loading}
-          style={styles.undoButton}
-        >
+        <Clickable onPress={onUndoCheckIn} disabled={loading} style={styles.undoButton}>
           {loading ? (
             <ActivityIndicator size="small" color={palette.muted} />
           ) : (

@@ -73,7 +73,10 @@ export function useIdVerification() {
     if (!selectedType || !uploaded) return;
     setSubmitting(true);
     try {
-      const result = await verificationService.submitIdVerification(COACH_ID, `mock://id-document-${selectedType}.jpg`);
+      const result = await verificationService.submitIdVerification(
+        COACH_ID,
+        `mock://id-document-${selectedType}.jpg`,
+      );
       if (result.success) {
         onRefresh();
         router.back();

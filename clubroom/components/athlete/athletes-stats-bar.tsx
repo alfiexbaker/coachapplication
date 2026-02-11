@@ -11,7 +11,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
@@ -41,7 +41,8 @@ function AthletesStatsBarInner({ roster, upcomingSessions }: AthletesStatsBarPro
     const now = Date.now();
     const weekMs = 7 * 24 * 60 * 60 * 1000;
     const sessionsThisWeek = Object.values(upcomingSessions).filter(
-      (b) => new Date(b.scheduledAt).getTime() - now < weekMs && new Date(b.scheduledAt).getTime() > now
+      (b) =>
+        new Date(b.scheduledAt).getTime() - now < weekMs && new Date(b.scheduledAt).getTime() > now,
     ).length;
 
     // Total revenue across roster
@@ -49,9 +50,24 @@ function AthletesStatsBarInner({ roster, upcomingSessions }: AthletesStatsBarPro
 
     return [
       { label: 'Total', value: String(total), icon: 'people' as const, color: colors.tint },
-      { label: 'Active', value: String(active), icon: 'checkmark-circle' as const, color: colors.success },
-      { label: 'This Week', value: String(sessionsThisWeek), icon: 'calendar' as const, color: colors.tint },
-      { label: 'Revenue', value: rosterService.formatRevenue(totalRevenue), icon: 'cash' as const, color: colors.success },
+      {
+        label: 'Active',
+        value: String(active),
+        icon: 'checkmark-circle' as const,
+        color: colors.success,
+      },
+      {
+        label: 'This Week',
+        value: String(sessionsThisWeek),
+        icon: 'calendar' as const,
+        color: colors.tint,
+      },
+      {
+        label: 'Revenue',
+        value: rosterService.formatRevenue(totalRevenue),
+        icon: 'cash' as const,
+        color: colors.success,
+      },
     ];
   }, [roster, upcomingSessions, colors]);
 
@@ -59,10 +75,7 @@ function AthletesStatsBarInner({ roster, upcomingSessions }: AthletesStatsBarPro
     <Animated.View entering={FadeInDown.springify()}>
       <Row gap="xs" style={styles.container}>
         {stats.map((stat) => (
-          <View
-            key={stat.label}
-            style={[styles.statCard, { backgroundColor: colors.surface }]}
-          >
+          <View key={stat.label} style={[styles.statCard, { backgroundColor: colors.surface }]}>
             <Ionicons name={stat.icon} size={16} color={stat.color} />
             <ThemedText style={styles.statValue}>{stat.value}</ThemedText>
             <ThemedText style={[styles.statLabel, { color: colors.muted }]}>

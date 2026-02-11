@@ -359,7 +359,7 @@ export const matchService = {
       athleteName: string;
       parentId: string;
       parentName?: string;
-    }[]
+    }[],
   ): Promise<Result<Match, ServiceError>> {
     return this.invitePlayers({ matchId, players });
   },
@@ -382,7 +382,7 @@ export const matchService = {
       // Add players who aren't already invited
       for (const player of input.players) {
         const existingIndex = match.selectedPlayers.findIndex(
-          (p) => p.athleteId === player.athleteId
+          (p) => p.athleteId === player.athleteId,
         );
         if (existingIndex === -1) {
           match.selectedPlayers.push({
@@ -433,9 +433,7 @@ export const matchService = {
       }
 
       const match = matchesCache[index];
-      const playerIndex = match.selectedPlayers.findIndex(
-        (p) => p.athleteId === input.athleteId
-      );
+      const playerIndex = match.selectedPlayers.findIndex((p) => p.athleteId === input.athleteId);
 
       if (playerIndex === -1) {
         return err(notFound('Player', input.athleteId));
@@ -494,7 +492,7 @@ export const matchService = {
       // Update player statuses based on lineup
       for (const lineupPlayer of input.lineup) {
         const playerIndex = match.selectedPlayers.findIndex(
-          (p) => p.athleteId === lineupPlayer.athleteId
+          (p) => p.athleteId === lineupPlayer.athleteId,
         );
 
         if (playerIndex !== -1) {
@@ -652,7 +650,7 @@ export const matchService = {
     const matches = await this.getClubMatches(clubId);
     const completedMatches = matches.filter((m) => m.status === 'COMPLETED' && m.result);
     const upcomingMatches = matches.filter(
-      (m) => m.status === 'SCHEDULED' || m.status === 'LINEUP_SET'
+      (m) => m.status === 'SCHEDULED' || m.status === 'LINEUP_SET',
     );
 
     let wins = 0;

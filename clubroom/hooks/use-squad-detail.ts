@@ -38,7 +38,10 @@ export function useSquadDetail(squadId: string | undefined) {
   const [openingGroupChat, setOpeningGroupChat] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!squadId) { setLoading(false); return; }
+    if (!squadId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const squadData = await squadService.getSquad(squadId);
@@ -46,7 +49,10 @@ export function useSquadDetail(squadId: string | undefined) {
       const clubId = squadData?.clubId;
       setResolvedClubId(clubId || null);
       if (squadData) setEditName(squadData.name);
-      if (!clubId) { setLoading(false); return; }
+      if (!clubId) {
+        setLoading(false);
+        return;
+      }
 
       const clubMembers = await clubService.getMembers(clubId);
       setAllClubMembers(clubMembers);
@@ -58,7 +64,9 @@ export function useSquadDetail(squadId: string | undefined) {
     }
   }, [squadId]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const membersNotInSquad = useMemo(
     () => allClubMembers.filter((m) => !m.squadIds?.includes(squadId || '')),
@@ -71,7 +79,9 @@ export function useSquadDetail(squadId: string | undefined) {
     setOpeningGroupChat(true);
     try {
       const result = await squadGroupService.getOrCreateSquadGroup(
-        squadId, currentUser?.id ?? 'coach1', currentUser?.fullName ?? currentUser?.name ?? 'Coach',
+        squadId,
+        currentUser?.id ?? 'coach1',
+        currentUser?.fullName ?? currentUser?.name ?? 'Coach',
       );
       if (result.success) {
         router.push(Routes.communityGroup(result.data.id));
@@ -106,31 +116,41 @@ export function useSquadDetail(squadId: string | undefined) {
     }
   }, [squad, resolvedClubId, editName, squadId, showToast]);
 
-  const handleAddToSquad = useCallback(async (member: ClubMember) => {
-    if (!resolvedClubId || !squadId) return;
-    try {
-      const result = await clubService.addMemberToSquad(resolvedClubId, member.userId, squadId);
-      if (result.success) {
-        await loadData();
-        showToast(`${member.userName} added to squad`, 'success');
-      } else {
+  const handleAddToSquad = useCallback(
+    async (member: ClubMember) => {
+      if (!resolvedClubId || !squadId) return;
+      try {
+        const result = await clubService.addMemberToSquad(resolvedClubId, member.userId, squadId);
+        if (result.success) {
+          await loadData();
+          showToast(`${member.userName} added to squad`, 'success');
+        } else {
+          showToast('Failed to add member', 'error');
+        }
+      } catch (error) {
+        logger.error('Failed to add member to squad', error);
         showToast('Failed to add member', 'error');
       }
-    } catch (error) {
-      logger.error('Failed to add member to squad', error);
-      showToast('Failed to add member', 'error');
-    }
-  }, [resolvedClubId, squadId, loadData, showToast]);
+    },
+    [resolvedClubId, squadId, loadData, showToast],
+  );
 
-  const handleRemoveFromSquad = useCallback((member: ClubMember) => {
-    if (!resolvedClubId || !squadId) return;
-    setMemberToRemove(member);
-  }, [resolvedClubId, squadId]);
+  const handleRemoveFromSquad = useCallback(
+    (member: ClubMember) => {
+      if (!resolvedClubId || !squadId) return;
+      setMemberToRemove(member);
+    },
+    [resolvedClubId, squadId],
+  );
 
   const confirmRemoveMember = useCallback(async () => {
     if (!resolvedClubId || !squadId || !memberToRemove) return;
     try {
-      const result = await clubService.removeMemberFromSquad(resolvedClubId, memberToRemove.userId, squadId);
+      const result = await clubService.removeMemberFromSquad(
+        resolvedClubId,
+        memberToRemove.userId,
+        squadId,
+      );
       if (result.success) {
         showToast(`${memberToRemove.userName} removed from squad`, 'success');
         setMemberToRemove(null);
@@ -144,7 +164,9 @@ export function useSquadDetail(squadId: string | undefined) {
     }
   }, [resolvedClubId, squadId, memberToRemove, loadData, showToast]);
 
-  const handleDeleteSquad = useCallback(() => { setShowDeleteConfirm(true); }, []);
+  const handleDeleteSquad = useCallback(() => {
+    setShowDeleteConfirm(true);
+  }, []);
 
   const confirmDeleteSquad = useCallback(async () => {
     if (!squadId) return;
@@ -178,14 +200,31 @@ export function useSquadDetail(squadId: string | undefined) {
   }, [squad]);
 
   return {
-    squad, members, loading, resolvedClubId,
-    isEditing, setIsEditing, editName, setEditName, cancelEdit,
-    showAddMembers, setShowAddMembers, membersNotInSquad,
-    showDeleteConfirm, setShowDeleteConfirm, deleting,
-    memberToRemove, setMemberToRemove,
+    squad,
+    members,
+    loading,
+    resolvedClubId,
+    isEditing,
+    setIsEditing,
+    editName,
+    setEditName,
+    cancelEdit,
+    showAddMembers,
+    setShowAddMembers,
+    membersNotInSquad,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    deleting,
+    memberToRemove,
+    setMemberToRemove,
     openingGroupChat,
-    handleGroupChat, handleSaveName, handleAddToSquad,
-    handleRemoveFromSquad, confirmRemoveMember,
-    handleDeleteSquad, confirmDeleteSquad, handleInviteSquad,
+    handleGroupChat,
+    handleSaveName,
+    handleAddToSquad,
+    handleRemoveFromSquad,
+    confirmRemoveMember,
+    handleDeleteSquad,
+    confirmDeleteSquad,
+    handleInviteSquad,
   };
 }

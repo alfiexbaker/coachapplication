@@ -73,7 +73,10 @@ export function AnnotationForm({
       { timestamp, label, note, type },
       videoDuration,
     );
-    if (validationErrors.length > 0) { setErrors(validationErrors); return; }
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
     setErrors([]);
     setSaving(true);
     try {
@@ -103,21 +106,37 @@ export function AnnotationForm({
         </Clickable>
       </Row>
 
-      <TimestampControl timestamp={timestamp} videoDuration={videoDuration} onAdjust={handleTimestampAdjust} />
+      <TimestampControl
+        timestamp={timestamp}
+        videoDuration={videoDuration}
+        onAdjust={handleTimestampAdjust}
+      />
       <TypeSelectorGrid selectedType={type} onSelectType={setType} />
 
       {/* Label Input */}
       <View style={styles.section}>
         <Row justify="between" align="center">
           <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Label *</ThemedText>
-          <ThemedText style={[styles.charCount, { color: palette.muted }]}>{label.length}/100</ThemedText>
+          <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+            {label.length}/100
+          </ThemedText>
         </Row>
         <TextInput
-          style={[styles.input, { color: palette.text, borderColor: errors.some((e) => e.includes('Label')) ? palette.error : palette.border, backgroundColor: palette.background }]}
+          style={[
+            styles.input,
+            {
+              color: palette.text,
+              borderColor: errors.some((e) => e.includes('Label')) ? palette.error : palette.border,
+              backgroundColor: palette.background,
+            },
+          ]}
           placeholder="e.g., Great technique on the turn"
           placeholderTextColor={palette.muted}
           value={label}
-          onChangeText={(text) => { setLabel(text); setErrors([]); }}
+          onChangeText={(text) => {
+            setLabel(text);
+            setErrors([]);
+          }}
           maxLength={100}
         />
       </View>
@@ -125,15 +144,29 @@ export function AnnotationForm({
       {/* Note Input */}
       <View style={styles.section}>
         <Row justify="between" align="center">
-          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Note (optional)</ThemedText>
-          <ThemedText style={[styles.charCount, { color: palette.muted }]}>{note.length}/500</ThemedText>
+          <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+            Note (optional)
+          </ThemedText>
+          <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+            {note.length}/500
+          </ThemedText>
         </Row>
         <TextInput
-          style={[styles.textArea, { color: palette.text, borderColor: errors.some((e) => e.includes('Note')) ? palette.error : palette.border, backgroundColor: palette.background }]}
+          style={[
+            styles.textArea,
+            {
+              color: palette.text,
+              borderColor: errors.some((e) => e.includes('Note')) ? palette.error : palette.border,
+              backgroundColor: palette.background,
+            },
+          ]}
           placeholder="Add detailed feedback or instructions..."
           placeholderTextColor={palette.muted}
           value={note}
-          onChangeText={(text) => { setNote(text); setErrors([]); }}
+          onChangeText={(text) => {
+            setNote(text);
+            setErrors([]);
+          }}
           multiline
           numberOfLines={3}
           maxLength={500}
@@ -142,17 +175,31 @@ export function AnnotationForm({
       </View>
 
       <ErrorDisplay errors={errors} />
-      <AnnotationPreview label={label} note={note} timestamp={timestamp} typeColor={selectedTypeConfig.color} />
+      <AnnotationPreview
+        label={label}
+        note={note}
+        timestamp={timestamp}
+        typeColor={selectedTypeConfig.color}
+      />
 
       {/* Actions */}
       <Row gap="sm" style={styles.actions}>
-        <Clickable onPress={onCancel} style={[styles.cancelButton, { borderColor: palette.border }]}>
+        <Clickable
+          onPress={onCancel}
+          style={[styles.cancelButton, { borderColor: palette.border }]}
+        >
           <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
         </Clickable>
         <Clickable
           onPress={validateAndSave}
           disabled={saving || !label.trim()}
-          style={[styles.saveButton, { backgroundColor: saving || !label.trim() ? palette.muted : palette.tint, opacity: saving || !label.trim() ? 0.5 : 1 }]}
+          style={[
+            styles.saveButton,
+            {
+              backgroundColor: saving || !label.trim() ? palette.muted : palette.tint,
+              opacity: saving || !label.trim() ? 0.5 : 1,
+            },
+          ]}
         >
           <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
           <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>
@@ -171,10 +218,37 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.xs },
   sectionLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.5 },
   charCount: { ...Typography.caption },
-  input: { ...Typography.body, height: 48, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md },
-  textArea: { ...Typography.body, minHeight: 80, borderWidth: 1, borderRadius: Radii.md, padding: Spacing.md },
+  input: {
+    ...Typography.body,
+    height: 48,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+  },
+  textArea: {
+    ...Typography.body,
+    minHeight: 80,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+  },
   actions: { marginTop: Spacing.xs },
-  cancelButton: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  saveButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: Radii.md, gap: Spacing.xs },
+  cancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  saveButton: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
+  },
   saveButtonText: { fontWeight: '600' },
 });

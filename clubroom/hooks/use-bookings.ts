@@ -59,7 +59,10 @@ export interface UseBookingsResult {
   handleModalUpdate: () => void;
   onRefresh: () => void;
   retry: () => void;
-  handleAcceptInvite: (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => Promise<void>;
+  handleAcceptInvite: (
+    invite: SessionInvite,
+    selectedSlot?: SessionInvite['proposedSlots'][0],
+  ) => Promise<void>;
   handleDeclineInvite: (invite: SessionInvite) => void;
 }
 
@@ -85,7 +88,12 @@ export function useBookings(): UseBookingsResult {
         id: booking.id,
         service: booking.service ?? 'Session',
         start: booking.scheduledAt,
-        status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
+        status:
+          booking.status === 'CONFIRMED'
+            ? 'Confirmed'
+            : booking.status === 'PENDING'
+              ? 'Pending'
+              : 'Completed',
         locationLabel: booking.location,
         coach: {
           name: booking.coachName,
@@ -121,7 +129,9 @@ export function useBookings(): UseBookingsResult {
       });
     } catch (loadError) {
       logger.error('Failed to load bookings data', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError),
+      );
     }
   }, [currentUser]);
 
@@ -155,37 +165,47 @@ export function useBookings(): UseBookingsResult {
   const pendingInvitesList = data?.pendingInvitesList ?? [];
   const pendingInvites = pendingInvitesList.length;
   const loading = status === 'loading';
-  const error = status === 'error' ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.') : null;
+  const error =
+    status === 'error'
+      ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.')
+      : null;
 
   // Compute display items
   const now = new Date();
   let displayItems: (SessionOffering | BookingSummary)[] = [];
 
   if (userRole === 'COACH') {
-    const myOfferings = sessionOfferings.filter(o => o.coachId === currentUser?.id);
-    displayItems = timeFilter === 'upcoming'
-      ? myOfferings.filter(o => new Date(o.scheduledAt) >= now || o.isRecurring)
-      : myOfferings.filter(o => new Date(o.scheduledAt) < now && !o.isRecurring);
+    const myOfferings = sessionOfferings.filter((o) => o.coachId === currentUser?.id);
+    displayItems =
+      timeFilter === 'upcoming'
+        ? myOfferings.filter((o) => new Date(o.scheduledAt) >= now || o.isRecurring)
+        : myOfferings.filter((o) => new Date(o.scheduledAt) < now && !o.isRecurring);
   } else {
-    const myRegisteredOfferings = sessionOfferings.filter(offering =>
-      offering.registrations.some(reg =>
-        reg.userId === currentUser?.id && reg.status === 'confirmed'
-      )
+    const myRegisteredOfferings = sessionOfferings.filter((offering) =>
+      offering.registrations.some(
+        (reg) => reg.userId === currentUser?.id && reg.status === 'confirmed',
+      ),
     );
 
     const filteredBookings = sessionBookings.filter((booking) => {
       if (hasChildren(currentUser)) {
         const childrenIds = (currentUser?.children || []).map((child) => child.childId);
-        return childrenIds.includes(booking.clientId || '') ||
-               booking.clientId === currentUser?.id ||
-               booking.client?.name === currentUser?.fullName;
+        return (
+          childrenIds.includes(booking.clientId || '') ||
+          booking.clientId === currentUser?.id ||
+          booking.client?.name === currentUser?.fullName
+        );
       }
       return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
     });
 
-    displayItems = timeFilter === 'upcoming'
-      ? [...myRegisteredOfferings.filter(o => new Date(o.scheduledAt) >= now || o.isRecurring), ...filteredBookings]
-      : myRegisteredOfferings.filter(o => new Date(o.scheduledAt) < now && !o.isRecurring);
+    displayItems =
+      timeFilter === 'upcoming'
+        ? [
+            ...myRegisteredOfferings.filter((o) => new Date(o.scheduledAt) >= now || o.isRecurring),
+            ...filteredBookings,
+          ]
+        : myRegisteredOfferings.filter((o) => new Date(o.scheduledAt) < now && !o.isRecurring);
   }
 
   // Navigation handlers
@@ -243,24 +263,25 @@ export function useBookings(): UseBookingsResult {
     onRefresh();
   }, [onRefresh]);
 
-  const handleAcceptInvite = useCallback(async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
-    const slot = selectedSlot || invite.proposedSlots[0];
-    const result = await sessionInviteService.respondToInvite({
-      inviteId: invite.id,
-      response: 'ACCEPTED',
-      selectedSlot: slot,
-    });
-    if (result.success) {
-      onRefresh();
-    }
-  }, [onRefresh]);
+  const handleAcceptInvite = useCallback(
+    async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
+      const slot = selectedSlot || invite.proposedSlots[0];
+      const result = await sessionInviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'ACCEPTED',
+        selectedSlot: slot,
+      });
+      if (result.success) {
+        onRefresh();
+      }
+    },
+    [onRefresh],
+  );
 
-  const handleDeclineInvite = useCallback((invite: SessionInvite) => {
-    const coachName = getSessionInviteCoachName(invite);
-    Alert.alert(
-      'Decline Invite?',
-      `Decline the session invite from ${coachName}?`,
-      [
+  const handleDeclineInvite = useCallback(
+    (invite: SessionInvite) => {
+      const coachName = getSessionInviteCoachName(invite);
+      Alert.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Decline',
@@ -275,9 +296,10 @@ export function useBookings(): UseBookingsResult {
             }
           },
         },
-      ]
-    );
-  }, [onRefresh]);
+      ]);
+    },
+    [onRefresh],
+  );
 
   return {
     displayItems,

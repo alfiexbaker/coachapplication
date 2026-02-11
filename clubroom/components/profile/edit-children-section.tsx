@@ -3,7 +3,7 @@
  */
 
 import React, { memo } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,16 +15,23 @@ import type { ThemeColors } from '@/hooks/useTheme';
 
 interface EditChildrenSectionProps {
   colors: ThemeColors;
-  children: Array<{ name: string; age: number }>;
+  childProfiles: { name: string; age: number }[];
   onAddChild: () => void;
   onUpdateChild: (index: number, field: 'name' | 'age', value: string | number) => void;
   onRemoveChild: (index: number) => void;
 }
 
 export const EditChildrenSection = memo(function EditChildrenSection({
-  colors, children, onAddChild, onUpdateChild, onRemoveChild,
+  colors,
+  childProfiles,
+  onAddChild,
+  onUpdateChild,
+  onRemoveChild,
 }: EditChildrenSectionProps) {
-  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+  const inputStyle = [
+    styles.input,
+    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
+  ];
 
   return (
     <SurfaceCard style={styles.section}>
@@ -43,8 +50,13 @@ export const EditChildrenSection = memo(function EditChildrenSection({
         </Clickable>
       </Row>
 
-      {children.map((child, index) => (
-        <Row key={`child-${index}`} align="center" gap="sm" style={[styles.childRow, { borderColor: colors.border }]}>
+      {childProfiles.map((child, index) => (
+        <Row
+          key={`child-${index}`}
+          align="center"
+          gap="sm"
+          style={[styles.childRow, { borderColor: colors.border }]}
+        >
           <Row gap="sm" flex>
             <TextInput
               value={child.name}
@@ -83,13 +95,16 @@ const styles = StyleSheet.create({
   inlineAction: {},
   inlineActionText: { fontWeight: '700' },
   childRow: {
-    paddingBottom: Spacing.sm, borderBottomWidth: 1,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
   },
   childNameInput: { flex: 2 },
   childAgeInput: { flex: 1 },
   input: {
-    borderWidth: 1, borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
 });

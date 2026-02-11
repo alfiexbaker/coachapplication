@@ -41,7 +41,10 @@ export const OriginBadge = memo(function OriginBadge({
           gap="xxs"
           style={[
             styles.clubBadgeView,
-            { backgroundColor: withAlpha(palette.success, 0.06), borderColor: withAlpha(palette.success, 0.19) },
+            {
+              backgroundColor: withAlpha(palette.success, 0.06),
+              borderColor: withAlpha(palette.success, 0.19),
+            },
           ]}
         >
           <Ionicons name="person-circle-outline" size={16} color={palette.success} />
@@ -61,7 +64,10 @@ export const OriginBadge = memo(function OriginBadge({
           gap="xxs"
           style={[
             styles.clubBadgeView,
-            { backgroundColor: withAlpha(palette.success, 0.06), borderColor: withAlpha(palette.success, 0.19) },
+            {
+              backgroundColor: withAlpha(palette.success, 0.06),
+              borderColor: withAlpha(palette.success, 0.19),
+            },
           ]}
         >
           <Ionicons name="person-circle-outline" size={16} color={palette.success} />
@@ -73,7 +79,10 @@ export const OriginBadge = memo(function OriginBadge({
           onPress={handleClubPress}
           style={[
             styles.clubBadge,
-            { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) },
+            {
+              backgroundColor: withAlpha(palette.tint, 0.06),
+              borderColor: withAlpha(palette.tint, 0.19),
+            },
           ]}
           hitSlop={8}
         >
@@ -96,7 +105,10 @@ export const OriginBadge = memo(function OriginBadge({
       onPress={handleClubPress}
       style={[
         styles.clubBadge,
-        { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) },
+        {
+          backgroundColor: withAlpha(palette.tint, 0.06),
+          borderColor: withAlpha(palette.tint, 0.19),
+        },
       ]}
       hitSlop={8}
     >

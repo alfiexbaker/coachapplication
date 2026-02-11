@@ -22,7 +22,15 @@ export const COMMON_LOCATIONS = [
 
 export const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const DAY_OF_WEEK_MAP: (0 | 1 | 2 | 3 | 4 | 5 | 6)[] = [1, 2, 3, 4, 5, 6, 0];
-export const DAYS_FULL_MAP = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+export const DAYS_FULL_MAP = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
 
 export interface DayHours {
   start: string;
@@ -42,12 +50,16 @@ function buildInitialState(existingTemplates?: AvailabilityTemplate[]) {
       days: Array(7).fill(false) as boolean[],
       same: true,
       global: { start: '09:00', end: '17:00' } as DayHours,
-      perDay: Array(7).fill(null).map(() => ({ start: '09:00', end: '17:00' })) as DayHours[],
+      perDay: Array(7)
+        .fill(null)
+        .map(() => ({ start: '09:00', end: '17:00' })) as DayHours[],
     };
   }
 
   const days = Array(7).fill(false) as boolean[];
-  const perDay = Array(7).fill(null).map(() => ({ start: '09:00', end: '17:00' })) as DayHours[];
+  const perDay = Array(7)
+    .fill(null)
+    .map(() => ({ start: '09:00', end: '17:00' })) as DayHours[];
   let allSame = true;
   let firstStart = '';
   let firstEnd = '';
@@ -80,7 +92,10 @@ export function formatTime(time: string): string {
 }
 
 export function useAvailabilityWizard({
-  coachId, onComplete, existingTemplates, sessionTemplates,
+  coachId,
+  onComplete,
+  existingTemplates,
+  sessionTemplates,
 }: UseAvailabilityWizardParams) {
   const isEditMode = (existingTemplates?.length ?? 0) > 0;
   const initial = buildInitialState(existingTemplates);
@@ -99,7 +114,7 @@ export function useAvailabilityWizard({
 
   const toggleDay = useCallback((index: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedDays(prev => {
+    setSelectedDays((prev) => {
       const next = [...prev];
       next[index] = !next[index];
       return next;
@@ -115,21 +130,27 @@ export function useAvailabilityWizard({
     }
   }, []);
 
-  const getHoursForDay = useCallback((index: number): DayHours => {
-    return sameHours ? globalHours : perDayHours[index];
-  }, [sameHours, globalHours, perDayHours]);
+  const getHoursForDay = useCallback(
+    (index: number): DayHours => {
+      return sameHours ? globalHours : perDayHours[index];
+    },
+    [sameHours, globalHours, perDayHours],
+  );
 
-  const updateDayHours = useCallback((index: number, field: 'start' | 'end', value: string) => {
-    if (sameHours) {
-      setGlobalHours(prev => ({ ...prev, [field]: value }));
-    } else {
-      setPerDayHours(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], [field]: value };
-        return next;
-      });
-    }
-  }, [sameHours]);
+  const updateDayHours = useCallback(
+    (index: number, field: 'start' | 'end', value: string) => {
+      if (sameHours) {
+        setGlobalHours((prev) => ({ ...prev, [field]: value }));
+      } else {
+        setPerDayHours((prev) => {
+          const next = [...prev];
+          next[index] = { ...next[index], [field]: value };
+          return next;
+        });
+      }
+    },
+    [sameHours],
+  );
 
   const calculateTotalHours = useCallback((): number => {
     let total = 0;
@@ -138,7 +159,7 @@ export function useAvailabilityWizard({
       const hours = sameHours ? globalHours : perDayHours[i];
       const [sh, sm] = hours.start.split(':').map(Number);
       const [eh, em] = hours.end.split(':').map(Number);
-      total += ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+      total += (eh * 60 + em - (sh * 60 + sm)) / 60;
     });
     return Math.round(total * 10) / 10;
   }, [selectedDays, sameHours, globalHours, perDayHours]);
@@ -147,12 +168,12 @@ export function useAvailabilityWizard({
 
   const toggleSameHours = useCallback(() => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSameHours(prev => !prev);
+    setSameHours((prev) => !prev);
   }, []);
 
   const selectLocation = useCallback((loc: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLocation(prev => prev === loc ? '' : loc);
+    setLocation((prev) => (prev === loc ? '' : loc));
     setShowLocationInput(false);
   }, []);
 
@@ -161,8 +182,9 @@ export function useAvailabilityWizard({
     setSessionTemplateId(id);
   }, []);
 
-  const linkedSessionTemplate = useMemo(() =>
-    sessionTemplateId ? sessionTemplates?.find(st => st.id === sessionTemplateId) : undefined,
+  const linkedSessionTemplate = useMemo(
+    () =>
+      sessionTemplateId ? sessionTemplates?.find((st) => st.id === sessionTemplateId) : undefined,
     [sessionTemplateId, sessionTemplates],
   );
 
@@ -196,7 +218,10 @@ export function useAvailabilityWizard({
                 ],
               );
             });
-            if (!proceed) { setSaving(false); return; }
+            if (!proceed) {
+              setSaving(false);
+              return;
+            }
           }
 
           for (const tmpl of existingTemplates) {
@@ -227,8 +252,11 @@ export function useAvailabilityWizard({
           sessionTemplateId: sessionTemplateId || existingForDay?.sessionTemplateId,
         });
       }
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      logger.info(isEditMode ? 'Bulk availability updated' : 'Setup wizard completed', { days: selectedCount });
+      if (Platform.OS !== 'web')
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      logger.info(isEditMode ? 'Bulk availability updated' : 'Setup wizard completed', {
+        days: selectedCount,
+      });
       onComplete();
     } catch (error) {
       logger.error('Failed to save templates', error);
@@ -236,14 +264,44 @@ export function useAvailabilityWizard({
     } finally {
       setSaving(false);
     }
-  }, [isEditMode, existingTemplates, selectedDays, sameHours, globalHours, perDayHours, coachId, location, sessionTemplateId, selectedCount, onComplete]);
+  }, [
+    isEditMode,
+    existingTemplates,
+    selectedDays,
+    sameHours,
+    globalHours,
+    perDayHours,
+    coachId,
+    location,
+    sessionTemplateId,
+    selectedCount,
+    onComplete,
+  ]);
 
   return {
-    step, setStep, selectedDays, sameHours, globalHours, perDayHours,
-    location, setLocation, showLocationInput, setShowLocationInput,
-    sessionTemplateId, saving, selectedCount, isEditMode,
-    totalHoursLive, linkedSessionTemplate,
-    toggleDay, applyPreset, getHoursForDay, updateDayHours,
-    toggleSameHours, selectLocation, selectSessionTemplate, handleConfirm,
+    step,
+    setStep,
+    selectedDays,
+    sameHours,
+    globalHours,
+    perDayHours,
+    location,
+    setLocation,
+    showLocationInput,
+    setShowLocationInput,
+    sessionTemplateId,
+    saving,
+    selectedCount,
+    isEditMode,
+    totalHoursLive,
+    linkedSessionTemplate,
+    toggleDay,
+    applyPreset,
+    getHoursForDay,
+    updateDayHours,
+    toggleSameHours,
+    selectLocation,
+    selectSessionTemplate,
+    handleConfirm,
   };
 }

@@ -13,7 +13,12 @@ import type { FootballObjective } from '@/constants/types';
 import { Row } from '@/components/primitives';
 
 const SKILLS: FootballObjective[] = [
-  'Dribbling', 'Passing', 'Defending', 'Finishing', 'Goalkeeping', 'Conditioning',
+  'Dribbling',
+  'Passing',
+  'Defending',
+  'Finishing',
+  'Goalkeeping',
+  'Conditioning',
 ];
 
 interface SessionExtrasProps {
@@ -39,7 +44,10 @@ function SessionExtrasInner({
 }: SessionExtrasProps) {
   const { colors: palette } = useTheme();
 
-  const inputBase = [styles.input, { backgroundColor: palette.card, borderColor: palette.border, color: palette.text }];
+  const inputBase = [
+    styles.input,
+    { backgroundColor: palette.card, borderColor: palette.border, color: palette.text },
+  ];
 
   return (
     <View style={styles.container}>

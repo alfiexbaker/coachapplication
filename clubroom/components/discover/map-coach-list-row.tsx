@@ -51,16 +51,16 @@ export const CoachListRow = memo(function CoachListRow({
         </View>
         <View style={styles.priceCol}>
           <ThemedText style={[styles.price, { color: palette.text }]}>
-            {'\u00A3'}{coach.pricePerHour}/hr
+            {'\u00A3'}
+            {coach.pricePerHour}/hr
           </ThemedText>
           <Clickable
             onPress={onBookNow}
-            style={[
-              styles.bookBtn,
-              { backgroundColor: palette.tint },
-            ]}
+            style={[styles.bookBtn, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>Book Now</ThemedText>
+            <ThemedText style={[styles.bookBtnText, { color: palette.onPrimary }]}>
+              Book Now
+            </ThemedText>
           </Clickable>
         </View>
       </View>
@@ -71,14 +71,30 @@ export const CoachListRow = memo(function CoachListRow({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  row: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.sm, borderBottomWidth: 1 },
-  avatar: { width: Components.avatar.md, height: Components.avatar.md, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  row: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  avatar: {
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1, gap: Spacing.xs / 2 },
   name: { ...Typography.bodySemiBold },
   meta: { alignItems: 'center', gap: Spacing.xs / 2 },
   metaText: { ...Typography.caption },
   priceCol: { alignItems: 'flex-end', gap: Spacing.xs },
   price: { ...Typography.bodySemiBold, fontWeight: '700' },
-  bookBtn: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs / 2, borderRadius: Radii.button },
+  bookBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.button,
+  },
   bookBtnText: { ...Typography.caption, fontWeight: '700' },
 });

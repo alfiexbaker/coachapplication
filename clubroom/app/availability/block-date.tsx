@@ -24,7 +24,12 @@ const REASON_OPTIONS = [
 ];
 
 export default function BlockDateScreen() {
-  const { status, error, retry, colors: palette } = useScreen<boolean>({
+  const {
+    status,
+    error,
+    retry,
+    colors: palette,
+  } = useScreen<boolean>({
     load: async () => ok(true),
     isEmpty: () => false,
     refetchOnFocus: true,
@@ -42,13 +47,15 @@ export default function BlockDateScreen() {
     return date;
   });
 
-  const formatDate = (date: Date) => date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const isSameDay = (d1: Date, d2: Date) => d1.toDateString() === d2.toDateString();
 
   const handleSave = async () => {
     if (!currentUser?.id) return;
 
-    const reasonText = reason === 'other' ? customReason : REASON_OPTIONS.find((r) => r.key === reason)?.label;
+    const reasonText =
+      reason === 'other' ? customReason : REASON_OPTIONS.find((r) => r.key === reason)?.label;
     if (reason === 'other' && !customReason.trim()) {
       Alert.alert('Reason Required', 'Please enter a reason for blocking this date');
       return;
@@ -63,7 +70,9 @@ export default function BlockDateScreen() {
         reason: reasonText,
       });
 
-      Alert.alert('Date Blocked', `${formatDate(selectedDate)} has been blocked`, [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Date Blocked', `${formatDate(selectedDate)} has been blocked`, [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
       logger.success('DateBlocked', { date: selectedDate.toISOString(), reason: reasonText });
     } catch (saveError) {
       logger.error('Failed to block date', saveError);

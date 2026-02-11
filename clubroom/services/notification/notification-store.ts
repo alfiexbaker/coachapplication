@@ -50,7 +50,9 @@ class NotificationStore {
   /**
    * Create a new notification.
    */
-  async create(notification: ExtendedNotificationItem): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+  async create(
+    notification: ExtendedNotificationItem,
+  ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
       const fullNotification: ExtendedNotificationItem = {
         ...notification,
@@ -130,14 +132,16 @@ class NotificationStore {
   /**
    * Mark a notification as handled (read + processed).
    */
-  async markHandled(id: string): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
+  async markHandled(
+    id: string,
+  ): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
     try {
       const currentResult = await this.list();
       if (!currentResult.success) {
         return currentResult;
       }
       const updated = currentResult.data.map((n) =>
-        n.id === id ? { ...n, read: true, handled: true } : n
+        n.id === id ? { ...n, read: true, handled: true } : n,
       );
       await apiClient.set(STORAGE_KEYS.NOTIFICATIONS, updated);
       return ok(updated.find((n) => n.id === id));
@@ -198,7 +202,9 @@ class NotificationStore {
   /**
    * Get notifications for a specific recipient.
    */
-  async getByRecipient(recipientId: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+  async getByRecipient(
+    recipientId: string,
+  ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     const listResult = await this.list();
     if (!listResult.success) {
       return listResult;
@@ -209,7 +215,9 @@ class NotificationStore {
   /**
    * Get notifications by type.
    */
-  async getByType(type: NotificationItem['type']): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
+  async getByType(
+    type: NotificationItem['type'],
+  ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     const listResult = await this.list();
     if (!listResult.success) {
       return listResult;

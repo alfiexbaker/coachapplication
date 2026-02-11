@@ -9,11 +9,23 @@ import { safetyService } from '@/services/safety-service';
 import type { EmergencyContact } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { MedicalItemChips, EmergencyCallSection, NoContactWarning } from './emergency-quick-card-sections';
-export type { MedicalItemChipsProps, EmergencyCallSectionProps, NoContactWarningProps } from './emergency-quick-card-sections';
+import {
+  MedicalItemChips,
+  EmergencyCallSection,
+  NoContactWarning,
+} from './emergency-quick-card-sections';
 
-import { MedicalItemChips, EmergencyCallSection, NoContactWarning } from './emergency-quick-card-sections';
+// Re-export extracted components for backward compat
+export {
+  MedicalItemChips,
+  EmergencyCallSection,
+  NoContactWarning,
+} from './emergency-quick-card-sections';
+export type {
+  MedicalItemChipsProps,
+  EmergencyCallSectionProps,
+  NoContactWarningProps,
+} from './emergency-quick-card-sections';
 
 type AlertLevel = 'none' | 'low' | 'medium' | 'high';
 
@@ -36,7 +48,8 @@ export function EmergencyQuickCard({
   medications,
   primaryContact,
   onCallPrimary,
-  onPress }: EmergencyQuickCardProps) {
+  onPress,
+}: EmergencyQuickCardProps) {
   const { colors: palette } = useTheme();
 
   const alertColor = safetyService.getAlertLevelColor(alertLevel);
@@ -44,9 +57,9 @@ export function EmergencyQuickCard({
   const hasAlerts = alertLevel !== 'none';
 
   const topItems = [
-    ...allergies.slice(0, 2).map(a => ({ label: a, type: 'allergy' as const })),
-    ...conditions.slice(0, 2).map(c => ({ label: c, type: 'condition' as const })),
-    ...medications.slice(0, 1).map(m => ({ label: m, type: 'medication' as const })),
+    ...allergies.slice(0, 2).map((a) => ({ label: a, type: 'allergy' as const })),
+    ...conditions.slice(0, 2).map((c) => ({ label: c, type: 'condition' as const })),
+    ...medications.slice(0, 1).map((m) => ({ label: m, type: 'medication' as const })),
   ].slice(0, 3);
 
   const totalItems = allergies.length + conditions.length + medications.length;
@@ -70,11 +83,13 @@ export function EmergencyQuickCard({
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.athleteName}>
             {athleteName}
           </ThemedText>
-          <Row align="center" gap="xxs" style={[styles.alertBadge, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
+          <Row
+            align="center"
+            gap="xxs"
+            style={[styles.alertBadge, { backgroundColor: withAlpha(alertColor, 0.09) }]}
+          >
             <View style={[styles.alertDot, { backgroundColor: alertColor }]} />
-            <ThemedText style={[styles.alertText, { color: alertColor }]}>
-              {alertLabel}
-            </ThemedText>
+            <ThemedText style={[styles.alertText, { color: alertColor }]}>{alertLabel}</ThemedText>
           </Row>
         </View>
       </Row>
@@ -96,26 +111,33 @@ const styles = StyleSheet.create({
   card: {
     padding: 0,
     borderWidth: 1.5,
-    overflow: 'hidden' },
+    overflow: 'hidden',
+  },
   header: {
-    padding: Components.card.padding },
+    padding: Components.card.padding,
+  },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center' },
+    alignItems: 'center',
+  },
   headerInfo: {
-    flex: 1 },
+    flex: 1,
+  },
   athleteName: { ...Typography.heading },
   alertBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
-    marginTop: Spacing.xxs },
+    marginTop: Spacing.xxs,
+  },
   alertDot: {
     width: 6,
     height: 6,
-    borderRadius: Radii.xs },
-  alertText: { ...Typography.caption } });
+    borderRadius: Radii.xs,
+  },
+  alertText: { ...Typography.caption },
+});

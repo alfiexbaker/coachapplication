@@ -37,9 +37,7 @@ export const CompactCodeCard = memo(function CompactCodeCard({
     <SurfaceCard style={styles.compactCard}>
       <Row align="center" justify="space-between">
         <View style={styles.compactLeft}>
-          <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>
-            Your code
-          </ThemedText>
+          <ThemedText style={[styles.compactLabel, { color: palette.muted }]}>Your code</ThemedText>
           <ThemedText type="defaultSemiBold" style={styles.compactCode}>
             {referralCode.code}
           </ThemedText>
@@ -104,12 +102,7 @@ export const CodeDisplay = memo(function CodeDisplay({
             size={20}
             color={copied ? palette.success : palette.icon}
           />
-          <ThemedText
-            style={[
-              styles.copyText,
-              { color: copied ? palette.success : palette.text },
-            ]}
-          >
+          <ThemedText style={[styles.copyText, { color: copied ? palette.success : palette.text }]}>
             {copied ? 'Copied!' : 'Copy'}
           </ThemedText>
         </Clickable>

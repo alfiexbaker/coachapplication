@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -71,7 +71,7 @@ export function BulkMessage({
   const selectedSquadName =
     scope === 'club'
       ? 'Whole Club'
-      : squads.find((s) => s.id === selectedSquadId)?.name ?? 'Select a squad';
+      : (squads.find((s) => s.id === selectedSquadId)?.name ?? 'Select a squad');
 
   // ─── Preview screen ─────────────────────────────────────────────────────
 

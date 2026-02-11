@@ -27,7 +27,10 @@ interface RsvpCounts {
  * Sync rsvpCounts on the SessionInvite object in storage
  * so carousel/card UIs reading invite.rsvpCounts get fresh data.
  */
-async function syncCountsToInvite(inviteId: string, allResponses: InviteRsvpResponse[]): Promise<void> {
+async function syncCountsToInvite(
+  inviteId: string,
+  allResponses: InviteRsvpResponse[],
+): Promise<void> {
   try {
     const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);
     const idx = invites.findIndex((inv) => inv.id === inviteId);
@@ -60,17 +63,14 @@ export const inviteRsvpService = {
     status: RsvpStatus,
     childId?: string,
     childName?: string,
-    userPhotoUrl?: string
+    userPhotoUrl?: string,
   ): Promise<Result<InviteRsvpResponse, ServiceError>> {
     try {
-      const allResponses = await apiClient.get<InviteRsvpResponse[]>(
-        STORAGE_KEYS.INVITE_RSVPS,
-        []
-      );
+      const allResponses = await apiClient.get<InviteRsvpResponse[]>(STORAGE_KEYS.INVITE_RSVPS, []);
 
       // Check for existing response from this user on this invite
       const existingIndex = allResponses.findIndex(
-        (r) => r.inviteId === inviteId && r.userId === userId
+        (r) => r.inviteId === inviteId && r.userId === userId,
       );
 
       const response: InviteRsvpResponse = {
@@ -120,10 +120,7 @@ export const inviteRsvpService = {
    */
   async getResponses(inviteId: string): Promise<Result<InviteRsvpResponse[], ServiceError>> {
     try {
-      const allResponses = await apiClient.get<InviteRsvpResponse[]>(
-        STORAGE_KEYS.INVITE_RSVPS,
-        []
-      );
+      const allResponses = await apiClient.get<InviteRsvpResponse[]>(STORAGE_KEYS.INVITE_RSVPS, []);
       const filtered = allResponses.filter((r) => r.inviteId === inviteId);
       return ok(filtered);
     } catch (error) {
@@ -137,10 +134,7 @@ export const inviteRsvpService = {
    */
   async getCounts(inviteId: string): Promise<Result<RsvpCounts, ServiceError>> {
     try {
-      const allResponses = await apiClient.get<InviteRsvpResponse[]>(
-        STORAGE_KEYS.INVITE_RSVPS,
-        []
-      );
+      const allResponses = await apiClient.get<InviteRsvpResponse[]>(STORAGE_KEYS.INVITE_RSVPS, []);
       const inviteResponses = allResponses.filter((r) => r.inviteId === inviteId);
 
       const counts: RsvpCounts = {
@@ -161,16 +155,11 @@ export const inviteRsvpService = {
    */
   async getRespondents(
     inviteId: string,
-    status: RsvpStatus
+    status: RsvpStatus,
   ): Promise<Result<InviteRsvpResponse[], ServiceError>> {
     try {
-      const allResponses = await apiClient.get<InviteRsvpResponse[]>(
-        STORAGE_KEYS.INVITE_RSVPS,
-        []
-      );
-      const filtered = allResponses.filter(
-        (r) => r.inviteId === inviteId && r.status === status
-      );
+      const allResponses = await apiClient.get<InviteRsvpResponse[]>(STORAGE_KEYS.INVITE_RSVPS, []);
+      const filtered = allResponses.filter((r) => r.inviteId === inviteId && r.status === status);
       return ok(filtered);
     } catch (error) {
       logger.error('Failed to get respondents', error);
@@ -183,13 +172,10 @@ export const inviteRsvpService = {
    */
   async updateResponse(
     responseId: string,
-    newStatus: RsvpStatus
+    newStatus: RsvpStatus,
   ): Promise<Result<InviteRsvpResponse, ServiceError>> {
     try {
-      const allResponses = await apiClient.get<InviteRsvpResponse[]>(
-        STORAGE_KEYS.INVITE_RSVPS,
-        []
-      );
+      const allResponses = await apiClient.get<InviteRsvpResponse[]>(STORAGE_KEYS.INVITE_RSVPS, []);
       const index = allResponses.findIndex((r) => r.id === responseId);
 
       if (index === -1) {

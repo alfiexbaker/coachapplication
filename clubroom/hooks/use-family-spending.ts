@@ -15,7 +15,7 @@ export const DATE_FILTER_LABELS: Record<DateRangeFilter, string> = {
   '3m': '3 Months',
   '6m': '6 Months',
   '1y': '1 Year',
-  'all': 'All Time',
+  all: 'All Time',
 };
 
 export const DATE_FILTERS: DateRangeFilter[] = ['1m', '3m', '6m', '1y', 'all'];
@@ -64,14 +64,7 @@ export function useFamilySpending() {
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<FamilySpendingData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilySpendingData>({
     load: loadData,
     deps: [currentUser?.id],
     isEmpty: (value) => value.spending.length === 0,
@@ -87,11 +80,16 @@ export function useFamilySpending() {
 
   const getMonthsToShow = useCallback((): number => {
     switch (dateFilter) {
-      case '1m': return 1;
-      case '3m': return 3;
-      case '6m': return 6;
-      case '1y': return 12;
-      default: return 6;
+      case '1m':
+        return 1;
+      case '3m':
+        return 3;
+      case '6m':
+        return 6;
+      case '1y':
+        return 12;
+      default:
+        return 6;
     }
   }, [dateFilter]);
 
@@ -105,10 +103,10 @@ export function useFamilySpending() {
             month: mb.month,
             amount: mb.amount,
             sessionCount: mb.sessionCount,
-          }))
+          })),
         )
         .slice(0, 5),
-    [spending]
+    [spending],
   );
 
   return {
@@ -121,6 +119,8 @@ export function useFamilySpending() {
     spending,
     dateFilter,
     spendingSummary,
-    handleDateFilterChange, getMonthsToShow, recentTransactions,
+    handleDateFilterChange,
+    getMonthsToShow,
+    recentTransactions,
   };
 }

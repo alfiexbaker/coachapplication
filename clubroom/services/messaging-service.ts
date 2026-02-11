@@ -74,7 +74,9 @@ export class MessagingService {
 
   constructor() {
     this.inMemoryThreads.forEach((thread) => {
-      this.inMemoryMessages[thread.id] = DEFAULT_MESSAGES.filter((message) => message.threadId === thread.id);
+      this.inMemoryMessages[thread.id] = DEFAULT_MESSAGES.filter(
+        (message) => message.threadId === thread.id,
+      );
     });
   }
 
@@ -102,12 +104,13 @@ export class MessagingService {
 
   async listMessages(threadId: string): Promise<Result<ChatMessage[], ServiceError>> {
     try {
-      const persisted = await apiClient.get<Record<string, ChatMessage[]>>(STORAGE_KEYS.MESSAGES, {});
+      const persisted = await apiClient.get<Record<string, ChatMessage[]>>(
+        STORAGE_KEYS.MESSAGES,
+        {},
+      );
       const messages = persisted[threadId] || this.inMemoryMessages[threadId] || [];
       return ok(
-        messages.sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        ),
+        messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
       );
     } catch (error) {
       logger.error('Failed to list messages', { threadId, error });
@@ -200,7 +203,8 @@ export class MessagingService {
       const threadResult = await this.getThread(threadId);
       await notificationService.notifyParentNewMessage({
         parentId: 'parent_1',
-        coachName: senderName || (threadResult.success ? threadResult.data.title : undefined) || 'Coach',
+        coachName:
+          senderName || (threadResult.success ? threadResult.data.title : undefined) || 'Coach',
         threadId,
       });
 
@@ -227,14 +231,19 @@ export class MessagingService {
 
   async deleteMessage(threadId: string, messageId: string): Promise<Result<void, ServiceError>> {
     try {
-      const persisted = await apiClient.get<Record<string, ChatMessage[]>>(STORAGE_KEYS.MESSAGES, {});
+      const persisted = await apiClient.get<Record<string, ChatMessage[]>>(
+        STORAGE_KEYS.MESSAGES,
+        {},
+      );
       const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
       const updated = current.filter((msg) => msg.id !== messageId);
       const messageDeleted = updated.length !== current.length;
       persisted[threadId] = updated;
       await apiClient.set(STORAGE_KEYS.MESSAGES, persisted);
       if (this.inMemoryMessages[threadId]) {
-        this.inMemoryMessages[threadId] = this.inMemoryMessages[threadId].filter((msg) => msg.id !== messageId);
+        this.inMemoryMessages[threadId] = this.inMemoryMessages[threadId].filter(
+          (msg) => msg.id !== messageId,
+        );
       }
       if (messageDeleted) {
         emitTyped(ServiceEvents.MESSAGE_DELETED, {

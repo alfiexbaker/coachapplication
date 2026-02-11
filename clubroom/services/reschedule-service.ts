@@ -17,13 +17,18 @@ import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { bookingCrudService } from '@/services/booking/booking-crud-service';
 import { notificationTriggers } from '@/services/notification-trigger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import type {
-  RescheduleProposalRecord,
-  RescheduleProposalStatus,
-} from '@/constants/session-types';
+import type { RescheduleProposalRecord, RescheduleProposalStatus } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  validationError,
+  storageError,
+} from '@/types/result';
 
 const logger = createLogger('RescheduleService');
 
@@ -91,7 +96,9 @@ export const rescheduleService = {
    * Create a new reschedule proposal.
    * Validates the proposed time against scheduling rules before persisting.
    */
-  async createProposal(params: CreateProposalParams): Promise<Result<RescheduleProposalRecord, ServiceError>> {
+  async createProposal(
+    params: CreateProposalParams,
+  ): Promise<Result<RescheduleProposalRecord, ServiceError>> {
     const {
       bookingId,
       initiatedBy,
@@ -189,7 +196,9 @@ export const rescheduleService = {
    * Accept a reschedule proposal.
    * Updates the booking's scheduledAt to the proposed time.
    */
-  async acceptProposal(params: AcceptProposalParams): Promise<Result<RescheduleProposalRecord, ServiceError>> {
+  async acceptProposal(
+    params: AcceptProposalParams,
+  ): Promise<Result<RescheduleProposalRecord, ServiceError>> {
     const { proposalId, responseNote } = params;
 
     const proposals = await loadProposals();
@@ -245,7 +254,9 @@ export const rescheduleService = {
   /**
    * Decline a reschedule proposal. The booking remains unchanged.
    */
-  async declineProposal(params: DeclineProposalParams): Promise<Result<RescheduleProposalRecord, ServiceError>> {
+  async declineProposal(
+    params: DeclineProposalParams,
+  ): Promise<Result<RescheduleProposalRecord, ServiceError>> {
     const { proposalId, declineReason, responseNote } = params;
 
     const proposals = await loadProposals();
@@ -292,7 +303,9 @@ export const rescheduleService = {
    * Counter a reschedule proposal with a new time.
    * Swaps initiator/respondent roles and sets counterDateTime.
    */
-  async counterProposal(params: CounterProposalParams): Promise<Result<RescheduleProposalRecord, ServiceError>> {
+  async counterProposal(
+    params: CounterProposalParams,
+  ): Promise<Result<RescheduleProposalRecord, ServiceError>> {
     const { proposalId, counterDateTime, responseNote } = params;
 
     const proposals = await loadProposals();
@@ -360,7 +373,9 @@ export const rescheduleService = {
   /**
    * Withdraw a pending proposal (by the initiator).
    */
-  async withdrawProposal(proposalId: string): Promise<Result<RescheduleProposalRecord, ServiceError>> {
+  async withdrawProposal(
+    proposalId: string,
+  ): Promise<Result<RescheduleProposalRecord, ServiceError>> {
     const proposals = await loadProposals();
     const index = proposals.findIndex((p) => p.id === proposalId);
     if (index === -1) {
@@ -394,7 +409,9 @@ export const rescheduleService = {
   /**
    * Get all proposals for a specific booking.
    */
-  async getProposalsForBooking(bookingId: string): Promise<Result<RescheduleProposalRecord[], ServiceError>> {
+  async getProposalsForBooking(
+    bookingId: string,
+  ): Promise<Result<RescheduleProposalRecord[], ServiceError>> {
     try {
       const proposals = await loadProposals();
       return ok(proposals.filter((p) => p.bookingId === bookingId));
@@ -407,14 +424,16 @@ export const rescheduleService = {
   /**
    * Get all pending proposals for a coach or parent.
    */
-  async getPendingProposals(userId: string): Promise<Result<RescheduleProposalRecord[], ServiceError>> {
+  async getPendingProposals(
+    userId: string,
+  ): Promise<Result<RescheduleProposalRecord[], ServiceError>> {
     try {
       const proposals = await loadProposals();
-      return ok(proposals.filter(
-        (p) =>
-          p.status === 'pending' &&
-          (p.initiatorId === userId || p.respondentId === userId),
-      ));
+      return ok(
+        proposals.filter(
+          (p) => p.status === 'pending' && (p.initiatorId === userId || p.respondentId === userId),
+        ),
+      );
     } catch (error) {
       logger.error('Failed to get pending proposals', error);
       return err(storageError('Failed to get pending proposals'));

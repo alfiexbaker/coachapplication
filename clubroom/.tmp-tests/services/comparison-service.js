@@ -290,7 +290,7 @@ class ComparisonService {
             }
             case 'RATING': {
                 // Best rating = highest rating
-                const best = coaches.reduce((prev, curr) => curr.rating > prev.rating ? curr : prev);
+                const best = coaches.reduce((prev, curr) => (curr.rating > prev.rating ? curr : prev));
                 return best.coachId;
             }
             case 'EXPERIENCE': {

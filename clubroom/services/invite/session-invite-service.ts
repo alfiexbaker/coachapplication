@@ -158,7 +158,10 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
   return userResult.data.name?.trim() || fallback;
 }
 
-async function resolveAthleteNames(athleteIds: string[], fallbackNames: string[] = []): Promise<string[]> {
+async function resolveAthleteNames(
+  athleteIds: string[],
+  fallbackNames: string[] = [],
+): Promise<string[]> {
   const uniqueAthleteIds = Array.from(new Set(athleteIds.filter(Boolean)));
   if (uniqueAthleteIds.length === 0) {
     return fallbackNames;
@@ -170,7 +173,10 @@ async function resolveAthleteNames(athleteIds: string[], fallbackNames: string[]
   }
 
   const usersById = new Map(usersResult.data.map((user) => [user.id, user.name?.trim() || '']));
-  return athleteIds.map((athleteId, index) => usersById.get(athleteId) || fallbackNames[index] || `Athlete ${index + 1}`);
+  return athleteIds.map(
+    (athleteId, index) =>
+      usersById.get(athleteId) || fallbackNames[index] || `Athlete ${index + 1}`,
+  );
 }
 
 export async function loadFromStorage(): Promise<SessionInvite[]> {
@@ -222,14 +228,14 @@ export const sessionInviteService = {
     athletes: string | string[],
     sessionDetails: Omit<CreateInviteInput, 'athleteIds' | 'athleteNames'> & {
       athleteNames?: string | string[];
-    }
+    },
   ): Promise<Result<SessionInvite, ServiceError>> {
     const athleteIds = Array.isArray(athletes) ? athletes : [athletes];
     const athleteNames = Array.isArray(sessionDetails.athleteNames)
       ? sessionDetails.athleteNames
       : sessionDetails.athleteNames
-      ? [sessionDetails.athleteNames]
-      : athleteIds.map((_, i) => `Athlete ${i + 1}`);
+        ? [sessionDetails.athleteNames]
+        : athleteIds.map((_, i) => `Athlete ${i + 1}`);
 
     let input: CreateInviteInput = {
       ...sessionDetails,
@@ -239,7 +245,11 @@ export const sessionInviteService = {
 
     // Validate proposed slots are still available before creating
     if (input.proposedSlots.length > 0) {
-      const validationResults = await this._validateSlots(input.coachId, input.proposedSlots, input.sessionTemplateId);
+      const validationResults = await this._validateSlots(
+        input.coachId,
+        input.proposedSlots,
+        input.sessionTemplateId,
+      );
       if (validationResults.takenSlots.length > 0) {
         const takenDesc = validationResults.takenSlots
           .map((s) => `${s.date} ${s.startTime}`)
@@ -247,7 +257,12 @@ export const sessionInviteService = {
         logger.warn('Some proposed slots are no longer available', { takenDesc });
 
         if (validationResults.validSlots.length === 0) {
-          return err(serviceError('VALIDATION', 'All proposed time slots are no longer available. Please select new times.'));
+          return err(
+            serviceError(
+              'VALIDATION',
+              'All proposed time slots are no longer available. Please select new times.',
+            ),
+          );
         }
 
         // Proceed with only valid slots
@@ -268,7 +283,7 @@ export const sessionInviteService = {
   async _validateSlots(
     coachId: string,
     slots: TimeSlot[],
-    sessionTemplateId?: string
+    sessionTemplateId?: string,
   ): Promise<{ validSlots: TimeSlot[]; takenSlots: TimeSlot[] }> {
     const validSlots: TimeSlot[] = [];
     const takenSlots: TimeSlot[] = [];
@@ -282,12 +297,10 @@ export const sessionInviteService = {
       coachId,
       startDate,
       endDate,
-      sessionTemplateId
+      sessionTemplateId,
     );
 
-    const invitableKeys = new Set(
-      invitableSlots.map((s) => `${s.date}_${s.startTime}`)
-    );
+    const invitableKeys = new Set(invitableSlots.map((s) => `${s.date}_${s.startTime}`));
 
     for (const slot of slots) {
       const key = `${slot.date}_${slot.startTime}`;
@@ -340,7 +353,7 @@ export const sessionInviteService = {
       newInvite.weekSlots = this.generateWeekSlots(
         input.proposedSlots,
         input.recurrenceWeeks,
-        startDate
+        startDate,
       );
     }
 
@@ -352,10 +365,10 @@ export const sessionInviteService = {
             input.coachId,
             slot.date,
             slot.date,
-            input.duration ?? 60
+            input.duration ?? 60,
           );
           const match = availSlots.find(
-            (s) => s.date === slot.date && s.startTime === slot.startTime
+            (s) => s.date === slot.date && s.startTime === slot.startTime,
           );
           if (match?.location) {
             slot.location = match.location;
@@ -375,15 +388,20 @@ export const sessionInviteService = {
       await inviteHoldService.createHolds(
         input.coachId,
         newInvite.id,
-        input.proposedSlots.map((s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime })),
-        newInvite.expiresAt
+        input.proposedSlots.map((s) => ({
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })),
+        newInvite.expiresAt,
       );
 
       // Create notification for parent
       const coachFirstName = input.coachName.split(' ')[0];
-      const athleteDisplay = input.athleteNames.length === 1
-        ? input.athleteNames[0]
-        : `${input.athleteNames.length} athletes`;
+      const athleteDisplay =
+        input.athleteNames.length === 1
+          ? input.athleteNames[0]
+          : `${input.athleteNames.length} athletes`;
       const clubDisplay = input.clubName ? ` to ${input.clubName}` : '';
 
       const notification: NotificationItem = {
@@ -412,7 +430,10 @@ export const sessionInviteService = {
   /**
    * Accept an invite - CRITICAL: Routes through bookingService.createBooking()
    */
-  async acceptInvite(inviteId: string, selectedSlot: TimeSlot): Promise<Result<SessionInvite, ServiceError>> {
+  async acceptInvite(
+    inviteId: string,
+    selectedSlot: TimeSlot,
+  ): Promise<Result<SessionInvite, ServiceError>> {
     return this.respondToInvite({
       inviteId,
       response: 'ACCEPTED',
@@ -477,13 +498,14 @@ export const sessionInviteService = {
         // Calculate duration in minutes from start and end time
         const [startHour, startMin] = startTime.split(':').map(Number);
         const [endHour, endMin] = endTime.split(':').map(Number);
-        const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+        const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
 
         const bookingResult = await bookingService.createBooking({
           coachId: invite.coachId,
           coachName,
-          athleteIds: [invite.athleteIds[0]], // Primary athlete
-          athleteNames: [athleteNames[0] || 'Athlete'],
+          athleteIds: invite.athleteIds,
+          athleteNames:
+            athleteNames.length > 0 ? athleteNames : invite.athleteIds.map(() => 'Athlete'),
           bookedById: invite.parentId,
           bookedByName: parentName,
           scheduledAt,
@@ -501,7 +523,10 @@ export const sessionInviteService = {
         if (!bookingResult.success) {
           // Booking failed — do NOT change invite status. Return error to caller.
           const reason = bookingResult.error?.message ?? 'Booking creation failed';
-          logger.error('Booking creation failed during invite acceptance', { inviteId: invite.id, reason });
+          logger.error('Booking creation failed during invite acceptance', {
+            inviteId: invite.id,
+            reason,
+          });
 
           emitTyped(ServiceEvents.INVITE_BOOKING_FAILED, {
             inviteId: invite.id,
@@ -523,7 +548,10 @@ export const sessionInviteService = {
         };
         await saveToStorage(invitesCache);
 
-        logger.info('Booking created successfully from invite', { bookingId: bookingResult.data.id, inviteId: invite.id });
+        logger.info('Booking created successfully from invite', {
+          bookingId: bookingResult.data.id,
+          inviteId: invite.id,
+        });
 
         emitTyped(ServiceEvents.INVITE_ACCEPTED, {
           inviteId: invite.id,
@@ -541,8 +569,11 @@ export const sessionInviteService = {
 
         notification.title = 'Invite Accepted!';
         notification.body = `${parentName} accepted your invite for ${athleteDisplay}. Session confirmed for ${
-          new Date(input.selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
-            ` at ${input.selectedSlot.startTime}`
+          new Date(input.selectedSlot.date).toLocaleDateString('en-GB', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          }) + ` at ${input.selectedSlot.startTime}`
         }.`;
 
         await notificationService.create(notification);
@@ -612,6 +643,63 @@ export const sessionInviteService = {
   },
 
   /**
+   * Send a reminder to the parent for a pending invite.
+   */
+  async sendInviteReminder(inviteId: string): Promise<Result<void, ServiceError>> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      const invite = invitesCache.find((inv) => inv.id === inviteId);
+
+      if (!invite) {
+        return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
+      }
+
+      if (invite.status !== 'PENDING') {
+        return err(serviceError('VALIDATION', 'Only pending invites can be reminded.'));
+      }
+
+      if (new Date(invite.expiresAt) <= new Date()) {
+        return err(serviceError('VALIDATION', 'Invite has expired.'));
+      }
+
+      const [coachName, athleteNames] = await Promise.all([
+        resolveUserName(invite.coachId, 'Coach'),
+        resolveAthleteNames(invite.athleteIds),
+      ]);
+      const athleteDisplay =
+        athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
+
+      const reminderResult = await notificationService.create({
+        id: apiClient.generateId('notif'),
+        type: 'reminder',
+        notificationType: 'SESSION_INVITE',
+        title: 'Reminder: Session Invite',
+        body: `Coach ${coachName.split(' ')[0]} is waiting for a response for ${athleteDisplay}.`,
+        timeLabel: 'Just now',
+        read: false,
+        recipientId: invite.parentId,
+        recipientRole: 'parent',
+        deepLink: `/session-invites/${invite.id}`,
+        data: {
+          inviteId: invite.id,
+        },
+      });
+
+      if (!reminderResult.success) {
+        return err(reminderResult.error);
+      }
+
+      logger.info('Invite reminder sent', { inviteId, parentId: invite.parentId });
+      return ok(undefined);
+    }
+
+    await fetch(`/api/session-invites/${inviteId}/remind`, {
+      method: 'POST',
+    });
+    return ok(undefined);
+  },
+
+  /**
    * Dismiss/remove an invite from parent's view (parent action)
    * This doesn't delete the invite, just hides it from the parent's list
    */
@@ -656,7 +744,9 @@ export const sessionInviteService = {
   async getParentInvites(parentId: string): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
-      return invitesCache.filter((inv) => accountIdsMatch(inv.parentId, parentId) && !inv.dismissed);
+      return invitesCache.filter(
+        (inv) => accountIdsMatch(inv.parentId, parentId) && !inv.dismissed,
+      );
     }
 
     const response = await fetch(`/api/session-invites?parentId=${parentId}`);
@@ -671,13 +761,13 @@ export const sessionInviteService = {
       // Return all pending invites if no parentId provided
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
-        (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date()
+        (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date(),
       );
     }
 
     const invites = await this.getParentInvites(parentId);
     return invites.filter(
-      (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date()
+      (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date(),
     );
   },
 
@@ -721,7 +811,7 @@ export const sessionInviteService = {
    */
   async acceptCounterProposal(
     inviteId: string,
-    selectedSlot: TimeSlot
+    selectedSlot: TimeSlot,
   ): Promise<Result<SessionInvite, ServiceError>> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
@@ -746,13 +836,14 @@ export const sessionInviteService = {
       // Calculate duration in minutes from start and end time
       const [startHour, startMin] = startTime.split(':').map(Number);
       const [endHour, endMin] = endTime.split(':').map(Number);
-      const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      const durationMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
 
       const bookingResult = await bookingService.createBooking({
         coachId: invite.coachId,
         coachName,
-        athleteIds: [invite.athleteIds[0]], // Primary athlete
-        athleteNames: [athleteNames[0] || 'Athlete'],
+        athleteIds: invite.athleteIds,
+        athleteNames:
+          athleteNames.length > 0 ? athleteNames : invite.athleteIds.map(() => 'Athlete'),
         bookedById: invite.parentId,
         bookedByName: parentName,
         scheduledAt,
@@ -770,7 +861,10 @@ export const sessionInviteService = {
       if (!bookingResult.success) {
         // Booking failed — do NOT change invite status
         const reason = bookingResult.error?.message ?? 'Booking creation failed';
-        logger.error('Booking creation failed during counter-proposal acceptance', { inviteId, reason });
+        logger.error('Booking creation failed during counter-proposal acceptance', {
+          inviteId,
+          reason,
+        });
 
         emitTyped(ServiceEvents.INVITE_BOOKING_FAILED, {
           inviteId,
@@ -793,7 +887,10 @@ export const sessionInviteService = {
 
       await saveToStorage(invitesCache);
 
-      logger.info('Booking created from counter-proposal', { bookingId: bookingResult.data.id, inviteId });
+      logger.info('Booking created from counter-proposal', {
+        bookingId: bookingResult.data.id,
+        inviteId,
+      });
 
       emitTyped(ServiceEvents.INVITE_ACCEPTED, {
         inviteId,
@@ -854,7 +951,7 @@ export const sessionInviteService = {
           (!inv.inviteType || inv.inviteType === 'OPEN') &&
           inv.status === 'PENDING' &&
           (!inv.expiresAt || new Date(inv.expiresAt) > new Date()) &&
-          !inv.dismissed
+          !inv.dismissed,
       );
     }
     const response = await fetch('/api/session-invites?inviteType=OPEN');
@@ -868,7 +965,8 @@ export const sessionInviteService = {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
-        (inv) => inv.inviteType === 'CLOSED' && accountIdsMatch(inv.parentId, parentId) && !inv.dismissed
+        (inv) =>
+          inv.inviteType === 'CLOSED' && accountIdsMatch(inv.parentId, parentId) && !inv.dismissed,
       );
     }
     const response = await fetch(`/api/session-invites?inviteType=CLOSED&parentId=${parentId}`);
@@ -880,7 +978,7 @@ export const sessionInviteService = {
    */
   async getSquadOnlyInvitesForParent(
     parentId: string,
-    memberSquadIds: string[]
+    memberSquadIds: string[],
   ): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
@@ -894,7 +992,7 @@ export const sessionInviteService = {
       });
     }
     const response = await fetch(
-      `/api/session-invites?inviteType=SQUAD_ONLY&parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`
+      `/api/session-invites?inviteType=SQUAD_ONLY&parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`,
     );
     return response.json();
   },
@@ -907,7 +1005,7 @@ export const sessionInviteService = {
    */
   async getAvailableInvitesForParent(
     parentId: string,
-    memberSquadIds: string[] = []
+    memberSquadIds: string[] = [],
   ): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
@@ -925,7 +1023,7 @@ export const sessionInviteService = {
       });
     }
     const response = await fetch(
-      `/api/session-invites/available?parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`
+      `/api/session-invites/available?parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`,
     );
     return response.json();
   },
@@ -949,7 +1047,7 @@ export const sessionInviteService = {
   generateWeekSlots(
     proposedSlots: TimeSlot[],
     recurrenceWeeks: number,
-    startDate: string
+    startDate: string,
   ): WeekAcceptance[] {
     const weekSlots: WeekAcceptance[] = [];
     const baseSlot = proposedSlots[0];
@@ -981,7 +1079,7 @@ export const sessionInviteService = {
    */
   async respondToRecurringInvite(
     inviteId: string,
-    weekAcceptances: WeekAcceptance[]
+    weekAcceptances: WeekAcceptance[],
   ): Promise<Result<SessionInvite, ServiceError>> {
     invitesCache = await loadFromStorage();
     const index = invitesCache.findIndex((inv) => inv.id === inviteId);
@@ -1033,7 +1131,7 @@ export const sessionInviteService = {
     }
 
     // Update the invite with acceptance data
-    const status = declinedWeeks.length > 0 ? 'ACCEPTED' as const : 'ACCEPTED' as const;
+    const status = declinedWeeks.length > 0 ? ('ACCEPTED' as const) : ('ACCEPTED' as const);
     invitesCache[index] = {
       ...invite,
       status,

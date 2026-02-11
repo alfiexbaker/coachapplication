@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, FlatList, ActivityIndicator } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { EventRSVP, EventAttendance, EventAttendanceStats } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
@@ -90,7 +89,7 @@ export function AttendeeList({
         showCheckInStatus={attendance.length > 0}
       />
     ),
-    [attendanceMap, onAttendeePress, attendance.length]
+    [attendanceMap, onAttendeePress, attendance.length],
   );
 
   const attendeeKeyExtractor = useCallback((item: EventRSVP) => item.id, []);
@@ -104,7 +103,7 @@ export function AttendeeList({
         palette={palette}
       />
     ),
-    [filter, palette]
+    [filter, palette],
   );
 
   const filterKeyExtractor = useCallback((item: FilterOption) => item.key, []);

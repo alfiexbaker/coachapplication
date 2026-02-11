@@ -53,7 +53,9 @@ export const ClubAdminActions = memo(function ClubAdminActions({ clubId }: ClubA
           style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <Ionicons name={action.icon} size={22} color={colors.tint} />
-          <ThemedText style={{ ...Typography.caption, color: colors.muted }}>{action.label}</ThemedText>
+          <ThemedText style={{ ...Typography.caption, color: colors.muted }}>
+            {action.label}
+          </ThemedText>
         </Clickable>
       ))}
     </Row>

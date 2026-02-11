@@ -31,15 +31,17 @@ export function useVerification() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadStatus(); }, [loadStatus]);
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
 
   const progress = status ? verificationService.getProgressPercentage(status) : 0;
   const hasCredentials = (status?.credentials.length ?? 0) > 0;
 
   const credentialStatus: VerificationItem = hasCredentials
-    ? status!.credentials.some(c => c.status === 'VERIFIED')
+    ? status!.credentials.some((c) => c.status === 'VERIFIED')
       ? { status: 'VERIFIED' }
-      : status!.credentials.some(c => c.status === 'PENDING')
+      : status!.credentials.some((c) => c.status === 'PENDING')
         ? { status: 'PENDING' }
         : { status: 'NOT_STARTED' }
     : { status: 'NOT_STARTED' };
@@ -51,7 +53,10 @@ export function useVerification() {
     } else {
       Alert.alert('Verify Email', 'We will send a verification code to your email address.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Send Code', onPress: () => Alert.alert('Code Sent', 'Check your inbox for the verification code.') },
+        {
+          text: 'Send Code',
+          onPress: () => Alert.alert('Code Sent', 'Check your inbox for the verification code.'),
+        },
       ]);
     }
   }, [status]);
@@ -63,7 +68,10 @@ export function useVerification() {
     } else {
       Alert.alert('Verify Phone', 'We will send an SMS verification code to your phone.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Send SMS', onPress: () => Alert.alert('Code Sent', 'Check your messages for the verification code.') },
+        {
+          text: 'Send SMS',
+          onPress: () => Alert.alert('Code Sent', 'Check your messages for the verification code.'),
+        },
       ]);
     }
   }, [status]);
@@ -73,10 +81,14 @@ export function useVerification() {
     if (status.insurance.status === 'VERIFIED') {
       Alert.alert('Insurance Verified', 'Your insurance documents are verified and up to date.');
     } else {
-      Alert.alert('Upload Insurance', 'Upload your public liability insurance certificate to get verified.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Upload', onPress: () => router.push(Routes.VERIFICATION_INSURANCE) },
-      ]);
+      Alert.alert(
+        'Upload Insurance',
+        'Upload your public liability insurance certificate to get verified.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upload', onPress: () => router.push(Routes.VERIFICATION_INSURANCE) },
+        ],
+      );
     }
   }, [status]);
 
@@ -85,8 +97,17 @@ export function useVerification() {
   const navigateToCredentials = useCallback(() => router.push(Routes.VERIFICATION_CREDENTIALS), []);
 
   return {
-    status, loading, progress, hasCredentials, credentialStatus,
-    loadStatus, handleEmailVerify, handlePhoneVerify, handleInsurancePress,
-    navigateToId, navigateToBackground, navigateToCredentials,
+    status,
+    loading,
+    progress,
+    hasCredentials,
+    credentialStatus,
+    loadStatus,
+    handleEmailVerify,
+    handlePhoneVerify,
+    handleInsurancePress,
+    navigateToId,
+    navigateToBackground,
+    navigateToCredentials,
   };
 }

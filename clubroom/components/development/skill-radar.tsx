@@ -39,18 +39,12 @@ export function SkillRadar({ skills }: SkillRadarProps) {
   const numAxes = skills.length;
 
   const currentPositions = useMemo(
-    () =>
-      skills.map((s, i) =>
-        polarToXY(i, numAxes, Math.min(s.current, MAX_LEVEL) / MAX_LEVEL),
-      ),
+    () => skills.map((s, i) => polarToXY(i, numAxes, Math.min(s.current, MAX_LEVEL) / MAX_LEVEL)),
     [skills, numAxes],
   );
 
   const previousPositions = useMemo(
-    () =>
-      skills.map((s, i) =>
-        polarToXY(i, numAxes, Math.min(s.previous, MAX_LEVEL) / MAX_LEVEL),
-      ),
+    () => skills.map((s, i) => polarToXY(i, numAxes, Math.min(s.previous, MAX_LEVEL) / MAX_LEVEL)),
     [skills, numAxes],
   );
 
@@ -78,9 +72,7 @@ export function SkillRadar({ skills }: SkillRadarProps) {
         Skill Radar
       </ThemedText>
 
-      <View
-        style={[styles.chartContainer, { width: CHART_SIZE, height: CHART_SIZE }]}
-      >
+      <View style={[styles.chartContainer, { width: CHART_SIZE, height: CHART_SIZE }]}>
         <RadarRings palette={palette} />
         <RadarAxes skills={skills} palette={palette} />
         <RadarDots

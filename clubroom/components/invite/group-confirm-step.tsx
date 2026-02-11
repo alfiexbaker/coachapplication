@@ -10,7 +10,7 @@ import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Center, Column } from '@/components/primitives';
+import { Center } from '@/components/primitives';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -27,15 +27,13 @@ export const GroupConfirmStep = memo(function GroupConfirmStep({
 }: GroupConfirmStepProps) {
   const uniqueParentCount = useMemo(
     () => new Set(selectedAthletes.map((a) => a.parentId)).size,
-    [selectedAthletes]
+    [selectedAthletes],
   );
 
   return (
     <Animated.View entering={FadeInDown.springify()}>
       <Center style={styles.content}>
-        <Center
-          style={[styles.icon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
-        >
+        <Center style={[styles.icon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
           <Ionicons name="paper-plane" size={48} color={colors.tint} />
         </Center>
         <ThemedText type="subtitle" style={styles.title}>
@@ -47,8 +45,8 @@ export const GroupConfirmStep = memo(function GroupConfirmStep({
           {selectedAthletes.length !== 1 ? 's' : ''}.
         </ThemedText>
         <ThemedText style={[styles.disclaimer, { color: colors.muted }]}>
-          Parents will receive a notification and have 7 days to respond. You can cancel the
-          invites anytime before they respond.
+          Parents will receive a notification and have 7 days to respond. You can cancel the invites
+          anytime before they respond.
         </ThemedText>
       </Center>
     </Animated.View>

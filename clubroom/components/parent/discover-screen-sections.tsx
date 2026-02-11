@@ -55,7 +55,9 @@ export function DiscoverEmptyState({
   if (childrenCount === 0) {
     return (
       <View style={styles.emptyState}>
-        <ThemedText type="subtitle" style={styles.emptyTitle}>No children added</ThemedText>
+        <ThemedText type="subtitle" style={styles.emptyTitle}>
+          No children added
+        </ThemedText>
         <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
           Add your children to start discovering coaches
         </ThemedText>
@@ -66,7 +68,9 @@ export function DiscoverEmptyState({
     return (
       <View style={styles.emptyState}>
         <Ionicons name="search" size={48} color={palette.icon} style={{ opacity: 0.3 }} />
-        <ThemedText type="subtitle" style={styles.emptyTitle}>Find expert coaches</ThemedText>
+        <ThemedText type="subtitle" style={styles.emptyTitle}>
+          Find expert coaches
+        </ThemedText>
         <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
           Enter postcode to discover coaches for {selectedChildName}
         </ThemedText>
@@ -77,8 +81,12 @@ export function DiscoverEmptyState({
     return (
       <View style={styles.emptyState}>
         <Ionicons name="location-outline" size={48} color={palette.icon} style={{ opacity: 0.3 }} />
-        <ThemedText type="subtitle" style={styles.emptyTitle}>No coaches nearby</ThemedText>
-        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>Try a different postcode</ThemedText>
+        <ThemedText type="subtitle" style={styles.emptyTitle}>
+          No coaches nearby
+        </ThemedText>
+        <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+          Try a different postcode
+        </ThemedText>
       </View>
     );
   }

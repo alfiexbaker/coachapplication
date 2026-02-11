@@ -21,7 +21,11 @@ interface Props {
 }
 
 export const EventAttendanceSection = memo(function EventAttendanceSection({
-  event, attendeeCounts, showAttendees, isCoach, onToggleAttendees,
+  event,
+  attendeeCounts,
+  showAttendees,
+  isCoach,
+  onToggleAttendees,
 }: Props) {
   const { colors: palette } = useTheme();
   const { going, maybe, notGoing, totalGuests } = attendeeCounts;
@@ -32,7 +36,11 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
           Attendance ({going + totalGuests} confirmed)
         </ThemedText>
-        <Ionicons name={showAttendees ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
+        <Ionicons
+          name={showAttendees ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={palette.icon}
+        />
       </Clickable>
 
       <Row style={styles.stats}>
@@ -46,7 +54,9 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
         </View>
         <View style={[styles.statBox, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
           <ThemedText style={[styles.statNumber, { color: palette.error }]}>{notGoing}</ThemedText>
-          <ThemedText style={[styles.statLabel, { color: palette.error }]}>Can&apos;t Go</ThemedText>
+          <ThemedText style={[styles.statLabel, { color: palette.error }]}>
+            Can&apos;t Go
+          </ThemedText>
         </View>
         {totalGuests > 0 && (
           <View style={[styles.statBox, { backgroundColor: palette.surface }]}>
@@ -58,28 +68,35 @@ export const EventAttendanceSection = memo(function EventAttendanceSection({
 
       {showAttendees && event.attendees.length > 0 && (
         <View style={styles.attendeeList}>
-          {event.attendees.filter((a) => a.status === 'GOING').map((attendee) => (
-            <Row key={attendee.userId} style={styles.attendeeRow}>
-              <View style={[styles.avatar, { backgroundColor: palette.border }]}>
-                <ThemedText style={styles.avatarInitial}>{attendee.userId.charAt(0)}</ThemedText>
-              </View>
-              <View style={styles.attendeeInfo}>
-                <ThemedText>{attendee.userId}</ThemedText>
-                {attendee.guestCount > 0 && (
-                  <ThemedText style={[styles.guestCount, { color: palette.muted }]}>
-                    +{attendee.guestCount} guest{attendee.guestCount > 1 ? 's' : ''}
-                  </ThemedText>
-                )}
-              </View>
-              <View style={[styles.statusDot, { backgroundColor: palette.success }]} />
-            </Row>
-          ))}
+          {event.attendees
+            .filter((a) => a.status === 'GOING')
+            .map((attendee) => (
+              <Row key={attendee.userId} style={styles.attendeeRow}>
+                <View style={[styles.avatar, { backgroundColor: palette.border }]}>
+                  <ThemedText style={styles.avatarInitial}>{attendee.userId.charAt(0)}</ThemedText>
+                </View>
+                <View style={styles.attendeeInfo}>
+                  <ThemedText>{attendee.userId}</ThemedText>
+                  {attendee.guestCount > 0 && (
+                    <ThemedText style={[styles.guestCount, { color: palette.muted }]}>
+                      +{attendee.guestCount} guest{attendee.guestCount > 1 ? 's' : ''}
+                    </ThemedText>
+                  )}
+                </View>
+                <View style={[styles.statusDot, { backgroundColor: palette.success }]} />
+              </Row>
+            ))}
         </View>
       )}
 
       {isCoach && event.attendees.length > 0 && (
-        <Clickable onPress={() => router.push(Routes.eventAttendees(event.id))} style={[styles.viewAllButton, { borderColor: palette.tint }]}>
-          <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All Attendees</ThemedText>
+        <Clickable
+          onPress={() => router.push(Routes.eventAttendees(event.id))}
+          style={[styles.viewAllButton, { borderColor: palette.tint }]}
+        >
+          <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
+            View All Attendees
+          </ThemedText>
           <Ionicons name="arrow-forward" size={16} color={palette.tint} />
         </Clickable>
       )}
@@ -97,11 +114,31 @@ const styles = StyleSheet.create({
   statLabel: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   attendeeList: { marginTop: Spacing.sm, gap: Spacing.xs },
   attendeeRow: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs },
-  avatar: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    ...Typography.bodySmallSemiBold,
+    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
+  },
   attendeeInfo: { flex: 1 },
   guestCount: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   statusDot: { width: 8, height: 8, borderRadius: Radii.xs },
-  viewAllButton: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
-  viewAllText: { ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
+  viewAllButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginTop: Spacing.xs,
+  },
+  viewAllText: {
+    ...Typography.bodySmallSemiBold,
+    fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
+  },
 });

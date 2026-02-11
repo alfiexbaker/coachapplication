@@ -73,7 +73,11 @@ function AthleteProgressInner({ athlete, coachId }: AthleteProgressProps) {
                 Focus: {athlete.primaryFocus || 'General'}
               </ThemedText>
             </Column>
-            <Row gap="xxs" align="center" style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+            <Row
+              gap="xxs"
+              align="center"
+              style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}
+            >
               <Ionicons name={trend.icon} size={16} color={trend.color} />
               <ThemedText style={[styles.trendText, { color: trend.color }]}>
                 {trend.label}
@@ -101,7 +105,10 @@ function AthleteProgressInner({ athlete, coachId }: AthleteProgressProps) {
           <SurfaceCard style={styles.section}>
             <Row gap="sm" align="center" justify="between">
               <ThemedText type="defaultSemiBold">Goals</ThemedText>
-              <Clickable onPress={() => router.push(Routes.GOALS_CREATE)} accessibilityLabel="Create goal">
+              <Clickable
+                onPress={() => router.push(Routes.GOALS_CREATE)}
+                accessibilityLabel="Create goal"
+              >
                 <Ionicons name="add-circle" size={22} color={colors.tint} />
               </Clickable>
             </Row>
@@ -147,6 +154,10 @@ const styles = StyleSheet.create({
   container: { paddingBottom: Spacing.xl },
   section: { gap: Spacing.sm },
   focusLabel: { ...Typography.bodySmall },
-  trendBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  trendBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   trendText: { ...Typography.smallSemiBold },
 });

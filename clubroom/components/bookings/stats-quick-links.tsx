@@ -31,10 +31,34 @@ export const StatsQuickLinks = memo(function StatsQuickLinks({
   const { colors: palette } = useTheme();
 
   const links = [
-    { id: 'progress', icon: 'analytics-outline' as const, label: 'Full Progress', color: palette.tint, onPress: onProgress },
-    { id: 'badges', icon: 'ribbon-outline' as const, label: 'View Badges', color: palette.accent, onPress: onBadges },
-    { id: 'bookings', icon: 'calendar-outline' as const, label: 'Book Session', color: palette.warning, onPress: onBookings },
-    { id: 'messages', icon: 'chatbubble-outline' as const, label: 'Messages', color: palette.success, onPress: onMessages },
+    {
+      id: 'progress',
+      icon: 'analytics-outline' as const,
+      label: 'Full Progress',
+      color: palette.tint,
+      onPress: onProgress,
+    },
+    {
+      id: 'badges',
+      icon: 'ribbon-outline' as const,
+      label: 'View Badges',
+      color: palette.accent,
+      onPress: onBadges,
+    },
+    {
+      id: 'bookings',
+      icon: 'calendar-outline' as const,
+      label: 'Book Session',
+      color: palette.warning,
+      onPress: onBookings,
+    },
+    {
+      id: 'messages',
+      icon: 'chatbubble-outline' as const,
+      label: 'Messages',
+      color: palette.success,
+      onPress: onMessages,
+    },
   ];
 
   return (
@@ -57,9 +81,7 @@ export const StatsQuickLinks = memo(function StatsQuickLinks({
             accessibilityLabel={link.label}
           >
             <Ionicons name={link.icon} size={24} color={link.color} />
-            <ThemedText style={[styles.linkText, { color: link.color }]}>
-              {link.label}
-            </ThemedText>
+            <ThemedText style={[styles.linkText, { color: link.color }]}>{link.label}</ThemedText>
           </Clickable>
         ))}
       </Row>

@@ -24,17 +24,46 @@ const MODE_OPTIONS = [
   { id: 'holiday' as const, label: 'Holidays', icon: 'gift-outline' },
 ];
 
-export const ModeSelector = memo(function ModeSelector({ mode, onSelect }: { mode: BlockMode; onSelect: (m: BlockMode) => void }) {
+export const ModeSelector = memo(function ModeSelector({
+  mode,
+  onSelect,
+}: {
+  mode: BlockMode;
+  onSelect: (m: BlockMode) => void;
+}) {
   const { colors: palette } = useTheme();
   return (
     <Row style={styles.modeSelector}>
       {MODE_OPTIONS.map((m) => {
         const isActive = mode === m.id;
         return (
-          <Clickable key={m.id} onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelect(m.id); }}
-            style={[styles.modeButton, { backgroundColor: isActive ? palette.tint : palette.surface, borderColor: isActive ? palette.tint : palette.border }]}>
-            <Ionicons name={m.icon as keyof typeof Ionicons.glyphMap} size={18} color={isActive ? palette.onPrimary : palette.muted} />
-            <ThemedText style={[styles.modeButtonText, { color: isActive ? palette.onPrimary : palette.text }]}>{m.label}</ThemedText>
+          <Clickable
+            key={m.id}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(m.id);
+            }}
+            style={[
+              styles.modeButton,
+              {
+                backgroundColor: isActive ? palette.tint : palette.surface,
+                borderColor: isActive ? palette.tint : palette.border,
+              },
+            ]}
+          >
+            <Ionicons
+              name={m.icon as keyof typeof Ionicons.glyphMap}
+              size={18}
+              color={isActive ? palette.onPrimary : palette.muted}
+            />
+            <ThemedText
+              style={[
+                styles.modeButtonText,
+                { color: isActive ? palette.onPrimary : palette.text },
+              ]}
+            >
+              {m.label}
+            </ThemedText>
           </Clickable>
         );
       })}
@@ -43,21 +72,47 @@ export const ModeSelector = memo(function ModeSelector({ mode, onSelect }: { mod
 });
 
 // --- QuickDates ---
-export const QuickDates = memo(function QuickDates({ startDate, onSelect }: { startDate: Date; onSelect: (d: Date) => void }) {
+export const QuickDates = memo(function QuickDates({
+  startDate,
+  onSelect,
+}: {
+  startDate: Date;
+  onSelect: (d: Date) => void;
+}) {
   const { colors: palette } = useTheme();
   const quickDates = useMemo(() => {
-    const today = new Date(); const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
-    return [{ id: 'today', label: 'Today', date: today }, { id: 'tomorrow', label: 'Tomorrow', date: tomorrow }, { id: 'nextweek', label: 'Next Week', date: nextWeek }];
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    return [
+      { id: 'today', label: 'Today', date: today },
+      { id: 'tomorrow', label: 'Tomorrow', date: tomorrow },
+      { id: 'nextweek', label: 'Next Week', date: nextWeek },
+    ];
   }, []);
   return (
     <Row style={styles.quickDates}>
       {quickDates.map((qd) => {
         const isSelected = toDateStr(startDate) === toDateStr(qd.date);
         return (
-          <Clickable key={qd.id} onPress={() => onSelect(qd.date)}
-            style={[styles.quickDateChip, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
-            <ThemedText style={[styles.quickDateText, { color: isSelected ? palette.tint : palette.text }]}>{qd.label}</ThemedText>
+          <Clickable
+            key={qd.id}
+            onPress={() => onSelect(qd.date)}
+            style={[
+              styles.quickDateChip,
+              {
+                backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
+                borderColor: isSelected ? palette.tint : palette.border,
+              },
+            ]}
+          >
+            <ThemedText
+              style={[styles.quickDateText, { color: isSelected ? palette.tint : palette.text }]}
+            >
+              {qd.label}
+            </ThemedText>
           </Clickable>
         );
       })}
@@ -66,7 +121,13 @@ export const QuickDates = memo(function QuickDates({ startDate, onSelect }: { st
 });
 
 // --- HolidayPresets ---
-export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({ selectedPreset, onSelect }: { selectedPreset: string | null; onSelect: (id: string, range: { start: Date; end: Date }) => void }) {
+export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({
+  selectedPreset,
+  onSelect,
+}: {
+  selectedPreset: string | null;
+  onSelect: (id: string, range: { start: Date; end: Date }) => void;
+}) {
   const { colors: palette } = useTheme();
   return (
     <Row style={styles.holidayGrid}>
@@ -74,13 +135,35 @@ export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({ selectedPre
         const isSelected = selectedPreset === preset.id;
         const dateRange = preset.dates();
         return (
-          <Clickable key={preset.id} onPress={() => onSelect(preset.id, dateRange)}
-            style={[styles.holidayCard, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
-            <View style={[styles.holidayIcon, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.12) : withAlpha(palette.muted, 0.09) }]}>
+          <Clickable
+            key={preset.id}
+            onPress={() => onSelect(preset.id, dateRange)}
+            style={[
+              styles.holidayCard,
+              {
+                backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
+                borderColor: isSelected ? palette.tint : palette.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.holidayIcon,
+                {
+                  backgroundColor: isSelected
+                    ? withAlpha(palette.tint, 0.12)
+                    : withAlpha(palette.muted, 0.09),
+                },
+              ]}
+            >
               <Ionicons name="gift" size={20} color={isSelected ? palette.tint : palette.muted} />
             </View>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>{preset.label}</ThemedText>
-            <ThemedText style={[styles.holidayDates, { color: palette.muted }]}>{formatBlockDate(dateRange.start)} - {formatBlockDate(dateRange.end)}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
+              {preset.label}
+            </ThemedText>
+            <ThemedText style={[styles.holidayDates, { color: palette.muted }]}>
+              {formatBlockDate(dateRange.start)} - {formatBlockDate(dateRange.end)}
+            </ThemedText>
             {isSelected && (
               <View style={[styles.selectedBadge, { backgroundColor: palette.tint }]}>
                 <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
@@ -101,22 +184,51 @@ interface DatePickerSectionProps {
   onAdjust: (target: 'start' | 'end', days: number) => void;
 }
 
-export const DatePickerSection = memo(function DatePickerSection({ mode, startDate, endDate, onAdjust }: DatePickerSectionProps) {
+export const DatePickerSection = memo(function DatePickerSection({
+  mode,
+  startDate,
+  endDate,
+  onAdjust,
+}: DatePickerSectionProps) {
   const { colors: palette } = useTheme();
   return (
     <SurfaceCard style={styles.dateCard}>
-      <DateRow label={mode === 'single' ? 'Date' : 'From'} date={startDate} color={palette.tint} onBack={() => onAdjust('start', -1)} onForward={() => onAdjust('start', 1)} />
+      <DateRow
+        label={mode === 'single' ? 'Date' : 'From'}
+        date={startDate}
+        color={palette.tint}
+        onBack={() => onAdjust('start', -1)}
+        onForward={() => onAdjust('start', 1)}
+      />
       {mode !== 'single' && (
         <>
           <Divider spacing={Spacing.md} />
-          <DateRow label="To" date={endDate} color={palette.error} onBack={() => onAdjust('end', -1)} onForward={() => onAdjust('end', 1)} />
+          <DateRow
+            label="To"
+            date={endDate}
+            color={palette.error}
+            onBack={() => onAdjust('end', -1)}
+            onForward={() => onAdjust('end', 1)}
+          />
         </>
       )}
     </SurfaceCard>
   );
 });
 
-function DateRow({ label, date, color, onBack, onForward }: { label: string; date: Date; color: string; onBack: () => void; onForward: () => void }) {
+function DateRow({
+  label,
+  date,
+  color,
+  onBack,
+  onForward,
+}: {
+  label: string;
+  date: Date;
+  color: string;
+  onBack: () => void;
+  onForward: () => void;
+}) {
   const { colors: palette } = useTheme();
   return (
     <Row style={styles.dateRow}>
@@ -125,13 +237,23 @@ function DateRow({ label, date, color, onBack, onForward }: { label: string; dat
       </View>
       <View style={styles.dateInfo}>
         <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>{label}</ThemedText>
-        <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>{formatBlockDate(date)}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
+          {formatBlockDate(date)}
+        </ThemedText>
       </View>
       <Row style={styles.dateAdjust}>
-        <Clickable accessibilityLabel="Go back" onPress={onBack} style={[styles.adjustButton, { borderColor: palette.border }]}>
+        <Clickable
+          accessibilityLabel="Go back"
+          onPress={onBack}
+          style={[styles.adjustButton, { borderColor: palette.border }]}
+        >
           <Ionicons name="chevron-back" size={18} color={palette.text} />
         </Clickable>
-        <Clickable accessibilityLabel="Next" onPress={onForward} style={[styles.adjustButton, { borderColor: palette.border }]}>
+        <Clickable
+          accessibilityLabel="Next"
+          onPress={onForward}
+          style={[styles.adjustButton, { borderColor: palette.border }]}
+        >
           <Ionicons name="chevron-forward" size={18} color={palette.text} />
         </Clickable>
       </Row>
@@ -140,17 +262,43 @@ function DateRow({ label, date, color, onBack, onForward }: { label: string; dat
 }
 
 // --- ReasonSelector ---
-export const ReasonSelector = memo(function ReasonSelector({ reason, onSelect }: { reason: string; onSelect: (id: string) => void }) {
+export const ReasonSelector = memo(function ReasonSelector({
+  reason,
+  onSelect,
+}: {
+  reason: string;
+  onSelect: (id: string) => void;
+}) {
   const { colors: palette } = useTheme();
   return (
     <Row style={styles.reasonGrid}>
       {BLOCK_REASONS.map((r) => {
         const isSelected = reason === r.id;
         return (
-          <Clickable key={r.id} onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSelect(r.id); }}
-            style={[styles.reasonChip, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
-            <Ionicons name={r.icon as keyof typeof Ionicons.glyphMap} size={16} color={isSelected ? palette.tint : palette.muted} />
-            <ThemedText style={[styles.reasonText, { color: isSelected ? palette.tint : palette.text }]}>{r.label}</ThemedText>
+          <Clickable
+            key={r.id}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(r.id);
+            }}
+            style={[
+              styles.reasonChip,
+              {
+                backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
+                borderColor: isSelected ? palette.tint : palette.border,
+              },
+            ]}
+          >
+            <Ionicons
+              name={r.icon as keyof typeof Ionicons.glyphMap}
+              size={16}
+              color={isSelected ? palette.tint : palette.muted}
+            />
+            <ThemedText
+              style={[styles.reasonText, { color: isSelected ? palette.tint : palette.text }]}
+            >
+              {r.label}
+            </ThemedText>
           </Clickable>
         );
       })}
@@ -159,18 +307,36 @@ export const ReasonSelector = memo(function ReasonSelector({ reason, onSelect }:
 });
 
 // --- Summary ---
-export const BlockSummary = memo(function BlockSummary({ startDate, endDate, reason, isSameDay, dayCount }: { startDate: Date; endDate: Date; reason: string; isSameDay: boolean; dayCount: number }) {
+export const BlockSummary = memo(function BlockSummary({
+  startDate,
+  endDate,
+  reason,
+  isSameDay,
+  dayCount,
+}: {
+  startDate: Date;
+  endDate: Date;
+  reason: string;
+  isSameDay: boolean;
+  dayCount: number;
+}) {
   const { colors: palette } = useTheme();
   return (
     <SurfaceCard style={[styles.summaryCard, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
       <Row style={styles.summaryRow}>
         <Ionicons name="alert-circle" size={20} color={palette.error} />
         <View style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold" style={{ color: palette.error }}>Time Off Summary</ThemedText>
-          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
-            {isSameDay ? `${formatBlockDate(startDate)} will be blocked` : `${dayCount} days from ${formatBlockDate(startDate)} to ${formatBlockDate(endDate)} will be blocked`}
+          <ThemedText type="defaultSemiBold" style={{ color: palette.error }}>
+            Time Off Summary
           </ThemedText>
-          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>Reason: {BLOCK_REASONS.find(r => r.id === reason)?.label}</ThemedText>
+          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
+            {isSameDay
+              ? `${formatBlockDate(startDate)} will be blocked`
+              : `${dayCount} days from ${formatBlockDate(startDate)} to ${formatBlockDate(endDate)} will be blocked`}
+          </ThemedText>
+          <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
+            Reason: {BLOCK_REASONS.find((r) => r.id === reason)?.label}
+          </ThemedText>
         </View>
       </Row>
     </SurfaceCard>
@@ -179,25 +345,82 @@ export const BlockSummary = memo(function BlockSummary({ startDate, endDate, rea
 
 const styles = StyleSheet.create({
   modeSelector: { gap: Spacing.xs },
-  modeButton: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5 },
+  modeButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
   modeButtonText: { ...Typography.smallSemiBold },
   quickDates: { gap: Spacing.xs },
-  quickDateChip: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
+  quickDateChip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   quickDateText: { fontWeight: '600' },
   holidayGrid: { flexWrap: 'wrap', gap: Spacing.sm },
-  holidayCard: { width: '48%', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs, position: 'relative' },
-  holidayIcon: { width: 36, height: 36, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  holidayCard: {
+    width: '48%',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.xs,
+    position: 'relative',
+  },
+  holidayIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
   holidayDates: { ...Typography.caption },
-  selectedBadge: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
+  selectedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dateCard: { padding: Spacing.md },
   dateRow: { alignItems: 'center', gap: Spacing.md },
-  dateIcon: { width: 40, height: 40, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  dateIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dateInfo: { flex: 1 },
   dateLabel: { ...Typography.caption },
   dateAdjust: { gap: Spacing.xs },
-  adjustButton: { width: 36, height: 36, borderRadius: Radii.xl, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  adjustButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   reasonGrid: { flexWrap: 'wrap', gap: Spacing.xs },
-  reasonChip: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  reasonChip: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
   reasonText: { ...Typography.smallSemiBold },
   summaryCard: { padding: Spacing.md },
   summaryRow: { gap: Spacing.md },

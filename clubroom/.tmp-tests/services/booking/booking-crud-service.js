@@ -143,20 +143,40 @@ class BookingCrudService {
             return (0, result_1.err)((0, result_1.notFound)('Booking', id));
         const updated = { ...bookings[index], ...updates };
         bookings[index] = updated;
-        await this.saveToStorage(bookings);
+        const saveResult = await this.saveToStorage(bookings);
+        if (!saveResult.success) {
+            return (0, result_1.err)(saveResult.error);
+        }
         return (0, result_1.ok)(updated);
     }
     async updateStatus(id, status) {
         const bookings = await this.loadFromStorage();
         const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
-        await this.saveToStorage(updated);
+        const saveResult = await this.saveToStorage(updated);
+        if (!saveResult.success) {
+            logger.error('Failed to update booking status', {
+                bookingId: id,
+                status,
+                error: saveResult.error.message,
+            });
+            return undefined;
+        }
         return updated.find((b) => b.id === id);
     }
     async cancel(id, reason, cancelledBy = 'parent') {
         const bookings = await this.loadFromStorage();
         const booking = bookings.find((b) => b.id === id);
         const updated = bookings.map((b) => b.id === id ? { ...b, status: 'CANCELLED', cancellationReason: reason } : b);
-        await this.saveToStorage(updated);
+        const saveResult = await this.saveToStorage(updated);
+        if (!saveResult.success) {
+            logger.error('Failed to cancel booking', {
+                bookingId: id,
+                reason,
+                cancelledBy,
+                error: saveResult.error.message,
+            });
+            return undefined;
+        }
         // Notify the other party about the cancellation
         if (booking) {
             const date = booking.scheduledAt
@@ -194,7 +214,10 @@ class BookingCrudService {
             // Find matching slot
             const matchingSlot = slots.find((slot) => slot.date === date && slot.startTime === startTime);
             if (!matchingSlot) {
-                return { valid: false, reason: 'This time slot is not within the coach\'s available hours.' };
+                return {
+                    valid: false,
+                    reason: "This time slot is not within the coach's available hours.",
+                };
             }
             if (!matchingSlot.isAvailable) {
                 return { valid: false, reason: 'This time slot is already fully booked.' };
@@ -253,12 +276,16 @@ class BookingCrudService {
         try {
             const bookings = await this.loadFromStorage();
             bookings.push(newBooking);
-            await this.saveToStorage(bookings);
+            const saveResult = await this.saveToStorage(bookings);
+            if (!saveResult.success) {
+                return (0, result_1.err)(saveResult.error);
+            }
             // Create notifications for coach and parent
             await this.createBookingNotifications(newBooking, bookedByName, athleteNames.join(', '));
             // Trigger notification for coach
             const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
-                month: 'short', day: 'numeric',
+                month: 'short',
+                day: 'numeric',
             });
             await notification_trigger_1.notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
             // Emit typed event for cross-service reactions
@@ -378,7 +405,10 @@ class BookingCrudService {
         try {
             const existing = await this.loadFromStorage();
             existing.push(...bookings);
-            await this.saveToStorage(existing);
+            const saveResult = await this.saveToStorage(existing);
+            if (!saveResult.success) {
+                return (0, result_1.err)(saveResult.error);
+            }
             // Emit events for each booking
             for (const booking of bookings) {
                 (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.BOOKING_CREATED, {
@@ -413,7 +443,10 @@ class BookingCrudService {
         try {
             const bookings = await this.loadFromStorage();
             bookings.push(booking);
-            await this.saveToStorage(bookings);
+            const saveResult = await this.saveToStorage(bookings);
+            if (!saveResult.success) {
+                return { success: false, error: saveResult.error.message };
+            }
             return { success: true };
         }
         catch (error) {

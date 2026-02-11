@@ -58,13 +58,7 @@ export function useMedicalInfo() {
     }
   }, [id]);
 
-  const {
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<MedicalInfoData>({
+  const { status, error, refreshing, onRefresh, retry } = useScreen<MedicalInfoData>({
     load: loadInfo,
     deps: [id],
     isEmpty: () => false,
@@ -75,9 +69,14 @@ export function useMedicalInfo() {
     setConsents((prev) =>
       prev.map((c) =>
         c.type === type
-          ? { ...c, granted, grantedBy: granted ? 'Current User' : '', grantedAt: granted ? new Date().toISOString() : undefined }
-          : c
-      )
+          ? {
+              ...c,
+              granted,
+              grantedBy: granted ? 'Current User' : '',
+              grantedAt: granted ? new Date().toISOString() : undefined,
+            }
+          : c,
+      ),
     );
   }, []);
 
@@ -86,7 +85,10 @@ export function useMedicalInfo() {
     setSaving(true);
     try {
       const medicalUpdate: Partial<MedicalInfo> = {
-        conditions, allergies, medications, restrictions,
+        conditions,
+        allergies,
+        medications,
+        restrictions,
         doctorName: doctorName || undefined,
         doctorPhone: doctorPhone || undefined,
         insuranceProvider: insuranceProvider || undefined,
@@ -105,7 +107,7 @@ export function useMedicalInfo() {
           id,
           consent.type,
           consent.granted,
-          consent.grantedBy
+          consent.grantedBy,
         );
         if (!consentResult.success) {
           logger.error('Failed to update consent', consentResult.error);
@@ -119,31 +121,66 @@ export function useMedicalInfo() {
     } finally {
       setSaving(false);
     }
-  }, [id, conditions, allergies, medications, restrictions, doctorName, doctorPhone, insuranceProvider, insuranceNumber, notes, consents]);
+  }, [
+    id,
+    conditions,
+    allergies,
+    medications,
+    restrictions,
+    doctorName,
+    doctorPhone,
+    insuranceProvider,
+    insuranceNumber,
+    notes,
+    consents,
+  ]);
 
-  const addItem = useCallback((setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
-    setter((prev) => [...prev, item]);
-  }, []);
+  const addItem = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
+      setter((prev) => [...prev, item]);
+    },
+    [],
+  );
 
-  const removeItem = useCallback((setter: React.Dispatch<React.SetStateAction<string[]>>) => (index: number) => {
-    setter((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  const removeItem = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<string[]>>) => (index: number) => {
+      setter((prev) => prev.filter((_, i) => i !== index));
+    },
+    [],
+  );
 
   return {
-    loading: status === 'loading', saving,
+    loading: status === 'loading',
+    saving,
     status,
     error: status === 'error' ? (error as ServiceError | null) : null,
     refreshing,
     onRefresh,
     retry,
-    conditions, allergies, medications, restrictions,
-    doctorName, setDoctorName, doctorPhone, setDoctorPhone,
-    insuranceProvider, setInsuranceProvider, insuranceNumber, setInsuranceNumber,
-    notes, setNotes, consents,
-    handleConsentToggle, handleSave,
-    addCondition: addItem(setConditions), removeCondition: removeItem(setConditions),
-    addAllergy: addItem(setAllergies), removeAllergy: removeItem(setAllergies),
-    addMedication: addItem(setMedications), removeMedication: removeItem(setMedications),
-    addRestriction: addItem(setRestrictions), removeRestriction: removeItem(setRestrictions),
+    conditions,
+    allergies,
+    medications,
+    restrictions,
+    doctorName,
+    setDoctorName,
+    doctorPhone,
+    setDoctorPhone,
+    insuranceProvider,
+    setInsuranceProvider,
+    insuranceNumber,
+    setInsuranceNumber,
+    notes,
+    setNotes,
+    consents,
+    handleConsentToggle,
+    handleSave,
+    addCondition: addItem(setConditions),
+    removeCondition: removeItem(setConditions),
+    addAllergy: addItem(setAllergies),
+    removeAllergy: removeItem(setAllergies),
+    addMedication: addItem(setMedications),
+    removeMedication: removeItem(setMedications),
+    addRestriction: addItem(setRestrictions),
+    removeRestriction: removeItem(setRestrictions),
   };
 }

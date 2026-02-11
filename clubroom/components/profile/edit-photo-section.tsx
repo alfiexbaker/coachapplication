@@ -21,7 +21,11 @@ interface EditPhotoSectionProps {
 }
 
 export const EditPhotoSection = memo(function EditPhotoSection({
-  colors, userIsCoach, coverPhotoUrl, profilePhotoUrl, onPickImage,
+  colors,
+  userIsCoach,
+  coverPhotoUrl,
+  profilePhotoUrl,
+  onPickImage,
 }: EditPhotoSectionProps) {
   return (
     <>
@@ -64,7 +68,12 @@ export const EditPhotoSection = memo(function EditPhotoSection({
               <Ionicons name="person" size={48} color={colors.muted} />
             </View>
           )}
-          <View style={[styles.avatarOverlay, { backgroundColor: colors.tint, borderColor: colors.onPrimary }]}>
+          <View
+            style={[
+              styles.avatarOverlay,
+              { backgroundColor: colors.tint, borderColor: colors.onPrimary },
+            ]}
+          >
             <Ionicons name="camera" size={20} color={colors.onPrimary} />
           </View>
         </Clickable>
@@ -86,13 +95,21 @@ const styles = StyleSheet.create({
   overlayText: { fontWeight: '600' },
   avatarContainer: { position: 'relative', alignSelf: 'center' },
   avatar: {
-    width: 100, height: 100, borderRadius: Radii.pill,
-    justifyContent: 'center', alignItems: 'center',
+    width: 100,
+    height: 100,
+    borderRadius: Radii.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarOverlay: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: Components.avatar.sm, height: Components.avatar.sm,
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
     borderRadius: Components.avatar.sm / 2,
-    justifyContent: 'center', alignItems: 'center', borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
   },
 });

@@ -58,15 +58,18 @@ export default function CreateDrillScreen() {
             onPress: () => {
               // Reset form by navigating to same page
               router.replace(Routes.DRILLS_CREATE);
-            } },
+            },
+          },
           {
             text: 'Assign Now',
             onPress: () => {
               router.replace(Routes.drillsAssignWith(newDrill.id));
-            } },
+            },
+          },
           {
             text: 'Done',
-            onPress: () => router.back() },
+            onPress: () => router.back(),
+          },
         ]);
       } catch (error) {
         logger.error('Failed to create drill:', error);
@@ -75,7 +78,7 @@ export default function CreateDrillScreen() {
         setIsSubmitting(false);
       }
     },
-    [coachId, coachName]
+    [coachId, coachName],
   );
 
   /**
@@ -89,14 +92,22 @@ export default function CreateDrillScreen() {
       {
         text: 'Discard',
         style: 'destructive',
-        onPress: () => router.back() },
+        onPress: () => router.back(),
+      },
     ]);
   }, []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       {/* Header */}
-      <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: palette.border }]}>
+      <Row
+        align="center"
+        justify="space-between"
+        style={[styles.header, { borderBottomColor: palette.border }]}
+      >
         <Clickable accessibilityLabel="Close" onPress={handleCancel} hitSlop={8}>
           <Ionicons name="close" size={24} color={palette.text} />
         </Clickable>
@@ -119,10 +130,15 @@ export default function CreateDrillScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 },
+    flex: 1,
+  },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1 },
+    borderBottomWidth: 1,
+  },
   headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) } });
+    ...Typography.heading,
+    fontSize: scaleFont(Typography.heading.fontSize),
+  },
+});

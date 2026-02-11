@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii , Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface Child {
@@ -17,7 +17,12 @@ interface ChildSwitcherProps {
   showAll?: boolean; // Set false to hide "All" option (e.g., for badges)
 }
 
-export function ChildSwitcher({ childrenList, selectedId, onSelect, showAll = true }: ChildSwitcherProps) {
+export function ChildSwitcher({
+  childrenList,
+  selectedId,
+  onSelect,
+  showAll = true,
+}: ChildSwitcherProps) {
   const { colors: palette } = useTheme();
 
   const renderPill = (id: string | null, label: string) => {

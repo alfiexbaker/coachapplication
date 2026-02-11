@@ -18,7 +18,14 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'] as const;
-const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'] as const;
+const FOCUSES = [
+  'Dribbling',
+  'Passing',
+  'Finishing',
+  'Defending',
+  'Goalkeeping',
+  'Conditioning',
+] as const;
 
 export interface GroupSessionDetailsStepProps {
   athleteCount: number;
@@ -71,9 +78,7 @@ export const GroupSessionDetailsStep = memo(function GroupSessionDetailsStep({
             accessibilityLabel="Edit selected athletes"
             accessibilityRole="button"
           >
-            <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
-              Edit
-            </ThemedText>
+            <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>Edit</ThemedText>
           </Clickable>
         </Row>
 

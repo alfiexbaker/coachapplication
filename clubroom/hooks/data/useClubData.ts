@@ -6,7 +6,11 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { clubService, type ClubMember, type ClubMemberRemovalRecord } from '@/services/club-service';
+import {
+  clubService,
+  type ClubMember,
+  type ClubMemberRemovalRecord,
+} from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -92,7 +96,7 @@ export function useClubData(
     includeSessions?: boolean;
     includeSquads?: boolean;
     includeRemovals?: boolean;
-  }
+  },
 ): ClubDataResult {
   const {
     includeMembers = true,
@@ -179,7 +183,7 @@ export function useClubData(
           city: '',
           memberCount: allMembers.length,
           coachCount: allMembers.filter((m) =>
-            ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(m.role)
+            ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(m.role),
           ).length,
           squadCount: 0,
           ownerId: membersSummary.byRole.owners[0]?.userId ?? '',
@@ -234,7 +238,7 @@ export function useClubData(
       error,
       refetch,
     }),
-    [club, members, sessions, squads, loading, error, refetch]
+    [club, members, sessions, squads, loading, error, refetch],
   );
 }
 
@@ -276,7 +280,7 @@ export function useClubMembers(clubId: string | null | undefined) {
   // Helper to filter members by role
   const getMembersByRole = useCallback(
     (role: ClubRole) => members.filter((m) => m.role === role),
-    [members]
+    [members],
   );
 
   return useMemo(
@@ -286,12 +290,10 @@ export function useClubMembers(clubId: string | null | undefined) {
       error,
       refetch: fetchMembers,
       getMembersByRole,
-      coaches: members.filter((m) =>
-        ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(m.role)
-      ),
+      coaches: members.filter((m) => ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(m.role)),
       athletes: members.filter((m) => m.role === 'MEMBER'),
     }),
-    [members, loading, error, fetchMembers, getMembersByRole]
+    [members, loading, error, fetchMembers, getMembersByRole],
   );
 }
 
@@ -343,7 +345,7 @@ export function useClubSessions(clubId: string | null | undefined) {
       error,
       refetch: fetchSessions,
     }),
-    [sessions, upcomingSessions, loading, error, fetchSessions]
+    [sessions, upcomingSessions, loading, error, fetchSessions],
   );
 }
 
@@ -359,7 +361,7 @@ export function useClubMemberManagement(clubId: string | null | undefined) {
       userId: string,
       reason: 'LEFT_CLUB' | 'INACTIVE' | 'CONDUCT' | 'SEASON_END' | 'OTHER',
       removedBy: { id: string; name: string },
-      customReason?: string
+      customReason?: string,
     ) => {
       if (!clubId) {
         throw new Error('Club ID is required');
@@ -380,7 +382,7 @@ export function useClubMemberManagement(clubId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [clubId]
+    [clubId],
   );
 
   const undoRemoval = useCallback(
@@ -402,7 +404,7 @@ export function useClubMemberManagement(clubId: string | null | undefined) {
         setLoading(false);
       }
     },
-    [clubId]
+    [clubId],
   );
 
   return useMemo(
@@ -415,6 +417,6 @@ export function useClubMemberManagement(clubId: string | null | undefined) {
       canBeRemoved: clubService.canBeRemoved,
       formatRemovalReason: clubService.formatRemovalReason,
     }),
-    [removeMember, undoRemoval, loading, error]
+    [removeMember, undoRemoval, loading, error],
   );
 }

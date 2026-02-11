@@ -87,23 +87,14 @@ export const FrequencyCardOption = memo(function FrequencyCardOption({
       disabled={disabled}
     >
       <View
-        style={[
-          styles.radioOuter,
-          { borderColor: isSelected ? palette.tint : palette.border },
-        ]}
+        style={[styles.radioOuter, { borderColor: isSelected ? palette.tint : palette.border }]}
       >
-        {isSelected && (
-          <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />
-        )}
+        {isSelected && <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />}
       </View>
 
       <View style={styles.cardContent}>
         <Row align="center" gap="xs">
-          <Ionicons
-            name={option.icon}
-            size={20}
-            color={isSelected ? palette.tint : palette.icon}
-          />
+          <Ionicons name={option.icon} size={20} color={isSelected ? palette.tint : palette.icon} />
           <ThemedText
             type="defaultSemiBold"
             style={{ color: isSelected ? palette.tint : palette.foreground }}
@@ -136,17 +127,12 @@ export const FrequencyCardOption = memo(function FrequencyCardOption({
         style={[
           styles.sessionsBadge,
           {
-            backgroundColor: isSelected
-              ? withAlpha(palette.tint, 0.15)
-              : palette.background,
+            backgroundColor: isSelected ? withAlpha(palette.tint, 0.15) : palette.background,
           },
         ]}
       >
         <ThemedText
-          style={[
-            styles.sessionsText,
-            { color: isSelected ? palette.tint : palette.muted },
-          ]}
+          style={[styles.sessionsText, { color: isSelected ? palette.tint : palette.muted }]}
         >
           {option.sessionsPerMonth}x/mo
         </ThemedText>
@@ -186,10 +172,7 @@ export const FrequencyPillOption = memo(function FrequencyPillOption({
       disabled={disabled}
     >
       <ThemedText
-        style={[
-          styles.pillText,
-          { color: isSelected ? palette.onPrimary : palette.foreground },
-        ]}
+        style={[styles.pillText, { color: isSelected ? palette.onPrimary : palette.foreground }]}
       >
         {option.label}
       </ThemedText>

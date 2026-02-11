@@ -54,9 +54,15 @@ export function SelectionTile({
             )}
             <View style={styles.copy}>
               <ThemedText type="defaultSemiBold">{title}</ThemedText>
-              {description ? <ThemedText style={{ color: palette.muted }}>{description}</ThemedText> : null}
+              {description ? (
+                <ThemedText style={{ color: palette.muted }}>{description}</ThemedText>
+              ) : null}
               {meta ? (
-                <ThemedText style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}>{meta}</ThemedText>
+                <ThemedText
+                  style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}
+                >
+                  {meta}
+                </ThemedText>
               ) : null}
             </View>
           </Row>
@@ -72,9 +78,15 @@ export function SelectionTile({
             )}
             <View style={styles.copy}>
               <ThemedText type="defaultSemiBold">{title}</ThemedText>
-              {description ? <ThemedText style={{ color: palette.muted }}>{description}</ThemedText> : null}
+              {description ? (
+                <ThemedText style={{ color: palette.muted }}>{description}</ThemedText>
+              ) : null}
               {meta ? (
-                <ThemedText style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}>{meta}</ThemedText>
+                <ThemedText
+                  style={[styles.meta, { color: selected ? palette.tint : palette.muted }]}
+                >
+                  {meta}
+                </ThemedText>
               ) : null}
             </View>
           </View>

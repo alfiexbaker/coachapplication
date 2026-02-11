@@ -63,7 +63,10 @@ export default function AthleteProfileScreen() {
   // --- 4 visual states ---
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -71,7 +74,10 @@ export default function AthleteProfileScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message || 'Failed to load'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -79,7 +85,10 @@ export default function AthleteProfileScreen() {
 
   if (status === 'empty' || !data) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="person-outline"
           title="Athlete not found"
@@ -122,7 +131,10 @@ export default function AthleteProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -139,7 +151,11 @@ export default function AthleteProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <AthleteHero athlete={entry} onStatusPress={openStatusModal} />
-        <AthleteQuickActions athlete={entry} onRaiseConcern={handleRaiseConcern} onRemove={handleRemove} />
+        <AthleteQuickActions
+          athlete={entry}
+          onRaiseConcern={handleRaiseConcern}
+          onRemove={handleRemove}
+        />
         <AthleteTabBar activeTab={activeTab} onTabPress={setActiveTab} />
         <View style={styles.tabContent}>{renderTabContent()}</View>
       </ScrollView>

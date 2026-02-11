@@ -19,7 +19,12 @@ import { ThemedText } from '@/components/themed-text';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useCoachInvites, formatExpiry, ROLE_LABELS, type PendingClubInvite } from '@/hooks/use-coach-invites';
+import {
+  useCoachInvites,
+  formatExpiry,
+  ROLE_LABELS,
+  type PendingClubInvite,
+} from '@/hooks/use-coach-invites';
 
 export default function CoachInvitesScreen() {
   const { colors: palette } = useTheme();
@@ -36,28 +41,54 @@ export default function CoachInvitesScreen() {
             </ThemedText>
           </View>
           <View style={styles.clubInfo}>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>{invite.clubName}</ThemedText>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>
+              {invite.clubName}
+            </ThemedText>
             <Row style={[styles.roleBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={14} color={palette.success} />
-              <ThemedText style={[styles.roleText, { color: palette.success }]}>Invited as {ROLE_LABELS[invite.role]}</ThemedText>
+              <ThemedText style={[styles.roleText, { color: palette.success }]}>
+                Invited as {ROLE_LABELS[invite.role]}
+              </ThemedText>
             </Row>
           </View>
         </Row>
         <View style={[styles.detailsSection, { borderTopColor: palette.border }]}>
-          <Row style={styles.detailRow}><Ionicons name="person-outline" size={16} color={palette.muted} />
-            <ThemedText style={{ color: palette.muted }}>Invited by {invite.invitedBy}</ThemedText></Row>
-          <Row style={styles.detailRow}><Ionicons name="time-outline" size={16} color={palette.warning} />
-            <ThemedText style={{ color: palette.warning }}>{formatExpiry(invite.expiresAt)}</ThemedText></Row>
+          <Row style={styles.detailRow}>
+            <Ionicons name="person-outline" size={16} color={palette.muted} />
+            <ThemedText style={{ color: palette.muted }}>Invited by {invite.invitedBy}</ThemedText>
+          </Row>
+          <Row style={styles.detailRow}>
+            <Ionicons name="time-outline" size={16} color={palette.warning} />
+            <ThemedText style={{ color: palette.warning }}>
+              {formatExpiry(invite.expiresAt)}
+            </ThemedText>
+          </Row>
         </View>
         <Row style={styles.actions}>
-          <Clickable style={[styles.declineButton, { borderColor: palette.border }]} onPress={() => c.handleDecline(invite)} disabled={isResponding}>
+          <Clickable
+            style={[styles.declineButton, { borderColor: palette.border }]}
+            onPress={() => c.handleDecline(invite)}
+            disabled={isResponding}
+          >
             <ThemedText style={[styles.declineText, { color: palette.muted }]}>Decline</ThemedText>
           </Clickable>
-          <Clickable style={[styles.acceptButton, { backgroundColor: palette.tint }]} onPress={() => c.handleAccept(invite)} disabled={isResponding}>
+          <Clickable
+            style={[styles.acceptButton, { backgroundColor: palette.tint }]}
+            onPress={() => c.handleAccept(invite)}
+            disabled={isResponding}
+          >
             <Row align="center" justify="center" gap="xs">
-              {isResponding ? <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Joining...</ThemedText> : (
-                <><Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-                  <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept & Join</ThemedText></>
+              {isResponding ? (
+                <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>
+                  Joining...
+                </ThemedText>
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>
+                    Accept & Join
+                  </ThemedText>
+                </>
               )}
             </Row>
           </Clickable>
@@ -68,8 +99,16 @@ export default function CoachInvitesScreen() {
 
   if (c.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <PageHeader title="Club Invites" subtitle="Checking your invites" showBack onBackPress={() => router.back()} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <PageHeader
+          title="Club Invites"
+          subtitle="Checking your invites"
+          showBack
+          onBackPress={() => router.back()}
+        />
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -77,17 +116,36 @@ export default function CoachInvitesScreen() {
 
   if (c.status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <PageHeader title="Club Invites" subtitle="Unable to load invites" showBack onBackPress={() => router.back()} />
-        <ErrorState message={c.error?.message || 'Failed to load club invites.'} onRetry={c.retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <PageHeader
+          title="Club Invites"
+          subtitle="Unable to load invites"
+          showBack
+          onBackPress={() => router.back()}
+        />
+        <ErrorState
+          message={c.error?.message || 'Failed to load club invites.'}
+          onRetry={c.retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (c.status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <PageHeader title="Club Invites" subtitle="No pending invites" showBack onBackPress={() => router.back()} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <PageHeader
+          title="Club Invites"
+          subtitle="No pending invites"
+          showBack
+          onBackPress={() => router.back()}
+        />
         <EmptyState
           icon="shield-outline"
           title="No pending invites"
@@ -100,11 +158,22 @@ export default function CoachInvitesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <PageHeader title="Club Invites" subtitle={c.pendingCount > 0 ? `${c.pendingCount} pending` : 'No pending invites'}
-        showBack onBackPress={() => router.back()} />
-      <FlatList data={c.invites} keyExtractor={(item) => item.id} renderItem={renderInvite}
-        contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <PageHeader
+        title="Club Invites"
+        subtitle={c.pendingCount > 0 ? `${c.pendingCount} pending` : 'No pending invites'}
+        showBack
+        onBackPress={() => router.back()}
+      />
+      <FlatList
+        data={c.invites}
+        keyExtractor={(item) => item.id}
+        renderItem={renderInvite}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
@@ -117,15 +186,39 @@ const styles = StyleSheet.create({
   list: { padding: Spacing.md },
   inviteCard: { gap: Spacing.md },
   inviteHeader: { alignItems: 'center', gap: Spacing.md },
-  clubBadge: { width: 56, height: 56, borderRadius: Radii['2xl'], alignItems: 'center', justifyContent: 'center' },
+  clubBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clubBadgeText: { ...Typography.heading },
   clubInfo: { flex: 1, gap: Spacing.xs },
-  roleBadge: { alignItems: 'center', alignSelf: 'flex-start', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  roleBadge: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+  },
   roleText: { ...Typography.smallSemiBold },
-  detailsSection: { gap: Spacing.xs, paddingTop: Spacing.xs, borderTopWidth: 1, borderTopColor: 'transparent' },
+  detailsSection: {
+    gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'transparent',
+  },
   detailRow: { alignItems: 'center', gap: Spacing.sm },
   actions: { gap: Spacing.sm, marginTop: Spacing.xs },
-  declineButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center' },
+  declineButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
   declineText: { ...Typography.bodySemiBold },
   acceptButton: { flex: 2, paddingVertical: Spacing.sm, borderRadius: Radii.md },
   acceptText: { ...Typography.bodySemiBold },

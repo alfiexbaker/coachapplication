@@ -3,7 +3,7 @@
  * WeekPatternGrid, session type chips, take time off, booking rules.
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -73,7 +73,10 @@ export const ScheduleAvailabilitySegment = memo(function ScheduleAvailabilitySeg
         <Clickable
           onPress={onTakeTimeOff}
           accessibilityLabel="Take time off"
-          style={[styles.actionRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[
+            styles.actionRow,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
           <Row align="center" gap="sm" flex>
             <Ionicons name="airplane-outline" size={18} color={colors.muted} />
@@ -89,7 +92,10 @@ export const ScheduleAvailabilitySegment = memo(function ScheduleAvailabilitySeg
         <Clickable
           onPress={onRulesOpen}
           accessibilityLabel="Booking rules"
-          style={[styles.actionRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[
+            styles.actionRow,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
         >
           <Row align="center" gap="sm" flex>
             <Ionicons name="settings-outline" size={18} color={colors.muted} />

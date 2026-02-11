@@ -16,7 +16,10 @@ interface SharingGuardiansSectionProps {
   onRemove: (guardian: FamilyGuardian) => void;
 }
 
-export const SharingGuardiansSection = memo(function SharingGuardiansSection({ guardians, onRemove }: SharingGuardiansSectionProps) {
+export const SharingGuardiansSection = memo(function SharingGuardiansSection({
+  guardians,
+  onRemove,
+}: SharingGuardiansSectionProps) {
   const { colors } = useTheme();
 
   return (
@@ -31,17 +34,25 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({ g
         <View key={guardian.id} style={[styles.card, { borderColor: colors.border }]}>
           <Row gap="sm" align="center">
             <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-              <ThemedText style={[Typography.heading, { color: colors.tint }]}>{(guardian.userId || 'U').charAt(0)}</ThemedText>
+              <ThemedText style={[Typography.heading, { color: colors.tint }]}>
+                {(guardian.userId || 'U').charAt(0)}
+              </ThemedText>
             </View>
             <View style={{ flex: 1 }}>
               <ThemedText type="defaultSemiBold">{guardian.userId}</ThemedText>
-              <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
+              <ThemedText
+                style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}
+              >
                 {guardian.relationship} • {ROLE_INFO[guardian.role].label}
               </ThemedText>
             </View>
             {guardian.isPrimary ? (
-              <View style={[styles.primaryBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
-                <ThemedText style={[Typography.caption, { color: colors.success }]}>Primary</ThemedText>
+              <View
+                style={[styles.primaryBadge, { backgroundColor: withAlpha(colors.success, 0.09) }]}
+              >
+                <ThemedText style={[Typography.caption, { color: colors.success }]}>
+                  Primary
+                </ThemedText>
               </View>
             ) : (
               <Clickable
@@ -56,9 +67,16 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({ g
           </Row>
           <Row gap="sm" align="center" style={{ marginLeft: 56 }}>
             {getPermissionIcons(guardian.permissions).map((icon, i) => (
-              <Ionicons key={i} name={icon as keyof typeof Ionicons.glyphMap} size={18} color={colors.muted} />
+              <Ionicons
+                key={i}
+                name={icon as keyof typeof Ionicons.glyphMap}
+                size={18}
+                color={colors.muted}
+              />
             ))}
-            <ThemedText style={[Typography.caption, { color: colors.muted, marginLeft: Spacing.xs }]}>
+            <ThemedText
+              style={[Typography.caption, { color: colors.muted, marginLeft: Spacing.xs }]}
+            >
               {guardian.permissions.length} permissions
             </ThemedText>
           </Row>
@@ -72,6 +90,12 @@ const styles = StyleSheet.create({
   section: { padding: Spacing.md, gap: Spacing.md },
   count: { marginLeft: 'auto', ...Typography.bodySmall },
   card: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.sm },
-  avatar: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   primaryBadge: { paddingHorizontal: 10, paddingVertical: Spacing.xxs, borderRadius: Radii.sm },
 });

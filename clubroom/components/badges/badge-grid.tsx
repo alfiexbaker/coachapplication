@@ -47,10 +47,14 @@ export function BadgeGrid({
         <Row style={styles.header}>
           <View style={styles.headerLeft}>
             {title && (
-              <ThemedText type="defaultSemiBold" style={styles.title}>{title}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.title}>
+                {title}
+              </ThemedText>
             )}
             {subtitle && (
-              <ThemedText style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</ThemedText>
+              <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+                {subtitle}
+              </ThemedText>
             )}
           </View>
           {showCounts && (

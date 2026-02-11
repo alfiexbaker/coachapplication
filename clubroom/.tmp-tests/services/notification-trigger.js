@@ -16,7 +16,11 @@ const logger_1 = require("@/utils/logger");
 const logger = (0, logger_1.createLogger)('NotificationTrigger');
 // Map action types to notification types
 function mapToNotificationType(actionType) {
-    if (actionType.includes('booking') || actionType.includes('session') || actionType.includes('invite') || actionType.includes('rsvp') || actionType.includes('cancel'))
+    if (actionType.includes('booking') ||
+        actionType.includes('session') ||
+        actionType.includes('invite') ||
+        actionType.includes('rsvp') ||
+        actionType.includes('cancel'))
         return 'booking';
     if (actionType.includes('message'))
         return 'message';

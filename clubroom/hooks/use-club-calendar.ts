@@ -9,8 +9,18 @@ import { createLogger } from '@/utils/logger';
 
 export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const MONTH_LABELS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const logger = createLogger('useClubCalendar');
@@ -83,18 +93,13 @@ export function useClubCalendar(): UseClubCalendarResult {
       });
     } catch (loadError) {
       logger.error('Failed to load club calendar', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load club calendar. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load club calendar. Pull down to refresh.', loadError),
+      );
     }
   }, [clubId, year, month, squadFilter]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<ClubCalendarData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubCalendarData>({
     load: loadCalendar,
     deps: [clubId, year, month, squadFilter],
     isEmpty: () => false,
@@ -115,7 +120,7 @@ export function useClubCalendar(): UseClubCalendarResult {
   }, [events]);
 
   const selectedDateKey = selectedDay !== null ? formatDateKey(year, month, selectedDay) : null;
-  const selectedEvents = selectedDateKey ? eventsByDate[selectedDateKey] ?? [] : [];
+  const selectedEvents = selectedDateKey ? (eventsByDate[selectedDateKey] ?? []) : [];
 
   // Calendar grid
   const daysInMonth = getDaysInMonth(year, month);
@@ -131,9 +136,10 @@ export function useClubCalendar(): UseClubCalendarResult {
     weeks.push(calendarCells.slice(i, i + 7));
   }
 
-  const isToday = useCallback((day: number) =>
-    year === now.getFullYear() && month === now.getMonth() && day === now.getDate(),
-    [year, month]
+  const isToday = useCallback(
+    (day: number) =>
+      year === now.getFullYear() && month === now.getMonth() && day === now.getDate(),
+    [year, month],
   );
 
   const handlePrevMonth = useCallback(() => {

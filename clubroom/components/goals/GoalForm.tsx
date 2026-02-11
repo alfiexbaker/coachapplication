@@ -7,7 +7,6 @@
 
 import { useState, useCallback } from 'react';
 import {
-  View,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -49,7 +48,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
   const [category, setCategory] = useState<GoalCategory>(goal?.category ?? 'OTHER');
   const [targetDate, setTargetDate] = useState(goal?.targetDate ?? '');
   const [milestones, setMilestones] = useState<string[]>(
-    goal?.milestones.map((m) => m.title) ?? []
+    goal?.milestones.map((m) => m.title) ?? [],
   );
   const [newMilestone, setNewMilestone] = useState('');
 
@@ -83,13 +82,27 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
   }, [isValid, loading, isEditing, title, description, category, targetDate, milestones, onSubmit]);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Title */}
         <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
           <ThemedText style={styles.label}>Goal Title *</ThemedText>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: palette.surface,
+                color: palette.text,
+                borderColor: palette.border,
+              },
+            ]}
             placeholder="What do you want to achieve?"
             placeholderTextColor={palette.muted}
             value={title}
@@ -97,14 +110,23 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
             maxLength={100}
             returnKeyType="next"
           />
-          <ThemedText style={[styles.charCount, { color: palette.muted }]}>{title.length}/100</ThemedText>
+          <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+            {title.length}/100
+          </ThemedText>
         </Animated.View>
 
         {/* Description */}
         <Animated.View entering={FadeInDown.delay(150)} style={styles.section}>
           <ThemedText style={styles.label}>Description (Optional)</ThemedText>
           <TextInput
-            style={[styles.textArea, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }]}
+            style={[
+              styles.textArea,
+              {
+                backgroundColor: palette.surface,
+                color: palette.text,
+                borderColor: palette.border,
+              },
+            ]}
             placeholder="Describe your goal in more detail..."
             placeholderTextColor={palette.muted}
             value={description}
@@ -113,7 +135,9 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
             numberOfLines={3}
             maxLength={500}
           />
-          <ThemedText style={[styles.charCount, { color: palette.muted }]}>{description.length}/500</ThemedText>
+          <ThemedText style={[styles.charCount, { color: palette.muted }]}>
+            {description.length}/500
+          </ThemedText>
         </Animated.View>
 
         {/* Category */}
@@ -135,8 +159,14 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
                     },
                   ]}
                 >
-                  <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={isSelected ? color : palette.muted} />
-                  <ThemedText style={[styles.categoryLabel, { color: isSelected ? color : palette.text }]}>
+                  <Ionicons
+                    name={icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={isSelected ? color : palette.muted}
+                  />
+                  <ThemedText
+                    style={[styles.categoryLabel, { color: isSelected ? color : palette.text }]}
+                  >
                     {progressService.getCategoryInfo(cat).label}
                   </ThemedText>
                 </Clickable>
@@ -149,14 +179,23 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
         <Animated.View entering={FadeInDown.delay(250)} style={styles.section}>
           <ThemedText style={styles.label}>Target Date (Optional)</ThemedText>
           <TextInput
-            style={[styles.input, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: palette.surface,
+                color: palette.text,
+                borderColor: palette.border,
+              },
+            ]}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={palette.muted}
             value={targetDate}
             onChangeText={setTargetDate}
             keyboardType="numbers-and-punctuation"
           />
-          <ThemedText style={[styles.hint, { color: palette.muted }]}>Set a deadline to stay motivated</ThemedText>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>
+            Set a deadline to stay motivated
+          </ThemedText>
         </Animated.View>
 
         {/* Milestones (create only) */}
@@ -186,12 +225,18 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
       {/* Footer */}
       <Row style={[styles.footer, { borderTopColor: palette.border }]}>
         {onCancel && (
-          <Button variant="outline" onPress={onCancel} style={styles.footerButton}>Cancel</Button>
+          <Button variant="outline" onPress={onCancel} style={styles.footerButton}>
+            Cancel
+          </Button>
         )}
         <Button
           onPress={handleSubmit}
           disabled={!isValid || loading}
-          style={[styles.footerButton, !onCancel ? styles.fullWidthButton : undefined].filter(Boolean) as ViewStyle[]}
+          style={
+            [styles.footerButton, !onCancel ? styles.fullWidthButton : undefined].filter(
+              Boolean,
+            ) as ViewStyle[]
+          }
         >
           {loading ? 'Saving...' : isEditing ? 'Update Goal' : 'Create Goal'}
         </Button>
@@ -205,12 +250,32 @@ const styles = StyleSheet.create({
   scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.lg },
   section: { gap: Spacing.xs },
   label: { fontSize: scaleFont(14), fontWeight: '600', marginBottom: Spacing.xxs },
-  input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, borderWidth: 1, fontSize: scaleFont(15) },
-  textArea: { minHeight: 88, borderRadius: Radii.md, padding: Spacing.md, borderWidth: 1, fontSize: scaleFont(15), textAlignVertical: 'top' },
+  input: {
+    height: 48,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    borderWidth: 1,
+    fontSize: scaleFont(15),
+  },
+  textArea: {
+    minHeight: 88,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    fontSize: scaleFont(15),
+    textAlignVertical: 'top',
+  },
   charCount: { fontSize: scaleFont(12), textAlign: 'right' },
   hint: { fontSize: scaleFont(13) },
   categoryGrid: { flexWrap: 'wrap', gap: Spacing.xs },
-  categoryOption: { alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xxs },
+  categoryOption: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.xxs,
+  },
   categoryLabel: { fontSize: scaleFont(13), fontWeight: '500' },
   footer: { padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
   footerButton: { flex: 1 },

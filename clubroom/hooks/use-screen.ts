@@ -75,7 +75,9 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const mountedRef = useRef(true);
   const hasLoadedOnceRef = useRef(false);
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchData = useCallback(async (mode: ScreenLoadMode = 'initial') => {
@@ -127,7 +129,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
         hasLoadedOnce: hasLoadedOnceRef.current,
         fetchData,
       });
-    }, [fetchData, refetchOnFocus])
+    }, [fetchData, refetchOnFocus]),
   );
 
   // Event bus subscriptions — re-fetch on relevant events
@@ -135,10 +137,14 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
     if (events.length === 0) return;
 
     const unsubscribers = events.map((event) =>
-      onTyped(event, () => { void fetchData(); })
+      onTyped(event, () => {
+        void fetchData();
+      }),
     );
 
-    return () => { unsubscribers.forEach((unsub) => unsub()); };
+    return () => {
+      unsubscribers.forEach((unsub) => unsub());
+    };
   }, [events, fetchData]);
 
   const onRefresh = useCallback(() => {

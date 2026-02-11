@@ -9,12 +9,24 @@ import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { DAYS_SHORT, HOURS, formatHourLabel, GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
-export type { GridLegendProps, DayColumnHeadersProps } from './availability-week-grid-sections';
-
-import { DAYS_SHORT, HOURS, formatHourLabel, GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
+import {
+  DAYS_SHORT,
+  HOURS,
+  formatHourLabel,
+  GridLegend,
+  DayColumnHeaders,
+} from './availability-week-grid-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export {
+  DAYS_SHORT,
+  HOURS,
+  formatHourLabel,
+  GridLegend,
+  DayColumnHeaders,
+} from './availability-week-grid-sections';
+export type { GridLegendProps, DayColumnHeadersProps } from './availability-week-grid-sections';
 
 interface AvailabilityWeekGridProps {
   templates: AvailabilityTemplate[];
@@ -77,7 +89,11 @@ export function AvailabilityWeekGrid({
 
       <DayColumnHeaders todayIndex={todayIndex} dayCounts={dayCounts} palette={palette} />
 
-      <ScrollView style={styles.gridScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled>
+      <ScrollView
+        style={styles.gridScroll}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
         {HOURS.map((hour) => (
           <Row key={hour} style={styles.gridRow}>
             <View style={styles.hourLabel}>
@@ -96,7 +112,9 @@ export function AvailabilityWeekGrid({
                   style={[
                     styles.gridCell,
                     {
-                      backgroundColor: isAvailable ? withAlpha(palette.success, 0.15) : palette.background,
+                      backgroundColor: isAvailable
+                        ? withAlpha(palette.success, 0.15)
+                        : palette.background,
                       borderColor: isAvailable ? withAlpha(palette.success, 0.38) : palette.border,
                     },
                   ]}

@@ -20,7 +20,11 @@ interface InlineAthleteSelectorProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionChange }: InlineAthleteSelectorProps) {
+function InlineAthleteSelectorInner({
+  clubId,
+  selectedAthleteIds,
+  onSelectionChange,
+}: InlineAthleteSelectorProps) {
   const { colors: palette } = useTheme();
   const [athletes, setAthletes] = useState<ClubMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,12 +45,15 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
     loadAthletes();
   }, [loadAthletes]);
 
-  const toggleAthlete = useCallback((userId: string) => {
-    const newSelection = selectedAthleteIds.includes(userId)
-      ? selectedAthleteIds.filter((id) => id !== userId)
-      : [...selectedAthleteIds, userId];
-    onSelectionChange(newSelection);
-  }, [selectedAthleteIds, onSelectionChange]);
+  const toggleAthlete = useCallback(
+    (userId: string) => {
+      const newSelection = selectedAthleteIds.includes(userId)
+        ? selectedAthleteIds.filter((id) => id !== userId)
+        : [...selectedAthleteIds, userId];
+      onSelectionChange(newSelection);
+    },
+    [selectedAthleteIds, onSelectionChange],
+  );
 
   const selectAll = useCallback(() => {
     onSelectionChange(athletes.map((a) => a.userId));
@@ -59,7 +66,9 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
   if (loading) {
     return (
       <SurfaceCard style={styles.selectorCard}>
-        <ThemedText style={{ ...Typography.small, color: palette.muted }}>Loading athletes...</ThemedText>
+        <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+          Loading athletes...
+        </ThemedText>
       </SurfaceCard>
     );
   }
@@ -69,7 +78,9 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
       <SurfaceCard style={styles.selectorCard}>
         <View style={{ alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.md }}>
           <Ionicons name="person-outline" size={32} color={palette.muted} />
-          <ThemedText style={{ ...Typography.small, color: palette.muted }}>No athletes in this club</ThemedText>
+          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
+            No athletes in this club
+          </ThemedText>
         </View>
       </SurfaceCard>
     );
@@ -89,11 +100,16 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
             style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
           >
             <Ionicons name="checkmark-done" size={14} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, ...Typography.caption }}>Select All</ThemedText>
+            <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
+              Select All
+            </ThemedText>
           </Clickable>
           <Clickable
             onPress={selectNone}
-            style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
+            style={[
+              styles.quickActionButton,
+              { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
+            ]}
           >
             <ThemedText style={{ ...Typography.caption, color: palette.text }}>Clear</ThemedText>
           </Clickable>
@@ -116,10 +132,16 @@ function InlineAthleteSelectorInner({ clubId, selectedAthleteIds, onSelectionCha
                 },
               ]}
             >
-              <View style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <ThemedText style={{ ...Typography.caption, color: palette.tint }}>{initials}</ThemedText>
+              <View
+                style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+              >
+                <ThemedText style={{ ...Typography.caption, color: palette.tint }}>
+                  {initials}
+                </ThemedText>
               </View>
-              <ThemedText style={{ flex: 1 }} type="defaultSemiBold">{athlete.userName}</ThemedText>
+              <ThemedText style={{ flex: 1 }} type="defaultSemiBold">
+                {athlete.userName}
+              </ThemedText>
               <View
                 style={[
                   styles.checkbox,
@@ -155,11 +177,41 @@ export const InlineAthleteSelector = memo(InlineAthleteSelectorInner);
 const styles = StyleSheet.create({
   selectorCard: { gap: Spacing.md },
   selectorHeader: { alignItems: 'center', gap: Spacing.sm },
-  selectionSummary: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.sm },
+  selectionSummary: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
   quickActions: { gap: Spacing.xs },
-  quickActionButton: { alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.md },
+  quickActionButton: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+  },
   athleteList: { gap: Spacing.xs },
-  athleteRow: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  athleteAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  checkbox: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  athleteRow: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  athleteAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

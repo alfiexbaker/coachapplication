@@ -54,14 +54,11 @@ export default function RosterScreen() {
     }
   }, [coachId, filters, searchQuery]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ roster: RosterEntry[]; stats: RosterStats | null; allTags: string[] }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
+    roster: RosterEntry[];
+    stats: RosterStats | null;
+    allTags: string[];
+  }>({
     load: loadData,
     deps: [coachId, filters, searchQuery],
     isEmpty: (value) => value.roster.length === 0,
@@ -76,22 +73,20 @@ export default function RosterScreen() {
 
   const renderItem = ({ item, index }: { item: RosterEntry; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 30).springify()}>
-      <AthleteRow
-        entry={item}
-        onPress={() =>
-          router.push(Routes.rosterAthlete(item.athleteId))
-        }
-      />
+      <AthleteRow entry={item} onPress={() => router.push(Routes.rosterAthlete(item.athleteId))} />
     </Animated.View>
   );
 
   const activeFiltersCount = Object.values(filters).filter(
-    (value) => value !== undefined && (Array.isArray(value) ? value.length > 0 : true)
+    (value) => value !== undefined && (Array.isArray(value) ? value.length > 0 : true),
   ).length;
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -99,14 +94,20 @@ export default function RosterScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <RosterHeader colors={palette} total={stats?.total || 0} onBack={() => router.back()} />
       <RosterStatsRow colors={palette} stats={stats} />
       <RosterSearchBar

@@ -14,19 +14,27 @@ interface ChallengeStatsBarProps {
   badgesCount: number;
 }
 
-function ChallengeStatsBarInner({ activeCount, completedCount, badgesCount }: ChallengeStatsBarProps) {
+function ChallengeStatsBarInner({
+  activeCount,
+  completedCount,
+  badgesCount,
+}: ChallengeStatsBarProps) {
   const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>
       <Row style={styles.row}>
         <View style={styles.item}>
-          <ThemedText type="title" style={{ color: palette.tint }}>{activeCount}</ThemedText>
+          <ThemedText type="title" style={{ color: palette.tint }}>
+            {activeCount}
+          </ThemedText>
           <ThemedText style={[styles.label, { color: palette.muted }]}>Active</ThemedText>
         </View>
         <View style={[styles.divider, { backgroundColor: palette.border }]} />
         <View style={styles.item}>
-          <ThemedText type="title" style={{ color: palette.success }}>{completedCount}</ThemedText>
+          <ThemedText type="title" style={{ color: palette.success }}>
+            {completedCount}
+          </ThemedText>
           <ThemedText style={[styles.label, { color: palette.muted }]}>Completed</ThemedText>
         </View>
         <View style={[styles.divider, { backgroundColor: palette.border }]} />

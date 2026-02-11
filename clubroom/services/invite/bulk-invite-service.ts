@@ -53,7 +53,7 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
 
 async function resolveAthleteNames(athleteIds: string[]): Promise<string[]> {
   return Promise.all(
-    athleteIds.map((athleteId, index) => resolveUserName(athleteId, `Athlete ${index + 1}`))
+    athleteIds.map((athleteId, index) => resolveUserName(athleteId, `Athlete ${index + 1}`)),
   );
 }
 
@@ -238,9 +238,7 @@ export const bulkInviteService = {
    * Invite entire squad to a session
    * Creates individual session invites for each parent
    */
-  async inviteSquadToSession(
-    input: InviteSquadToSessionInput
-  ): Promise<BulkInviteResult> {
+  async inviteSquadToSession(input: InviteSquadToSessionInput): Promise<BulkInviteResult> {
     const members = await squadService.getSquadMembers(input.squadId);
     const squad = await squadService.getSquad(input.squadId);
 
@@ -282,9 +280,7 @@ export const bulkInviteService = {
           proposedSlots: input.proposedSlots,
           sessionType: input.sessionType,
           focus: input.focus,
-          notes: input.notes
-            ? `[${squad?.name}] ${input.notes}`
-            : `Squad Training: ${squad?.name}`,
+          notes: input.notes ? `[${squad?.name}] ${input.notes}` : `Squad Training: ${squad?.name}`,
           priceUsd: input.priceUsd,
           groupId,
         });
@@ -321,17 +317,30 @@ export const bulkInviteService = {
     squadInvitesCache.push(squadInvite);
     await saveSquadInvites(squadInvitesCache);
 
-    return { sent, successful: sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId };
+    return {
+      sent,
+      successful: sent,
+      failed,
+      skipped: 0,
+      totalAttempted: eligibleMembers.length,
+      errors,
+      groupId,
+    };
   },
 
   /**
    * Create bulk invite to entire squad
    * Sends session invites to all active squad members
    */
-  async createBulkInvite(input: CreateBulkInviteInput): Promise<Result<{
-    squadInvite: SquadSessionInvite;
-    result: BulkInviteResult;
-  }, ServiceError>> {
+  async createBulkInvite(input: CreateBulkInviteInput): Promise<
+    Result<
+      {
+        squadInvite: SquadSessionInvite;
+        result: BulkInviteResult;
+      },
+      ServiceError
+    >
+  > {
     const squad = await squadService.getSquad(input.squadId);
     const members = await squadService.getSquadMembers(input.squadId);
 
@@ -379,9 +388,7 @@ export const bulkInviteService = {
             proposedSlots: input.proposedSlots,
             sessionType: input.sessionType,
             focus: input.focus,
-            notes: input.notes
-              ? `[${squad.name}] ${input.notes}`
-              : `Squad Training: ${squad.name}`,
+            notes: input.notes ? `[${squad.name}] ${input.notes}` : `Squad Training: ${squad.name}`,
             priceUsd: input.priceUsd,
             expiresInDays: input.expiresInDays ?? 7,
             groupId,
@@ -477,10 +484,15 @@ export const bulkInviteService = {
    * Invite selected members (subset of squad)
    * Allows coach to pick specific members to invite
    */
-  async inviteSelectedMembers(input: InviteSelectedMembersInput): Promise<Result<{
-    result: BulkInviteResult;
-    invitedMembers: SquadInvitedMember[];
-  }, ServiceError>> {
+  async inviteSelectedMembers(input: InviteSelectedMembersInput): Promise<
+    Result<
+      {
+        result: BulkInviteResult;
+        invitedMembers: SquadInvitedMember[];
+      },
+      ServiceError
+    >
+  > {
     if (input.memberIds.length === 0) {
       return err(validationError('No members selected'));
     }
@@ -589,10 +601,18 @@ export const bulkInviteService = {
   /**
    * Create squad invite (unified method that wraps createBulkInvite)
    */
-  async createSquadInvite(squadId: string, sessionDetails: InviteSquadToSessionInput): Promise<Result<{
-    squadInvite: SquadSessionInvite;
-    result: BulkInviteResult;
-  }, ServiceError>> {
+  async createSquadInvite(
+    squadId: string,
+    sessionDetails: InviteSquadToSessionInput,
+  ): Promise<
+    Result<
+      {
+        squadInvite: SquadSessionInvite;
+        result: BulkInviteResult;
+      },
+      ServiceError
+    >
+  > {
     return this.createBulkInvite({
       squadId,
       sessionId: sessionDetails.sessionId,

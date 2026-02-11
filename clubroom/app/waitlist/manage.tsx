@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -42,7 +42,9 @@ export default function ManageWaitlistScreen() {
       const summariesResult = await waitlistService.getCoachWaitlistSummaries(currentUser.id);
       if (!summariesResult.success) {
         logger.error('Failed to load waitlist summaries', summariesResult.error);
-        return err(serviceError('UNKNOWN', summariesResult.error.message || 'Failed to load waitlists.'));
+        return err(
+          serviceError('UNKNOWN', summariesResult.error.message || 'Failed to load waitlists.'),
+        );
       }
 
       if (!selectedSession) {
@@ -52,10 +54,18 @@ export default function ManageWaitlistScreen() {
       const entriesResult = await waitlistService.getSessionWaitlist(selectedSession);
       if (!entriesResult.success) {
         logger.error('Failed to load session waitlist', entriesResult.error);
-        return err(serviceError('UNKNOWN', entriesResult.error.message || 'Failed to load session waitlist.'));
+        return err(
+          serviceError(
+            'UNKNOWN',
+            entriesResult.error.message || 'Failed to load session waitlist.',
+          ),
+        );
       }
 
-      return ok<WaitlistManageData>({ summaries: summariesResult.data, sessionEntries: entriesResult.data });
+      return ok<WaitlistManageData>({
+        summaries: summariesResult.data,
+        sessionEntries: entriesResult.data,
+      });
     } catch (loadError) {
       logger.error('Failed to load waitlists', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load waitlists.', loadError));
@@ -83,7 +93,10 @@ export default function ManageWaitlistScreen() {
       }
 
       if (result.data) {
-        Alert.alert('Notification Sent', `${result.data.userId} has been notified that a spot is available.`);
+        Alert.alert(
+          'Notification Sent',
+          `${result.data.userId} has been notified that a spot is available.`,
+        );
         onRefresh();
       } else {
         Alert.alert('No One on Waitlist', 'There is no one waiting for this session.');
@@ -97,34 +110,41 @@ export default function ManageWaitlistScreen() {
   };
 
   const handlePromote = async (sessionId: string) => {
-    Alert.alert('Promote from Waitlist', 'This will automatically book the next person in line. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Promote',
-        onPress: async () => {
-          setActionLoading(sessionId);
-          try {
-            const result = await waitlistService.promoteFromWaitlist(sessionId);
-            if (!result.success) {
-              Alert.alert('Error', result.error.message || 'Failed to promote from waitlist.');
-              return;
-            }
+    Alert.alert(
+      'Promote from Waitlist',
+      'This will automatically book the next person in line. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Promote',
+          onPress: async () => {
+            setActionLoading(sessionId);
+            try {
+              const result = await waitlistService.promoteFromWaitlist(sessionId);
+              if (!result.success) {
+                Alert.alert('Error', result.error.message || 'Failed to promote from waitlist.');
+                return;
+              }
 
-            if (result.data.success && result.data.entry) {
-              Alert.alert('Success', `${result.data.entry.userId} has been booked for the session.`);
-              onRefresh();
-            } else {
-              Alert.alert('Error', result.data.error || 'Failed to promote from waitlist.');
+              if (result.data.success && result.data.entry) {
+                Alert.alert(
+                  'Success',
+                  `${result.data.entry.userId} has been booked for the session.`,
+                );
+                onRefresh();
+              } else {
+                Alert.alert('Error', result.data.error || 'Failed to promote from waitlist.');
+              }
+            } catch (promoteError) {
+              logger.error('Failed to promote', promoteError);
+              Alert.alert('Error', 'Failed to promote. Please try again.');
+            } finally {
+              setActionLoading(null);
             }
-          } catch (promoteError) {
-            logger.error('Failed to promote', promoteError);
-            Alert.alert('Error', 'Failed to promote. Please try again.');
-          } finally {
-            setActionLoading(null);
-          }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleRemoveEntry = async (entryId: string, userName: string) => {
@@ -140,7 +160,10 @@ export default function ManageWaitlistScreen() {
             if (removeResult.success && removeResult.data) {
               onRefresh();
             } else {
-              logger.error('Failed to remove', removeResult.success ? undefined : removeResult.error);
+              logger.error(
+                'Failed to remove',
+                removeResult.success ? undefined : removeResult.error,
+              );
               Alert.alert('Error', 'Failed to remove. Please try again.');
             }
           } finally {
@@ -153,7 +176,10 @@ export default function ManageWaitlistScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -161,8 +187,14 @@ export default function ManageWaitlistScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={error?.message ?? 'Failed to load waitlist management data.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message ?? 'Failed to load waitlist management data.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
@@ -170,7 +202,10 @@ export default function ManageWaitlistScreen() {
   const totalWaiting = summaries.reduce((sum, summary) => sum + summary.totalWaiting, 0);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <WaitlistManageHeader
         colors={palette}
         totalWaiting={totalWaiting}
@@ -181,7 +216,9 @@ export default function ManageWaitlistScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
+        }
       >
         {summaries.length === 0 ? (
           <EmptyState
@@ -195,7 +232,9 @@ export default function ManageWaitlistScreen() {
             selectedSession={selectedSession}
             sessionEntries={sessionEntries}
             actionLoading={actionLoading}
-            onToggle={(sessionId) => setSelectedSession((current) => (current === sessionId ? null : sessionId))}
+            onToggle={(sessionId) =>
+              setSelectedSession((current) => (current === sessionId ? null : sessionId))
+            }
             onNotify={handleNotifyNext}
             onPromote={handlePromote}
             onRemove={handleRemoveEntry}

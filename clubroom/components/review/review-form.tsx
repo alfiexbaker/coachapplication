@@ -55,7 +55,10 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
 
     // Validate review text
     if (text.trim().length > 0 && text.trim().length < MIN_REVIEW_LENGTH) {
-      Alert.alert('Review Too Short', `Please write at least ${MIN_REVIEW_LENGTH} characters or leave it empty`);
+      Alert.alert(
+        'Review Too Short',
+        `Please write at least ${MIN_REVIEW_LENGTH} characters or leave it empty`,
+      );
       return;
     }
 
@@ -80,7 +83,15 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
           <RatingStars rating={rating} onRate={setRating} />
           {rating > 0 && (
             <ThemedText style={[styles.ratingHint, { color: palette.muted }]}>
-              {rating === 5 ? 'Excellent' : rating === 4 ? 'Great' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : 'Poor'}
+              {rating === 5
+                ? 'Excellent'
+                : rating === 4
+                  ? 'Great'
+                  : rating === 3
+                    ? 'Good'
+                    : rating === 2
+                      ? 'Fair'
+                      : 'Poor'}
             </ThemedText>
           )}
         </Row>
@@ -94,8 +105,13 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
         </Row>
         {categoryFields.map((field) => (
           <Row key={field.key} justify="space-between" align="center" style={styles.categoryRow}>
-            <ThemedText style={[styles.categoryLabel, { color: palette.text }]}>{field.label}</ThemedText>
-            <RatingStars rating={categories[field.key] || 0} onRate={(value) => updateCategory(field.key, value)} />
+            <ThemedText style={[styles.categoryLabel, { color: palette.text }]}>
+              {field.label}
+            </ThemedText>
+            <RatingStars
+              rating={categories[field.key] || 0}
+              onRate={(value) => updateCategory(field.key, value)}
+            />
           </Row>
         ))}
       </View>
@@ -112,7 +128,10 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
           style={[
             styles.textArea,
             {
-              borderColor: text.length > 0 && text.length < MIN_REVIEW_LENGTH ? palette.warning : palette.border,
+              borderColor:
+                text.length > 0 && text.length < MIN_REVIEW_LENGTH
+                  ? palette.warning
+                  : palette.border,
               color: palette.text,
               backgroundColor: palette.surface,
             },
@@ -172,11 +191,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   categoryLabel: { ...Typography.bodySmall, flex: 1 },
-  textArea: { ...Typography.body, minHeight: 100,
+  textArea: {
+    ...Typography.body,
+    minHeight: 100,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     padding: Spacing.sm,
-    textAlignVertical: 'top' },
+    textAlignVertical: 'top',
+  },
   charCount: {
     alignItems: 'flex-end',
   },

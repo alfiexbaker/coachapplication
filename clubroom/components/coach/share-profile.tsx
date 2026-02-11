@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Modal, Share } from 'react-native';
+import { StyleSheet, Modal, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
@@ -23,12 +23,7 @@ interface ShareProfileProps {
   onClose: () => void;
 }
 
-export function ShareProfile({
-  coachId,
-  coachName,
-  profileUrl,
-  onClose,
-}: ShareProfileProps) {
+export function ShareProfile({ coachId, coachName, profileUrl, onClose }: ShareProfileProps) {
   const { colors: palette } = useTheme();
 
   const [copied, setCopied] = useState(false);

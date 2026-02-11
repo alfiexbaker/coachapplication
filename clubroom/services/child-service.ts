@@ -142,36 +142,44 @@ export const DISABILITY_TYPES = [
   'Other',
 ];
 
-export const SPECIAL_NEEDS_CATEGORIES: { id: SpecialNeed['category']; label: string; examples: string[] }[] = [
+export const SPECIAL_NEEDS_CATEGORIES: {
+  id: SpecialNeed['category'];
+  label: string;
+  examples: string[];
+}[] = [
   {
     id: 'PHYSICAL',
     label: 'Physical',
-    examples: ['Mobility support', 'Wheelchair access', 'Limited stamina']
+    examples: ['Mobility support', 'Wheelchair access', 'Limited stamina'],
   },
   {
     id: 'LEARNING',
     label: 'Learning',
-    examples: ['Extra time needed', 'Visual instructions preferred', 'Step-by-step breakdown']
+    examples: ['Extra time needed', 'Visual instructions preferred', 'Step-by-step breakdown'],
   },
   {
     id: 'SENSORY',
     label: 'Sensory',
-    examples: ['Noise sensitivity', 'Light sensitivity', 'Tactile sensitivity']
+    examples: ['Noise sensitivity', 'Light sensitivity', 'Tactile sensitivity'],
   },
   {
     id: 'BEHAVIORAL',
     label: 'Behavioral',
-    examples: ['Needs structured environment', 'Requires frequent breaks', 'Benefits from routine']
+    examples: ['Needs structured environment', 'Requires frequent breaks', 'Benefits from routine'],
   },
   {
     id: 'MEDICAL',
     label: 'Medical',
-    examples: ['Requires medication during sessions', 'Has specific dietary needs', 'Needs monitoring']
+    examples: [
+      'Requires medication during sessions',
+      'Has specific dietary needs',
+      'Needs monitoring',
+    ],
   },
   {
     id: 'OTHER',
     label: 'Other',
-    examples: []
+    examples: [],
   },
 ];
 
@@ -200,7 +208,7 @@ let childrenCache: ChildProfile[] = [
         communicationPreferences: ['Direct eye contact', 'Short sentences'],
         triggers: ['Long periods of waiting', 'Unclear expectations'],
         calmingStrategies: ['Movement breaks', 'Fidget tools', 'Counting exercises'],
-      }
+      },
     ],
     specialNeeds: [
       {
@@ -211,14 +219,15 @@ let childrenCache: ChildProfile[] = [
         severity: 'MODERATE',
         accommodationsNeeded: ['Written schedule', 'Visual timers', 'Quiet space for breaks'],
         coachNotes: 'Give 5-minute warning before transitions',
-      }
+      },
     ],
     hasSpecialNeeds: true,
     allergies: ['Peanuts'],
     medicalConditions: ['ADHD'],
     medications: ['Methylphenidate (morning only)'],
     communicationNotes: 'Responds well to positive reinforcement. Prefers direct communication.',
-    behavioralNotes: 'May need movement breaks every 20-30 minutes. Gets overwhelmed in large groups.',
+    behavioralNotes:
+      'May need movement breaks every 20-30 minutes. Gets overwhelmed in large groups.',
     emergencyContactName: 'Sarah Thompson',
     emergencyContactPhone: '+44 7700 900123',
     emergencyContactRelation: 'Mother',
@@ -250,7 +259,7 @@ let childrenCache: ChildProfile[] = [
         communicationPreferences: ['Verbal cues', 'Demonstrations'],
         triggers: ['Reading aloud', 'Written tests'],
         calmingStrategies: ['Extra time', 'One-on-one explanation'],
-      }
+      },
     ],
     specialNeeds: [
       {
@@ -261,14 +270,16 @@ let childrenCache: ChildProfile[] = [
         severity: 'MILD',
         accommodationsNeeded: ['Verbal instructions', 'Visual demos', 'Extra processing time'],
         coachNotes: 'Show drills physically rather than explaining on a whiteboard',
-      }
+      },
     ],
     hasSpecialNeeds: true,
     allergies: ['Bee stings'],
     medicalConditions: ['Dyslexia', 'Mild asthma'],
     medications: ['Ventolin inhaler (as needed)'],
-    communicationNotes: 'Responds best to demonstrations. Very visual learner. Let him watch first before trying.',
-    behavioralNotes: 'Very competitive but can get frustrated when struggling. Encourage and redirect.',
+    communicationNotes:
+      'Responds best to demonstrations. Very visual learner. Let him watch first before trying.',
+    behavioralNotes:
+      'Very competitive but can get frustrated when struggling. Encourage and redirect.',
     emergencyContactName: 'John Henderson',
     emergencyContactPhone: '+1 (555) 123-4567',
     emergencyContactRelation: 'Father',
@@ -368,7 +379,7 @@ export const childService = {
   async getChildren(parentId: string): Promise<ChildProfile[]> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      return childrenCache.filter(c => c.parentId === parentId);
+      return childrenCache.filter((c) => c.parentId === parentId);
     }
 
     const response = await fetch(`/api/children?parentId=${parentId}`);
@@ -381,7 +392,7 @@ export const childService = {
   async getChild(childId: string): Promise<ChildProfile | null> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      return childrenCache.find(c => c.id === childId) || null;
+      return childrenCache.find((c) => c.id === childId) || null;
     }
 
     const response = await fetch(`/api/children/${childId}`);
@@ -405,7 +416,8 @@ export const childService = {
       photoUrl: input.photoUrl,
       disabilities: input.disabilities || [],
       specialNeeds: input.specialNeeds || [],
-      hasSpecialNeeds: (input.disabilities?.length || 0) > 0 || (input.specialNeeds?.length || 0) > 0,
+      hasSpecialNeeds:
+        (input.disabilities?.length || 0) > 0 || (input.specialNeeds?.length || 0) > 0,
       allergies: input.allergies || [],
       medicalConditions: input.medicalConditions || [],
       medications: input.medications || [],
@@ -442,10 +454,13 @@ export const childService = {
   /**
    * Update a child profile
    */
-  async updateChild(childId: string, updates: Partial<CreateChildInput>): Promise<Result<ChildProfile, ServiceError>> {
+  async updateChild(
+    childId: string,
+    updates: Partial<CreateChildInput>,
+  ): Promise<Result<ChildProfile, ServiceError>> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      const index = childrenCache.findIndex(c => c.id === childId);
+      const index = childrenCache.findIndex((c) => c.id === childId);
       if (index === -1) {
         return err(notFound('Child', childId));
       }
@@ -453,8 +468,9 @@ export const childService = {
       childrenCache[index] = {
         ...childrenCache[index],
         ...updates,
-        hasSpecialNeeds: (updates.disabilities?.length || childrenCache[index].disabilities.length) > 0 ||
-                        (updates.specialNeeds?.length || childrenCache[index].specialNeeds.length) > 0,
+        hasSpecialNeeds:
+          (updates.disabilities?.length || childrenCache[index].disabilities.length) > 0 ||
+          (updates.specialNeeds?.length || childrenCache[index].specialNeeds.length) > 0,
         updatedAt: new Date().toISOString(),
       };
 
@@ -476,7 +492,7 @@ export const childService = {
   async deleteChild(childId: string): Promise<void> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      childrenCache = childrenCache.filter(c => c.id !== childId);
+      childrenCache = childrenCache.filter((c) => c.id !== childId);
       await saveToStorage(childrenCache);
       return;
     }
@@ -489,7 +505,10 @@ export const childService = {
   /**
    * Add a disability to a child
    */
-  async addDisability(childId: string, disability: Omit<Disability, 'id'>): Promise<Result<ChildProfile, ServiceError>> {
+  async addDisability(
+    childId: string,
+    disability: Omit<Disability, 'id'>,
+  ): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
     if (!child) return err(notFound('Child', childId));
 
@@ -506,19 +525,25 @@ export const childService = {
   /**
    * Remove a disability from a child
    */
-  async removeDisability(childId: string, disabilityId: string): Promise<Result<ChildProfile, ServiceError>> {
+  async removeDisability(
+    childId: string,
+    disabilityId: string,
+  ): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
     if (!child) return err(notFound('Child', childId));
 
     return this.updateChild(childId, {
-      disabilities: child.disabilities.filter(d => d.id !== disabilityId),
+      disabilities: child.disabilities.filter((d) => d.id !== disabilityId),
     });
   },
 
   /**
    * Add a special need to a child
    */
-  async addSpecialNeed(childId: string, specialNeed: Omit<SpecialNeed, 'id'>): Promise<Result<ChildProfile, ServiceError>> {
+  async addSpecialNeed(
+    childId: string,
+    specialNeed: Omit<SpecialNeed, 'id'>,
+  ): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
     if (!child) return err(notFound('Child', childId));
 
@@ -535,12 +560,15 @@ export const childService = {
   /**
    * Remove a special need from a child
    */
-  async removeSpecialNeed(childId: string, specialNeedId: string): Promise<Result<ChildProfile, ServiceError>> {
+  async removeSpecialNeed(
+    childId: string,
+    specialNeedId: string,
+  ): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
     if (!child) return err(notFound('Child', childId));
 
     return this.updateChild(childId, {
-      specialNeeds: child.specialNeeds.filter(sn => sn.id !== specialNeedId),
+      specialNeeds: child.specialNeeds.filter((sn) => sn.id !== specialNeedId),
     });
   },
 
@@ -556,7 +584,7 @@ export const childService = {
    */
   async getChildrenWithSpecialNeeds(parentId: string): Promise<ChildProfile[]> {
     const children = await this.getChildren(parentId);
-    return children.filter(c => c.hasSpecialNeeds);
+    return children.filter((c) => c.hasSpecialNeeds);
   },
 
   /**
@@ -566,13 +594,18 @@ export const childService = {
   async getChildByName(firstName: string, lastName: string): Promise<ChildProfile | null> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      return childrenCache.find(
-        c => c.firstName.toLowerCase() === firstName.toLowerCase() &&
-             c.lastName.toLowerCase() === lastName.toLowerCase()
-      ) || null;
+      return (
+        childrenCache.find(
+          (c) =>
+            c.firstName.toLowerCase() === firstName.toLowerCase() &&
+            c.lastName.toLowerCase() === lastName.toLowerCase(),
+        ) || null
+      );
     }
 
-    const response = await fetch(`/api/children/by-name?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`);
+    const response = await fetch(
+      `/api/children/by-name?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`,
+    );
     if (!response.ok) return null;
     return response.json();
   },
@@ -596,7 +629,7 @@ export const childService = {
     if (child.behavioralNotes) {
       quickNotes.push(child.behavioralNotes);
     }
-    child.specialNeeds.forEach(sn => {
+    child.specialNeeds.forEach((sn) => {
       if (sn.coachNotes) {
         quickNotes.push(sn.coachNotes);
       }
@@ -608,7 +641,7 @@ export const childService = {
       hasSpecialNeeds: child.hasSpecialNeeds,
       quickNotes,
       allergies: child.allergies,
-      disabilities: child.disabilities.map(d => d.type),
+      disabilities: child.disabilities.map((d) => d.type),
     };
   },
 };

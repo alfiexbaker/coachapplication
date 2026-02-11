@@ -23,7 +23,11 @@ export const AddToSessionHeader = React.memo(function AddToSessionHeader({
   onClose,
 }: HeaderProps) {
   return (
-    <Row align="center" justify="space-between" style={[styles.header, { borderBottomColor: colors.border }]}> 
+    <Row
+      align="center"
+      justify="space-between"
+      style={[styles.header, { borderBottomColor: colors.border }]}
+    >
       <Clickable onPress={onClose} hitSlop={8} accessibilityLabel="Close">
         <Ionicons name="close" size={24} color={colors.text} />
       </Clickable>
@@ -76,7 +80,9 @@ export const AddToSessionCard = React.memo(function AddToSessionCard({
             <Row align="center" gap="xxs">
               <Ionicons name="calendar-outline" size={12} color={colors.muted} />
               <ThemedText style={[styles.metaText, { color: colors.muted }]}>
-                {nextSchedule ? `${formatDate(nextSchedule.date)} at ${nextSchedule.startTime}` : 'No schedule'}
+                {nextSchedule
+                  ? `${formatDate(nextSchedule.date)} at ${nextSchedule.startTime}`
+                  : 'No schedule'}
               </ThemedText>
             </Row>
             <Row align="center" gap="xxs">
@@ -94,24 +100,34 @@ export const AddToSessionCard = React.memo(function AddToSessionCard({
               styles.spotsBadge,
               {
                 backgroundColor:
-                  spotsLeft <= 3 ? withAlpha(colors.warning, 0.09) : withAlpha(colors.success, 0.09),
+                  spotsLeft <= 3
+                    ? withAlpha(colors.warning, 0.09)
+                    : withAlpha(colors.success, 0.09),
               },
             ]}
           >
-            <ThemedText style={[styles.spotsText, { color: spotsLeft <= 3 ? colors.warning : colors.success }]}>
+            <ThemedText
+              style={[
+                styles.spotsText,
+                { color: spotsLeft <= 3 ? colors.warning : colors.success },
+              ]}
+            >
               {spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left
             </ThemedText>
           </View>
 
           <Clickable
-            style={[styles.addButton, { backgroundColor: colors.tint, opacity: isAdding ? 0.6 : 1 }]}
+            style={[
+              styles.addButton,
+              { backgroundColor: colors.tint, opacity: isAdding ? 0.6 : 1 },
+            ]}
             onPress={() => onAdd(session)}
             disabled={isAdding}
             accessibilityLabel={`Add ${session.title} session`}
           >
             <Row align="center" gap="xxs">
               <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color={colors.onPrimary} />
-              <ThemedText style={[styles.addButtonText, { color: colors.onPrimary }]}> 
+              <ThemedText style={[styles.addButtonText, { color: colors.onPrimary }]}>
                 {isAdding ? 'Adding...' : 'Add'}
               </ThemedText>
             </Row>

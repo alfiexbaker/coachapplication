@@ -212,7 +212,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<Result<
       return err(networkError(errorMessage));
     }
 
-    const data = await response.json() as T;
+    const data = (await response.json()) as T;
     return ok(data);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Network request failed';
@@ -246,7 +246,11 @@ export const authService = {
     await apiClient.set(STORAGE_KEYS.AUTH_USER, result.data.user);
     currentUser = result.data.user;
     logger.success('Login successful', { userId: result.data.user.id });
-    return ok({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
+    return ok({
+      user: result.data.user,
+      tokens: result.data.tokens,
+      token: result.data.tokens.accessToken,
+    });
   },
 
   async register(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
@@ -270,7 +274,11 @@ export const authService = {
     await apiClient.set(STORAGE_KEYS.AUTH_USER, result.data.user);
     currentUser = result.data.user;
     logger.success('Registration successful', { userId: result.data.user.id });
-    return ok({ user: result.data.user, tokens: result.data.tokens, token: result.data.tokens.accessToken });
+    return ok({
+      user: result.data.user,
+      tokens: result.data.tokens,
+      token: result.data.tokens.accessToken,
+    });
   },
 
   async storeTokens(tokens: AuthTokens): Promise<void> {
@@ -380,7 +388,7 @@ export const authService = {
     logger.info('Password reset requested', { email });
 
     if (USE_MOCK) {
-      const user = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const user = usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (user) {
         logger.info('Password reset email would be sent', { userId: user.id });
       }
@@ -440,7 +448,7 @@ export const authService = {
     }
 
     if (USE_MOCK) {
-      const userIndex = usersCache.findIndex(u => u.id === currentUser!.id);
+      const userIndex = usersCache.findIndex((u) => u.id === currentUser!.id);
       if (userIndex === -1) {
         return err(notFound('User'));
       }
@@ -559,12 +567,12 @@ export const authService = {
 
   async checkEmailAvailable(email: string): Promise<boolean> {
     if (USE_MOCK) {
-      const existing = usersCache.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const existing = usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
       return !existing;
     }
 
     const result = await apiFetch<{ available: boolean }>(
-      `/api/auth/check-email?email=${encodeURIComponent(email)}`
+      `/api/auth/check-email?email=${encodeURIComponent(email)}`,
     );
     return result.success ? result.data.available : true;
   },
@@ -575,7 +583,7 @@ export const authService = {
 
   async _mockLogin(email: string, password: string): Promise<Result<AuthData, ServiceError>> {
     const user = usersCache.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
     );
 
     if (!user) {
@@ -596,7 +604,7 @@ export const authService = {
   },
 
   async _mockRegister(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
-    const existing = usersCache.find(u => u.email.toLowerCase() === input.email.toLowerCase());
+    const existing = usersCache.find((u) => u.email.toLowerCase() === input.email.toLowerCase());
     if (existing) {
       logger.warn('Registration failed: Email exists', { email: input.email });
       return err(conflictError('An account with this email already exists'));

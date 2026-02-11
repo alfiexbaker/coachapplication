@@ -22,23 +22,19 @@ export const SettingsSignOutSection = memo(function SettingsSignOutSection() {
   const { currentUser, logout } = useAuth();
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            logger.press('ConfirmLogout', { userId: currentUser?.id });
-            await logout();
-            logger.info('Logout complete - returning to login screen');
-            router.replace(Routes.ROOT);
-          },
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          logger.press('ConfirmLogout', { userId: currentUser?.id });
+          await logout();
+          logger.info('Logout complete - returning to login screen');
+          router.replace(Routes.ROOT);
         },
-      ]
-    );
+      },
+    ]);
   }, [currentUser?.id, logout]);
 
   return (
@@ -59,7 +55,10 @@ export const SettingsSignOutSection = memo(function SettingsSignOutSection() {
             <Ionicons name="log-out" size={22} color={palette.error} />
           </Row>
           <Column gap="xxs" flex>
-            <ThemedText type="defaultSemiBold" style={[styles.settingTitle, { color: palette.error }]}>
+            <ThemedText
+              type="defaultSemiBold"
+              style={[styles.settingTitle, { color: palette.error }]}
+            >
               Sign out
             </ThemedText>
           </Column>

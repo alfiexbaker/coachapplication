@@ -9,7 +9,11 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
-export const LOCATION_OPTIONS: { id: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+export const LOCATION_OPTIONS: {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { id: 'hyde_park', label: 'Hyde Park', icon: 'leaf-outline' },
   { id: 'victoria_park', label: 'Victoria Park', icon: 'leaf-outline' },
   { id: 'london_fields', label: 'London Fields', icon: 'leaf-outline' },
@@ -35,9 +39,7 @@ export const LocationPicker = memo(function LocationPicker({
 }: LocationPickerProps) {
   return (
     <View style={styles.locationSection}>
-      <ThemedText style={[styles.locationLabel, { color: palette.text }]}>
-        Location
-      </ThemedText>
+      <ThemedText style={[styles.locationLabel, { color: palette.text }]}>Location</ThemedText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.locationScroll}>
         <Row style={styles.locationChipsRow}>
           {LOCATION_OPTIONS.map((opt) => {
@@ -61,7 +63,9 @@ export const LocationPicker = memo(function LocationPicker({
                 style={[
                   styles.locationChip,
                   {
-                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.background,
+                    backgroundColor: isSelected
+                      ? withAlpha(palette.tint, 0.09)
+                      : palette.background,
                     borderColor: isSelected ? palette.tint : palette.border,
                   },
                 ]}
@@ -71,7 +75,12 @@ export const LocationPicker = memo(function LocationPicker({
                   size={14}
                   color={isSelected ? palette.tint : palette.muted}
                 />
-                <ThemedText style={[styles.locationChipText, { color: isSelected ? palette.tint : palette.text }]}>
+                <ThemedText
+                  style={[
+                    styles.locationChipText,
+                    { color: isSelected ? palette.tint : palette.text },
+                  ]}
+                >
                   {opt.label}
                 </ThemedText>
               </Clickable>
@@ -80,7 +89,12 @@ export const LocationPicker = memo(function LocationPicker({
         </Row>
       </ScrollView>
       {showCustomInput && (
-        <Row style={[styles.customInput, { borderColor: palette.border, backgroundColor: palette.background }]}>
+        <Row
+          style={[
+            styles.customInput,
+            { borderColor: palette.border, backgroundColor: palette.background },
+          ]}
+        >
           <Ionicons name="location-outline" size={18} color={palette.muted} />
           <TextInput
             style={[styles.customInputText, { color: palette.text }]}

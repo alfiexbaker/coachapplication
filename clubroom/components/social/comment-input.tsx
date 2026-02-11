@@ -44,13 +44,19 @@ function CommentInputInner({
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onSubmit();
-  }, [value, onSubmit]);
+  }, [hasText, onSubmit]);
 
   return (
-    <View style={[styles.wrapper, { backgroundColor: palette.surface, borderTopColor: palette.border }]}>
+    <View
+      style={[styles.wrapper, { backgroundColor: palette.surface, borderTopColor: palette.border }]}
+    >
       {/* Reply indicator */}
       {replyingTo && (
-        <Row align="center" justify="between" style={[styles.replyIndicator, { backgroundColor: palette.background }]}>
+        <Row
+          align="center"
+          justify="between"
+          style={[styles.replyIndicator, { backgroundColor: palette.background }]}
+        >
           <ThemedText style={[styles.replyText, { color: palette.muted }]} numberOfLines={1}>
             Replying to <ThemedText style={styles.replyAuthor}>{replyingTo}</ThemedText>
           </ThemedText>
@@ -95,11 +101,7 @@ function CommentInputInner({
           ]}
           hitSlop={8}
         >
-          <Ionicons
-            name="arrow-up"
-            size={18}
-            color={palette.onPrimary}
-          />
+          <Ionicons name="arrow-up" size={18} color={palette.onPrimary} />
         </Clickable>
       </Row>
     </View>

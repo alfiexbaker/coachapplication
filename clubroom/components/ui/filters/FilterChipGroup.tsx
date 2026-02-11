@@ -5,7 +5,7 @@
  * Can be displayed horizontally (scroll) or wrapped (grid).
  */
 
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { Row } from '@/components/primitives/row';
 import { FilterChip } from './FilterChip';
@@ -51,14 +51,12 @@ export function FilterChipGroup<T = string>({
 }: FilterChipGroupProps<T>) {
   // Normalize options to FilterOption format
   const normalizedOptions: FilterOption<T>[] = options.map((opt) =>
-    typeof opt === 'string'
-      ? { id: opt as T, label: opt }
-      : (opt as FilterOption<T>)
+    typeof opt === 'string' ? { id: opt as T, label: opt } : (opt as FilterOption<T>),
   );
 
   // Normalize selected to array for consistent handling
   const selectedSet = new Set(
-    Array.isArray(selected) ? selected : selected !== undefined ? [selected] : []
+    Array.isArray(selected) ? selected : selected !== undefined ? [selected] : [],
   );
 
   const handlePress = (id: T) => {
@@ -117,7 +115,11 @@ function HorizontalContainer({ children }: { children: React.ReactNode }) {
 }
 
 function WrapContainer({ children }: { children: React.ReactNode }) {
-  return <Row wrap gap="xs">{children}</Row>;
+  return (
+    <Row wrap gap="xs">
+      {children}
+    </Row>
+  );
 }
 
 const styles = StyleSheet.create({

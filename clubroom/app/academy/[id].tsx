@@ -28,7 +28,15 @@ export default function AcademyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
 
-  const { data, status, error, refreshing, onRefresh, retry, colors: palette } = useScreen<AcademyDetailData>({
+  const {
+    data,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    colors: palette,
+  } = useScreen<AcademyDetailData>({
     load: async () => {
       if (!id) return err(serviceError('VALIDATION', 'No academy ID'));
       try {
@@ -41,7 +49,9 @@ export default function AcademyDetailScreen() {
         if (!academyResult.data) return err(notFound('Academy', id));
         return ok({ academy: academyResult.data, staff: staffResult.data });
       } catch (e) {
-        return err(serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load academy'));
+        return err(
+          serviceError('UNKNOWN', e instanceof Error ? e.message : 'Failed to load academy'),
+        );
       }
     },
     deps: [id],
@@ -49,7 +59,14 @@ export default function AcademyDetailScreen() {
 
   if (status === 'loading') return <LoadingState variant="detail" />;
   if (status === 'error') return <ErrorState message={error!.message} onRetry={retry} />;
-  if (status === 'empty') return <EmptyState icon="business-outline" title="Academy not found" message="This academy may have been removed" />;
+  if (status === 'empty')
+    return (
+      <EmptyState
+        icon="business-outline"
+        title="Academy not found"
+        message="This academy may have been removed"
+      />
+    );
 
   const { academy, staff } = data!;
   const userMembership = staff.find((m) => m.userId === currentUser?.id) || null;
@@ -58,9 +75,20 @@ export default function AcademyDetailScreen() {
   const color = academy.primaryColor || palette.tint;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        <AcademyBanner academy={academy} colors={palette} primaryColor={color} canManage={!!canManage} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <AcademyBanner
+          academy={academy}
+          colors={palette}
+          primaryColor={color}
+          canManage={!!canManage}
+        />
 
         <View style={styles.content}>
           {/* Stats */}
@@ -70,9 +98,16 @@ export default function AcademyDetailScreen() {
               { label: 'Athletes', value: academy.athleteCount },
               { label: 'Sessions', value: academy.sessionCount },
             ].map((stat) => (
-              <View key={stat.label} style={[styles.statCard, { backgroundColor: palette.surface }]}>
-                <ThemedText type="heading" style={{ color }}>{stat.value}</ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{stat.label}</ThemedText>
+              <View
+                key={stat.label}
+                style={[styles.statCard, { backgroundColor: palette.surface }]}
+              >
+                <ThemedText type="heading" style={{ color }}>
+                  {stat.value}
+                </ThemedText>
+                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                  {stat.label}
+                </ThemedText>
               </View>
             ))}
           </Row>
@@ -81,8 +116,12 @@ export default function AcademyDetailScreen() {
           {academy.description && (
             <Animated.View entering={FadeInDown.delay(100).springify()}>
               <SurfaceCard style={styles.descriptionCard}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>About</ThemedText>
-                <ThemedText style={[styles.description, { color: palette.muted }]}>{academy.description}</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                  About
+                </ThemedText>
+                <ThemedText style={[styles.description, { color: palette.muted }]}>
+                  {academy.description}
+                </ThemedText>
               </SurfaceCard>
             </Animated.View>
           )}
@@ -90,10 +129,15 @@ export default function AcademyDetailScreen() {
           {/* Specialties */}
           {academy.specialties && academy.specialties.length > 0 && (
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Specialties</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Specialties
+              </ThemedText>
               <Row style={styles.tagsRow}>
                 {academy.specialties.map((specialty) => (
-                  <View key={specialty} style={[styles.tag, { backgroundColor: withAlpha(color, 0.09) }]}>
+                  <View
+                    key={specialty}
+                    style={[styles.tag, { backgroundColor: withAlpha(color, 0.09) }]}
+                  >
                     <ThemedText style={[styles.tagText, { color }]}>{specialty}</ThemedText>
                   </View>
                 ))}
@@ -105,7 +149,9 @@ export default function AcademyDetailScreen() {
           {(academy.email || academy.phone || academy.website) && (
             <Animated.View entering={FadeInDown.delay(150).springify()}>
               <SurfaceCard style={styles.contactCard}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Contact</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                  Contact
+                </ThemedText>
                 {academy.email && (
                   <Row style={styles.contactRow}>
                     <Ionicons name="mail-outline" size={18} color={palette.muted} />
@@ -139,7 +185,9 @@ export default function AcademyDetailScreen() {
                 >
                   <Row align="center" gap="xxs">
                     <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
-                    <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>Invite</ThemedText>
+                    <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>
+                      Invite
+                    </ThemedText>
                   </Row>
                 </Clickable>
               )}
@@ -160,9 +208,16 @@ export default function AcademyDetailScreen() {
           {/* Join for non-members */}
           {!userMembership && (
             <View style={styles.joinSection}>
-              <ThemedText style={[styles.joinText, { color: palette.muted }]}>Have an invite code?</ThemedText>
-              <Clickable onPress={() => router.push(Routes.ACADEMY_JOIN)} style={[styles.joinButton, { backgroundColor: color }]}>
-                <ThemedText style={[styles.joinButtonText, { color: palette.onPrimary }]}>Join Team</ThemedText>
+              <ThemedText style={[styles.joinText, { color: palette.muted }]}>
+                Have an invite code?
+              </ThemedText>
+              <Clickable
+                onPress={() => router.push(Routes.ACADEMY_JOIN)}
+                style={[styles.joinButton, { backgroundColor: color }]}
+              >
+                <ThemedText style={[styles.joinButtonText, { color: palette.onPrimary }]}>
+                  Join Team
+                </ThemedText>
               </Clickable>
             </View>
           )}
@@ -176,7 +231,12 @@ export default function AcademyDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
   content: { padding: Spacing.lg },
   statsRow: { gap: Spacing.sm, marginBottom: Spacing.lg },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md },
@@ -185,18 +245,34 @@ const styles = StyleSheet.create({
   sectionTitle: { marginBottom: Spacing.sm },
   description: { ...Typography.bodySmall },
   section: { marginBottom: Spacing.lg },
-  sectionHeader: { alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md },
+  sectionHeader: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
   tagsRow: { flexWrap: 'wrap', gap: Spacing.xs },
-  tag: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
+  tag: {
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.md,
+  },
   tagText: { ...Typography.smallSemiBold },
   contactCard: { marginBottom: Spacing.lg },
   contactRow: { alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
-  inviteButton: { paddingHorizontal: Spacing.xs + Spacing.xxs, paddingVertical: Spacing.xxs, borderRadius: Radii.md },
+  inviteButton: {
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.md,
+  },
   inviteButtonText: { ...Typography.smallSemiBold },
   staffList: { gap: Spacing.sm },
   joinSection: { alignItems: 'center', paddingVertical: Spacing.lg },
   joinText: { ...Typography.small, marginBottom: Spacing.sm },
-  joinButton: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  joinButton: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
   joinButtonText: { ...Typography.bodySemiBold },
   bottomSpacer: { height: 40 },
 });

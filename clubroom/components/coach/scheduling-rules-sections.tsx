@@ -18,22 +18,50 @@ import { styles } from './scheduling-rules-section-styles';
 
 // Modal-specific compact constants
 const MODAL_RESCHEDULE_OPTIONS = [
-  { value: 2, label: '2h before' }, { value: 6, label: '6h before' },
-  { value: 24, label: '24h before' }, { value: 48, label: '48h before' },
+  { value: 2, label: '2h before' },
+  { value: 6, label: '6h before' },
+  { value: 24, label: '24h before' },
+  { value: 48, label: '48h before' },
 ];
 
 // ---------------------------------------------------------------------------
 // OptionChip — Shared selectable chip
 // ---------------------------------------------------------------------------
 
-export function OptionChip({ label, isSelected, onPress, compact }: { label: string; isSelected: boolean; onPress: () => void; compact?: boolean }) {
+export function OptionChip({
+  label,
+  isSelected,
+  onPress,
+  compact,
+}: {
+  label: string;
+  isSelected: boolean;
+  onPress: () => void;
+  compact?: boolean;
+}) {
   const { colors: palette } = useTheme();
   return (
     <Clickable
-      onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPress(); }}
-      style={[compact ? styles.compactChip : styles.optionChip, { backgroundColor: isSelected ? palette.tint : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}
+      onPress={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={[
+        compact ? styles.compactChip : styles.optionChip,
+        {
+          backgroundColor: isSelected ? palette.tint : palette.surface,
+          borderColor: isSelected ? palette.tint : palette.border,
+        },
+      ]}
     >
-      <ThemedText style={[styles.chipText, { color: isSelected ? palette.onPrimary : palette.text, fontSize: compact ? 13 : 14 }]}>{label}</ThemedText>
+      <ThemedText
+        style={[
+          styles.chipText,
+          { color: isSelected ? palette.onPrimary : palette.text, fontSize: compact ? 13 : 14 },
+        ]}
+      >
+        {label}
+      </ThemedText>
     </Clickable>
   );
 }
@@ -53,7 +81,16 @@ interface ChipSectionProps {
   compact?: boolean;
 }
 
-function ChipSectionInner({ icon, iconColor, title, hint, options, selected, onSelect, compact }: ChipSectionProps) {
+function ChipSectionInner({
+  icon,
+  iconColor,
+  title,
+  hint,
+  options,
+  selected,
+  onSelect,
+  compact,
+}: ChipSectionProps) {
   const { colors: palette } = useTheme();
   return (
     <View style={styles.section}>
@@ -68,7 +105,13 @@ function ChipSectionInner({ icon, iconColor, title, hint, options, selected, onS
       </Row>
       <Row style={styles.chipRow}>
         {options.map((opt) => (
-          <OptionChip key={opt.value} label={opt.label} isSelected={selected === opt.value} onPress={() => onSelect(opt.value)} compact={compact} />
+          <OptionChip
+            key={opt.value}
+            label={opt.label}
+            isSelected={selected === opt.value}
+            onPress={() => onSelect(opt.value)}
+            compact={compact}
+          />
         ))}
       </Row>
     </View>
@@ -100,13 +143,23 @@ function ToggleCardInner(p: ToggleCardProps) {
             <Ionicons name="today-outline" size={16} color={palette.success} />
           </View>
           <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>Same-Day Bookings</ThemedText>
-            <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>Allow booking for today</ThemedText>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
+              Same-Day Bookings
+            </ThemedText>
+            <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
+              Allow booking for today
+            </ThemedText>
           </View>
         </Row>
-        <Switch value={p.allowSameDayBookings}
-          onValueChange={(v) => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); p.onSameDayChange(v); }}
-          trackColor={{ false: palette.border, true: palette.success }} thumbColor={palette.surface} />
+        <Switch
+          value={p.allowSameDayBookings}
+          onValueChange={(v) => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            p.onSameDayChange(v);
+          }}
+          trackColor={{ false: palette.border, true: palette.success }}
+          thumbColor={palette.surface}
+        />
       </Row>
       <Divider spacing={Spacing.md} />
       <Row style={styles.toggleRow}>
@@ -115,22 +168,40 @@ function ToggleCardInner(p: ToggleCardProps) {
             <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
           </View>
           <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>Allow Rescheduling</ThemedText>
-            <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>Let athletes change booking time</ThemedText>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
+              Allow Rescheduling
+            </ThemedText>
+            <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
+              Let athletes change booking time
+            </ThemedText>
           </View>
         </Row>
-        <Switch value={p.allowRescheduling}
-          onValueChange={(v) => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); p.onRescheduleChange(v); }}
-          trackColor={{ false: palette.border, true: palette.tint }} thumbColor={palette.surface} />
+        <Switch
+          value={p.allowRescheduling}
+          onValueChange={(v) => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            p.onRescheduleChange(v);
+          }}
+          trackColor={{ false: palette.border, true: palette.tint }}
+          thumbColor={palette.surface}
+        />
       </Row>
       {p.allowRescheduling && (
         <>
           <Divider spacing={Spacing.md} />
           <View style={styles.rescheduleSection}>
-            <ThemedText style={[styles.rescheduleLabel, { color: palette.muted }]}>Reschedule deadline:</ThemedText>
+            <ThemedText style={[styles.rescheduleLabel, { color: palette.muted }]}>
+              Reschedule deadline:
+            </ThemedText>
             <Row style={styles.rescheduleChips}>
               {MODAL_RESCHEDULE_OPTIONS.map((opt) => (
-                <OptionChip key={opt.value} label={opt.label} isSelected={p.rescheduleDeadlineHours === opt.value} onPress={() => p.onDeadlineChange(opt.value)} compact />
+                <OptionChip
+                  key={opt.value}
+                  label={opt.label}
+                  isSelected={p.rescheduleDeadlineHours === opt.value}
+                  onPress={() => p.onDeadlineChange(opt.value)}
+                  compact
+                />
               ))}
             </Row>
           </View>
@@ -146,7 +217,13 @@ export const ToggleCard = memo(ToggleCardInner);
 // CancellationSection — Policy picker + tier summary
 // ---------------------------------------------------------------------------
 
-function CancellationSectionInner({ preset, onPresetChange }: { preset: string; onPresetChange: (p: string) => void }) {
+function CancellationSectionInner({
+  preset,
+  onPresetChange,
+}: {
+  preset: string;
+  onPresetChange: (p: string) => void;
+}) {
   const { colors: palette } = useTheme();
   return (
     <View style={styles.section}>
@@ -156,7 +233,9 @@ function CancellationSectionInner({ preset, onPresetChange }: { preset: string; 
         </View>
         <View style={styles.sectionTitleWrap}>
           <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Refund rules when athletes cancel</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            Refund rules when athletes cancel
+          </ThemedText>
         </View>
       </Row>
       <Row style={styles.chipRow}>
@@ -164,10 +243,32 @@ function CancellationSectionInner({ preset, onPresetChange }: { preset: string; 
           const tmpl = POLICY_TEMPLATES[key];
           const isSelected = preset === key;
           return (
-            <Clickable key={key} onPress={() => onPresetChange(key)}
-              style={[styles.policyChip, { backgroundColor: isSelected ? palette.tint : palette.surface, borderColor: isSelected ? palette.tint : palette.border }]}>
-              <ThemedText style={[styles.policyChipName, { color: isSelected ? palette.onPrimary : palette.text }]}>{tmpl.name}</ThemedText>
-              <ThemedText style={[styles.policyChipDesc, { color: isSelected ? withAlpha(palette.onPrimary, 0.7) : palette.muted }]} numberOfLines={2}>
+            <Clickable
+              key={key}
+              onPress={() => onPresetChange(key)}
+              style={[
+                styles.policyChip,
+                {
+                  backgroundColor: isSelected ? palette.tint : palette.surface,
+                  borderColor: isSelected ? palette.tint : palette.border,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.policyChipName,
+                  { color: isSelected ? palette.onPrimary : palette.text },
+                ]}
+              >
+                {tmpl.name}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.policyChipDesc,
+                  { color: isSelected ? withAlpha(palette.onPrimary, 0.7) : palette.muted },
+                ]}
+                numberOfLines={2}
+              >
                 {tmpl.description}
               </ThemedText>
             </Clickable>
@@ -176,12 +277,21 @@ function CancellationSectionInner({ preset, onPresetChange }: { preset: string; 
       </Row>
       <View style={[styles.tierSummary, { backgroundColor: palette.surface }]}>
         {POLICY_TEMPLATES[preset]?.tiers.map((tier, i) => {
-          const color = tier.refundPercentage >= 75 ? palette.success : tier.refundPercentage >= 25 ? palette.warning : palette.error;
+          const color =
+            tier.refundPercentage >= 75
+              ? palette.success
+              : tier.refundPercentage >= 25
+                ? palette.warning
+                : palette.error;
           return (
             <Row key={i} style={styles.tierRow}>
               <View style={[styles.tierDot, { backgroundColor: color }]} />
-              <ThemedText style={[styles.tierText, { color: palette.text }]}>{tier.refundPercentage}% refund</ThemedText>
-              <ThemedText style={[styles.tierHint, { color: palette.muted }]}>{tier.hoursBeforeSession}h+ before</ThemedText>
+              <ThemedText style={[styles.tierText, { color: palette.text }]}>
+                {tier.refundPercentage}% refund
+              </ThemedText>
+              <ThemedText style={[styles.tierHint, { color: palette.muted }]}>
+                {tier.hoursBeforeSession}h+ before
+              </ThemedText>
             </Row>
           );
         })}
@@ -207,19 +317,42 @@ interface SettingsSummaryProps {
 function SettingsSummaryInner(p: SettingsSummaryProps) {
   const { colors: palette } = useTheme();
   const items = [
-    { text: p.minimumAdvanceHours === 0 ? 'No minimum notice' : `${p.minimumAdvanceHours}h minimum notice`, on: true },
-    { text: p.bufferMinutes === 0 ? 'No buffer' : `${p.bufferMinutes}m buffer between sessions`, on: true },
+    {
+      text:
+        p.minimumAdvanceHours === 0
+          ? 'No minimum notice'
+          : `${p.minimumAdvanceHours}h minimum notice`,
+      on: true,
+    },
+    {
+      text: p.bufferMinutes === 0 ? 'No buffer' : `${p.bufferMinutes}m buffer between sessions`,
+      on: true,
+    },
     { text: `Book up to ${p.maxAdvanceDays} days ahead`, on: true },
-    { text: `Same-day ${p.allowSameDayBookings ? 'allowed' : 'not allowed'}`, on: p.allowSameDayBookings },
-    { text: `${POLICY_TEMPLATES[p.cancellationPreset]?.name || 'Standard'} cancellation policy`, on: true },
+    {
+      text: `Same-day ${p.allowSameDayBookings ? 'allowed' : 'not allowed'}`,
+      on: p.allowSameDayBookings,
+    },
+    {
+      text: `${POLICY_TEMPLATES[p.cancellationPreset]?.name || 'Standard'} cancellation policy`,
+      on: true,
+    },
   ];
   return (
-    <SurfaceCard style={[styles.summaryCard, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
-      <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>Current Settings</ThemedText>
+    <SurfaceCard
+      style={[styles.summaryCard, { backgroundColor: withAlpha(palette.success, 0.03) }]}
+    >
+      <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
+        Current Settings
+      </ThemedText>
       <View style={styles.summaryList}>
         {items.map((item, i) => (
           <Row key={i} style={styles.summaryItem}>
-            <Ionicons name={item.on ? 'checkmark-circle' : 'close-circle'} size={14} color={item.on ? palette.success : palette.muted} />
+            <Ionicons
+              name={item.on ? 'checkmark-circle' : 'close-circle'}
+              size={14}
+              color={item.on ? palette.success : palette.muted}
+            />
             <ThemedText style={styles.summaryText}>{item.text}</ThemedText>
           </Row>
         ))}

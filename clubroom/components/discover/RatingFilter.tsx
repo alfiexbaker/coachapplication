@@ -38,9 +38,7 @@ export function RatingFilter({
 
   const getCountForRating = (rating: number): number => {
     // Sum counts for this rating and above
-    return distribution
-      .filter((d) => d.rating >= rating)
-      .reduce((sum, d) => sum + d.count, 0);
+    return distribution.filter((d) => d.rating >= rating).reduce((sum, d) => sum + d.count, 0);
   };
 
   const getBarWidth = (rating: number): number => {
@@ -77,17 +75,10 @@ export function RatingFilter({
   return (
     <View style={styles.container}>
       <Row style={styles.header}>
-        <ThemedText style={[styles.label, { color: palette.text }]}>
-          Minimum Rating
-        </ThemedText>
+        <ThemedText style={[styles.label, { color: palette.text }]}>Minimum Rating</ThemedText>
         {selectedRating !== undefined && (
-          <Clickable
-            onPress={() => onChange(undefined)}
-            style={styles.clearButton}
-          >
-            <ThemedText style={[styles.clearText, { color: palette.tint }]}>
-              Clear
-            </ThemedText>
+          <Clickable onPress={() => onChange(undefined)} style={styles.clearButton}>
+            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear</ThemedText>
           </Clickable>
         )}
       </Row>
@@ -107,9 +98,7 @@ export function RatingFilter({
               style={[
                 styles.ratingRow,
                 {
-                  backgroundColor: isSelected
-                    ? withAlpha(palette.tint, 0.1)
-                    : 'transparent',
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.1) : 'transparent',
                   borderColor: isSelected ? palette.tint : palette.border,
                 },
               ]}
@@ -117,10 +106,7 @@ export function RatingFilter({
               <Row style={styles.ratingInfo}>
                 {renderStars(rating, isSelected)}
                 <ThemedText
-                  style={[
-                    styles.ratingLabel,
-                    { color: isSelected ? palette.tint : palette.muted },
-                  ]}
+                  style={[styles.ratingLabel, { color: isSelected ? palette.tint : palette.muted }]}
                 >
                   & up
                 </ThemedText>
@@ -132,19 +118,14 @@ export function RatingFilter({
                     styles.bar,
                     {
                       width: `${barWidth}%`,
-                      backgroundColor: isSelected
-                        ? palette.tint
-                        : palette.border,
+                      backgroundColor: isSelected ? palette.tint : palette.border,
                     },
                   ]}
                 />
               </View>
 
               <ThemedText
-                style={[
-                  styles.countText,
-                  { color: isSelected ? palette.tint : palette.muted },
-                ]}
+                style={[styles.countText, { color: isSelected ? palette.tint : palette.muted }]}
               >
                 {count}
               </ThemedText>
@@ -198,8 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 100,
   },
-  starsRow: {
-  },
+  starsRow: {},
   star: {
     marginRight: 1,
   },

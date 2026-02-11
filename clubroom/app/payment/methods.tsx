@@ -19,7 +19,9 @@ const MOCK_CARDS = [
 
 export default function PaymentMethodsScreen() {
   const { colors: palette } = useTheme();
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ cards: typeof MOCK_CARDS }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
+    cards: typeof MOCK_CARDS;
+  }>({
     load: async () => ok({ cards: MOCK_CARDS }),
     isEmpty: (value) => value.cards.length === 0,
     refetchOnFocus: true,

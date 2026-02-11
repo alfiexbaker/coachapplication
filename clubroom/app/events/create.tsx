@@ -18,19 +18,35 @@ import { ok } from '@/types/result';
 import { useCreateEvent, STEPS } from '@/hooks/use-create-event';
 
 export default function CreateEventScreen() {
-  const { status, error, retry, colors: palette } = useScreen<boolean>({
+  const {
+    status,
+    error,
+    retry,
+    colors: palette,
+  } = useScreen<boolean>({
     load: async () => ok(true),
     isEmpty: () => false,
     refetchOnFocus: true,
   });
   const {
-    form, step, loading, squads, currentStepIndex,
-    setField, canProceed, goNext, goBack, handleCreate,
+    form,
+    step,
+    loading,
+    squads,
+    currentStepIndex,
+    setField,
+    canProceed,
+    goNext,
+    goBack,
+    handleCreate,
   } = useCreateEvent();
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -38,15 +54,24 @@ export default function CreateEventScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={error?.message || 'Failed to open event creation flow.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message || 'Failed to open event creation flow.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="calendar-outline"
           title="Creation unavailable"
@@ -61,47 +86,130 @@ export default function CreateEventScreen() {
   const renderStep = () => {
     switch (step) {
       case 'type':
-        return <CreateEventTypeStep eventType={form.eventType} onEventTypeChange={(t) => setField('eventType', t)} />;
+        return (
+          <CreateEventTypeStep
+            eventType={form.eventType}
+            onEventTypeChange={(t) => setField('eventType', t)}
+          />
+        );
       case 'details':
-        return <CreateEventDetailsStep title={form.title} description={form.description} venue={form.venue} address={form.address} isVirtual={form.isVirtual} meetingLink={form.meetingLink} onFieldChange={setField} />;
+        return (
+          <CreateEventDetailsStep
+            title={form.title}
+            description={form.description}
+            venue={form.venue}
+            address={form.address}
+            isVirtual={form.isVirtual}
+            meetingLink={form.meetingLink}
+            onFieldChange={setField}
+          />
+        );
       case 'schedule':
-        return <CreateEventScheduleStep date={form.date} startTime={form.startTime} endTime={form.endTime} rsvpDeadline={form.rsvpDeadline} onFieldChange={setField} />;
+        return (
+          <CreateEventScheduleStep
+            date={form.date}
+            startTime={form.startTime}
+            endTime={form.endTime}
+            rsvpDeadline={form.rsvpDeadline}
+            onFieldChange={setField}
+          />
+        );
       case 'audience':
-        return <CreateEventAudienceStep clubId="club_lions" targetAudience={form.targetAudience} selectedSquadIds={form.selectedSquadIds} selectedAthleteIds={form.selectedAthleteIds} squads={squads} maxAttendees={form.maxAttendees} price={form.price} rsvpRequired={form.rsvpRequired} onFieldChange={setField} />;
+        return (
+          <CreateEventAudienceStep
+            clubId="club_lions"
+            targetAudience={form.targetAudience}
+            selectedSquadIds={form.selectedSquadIds}
+            selectedAthleteIds={form.selectedAthleteIds}
+            squads={squads}
+            maxAttendees={form.maxAttendees}
+            price={form.price}
+            rsvpRequired={form.rsvpRequired}
+            onFieldChange={setField}
+          />
+        );
       case 'review':
-        return <CreateEventReviewStep eventType={form.eventType} title={form.title} description={form.description} date={form.date} startTime={form.startTime} endTime={form.endTime} isVirtual={form.isVirtual} venue={form.venue} targetAudience={form.targetAudience} selectedSquadIds={form.selectedSquadIds} selectedAthleteIds={form.selectedAthleteIds} price={form.price} />;
+        return (
+          <CreateEventReviewStep
+            eventType={form.eventType}
+            title={form.title}
+            description={form.description}
+            date={form.date}
+            startTime={form.startTime}
+            endTime={form.endTime}
+            isVirtual={form.isVirtual}
+            venue={form.venue}
+            targetAudience={form.targetAudience}
+            selectedSquadIds={form.selectedSquadIds}
+            selectedAthleteIds={form.selectedAthleteIds}
+            price={form.price}
+          />
+        );
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
         <Row align="center" gap="md" style={styles.header}>
           <Clickable onPress={goBack} hitSlop={8} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
-          <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>Create Event</ThemedText>
+          <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>
+            Create Event
+          </ThemedText>
           <View style={{ width: 24 }} />
         </Row>
 
         <Row justify="center" gap="xs" style={styles.progressContainer}>
           {STEPS.map((s, i) => (
-            <View key={s} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border }]} />
+            <View
+              key={s}
+              style={[
+                styles.progressDot,
+                { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border },
+              ]}
+            />
           ))}
         </Row>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {renderStep()}
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
           {step === 'review' ? (
             <Row gap="sm" style={styles.reviewButtons}>
-              <Button variant="outline" onPress={() => handleCreate(false)} disabled={loading} style={styles.reviewButton}>Save Draft</Button>
-              <Button onPress={() => handleCreate(true)} disabled={loading} style={styles.reviewButton}>{loading ? 'Creating...' : 'Publish'}</Button>
+              <Button
+                variant="outline"
+                onPress={() => handleCreate(false)}
+                disabled={loading}
+                style={styles.reviewButton}
+              >
+                Save Draft
+              </Button>
+              <Button
+                onPress={() => handleCreate(true)}
+                disabled={loading}
+                style={styles.reviewButton}
+              >
+                {loading ? 'Creating...' : 'Publish'}
+              </Button>
             </Row>
           ) : (
-            <Button onPress={goNext} disabled={!canProceed()}>Continue</Button>
+            <Button onPress={goNext} disabled={!canProceed()}>
+              Continue
+            </Button>
           )}
         </View>
       </KeyboardAvoidingView>

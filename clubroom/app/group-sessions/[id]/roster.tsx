@@ -20,20 +20,50 @@ export default function SessionRosterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const {
-    session, status, error, refreshing, onRefresh, retry, filter, setFilter,
-    showRollCall, setShowRollCall, rollCallAttendance, rollCallStats, rollCallParticipants,
-    showInjuryReport, setShowInjuryReport, selectedParticipant,
-    injuryBodyPart, setInjuryBodyPart, injurySeverity, setInjurySeverity,
-    injuryDescription, setInjuryDescription, savingInjury,
-    filteredRoster, filters, registeredCount, waitlistedCount,
-    handleMarkAttendance, handleCancelRegistration,
-    startRollCall, markRollCallStatus, markAllPresent, resetRollCall, saveRollCall,
-    openInjuryReport, submitInjuryReport,
+    session,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    filter,
+    setFilter,
+    showRollCall,
+    setShowRollCall,
+    rollCallAttendance,
+    rollCallStats,
+    rollCallParticipants,
+    showInjuryReport,
+    setShowInjuryReport,
+    selectedParticipant,
+    injuryBodyPart,
+    setInjuryBodyPart,
+    injurySeverity,
+    setInjurySeverity,
+    injuryDescription,
+    setInjuryDescription,
+    savingInjury,
+    filteredRoster,
+    filters,
+    registeredCount,
+    waitlistedCount,
+    handleMarkAttendance,
+    handleCancelRegistration,
+    startRollCall,
+    markRollCallStatus,
+    markAllPresent,
+    resetRollCall,
+    saveRollCall,
+    openInjuryReport,
+    submitInjuryReport,
   } = useGroupRoster(id);
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="list" />
       </SafeAreaView>
     );
@@ -41,7 +71,10 @@ export default function SessionRosterScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -49,7 +82,10 @@ export default function SessionRosterScreen() {
 
   if (status === 'empty' || !session) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="people-outline"
           title="Session not found"
@@ -62,20 +98,30 @@ export default function SessionRosterScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <Row gap="md" align="center" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <View style={{ flex: 1 }}>
           <ThemedText type="title">Roster</ThemedText>
-          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>{session?.title}</ThemedText>
+          <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
+            {session?.title}
+          </ThemedText>
         </View>
         {registeredCount > 0 && (
-          <Clickable style={[styles.rollCallBtn, { backgroundColor: colors.success }]} onPress={startRollCall}>
+          <Clickable
+            style={[styles.rollCallBtn, { backgroundColor: colors.success }]}
+            onPress={startRollCall}
+          >
             <Row align="center" gap="xs">
               <Ionicons name="clipboard-outline" size={18} color={colors.onPrimary} />
-              <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>Roll Call</ThemedText>
+              <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.onPrimary }]}>
+                Roll Call
+              </ThemedText>
             </Row>
           </Clickable>
         )}
@@ -88,21 +134,48 @@ export default function SessionRosterScreen() {
           { value: session?.maxParticipants || 0, label: 'Capacity', color: colors.success },
         ].map((s) => (
           <View key={s.label} style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <ThemedText type="heading" style={{ color: s.color }}>{s.value}</ThemedText>
-            <ThemedText style={[Typography.caption, { color: colors.muted, marginTop: Spacing.micro }]}>{s.label}</ThemedText>
+            <ThemedText type="heading" style={{ color: s.color }}>
+              {s.value}
+            </ThemedText>
+            <ThemedText
+              style={[Typography.caption, { color: colors.muted, marginTop: Spacing.micro }]}
+            >
+              {s.label}
+            </ThemedText>
           </View>
         ))}
       </Row>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.xs }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{
+          paddingHorizontal: Spacing.lg,
+          paddingBottom: Spacing.md,
+          gap: Spacing.xs,
+        }}
+      >
         {filters.map((f) => (
           <Clickable
             key={f.key}
             onPress={() => setFilter(f.key)}
-            style={[styles.filterChip, { backgroundColor: filter === f.key ? colors.tint : colors.surface, borderColor: filter === f.key ? colors.tint : colors.border }]}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: filter === f.key ? colors.tint : colors.surface,
+                borderColor: filter === f.key ? colors.tint : colors.border,
+              },
+            ]}
           >
-            <ThemedText style={[Typography.smallSemiBold, { color: filter === f.key ? colors.onPrimary : colors.text }]}>
-              {f.label}{f.count !== undefined ? ` (${f.count})` : ''}
+            <ThemedText
+              style={[
+                Typography.smallSemiBold,
+                { color: filter === f.key ? colors.onPrimary : colors.text },
+              ]}
+            >
+              {f.label}
+              {f.count !== undefined ? ` (${f.count})` : ''}
             </ThemedText>
           </Clickable>
         ))}
@@ -114,12 +187,24 @@ export default function SessionRosterScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {filteredRoster.length === 0 ? (
-          <EmptyState icon="people-outline" title="No participants" message={filter !== 'all' ? `No ${filter} participants yet` : 'No one has registered for this session yet'} />
+          <EmptyState
+            icon="people-outline"
+            title="No participants"
+            message={
+              filter !== 'all'
+                ? `No ${filter} participants yet`
+                : 'No one has registered for this session yet'
+            }
+          />
         ) : (
           <View style={{ gap: Spacing.sm }}>
             {filteredRoster.map((reg, i) => (
               <Animated.View key={reg.id} entering={FadeInDown.delay(i * 50).springify()}>
-                <ParticipantCard registration={reg} onMarkAttendance={(attended) => handleMarkAttendance(reg, attended)} onCancel={() => handleCancelRegistration(reg)} />
+                <ParticipantCard
+                  registration={reg}
+                  onMarkAttendance={(attended) => handleMarkAttendance(reg, attended)}
+                  onCancel={() => handleCancelRegistration(reg)}
+                />
               </Animated.View>
             ))}
           </View>
@@ -143,7 +228,9 @@ export default function SessionRosterScreen() {
 
       <InjuryReportModal
         visible={showInjuryReport}
-        athleteName={selectedParticipant ? getGroupRegistrationAthleteName(selectedParticipant) : undefined}
+        athleteName={
+          selectedParticipant ? getGroupRegistrationAthleteName(selectedParticipant) : undefined
+        }
         bodyPart={injuryBodyPart}
         severity={injurySeverity}
         description={injuryDescription}
@@ -162,8 +249,17 @@ export default function SessionRosterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  rollCallBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  rollCallBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
   statsRow: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: Radii.md },
-  filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1 },
+  filterChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
 });

@@ -51,18 +51,17 @@ export default function CreateSessionScreen() {
   // ==========================================================================
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
         {/* Header */}
         <Row align="center" justify="between" paddingH="lg" paddingV="md">
-          <Clickable
-            onPress={state.goBack}
-            hitSlop={8}
-            accessibilityLabel="Go back"
-          >
+          <Clickable onPress={state.goBack} hitSlop={8} accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </Clickable>
           <Row flex align="center" justify="center">

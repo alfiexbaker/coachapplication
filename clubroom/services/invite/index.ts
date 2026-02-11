@@ -11,25 +11,32 @@
  *   import { sessionInviteService, bulkInviteService } from '@/services/invite';
  */
 
+import { sessionInviteService, getMockInvites, setInvitesCache } from './session-invite-service';
+import { squadInviteService } from './squad-invite-service';
+import { bulkInviteService } from './bulk-invite-service';
+import { matchInviteService } from './match-invite-service';
+import { eventInviteService } from './event-invite-service';
+import { inviteRsvpService } from './invite-rsvp-service';
+import { inviteShareService } from './invite-share-service';
+import { apiClient } from '../api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { createLogger } from '@/utils/logger';
+
 // Re-export individual services
-export { sessionInviteService } from './session-invite-service';
-export { squadInviteService } from './squad-invite-service';
-export { bulkInviteService } from './bulk-invite-service';
-export { matchInviteService } from './match-invite-service';
-export { eventInviteService } from './event-invite-service';
-export { inviteRsvpService } from './invite-rsvp-service';
-export { inviteShareService } from './invite-share-service';
+export {
+  sessionInviteService,
+  squadInviteService,
+  bulkInviteService,
+  matchInviteService,
+  eventInviteService,
+  inviteRsvpService,
+  inviteShareService,
+};
 
 // Re-export types
-export type {
-  CreateInviteInput,
-  RespondToInviteInput,
-} from './session-invite-service';
+export type { CreateInviteInput, RespondToInviteInput } from './session-invite-service';
 
-export type {
-  SquadInvitePreview,
-  SquadMemberWithSelection,
-} from './squad-invite-service';
+export type { SquadInvitePreview, SquadMemberWithSelection } from './squad-invite-service';
 
 export type {
   CreateBulkInviteInput,
@@ -37,32 +44,12 @@ export type {
   InviteSquadToSessionInput,
 } from './bulk-invite-service';
 
-export type {
-  InviteSquadToMatchInput,
-} from './match-invite-service';
+export type { InviteSquadToMatchInput } from './match-invite-service';
 
-export type {
-  InviteSquadsToEventInput,
-} from './event-invite-service';
-
-// Import services for the unified facade
-import { sessionInviteService } from './session-invite-service';
-import { squadInviteService } from './squad-invite-service';
-import { bulkInviteService } from './bulk-invite-service';
-import { matchInviteService } from './match-invite-service';
-import { eventInviteService } from './event-invite-service';
-import { apiClient } from '../api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { createLogger } from '@/utils/logger';
+export type { InviteSquadsToEventInput } from './event-invite-service';
 
 const logger = createLogger('InviteFacade');
 void logger;
-
-// Import storage functions for clearCache
-import {
-  getMockInvites,
-  setInvitesCache,
-} from './session-invite-service';
 
 /**
  * Unified invite service that maintains full backward compatibility
@@ -79,6 +66,7 @@ export const inviteService = {
   declineInvite: sessionInviteService.declineInvite.bind(sessionInviteService),
   respondToInvite: sessionInviteService.respondToInvite.bind(sessionInviteService),
   cancelInvite: sessionInviteService.cancelInvite.bind(sessionInviteService),
+  sendInviteReminder: sessionInviteService.sendInviteReminder.bind(sessionInviteService),
   dismissInvite: sessionInviteService.dismissInvite.bind(sessionInviteService),
   getCoachInvites: sessionInviteService.getCoachInvites.bind(sessionInviteService),
   getParentInvites: sessionInviteService.getParentInvites.bind(sessionInviteService),
@@ -91,9 +79,12 @@ export const inviteService = {
 
   // INVITE TYPE FILTERING
   getOpenInvites: sessionInviteService.getOpenInvites.bind(sessionInviteService),
-  getClosedInvitesForParent: sessionInviteService.getClosedInvitesForParent.bind(sessionInviteService),
-  getSquadOnlyInvitesForParent: sessionInviteService.getSquadOnlyInvitesForParent.bind(sessionInviteService),
-  getAvailableInvitesForParent: sessionInviteService.getAvailableInvitesForParent.bind(sessionInviteService),
+  getClosedInvitesForParent:
+    sessionInviteService.getClosedInvitesForParent.bind(sessionInviteService),
+  getSquadOnlyInvitesForParent:
+    sessionInviteService.getSquadOnlyInvitesForParent.bind(sessionInviteService),
+  getAvailableInvitesForParent:
+    sessionInviteService.getAvailableInvitesForParent.bind(sessionInviteService),
 
   // ==========================================================================
   // BULK INVITE OPERATIONS (from bulk-invite-service)
@@ -117,8 +108,10 @@ export const inviteService = {
   getSquadInvitesForTarget: squadInviteService.getSquadInvitesForTarget.bind(squadInviteService),
   getSquadInvitesByCoach: squadInviteService.getSquadInvitesByCoach.bind(squadInviteService),
   getSquadMembers: squadInviteService.getSquadMembers.bind(squadInviteService),
-  getSquadMembersWithMetadata: squadInviteService.getSquadMembersWithMetadata.bind(squadInviteService),
-  getSquadMembersGroupedByParent: squadInviteService.getSquadMembersGroupedByParent.bind(squadInviteService),
+  getSquadMembersWithMetadata:
+    squadInviteService.getSquadMembersWithMetadata.bind(squadInviteService),
+  getSquadMembersGroupedByParent:
+    squadInviteService.getSquadMembersGroupedByParent.bind(squadInviteService),
   getSquadInviteHistory: squadInviteService.getSquadInviteHistory.bind(squadInviteService),
   getCoachInviteHistory: squadInviteService.getCoachInviteHistory.bind(squadInviteService),
   addToInviteHistory: squadInviteService.addToInviteHistory.bind(squadInviteService),
@@ -128,7 +121,8 @@ export const inviteService = {
   getInvitesByCoach: squadInviteService.getInvitesByCoach.bind(squadInviteService),
   getSquadInviteStats: squadInviteService.getSquadInviteStats.bind(squadInviteService),
   hasMemberBeenInvited: squadInviteService.hasMemberBeenInvited.bind(squadInviteService),
-  calculateNotificationCount: squadInviteService.calculateNotificationCount.bind(squadInviteService),
+  calculateNotificationCount:
+    squadInviteService.calculateNotificationCount.bind(squadInviteService),
 
   // ==========================================================================
   // MATCH INVITE OPERATIONS (from match-invite-service)

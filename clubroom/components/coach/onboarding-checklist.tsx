@@ -9,13 +9,17 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-// Re-export extracted components for backward compat
-export { ChecklistItemRow, ProgressTrack } from './onboarding-checklist-sections';
-export type { ChecklistItem, ChecklistItemRowProps, ProgressTrackProps } from './onboarding-checklist-sections';
-
 import { ChecklistItemRow, ProgressTrack } from './onboarding-checklist-sections';
 import type { ChecklistItem } from './onboarding-checklist-sections';
 import { Row } from '@/components/primitives';
+
+// Re-export extracted components for backward compat
+export { ChecklistItemRow, ProgressTrack } from './onboarding-checklist-sections';
+export type {
+  ChecklistItem,
+  ChecklistItemRowProps,
+  ProgressTrackProps,
+} from './onboarding-checklist-sections';
 
 // ============================================================================
 // TYPES
@@ -65,18 +69,46 @@ export function CoachOnboardingChecklist({
     setIsDismissed(true);
   }, [dismissKey]);
 
-  const handleNavigate = useCallback((route: string) => {
-    router.push(route as Href);
-  }, [router]);
+  const handleNavigate = useCallback(
+    (route: string) => {
+      router.push(route as Href);
+    },
+    [router],
+  );
 
   const items: ChecklistItem[] = [
     { id: 'account', label: 'Account created', isComplete: true, route: '/settings' },
     { id: 'photo', label: 'Profile photo set', isComplete: hasProfilePhoto, route: '/settings' },
-    { id: 'bio', label: 'Bio written', isComplete: bio != null && bio.length > 20, route: '/settings' },
-    { id: 'qualifications', label: 'Qualifications added', isComplete: hasQualifications, route: '/settings' },
-    { id: 'availability', label: 'Availability set', isComplete: hasAvailability, route: '/availability' },
-    { id: 'scheduling', label: 'Scheduling rules configured', isComplete: hasSchedulingRules, route: '/availability' },
-    { id: 'cancellation', label: 'Cancellation policy set', isComplete: hasCancellationPolicy, route: '/settings' },
+    {
+      id: 'bio',
+      label: 'Bio written',
+      isComplete: bio != null && bio.length > 20,
+      route: '/settings',
+    },
+    {
+      id: 'qualifications',
+      label: 'Qualifications added',
+      isComplete: hasQualifications,
+      route: '/settings',
+    },
+    {
+      id: 'availability',
+      label: 'Availability set',
+      isComplete: hasAvailability,
+      route: '/availability',
+    },
+    {
+      id: 'scheduling',
+      label: 'Scheduling rules configured',
+      isComplete: hasSchedulingRules,
+      route: '/availability',
+    },
+    {
+      id: 'cancellation',
+      label: 'Cancellation policy set',
+      isComplete: hasCancellationPolicy,
+      route: '/settings',
+    },
     { id: 'live', label: 'Gone live', isComplete: isLive, route: '/settings' },
   ];
 
@@ -91,7 +123,9 @@ export function CoachOnboardingChecklist({
       {/* Header */}
       <Row style={styles.header}>
         <View style={styles.headerTextGroup}>
-          <ThemedText style={[styles.title, { color: palette.text }]}>Complete your setup</ThemedText>
+          <ThemedText style={[styles.title, { color: palette.text }]}>
+            Complete your setup
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             {completedCount} of {totalCount} steps done
           </ThemedText>
@@ -106,13 +140,20 @@ export function CoachOnboardingChecklist({
       {/* Checklist items */}
       <View style={styles.itemsList}>
         {items.map((item) => (
-          <ChecklistItemRow key={item.id} item={item} onNavigate={handleNavigate} palette={palette} />
+          <ChecklistItemRow
+            key={item.id}
+            item={item}
+            onNavigate={handleNavigate}
+            palette={palette}
+          />
         ))}
       </View>
 
       {/* Dismiss button */}
       <Clickable style={styles.dismissButton} onPress={handleDismiss}>
-        <ThemedText style={[styles.dismissButtonText, { color: palette.muted }]}>Dismiss checklist</ThemedText>
+        <ThemedText style={[styles.dismissButtonText, { color: palette.muted }]}>
+          Dismiss checklist
+        </ThemedText>
       </Clickable>
     </View>
   );

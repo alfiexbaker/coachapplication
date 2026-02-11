@@ -51,24 +51,37 @@ export function ParentDevelopmentScreen() {
   if (!currentUser) return null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>Development</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            Development
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             {children.length === 1
               ? `Tracking ${children[0].name}\u2019s progress`
               : children.length > 1
-              ? 'Track your children\u2019s progress'
-              : 'Add children to track their progress'}
+                ? 'Track your children\u2019s progress'
+                : 'Add children to track their progress'}
           </ThemedText>
         </View>
 
-        <DevChildSelector children={children} selectedChildId={selectedChildId} onSelectChild={handleSelectChild} />
+        <DevChildSelector
+          childOptions={children}
+          selectedChildId={selectedChildId}
+          onSelectChild={handleSelectChild}
+        />
 
         {children.length === 0 && (
-          <EmptyMetrics icon="people-outline" title="No Children Added" description="Add children to your account to track their development and progress" />
+          <EmptyMetrics
+            icon="people-outline"
+            title="No Children Added"
+            description="Add children to your account to track their development and progress"
+          />
         )}
 
         {selectedChild && (
@@ -98,16 +111,20 @@ export function ParentDevelopmentScreen() {
                     accessibilityState={{ selected: isActive }}
                   >
                     <Row align="center" justify="center" gap="xxs" flex>
-                    <Ionicons name={tab.icon} size={16} color={isActive ? palette.onPrimary : palette.muted} />
-                    <ThemedText
-                      style={[
-                        styles.tabLabel,
-                        { color: isActive ? palette.onPrimary : palette.muted },
-                        isActive && styles.tabLabelActive,
-                      ]}
-                    >
-                      {tab.label}
-                    </ThemedText>
+                      <Ionicons
+                        name={tab.icon}
+                        size={16}
+                        color={isActive ? palette.onPrimary : palette.muted}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.tabLabel,
+                          { color: isActive ? palette.onPrimary : palette.muted },
+                          isActive && styles.tabLabelActive,
+                        ]}
+                      >
+                        {tab.label}
+                      </ThemedText>
                     </Row>
                   </Clickable>
                 );
@@ -118,7 +135,12 @@ export function ParentDevelopmentScreen() {
               <DevProgressTab skills={skills} sessions={sessions} sortedSessions={sortedSessions} />
             )}
             {activeTab === 'badges' && (
-              <DevBadgesTab awards={awards} sharedBadges={sharedBadges} coachOnlyCount={coachOnlyCount} selectedChildId={selectedChildId} />
+              <DevBadgesTab
+                awards={awards}
+                sharedBadges={sharedBadges}
+                coachOnlyCount={coachOnlyCount}
+                selectedChildId={selectedChildId}
+              />
             )}
             {activeTab === 'goals' && (
               <DevGoalsTab activeGoals={activeGoals} completedGoals={completedGoals} />
@@ -132,7 +154,13 @@ export function ParentDevelopmentScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing['2xl'], gap: Spacing.md },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.md,
+  },
   header: { gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
   subtitle: { ...Typography.bodySmall, lineHeight: 20 },

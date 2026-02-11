@@ -16,7 +16,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-type DeclineReasonCategory = 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+type DeclineReasonCategory =
+  | 'schedule_conflict'
+  | 'too_far'
+  | 'price'
+  | 'child_unavailable'
+  | 'other';
 
 interface DeclineReasonOption {
   key: DeclineReasonCategory;
@@ -60,7 +65,8 @@ export function DeclineReasonSheet({
   };
 
   const handleSubmit = () => {
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSubmit({
       reason: selected ?? undefined,
       note: note.trim() || undefined,
@@ -111,7 +117,9 @@ export function DeclineReasonSheet({
                   style={[
                     styles.option,
                     {
-                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.background,
+                      backgroundColor: isSelected
+                        ? withAlpha(palette.tint, 0.06)
+                        : palette.background,
                       borderColor: isSelected ? palette.tint : palette.border,
                     },
                   ]}
@@ -122,10 +130,7 @@ export function DeclineReasonSheet({
                     color={isSelected ? palette.tint : palette.muted}
                   />
                   <ThemedText
-                    style={[
-                      styles.optionText,
-                      { color: isSelected ? palette.tint : palette.text },
-                    ]}
+                    style={[styles.optionText, { color: isSelected ? palette.tint : palette.text }]}
                   >
                     {reason.label}
                   </ThemedText>

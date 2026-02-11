@@ -17,7 +17,11 @@ export function AchievementBadge({ icon = 'trophy', label, description }: Achiev
   const { colors: palette } = useTheme();
 
   return (
-    <Row align="center" gap="sm" style={[styles.container, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+    <Row
+      align="center"
+      gap="sm"
+      style={[styles.container, { borderColor: palette.border, backgroundColor: palette.surface }]}
+    >
       <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.premium, 0.09) }]}>
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={palette.premium} />
       </View>
@@ -55,4 +59,3 @@ const styles = StyleSheet.create({
   label: { ...Typography.bodySmall },
   description: { ...Typography.caption, lineHeight: 18 },
 });
-

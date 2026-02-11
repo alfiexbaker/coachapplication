@@ -23,11 +23,7 @@ interface ReferralStatsProps {
   showCard?: boolean;
 }
 
-export function ReferralStats({
-  stats,
-  variant = 'default',
-  showCard = true,
-}: ReferralStatsProps) {
+export function ReferralStats({ stats, variant = 'default', showCard = true }: ReferralStatsProps) {
   const { colors: palette } = useTheme();
 
   const content = (

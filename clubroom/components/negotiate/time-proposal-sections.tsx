@@ -17,7 +17,9 @@ interface OriginalTimeCardProps {
   originalTime: TimeSlot;
 }
 
-export const OriginalTimeCard = memo(function OriginalTimeCard({ originalTime }: OriginalTimeCardProps) {
+export const OriginalTimeCard = memo(function OriginalTimeCard({
+  originalTime,
+}: OriginalTimeCardProps) {
   const { colors: palette } = useTheme();
 
   const formatted = (() => {
@@ -25,7 +27,8 @@ export const OriginalTimeCard = memo(function OriginalTimeCard({ originalTime }:
     const dateStr = date.toLocaleDateString('en-GB', {
       weekday: 'short',
       day: 'numeric',
-      month: 'short' });
+      month: 'short',
+    });
     return `${dateStr} at ${originalTime.startTime}`;
   })();
 
@@ -61,7 +64,8 @@ interface DatePickerSectionProps {
 export const DatePickerSection = memo(function DatePickerSection({
   days,
   selectedDate,
-  onSelect }: DatePickerSectionProps) {
+  onSelect,
+}: DatePickerSectionProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -84,7 +88,8 @@ export const DatePickerSection = memo(function DatePickerSection({
                 styles.dateChip,
                 {
                   backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border },
+                  borderColor: isSelected ? palette.tint : palette.border,
+                },
               ]}
             >
               <ThemedText
@@ -114,7 +119,8 @@ interface TimeGridSectionProps {
 
 export const TimeGridSection = memo(function TimeGridSection({
   selectedTime,
-  onSelect }: TimeGridSectionProps) {
+  onSelect,
+}: TimeGridSectionProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -133,7 +139,8 @@ export const TimeGridSection = memo(function TimeGridSection({
                 styles.timeChip,
                 {
                   backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border },
+                  borderColor: isSelected ? palette.tint : palette.border,
+                },
               ]}
             >
               <ThemedText
@@ -158,7 +165,8 @@ interface DurationSectionProps {
 
 export const DurationSection = memo(function DurationSection({
   duration,
-  onSelect }: DurationSectionProps) {
+  onSelect,
+}: DurationSectionProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -177,7 +185,8 @@ export const DurationSection = memo(function DurationSection({
                 styles.durationChip,
                 {
                   backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border },
+                  borderColor: isSelected ? palette.tint : palette.border,
+                },
               ]}
             >
               <ThemedText
@@ -206,14 +215,18 @@ export const ProposalSummary = memo(function ProposalSummary({
   selectedDate,
   selectedTime,
   duration,
-  location }: ProposalSummaryProps) {
+  location,
+}: ProposalSummaryProps) {
   const { colors: palette } = useTheme();
 
   return (
     <View
       style={[
         styles.summaryCard,
-        { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12) },
+        {
+          backgroundColor: withAlpha(palette.tint, 0.03),
+          borderColor: withAlpha(palette.tint, 0.12),
+        },
       ]}
     >
       <ThemedText style={[styles.summaryTitle, { color: palette.tint }]}>Your proposal</ThemedText>
@@ -223,7 +236,8 @@ export const ProposalSummary = memo(function ProposalSummary({
           {new Date(selectedDate).toLocaleDateString('en-GB', {
             weekday: 'long',
             day: 'numeric',
-            month: 'short' })}
+            month: 'short',
+          })}
         </ThemedText>
       </Row>
       <Row align="center" gap="xs">

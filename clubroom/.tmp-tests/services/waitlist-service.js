@@ -58,9 +58,7 @@ class WaitlistService {
         try {
             const entries = await this.getAllEntries();
             // Check if user is already on this session's waitlist
-            const existing = entries.find((e) => e.userId === params.userId &&
-                e.sessionId === params.sessionId &&
-                e.status === 'WAITING');
+            const existing = entries.find((e) => e.userId === params.userId && e.sessionId === params.sessionId && e.status === 'WAITING');
             if (existing) {
                 logger.warn('user_already_on_waitlist', {
                     userId: params.userId,
@@ -127,9 +125,7 @@ class WaitlistService {
             };
             // Update positions for remaining users in the same session
             entries.forEach((e) => {
-                if (e.sessionId === sessionId &&
-                    e.status === 'WAITING' &&
-                    e.position > removedPosition) {
+                if (e.sessionId === sessionId && e.status === 'WAITING' && e.position > removedPosition) {
                     e.position -= 1;
                 }
             });
@@ -243,9 +239,7 @@ class WaitlistService {
         const waitlist = await this.getSessionWaitlistRaw(sessionId);
         const autoBookCount = waitlist.filter((e) => e.autoBook).length;
         const nextInLine = waitlist[0];
-        const nextUserName = nextInLine
-            ? await resolveUserName(nextInLine.userId, 'User')
-            : undefined;
+        const nextUserName = nextInLine ? await resolveUserName(nextInLine.userId, 'User') : undefined;
         return {
             sessionId,
             sessionTitle,
@@ -350,7 +344,7 @@ class WaitlistService {
                 id: `notif_waitlist_booked_${Date.now()}`,
                 type: 'booking',
                 notificationType: 'BOOKING_CONFIRMED',
-                title: 'You\'re In!',
+                title: "You're In!",
                 body: `You've been booked for ${sessionLabel(nextInLine.sessionId)} from the waitlist.`,
                 recipientId: nextInLine.userId,
                 deepLink: `/bookings`,
@@ -399,9 +393,7 @@ class WaitlistService {
             };
             // Update positions for remaining users
             entries.forEach((e) => {
-                if (e.sessionId === sessionId &&
-                    e.status === 'WAITING' &&
-                    e.position > removedPosition) {
+                if (e.sessionId === sessionId && e.status === 'WAITING' && e.position > removedPosition) {
                     e.position -= 1;
                 }
             });
@@ -501,9 +493,7 @@ class WaitlistService {
             const now = new Date();
             let expiredCount = 0;
             entries.forEach((entry, index) => {
-                if (entry.status === 'NOTIFIED' &&
-                    entry.expiresAt &&
-                    new Date(entry.expiresAt) < now) {
+                if (entry.status === 'NOTIFIED' && entry.expiresAt && new Date(entry.expiresAt) < now) {
                     entries[index] = {
                         ...entry,
                         status: 'EXPIRED',

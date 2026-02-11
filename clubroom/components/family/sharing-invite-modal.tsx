@@ -15,27 +15,53 @@ import { Row } from '@/components/primitives';
 interface SharingInviteModalProps {
   visible: boolean;
   onClose: () => void;
-  inviteEmail: string; onEmailChange: (v: string) => void;
-  inviteName: string; onNameChange: (v: string) => void;
-  inviteRole: GuardianRole; onRoleChange: (v: GuardianRole) => void;
-  inviteRelationship: string; onRelationshipChange: (v: string) => void;
-  inviteMessage: string; onMessageChange: (v: string) => void;
+  inviteEmail: string;
+  onEmailChange: (v: string) => void;
+  inviteName: string;
+  onNameChange: (v: string) => void;
+  inviteRole: GuardianRole;
+  onRoleChange: (v: GuardianRole) => void;
+  inviteRelationship: string;
+  onRelationshipChange: (v: string) => void;
+  inviteMessage: string;
+  onMessageChange: (v: string) => void;
   inviting: boolean;
   onSend: () => void;
 }
 
 export const SharingInviteModal = memo(function SharingInviteModal({
-  visible, onClose, inviteEmail, onEmailChange, inviteName, onNameChange,
-  inviteRole, onRoleChange, inviteRelationship, onRelationshipChange,
-  inviteMessage, onMessageChange, inviting, onSend,
+  visible,
+  onClose,
+  inviteEmail,
+  onEmailChange,
+  inviteName,
+  onNameChange,
+  inviteRole,
+  onRoleChange,
+  inviteRelationship,
+  onRelationshipChange,
+  inviteMessage,
+  onMessageChange,
+  inviting,
+  onSend,
 }: SharingInviteModalProps) {
   const { colors } = useTheme();
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]} edges={['top']}>
         <Row style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Clickable onPress={onClose} style={{ padding: Spacing.xxs }} accessibilityLabel="Close invite guardian modal" accessibilityRole="button">
+          <Clickable
+            onPress={onClose}
+            style={{ padding: Spacing.xxs }}
+            accessibilityLabel="Close invite guardian modal"
+            accessibilityRole="button"
+          >
             <Ionicons name="close" size={28} color={colors.text} />
           </Clickable>
           <ThemedText type="subtitle">Invite Guardian</ThemedText>
@@ -45,16 +71,26 @@ export const SharingInviteModal = memo(function SharingInviteModal({
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Email Address</ThemedText>
-            <TextInput style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-              placeholder="Enter their email address" placeholderTextColor={colors.muted}
-              value={inviteEmail} onChangeText={onEmailChange} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.text }]}
+              placeholder="Enter their email address"
+              placeholderTextColor={colors.muted}
+              value={inviteEmail}
+              onChangeText={onEmailChange}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
           </View>
 
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Name (optional)</ThemedText>
-            <TextInput style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-              placeholder="Their name for your reference" placeholderTextColor={colors.muted}
-              value={inviteName} onChangeText={onNameChange} />
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.text }]}
+              placeholder="Their name for your reference"
+              placeholderTextColor={colors.muted}
+              value={inviteName}
+              onChangeText={onNameChange}
+            />
           </View>
 
           <View style={styles.group}>
@@ -68,14 +104,19 @@ export const SharingInviteModal = memo(function SharingInviteModal({
                     styles.chip,
                     {
                       borderColor: inviteRelationship === rel ? colors.tint : colors.border,
-                      backgroundColor: inviteRelationship === rel ? withAlpha(colors.tint, 0.06) : 'transparent',
+                      backgroundColor:
+                        inviteRelationship === rel ? withAlpha(colors.tint, 0.06) : 'transparent',
                     },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={`Set relationship to ${rel}`}
                   accessibilityState={{ selected: inviteRelationship === rel }}
                 >
-                  <ThemedText style={{ color: inviteRelationship === rel ? colors.tint : colors.text }}>{rel}</ThemedText>
+                  <ThemedText
+                    style={{ color: inviteRelationship === rel ? colors.tint : colors.text }}
+                  >
+                    {rel}
+                  </ThemedText>
                 </Clickable>
               ))}
             </Row>
@@ -91,19 +132,31 @@ export const SharingInviteModal = memo(function SharingInviteModal({
                   styles.roleOption,
                   {
                     borderColor: inviteRole === role ? colors.tint : colors.border,
-                    backgroundColor: inviteRole === role ? withAlpha(colors.tint, 0.06) : 'transparent',
+                    backgroundColor:
+                      inviteRole === role ? withAlpha(colors.tint, 0.06) : 'transparent',
                   },
                 ]}
                 accessibilityRole="radio"
                 accessibilityLabel={`Set access level to ${ROLE_INFO[role].label}`}
                 accessibilityState={{ checked: inviteRole === role }}
               >
-                <View style={[styles.radio, { borderColor: inviteRole === role ? colors.tint : colors.border }]}>
-                  {inviteRole === role && <View style={[styles.radioDot, { backgroundColor: colors.tint }]} />}
+                <View
+                  style={[
+                    styles.radio,
+                    { borderColor: inviteRole === role ? colors.tint : colors.border },
+                  ]}
+                >
+                  {inviteRole === role && (
+                    <View style={[styles.radioDot, { backgroundColor: colors.tint }]} />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">{ROLE_INFO[role].label}</ThemedText>
-                  <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>{ROLE_INFO[role].description}</ThemedText>
+                  <ThemedText
+                    style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}
+                  >
+                    {ROLE_INFO[role].description}
+                  </ThemedText>
                 </View>
               </Clickable>
             ))}
@@ -111,9 +164,15 @@ export const SharingInviteModal = memo(function SharingInviteModal({
 
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Personal Message (optional)</ThemedText>
-            <TextInput style={[styles.textArea, { borderColor: colors.border, color: colors.text }]}
-              placeholder="Add a note to your invitation..." placeholderTextColor={colors.muted}
-              value={inviteMessage} onChangeText={onMessageChange} multiline numberOfLines={3} />
+            <TextInput
+              style={[styles.textArea, { borderColor: colors.border, color: colors.text }]}
+              placeholder="Add a note to your invitation..."
+              placeholderTextColor={colors.muted}
+              value={inviteMessage}
+              onChangeText={onMessageChange}
+              multiline
+              numberOfLines={3}
+            />
           </View>
         </ScrollView>
 
@@ -126,10 +185,14 @@ export const SharingInviteModal = memo(function SharingInviteModal({
             accessibilityRole="button"
             accessibilityState={{ disabled: inviting }}
           >
-            {inviting ? <ActivityIndicator size="small" color={colors.onPrimary} /> : (
+            {inviting ? (
+              <ActivityIndicator size="small" color={colors.onPrimary} />
+            ) : (
               <>
                 <Ionicons name="send" size={20} color={colors.onPrimary} />
-                <ThemedText style={[Typography.heading, { color: colors.onPrimary }]}>Send Invitation</ThemedText>
+                <ThemedText style={[Typography.heading, { color: colors.onPrimary }]}>
+                  Send Invitation
+                </ThemedText>
               </>
             )}
           </Clickable>
@@ -141,16 +204,57 @@ export const SharingInviteModal = memo(function SharingInviteModal({
 
 const styles = StyleSheet.create({
   modal: { flex: 1 },
-  header: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, borderBottomWidth: 1 },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+  },
   content: { padding: Spacing.md, gap: Spacing.lg },
   group: { gap: Spacing.sm },
-  input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, ...Typography.subheading },
-  textArea: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.md, ...Typography.subheading, minHeight: 80, textAlignVertical: 'top' },
+  input: {
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    ...Typography.subheading,
+  },
+  textArea: {
+    borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    ...Typography.subheading,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
   chips: { flexWrap: 'wrap', gap: Spacing.xs },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1.5 },
-  roleOption: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5 },
-  radio: { width: 22, height: 22, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1.5,
+  },
+  roleOption: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   radioDot: { width: 12, height: 12, borderRadius: Radii.sm },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
-  sendBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.md },
+  sendBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+  },
 });

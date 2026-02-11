@@ -5,7 +5,13 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { createLogger } from '@/utils/logger';
-import type { ClubEvent, EventRSVP, EventAttendance, EventAttendanceStats, CheckInInput } from '@/constants/types';
+import type {
+  ClubEvent,
+  EventRSVP,
+  EventAttendance,
+  EventAttendanceStats,
+  CheckInInput,
+} from '@/constants/types';
 
 const logger = createLogger('useAttendees');
 
@@ -45,12 +51,19 @@ export function useAttendees() {
     }
   }, [id, currentUser]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
 
-  const handleCheckIn = useCallback(async (input: CheckInInput) => {
-    await eventService.checkIn(input);
-    await loadData();
-  }, [loadData]);
+  const handleCheckIn = useCallback(
+    async (input: CheckInInput) => {
+      await eventService.checkIn(input);
+      await loadData();
+    },
+    [loadData],
+  );
 
   const handleUndoCheckIn = useCallback(async () => {
     if (!id || !currentUser) return;
@@ -66,7 +79,11 @@ export function useAttendees() {
   const handleExportAttendees = useCallback(() => {
     logger.press('ExportAttendees', { eventId: id });
     const attendeeNames = attendance.map((a) => a.userId).join('\n');
-    Alert.alert('Attendee List', `${attendance.length} checked in:\n\n${attendeeNames || 'No attendees yet'}`, [{ text: 'OK' }]);
+    Alert.alert(
+      'Attendee List',
+      `${attendance.length} checked in:\n\n${attendeeNames || 'No attendees yet'}`,
+      [{ text: 'OK' }],
+    );
   }, [id, attendance]);
 
   const handleSendReminder = useCallback(() => {
@@ -74,9 +91,14 @@ export function useAttendees() {
     const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
     Alert.alert(
       'Send Reminder',
-      nonResponders > 0 ? `Send reminder to ${nonResponders} people who haven't responded?` : 'Everyone has already responded!',
       nonResponders > 0
-        ? [{ text: 'Cancel', style: 'cancel' }, { text: 'Send', onPress: () => Alert.alert('Sent', 'Reminders have been sent') }]
+        ? `Send reminder to ${nonResponders} people who haven't responded?`
+        : 'Everyone has already responded!',
+      nonResponders > 0
+        ? [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Send', onPress: () => Alert.alert('Sent', 'Reminders have been sent') },
+          ]
         : [{ text: 'OK' }],
     );
   }, [id, rsvps]);
@@ -85,9 +107,21 @@ export function useAttendees() {
   const checkInAvailable = event ? eventService.isCheckInAvailable(event) : false;
 
   return {
-    event, rsvps, attendance, stats, currentAttendance, loading, refreshing,
-    isCoach, isEventToday, checkInAvailable, currentUser,
-    handleCheckIn, handleUndoCheckIn, handleAttendeePress,
-    handleExportAttendees, handleSendReminder,
+    event,
+    rsvps,
+    attendance,
+    stats,
+    currentAttendance,
+    loading,
+    refreshing,
+    isCoach,
+    isEventToday,
+    checkInAvailable,
+    currentUser,
+    handleCheckIn,
+    handleUndoCheckIn,
+    handleAttendeePress,
+    handleExportAttendees,
+    handleSendReminder,
   };
 }

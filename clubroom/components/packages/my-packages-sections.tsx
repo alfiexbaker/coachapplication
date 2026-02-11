@@ -94,12 +94,7 @@ export const PurchaseListItem = memo(function PurchaseListItem({
           </View>
 
           <View style={styles.purchaseStatus}>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: withAlpha(statusColor, 0.09) },
-              ]}
-            >
+            <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
                 {getStatusLabel(purchase.status)}
               </ThemedText>

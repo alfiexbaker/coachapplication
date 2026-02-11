@@ -36,9 +36,7 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
   return (
     <View style={styles.field}>
       <ThemedText style={styles.label}>Disabilities</ThemedText>
-      <ThemedText style={[styles.hint, { color: palette.muted }]}>
-        Select any that apply
-      </ThemedText>
+      <ThemedText style={[styles.hint, { color: palette.muted }]}>Select any that apply</ThemedText>
       <Row style={styles.optionGrid}>
         {DISABILITY_TYPES.map((type) => {
           const isSelected = disabilities.some((d) => d.type === type);
@@ -60,14 +58,9 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
                 },
               ]}
             >
-              {isSelected && (
-                <Ionicons name="checkmark" size={14} color={palette.tint} />
-              )}
+              {isSelected && <Ionicons name="checkmark" size={14} color={palette.tint} />}
               <ThemedText
-                style={[
-                  styles.optionText,
-                  { color: isSelected ? palette.tint : palette.text },
-                ]}
+                style={[styles.optionText, { color: isSelected ? palette.tint : palette.text }]}
               >
                 {type}
               </ThemedText>

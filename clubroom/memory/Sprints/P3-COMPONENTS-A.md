@@ -2,7 +2,7 @@
 
 > Date: 2026-02-11
 > Phase: Foundation Phase 3 (Screen Infrastructure)
-> Sprint Anchor: `docs/sprints/Foundation/SPRINT-43-PHASE-3-WAVE-1.md`
+> Sprint Anchor: `docs/sprints/CompletedSprints/SPRINT-43-PHASE-3-WAVE-1.md`
 > Live Tracker: `docs/sprints/Foundation/PHASE-3-LIVE-TRACKER.md`
 > Source of truth: `docs/SOURCE_OF_TRUTH.md`, `docs/sprints/Foundation/PHASE-3-SCREEN-INFRASTRUCTURE.md`
 > Status: COMPLETE
@@ -141,5 +141,5 @@ Per-screen definition of done:
 - All listed Wave 1 screens migrated and passing definition of done.
 - All verification commands pass.
 - Sprint tracker updated in:
-  - `docs/sprints/Foundation/SPRINT-43-PHASE-3-WAVE-1.md`
+  - `docs/sprints/CompletedSprints/SPRINT-43-PHASE-3-WAVE-1.md`
   - `docs/sprints/Foundation/PHASE-3-SCREEN-INFRASTRUCTURE.md` (progress note/checklist updates)

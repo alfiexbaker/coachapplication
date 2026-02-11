@@ -30,24 +30,59 @@ interface DayEditorSheetProps {
   existingTemplatesForDay?: AvailabilityTemplate[];
   venues: CoachVenue[];
   defaultScope?: DayEditorScope;
-  onSaveRecurring: (data: { dayOfWeek: number; startTime: string; endTime: string; location?: string }) => void;
-  onSaveOverride: (data: { date: string; startTime: string; endTime: string; location?: string }) => void;
-  onSaveRepeatedOverride: (data: { date: string; startTime: string; endTime: string; location?: string; repeatWeeks: number }) => void;
+  onSaveRecurring: (data: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    location?: string;
+  }) => void;
+  onSaveOverride: (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+  }) => void;
+  onSaveRepeatedOverride: (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+    repeatWeeks: number;
+  }) => void;
   onDeleteTemplate?: (templateId: string) => void;
   onAddVenue?: (label: string) => void;
   coachId: string;
 }
 
 export function DayEditorSheet({
-  visible, onClose, dayOfWeek, dateStr, template, existingOverride,
-  existingTemplatesForDay, venues, defaultScope,
-  onSaveRecurring, onSaveOverride, onDeleteTemplate, onAddVenue,
+  visible,
+  onClose,
+  dayOfWeek,
+  dateStr,
+  template,
+  existingOverride,
+  existingTemplatesForDay,
+  venues,
+  defaultScope,
+  onSaveRecurring,
+  onSaveOverride,
+  onDeleteTemplate,
+  onAddVenue,
 }: DayEditorSheetProps) {
   const { colors: palette } = useTheme();
   const ed = useDayEditor({
-    visible, onClose, dayOfWeek, dateStr, template, existingOverride,
-    existingTemplatesForDay, defaultScope,
-    onSaveRecurring, onSaveOverride, onDeleteTemplate, onAddVenue,
+    visible,
+    onClose,
+    dayOfWeek,
+    dateStr,
+    template,
+    existingOverride,
+    existingTemplatesForDay,
+    defaultScope,
+    onSaveRecurring,
+    onSaveOverride,
+    onDeleteTemplate,
+    onAddVenue,
   });
 
   const overlayAnimStyle = useAnimatedStyle(() => ({
@@ -62,17 +97,40 @@ export function DayEditorSheet({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Animated.View style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }, overlayAnimStyle]}>
-        <Clickable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close sheet" />
+      <Animated.View
+        style={[
+          styles.overlay,
+          { backgroundColor: withAlpha(palette.text, 0.4) },
+          overlayAnimStyle,
+        ]}
+      >
+        <Clickable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityLabel="Close sheet"
+        />
       </Animated.View>
 
-      <Animated.View style={[styles.sheet, { backgroundColor: palette.surface, maxHeight: SHEET_MAX_HEIGHT }, sheetAnimStyle]}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <Animated.View
+        style={[
+          styles.sheet,
+          { backgroundColor: palette.surface, maxHeight: SHEET_MAX_HEIGHT },
+          sheetAnimStyle,
+        ]}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
           <View {...ed.panResponder.panHandlers} style={styles.handleArea}>
             <View style={[styles.handle, { backgroundColor: palette.border }]} />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} bounces={false}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.content}
+            bounces={false}
+          >
             {/* Header */}
             <Row style={styles.headerRow}>
               <ThemedText style={[styles.headerTitle, { color: palette.text }]}>
@@ -85,23 +143,73 @@ export function DayEditorSheet({
 
             {/* Existing Blocks */}
             {existingTemplatesForDay && existingTemplatesForDay.length > 0 && (
-              <DayEditorExistingBlocks dayName={ed.dayName} existingTemplatesForDay={existingTemplatesForDay} currentTemplateId={template?.id} />
+              <DayEditorExistingBlocks
+                dayName={ed.dayName}
+                existingTemplatesForDay={existingTemplatesForDay}
+                currentTemplateId={template?.id}
+              />
             )}
 
             {/* Scope Selector */}
             <Row style={styles.scopeRow}>
-              <Clickable onPress={() => ed.handleScopeChange('recurring')} accessibilityLabel={`Every ${ed.dayName}`} style={[styles.scopePill, { backgroundColor: ed.scope === 'recurring' ? withAlpha(palette.tint, 0.12) : palette.background, borderColor: ed.scope === 'recurring' ? palette.tint : palette.border }]}>
-                <ThemedText style={[styles.scopeText, { color: ed.scope === 'recurring' ? palette.tint : palette.muted }]}>Every {ed.dayName}</ThemedText>
+              <Clickable
+                onPress={() => ed.handleScopeChange('recurring')}
+                accessibilityLabel={`Every ${ed.dayName}`}
+                style={[
+                  styles.scopePill,
+                  {
+                    backgroundColor:
+                      ed.scope === 'recurring' ? withAlpha(palette.tint, 0.12) : palette.background,
+                    borderColor: ed.scope === 'recurring' ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.scopeText,
+                    { color: ed.scope === 'recurring' ? palette.tint : palette.muted },
+                  ]}
+                >
+                  Every {ed.dayName}
+                </ThemedText>
               </Clickable>
               {dateStr && (
-                <Clickable onPress={() => ed.handleScopeChange('just-this-date')} accessibilityLabel={`This ${ed.dayName}`} style={[styles.scopePill, { backgroundColor: ed.scope === 'just-this-date' ? withAlpha(palette.tint, 0.12) : palette.background, borderColor: ed.scope === 'just-this-date' ? palette.tint : palette.border }]}>
-                  <ThemedText style={[styles.scopeText, { color: ed.scope === 'just-this-date' ? palette.tint : palette.muted }]}>This {ed.dayName}</ThemedText>
+                <Clickable
+                  onPress={() => ed.handleScopeChange('just-this-date')}
+                  accessibilityLabel={`This ${ed.dayName}`}
+                  style={[
+                    styles.scopePill,
+                    {
+                      backgroundColor:
+                        ed.scope === 'just-this-date'
+                          ? withAlpha(palette.tint, 0.12)
+                          : palette.background,
+                      borderColor: ed.scope === 'just-this-date' ? palette.tint : palette.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.scopeText,
+                      { color: ed.scope === 'just-this-date' ? palette.tint : palette.muted },
+                    ]}
+                  >
+                    This {ed.dayName}
+                  </ThemedText>
                 </Clickable>
               )}
             </Row>
 
             {/* Time Section */}
-            <DayEditorTimeSection startTime={ed.startTime} endTime={ed.endTime} isValid={ed.isValid} durationLabel={ed.durationLabel} overlapWarning={ed.overlapWarning} onStartTimeChange={ed.handleStartTimeChange} onEndTimeChange={ed.setEndTime} />
+            <DayEditorTimeSection
+              startTime={ed.startTime}
+              endTime={ed.endTime}
+              isValid={ed.isValid}
+              durationLabel={ed.durationLabel}
+              overlapWarning={ed.overlapWarning}
+              onStartTimeChange={ed.handleStartTimeChange}
+              onEndTimeChange={ed.setEndTime}
+            />
 
             {/* Venue Section */}
             <DayEditorVenueSection
@@ -116,15 +224,34 @@ export function DayEditorSheet({
             />
 
             {/* Save */}
-            <Clickable onPress={ed.handleSave} disabled={!ed.isValid} accessibilityLabel={ed.saveLabel} style={[styles.saveBtn, { backgroundColor: ed.isValid ? palette.tint : palette.border, opacity: ed.isValid ? 1 : 0.5 }]}>
-              <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>{ed.saveLabel}</ThemedText>
+            <Clickable
+              onPress={ed.handleSave}
+              disabled={!ed.isValid}
+              accessibilityLabel={ed.saveLabel}
+              style={[
+                styles.saveBtn,
+                {
+                  backgroundColor: ed.isValid ? palette.tint : palette.border,
+                  opacity: ed.isValid ? 1 : 0.5,
+                },
+              ]}
+            >
+              <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>
+                {ed.saveLabel}
+              </ThemedText>
             </Clickable>
 
             {/* Delete */}
             {template && onDeleteTemplate && (
-              <Clickable onPress={ed.handleDelete} style={styles.deleteBtn} accessibilityLabel="Remove this slot">
+              <Clickable
+                onPress={ed.handleDelete}
+                style={styles.deleteBtn}
+                accessibilityLabel="Remove this slot"
+              >
                 <Ionicons name="trash-outline" size={16} color={palette.error} />
-                <ThemedText style={[styles.deleteBtnText, { color: palette.error }]}>Remove This Slot</ThemedText>
+                <ThemedText style={[styles.deleteBtnText, { color: palette.error }]}>
+                  Remove This Slot
+                </ThemedText>
               </Clickable>
             )}
           </ScrollView>
@@ -136,17 +263,43 @@ export function DayEditorSheet({
 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject },
-  sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: Radii.card, borderTopRightRadius: Radii.card },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: Radii.card,
+    borderTopRightRadius: Radii.card,
+  },
   handleArea: { alignItems: 'center', paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
   handle: { width: 36, height: 4, borderRadius: Radii.pill },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl + 34, gap: Spacing.md },
   headerRow: { alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { ...Typography.title },
-  closeBtn: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scopeRow: { flexWrap: 'wrap', gap: Spacing.xs },
-  scopePill: { paddingHorizontal: Spacing.sm, minHeight: 44, borderRadius: Radii.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  scopePill: {
+    paddingHorizontal: Spacing.sm,
+    minHeight: 44,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scopeText: { ...Typography.smallSemiBold },
-  saveBtn: { minHeight: Components.button.height, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
+  saveBtn: {
+    minHeight: Components.button.height,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
+  },
   saveBtnText: { ...Typography.bodySemiBold },
   deleteBtn: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xxs, minHeight: 44 },
   deleteBtnText: { ...Typography.bodySemiBold },

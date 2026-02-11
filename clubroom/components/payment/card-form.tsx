@@ -55,20 +55,20 @@ export function CardForm({ onSave, loading = false }: CardFormProps) {
         validators.required('Card number is required'),
         validators.custom(
           (v) => v.replace(/\s/g, '').length === 16,
-          'Card number must be 16 digits'
-        )
+          'Card number must be 16 digits',
+        ),
       ),
       expiry: compose(
         validators.required('Expiry date is required'),
-        validators.pattern(/^\d{2}\/\d{2}$/, 'Use MM/YY format')
+        validators.pattern(/^\d{2}\/\d{2}$/, 'Use MM/YY format'),
       ),
       cvv: compose(
         validators.required('CVV is required'),
-        validators.pattern(/^\d{3,4}$/, 'CVV must be 3-4 digits')
+        validators.pattern(/^\d{3,4}$/, 'CVV must be 3-4 digits'),
       ),
       name: compose(
         validators.required('Cardholder name is required'),
-        validators.minLength(2, 'Name is too short')
+        validators.minLength(2, 'Name is too short'),
       ),
       billing: validators.required('Billing address is required'),
     },
@@ -133,11 +133,7 @@ export function CardForm({ onSave, loading = false }: CardFormProps) {
         </View>
       </Row>
 
-      <FormInput
-        label="Cardholder name"
-        placeholder="Alex Smith"
-        {...form.getFieldProps('name')}
-      />
+      <FormInput label="Cardholder name" placeholder="Alex Smith" {...form.getFieldProps('name')} />
 
       <FormInput
         label="Billing address"

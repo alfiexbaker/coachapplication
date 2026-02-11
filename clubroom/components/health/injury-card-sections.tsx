@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii } from '@/constants/theme';
 import type { Injury } from '@/constants/types';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';

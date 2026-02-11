@@ -17,16 +17,34 @@ import { useCredentials } from '@/hooks/use-credentials';
 export default function CredentialsScreen() {
   const { colors } = useTheme();
   const {
-    status, screenStatus, error, refreshing, onRefresh, retry,
-    credentials, verifiedCount, submitting, showForm, selectedType,
-    customName, uploaded,
-    setShowForm, setSelectedType, setCustomName, setUploaded,
-    handleUpload, handleSubmit, resetForm,
+    status,
+    screenStatus,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    credentials,
+    verifiedCount,
+    submitting,
+    showForm,
+    selectedType,
+    customName,
+    uploaded,
+    setShowForm,
+    setSelectedType,
+    setCustomName,
+    setUploaded,
+    handleUpload,
+    handleSubmit,
+    resetForm,
   } = useCredentials();
 
   if (screenStatus === 'loading') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="detail" />
       </SafeAreaView>
     );
@@ -34,7 +52,10 @@ export default function CredentialsScreen() {
 
   if (screenStatus === 'error') {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <ErrorState message={error?.message || 'Failed to load credentials.'} onRetry={retry} />
       </SafeAreaView>
     );
@@ -42,7 +63,10 @@ export default function CredentialsScreen() {
 
   if (screenStatus === 'empty' || !status) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="ribbon-outline"
           title="Credentials unavailable"
@@ -68,7 +92,11 @@ export default function CredentialsScreen() {
             <ThemedText type="title">Credentials</ThemedText>
           </View>
           {!showForm && (
-            <Clickable accessibilityLabel="Add credential" onPress={() => setShowForm(true)} style={[styles.addButton, { backgroundColor: colors.tint }]}>
+            <Clickable
+              accessibilityLabel="Add credential"
+              onPress={() => setShowForm(true)}
+              style={[styles.addButton, { backgroundColor: colors.tint }]}
+            >
               <Ionicons name="add" size={20} color={colors.onPrimary} />
             </Clickable>
           )}
@@ -82,11 +110,15 @@ export default function CredentialsScreen() {
           <Row gap="md">
             <View style={[styles.statBox, { backgroundColor: colors.card }]}>
               <ThemedText type="title">{credentials.length}</ThemedText>
-              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>Uploaded</ThemedText>
+              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                Uploaded
+              </ThemedText>
             </View>
             <View style={[styles.statBox, { backgroundColor: colors.card }]}>
               <ThemedText type="title">{verifiedCount}</ThemedText>
-              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>Verified</ThemedText>
+              <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                Verified
+              </ThemedText>
             </View>
           </Row>
         )}
@@ -118,10 +150,15 @@ export default function CredentialsScreen() {
             <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
               Add your coaching qualifications to build trust with parents
             </ThemedText>
-            <Clickable onPress={() => setShowForm(true)} style={[styles.emptyButton, { borderColor: colors.tint }]}>
+            <Clickable
+              onPress={() => setShowForm(true)}
+              style={[styles.emptyButton, { borderColor: colors.tint }]}
+            >
               <Row align="center" gap="xs">
                 <Ionicons name="add" size={18} color={colors.tint} />
-                <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>Add Credential</ThemedText>
+                <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
+                  Add Credential
+                </ThemedText>
               </Row>
             </Clickable>
           </SurfaceCard>
@@ -130,7 +167,8 @@ export default function CredentialsScreen() {
         <Row gap="sm" style={[styles.infoBox, { backgroundColor: colors.surfaceSecondary }]}>
           <Ionicons name="information-circle" size={20} color={colors.tint} />
           <ThemedText style={[styles.infoText, { color: colors.muted }]}>
-            Credentials are reviewed within 1-2 business days. Verified credentials appear on your profile.
+            Credentials are reviewed within 1-2 business days. Verified credentials appear on your
+            profile.
           </ThemedText>
         </Row>
       </ScrollView>
@@ -143,13 +181,22 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
-  addButton: { width: 36, height: 36, borderRadius: Radii.xl, justifyContent: 'center', alignItems: 'center' },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   statBox: { flex: 1, alignItems: 'center', padding: Spacing.md, borderRadius: Radii.md },
   credentialsList: { gap: Spacing.sm },
   emptyCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   emptyButton: {
-    paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md,
-    borderRadius: Radii.button, borderWidth: 1.5, marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1.5,
+    marginTop: Spacing.sm,
   },
   infoBox: { padding: Spacing.md, borderRadius: Radii.md, backgroundColor: 'transparent' },
   infoText: { flex: 1, ...Typography.small },

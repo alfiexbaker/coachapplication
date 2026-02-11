@@ -89,11 +89,7 @@ export function ProgressRing({
 
   // Animated props for the progress circle
   const animatedCircleProps = useAnimatedProps(() => {
-    const strokeDashoffset = interpolate(
-      animatedProgress.value,
-      [0, 100],
-      [circumference, 0]
-    );
+    const strokeDashoffset = interpolate(animatedProgress.value, [0, 100], [circumference, 0]);
     return {
       strokeDashoffset,
     };
@@ -163,13 +159,7 @@ export function ProgressRing({
 /**
  * Compact progress ring for use in list items
  */
-export function CompactProgressRing({
-  progress,
-  color,
-}: {
-  progress: number;
-  color?: string;
-}) {
+export function CompactProgressRing({ progress, color }: { progress: number; color?: string }) {
   return (
     <ProgressRing
       progress={progress}

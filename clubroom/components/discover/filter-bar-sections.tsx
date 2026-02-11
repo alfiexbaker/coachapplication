@@ -5,11 +5,7 @@
  * FOCUS_FILTERS — football skill focus chips.
  */
 
-import type {
-  CoachSearchFilters,
-  FootballObjective,
-  TrainingFormat,
-} from '@/constants/types';
+import type { CoachSearchFilters, FootballObjective, TrainingFormat } from '@/constants/types';
 
 // ============================================================================
 // TYPES

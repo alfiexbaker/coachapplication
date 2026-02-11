@@ -27,10 +27,13 @@ export function useCalendarSync() {
   const [settingsOverride, setSettingsOverride] = useState<CalendarSyncSettings | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const defaultSettings = useMemo<CalendarSyncSettings>(() => ({
-    ...calendarService.getDefaultSettings(),
-    userId,
-  }), [userId]);
+  const defaultSettings = useMemo<CalendarSyncSettings>(
+    () => ({
+      ...calendarService.getDefaultSettings(),
+      userId,
+    }),
+    [userId],
+  );
 
   const loadSettings = useCallback(async () => {
     try {
@@ -64,40 +67,61 @@ export function useCalendarSync() {
 
   const settings = settingsOverride ?? data ?? defaultSettings;
 
-  const saveSettings = useCallback(async (updates: Partial<CalendarSyncSettings>) => {
-    const previousSettings = settings;
-    const nextSettings: CalendarSyncSettings = { ...previousSettings, ...updates, userId };
+  const saveSettings = useCallback(
+    async (updates: Partial<CalendarSyncSettings>) => {
+      const previousSettings = settings;
+      const nextSettings: CalendarSyncSettings = { ...previousSettings, ...updates, userId };
 
-    setIsSaving(true);
-    setSettingsOverride(nextSettings);
-    setActionError(null);
+      setIsSaving(true);
+      setSettingsOverride(nextSettings);
+      setActionError(null);
 
-    try {
-      const result = await calendarService.updateSyncSettings(userId, nextSettings);
-      if (result.success && result.settings) {
-        setSettingsOverride(result.settings);
-      } else {
+      try {
+        const result = await calendarService.updateSyncSettings(userId, nextSettings);
+        if (result.success && result.settings) {
+          setSettingsOverride(result.settings);
+        } else {
+          setSettingsOverride(previousSettings);
+          const message = result.error || 'Failed to save settings';
+          setActionError(message);
+          Alert.alert('Error', message);
+        }
+      } catch (saveError) {
+        logger.error('Failed to save settings', saveError);
         setSettingsOverride(previousSettings);
-        const message = result.error || 'Failed to save settings';
-        setActionError(message);
-        Alert.alert('Error', message);
+        setActionError('Failed to save settings. Please try again.');
+        Alert.alert('Error', 'Failed to save settings. Please try again.');
+      } finally {
+        setIsSaving(false);
       }
-    } catch (saveError) {
-      logger.error('Failed to save settings', saveError);
-      setSettingsOverride(previousSettings);
-      setActionError('Failed to save settings. Please try again.');
-      Alert.alert('Error', 'Failed to save settings. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [settings, userId]);
+    },
+    [settings, userId],
+  );
 
-  const handleToggleEnabled = useCallback((enabled: boolean) => saveSettings({ enabled }), [saveSettings]);
-  const handleToggleAutoSync = useCallback((autoSync: boolean) => saveSettings({ autoSync }), [saveSettings]);
-  const handleToggleLocation = useCallback((includeLocation: boolean) => saveSettings({ includeLocation }), [saveSettings]);
-  const handleToggleNotes = useCallback((includeNotes: boolean) => saveSettings({ includeNotes }), [saveSettings]);
-  const handleProviderChange = useCallback((provider: CalendarProvider) => saveSettings({ provider }), [saveSettings]);
-  const handleReminderChange = useCallback((reminderMinutes: number) => saveSettings({ reminderMinutes }), [saveSettings]);
+  const handleToggleEnabled = useCallback(
+    (enabled: boolean) => saveSettings({ enabled }),
+    [saveSettings],
+  );
+  const handleToggleAutoSync = useCallback(
+    (autoSync: boolean) => saveSettings({ autoSync }),
+    [saveSettings],
+  );
+  const handleToggleLocation = useCallback(
+    (includeLocation: boolean) => saveSettings({ includeLocation }),
+    [saveSettings],
+  );
+  const handleToggleNotes = useCallback(
+    (includeNotes: boolean) => saveSettings({ includeNotes }),
+    [saveSettings],
+  );
+  const handleProviderChange = useCallback(
+    (provider: CalendarProvider) => saveSettings({ provider }),
+    [saveSettings],
+  );
+  const handleReminderChange = useCallback(
+    (reminderMinutes: number) => saveSettings({ reminderMinutes }),
+    [saveSettings],
+  );
 
   const handleExportAllSessions = useCallback(async () => {
     setIsExporting(true);
@@ -127,9 +151,11 @@ export function useCalendarSync() {
     }
   }, []);
 
-  const error = actionError ?? (status === 'error'
-    ? ((loadError as ServiceError | null)?.message ?? 'Failed to load calendar settings.')
-    : null);
+  const error =
+    actionError ??
+    (status === 'error'
+      ? ((loadError as ServiceError | null)?.message ?? 'Failed to load calendar settings.')
+      : null);
 
   return {
     isLoading: status === 'loading',
@@ -141,9 +167,12 @@ export function useCalendarSync() {
     isSaving,
     isExporting,
     settings,
-    handleToggleEnabled, handleToggleAutoSync,
-    handleToggleLocation, handleToggleNotes,
-    handleProviderChange, handleReminderChange,
+    handleToggleEnabled,
+    handleToggleAutoSync,
+    handleToggleLocation,
+    handleToggleNotes,
+    handleProviderChange,
+    handleReminderChange,
     handleExportAllSessions,
   } satisfies {
     isLoading: boolean;

@@ -19,25 +19,44 @@ interface DevProfileCardProps {
   trend: 'improving' | 'declining' | 'steady';
 }
 
-function DevProfileCardInner({ childName, sessionCount, avgRating, badgeCount, trend }: DevProfileCardProps) {
+function DevProfileCardInner({
+  childName,
+  sessionCount,
+  avgRating,
+  badgeCount,
+  trend,
+}: DevProfileCardProps) {
   const { colors: palette } = useTheme();
 
-  const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'remove';
-  const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
-  const trendColor = trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
+  const trendIcon =
+    trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'remove';
+  const trendText =
+    trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
+  const trendColor =
+    trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
 
   return (
     <SurfaceCard style={styles.card}>
       <Row align="center" gap="md">
-        <Row align="center" justify="center" style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+        <Row
+          align="center"
+          justify="center"
+          style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
+        >
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {childName.charAt(0)}
           </ThemedText>
         </Row>
         <View style={styles.info}>
-          <ThemedText type="subtitle" style={styles.name}>{childName}</ThemedText>
+          <ThemedText type="subtitle" style={styles.name}>
+            {childName}
+          </ThemedText>
           <Row gap="xs">
-            <Row align="center" gap="xxs" style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
+            <Row
+              align="center"
+              gap="xxs"
+              style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}
+            >
               <Ionicons name={trendIcon} size={12} color={trendColor} />
               <ThemedText style={[styles.trendText, { color: trendColor }]}>{trendText}</ThemedText>
             </Row>
@@ -46,17 +65,41 @@ function DevProfileCardInner({ childName, sessionCount, avgRating, badgeCount, t
       </Row>
 
       <Row style={[styles.stats, { borderTopColor: palette.border }]}>
-        <QuickStat icon="calendar" value={String(sessionCount)} label="Sessions" iconBg={withAlpha(palette.tint, 0.07)} iconColor={palette.tint} />
+        <QuickStat
+          icon="calendar"
+          value={String(sessionCount)}
+          label="Sessions"
+          iconBg={withAlpha(palette.tint, 0.07)}
+          iconColor={palette.tint}
+        />
         <View style={[styles.divider, { backgroundColor: palette.border }]} />
-        <QuickStat icon="star" value={avgRating} label="Avg Rating" iconBg={withAlpha(palette.warning, 0.09)} iconColor={palette.warning} />
+        <QuickStat
+          icon="star"
+          value={avgRating}
+          label="Avg Rating"
+          iconBg={withAlpha(palette.warning, 0.09)}
+          iconColor={palette.warning}
+        />
         <View style={[styles.divider, { backgroundColor: palette.border }]} />
-        <QuickStat icon="ribbon" value={String(badgeCount)} label="Badges" iconBg={withAlpha(palette.success, 0.07)} iconColor={palette.success} />
+        <QuickStat
+          icon="ribbon"
+          value={String(badgeCount)}
+          label="Badges"
+          iconBg={withAlpha(palette.success, 0.07)}
+          iconColor={palette.success}
+        />
       </Row>
     </SurfaceCard>
   );
 }
 
-function QuickStat({ icon, value, label, iconBg, iconColor }: {
+function QuickStat({
+  icon,
+  value,
+  label,
+  iconBg,
+  iconColor,
+}: {
   icon: keyof typeof Ionicons.glyphMap;
   value: string;
   label: string;
@@ -69,7 +112,9 @@ function QuickStat({ icon, value, label, iconBg, iconColor }: {
       <Row align="center" justify="center" style={[styles.statIcon, { backgroundColor: iconBg }]}>
         <Ionicons name={icon} size={16} color={iconColor} />
       </Row>
-      <ThemedText type="defaultSemiBold" style={styles.statValue}>{value}</ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.statValue}>
+        {value}
+      </ThemedText>
       <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{label}</ThemedText>
     </View>
   );

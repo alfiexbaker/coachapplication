@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -40,13 +40,9 @@ function DrillCoachNotesInner({ notes, coachName }: DrillCoachNotesProps) {
           Coach Notes
         </ThemedText>
       </Row>
-      <ThemedText style={[styles.notesText, { color: palette.text }]}>
-        {notes}
-      </ThemedText>
+      <ThemedText style={[styles.notesText, { color: palette.text }]}>{notes}</ThemedText>
       {coachName && (
-        <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-          - {coachName}
-        </ThemedText>
+        <ThemedText style={[styles.coachName, { color: palette.muted }]}>- {coachName}</ThemedText>
       )}
     </SurfaceCard>
   );

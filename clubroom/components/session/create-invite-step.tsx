@@ -6,7 +6,7 @@
  */
 
 import React, { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
@@ -43,7 +43,8 @@ export const CreateInviteStep = memo(function CreateInviteStep({
   selectedAthletes,
   pastAthletes,
   onInviteTypeChange,
-  onToggleAthlete }: CreateInviteStepProps) {
+  onToggleAthlete,
+}: CreateInviteStepProps) {
   return (
     <Animated.View entering={FadeInRight.springify()}>
       <Column gap="lg">
@@ -62,12 +63,23 @@ export const CreateInviteStep = memo(function CreateInviteStep({
                 styles.inviteModeCard,
                 {
                   borderColor: inviteType === option.key ? colors.tint : colors.border,
-                  backgroundColor: inviteType === option.key ? withAlpha(colors.tint, 0.03) : colors.surface },
+                  backgroundColor:
+                    inviteType === option.key ? withAlpha(colors.tint, 0.03) : colors.surface,
+                },
               ]}
             >
               <Row align="center" gap="md">
-                <Center style={[styles.inviteModeIcon, { backgroundColor: withAlpha(colors[option.colorKey] as string, 0.09) }]}>
-                  <Ionicons name={option.icon} size={24} color={colors[option.colorKey] as string} />
+                <Center
+                  style={[
+                    styles.inviteModeIcon,
+                    { backgroundColor: withAlpha(colors[option.colorKey] as string, 0.09) },
+                  ]}
+                >
+                  <Ionicons
+                    name={option.icon}
+                    size={24}
+                    color={colors[option.colorKey] as string}
+                  />
                 </Center>
                 <Column style={styles.inviteModeInfo} gap="micro">
                   <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
@@ -89,7 +101,7 @@ export const CreateInviteStep = memo(function CreateInviteStep({
             <ThemedText type="defaultSemiBold" style={styles.athleteListTitle}>
               Select Athletes to Invite
             </ThemedText>
-            {pastAthletes.map(athlete => (
+            {pastAthletes.map((athlete) => (
               <Clickable
                 key={athlete.id}
                 onPress={() => onToggleAthlete(athlete.id)}
@@ -99,11 +111,17 @@ export const CreateInviteStep = memo(function CreateInviteStep({
                   {
                     backgroundColor: selectedAthletes.includes(athlete.id)
                       ? withAlpha(colors.tint, 0.03)
-                      : 'transparent' },
+                      : 'transparent',
+                  },
                 ]}
               >
                 <Row align="center" gap="sm">
-                  <Center style={[styles.athleteAvatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
+                  <Center
+                    style={[
+                      styles.athleteAvatar,
+                      { backgroundColor: withAlpha(colors.tint, 0.12) },
+                    ]}
+                  >
                     <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>
                       {athlete.name.charAt(0)}
                     </ThemedText>
@@ -113,8 +131,13 @@ export const CreateInviteStep = memo(function CreateInviteStep({
                     style={[
                       styles.checkbox,
                       {
-                        borderColor: selectedAthletes.includes(athlete.id) ? colors.tint : colors.border,
-                        backgroundColor: selectedAthletes.includes(athlete.id) ? colors.tint : 'transparent' },
+                        borderColor: selectedAthletes.includes(athlete.id)
+                          ? colors.tint
+                          : colors.border,
+                        backgroundColor: selectedAthletes.includes(athlete.id)
+                          ? colors.tint
+                          : 'transparent',
+                      },
                     ]}
                   >
                     {selectedAthletes.includes(athlete.id) && (
@@ -149,35 +172,47 @@ export const CreateInviteStep = memo(function CreateInviteStep({
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    ...Typography.bodySmall },
+    ...Typography.bodySmall,
+  },
   inviteModeCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 2 },
+    borderWidth: 2,
+  },
   inviteModeIcon: {
     width: 48,
     height: 48,
-    borderRadius: Radii.xl },
+    borderRadius: Radii.xl,
+  },
   inviteModeInfo: {
-    flex: 1 },
+    flex: 1,
+  },
   inviteModeDesc: {
-    ...Typography.small },
+    ...Typography.small,
+  },
   athleteList: {
-    gap: Spacing.sm },
+    gap: Spacing.sm,
+  },
   athleteListTitle: {
-    marginBottom: Spacing.xs },
+    marginBottom: Spacing.xs,
+  },
   athleteRow: {
     padding: Spacing.sm,
-    borderRadius: Radii.sm },
+    borderRadius: Radii.sm,
+  },
   athleteAvatar: {
     width: 36,
     height: 36,
-    borderRadius: Radii.xl },
+    borderRadius: Radii.xl,
+  },
   athleteName: {
     flex: 1,
-    ...Typography.body },
+    ...Typography.body,
+  },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: Radii.sm,
-    borderWidth: 2 } });
+    borderWidth: 2,
+  },
+});

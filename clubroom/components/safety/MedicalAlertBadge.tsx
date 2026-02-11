@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
@@ -29,7 +29,8 @@ export function MedicalAlertBadge({
   type,
   label,
   onPress,
-  size = 'medium' }: MedicalAlertBadgeProps) {
+  size = 'medium',
+}: MedicalAlertBadgeProps) {
   const { colors: palette } = useTheme();
   const config = getAlertConfig(type, palette);
 
@@ -38,13 +39,21 @@ export function MedicalAlertBadge({
       ...Typography.micro,
       paddingHorizontal: Spacing.xxs,
       paddingVertical: Spacing.micro,
-      iconSize: 10 },
-    medium: { ...Typography.caption, paddingHorizontal: Spacing.xs,
+      iconSize: 10,
+    },
+    medium: {
+      ...Typography.caption,
+      paddingHorizontal: Spacing.xs,
       paddingVertical: Spacing.xxs,
-      iconSize: 12 },
-    large: { ...Typography.bodySmall, paddingHorizontal: Spacing.sm,
+      iconSize: 12,
+    },
+    large: {
+      ...Typography.bodySmall,
+      paddingHorizontal: Spacing.sm,
       paddingVertical: Spacing.xxs,
-      iconSize: 14 } };
+      iconSize: 14,
+    },
+  };
 
   const sizeConfig = sizeStyles[size];
 
@@ -57,15 +66,13 @@ export function MedicalAlertBadge({
         {
           backgroundColor: config.bgColor,
           paddingHorizontal: sizeConfig.paddingHorizontal,
-          paddingVertical: sizeConfig.paddingVertical },
+          paddingVertical: sizeConfig.paddingVertical,
+        },
       ]}
     >
       <Ionicons name={config.icon} size={sizeConfig.iconSize} color={config.color} />
       <ThemedText
-        style={[
-          styles.label,
-          { color: config.color, fontSize: sizeConfig.fontSize },
-        ]}
+        style={[styles.label, { color: config.color, fontSize: sizeConfig.fontSize }]}
         numberOfLines={1}
       >
         {label}
@@ -82,6 +89,9 @@ export function MedicalAlertBadge({
 
 const styles = StyleSheet.create({
   badge: {
-    borderRadius: Radii.md },
+    borderRadius: Radii.md,
+  },
   label: {
-    fontWeight: '600' } });
+    fontWeight: '600',
+  },
+});

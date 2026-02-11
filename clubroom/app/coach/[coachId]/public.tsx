@@ -42,7 +42,10 @@ export default function PublicCoachProfileScreen() {
   if (profile.status === 'error') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState message={profile.error?.message ?? 'Failed to load coach profile.'} onRetry={profile.retry} />
+        <ErrorState
+          message={profile.error?.message ?? 'Failed to load coach profile.'}
+          onRetry={profile.retry}
+        />
       </SafeAreaView>
     );
   }
@@ -64,10 +67,19 @@ export default function PublicCoachProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={profile.refreshing} onRefresh={profile.onRefresh} tintColor={palette.tint} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={profile.refreshing}
+            onRefresh={profile.onRefresh}
+            tintColor={palette.tint}
+          />
+        }
       >
         <PublicProfileHero
           coach={profile.coach}
@@ -89,11 +101,28 @@ export default function PublicCoachProfileScreen() {
               <Clickable
                 key={tab.id}
                 onPress={() => profile.setActiveTab(tab.id)}
-                style={[styles.tab, isActive && { borderBottomColor: palette.tint, borderBottomWidth: 2 }].filter(Boolean) as ViewStyle[]}
+                style={
+                  [
+                    styles.tab,
+                    isActive && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
+                  ].filter(Boolean) as ViewStyle[]
+                }
               >
                 <Row align="center" gap={Spacing.xs / 2}>
-                  <Ionicons name={tab.icon} size={Components.icon.md} color={isActive ? palette.tint : palette.muted} />
-                  <ThemedText style={[Typography.small, { color: isActive ? palette.tint : palette.muted }, isActive && { fontWeight: '600' }].filter(Boolean) as TextStyle[]}>
+                  <Ionicons
+                    name={tab.icon}
+                    size={Components.icon.md}
+                    color={isActive ? palette.tint : palette.muted}
+                  />
+                  <ThemedText
+                    style={
+                      [
+                        Typography.small,
+                        { color: isActive ? palette.tint : palette.muted },
+                        isActive && { fontWeight: '600' },
+                      ].filter(Boolean) as TextStyle[]
+                    }
+                  >
                     {tab.label}
                   </ThemedText>
                 </Row>
@@ -105,9 +134,15 @@ export default function PublicCoachProfileScreen() {
         {/* Tab Content */}
         <View style={styles.tabContentContainer}>
           {profile.activeTab === 'about' && <PublicProfileAbout coach={profile.coach} />}
-          {profile.activeTab === 'specialties' && <PublicProfileSpecialties coach={profile.coach} />}
-          {profile.activeTab === 'qualifications' && <PublicProfileCredentials coach={profile.coach} />}
-          {profile.activeTab === 'reviews' && <PublicProfileReviews coach={profile.coach} reviews={profile.reviews} />}
+          {profile.activeTab === 'specialties' && (
+            <PublicProfileSpecialties coach={profile.coach} />
+          )}
+          {profile.activeTab === 'qualifications' && (
+            <PublicProfileCredentials coach={profile.coach} />
+          )}
+          {profile.activeTab === 'reviews' && (
+            <PublicProfileReviews coach={profile.coach} reviews={profile.reviews} />
+          )}
         </View>
       </ScrollView>
 
@@ -125,7 +160,13 @@ export default function PublicCoachProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    padding: Spacing.xl,
+  },
   tabBar: { borderBottomWidth: 1, marginTop: Spacing.md },
   tabBarContent: { paddingHorizontal: Spacing.sm },
   tab: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm },

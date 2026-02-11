@@ -7,8 +7,7 @@ import { Row } from '@/components/primitives/row';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography, withAlpha } from '@/constants/theme';
-import { Radii } from '@/constants/theme';
+import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { GoalProgress, GoalsSummary } from '@/components/analytics/goal-progress';
@@ -28,14 +27,22 @@ function DevGoalsTabInner({ activeGoals, completedGoals }: DevGoalsTabProps) {
 
       <View style={styles.section}>
         <Row align="center" justify="space-between">
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Active Goals</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Active Goals
+          </ThemedText>
           <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <ThemedText style={[styles.countText, { color: palette.tint }]}>{activeGoals.length}</ThemedText>
+            <ThemedText style={[styles.countText, { color: palette.tint }]}>
+              {activeGoals.length}
+            </ThemedText>
           </View>
         </Row>
 
         {activeGoals.length === 0 ? (
-          <EmptyMetrics icon="flag-outline" title="No Active Goals" description="Goals will appear here when set by coaches" />
+          <EmptyMetrics
+            icon="flag-outline"
+            title="No Active Goals"
+            description="Goals will appear here when set by coaches"
+          />
         ) : (
           <View style={styles.list}>
             {activeGoals.map((goal, index) => (
@@ -56,7 +63,11 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.md },
   section: { gap: Spacing.sm },
   sectionTitle: { ...Typography.subheading },
-  countBadge: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
+  countBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
   countText: { ...Typography.caption },
   list: { gap: Spacing.sm },
 });

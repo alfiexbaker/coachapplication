@@ -23,7 +23,11 @@ export const SessionTypeBadge = memo(function SessionTypeBadge({
 }: SessionTypeBadgeProps) {
   if (sessionType === 'group') {
     return (
-      <Row align="center" gap="xxs" style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+      <Row
+        align="center"
+        gap="xxs"
+        style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}
+      >
         <Ionicons name="people" size={12} color={palette.accent} />
         <ThemedText style={[styles.typeBadgeText, { color: palette.accent }]}>Group</ThemedText>
       </Row>
@@ -31,7 +35,11 @@ export const SessionTypeBadge = memo(function SessionTypeBadge({
   }
   if (sessionType === '1on1') {
     return (
-      <Row align="center" gap="xxs" style={[styles.typeBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+      <Row
+        align="center"
+        gap="xxs"
+        style={[styles.typeBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+      >
         <Ionicons name="person" size={12} color={palette.tint} />
         <ThemedText style={[styles.typeBadgeText, { color: palette.tint }]}>1:1</ThemedText>
       </Row>
@@ -73,17 +81,30 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
     <Row wrap align="center" gap={10} style={styles.footer}>
       {ageMin && ageMax && (
         <View style={[styles.ageBadge, { backgroundColor: palette.border }]}>
-          <ThemedText style={styles.ageText}>Ages {ageMin}-{ageMax}</ThemedText>
+          <ThemedText style={styles.ageText}>
+            Ages {ageMin}-{ageMax}
+          </ThemedText>
         </View>
       )}
       {showCapacity && sessionType === 'group' && (
-        <View style={[styles.capacityBadge, {
-          backgroundColor: isFull ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09),
-        }]}>
-          <ThemedText style={[styles.capacityText, { color: isFull ? palette.error : palette.success }]}>
-            {isFull ? 'FULL' : showCoach
-              ? `${registeredCount} attending · ${maxParticipants - registeredCount} left`
-              : `${capacityText} spots`}
+        <View
+          style={[
+            styles.capacityBadge,
+            {
+              backgroundColor: isFull
+                ? withAlpha(palette.error, 0.09)
+                : withAlpha(palette.success, 0.09),
+            },
+          ]}
+        >
+          <ThemedText
+            style={[styles.capacityText, { color: isFull ? palette.error : palette.success }]}
+          >
+            {isFull
+              ? 'FULL'
+              : showCoach
+                ? `${registeredCount} attending · ${maxParticipants - registeredCount} left`
+                : `${capacityText} spots`}
           </ThemedText>
         </View>
       )}

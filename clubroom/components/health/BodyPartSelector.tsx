@@ -29,7 +29,7 @@ interface BodyPartSelectorProps {
 export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorProps) {
   const { colors: palette } = useTheme();
   const [expandedCategory, setExpandedCategory] = useState<BodyPartCategory | null>(
-    selectedPart ? injuryService.getBodyPartCategory(selectedPart) : null
+    selectedPart ? injuryService.getBodyPartCategory(selectedPart) : null,
   );
 
   const handleCategoryPress = useCallback(
@@ -37,7 +37,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setExpandedCategory(expandedCategory === category ? null : category);
     },
-    [expandedCategory]
+    [expandedCategory],
   );
 
   const handlePartSelect = useCallback(
@@ -45,7 +45,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onSelect(part);
     },
-    [onSelect]
+    [onSelect],
   );
 
   return (

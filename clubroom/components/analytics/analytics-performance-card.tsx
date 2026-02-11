@@ -14,7 +14,9 @@ interface AnalyticsPerformanceCardProps {
   analytics: AthleteAnalytics;
 }
 
-export const AnalyticsPerformanceCard = memo(function AnalyticsPerformanceCard({ analytics }: AnalyticsPerformanceCardProps) {
+export const AnalyticsPerformanceCard = memo(function AnalyticsPerformanceCard({
+  analytics,
+}: AnalyticsPerformanceCardProps) {
   const { colors } = useTheme();
 
   return (
@@ -22,17 +24,23 @@ export const AnalyticsPerformanceCard = memo(function AnalyticsPerformanceCard({
       <SurfaceCard style={styles.card}>
         <Row style={styles.row}>
           <View style={styles.item}>
-            <ThemedText type="heading" style={[styles.value, { color: colors.tint }]}>{analytics.totalSessions}</ThemedText>
+            <ThemedText type="heading" style={[styles.value, { color: colors.tint }]}>
+              {analytics.totalSessions}
+            </ThemedText>
             <ThemedText style={[styles.label, { color: colors.muted }]}>Total sessions</ThemedText>
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.item}>
-            <ThemedText type="heading" style={[styles.value, { color: colors.success }]}>{analytics.consistencyScore}%</ThemedText>
+            <ThemedText type="heading" style={[styles.value, { color: colors.success }]}>
+              {analytics.consistencyScore}%
+            </ThemedText>
             <ThemedText style={[styles.label, { color: colors.muted }]}>Consistency</ThemedText>
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.item}>
-            <ThemedText type="heading" style={[styles.value, { color: ANALYTICS_ACCENT_COLOR }]}>Top {100 - analytics.percentileRank}%</ThemedText>
+            <ThemedText type="heading" style={[styles.value, { color: ANALYTICS_ACCENT_COLOR }]}>
+              Top {100 - analytics.percentileRank}%
+            </ThemedText>
             <ThemedText style={[styles.label, { color: colors.muted }]}>Rank</ThemedText>
           </View>
         </Row>

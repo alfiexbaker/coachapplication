@@ -22,7 +22,10 @@ export function generateInvoiceHtml(invoice: Invoice): string {
 
   const dueDate = invoice.dueDate ?? invoice.createdAt;
   const lineItemDescription = invoice.sessionType ?? 'Coaching Session';
-  const lineItemDetails = [invoice.sessionDate ? `Date: ${formatDate(invoice.sessionDate)}` : null, invoice.sessionLocation]
+  const lineItemDetails = [
+    invoice.sessionDate ? `Date: ${formatDate(invoice.sessionDate)}` : null,
+    invoice.sessionLocation,
+  ]
     .filter((item): item is string => Boolean(item))
     .join(' · ');
 
@@ -153,20 +156,28 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     </tr>
   </table>
 
-  ${invoice.notes ? `
+  ${
+    invoice.notes
+      ? `
     <div class="notes">
       <h3>Notes</h3>
       <p>${invoice.notes}</p>
     </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <div class="footer">
     <p>Payment due by ${formatDate(dueDate)}</p>
-    ${invoice.status === 'PAID' && invoice.paidAt ? `
+    ${
+      invoice.status === 'PAID' && invoice.paidAt
+        ? `
       <p style="margin-top: 8px; color: #059669; font-weight: 500;">
         ✓ Paid on ${formatDate(invoice.paidAt)}
       </p>
-    ` : ''}
+    `
+        : ''
+    }
   </div>
 </body>
 </html>

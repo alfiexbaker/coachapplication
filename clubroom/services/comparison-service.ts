@@ -32,7 +32,7 @@ function transformToComparison(coach: CoachProfile): CoachComparison {
   const now = new Date();
   const yearsExperience = Math.max(
     0,
-    Math.floor((now.getTime() - joinedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    Math.floor((now.getTime() - joinedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
   );
 
   // Calculate next availability and slots this week
@@ -81,7 +81,10 @@ class ComparisonService {
   async initialize(): Promise<Result<void, ServiceError>> {
     try {
       if (this.initialized) return ok(undefined);
-      this.selectedCoachIds = await apiClient.get<string[]>(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, []);
+      this.selectedCoachIds = await apiClient.get<string[]>(
+        STORAGE_KEYS.COMPARISON_SELECTED_COACHES,
+        [],
+      );
       this.initialized = true;
       return ok(undefined);
     } catch (error) {
@@ -299,7 +302,7 @@ class ComparisonService {
    */
   getBestValue(
     coaches: CoachComparison[],
-    criteria: 'PRICE' | 'RATING' | 'EXPERIENCE' | 'AVAILABILITY'
+    criteria: 'PRICE' | 'RATING' | 'EXPERIENCE' | 'AVAILABILITY',
   ): string | null {
     if (coaches.length === 0) return null;
 
@@ -307,21 +310,19 @@ class ComparisonService {
       case 'PRICE': {
         // Best price = lowest minimum price
         const best = coaches.reduce((prev, curr) =>
-          curr.price.min < prev.price.min ? curr : prev
+          curr.price.min < prev.price.min ? curr : prev,
         );
         return best.coachId;
       }
       case 'RATING': {
         // Best rating = highest rating
-        const best = coaches.reduce((prev, curr) =>
-          curr.rating > prev.rating ? curr : prev
-        );
+        const best = coaches.reduce((prev, curr) => (curr.rating > prev.rating ? curr : prev));
         return best.coachId;
       }
       case 'EXPERIENCE': {
         // Best experience = most sessions
         const best = coaches.reduce((prev, curr) =>
-          curr.totalSessions > prev.totalSessions ? curr : prev
+          curr.totalSessions > prev.totalSessions ? curr : prev,
         );
         return best.coachId;
       }

@@ -29,7 +29,11 @@ interface ChildrenChildCardProps {
 }
 
 function getInitials(name: string): string {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
 }
 
 export const ChildrenChildCard = memo(function ChildrenChildCard({
@@ -50,7 +54,8 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
     router.push(Routes.childBadges(child.id));
   }, [child.id]);
 
-  const hasNotes = child.hasSpecialNeeds || child.allergies.length > 0 || !!child.communicationNotes;
+  const hasNotes =
+    child.hasSpecialNeeds || child.allergies.length > 0 || !!child.communicationNotes;
 
   return (
     <Animated.View entering={FadeInDown.delay(100 + index * 50).springify()}>
@@ -78,9 +83,7 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
                 </ThemedText>
               )}
             </Row>
-            <ThemedText style={[styles.childMeta, { color: palette.muted }]}>
-              {fullName}
-            </ThemedText>
+            <ThemedText style={[styles.childMeta, { color: palette.muted }]}>{fullName}</ThemedText>
           </Column>
           <Clickable
             onPress={handleNavigateProgress}
@@ -102,7 +105,7 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
               >
                 <Ionicons name="alert-circle" size={14} color={palette.warning} />
                 <ThemedText style={styles.noteText} numberOfLines={1}>
-                  {child.disabilities.map(d => d.type).join(', ')}
+                  {child.disabilities.map((d) => d.type).join(', ')}
                 </ThemedText>
               </Row>
             )}

@@ -29,9 +29,13 @@ function ProgressGoalsTabInner({ activeGoals, completedGoals }: ProgressGoalsTab
       {/* Active Goals */}
       <View style={styles.section}>
         <Row style={styles.sectionHeader}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Active Goals</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Active Goals
+          </ThemedText>
           <Row style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <ThemedText style={[styles.badgeText, { color: palette.tint }]}>{activeGoals.length}</ThemedText>
+            <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
+              {activeGoals.length}
+            </ThemedText>
           </Row>
         </Row>
 
@@ -56,10 +60,14 @@ function ProgressGoalsTabInner({ activeGoals, completedGoals }: ProgressGoalsTab
       {completedGoals.length > 0 && (
         <View style={styles.section}>
           <Row style={styles.sectionHeader}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Completed Goals</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              Completed Goals
+            </ThemedText>
             <Row style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark" size={12} color={palette.success} />
-              <ThemedText style={[styles.badgeText, { color: palette.success }]}>{completedGoals.length}</ThemedText>
+              <ThemedText style={[styles.badgeText, { color: palette.success }]}>
+                {completedGoals.length}
+              </ThemedText>
             </Row>
           </Row>
 
@@ -83,7 +91,13 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionHeader: { alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...Typography.subheading },
-  badge: { alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.pill },
+  badge: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.pill,
+  },
   badgeText: { ...Typography.caption },
   list: { gap: Spacing.sm },
 });

@@ -1,6 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, type SharedValue } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  interpolate,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PARTICLE_COUNT = 35;
@@ -34,8 +41,16 @@ export interface ConfettiProps {
 
 function ConfettiParticle({ anim, particle }: { anim: SharedValue<number>; particle: Particle }) {
   const style = useAnimatedStyle(() => {
-    const translateY = interpolate(anim.value, [0, 1], [-particle.size, SCREEN_HEIGHT + particle.size]);
-    const translateX = interpolate(anim.value, [0, 0.25, 0.5, 0.75, 1], [0, particle.swayAmplitude, 0, -particle.swayAmplitude, 0]);
+    const translateY = interpolate(
+      anim.value,
+      [0, 1],
+      [-particle.size, SCREEN_HEIGHT + particle.size],
+    );
+    const translateX = interpolate(
+      anim.value,
+      [0, 0.25, 0.5, 0.75, 1],
+      [0, particle.swayAmplitude, 0, -particle.swayAmplitude, 0],
+    );
     const rotate = interpolate(anim.value, [0, 1], [0, particle.rotationSpeed]);
     const opacity = interpolate(anim.value, [0, 0.1, 0.8, 1], [0, 1, 1, 0]);
 

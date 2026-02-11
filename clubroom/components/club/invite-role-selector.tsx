@@ -15,7 +15,10 @@ interface InviteRoleSelectorProps {
   onSelectRole: (role: ClubRole) => void;
 }
 
-export const InviteRoleSelector = memo(function InviteRoleSelector({ selectedRole, onSelectRole }: InviteRoleSelectorProps) {
+export const InviteRoleSelector = memo(function InviteRoleSelector({
+  selectedRole,
+  onSelectRole,
+}: InviteRoleSelectorProps) {
   const { colors } = useTheme();
 
   return (
@@ -29,13 +32,19 @@ export const InviteRoleSelector = memo(function InviteRoleSelector({ selectedRol
               styles.option,
               {
                 borderColor: selectedRole === option.role ? colors.tint : colors.border,
-                backgroundColor: selectedRole === option.role ? withAlpha(colors.tint, 0.06) : 'transparent',
+                backgroundColor:
+                  selectedRole === option.role ? withAlpha(colors.tint, 0.06) : 'transparent',
               },
             ]}
             onPress={() => onSelectRole(option.role)}
           >
             <Row style={styles.header}>
-              <View style={[styles.radioOuter, { borderColor: selectedRole === option.role ? colors.tint : colors.border }]}>
+              <View
+                style={[
+                  styles.radioOuter,
+                  { borderColor: selectedRole === option.role ? colors.tint : colors.border },
+                ]}
+              >
                 {selectedRole === option.role && (
                   <View style={[styles.radioInner, { backgroundColor: colors.tint }]} />
                 )}
@@ -57,7 +66,14 @@ const styles = StyleSheet.create({
   options: { gap: Spacing.sm },
   option: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, gap: Spacing.xs },
   header: { alignItems: 'center', gap: Spacing.sm },
-  radioOuter: { width: 20, height: 20, borderRadius: Radii.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   radioInner: { width: 10, height: 10, borderRadius: Radii.sm },
   description: { ...Typography.small, marginLeft: 32 },
 });

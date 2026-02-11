@@ -14,21 +14,49 @@ import { Spacing, Radii } from '@/constants/theme';
 import { useCreateAcademy } from '@/hooks/use-create-academy';
 
 export default function CreateAcademyScreen() {
-  const { status, error, retry, colors: palette } = useScreen<boolean>({
+  const {
+    status,
+    error,
+    retry,
+    colors: palette,
+  } = useScreen<boolean>({
     load: async () => ok(true),
     isEmpty: () => false,
     refetchOnFocus: true,
   });
   const {
-    step, steps, currentStepIndex, loading,
-    name, description, city, postcode, email, phone, website, specialties,
-    setName, setDescription, setCity, setPostcode, setEmail, setPhone, setWebsite,
-    canProceed, goNext, goBack, toggleSpecialty, handleCreate,
+    step,
+    steps,
+    currentStepIndex,
+    loading,
+    name,
+    description,
+    city,
+    postcode,
+    email,
+    phone,
+    website,
+    specialties,
+    setName,
+    setDescription,
+    setCity,
+    setPostcode,
+    setEmail,
+    setPhone,
+    setWebsite,
+    canProceed,
+    goNext,
+    goBack,
+    toggleSpecialty,
+    handleCreate,
   } = useCreateAcademy();
 
   if (status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <LoadingState variant="form" />
       </SafeAreaView>
     );
@@ -36,15 +64,24 @@ export default function CreateAcademyScreen() {
 
   if (status === 'error') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <ErrorState message={error?.message || 'Failed to open academy creation.'} onRetry={retry} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <ErrorState
+          message={error?.message || 'Failed to open academy creation.'}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
         <EmptyState
           icon="business-outline"
           title="Creation unavailable"
@@ -57,39 +94,74 @@ export default function CreateAcademyScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top']}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}
+      >
         {/* Header */}
         <Row style={styles.header}>
           <Clickable accessibilityLabel="Go back" onPress={goBack} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
-          <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>Create Academy</ThemedText>
+          <ThemedText type="subtitle" style={{ flex: 1, textAlign: 'center' }}>
+            Create Academy
+          </ThemedText>
           <View style={{ width: 24 }} />
         </Row>
 
         {/* Progress */}
         <Row style={styles.progressContainer}>
           {steps.map((s, i) => (
-            <View key={s} style={[styles.progressDot, { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border }]} />
+            <View
+              key={s}
+              style={[
+                styles.progressDot,
+                { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border },
+              ]}
+            />
           ))}
         </Row>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <CreateAcademyStepContent
-            step={step} name={name} description={description} city={city} postcode={postcode}
-            email={email} phone={phone} website={website} specialties={specialties}
-            setName={setName} setDescription={setDescription} setCity={setCity} setPostcode={setPostcode}
-            setEmail={setEmail} setPhone={setPhone} setWebsite={setWebsite} toggleSpecialty={toggleSpecialty}
+            step={step}
+            name={name}
+            description={description}
+            city={city}
+            postcode={postcode}
+            email={email}
+            phone={phone}
+            website={website}
+            specialties={specialties}
+            setName={setName}
+            setDescription={setDescription}
+            setCity={setCity}
+            setPostcode={setPostcode}
+            setEmail={setEmail}
+            setPhone={setPhone}
+            setWebsite={setWebsite}
+            toggleSpecialty={toggleSpecialty}
           />
         </ScrollView>
 
         {/* Footer */}
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
           {step === 'review' ? (
-            <Button onPress={handleCreate} disabled={loading}>{loading ? 'Creating...' : 'Create Academy'}</Button>
+            <Button onPress={handleCreate} disabled={loading}>
+              {loading ? 'Creating...' : 'Create Academy'}
+            </Button>
           ) : (
-            <Button onPress={goNext} disabled={!canProceed()}>Continue</Button>
+            <Button onPress={goNext} disabled={!canProceed()}>
+              Continue
+            </Button>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -100,7 +172,12 @@ export default function CreateAcademyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  header: { alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.md },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
   progressContainer: { justifyContent: 'center', gap: Spacing.xs, paddingBottom: Spacing.md },
   progressDot: { width: 8, height: 8, borderRadius: Radii.xs },
   scrollContent: { padding: Spacing.lg, paddingTop: 0 },

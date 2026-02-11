@@ -25,7 +25,9 @@ export const InviteStatusHeader = memo(function InviteStatusHeader({
       </View>
       <View style={styles.statusText}>
         <ThemedText type="subtitle">{config.title}</ThemedText>
-        <ThemedText style={[styles.subtitleText, { color: palette.muted }]}>{config.subtitle}</ThemedText>
+        <ThemedText style={[styles.subtitleText, { color: palette.muted }]}>
+          {config.subtitle}
+        </ThemedText>
       </View>
     </Row>
   );
@@ -45,11 +47,13 @@ export const InviteContextRow = memo(function InviteContextRow({
   if (!squadName && !sessionTitle) return null;
 
   return (
-    <Row wrap gap="md" style={[styles.contextRow, { borderTopColor: palette.border }]}> 
+    <Row wrap gap="md" style={[styles.contextRow, { borderTopColor: palette.border }]}>
       {squadName && (
         <Row align="center" gap="xs">
           <Ionicons name="people" size={14} color={palette.muted} />
-          <ThemedText style={[styles.contextText, { color: palette.muted }]}>{squadName}</ThemedText>
+          <ThemedText style={[styles.contextText, { color: palette.muted }]}>
+            {squadName}
+          </ThemedText>
         </Row>
       )}
       {sessionTitle && (

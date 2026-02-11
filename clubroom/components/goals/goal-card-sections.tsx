@@ -59,10 +59,7 @@ export const GoalCompactCard = memo(function GoalCompactCard({
                 color={isOverdue ? palette.error : palette.muted}
               />
               <ThemedText
-                style={[
-                  styles.metaText,
-                  { color: isOverdue ? palette.error : palette.muted },
-                ]}
+                style={[styles.metaText, { color: isOverdue ? palette.error : palette.muted }]}
               >
                 {progressService.formatTargetDate(goal.targetDate)}
               </ThemedText>
@@ -141,10 +138,7 @@ export const GoalFeaturedCard = memo(function GoalFeaturedCard({
               color={isOverdue ? palette.error : palette.icon}
             />
             <ThemedText
-              style={[
-                styles.metaLabel,
-                { color: isOverdue ? palette.error : palette.text },
-              ]}
+              style={[styles.metaLabel, { color: isOverdue ? palette.error : palette.text }]}
             >
               {isOverdue ? 'Overdue: ' : 'Target: '}
               {progressService.formatTargetDate(goal.targetDate)}

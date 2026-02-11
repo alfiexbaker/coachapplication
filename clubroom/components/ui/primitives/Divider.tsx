@@ -39,9 +39,7 @@ function DividerInner({ vertical = false, spacing = 0, style }: DividerProps) {
       style={[
         vertical ? styles.vertical : styles.horizontal,
         { backgroundColor: colors.border },
-        vertical
-          ? { marginHorizontal: spacing }
-          : { marginVertical: spacing },
+        vertical ? { marginHorizontal: spacing } : { marginVertical: spacing },
         style,
       ]}
     />

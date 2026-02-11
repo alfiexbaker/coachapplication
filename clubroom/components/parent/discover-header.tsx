@@ -44,7 +44,9 @@ function DiscoverHeaderInner({
         return;
       }
       const withSpace =
-        stripped.length > 3 ? `${stripped.slice(0, stripped.length - 3)} ${stripped.slice(-3)}` : stripped;
+        stripped.length > 3
+          ? `${stripped.slice(0, stripped.length - 3)} ${stripped.slice(-3)}`
+          : stripped;
       onPostcodeChange(withSpace);
     },
     [onPostcodeChange],
@@ -53,7 +55,9 @@ function DiscoverHeaderInner({
   return (
     <View style={[styles.stickyHeader, { backgroundColor: palette.background }]}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>Discover Coaches</ThemedText>
+        <ThemedText type="title" style={styles.title}>
+          Discover Coaches
+        </ThemedText>
         {childOptions.length === 0 ? (
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             Add children to your account to book sessions
@@ -66,7 +70,11 @@ function DiscoverHeaderInner({
           </View>
         ) : (
           <View style={styles.childTabs}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabsContent}
+            >
               {childOptions.map((child) => {
                 const isSelected = child.id === selectedChildId;
                 return (
@@ -81,13 +89,19 @@ function DiscoverHeaderInner({
                     accessibilityState={{ selected: isSelected }}
                     style={({ pressed }) => [
                       styles.childTab,
-                      { borderBottomColor: isSelected ? palette.tint : 'transparent', opacity: pressed ? 0.6 : 1 },
+                      {
+                        borderBottomColor: isSelected ? palette.tint : 'transparent',
+                        opacity: pressed ? 0.6 : 1,
+                      },
                     ]}
                   >
                     <ThemedText
                       style={[
                         styles.tabText,
-                        { color: isSelected ? palette.tint : palette.muted, fontWeight: isSelected ? '700' : '500' },
+                        {
+                          color: isSelected ? palette.tint : palette.muted,
+                          fontWeight: isSelected ? '700' : '500',
+                        },
                       ]}
                     >
                       {child.name}
@@ -101,7 +115,14 @@ function DiscoverHeaderInner({
       </View>
 
       {childOptions.length > 0 && (
-        <Row align="center" gap="sm" style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <Row
+          align="center"
+          gap="sm"
+          style={[
+            styles.searchBar,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}
+        >
           <Ionicons name="search" size={20} color={palette.icon} />
           <TextInput
             value={postcode}
@@ -114,7 +135,11 @@ function DiscoverHeaderInner({
             style={[styles.searchInput, { color: palette.text }]}
           />
           {postcode ? (
-            <Clickable accessibilityLabel="Clear postcode" onPress={() => onPostcodeChange('')} hitSlop={8}>
+            <Clickable
+              accessibilityLabel="Clear postcode"
+              onPress={() => onPostcodeChange('')}
+              hitSlop={8}
+            >
               <Ionicons name="close-circle" size={20} color={palette.icon} />
             </Clickable>
           ) : null}

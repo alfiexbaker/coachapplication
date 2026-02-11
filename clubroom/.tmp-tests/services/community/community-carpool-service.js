@@ -120,7 +120,10 @@ class CommunityCarpoolService {
             const filtered = allOffers.filter((offer) => !(0, account_id_1.accountIdsMatch)(offer.parentId, excludeParentId) &&
                 offer.status === 'ACTIVE' &&
                 offer.seatsAvailable > offer.seatsTaken);
-            logger.info('available_carpool_offers_retrieved', { excludeParentId, count: filtered.length });
+            logger.info('available_carpool_offers_retrieved', {
+                excludeParentId,
+                count: filtered.length,
+            });
             return (0, result_1.ok)(filtered);
         }
         catch (error) {

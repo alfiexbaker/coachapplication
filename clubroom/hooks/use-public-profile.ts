@@ -41,9 +41,29 @@ export interface SessionType {
 }
 
 export const MOCK_SESSION_TYPES: SessionType[] = [
-  { id: 'st-1', name: '1-on-1 Session', duration: 60, price: 45, description: "Personalised coaching tailored to your child's needs" },
-  { id: 'st-2', name: 'Small Group (2-4)', duration: 60, price: 30, description: 'Train with peers in a small focused group', isTrialAvailable: true, trialPrice: 15 },
-  { id: 'st-3', name: 'Assessment Session', duration: 45, price: 35, description: 'Full skills assessment with written report' },
+  {
+    id: 'st-1',
+    name: '1-on-1 Session',
+    duration: 60,
+    price: 45,
+    description: "Personalised coaching tailored to your child's needs",
+  },
+  {
+    id: 'st-2',
+    name: 'Small Group (2-4)',
+    duration: 60,
+    price: 30,
+    description: 'Train with peers in a small focused group',
+    isTrialAvailable: true,
+    trialPrice: 15,
+  },
+  {
+    id: 'st-3',
+    name: 'Assessment Session',
+    duration: 45,
+    price: 35,
+    description: 'Full skills assessment with written report',
+  },
 ];
 
 export function renderStars(rating: number, starColor: string) {
@@ -110,14 +130,7 @@ export function usePublicProfile(coachId: string) {
     }
   }, [coachId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<PublicProfileData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<PublicProfileData>({
     load: loadProfile,
     deps: [coachId],
     isEmpty: (value) => value.coach === null,

@@ -71,9 +71,7 @@ export function WaitlistManage({
         </View>
       )}
 
-      {isExpanded && entries.length === 0 && (
-        <WaitlistEmptyExpanded palette={palette} />
-      )}
+      {isExpanded && entries.length === 0 && <WaitlistEmptyExpanded palette={palette} />}
     </SurfaceCard>
   );
 }

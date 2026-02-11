@@ -24,10 +24,23 @@ import { ok } from '@/types/result';
 export default function SkillTreeDetailScreen() {
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
   const {
-    tree, loading, status, error, retry, selectedNode, canUnlockNodes, animateUnlocks,
-    category, currentUser, animatedModalStyle,
-    canUnlockSelected, prereqNames,
-    handleNodePress, handleCloseModal, handleAddXp, handleUnlockNode,
+    tree,
+    loading,
+    status,
+    error,
+    retry,
+    selectedNode,
+    canUnlockNodes,
+    animateUnlocks,
+    category,
+    currentUser,
+    animatedModalStyle,
+    canUnlockSelected,
+    prereqNames,
+    handleNodePress,
+    handleCloseModal,
+    handleAddXp,
+    handleUnlockNode,
   } = useSkillCategory();
 
   if (!currentUser) return null;
@@ -35,25 +48,46 @@ export default function SkillTreeDetailScreen() {
   return (
     <>
       <PageContainer
-        header={<PageHeader title={tree?.name ?? 'Skill Tree'} subtitle={tree?.description} showBack onBack={() => router.back()} />}
+        header={
+          <PageHeader
+            title={tree?.name ?? 'Skill Tree'}
+            subtitle={tree?.description}
+            showBack
+            onBack={() => router.back()}
+          />
+        }
         gap={Spacing.md}
         scrollable={false}
       >
         {loading ? (
           <LoadingState variant="detail" />
         ) : status === 'error' ? (
-          <ErrorState message={error?.message ?? 'Failed to load this skill tree.'} onRetry={retry} />
+          <ErrorState
+            message={error?.message ?? 'Failed to load this skill tree.'}
+            onRetry={retry}
+          />
         ) : status === 'empty' ? (
-          <EmptyState icon="analytics-outline" title="Tree Not Found" message={`Could not load the skill tree for "${category}".`} />
+          <EmptyState
+            icon="analytics-outline"
+            title="Tree Not Found"
+            message={`Could not load the skill tree for "${category}".`}
+          />
         ) : tree ? (
           <View style={styles.treeWrapper}>
-            <SkillTreeView tree={tree} onNodePress={handleNodePress} canUnlockNodes={canUnlockNodes} animateUnlocks={animateUnlocks} />
+            <SkillTreeView
+              tree={tree}
+              onNodePress={handleNodePress}
+              canUnlockNodes={canUnlockNodes}
+              animateUnlocks={animateUnlocks}
+            />
           </View>
         ) : (
           <SurfaceCard style={styles.centerCard}>
             <Ionicons name="alert-circle-outline" size={40} color={colors.error} />
             <ThemedText type="defaultSemiBold">Tree Not Found</ThemedText>
-            <ThemedText style={{ color: colors.muted }}>Could not load the skill tree for &quot;{category}&quot;</ThemedText>
+            <ThemedText style={{ color: colors.muted }}>
+              Could not load the skill tree for &quot;{category}&quot;
+            </ThemedText>
           </SurfaceCard>
         )}
       </PageContainer>

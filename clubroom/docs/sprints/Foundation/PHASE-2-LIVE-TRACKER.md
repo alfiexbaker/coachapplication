@@ -3,6 +3,7 @@
 > **Date Opened:** 2026-02-10
 > **Scope:** Phase 2 data-access migration (mock-data imports and denormalized fields)
 > **Last Updated:** 2026-02-11
+> **Historical Snapshot:** Closed tracker. For current repo metrics use `docs/AI_CONTEXT.md`.
 
 ---
 

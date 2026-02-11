@@ -10,14 +10,7 @@
  */
 
 import React, { useMemo } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Row } from '@/components/primitives/row';
@@ -76,37 +69,23 @@ function ListItemInner({
   );
 
   const content = (
-    <Row align="center" gap={compact ? "xs" : "sm"} flex>
+    <Row align="center" gap={compact ? 'xs' : 'sm'} flex>
       {/* Left slot */}
       {leftAvatar ? (
-        <Avatar
-          uri={leftAvatar.uri}
-          name={leftAvatar.name}
-          size={compact ? 'sm' : 'sm'}
-        />
+        <Avatar uri={leftAvatar.uri} name={leftAvatar.name} size={compact ? 'sm' : 'sm'} />
       ) : leftIcon ? (
         <View style={[styles.iconContainer, themedStyles.iconContainer]}>
-          <Ionicons
-            name={leftIcon}
-            size={Components.icon.md}
-            color={colors.icon}
-          />
+          <Ionicons name={leftIcon} size={Components.icon.md} color={colors.icon} />
         </View>
       ) : null}
 
       {/* Content */}
       <View style={styles.content}>
-        <Text
-          style={[styles.title, themedStyles.title]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.title, themedStyles.title]} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text
-            style={[styles.subtitle, themedStyles.subtitle]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.subtitle, themedStyles.subtitle]} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
@@ -116,11 +95,7 @@ function ListItemInner({
       {right != null ? (
         <View style={styles.rightSlot}>{right}</View>
       ) : onPress ? (
-        <Ionicons
-          name="chevron-forward"
-          size={Components.icon.md}
-          color={colors.muted}
-        />
+        <Ionicons name="chevron-forward" size={Components.icon.md} color={colors.muted} />
       ) : null}
     </Row>
   );
@@ -137,10 +112,7 @@ function ListItemInner({
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
-        style={({ pressed }) => [
-          ...containerStyle,
-          pressed ? themedStyles.pressed : undefined,
-        ]}
+        style={({ pressed }) => [...containerStyle, pressed ? themedStyles.pressed : undefined]}
       >
         {content}
       </Pressable>

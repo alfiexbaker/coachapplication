@@ -23,13 +23,23 @@ interface ProgressProfileCardProps {
 }
 
 function ProgressProfileCardInner({
-  athleteName, avatar, sessionCount, avgRating, badgeCount, activeGoalCount, level, trend,
+  athleteName,
+  avatar,
+  sessionCount,
+  avgRating,
+  badgeCount,
+  activeGoalCount,
+  level,
+  trend,
 }: ProgressProfileCardProps) {
   const { colors: palette } = useTheme();
 
-  const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
-  const trendColor = trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
-  const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
+  const trendText =
+    trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
+  const trendColor =
+    trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
+  const trendIcon =
+    trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
 
   return (
     <SurfaceCard style={styles.card}>
@@ -40,11 +50,15 @@ function ProgressProfileCardInner({
           </ThemedText>
         </View>
         <View style={styles.info}>
-          <ThemedText type="subtitle" style={styles.name}>{athleteName}</ThemedText>
+          <ThemedText type="subtitle" style={styles.name}>
+            {athleteName}
+          </ThemedText>
           <Row style={styles.badgeRow}>
             <Row style={[styles.levelBadge, { backgroundColor: withAlpha(level.color, 0.12) }]}>
               <Ionicons name={level.icon} size={12} color={level.color} />
-              <ThemedText style={[styles.levelText, { color: level.color }]}>{level.name}</ThemedText>
+              <ThemedText style={[styles.levelText, { color: level.color }]}>
+                {level.name}
+              </ThemedText>
             </Row>
             <Row style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
               <Ionicons name={trendIcon} size={12} color={trendColor} />
@@ -67,7 +81,12 @@ function ProgressProfileCardInner({
   );
 }
 
-function QuickStat({ label, value, icon, iconColor }: {
+function QuickStat({
+  label,
+  value,
+  icon,
+  iconColor,
+}: {
   label: string;
   value: string;
   icon?: keyof typeof Ionicons.glyphMap;
@@ -78,11 +97,15 @@ function QuickStat({ label, value, icon, iconColor }: {
     <View style={styles.stat}>
       {icon ? (
         <Row style={styles.statValueRow}>
-          <ThemedText type="defaultSemiBold" style={styles.statValue}>{value}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.statValue}>
+            {value}
+          </ThemedText>
           <Ionicons name={icon} size={14} color={iconColor} />
         </Row>
       ) : (
-        <ThemedText type="defaultSemiBold" style={styles.statValue}>{value}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.statValue}>
+          {value}
+        </ThemedText>
       )}
       <ThemedText style={[styles.statLabel, { color: palette.muted }]}>{label}</ThemedText>
     </View>
@@ -106,13 +129,19 @@ const styles = StyleSheet.create({
   name: { ...Typography.heading },
   badgeRow: { gap: Spacing.xs },
   levelBadge: {
-    alignItems: 'center', gap: Spacing.xxs,
-    paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   levelText: { ...Typography.caption },
   trendBadge: {
-    alignItems: 'center', gap: Spacing.xxs,
-    paddingHorizontal: Spacing.sm, paddingVertical: Spacing.micro, borderRadius: Radii.sm,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   trendText: { ...Typography.caption },
   stats: { paddingTop: Spacing.md, borderTopWidth: 1 },

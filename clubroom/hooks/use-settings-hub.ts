@@ -18,12 +18,16 @@ export function useSettingsHub() {
   const handleLogout = useCallback(() => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: async () => {
-        logger.press('ConfirmLogout', { userId: currentUser?.id });
-        await logout();
-        logger.info('Logout complete - returning to login screen');
-        router.replace(Routes.ROOT);
-      }},
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          logger.press('ConfirmLogout', { userId: currentUser?.id });
+          await logout();
+          logger.info('Logout complete - returning to login screen');
+          router.replace(Routes.ROOT);
+        },
+      },
     ]);
   }, [currentUser, logout]);
 

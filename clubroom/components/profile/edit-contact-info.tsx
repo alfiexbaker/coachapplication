@@ -22,9 +22,19 @@ interface EditContactInfoProps {
 }
 
 export const EditContactInfo = memo(function EditContactInfo({
-  colors, userIsCoach, email, onChangeEmail, phone, onChangePhone, website, onChangeWebsite,
+  colors,
+  userIsCoach,
+  email,
+  onChangeEmail,
+  phone,
+  onChangePhone,
+  website,
+  onChangeWebsite,
 }: EditContactInfoProps) {
-  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+  const inputStyle = [
+    styles.input,
+    { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
+  ];
 
   return (
     <SurfaceCard style={styles.section}>
@@ -81,8 +91,10 @@ const styles = StyleSheet.create({
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
   input: {
-    borderWidth: 1, borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
 });

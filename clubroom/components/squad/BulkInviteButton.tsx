@@ -57,22 +57,49 @@ export function BulkInviteButton({
   const getVariantStyles = () => {
     switch (variant) {
       case 'secondary':
-        return { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint, textColor: palette.tint };
+        return {
+          backgroundColor: withAlpha(palette.tint, 0.09),
+          borderColor: palette.tint,
+          textColor: palette.tint,
+        };
       case 'outline':
-        return { backgroundColor: 'transparent', borderColor: palette.border, textColor: palette.text };
+        return {
+          backgroundColor: 'transparent',
+          borderColor: palette.border,
+          textColor: palette.text,
+        };
       default:
-        return { backgroundColor: palette.tint, borderColor: palette.tint, textColor: palette.onPrimary };
+        return {
+          backgroundColor: palette.tint,
+          borderColor: palette.tint,
+          textColor: palette.onPrimary,
+        };
     }
   };
 
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
-        return { ...Typography.small, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.md, iconSize: 16 };
+        return {
+          ...Typography.small,
+          paddingVertical: Spacing.xs,
+          paddingHorizontal: Spacing.md,
+          iconSize: 16,
+        };
       case 'medium':
-        return { ...Typography.bodySmall, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, iconSize: 18 };
+        return {
+          ...Typography.bodySmall,
+          paddingVertical: Spacing.sm,
+          paddingHorizontal: Spacing.md,
+          iconSize: 18,
+        };
       default:
-        return { ...Typography.body, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, iconSize: 20 };
+        return {
+          ...Typography.body,
+          paddingVertical: Spacing.md,
+          paddingHorizontal: Spacing.lg,
+          iconSize: 20,
+        };
     }
   };
 
@@ -84,26 +111,37 @@ export function BulkInviteButton({
       <Clickable
         onPress={onPress}
         disabled={isDisabled}
-        style={[
-          styles.button,
-          {
-            backgroundColor: variantStyles.backgroundColor,
-            borderColor: variantStyles.borderColor,
-            paddingVertical: sizeStyles.paddingVertical,
-            paddingHorizontal: sizeStyles.paddingHorizontal,
-            opacity: isDisabled ? 0.5 : 1,
-          },
-          variant !== 'primary' && styles.outlineButton,
-          fullWidth && styles.fullWidth,
-        ].filter(Boolean) as ViewStyle[]}
+        style={
+          [
+            styles.button,
+            {
+              backgroundColor: variantStyles.backgroundColor,
+              borderColor: variantStyles.borderColor,
+              paddingVertical: sizeStyles.paddingVertical,
+              paddingHorizontal: sizeStyles.paddingHorizontal,
+              opacity: isDisabled ? 0.5 : 1,
+            },
+            variant !== 'primary' && styles.outlineButton,
+            fullWidth && styles.fullWidth,
+          ].filter(Boolean) as ViewStyle[]
+        }
       >
         <Row align="center" justify="center" gap="sm">
           {loading ? (
             <ActivityIndicator size="small" color={variantStyles.textColor} />
           ) : showIcon ? (
-            <Ionicons name="paper-plane" size={sizeStyles.iconSize} color={variantStyles.textColor} />
+            <Ionicons
+              name="paper-plane"
+              size={sizeStyles.iconSize}
+              color={variantStyles.textColor}
+            />
           ) : null}
-          <ThemedText style={[styles.buttonText, { color: variantStyles.textColor, fontSize: sizeStyles.fontSize }]}>
+          <ThemedText
+            style={[
+              styles.buttonText,
+              { color: variantStyles.textColor, fontSize: sizeStyles.fontSize },
+            ]}
+          >
             {buttonLabel}
           </ThemedText>
         </Row>
@@ -116,7 +154,8 @@ export function BulkInviteButton({
             {selectedCount} athlete{selectedCount !== 1 ? 's' : ''} selected
             {notificationCount !== selectedCount && (
               <ThemedText style={{ color: palette.muted }}>
-                {' '}({notificationCount} notification{notificationCount !== 1 ? 's' : ''})
+                {' '}
+                ({notificationCount} notification{notificationCount !== 1 ? 's' : ''})
               </ThemedText>
             )}
           </ThemedText>

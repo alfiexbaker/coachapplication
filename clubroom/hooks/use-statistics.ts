@@ -80,7 +80,7 @@ export function useStatistics() {
   }, [availableUsers, currentUser]);
 
   const [selectedChildId, setSelectedChildId] = useState<string>(
-    children.length > 0 ? children[0].id : ''
+    children.length > 0 ? children[0].id : '',
   );
 
   const isParent = hasChildren(currentUser);
@@ -118,7 +118,8 @@ export function useStatistics() {
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<StatisticsLoadData>({
     load: loadData,
     deps: [targetId],
-    isEmpty: (value) => value.storedSessions.filter((session) => session.athleteId === targetId).length === 0,
+    isEmpty: (value) =>
+      value.storedSessions.filter((session) => session.athleteId === targetId).length === 0,
     refetchOnFocus: true,
   });
 
@@ -139,7 +140,8 @@ export function useStatistics() {
 
   // Calculate stats
   const totalSessions = sessions.length;
-  const totalHours = sessions.reduce((sum, session) => sum + (session.durationMinutes ?? 60), 0) / 60;
+  const totalHours =
+    sessions.reduce((sum, session) => sum + (session.durationMinutes ?? 60), 0) / 60;
 
   const stats: StatItem[] = useMemo(
     () => [
@@ -172,7 +174,7 @@ export function useStatistics() {
         color: palette.warning,
       },
     ],
-    [totalSessions, totalHours, badgeCount, palette]
+    [totalSessions, totalHours, badgeCount, palette],
   );
 
   // Sorted skills (top 6)

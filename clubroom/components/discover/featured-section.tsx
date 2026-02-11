@@ -89,9 +89,7 @@ export function FeaturedSection({
         {onSeeAll && (
           <Clickable onPress={onSeeAll} accessibilityLabel="See all coaches">
             <Row style={styles.seeAllButton}>
-              <ThemedText style={[styles.seeAllText, { color: palette.tint }]}>
-                See all
-              </ThemedText>
+              <ThemedText style={[styles.seeAllText, { color: palette.tint }]}>See all</ThemedText>
               <Ionicons name="chevron-forward" size={Components.icon.sm} color={palette.tint} />
             </Row>
           </Clickable>

@@ -27,7 +27,14 @@ export function BrandingEditor({ branding, onChange }: BrandingEditorProps) {
       <SurfaceCard style={styles.fieldCard}>
         <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Club Name</ThemedText>
         <TextInput
-          style={[styles.textInput, { color: palette.foreground, backgroundColor: palette.background, borderColor: palette.border }]}
+          style={[
+            styles.textInput,
+            {
+              color: palette.foreground,
+              backgroundColor: palette.background,
+              borderColor: palette.border,
+            },
+          ]}
           value={branding.name}
           onChangeText={(text) => onChange({ name: text })}
           placeholder="Enter club name"
@@ -39,7 +46,14 @@ export function BrandingEditor({ branding, onChange }: BrandingEditorProps) {
       <SurfaceCard style={styles.fieldCard}>
         <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Tagline</ThemedText>
         <TextInput
-          style={[styles.textInput, { color: palette.foreground, backgroundColor: palette.background, borderColor: palette.border }]}
+          style={[
+            styles.textInput,
+            {
+              color: palette.foreground,
+              backgroundColor: palette.background,
+              borderColor: palette.border,
+            },
+          ]}
           value={branding.tagline}
           onChangeText={(text) => onChange({ tagline: text })}
           placeholder="Enter a short tagline"
@@ -49,9 +63,18 @@ export function BrandingEditor({ branding, onChange }: BrandingEditorProps) {
 
       {/* Badge URL */}
       <SurfaceCard style={styles.fieldCard}>
-        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Badge / Logo URL</ThemedText>
+        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>
+          Badge / Logo URL
+        </ThemedText>
         <TextInput
-          style={[styles.textInput, { color: palette.foreground, backgroundColor: palette.background, borderColor: palette.border }]}
+          style={[
+            styles.textInput,
+            {
+              color: palette.foreground,
+              backgroundColor: palette.background,
+              borderColor: palette.border,
+            },
+          ]}
           value={branding.badgeUrl}
           onChangeText={(text) => onChange({ badgeUrl: text })}
           placeholder="https://example.com/badge.png"
@@ -63,9 +86,18 @@ export function BrandingEditor({ branding, onChange }: BrandingEditorProps) {
 
       {/* Cover Photo URL */}
       <SurfaceCard style={styles.fieldCard}>
-        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Cover Photo URL</ThemedText>
+        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>
+          Cover Photo URL
+        </ThemedText>
         <TextInput
-          style={[styles.textInput, { color: palette.foreground, backgroundColor: palette.background, borderColor: palette.border }]}
+          style={[
+            styles.textInput,
+            {
+              color: palette.foreground,
+              backgroundColor: palette.background,
+              borderColor: palette.border,
+            },
+          ]}
           value={branding.coverPhotoUrl}
           onChangeText={(text) => onChange({ coverPhotoUrl: text })}
           placeholder="https://example.com/cover.jpg"
@@ -77,12 +109,22 @@ export function BrandingEditor({ branding, onChange }: BrandingEditorProps) {
 
       {/* Primary Color */}
       <SurfaceCard style={styles.fieldCard}>
-        <ColorPickerRow label="Primary Color" value={branding.primaryColor} onSelect={(color) => onChange({ primaryColor: color })} palette={palette} />
+        <ColorPickerRow
+          label="Primary Color"
+          value={branding.primaryColor}
+          onSelect={(color) => onChange({ primaryColor: color })}
+          palette={palette}
+        />
       </SurfaceCard>
 
       {/* Secondary Color */}
       <SurfaceCard style={styles.fieldCard}>
-        <ColorPickerRow label="Secondary Color" value={branding.secondaryColor} onSelect={(color) => onChange({ secondaryColor: color })} palette={palette} />
+        <ColorPickerRow
+          label="Secondary Color"
+          value={branding.secondaryColor}
+          onSelect={(color) => onChange({ secondaryColor: color })}
+          palette={palette}
+        />
       </SurfaceCard>
     </View>
   );
@@ -94,5 +136,11 @@ const styles = StyleSheet.create({
   container: { gap: Spacing.sm },
   fieldCard: { gap: Spacing.xs },
   fieldLabel: { ...Typography.caption, textTransform: 'uppercase', letterSpacing: 0.6 },
-  textInput: { height: Components.input.height, borderRadius: Radii.md, paddingHorizontal: Components.input.paddingHorizontal, borderWidth: 1, ...Typography.body },
+  textInput: {
+    height: Components.input.height,
+    borderRadius: Radii.md,
+    paddingHorizontal: Components.input.paddingHorizontal,
+    borderWidth: 1,
+    ...Typography.body,
+  },
 });

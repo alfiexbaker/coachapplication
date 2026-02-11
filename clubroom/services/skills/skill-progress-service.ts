@@ -39,12 +39,13 @@ class SkillProgressService {
    * Get user's progress on all skill trees
    */
   async getAllUserProgress(
-    userId: string
+    userId: string,
   ): Promise<Result<Record<string, SkillTreeProgress>, ServiceError>> {
     try {
-      const allProgress = await apiClient.get<
-        Record<string, Record<string, SkillTreeProgress>>
-      >(STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
+      const allProgress = await apiClient.get<Record<string, Record<string, SkillTreeProgress>>>(
+        STORAGE_KEYS.SKILL_TREE_PROGRESS,
+        {},
+      );
 
       return ok(allProgress[userId] ?? {});
     } catch (error) {
@@ -58,7 +59,7 @@ class SkillProgressService {
    */
   async getUserProgress(
     userId: string,
-    treeId: string
+    treeId: string,
   ): Promise<Result<SkillTreeProgress | null, ServiceError>> {
     const allUserProgressResult = await this.getAllUserProgress(userId);
     if (!allUserProgressResult.success) {
@@ -72,7 +73,7 @@ class SkillProgressService {
    */
   async getSkillTreeWithProgress(
     userId: string,
-    category: SkillTreeCategory
+    category: SkillTreeCategory,
   ): Promise<Result<SkillTree | null, ServiceError>> {
     const treeResult = await skillDefinitionService.getSkillTree(category);
     if (!treeResult.success) {
@@ -94,9 +95,7 @@ class SkillProgressService {
         return {
           ...node,
           isUnlocked: nodeProgress.isUnlocked,
-          progress: Math.round(
-            (nodeProgress.currentXp / nodeProgress.maxXp) * 100
-          ),
+          progress: Math.round((nodeProgress.currentXp / nodeProgress.maxXp) * 100),
           xpCurrent: nodeProgress.currentXp,
         };
       }
@@ -106,9 +105,7 @@ class SkillProgressService {
     // Calculate unlocked count
     const unlockedNodes = nodesWithProgress.filter((n) => n.isUnlocked).length;
     const progressPercent =
-      tree.totalNodes > 0
-        ? Math.round((unlockedNodes / tree.totalNodes) * 100)
-        : 0;
+      tree.totalNodes > 0 ? Math.round((unlockedNodes / tree.totalNodes) * 100) : 0;
 
     return ok({
       ...tree,
@@ -134,37 +131,35 @@ class SkillProgressService {
     const trees = treesResult.data;
     const userProgress = userProgressResult.data;
 
-    return ok(trees.map((tree) => {
-      const progress = userProgress[tree.id];
+    return ok(
+      trees.map((tree) => {
+        const progress = userProgress[tree.id];
 
-      const nodesWithProgress = tree.nodes.map((node) => {
-        const nodeProgress = progress?.nodeProgress[node.id];
-        if (nodeProgress) {
-          return {
-            ...node,
-            isUnlocked: nodeProgress.isUnlocked,
-            progress: Math.round(
-              (nodeProgress.currentXp / nodeProgress.maxXp) * 100
-            ),
-            xpCurrent: nodeProgress.currentXp,
-          };
-        }
-        return node;
-      });
+        const nodesWithProgress = tree.nodes.map((node) => {
+          const nodeProgress = progress?.nodeProgress[node.id];
+          if (nodeProgress) {
+            return {
+              ...node,
+              isUnlocked: nodeProgress.isUnlocked,
+              progress: Math.round((nodeProgress.currentXp / nodeProgress.maxXp) * 100),
+              xpCurrent: nodeProgress.currentXp,
+            };
+          }
+          return node;
+        });
 
-      const unlockedNodes = nodesWithProgress.filter((n) => n.isUnlocked).length;
-      const progressPercent =
-        tree.totalNodes > 0
-          ? Math.round((unlockedNodes / tree.totalNodes) * 100)
-          : 0;
+        const unlockedNodes = nodesWithProgress.filter((n) => n.isUnlocked).length;
+        const progressPercent =
+          tree.totalNodes > 0 ? Math.round((unlockedNodes / tree.totalNodes) * 100) : 0;
 
-      return {
-        ...tree,
-        nodes: nodesWithProgress,
-        unlockedNodes,
-        progressPercent,
-      };
-    }));
+        return {
+          ...tree,
+          nodes: nodesWithProgress,
+          unlockedNodes,
+          progressPercent,
+        };
+      }),
+    );
   }
 
   /**
@@ -174,13 +169,18 @@ class SkillProgressService {
   async addXpToNode(
     userId: string,
     nodeId: string,
-    xpAmount: number
-  ): Promise<Result<{
-    node: SkillNode;
-    progress: SkillNodeProgress;
-    justUnlocked: boolean;
-    badgeId?: string;
-  }, ServiceError>> {
+    xpAmount: number,
+  ): Promise<
+    Result<
+      {
+        node: SkillNode;
+        progress: SkillNodeProgress;
+        justUnlocked: boolean;
+        badgeId?: string;
+      },
+      ServiceError
+    >
+  > {
     try {
       // Find the node and its tree
       const nodeResult = skillDefinitionService.findNodeById(nodeId);
@@ -207,17 +207,20 @@ class SkillProgressService {
             nodeId,
             missingPrereq: prereqId,
           });
-          return err(validationError('Skill prerequisites not met', {
-            nodeId,
-            missingPrereq: prereqId,
-          }));
+          return err(
+            validationError('Skill prerequisites not met', {
+              nodeId,
+              missingPrereq: prereqId,
+            }),
+          );
         }
       }
 
       // Get or create node progress
-      const allProgress = await apiClient.get<
-        Record<string, Record<string, SkillTreeProgress>>
-      >(STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
+      const allProgress = await apiClient.get<Record<string, Record<string, SkillTreeProgress>>>(
+        STORAGE_KEYS.SKILL_TREE_PROGRESS,
+        {},
+      );
 
       if (!allProgress[userId]) {
         allProgress[userId] = {};
@@ -255,10 +258,7 @@ class SkillProgressService {
       const wasUnlocked = nodeProgress.isUnlocked;
 
       // Add XP
-      nodeProgress.currentXp = Math.min(
-        nodeProgress.currentXp + xpAmount,
-        nodeProgress.maxXp
-      );
+      nodeProgress.currentXp = Math.min(nodeProgress.currentXp + xpAmount, nodeProgress.maxXp);
       nodeProgress.lastUpdatedAt = new Date().toISOString();
 
       // Check if node is now unlocked
@@ -274,8 +274,7 @@ class SkillProgressService {
         // Update tree-level stats
         currentTreeProgress.nodesUnlocked += 1;
         currentTreeProgress.percentComplete = Math.round(
-          (currentTreeProgress.nodesUnlocked / currentTreeProgress.totalNodes) *
-            100
+          (currentTreeProgress.nodesUnlocked / currentTreeProgress.totalNodes) * 100,
         );
 
         logger.info('skill_node_unlocked', {
@@ -292,9 +291,10 @@ class SkillProgressService {
       }
 
       // Update total XP
-      currentTreeProgress.totalXp = Object.values(
-        currentTreeProgress.nodeProgress
-      ).reduce((sum: number, np: SkillNodeProgress) => sum + np.currentXp, 0);
+      currentTreeProgress.totalXp = Object.values(currentTreeProgress.nodeProgress).reduce(
+        (sum: number, np: SkillNodeProgress) => sum + np.currentXp,
+        0,
+      );
       currentTreeProgress.lastUpdatedAt = new Date().toISOString();
 
       // Save progress
@@ -312,9 +312,7 @@ class SkillProgressService {
         node: {
           ...targetNode,
           isUnlocked: nodeProgress.isUnlocked,
-          progress: Math.round(
-            (nodeProgress.currentXp / nodeProgress.maxXp) * 100
-          ),
+          progress: Math.round((nodeProgress.currentXp / nodeProgress.maxXp) * 100),
           xpCurrent: nodeProgress.currentXp,
         },
         progress: nodeProgress,
@@ -332,13 +330,18 @@ class SkillProgressService {
    */
   async calculateTreeProgress(
     userId: string,
-    treeId: string
-  ): Promise<Result<{
-    totalNodes: number;
-    unlockedNodes: number;
-    percentComplete: number;
-    totalXp: number;
-  }, ServiceError>> {
+    treeId: string,
+  ): Promise<
+    Result<
+      {
+        totalNodes: number;
+        unlockedNodes: number;
+        percentComplete: number;
+        totalXp: number;
+      },
+      ServiceError
+    >
+  > {
     const progressResult = await this.getUserProgress(userId, treeId);
     if (!progressResult.success) {
       return err(progressResult.error);
@@ -366,36 +369,39 @@ class SkillProgressService {
   /**
    * Get summary of all trees for a user
    */
-  async getTreesSummary(
-    userId: string
-  ): Promise<Result<
-    {
-      treeId: string;
-      category: SkillTreeCategory;
-      name: string;
-      icon: string;
-      themeColor: string;
-      totalNodes: number;
-      unlockedNodes: number;
-      percentComplete: number;
-    }[]
-  , ServiceError>> {
+  async getTreesSummary(userId: string): Promise<
+    Result<
+      {
+        treeId: string;
+        category: SkillTreeCategory;
+        name: string;
+        icon: string;
+        themeColor: string;
+        totalNodes: number;
+        unlockedNodes: number;
+        percentComplete: number;
+      }[],
+      ServiceError
+    >
+  > {
     const treesResult = await this.getAllSkillTreesWithProgress(userId);
     if (!treesResult.success) {
       return err(treesResult.error);
     }
     const trees = treesResult.data;
 
-    return ok(trees.map((tree) => ({
-      treeId: tree.id,
-      category: tree.category,
-      name: tree.name,
-      icon: tree.icon,
-      themeColor: tree.themeColor,
-      totalNodes: tree.totalNodes,
-      unlockedNodes: tree.unlockedNodes,
-      percentComplete: tree.progressPercent,
-    })));
+    return ok(
+      trees.map((tree) => ({
+        treeId: tree.id,
+        category: tree.category,
+        name: tree.name,
+        icon: tree.icon,
+        themeColor: tree.themeColor,
+        totalNodes: tree.totalNodes,
+        unlockedNodes: tree.unlockedNodes,
+        percentComplete: tree.progressPercent,
+      })),
+    );
   }
 
   /**
@@ -420,9 +426,11 @@ class SkillProgressService {
     const progress = progressResult.data;
     if (!progress) return ok(false);
 
-    return ok(targetNode.prerequisites.every(
-      (prereqId) => progress.nodeProgress[prereqId]?.isUnlocked === true
-    ));
+    return ok(
+      targetNode.prerequisites.every(
+        (prereqId) => progress.nodeProgress[prereqId]?.isUnlocked === true,
+      ),
+    );
   }
 
   /**
@@ -430,9 +438,10 @@ class SkillProgressService {
    */
   async resetUserProgress(userId: string): Promise<Result<void, ServiceError>> {
     try {
-      const allProgress = await apiClient.get<
-        Record<string, Record<string, SkillTreeProgress>>
-      >(STORAGE_KEYS.SKILL_TREE_PROGRESS, {});
+      const allProgress = await apiClient.get<Record<string, Record<string, SkillTreeProgress>>>(
+        STORAGE_KEYS.SKILL_TREE_PROGRESS,
+        {},
+      );
 
       delete allProgress[userId];
       await apiClient.set(STORAGE_KEYS.SKILL_TREE_PROGRESS, allProgress);

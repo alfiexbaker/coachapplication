@@ -86,7 +86,9 @@ function CreateSessionReviewStepInner({
                 <ThemedText type="defaultSemiBold">
                   Every {DAY_NAMES[recurringDayOfWeek]}
                 </ThemedText>
-                <ThemedText>{scheduleStartTime} - {scheduleEndTime}</ThemedText>
+                <ThemedText>
+                  {scheduleStartTime} - {scheduleEndTime}
+                </ThemedText>
                 {recurringUntil ? (
                   <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                     Until {recurringUntil}
@@ -94,7 +96,9 @@ function CreateSessionReviewStepInner({
                 ) : null}
               </>
             ) : (
-              <ThemedText>{scheduleDate} ({scheduleStartTime} - {scheduleEndTime})</ThemedText>
+              <ThemedText>
+                {scheduleDate} ({scheduleStartTime} - {scheduleEndTime})
+              </ThemedText>
             )}
           </View>
         </Row>

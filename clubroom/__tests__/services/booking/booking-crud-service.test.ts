@@ -148,6 +148,38 @@ describe('BookingCrudService', () => {
       assert.ok(result.success);
       assert.equal(result.data.athleteIds?.length, 2);
     });
+
+    it('should return err() when booking persistence fails', async () => {
+      const apiClientMutable = apiClient as unknown as { set: typeof apiClient.set };
+      const originalSet = apiClientMutable.set;
+      apiClientMutable.set = async () => {
+        throw new Error('forced write failure');
+      };
+
+      try {
+        const result = await bookingCrudService.createBooking({
+          coachId: 'coach-' + Math.random().toString(36).slice(2),
+          coachName: 'Test Coach',
+          athleteIds: ['athlete-' + Math.random().toString(36).slice(2)],
+          athleteNames: ['Test Athlete'],
+          bookedById: 'parent-' + Math.random().toString(36).slice(2),
+          bookedByName: 'Test Parent',
+          scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+          duration: 60,
+          location: 'Test Field',
+          service: '1-on-1 Coaching',
+          serviceType: 'COACHING',
+          skipAvailabilityValidation: true,
+        });
+
+        assert.equal(result.success, false);
+        if (!result.success) {
+          assert.equal(result.error.code, 'STORAGE');
+        }
+      } finally {
+        apiClientMutable.set = originalSet;
+      }
+    });
   });
 
   describe('list', () => {
@@ -311,6 +343,44 @@ describe('BookingCrudService', () => {
       assert.equal(events.length, 1);
       assert.equal(events[0].bookingId, createResult.data.id);
       unsub();
+    });
+
+    it('should not emit BOOKING_CANCELLED when persistence fails', async () => {
+      const createResult = await bookingCrudService.createBooking({
+        coachId: 'coach-' + Math.random().toString(36).slice(2),
+        coachName: 'Test Coach',
+        athleteIds: ['athlete-' + Math.random().toString(36).slice(2)],
+        athleteNames: ['Test Athlete'],
+        bookedById: 'parent-' + Math.random().toString(36).slice(2),
+        bookedByName: 'Test Parent',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        duration: 60,
+        location: 'Test Field',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+        skipAvailabilityValidation: true,
+      });
+      assert.ok(createResult.success);
+
+      const events: any[] = [];
+      const unsub = onTyped(ServiceEvents.BOOKING_CANCELLED, (payload) => {
+        events.push(payload);
+      });
+
+      const apiClientMutable = apiClient as unknown as { set: typeof apiClient.set };
+      const originalSet = apiClientMutable.set;
+      apiClientMutable.set = async () => {
+        throw new Error('forced cancel write failure');
+      };
+
+      try {
+        const result = await bookingCrudService.cancel(createResult.data.id, 'Schedule conflict', 'coach');
+        assert.equal(result, undefined);
+        assert.equal(events.length, 0);
+      } finally {
+        apiClientMutable.set = originalSet;
+        unsub();
+      }
     });
   });
 });

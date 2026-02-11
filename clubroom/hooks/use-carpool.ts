@@ -6,7 +6,11 @@
 import { useState, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '@/hooks/use-auth';
-import { communityService, CreateCarpoolOfferParams, RequestCarpoolSeatParams } from '@/services/community-service';
+import {
+  communityService,
+  CreateCarpoolOfferParams,
+  RequestCarpoolSeatParams,
+} from '@/services/community-service';
 import type { CarpoolOffer } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getCarpoolRequestParentLabel } from '@/utils/carpool-display';
@@ -112,7 +116,9 @@ export function useCarpool(): UseCarpoolResult {
       if (!allOffersResult.success) return err(allOffersResult.error);
 
       const rides = allOffersResult.data.filter(
-        (o) => o.parentId !== parentId && o.requests.some((r) => r.parentId === parentId && r.status === 'ACCEPTED'),
+        (o) =>
+          o.parentId !== parentId &&
+          o.requests.some((r) => r.parentId === parentId && r.status === 'ACCEPTED'),
       );
 
       return ok<CarpoolScreenData>({
@@ -122,18 +128,13 @@ export function useCarpool(): UseCarpoolResult {
       });
     } catch (loadError) {
       logger.error('Failed to load carpool data', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load carpool data. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load carpool data. Pull down to refresh.', loadError),
+      );
     }
   }, [parentId]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<CarpoolScreenData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<CarpoolScreenData>({
     load: loadData,
     deps: [parentId],
     isEmpty: (value) =>
@@ -149,7 +150,12 @@ export function useCarpool(): UseCarpoolResult {
   const loading = status === 'loading';
 
   const handleCreateOffer = useCallback(async () => {
-    if (!createForm.sessionName || !createForm.sessionDate || !createForm.pickupLocation || !createForm.pickupTime) {
+    if (
+      !createForm.sessionName ||
+      !createForm.sessionDate ||
+      !createForm.pickupLocation ||
+      !createForm.pickupTime
+    ) {
       Alert.alert('Missing Information', 'Please fill in all required fields.');
       return;
     }
@@ -223,70 +229,94 @@ export function useCarpool(): UseCarpoolResult {
     }
   }, [selectedOffer, requestSeats, requestMessage, parentId, parentName, onRefresh]);
 
-  const handleRespondToRequest = useCallback((offerId: string, requestId: string, requesterName: string) => {
-    Alert.alert(`Request from ${requesterName}`, 'What would you like to do?', [
-      {
-        text: 'Accept',
-        onPress: async () => {
-          try {
-            const acceptResult = await communityService.acceptCarpoolRequest(offerId, requestId);
-            if (!acceptResult.success) { Alert.alert('Error', acceptResult.error.message); return; }
-            onRefresh();
-            Alert.alert('Success', 'Request accepted!');
-          } catch (error) { Alert.alert('Error', (error as Error).message); }
+  const handleRespondToRequest = useCallback(
+    (offerId: string, requestId: string, requesterName: string) => {
+      Alert.alert(`Request from ${requesterName}`, 'What would you like to do?', [
+        {
+          text: 'Accept',
+          onPress: async () => {
+            try {
+              const acceptResult = await communityService.acceptCarpoolRequest(offerId, requestId);
+              if (!acceptResult.success) {
+                Alert.alert('Error', acceptResult.error.message);
+                return;
+              }
+              onRefresh();
+              Alert.alert('Success', 'Request accepted!');
+            } catch (error) {
+              Alert.alert('Error', (error as Error).message);
+            }
+          },
         },
-      },
-      {
-        text: 'Decline',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const declineResult = await communityService.declineCarpoolRequest(offerId, requestId);
-            if (!declineResult.success) { Alert.alert('Error', declineResult.error.message); return; }
-            onRefresh();
-            Alert.alert('Declined', 'Request has been declined.');
-          } catch (error) { Alert.alert('Error', (error as Error).message); }
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const declineResult = await communityService.declineCarpoolRequest(
+                offerId,
+                requestId,
+              );
+              if (!declineResult.success) {
+                Alert.alert('Error', declineResult.error.message);
+                return;
+              }
+              onRefresh();
+              Alert.alert('Declined', 'Request has been declined.');
+            } catch (error) {
+              Alert.alert('Error', (error as Error).message);
+            }
+          },
         },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }, [onRefresh]);
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    },
+    [onRefresh],
+  );
 
-  const handleManageRequests = useCallback((offer: CarpoolOffer) => {
-    const pendingRequests = offer.requests.filter((r) => r.status === 'PENDING');
-    if (pendingRequests.length === 0) {
-      Alert.alert('No Pending Requests', 'There are no pending seat requests.');
-      return;
-    }
-    Alert.alert(
-      'Manage Requests',
-      `You have ${pendingRequests.length} pending request(s).`,
-      [
+  const handleManageRequests = useCallback(
+    (offer: CarpoolOffer) => {
+      const pendingRequests = offer.requests.filter((r) => r.status === 'PENDING');
+      if (pendingRequests.length === 0) {
+        Alert.alert('No Pending Requests', 'There are no pending seat requests.');
+        return;
+      }
+      Alert.alert('Manage Requests', `You have ${pendingRequests.length} pending request(s).`, [
         ...pendingRequests.slice(0, 3).map((req) => ({
           text: `${getCarpoolRequestParentLabel(req)} (${req.seatsRequested} seat${req.seatsRequested > 1 ? 's' : ''})`,
-          onPress: () => handleRespondToRequest(offer.id, req.id, getCarpoolRequestParentLabel(req)),
+          onPress: () =>
+            handleRespondToRequest(offer.id, req.id, getCarpoolRequestParentLabel(req)),
         })),
         { text: 'Cancel', style: 'cancel' as const },
-      ],
-    );
-  }, [handleRespondToRequest]);
+      ]);
+    },
+    [handleRespondToRequest],
+  );
 
-  const handleCancelOffer = useCallback((offer: CarpoolOffer) => {
-    Alert.alert('Cancel Offer', 'Are you sure you want to cancel this carpool offer?', [
-      { text: 'Keep Offer', style: 'cancel' },
-      {
-        text: 'Cancel Offer',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const cancelResult = await communityService.cancelCarpoolOffer(offer.id, parentId);
-            if (!cancelResult.success) { Alert.alert('Error', cancelResult.error.message); return; }
-            onRefresh();
-          } catch (error) { Alert.alert('Error', (error as Error).message); }
+  const handleCancelOffer = useCallback(
+    (offer: CarpoolOffer) => {
+      Alert.alert('Cancel Offer', 'Are you sure you want to cancel this carpool offer?', [
+        { text: 'Keep Offer', style: 'cancel' },
+        {
+          text: 'Cancel Offer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const cancelResult = await communityService.cancelCarpoolOffer(offer.id, parentId);
+              if (!cancelResult.success) {
+                Alert.alert('Error', cancelResult.error.message);
+                return;
+              }
+              onRefresh();
+            } catch (error) {
+              Alert.alert('Error', (error as Error).message);
+            }
+          },
         },
-      },
-    ]);
-  }, [parentId, onRefresh]);
+      ]);
+    },
+    [parentId, onRefresh],
+  );
 
   const openCreateModal = useCallback(() => setShowCreateModal(true), []);
   const closeCreateModal = useCallback(() => setShowCreateModal(false), []);
@@ -294,19 +324,46 @@ export function useCarpool(): UseCarpoolResult {
 
   const tabs: { key: CarpoolTab; label: string; count?: number }[] = [
     { key: 'available', label: 'Available', count: availableOffers.length },
-    { key: 'my-offers', label: 'My Offers', count: myOffers.filter((o) => o.status === 'ACTIVE').length },
+    {
+      key: 'my-offers',
+      label: 'My Offers',
+      count: myOffers.filter((o) => o.status === 'ACTIVE').length,
+    },
     { key: 'my-rides', label: 'My Rides', count: myRides.length },
   ];
 
   return {
-    parentId, activeTab, setActiveTab, tabs,
-    availableOffers, myOffers, myRides,
-    status, loading, error, refreshing, onRefresh, retry,
-    showCreateModal, createForm, setCreateForm, creating,
-    openCreateModal, closeCreateModal, handleCreateOffer,
-    showRequestModal, selectedOffer, requestSeats, setRequestSeats,
-    requestMessage, setRequestMessage, requesting,
-    closeRequestModal, handleRequestSeat, handleSubmitRequest,
-    handleManageRequests, handleCancelOffer,
+    parentId,
+    activeTab,
+    setActiveTab,
+    tabs,
+    availableOffers,
+    myOffers,
+    myRides,
+    status,
+    loading,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    showCreateModal,
+    createForm,
+    setCreateForm,
+    creating,
+    openCreateModal,
+    closeCreateModal,
+    handleCreateOffer,
+    showRequestModal,
+    selectedOffer,
+    requestSeats,
+    setRequestSeats,
+    requestMessage,
+    setRequestMessage,
+    requesting,
+    closeRequestModal,
+    handleRequestSeat,
+    handleSubmitRequest,
+    handleManageRequests,
+    handleCancelOffer,
   };
 }

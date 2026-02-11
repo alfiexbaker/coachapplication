@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, TextInput } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -16,12 +16,21 @@ type ChatInputProps = {
 export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
   const { colors: palette, scheme } = useTheme();
   const [value, setValue] = useState('');
-  const placeholderColor = useMemo(() => (scheme === 'dark' ? palette.muted : palette.muted), [scheme]);
+  const placeholderColor = palette.muted;
 
   return (
-    <Row align="flex-end" gap="sm" style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
-      accessibilityRole="none">
-      <Clickable accessibilityRole="button" accessibilityLabel="Attach media or file" style={styles.iconButton} onPress={onAttach}>
+    <Row
+      align="flex-end"
+      gap="sm"
+      style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
+      accessibilityRole="none"
+    >
+      <Clickable
+        accessibilityRole="button"
+        accessibilityLabel="Attach media or file"
+        style={styles.iconButton}
+        onPress={onAttach}
+      >
         <IconSymbol name="paperclip" size={22} color={palette.icon} />
       </Clickable>
       <TextInput
@@ -39,7 +48,11 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
         style={({ pressed }) => [
           styles.sendButton,
           {
-            backgroundColor: value ? (pressed ? palette.tintPressed : palette.tint) : palette.surface,
+            backgroundColor: value
+              ? pressed
+                ? palette.tintPressed
+                : palette.tint
+              : palette.surface,
             borderColor: value ? 'transparent' : palette.border,
           },
         ]}
@@ -50,9 +63,14 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
           if (!trimmed || disabled) return;
           onSend?.(trimmed);
           setValue('');
-        }}>
+        }}
+      >
         {value ? (
-          <IconSymbol name="paperplane.fill" size={18} color={scheme === 'light' ? palette.onPrimary : palette.text} />
+          <IconSymbol
+            name="paperplane.fill"
+            size={18}
+            color={scheme === 'light' ? palette.onPrimary : palette.text}
+          />
         ) : (
           <IconSymbol name="mic.fill" size={20} color={palette.icon} />
         )}
@@ -74,8 +92,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  input: { ...Typography.subheading, flex: 1,
-    paddingVertical: Spacing.xs },
+  input: { ...Typography.subheading, flex: 1, paddingVertical: Spacing.xs },
   sendButton: {
     height: 40,
     width: 40,

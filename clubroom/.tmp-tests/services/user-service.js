@@ -14,7 +14,10 @@ function normalizeUserRole(rawRole, rawAccountType) {
         : typeof rawAccountType === 'string'
             ? rawAccountType
             : 'USER').toUpperCase();
-    if (candidate === 'COACH' || candidate === 'PARENT' || candidate === 'ADMIN' || candidate === 'USER') {
+    if (candidate === 'COACH' ||
+        candidate === 'PARENT' ||
+        candidate === 'ADMIN' ||
+        candidate === 'USER') {
         return candidate;
     }
     // Auth profile can return ATHLETE; app-level User role equivalent is USER.

@@ -1,5 +1,12 @@
 import { PropsWithChildren, ReactNode } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
@@ -106,11 +113,7 @@ export function PageContainer({
 }: PageContainerProps) {
   const { colors: palette } = useTheme();
 
-  const containerStyle = [
-    styles.container,
-    { backgroundColor: palette.background },
-    style,
-  ];
+  const containerStyle = [styles.container, { backgroundColor: palette.background }, style];
 
   const innerContentStyle = [
     styles.content,
@@ -138,9 +141,7 @@ export function PageContainer({
           {children}
         </ScrollView>
       ) : (
-        <View style={innerContentStyle}>
-          {children}
-        </View>
+        <View style={innerContentStyle}>{children}</View>
       )}
     </>
   );

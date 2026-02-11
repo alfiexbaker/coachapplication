@@ -16,7 +16,12 @@ import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { FootballObjective } from '@/constants/types';
-import { type SessionType, SESSION_TYPES, DURATION_OPTIONS, FOCUS_AREAS } from './create-session-types';
+import {
+  type SessionType,
+  SESSION_TYPES,
+  DURATION_OPTIONS,
+  FOCUS_AREAS,
+} from './create-session-types';
 
 interface CreateDetailsStepProps {
   colors: ThemeColors;
@@ -36,19 +41,35 @@ interface CreateDetailsStepProps {
 }
 
 export const CreateDetailsStep = memo(function CreateDetailsStep({
-  colors, sessionType, title, description, duration, focusAreas,
-  maxParticipants, defaultMaxParticipants, onSessionTypeChange,
-  onTitleChange, onDescriptionChange, onDurationChange,
-  onToggleFocusArea, onMaxParticipantsChange,
+  colors,
+  sessionType,
+  title,
+  description,
+  duration,
+  focusAreas,
+  maxParticipants,
+  defaultMaxParticipants,
+  onSessionTypeChange,
+  onTitleChange,
+  onDescriptionChange,
+  onDurationChange,
+  onToggleFocusArea,
+  onMaxParticipantsChange,
 }: CreateDetailsStepProps) {
-  const inputColors = { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border };
+  const inputColors = {
+    backgroundColor: colors.surface,
+    color: colors.text,
+    borderColor: colors.border,
+  };
 
   return (
     <Animated.View entering={FadeInRight.springify()}>
       <Column gap="lg">
         {/* Session Type */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Session Type</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Session Type
+          </ThemedText>
           <Row wrap gap="sm">
             {SESSION_TYPES.map((type) => {
               const selected = sessionType === type.key;
@@ -57,20 +78,36 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                   key={type.key}
                   onPress={() => onSessionTypeChange(type.key)}
                   accessibilityLabel={`Select ${type.label} session type`}
-                  style={[styles.typeCard, {
-                    backgroundColor: selected ? withAlpha(colors.tint, 0.07) : colors.surface,
-                    borderColor: selected ? colors.tint : colors.border,
-                  }]}
+                  style={[
+                    styles.typeCard,
+                    {
+                      backgroundColor: selected ? withAlpha(colors.tint, 0.07) : colors.surface,
+                      borderColor: selected ? colors.tint : colors.border,
+                    },
+                  ]}
                 >
-                  <View style={[styles.typeIcon, {
-                    backgroundColor: selected ? colors.tint : withAlpha(colors.muted, 0.12),
-                  }]}>
-                    <Ionicons name={type.icon} size={22} color={selected ? colors.onPrimary : colors.muted} />
+                  <View
+                    style={[
+                      styles.typeIcon,
+                      {
+                        backgroundColor: selected ? colors.tint : withAlpha(colors.muted, 0.12),
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={type.icon}
+                      size={22}
+                      color={selected ? colors.onPrimary : colors.muted}
+                    />
                   </View>
-                  <ThemedText style={[styles.typeLabel, { color: selected ? colors.tint : colors.text }]}>
+                  <ThemedText
+                    style={[styles.typeLabel, { color: selected ? colors.tint : colors.text }]}
+                  >
                     {type.label}
                   </ThemedText>
-                  <ThemedText style={[styles.typeDesc, { color: colors.muted }]}>{type.description}</ThemedText>
+                  <ThemedText style={[styles.typeDesc, { color: colors.muted }]}>
+                    {type.description}
+                  </ThemedText>
                 </Clickable>
               );
             })}
@@ -79,7 +116,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
 
         {/* Title */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Session Name *</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Session Name *
+          </ThemedText>
           <TextInput
             style={[styles.input, inputColors]}
             placeholder="e.g., Striker Finishing Clinic"
@@ -92,7 +131,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
 
         {/* Duration */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Duration</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Duration
+          </ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Row gap="sm">
               {DURATION_OPTIONS.map((opt) => {
@@ -102,12 +143,20 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                     key={opt.value}
                     onPress={() => onDurationChange(opt.value)}
                     accessibilityLabel={`Select ${opt.label} duration`}
-                    style={[styles.chip, {
-                      backgroundColor: selected ? colors.tint : colors.surface,
-                      borderColor: selected ? colors.tint : colors.border,
-                    }]}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: selected ? colors.tint : colors.surface,
+                        borderColor: selected ? colors.tint : colors.border,
+                      },
+                    ]}
                   >
-                    <ThemedText style={[styles.chipText, { color: selected ? colors.onPrimary : colors.text }]}>
+                    <ThemedText
+                      style={[
+                        styles.chipText,
+                        { color: selected ? colors.onPrimary : colors.text },
+                      ]}
+                    >
                       {opt.label}
                     </ThemedText>
                   </Clickable>
@@ -120,7 +169,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
         {/* Max Participants (non-1on1) */}
         {sessionType !== '1on1' && (
           <Column gap="sm">
-            <ThemedText type="defaultSemiBold" style={styles.label}>Max Participants</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.label}>
+              Max Participants
+            </ThemedText>
             <TextInput
               style={[styles.input, styles.smallInput, inputColors]}
               placeholder={`Default: ${defaultMaxParticipants}`}
@@ -135,7 +186,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
 
         {/* Description */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Description</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Description
+          </ThemedText>
           <TextInput
             style={[styles.input, styles.textArea, inputColors]}
             placeholder="What will athletes learn or work on?"
@@ -150,7 +203,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
 
         {/* Focus Areas */}
         <Column gap="sm">
-          <ThemedText type="defaultSemiBold" style={styles.label}>Focus Areas</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Focus Areas
+          </ThemedText>
           <Row wrap gap="sm">
             {FOCUS_AREAS.map((area) => {
               const selected = focusAreas.includes(area);
@@ -159,12 +214,17 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
                   key={area}
                   onPress={() => onToggleFocusArea(area)}
                   accessibilityLabel={`${selected ? 'Remove' : 'Add'} ${area} focus area`}
-                  style={[styles.chip, {
-                    backgroundColor: selected ? colors.tint : colors.surface,
-                    borderColor: selected ? colors.tint : colors.border,
-                  }]}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: selected ? colors.tint : colors.surface,
+                      borderColor: selected ? colors.tint : colors.border,
+                    },
+                  ]}
                 >
-                  <ThemedText style={[styles.focusText, { color: selected ? colors.onPrimary : colors.text }]}>
+                  <ThemedText
+                    style={[styles.focusText, { color: selected ? colors.onPrimary : colors.text }]}
+                  >
                     {area}
                   </ThemedText>
                 </Clickable>
@@ -179,14 +239,38 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
 
 const styles = StyleSheet.create({
   label: { ...Typography.bodySmall },
-  input: { height: 48, borderRadius: Radii.md, paddingHorizontal: Spacing.md, ...Typography.body, borderWidth: 1 },
+  input: {
+    height: 48,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    ...Typography.body,
+    borderWidth: 1,
+  },
   smallInput: { width: 140 },
   textArea: { height: 100, paddingTop: Spacing.sm, textAlignVertical: 'top' },
-  typeCard: { width: '48%', padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1.5, alignItems: 'center', gap: Spacing.xs },
-  typeIcon: { width: 44, height: 44, borderRadius: Radii.xl, alignItems: 'center', justifyContent: 'center' },
+  typeCard: {
+    width: '48%',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  typeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   typeLabel: { ...Typography.bodySmallSemiBold },
   typeDesc: { ...Typography.caption },
-  chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
   chipText: { ...Typography.bodySmallSemiBold },
   focusText: { ...Typography.smallSemiBold },
 });

@@ -1,7 +1,7 @@
 /**
  * SessionInstanceManager — Coach view: manage upcoming recurring instances + end series.
  */
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -22,7 +22,11 @@ interface SessionInstanceManagerProps {
 }
 
 function SessionInstanceManagerInner({
-  showInstanceManagement, onToggle, upcomingInstances, onCancelInstance, onEndSeries,
+  showInstanceManagement,
+  onToggle,
+  upcomingInstances,
+  onCancelInstance,
+  onEndSeries,
 }: SessionInstanceManagerProps) {
   const { colors: palette } = useTheme();
 
@@ -32,9 +36,15 @@ function SessionInstanceManagerInner({
         <Row align="center" justify="between">
           <Row align="center" gap={10}>
             <Ionicons name="calendar" size={20} color={palette.tint} />
-            <ThemedText type="subtitle" style={styles.title}>Manage Sessions</ThemedText>
+            <ThemedText type="subtitle" style={styles.title}>
+              Manage Sessions
+            </ThemedText>
           </Row>
-          <Ionicons name={showInstanceManagement ? 'chevron-up' : 'chevron-down'} size={20} color={palette.icon} />
+          <Ionicons
+            name={showInstanceManagement ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={palette.icon}
+          />
         </Row>
       </Clickable>
 
@@ -48,10 +58,19 @@ function SessionInstanceManagerInner({
             <ThemedText style={styles.emptyText}>No upcoming sessions</ThemedText>
           ) : (
             upcomingInstances.map((instance, index) => (
-              <Row key={`instance-${index}`} align="center" justify="between" style={[styles.row, { borderBottomColor: palette.border }]}>
+              <Row
+                key={`instance-${index}`}
+                align="center"
+                justify="between"
+                style={[styles.row, { borderBottomColor: palette.border }]}
+              >
                 <Row align="center" gap="sm">
                   <ThemedText style={styles.date}>
-                    {instance.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {instance.toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}
                   </ThemedText>
                   <ThemedText style={[styles.time, { color: palette.muted }]}>
                     {instance.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
@@ -68,12 +87,17 @@ function SessionInstanceManagerInner({
           )}
 
           <Clickable
-            style={[styles.endSeriesButton, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}
+            style={[
+              styles.endSeriesButton,
+              { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error },
+            ]}
             onPress={onEndSeries}
           >
             <Row align="center" justify="center" gap={8}>
               <Ionicons name="stop-circle-outline" size={20} color={palette.error} />
-              <ThemedText style={[styles.endSeriesText, { color: palette.error }]}>End Recurring Series</ThemedText>
+              <ThemedText style={[styles.endSeriesText, { color: palette.error }]}>
+                End Recurring Series
+              </ThemedText>
             </Row>
           </Clickable>
         </View>
@@ -90,11 +114,24 @@ const styles = StyleSheet.create({
   title: { fontSize: scaleFont(16) },
   content: { marginTop: 16, gap: Spacing.xs + Spacing.xxs },
   subtitle: { fontSize: scaleFont(13), fontWeight: '500' },
-  emptyText: { fontSize: scaleFont(15), opacity: 0.5, fontStyle: 'italic', marginTop: 10, lineHeight: scaleFont(21) },
+  emptyText: {
+    fontSize: scaleFont(15),
+    opacity: 0.5,
+    fontStyle: 'italic',
+    marginTop: 10,
+    lineHeight: scaleFont(21),
+  },
   row: { paddingVertical: Spacing.xs + Spacing.xxs, borderBottomWidth: 1 },
   date: { fontSize: scaleFont(15), fontWeight: '600' },
   time: { fontSize: scaleFont(14) },
-  cancelButton: { width: 32, height: 32, borderRadius: Radii.lg, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  cancelButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   endSeriesButton: { paddingVertical: 14, borderRadius: Radii.md, borderWidth: 1, marginTop: 8 },
   endSeriesText: { fontSize: scaleFont(15), fontWeight: '600' },
 });

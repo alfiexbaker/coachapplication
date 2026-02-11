@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistBannerProps {
@@ -16,7 +16,12 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning },
+      ]}
+    >
       <View style={styles.iconContainer}>
         <Ionicons name="time-outline" size={24} color={palette.warning} />
       </View>
@@ -42,7 +47,9 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
         ) : (
           <>
             <Ionicons name="add" size={18} color={palette.onPrimary} />
-            <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Join Waitlist</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
+              Join Waitlist
+            </ThemedText>
           </>
         )}
       </Clickable>

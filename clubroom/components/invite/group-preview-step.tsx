@@ -100,7 +100,11 @@ export const GroupPreviewStep = memo(function GroupPreviewStep({
 
         {/* Stats */}
         <Row gap="md">
-          <Column align="center" paddingV="md" style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Column
+            align="center"
+            paddingV="md"
+            style={[styles.statCard, { backgroundColor: colors.surface }]}
+          >
             <ThemedText type="title" style={{ color: colors.tint }}>
               {parentMap.size}
             </ThemedText>
@@ -108,7 +112,11 @@ export const GroupPreviewStep = memo(function GroupPreviewStep({
               Invite{parentMap.size !== 1 ? 's' : ''}
             </ThemedText>
           </Column>
-          <Column align="center" paddingV="md" style={[styles.statCard, { backgroundColor: colors.surface }]}>
+          <Column
+            align="center"
+            paddingV="md"
+            style={[styles.statCard, { backgroundColor: colors.surface }]}
+          >
             <ThemedText type="title" style={{ color: colors.tint }}>
               {selectedAthletes.length}
             </ThemedText>

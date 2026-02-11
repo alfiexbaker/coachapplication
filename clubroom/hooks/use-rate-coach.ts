@@ -41,10 +41,21 @@ export interface CoachToRate {
   hasReview: boolean;
 }
 
-const FEEDBACK_CHIPS = ['Great Communication', 'Patient', 'Knowledgeable', 'Motivating', 'Punctual', 'Friendly'];
+const FEEDBACK_CHIPS = [
+  'Great Communication',
+  'Patient',
+  'Knowledgeable',
+  'Motivating',
+  'Punctual',
+  'Friendly',
+];
 
 const RATING_LABELS: Record<number, string> = {
-  1: 'Needs improvement', 2: 'Fair', 3: 'Good', 4: 'Great!', 5: 'Excellent!',
+  1: 'Needs improvement',
+  2: 'Fair',
+  3: 'Good',
+  4: 'Great!',
+  5: 'Excellent!',
 };
 
 export { FEEDBACK_CHIPS, RATING_LABELS };
@@ -98,14 +109,19 @@ export function useRateCoach() {
           const existing = coachMap.get(booking.coachId);
           if (existing) {
             existing.sessionCount++;
-            if (!existing.lastSession || new Date(booking.scheduledAt) > new Date(existing.lastSession)) {
+            if (
+              !existing.lastSession ||
+              new Date(booking.scheduledAt) > new Date(existing.lastSession)
+            ) {
               existing.lastSession = booking.scheduledAt;
             }
           } else {
             coachMap.set(booking.coachId, {
-              id: booking.coachId, name: booking.coachName,
+              id: booking.coachId,
+              name: booking.coachName,
               photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
-              sessionCount: 1, lastSession: booking.scheduledAt,
+              sessionCount: 1,
+              lastSession: booking.scheduledAt,
               hasReview: reviewedCoachIds.has(booking.coachId),
             });
           }
@@ -114,41 +130,39 @@ export function useRateCoach() {
 
       for (const offering of offerings) {
         const userReg = offering.registrations?.find(
-          (r) => r.userId === currentUser?.id && r.status === 'confirmed'
+          (r) => r.userId === currentUser?.id && r.status === 'confirmed',
         );
         if (userReg && new Date(offering.scheduledAt) < new Date()) {
           const existing = coachMap.get(offering.coachId);
-          if (existing) { existing.sessionCount++; }
-          else {
+          if (existing) {
+            existing.sessionCount++;
+          } else {
             coachMap.set(offering.coachId, {
-              id: offering.coachId, name: getSessionOfferingCoachName(offering),
+              id: offering.coachId,
+              name: getSessionOfferingCoachName(offering),
               photoUrl: `https://i.pravatar.cc/100?u=${offering.coachId}`,
-              sessionCount: 1, lastSession: offering.scheduledAt,
+              sessionCount: 1,
+              lastSession: offering.scheduledAt,
               hasReview: reviewedCoachIds.has(offering.coachId),
             });
           }
         }
       }
 
-      const sortedCoaches = Array.from(coachMap.values()).sort((a, b) =>
-        new Date(b.lastSession || 0).getTime() - new Date(a.lastSession || 0).getTime()
+      const sortedCoaches = Array.from(coachMap.values()).sort(
+        (a, b) => new Date(b.lastSession || 0).getTime() - new Date(a.lastSession || 0).getTime(),
       );
 
       return ok<RateCoachData>({ coaches: sortedCoaches });
     } catch (loadError) {
       logger.error('Failed to load coaches', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load coaches to rate. Pull down to refresh.', loadError));
+      return err(
+        serviceError('UNKNOWN', 'Failed to load coaches to rate. Pull down to refresh.', loadError),
+      );
     }
   }, [currentUser?.id]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<RateCoachData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<RateCoachData>({
     load: loadCoaches,
     deps: [currentUser?.id],
     isEmpty: (value) => value.coaches.length === 0,
@@ -167,20 +181,30 @@ export function useRateCoach() {
       const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
       const userName = currentUser?.fullName || currentUser?.username || 'Anonymous';
       const newReview: StoredReview = {
-        id: `review_${Date.now()}`, coachId: selectedCoach.id, coachName: selectedCoach.name,
-        userId: currentUser?.id ?? '', userName, parentName: userName, rating,
-        text: reviewText.trim(), content: reviewText.trim(),
-        createdAt: new Date().toISOString(), sessionDate: new Date().toISOString(),
+        id: `review_${Date.now()}`,
+        coachId: selectedCoach.id,
+        coachName: selectedCoach.name,
+        userId: currentUser?.id ?? '',
+        userName,
+        parentName: userName,
+        rating,
+        text: reviewText.trim(),
+        content: reviewText.trim(),
+        createdAt: new Date().toISOString(),
+        sessionDate: new Date().toISOString(),
       };
       reviews.push(newReview);
       await apiClient.set('coach_reviews', reviews);
       logger.info('Review submitted', { coachId: selectedCoach.id, rating });
-      Alert.alert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`,
-        [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Review Submitted', `Thank you for rating ${selectedCoach.name}!`, [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     } catch (error) {
       logger.error('Failed to submit review', error);
       Alert.alert('Error', 'Failed to submit review. Please try again.');
-    } finally { setSubmitting(false); }
+    } finally {
+      setSubmitting(false);
+    }
   }, [selectedCoach, rating, reviewText, currentUser]);
 
   const toggleChip = useCallback((label: string) => {

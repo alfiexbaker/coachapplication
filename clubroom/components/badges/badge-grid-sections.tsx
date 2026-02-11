@@ -147,7 +147,9 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={20} color={palette.success} />
           </View>
-          <ThemedText type="heading" style={styles.statValue}>{unlockedBadges}</ThemedText>
+          <ThemedText type="heading" style={styles.statValue}>
+            {unlockedBadges}
+          </ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Earned</ThemedText>
         </View>
 
@@ -157,7 +159,9 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
             <Ionicons name="lock-closed" size={20} color={palette.muted} />
           </View>
-          <ThemedText type="heading" style={styles.statValue}>{totalBadges - unlockedBadges}</ThemedText>
+          <ThemedText type="heading" style={styles.statValue}>
+            {totalBadges - unlockedBadges}
+          </ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Locked</ThemedText>
         </View>
 
@@ -167,15 +171,21 @@ export const BadgeStatsInner = memo(function BadgeStatsInner({
           <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="star" size={20} color={palette.tint} />
           </View>
-          <ThemedText type="heading" style={styles.statValue}>{totalPoints}</ThemedText>
+          <ThemedText type="heading" style={styles.statValue}>
+            {totalPoints}
+          </ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Points</ThemedText>
         </View>
       </Row>
 
       <View style={styles.overallProgress}>
         <Row style={styles.progressHeader}>
-          <ThemedText style={[styles.progressTitle, { color: palette.text }]}>Overall Progress</ThemedText>
-          <ThemedText style={[styles.progressValue, { color: palette.tint }]}>{progressPercent}%</ThemedText>
+          <ThemedText style={[styles.progressTitle, { color: palette.text }]}>
+            Overall Progress
+          </ThemedText>
+          <ThemedText style={[styles.progressValue, { color: palette.tint }]}>
+            {progressPercent}%
+          </ThemedText>
         </Row>
         <View style={[styles.progressBarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <View

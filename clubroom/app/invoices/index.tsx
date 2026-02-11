@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceList } from '@/components/invoices';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -57,16 +57,19 @@ export default function InvoicesScreen() {
     }
   }, [currentUser?.id, filter]);
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<{ invoices: Invoice[]; summary: InvoiceSummary | null }>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
+    invoices: Invoice[];
+    summary: InvoiceSummary | null;
+  }>({
     load: loadData,
-    deps: [currentUser?.id, filter.status, filter.dateFrom, filter.dateTo, filter.bookingId, filter.coachId],
+    deps: [
+      currentUser?.id,
+      filter.status,
+      filter.dateFrom,
+      filter.dateTo,
+      filter.bookingId,
+      filter.coachId,
+    ],
     isEmpty: (value) => value.invoices.length === 0,
     refetchOnFocus: true,
   });
@@ -130,7 +133,9 @@ export default function InvoicesScreen() {
           <Row gap="lg" style={styles.summaryStats}>
             {/* Total Paid */}
             <Row align="start" gap="sm" style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <View
+                style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+              >
                 <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               </View>
               <View>
@@ -146,11 +151,15 @@ export default function InvoicesScreen() {
 
             {/* Pending */}
             <Row align="start" gap="sm" style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+              <View
+                style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}
+              >
                 <Ionicons name="time" size={18} color={palette.warning} />
               </View>
               <View>
-                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Pending</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                  Pending
+                </ThemedText>
                 <ThemedText type="defaultSemiBold">
                   {invoiceService.formatAmount(summary.totalPending)}
                 </ThemedText>
@@ -163,7 +172,11 @@ export default function InvoicesScreen() {
 
           {/* Draft indicator */}
           {summary.draftCount > 0 && (
-            <Row align="center" gap="xs" style={[styles.draftBanner, { backgroundColor: palette.surfaceSecondary }]}>
+            <Row
+              align="center"
+              gap="xs"
+              style={[styles.draftBanner, { backgroundColor: palette.surfaceSecondary }]}
+            >
               <Ionicons name="document-outline" size={16} color={palette.muted} />
               <ThemedText style={[styles.draftText, { color: palette.muted }]}>
                 {summary.draftCount} draft{summary.draftCount > 1 ? 's' : ''} pending
