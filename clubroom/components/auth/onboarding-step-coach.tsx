@@ -37,6 +37,16 @@ function StepCoachDetailsInner({
   onChangeField,
 }: StepCoachDetailsProps) {
   const { colors: palette } = useTheme();
+  const readinessChecks = [
+    { key: 'org', done: !isOrganization || organizationName.trim().length > 0 },
+    { key: 'exp', done: yearsExperience.trim().length > 0 },
+    { key: 'rate', done: hourlyRate.trim().length > 0 },
+    { key: 'spec', done: specializations.length > 0 },
+    { key: 'bio', done: bio.trim().length > 0 },
+  ];
+  const readiness = Math.round(
+    (readinessChecks.filter((item) => item.done).length / readinessChecks.length) * 100,
+  );
 
   const knobStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: withTiming(isOrganization ? 20 : 0, { duration: 200 }) }],
@@ -52,6 +62,34 @@ function StepCoachDetailsInner({
       <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
         Help athletes find and trust you.
       </ThemedText>
+
+      <View
+        style={[
+          styles.readinessCard,
+          {
+            backgroundColor: withAlpha(palette.tint, 0.05),
+            borderColor: withAlpha(palette.tint, 0.16),
+          },
+        ]}
+      >
+        <Row style={styles.readinessHeader}>
+          <ThemedText style={styles.readinessTitle}>Coach profile readiness</ThemedText>
+          <ThemedText style={[styles.readinessPercent, { color: palette.tint }]}>
+            {readiness}%
+          </ThemedText>
+        </Row>
+        <View style={[styles.readinessTrack, { backgroundColor: withAlpha(palette.tint, 0.14) }]}>
+          <View
+            style={[
+              styles.readinessFill,
+              {
+                width: `${readiness}%`,
+                backgroundColor: palette.tint,
+              },
+            ]}
+          />
+        </View>
+      </View>
 
       {/* Organization toggle */}
       <View style={styles.fieldGroup}>
@@ -191,6 +229,32 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     gap: Spacing.xs,
+  },
+  readinessCard: {
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  readinessHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  readinessTitle: {
+    ...Typography.bodySemiBold,
+  },
+  readinessPercent: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  readinessTrack: {
+    height: 6,
+    borderRadius: Radii.xs,
+    overflow: 'hidden',
+  },
+  readinessFill: {
+    height: '100%',
+    borderRadius: Radii.xs,
   },
   label: {
     ...Typography.caption,

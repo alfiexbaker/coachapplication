@@ -36,6 +36,14 @@ function StepAthleteDetailsInner({
   onToggleHasChildren,
 }: StepAthleteDetailsProps) {
   const { colors: palette } = useTheme();
+  const readinessChecks = [
+    { key: 'sport', label: 'Sport selected', done: sport.length > 0 },
+    { key: 'level', label: 'Skill level selected', done: Boolean(skillLevel) },
+    { key: 'position', label: 'Position added', done: position.trim().length > 0 },
+  ];
+  const readiness = Math.round(
+    (readinessChecks.filter((item) => item.done).length / readinessChecks.length) * 100,
+  );
 
   const knobStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: withTiming(hasChildren ? 20 : 0, { duration: 200 }) }],
@@ -49,6 +57,34 @@ function StepAthleteDetailsInner({
       <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
         Help coaches understand your level and goals.
       </ThemedText>
+
+      <View
+        style={[
+          styles.readinessCard,
+          {
+            backgroundColor: withAlpha(palette.tint, 0.05),
+            borderColor: withAlpha(palette.tint, 0.16),
+          },
+        ]}
+      >
+        <Row style={styles.readinessHeader}>
+          <ThemedText style={styles.readinessTitle}>Athlete profile readiness</ThemedText>
+          <ThemedText style={[styles.readinessPercent, { color: palette.tint }]}>
+            {readiness}%
+          </ThemedText>
+        </Row>
+        <View style={[styles.readinessTrack, { backgroundColor: withAlpha(palette.tint, 0.14) }]}>
+          <View
+            style={[
+              styles.readinessFill,
+              {
+                width: `${readiness}%`,
+                backgroundColor: palette.tint,
+              },
+            ]}
+          />
+        </View>
+      </View>
 
       {/* Sport picker */}
       <View style={styles.fieldGroup}>
@@ -180,6 +216,32 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     gap: Spacing.xs,
+  },
+  readinessCard: {
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  readinessHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  readinessTitle: {
+    ...Typography.bodySemiBold,
+  },
+  readinessPercent: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  readinessTrack: {
+    height: 6,
+    borderRadius: Radii.xs,
+    overflow: 'hidden',
+  },
+  readinessFill: {
+    height: '100%',
+    borderRadius: Radii.xs,
   },
   label: {
     ...Typography.caption,

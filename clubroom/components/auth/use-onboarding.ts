@@ -61,6 +61,8 @@ function onboardingReducer(state: OnboardingState, action: OnboardingAction): On
 export interface UseOnboardingResult {
   state: OnboardingState;
   fadeOpacity: SharedValue<number>;
+  stepTranslateX: SharedValue<number>;
+  stepScale: SharedValue<number>;
   dispatch: React.Dispatch<OnboardingAction>;
   handleNext: () => void;
   handleBack: () => void;
@@ -75,6 +77,8 @@ export function useOnboarding(
   const { registerFromOnboarding, error: authError } = useAuth();
   const [state, dispatch] = useReducer(onboardingReducer, INITIAL_STATE);
   const fadeOpacity = useSharedValue(1);
+  const stepTranslateX = useSharedValue(0);
+  const stepScale = useSharedValue(1);
 
   // ---- Navigation helpers ----
 
@@ -125,15 +129,21 @@ export function useOnboarding(
   // ---- Animated transition ----
 
   const animateTransition = useCallback(
-    (callback: () => void) => {
-      fadeOpacity.value = withTiming(0, { duration: 150 }, (finished) => {
+    (direction: 1 | -1, callback: () => void) => {
+      fadeOpacity.value = withTiming(0, { duration: 170 }, (finished) => {
         if (finished) {
+          stepTranslateX.value = direction * 26;
+          stepScale.value = 0.985;
           runOnJS(callback)();
-          fadeOpacity.value = withTiming(1, { duration: 150 });
+          fadeOpacity.value = withTiming(1, { duration: 190 });
+          stepTranslateX.value = withTiming(0, { duration: 230 });
+          stepScale.value = withTiming(1, { duration: 230 });
         }
       });
+      stepTranslateX.value = withTiming(direction * -22, { duration: 170 });
+      stepScale.value = withTiming(0.99, { duration: 170 });
     },
-    [fadeOpacity],
+    [fadeOpacity, stepScale, stepTranslateX],
   );
 
   // ---- Validation ----
@@ -198,7 +208,7 @@ export function useOnboarding(
 
       if (success) {
         logger.success('Onboarding complete');
-        animateTransition(() => dispatch({ type: 'SET_STEP', step: 'complete' }));
+        animateTransition(1, () => dispatch({ type: 'SET_STEP', step: 'complete' }));
         setTimeout(() => onComplete(), 1500);
       } else {
         dispatch({ type: 'SET_ERROR', error: authError || 'Something went wrong' });
@@ -223,14 +233,14 @@ export function useOnboarding(
     if (nextStep === 'complete') {
       handleComplete();
     } else {
-      animateTransition(() => dispatch({ type: 'SET_STEP', step: nextStep }));
+      animateTransition(1, () => dispatch({ type: 'SET_STEP', step: nextStep }));
     }
   }, [validateCurrentStep, getNextStep, handleComplete, animateTransition]);
 
   const handleBack = useCallback(() => {
     const prevStep = getPrevStep();
     if (prevStep) {
-      animateTransition(() => dispatch({ type: 'SET_STEP', step: prevStep }));
+      animateTransition(-1, () => dispatch({ type: 'SET_STEP', step: prevStep }));
     } else {
       onBackToLogin();
     }
@@ -239,6 +249,8 @@ export function useOnboarding(
   return {
     state,
     fadeOpacity,
+    stepTranslateX,
+    stepScale,
     dispatch,
     handleNext,
     handleBack,

@@ -2,7 +2,7 @@
  * Onboarding Screen — Multi-step wizard for user registration.
  * Steps: Account type -> Basic info -> Location -> Role details -> Complete
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,10 +30,69 @@ interface OnboardingScreenProps {
 
 export default function OnboardingScreen({ onComplete, onBackToLogin }: OnboardingScreenProps) {
   const { colors: palette } = useTheme();
-  const { state, fadeOpacity, dispatch, handleNext, handleBack, getStepNumber, getTotalSteps } =
-    useOnboarding(onComplete, onBackToLogin);
+  const {
+    state,
+    fadeOpacity,
+    stepTranslateX,
+    stepScale,
+    dispatch,
+    handleNext,
+    handleBack,
+    getStepNumber,
+    getTotalSteps,
+  } = useOnboarding(onComplete, onBackToLogin);
 
-  const animatedFade = useAnimatedStyle(() => ({ opacity: fadeOpacity.value }));
+  const stepContext = useMemo(() => {
+    switch (state.step) {
+      case 'account-type':
+        return {
+          label: 'Account setup',
+          title: 'Choose your path',
+          description: 'Pick your role so we tailor the full onboarding journey.',
+          icon: 'compass-outline' as const,
+        };
+      case 'basic-info':
+        return {
+          label: 'Identity',
+          title: 'Create your profile',
+          description: 'Add secure sign-in details and your core account info.',
+          icon: 'id-card-outline' as const,
+        };
+      case 'location':
+        return {
+          label: 'Location',
+          title: 'Set your base',
+          description: 'We use this to personalize coaches, athletes, and booking matches.',
+          icon: 'location-outline' as const,
+        };
+      case 'athlete-details':
+        return {
+          label: 'Athlete profile',
+          title: 'Tell coaches your level',
+          description: 'Share sport and experience so recommendations are immediately relevant.',
+          icon: 'fitness-outline' as const,
+        };
+      case 'coach-details':
+        return {
+          label: 'Coach profile',
+          title: 'Present your services',
+          description: 'Set expertise and positioning so families can trust and book quickly.',
+          icon: 'briefcase-outline' as const,
+        };
+      default:
+        return {
+          label: 'Complete',
+          title: 'You are in',
+          description: 'Finalizing your account setup.',
+          icon: 'checkmark-done-outline' as const,
+        };
+    }
+  }, [state.step]);
+
+  const animatedFade = useAnimatedStyle(() => ({
+    opacity: fadeOpacity.value,
+    transform: [{ translateX: stepTranslateX.value }, { scale: stepScale.value }],
+  }));
 
   const handleFieldChange = useCallback(
     (field: string, value: string) => {
@@ -125,10 +184,18 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         {/* Header */}
         {state.step !== 'complete' && (
           <Row style={styles.header}>
-            <Clickable onPress={handleBack} style={styles.backButton} accessibilityLabel="Go back">
+            <Clickable
+              onPress={handleBack}
+              style={[styles.backButton, { backgroundColor: withAlpha(palette.text, 0.04) }]}
+              accessibilityLabel="Go back"
+            >
               <Ionicons name="arrow-back" size={24} color={palette.foreground} />
             </Clickable>
-            <OnboardingProgressBar stepNumber={getStepNumber()} totalSteps={getTotalSteps()} />
+            <OnboardingProgressBar
+              stepNumber={getStepNumber()}
+              totalSteps={getTotalSteps()}
+              stepLabel={stepContext.label}
+            />
           </Row>
         )}
 
@@ -138,11 +205,48 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {state.step !== 'complete' && (
+            <Row
+              style={[
+                styles.contextCard,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.05),
+                  borderColor: withAlpha(palette.tint, 0.12),
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.contextIcon,
+                  {
+                    backgroundColor: withAlpha(palette.tint, 0.1),
+                  },
+                ]}
+              >
+                <Ionicons name={stepContext.icon} size={18} color={palette.tint} />
+              </View>
+              <View style={styles.contextCopy}>
+                <ThemedText style={styles.contextTitle}>{stepContext.title}</ThemedText>
+                <ThemedText style={[styles.contextDescription, { color: palette.muted }]}>
+                  {stepContext.description}
+                </ThemedText>
+              </View>
+            </Row>
+          )}
+
           <Animated.View style={animatedFade}>{renderCurrentStep()}</Animated.View>
 
           {/* Error */}
           {state.error && (
-            <Row style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+            <Row
+              style={[
+                styles.errorCard,
+                {
+                  backgroundColor: withAlpha(palette.error, 0.06),
+                  borderColor: withAlpha(palette.error, 0.16),
+                },
+              ]}
+            >
               <Ionicons name="alert-circle" size={20} color={palette.error} />
               <ThemedText style={[styles.errorText, { color: palette.error }]}>
                 {state.error}
@@ -153,7 +257,15 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
 
         {/* Footer */}
         {state.step !== 'complete' && (
-          <View style={[styles.footer, { borderTopColor: palette.border }]}>
+          <View
+            style={[
+              styles.footer,
+              {
+                borderTopColor: withAlpha(palette.border, 0.8),
+                backgroundColor: withAlpha(palette.background, 0.95),
+              },
+            ]}
+          >
             <Clickable
               onPress={handleNext}
               disabled={state.isSubmitting}
@@ -167,9 +279,13 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
               ]}
             >
               <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
-                {isLastStep ? 'Create Account' : 'Continue'}
+                {state.isSubmitting ? 'Setting up account...' : isLastStep ? 'Create Account' : 'Continue'}
               </ThemedText>
-              <Ionicons name="arrow-forward" size={20} color={palette.onPrimary} />
+              <Ionicons
+                name={isLastStep ? 'sparkles-outline' : 'arrow-forward'}
+                size={20}
+                color={palette.onPrimary}
+              />
             </Clickable>
           </View>
         )}
@@ -193,6 +309,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: Spacing.xs,
+    borderRadius: Radii.lg,
     minHeight: 44,
     minWidth: 44,
     alignItems: 'center',
@@ -201,13 +318,38 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+  contextCard: {
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.sm,
+  },
+  contextIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contextCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  contextTitle: {
+    ...Typography.bodySemiBold,
+  },
+  contextDescription: {
+    ...Typography.small,
   },
   errorCard: {
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    marginTop: Spacing.md,
+    borderWidth: 1,
   },
   errorText: {
     ...Typography.small,

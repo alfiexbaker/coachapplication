@@ -7,16 +7,22 @@ import { View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface OnboardingProgressBarProps {
   stepNumber: number;
   totalSteps: number;
+  stepLabel?: string;
 }
 
-function OnboardingProgressBarInner({ stepNumber, totalSteps }: OnboardingProgressBarProps) {
+function OnboardingProgressBarInner({
+  stepNumber,
+  totalSteps,
+  stepLabel,
+}: OnboardingProgressBarProps) {
   const { colors: palette } = useTheme();
+  const percent = Math.round((stepNumber / totalSteps) * 100);
 
   const fillStyle = useAnimatedStyle(() => ({
     width: withTiming(`${(stepNumber / totalSteps) * 100}%`, { duration: 300 }),
@@ -24,12 +30,37 @@ function OnboardingProgressBarInner({ stepNumber, totalSteps }: OnboardingProgre
 
   return (
     <View style={styles.container}>
-      <View style={[styles.track, { backgroundColor: palette.border }]}>
+      <View style={styles.headerRow}>
+        <ThemedText style={[styles.text, { color: palette.muted }]}>
+          Step {stepNumber} of {totalSteps}
+        </ThemedText>
+        <ThemedText style={[styles.percent, { color: palette.text }]}>{percent}%</ThemedText>
+      </View>
+      <View style={[styles.track, { backgroundColor: withAlpha(palette.border, 0.85) }]}>
         <Animated.View style={[styles.fill, { backgroundColor: palette.tint }, fillStyle]} />
       </View>
-      <ThemedText style={[styles.text, { color: palette.muted }]}>
-        Step {stepNumber} of {totalSteps}
-      </ThemedText>
+      <View style={styles.milestonesRow}>
+        {Array.from({ length: totalSteps }).map((_, idx) => {
+          const isActive = idx + 1 <= stepNumber;
+          return (
+            <View
+              key={`step-dot-${idx}`}
+              style={[
+                styles.milestoneDot,
+                {
+                  backgroundColor: isActive ? palette.tint : withAlpha(palette.border, 0.9),
+                  opacity: isActive ? 1 : 0.6,
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
+      {stepLabel ? (
+        <ThemedText style={[styles.stepLabel, { color: palette.muted }]} numberOfLines={1}>
+          {stepLabel}
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -41,8 +72,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs,
   },
+  headerRow: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   track: {
-    height: Spacing.xs,
+    height: 6,
     borderRadius: Radii.sm,
     overflow: 'hidden',
   },
@@ -51,6 +86,22 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   text: {
+    ...Typography.caption,
+  },
+  percent: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  milestonesRow: {
+    flexDirection: 'row',
+    gap: Spacing.xxs,
+  },
+  milestoneDot: {
+    flex: 1,
+    height: 3,
+    borderRadius: Radii.xs,
+  },
+  stepLabel: {
     ...Typography.caption,
   },
 });

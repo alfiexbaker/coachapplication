@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import {
   DarkTheme,
   DefaultTheme,
@@ -55,7 +56,7 @@ function RootNavigation() {
 
   // Deep linking: handle notification taps and initial launch tap.
   useEffect(() => {
-    if (!Notifications || !isAuthenticated) return;
+    if (!Notifications || !isAuthenticated || Platform.OS === 'web') return;
 
     const handleResponse = (response: {
       notification: { request: { content: { data: Record<string, unknown> } } };
@@ -69,19 +70,36 @@ function RootNavigation() {
       }
     };
 
-    void Notifications.getLastNotificationResponseAsync?.().then((response) => {
-      if (response) {
-        handleResponse(response);
+    try {
+      const getLastResponse = Notifications.getLastNotificationResponseAsync;
+      if (typeof getLastResponse === 'function') {
+        void getLastResponse.call(Notifications).then((response) => {
+          if (response) {
+            handleResponse(response);
+          }
+        });
       }
-    });
-
-    notificationResponseSubscription.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        handleResponse(response);
+    } catch (error) {
+      logger.warn('Skipping initial notification response check on unsupported platform', {
+        error,
       });
+    }
+
+    try {
+      notificationResponseSubscription.current =
+        Notifications.addNotificationResponseReceivedListener((response) => {
+          handleResponse(response);
+        });
+    } catch (error) {
+      logger.warn('Skipping notification response listener on unsupported platform', {
+        error,
+      });
+      notificationResponseSubscription.current = null;
+    }
 
     return () => {
       if (notificationResponseSubscription.current) {
+        handleResponse(response);
         notificationResponseSubscription.current.remove();
       }
     };

@@ -2,8 +2,19 @@
  * LoginScreen - Authentication entry point using unified form system.
  */
 
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 import { Clickable } from '@/components/primitives/clickable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,7 +23,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FormInput, FormButton } from '@/components/forms';
 import { useForm } from '@/hooks/use-form';
 import { validators } from '@/utils/validation';
-import { Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
@@ -36,11 +47,30 @@ interface LoginFormValues {
   password: string;
 }
 
+const LOGIN_VIDEO_URI = 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
+
 export default function LoginScreen() {
   const { colors: palette } = useTheme();
-  const { login, error, availableUsers, registerCoach } = useAuth();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { login, error, availableUsers, registerCoach, forgotPassword } = useAuth();
 
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
+  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const heroTranslate = useRef(new Animated.Value(20)).current;
+  const authOpacity = useRef(new Animated.Value(0)).current;
+  const authTranslate = useRef(new Animated.Value(24)).current;
+
+  const isDesktop = screenWidth >= 980;
+  const cardMaxHeight = Math.max(
+    420,
+    Math.min(isDesktop ? 760 : 640, screenHeight - (isDesktop ? 72 : 160)),
+  );
+  const heroTitle = useMemo(
+    () => (isDesktop ? 'JUST TRAIN.\nWE HANDLE THE REST.' : 'JUST TRAIN.'),
+    [isDesktop],
+  );
 
   const form = useForm<LoginFormValues>({
     initialValues: {
@@ -56,6 +86,19 @@ export default function LoginScreen() {
     },
   });
 
+  useEffect(() => {
+    Animated.stagger(110, [
+      Animated.parallel([
+        Animated.timing(heroOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
+        Animated.timing(heroTranslate, { toValue: 0, duration: 420, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(authOpacity, { toValue: 1, duration: 480, useNativeDriver: true }),
+        Animated.timing(authTranslate, { toValue: 0, duration: 480, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, [authOpacity, authTranslate, heroOpacity, heroTranslate]);
+
   const handleSignupComplete = (data: CoachSignupData) => {
     const success = registerCoach(data);
     if (success) {
@@ -65,6 +108,25 @@ export default function LoginScreen() {
 
   const handleOnboardingComplete = () => {
     // User is already auto-logged in by registerFromOnboarding
+  };
+
+  const handleForgotPassword = async () => {
+    const typedIdentity = form.values.username.trim();
+    const fallbackIdentity = 'coach';
+    const rawIdentity = typedIdentity || fallbackIdentity;
+    const email = rawIdentity.includes('@') ? rawIdentity : `${rawIdentity}@demo.clubroom.app`;
+
+    await forgotPassword(email);
+    Alert.alert(
+      'Reset requested',
+      `If ${email} exists, password reset instructions have been sent.`,
+    );
+  };
+
+  const handleUseDemoUser = (user: { username: string; password: string; role: string }) => {
+    form.setFieldValue('username', user.username);
+    form.setFieldValue('password', user.password);
+    form.clearErrors();
   };
 
   if (screenMode === 'signup') {
@@ -87,69 +149,200 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top']}
+      style={[styles.safeArea, { backgroundColor: palette.text }]}
+      edges={['top', 'bottom']}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.wrapper}
-      >
-        <SurfaceCard style={styles.loginCard}>
-          <ThemedText type="eyebrow" style={styles.eyebrow}>
-            Demo build · Auth gate
-          </ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            Sign in to Clubroom
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Use one of the preloaded accounts below to explore every screen from a specific
-            perspective.
-          </ThemedText>
-          <FormInput
-            label="Username"
-            placeholder="e.g. coach"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="next"
-            {...form.getFieldProps('username')}
+      <View style={styles.root}>
+        {!videoFailed && (
+          <Video
+            source={{ uri: LOGIN_VIDEO_URI }}
+            style={styles.backgroundVideo}
+            resizeMode={ResizeMode.COVER}
+            shouldPlay
+            isLooping
+            isMuted
+            onError={() => setVideoFailed(true)}
           />
+        )}
 
-          <View style={styles.fieldGroup}>
-            <Row style={styles.labelRow}>
-              <View />
-              <Clickable onPress={() => setScreenMode('login')}>
-                <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
-                  Forgot password?
-                </ThemedText>
-              </Clickable>
-            </Row>
-            <FormInput
-              label="Password"
-              placeholder="••••••••"
-              type="password"
-              returnKeyType="go"
-              {...form.getFieldProps('password')}
-            />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.backdrop,
+            { backgroundColor: withAlpha(palette.text, videoFailed ? 0.9 : 0.62) },
+          ]}
+        />
+        <View
+          pointerEvents="none"
+          style={[styles.edgeGlow, { backgroundColor: withAlpha(palette.tint, 0.26) }]}
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.wrapper}
+        >
+          <ScrollView
+            style={styles.pageScroll}
+            contentContainerStyle={[
+              styles.pageScrollContent,
+              { minHeight: screenHeight - Spacing.md },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={[styles.layout, isDesktop ? styles.layoutDesktop : styles.layoutMobile]}>
+            <Animated.View
+              style={[
+                styles.hero,
+                isDesktop ? styles.heroDesktop : styles.heroMobile,
+                { opacity: heroOpacity, transform: [{ translateY: heroTranslate }] },
+              ]}
+            >
+              <View style={[styles.badge, { backgroundColor: withAlpha(palette.onPrimary, 0.14) }]}>
+                <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>Clubroom</ThemedText>
+              </View>
+
+              <ThemedText
+                style={[
+                  styles.heroTitle,
+                  { color: palette.onPrimary, fontSize: isDesktop ? 54 : 40, lineHeight: isDesktop ? 62 : 46 },
+                ]}
+              >
+                {heroTitle}
+              </ThemedText>
+              <ThemedText style={[styles.heroSubtitle, { color: withAlpha(palette.onPrimary, 0.84) }]}>
+                Find coaches. Book sessions. Track every rep.
+              </ThemedText>
+
+              <View style={styles.statementRow}>
+                {['BOOK', 'TRACK', 'IMPROVE'].map((item) => (
+                  <View
+                    key={item}
+                    style={[
+                      styles.statementPill,
+                      { backgroundColor: withAlpha(palette.onPrimary, 0.14) },
+                    ]}
+                  >
+                    <ThemedText style={[styles.statementText, { color: palette.onPrimary }]}>
+                      {item}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+
+            <Animated.View
+              style={[
+                styles.authDock,
+                isDesktop ? styles.authDockDesktop : styles.authDockMobile,
+                {
+                  opacity: authOpacity,
+                  transform: [{ translateY: authTranslate }],
+                },
+              ]}
+            >
+              <SurfaceCard
+                style={[
+                  styles.authCard,
+                  {
+                    backgroundColor: withAlpha(palette.surface, isDesktop ? 0.93 : 0.97),
+                    borderColor: withAlpha(palette.text, 0.1),
+                    maxHeight: cardMaxHeight,
+                  },
+                ]}
+                animateElevation={false}
+              >
+                <View style={styles.authContent}>
+                  <View>
+                    <ThemedText style={styles.authTitle}>Welcome back</ThemedText>
+                    <ThemedText style={[styles.authSubtitle, { color: palette.muted }]}>
+                      Sign in or create your account.
+                    </ThemedText>
+                  </View>
+
+                  <FormInput
+                    label="Username"
+                    placeholder="e.g. coach"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                    {...form.getFieldProps('username')}
+                  />
+
+                  <View style={styles.fieldGroup}>
+                    <Row style={styles.labelRow}>
+                      <View />
+                      <Clickable onPress={() => void handleForgotPassword()}>
+                        <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
+                          Forgot password?
+                        </ThemedText>
+                      </Clickable>
+                    </Row>
+                    <FormInput
+                      label="Password"
+                      placeholder="••••••••"
+                      type="password"
+                      returnKeyType="go"
+                      {...form.getFieldProps('password')}
+                    />
+                  </View>
+
+                  {error ? (
+                    <ThemedText style={[styles.helper, { color: palette.error }]}>{error}</ThemedText>
+                  ) : (
+                    <ThemedText style={[styles.helper, { color: palette.muted }]}>
+                      Credentials are case-insensitive.
+                    </ThemedText>
+                  )}
+
+                  <FormButton
+                    label="Log in"
+                    onPress={form.handleSubmit}
+                    disabled={!form.isDirty}
+                    loading={form.isSubmitting}
+                    size="lg"
+                  />
+
+                  <View style={[styles.separator, { backgroundColor: withAlpha(palette.text, 0.1) }]} />
+
+                  <View style={styles.actionsStack}>
+                    <SignupCard onPress={() => setScreenMode('signup')} palette={palette} />
+                    <InviteCodeCard onPress={() => setScreenMode('coach-signup')} palette={palette} />
+                  </View>
+
+                  <Clickable
+                    style={[
+                      styles.demoToggle,
+                      {
+                        backgroundColor: withAlpha(palette.text, 0.03),
+                        borderColor: withAlpha(palette.text, 0.1),
+                      },
+                    ]}
+                    onPress={() => setShowDemoAccounts((prev) => !prev)}
+                  >
+                    <ThemedText style={styles.demoToggleLabel}>Demo credentials</ThemedText>
+                    <Ionicons
+                      name={showDemoAccounts ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={palette.muted}
+                    />
+                  </Clickable>
+
+                  {showDemoAccounts ? (
+                    <DemoAccountsCard
+                      users={availableUsers}
+                      palette={palette}
+                      onSelectUser={handleUseDemoUser}
+                    />
+                  ) : null}
+                </View>
+              </SurfaceCard>
+            </Animated.View>
           </View>
-
-          {error ? (
-            <ThemedText style={[styles.helper, { color: palette.error }]}>{error}</ThemedText>
-          ) : (
-            <ThemedText style={styles.helper}>Credentials are case-insensitive.</ThemedText>
-          )}
-
-          <FormButton
-            label="Continue"
-            onPress={form.handleSubmit}
-            disabled={!form.isDirty}
-            loading={form.isSubmitting}
-          />
-        </SurfaceCard>
-
-        <SignupCard onPress={() => setScreenMode('signup')} palette={palette} />
-        <InviteCodeCard onPress={() => setScreenMode('coach-signup')} palette={palette} />
-        <DemoAccountsCard users={availableUsers} palette={palette} />
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -158,23 +351,122 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  root: {
+    flex: 1,
+  },
+  backgroundVideo: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  edgeGlow: {
+    position: 'absolute',
+    top: -120,
+    right: -120,
+    width: 360,
+    height: 360,
+    borderRadius: Radii.full,
+    opacity: 0.45,
+  },
   wrapper: {
     flex: 1,
-    padding: Spacing.lg,
-    gap: Spacing.lg,
-    justifyContent: 'center',
   },
-  loginCard: {
+  pageScroll: {
+    flex: 1,
+  },
+  pageScrollContent: {
+    flexGrow: 1,
+  },
+  layout: {
+    flexGrow: 1,
+    gap: Spacing.lg,
+  },
+  layoutDesktop: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing['2xl'],
+    paddingVertical: Spacing.xl,
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+  },
+  layoutMobile: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    justifyContent: 'space-between',
+  },
+  hero: {
     gap: Spacing.md,
   },
-  eyebrow: {
-    opacity: 0.7,
+  heroDesktop: {
+    flex: 1,
+    justifyContent: 'center',
+    maxWidth: 640,
   },
-  title: {
-    textAlign: 'left',
+  heroMobile: {
+    paddingTop: Spacing.sm,
   },
-  subtitle: {
-    opacity: 0.8,
+  badge: {
+    alignSelf: 'flex-start',
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  badgeText: {
+    ...Typography.caption,
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    ...Typography.display,
+    fontWeight: '700',
+    maxWidth: 700,
+  },
+  heroSubtitle: {
+    ...Typography.subheading,
+    maxWidth: 500,
+  },
+  statementRow: {
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  statementPill: {
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  statementText: {
+    ...Typography.caption,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  authDock: {
+    width: '100%',
+  },
+  authDockDesktop: {
+    width: 470,
+    justifyContent: 'center',
+  },
+  authDockMobile: {
+    width: '100%',
+  },
+  authCard: {
+    borderWidth: 1,
+    borderRadius: Radii['2xl'],
+    padding: Spacing.md,
+    minHeight: 0,
+  },
+  authContent: {
+    gap: Spacing.md,
+    paddingBottom: Spacing.xs,
+  },
+  authTitle: {
+    ...Typography.title,
+  },
+  authSubtitle: {
+    ...Typography.bodySmall,
+    marginTop: Spacing.xxs,
   },
   fieldGroup: {
     gap: Spacing.xs,
@@ -184,6 +476,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: -Spacing.sm,
   },
-  forgotLink: { ...Typography.bodySmallSemiBold },
-  helper: { ...Typography.bodySmall, opacity: 0.9 },
+  forgotLink: {
+    ...Typography.bodySmallSemiBold,
+  },
+  helper: {
+    ...Typography.bodySmall,
+    marginTop: -Spacing.xs,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+  },
+  actionsStack: {
+    gap: Spacing.sm,
+  },
+  demoToggle: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  demoToggleLabel: {
+    ...Typography.bodySmallSemiBold,
+  },
 });

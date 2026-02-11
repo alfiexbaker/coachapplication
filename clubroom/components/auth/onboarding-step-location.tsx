@@ -4,11 +4,13 @@
 
 import { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
+import { Clickable } from '@/components/primitives/clickable';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { AccountType } from '@/services/auth-service';
+import { Row } from '@/components/primitives';
 
 interface StepLocationProps {
   city: string;
@@ -26,6 +28,7 @@ function StepLocationInner({
   onChangeField,
 }: StepLocationProps) {
   const { colors: palette } = useTheme();
+  const quickCountries = ['UK', 'US', 'Canada', 'Australia'];
 
   const inputStyle = [styles.input, { borderColor: palette.border, backgroundColor: palette.card }];
 
@@ -65,6 +68,33 @@ function StepLocationInner({
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Country</ThemedText>
+        <Row style={styles.quickCountryRow}>
+          {quickCountries.map((option) => {
+            const isSelected = country.trim().toLowerCase() === option.toLowerCase();
+            return (
+              <Clickable
+                key={option}
+                onPress={() => onChangeField('country', option)}
+                style={[
+                  styles.quickCountryChip,
+                  {
+                    backgroundColor: isSelected ? palette.tint : withAlpha(palette.text, 0.03),
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                <ThemedText
+                  style={[
+                    styles.quickCountryText,
+                    { color: isSelected ? palette.onPrimary : palette.foreground },
+                  ]}
+                >
+                  {option}
+                </ThemedText>
+              </Clickable>
+            );
+          })}
+        </Row>
         <TextInput
           value={country}
           onChangeText={(v) => onChangeField('country', v)}
@@ -104,5 +134,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.body,
+  },
+  quickCountryRow: {
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  quickCountryChip: {
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  quickCountryText: {
+    ...Typography.caption,
   },
 });
